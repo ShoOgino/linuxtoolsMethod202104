@@ -1,0 +1,57 @@
+	// Saves the state of this widget into the given memento
+	public void saveState(IMemento memento)
+	{
+		if (_viewer == null)
+		{
+			if (_memento != null)
+				memento.putMemento(_memento);
+		}
+		else
+		{
+			// Save all events
+			for (Iterator i = _eventList.keySet().iterator(); i.hasNext(); )
+			{
+				// Save last viewed event
+				String event = (String) i.next();
+				if (_current != null && _current.equals(event))
+				{
+					_saveDisplayInfo(event);
+					memento.putString(TAG_LAST_EVENT, event);
+				}
+				
+				DisplayInfo info = (DisplayInfo) _displays.get(event);
+				if (info != null)
+				{
+					// Save event-specific view data
+					IMemento eventMemento = memento.createChild(TAG_EVENT);
+					eventMemento.putString(TAG_EVENT_NAME, event);
+				
+					// Expanded elements
+					if (info.expandedElements != null && info.expandedElements.length > 0)
+					{
+						IMemento expMemento = eventMemento.createChild(TAG_EXPANDED);
+						for (int j = 0; j < info.expandedElements.length; ++j)
+						{
+							IProfileElement element = (IProfileElement) info.expandedElements[j];
+							IMemento child = expMemento.createChild(TAG_ELEMENT);
+							child.putString(TAG_ELEMENT_ID, element.getId());
+						}
+					}
+					
+					// vertical position
+					eventMemento.putInteger(TAG_VERTICAL_POSITION, info.verticalPosition);
+
+					// Selection
+					if (info.selection != null)
+					{
+						for (int j = 0; j < info.selection.length; ++j)
+						{
+							IProfileElement element = (IProfileElement) info.selection[j];
+							eventMemento.putString(TAG_SELECTION, element.getId());
+						}
+					}
+				}
+			}
+		}
+	}
+

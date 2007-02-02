@@ -1,0 +1,48 @@
+	// Will add opcontrol program to beginning of args
+	// args: list of opcontrol arguments (not including opcontrol program itself)
+	private void _runOpcontrol(ArrayList args, boolean drainOutput) throws OpcontrolException {
+		args.add(0, _OPCONTROL_PROGRAM);
+		// Verbosity hack. If --start or --start-daemon, add verbosity, if set
+		String cmd = (String) args.get(1);
+		if ((cmd.equals (_OPD_START_COLLECTION) || cmd.equals(_OPD_START_DAEMON))
+			&& _verbosity != null)
+		{
+			args.add(_verbosity);
+		}
+		
+		String[] cmdArray = new String[args.size()];
+		args.toArray(cmdArray);
+		
+		Process p = null;
+		try {
+			p = Runtime.getRuntime().exec(cmdArray);
+		} catch (IOException ioe) {
+			if (p != null) {
+				p.destroy();
+				p = null;
+			}
+			
+			// Throw an exception
+			Status status = new Status(Status.ERROR,
+									   OprofileCorePlugin.getId(),
+									   0 /* code */,
+									   "error message",
+									   ioe);
+			throw new OpcontrolException(status);
+		}
+		
+		// TODO: I REALLY NEED TO CHECK FOR AN ERROR HERE! 
+		// The problem is that userhelper doesn't return any error codes!!
+		if (p != null && drainOutput) {
+			BufferedReader stdout = new BufferedReader(new InputStreamReader(p.getInputStream()));
+			try {
+				String s;
+				while ((s = stdout.readLine()) != null) {
+					// drain
+				}
+			} catch (IOException ioe) {
+				// We don't care if there were errors draining the output
+			}
+		}
+	}
+

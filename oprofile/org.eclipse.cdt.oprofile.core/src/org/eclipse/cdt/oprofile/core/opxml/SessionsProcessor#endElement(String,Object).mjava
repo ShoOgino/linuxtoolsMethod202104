@@ -1,0 +1,25 @@
+	/* (non-Javadoc)
+	 * @see org.eclipse.cdt.oprofile.core.opxml.XMLProcessor#endElement(java.lang.String, java.lang.Object)
+	 */
+	public void endElement(String name, Object callData) {
+		if (name.equals(SAMPLE_COUNT_TAG)) {
+			// Got count of samples in session. Save into current session.
+			_currentSession.setSampleCount(Integer.parseInt(_characters));
+		} else if (name.equals(SESSION_TAG)) {
+			// Got end of session -- save in session list
+			_sessionList.add(_currentSession);
+			_currentSession = null;
+		} else if (name.equals(EVENT_TAG)) {
+			// Got end of event -- save session list into current SessionEvent and
+			// save current event into call data
+			_currentEvent.sessions = new SampleSession[_sessionList.size()];
+			_sessionList.toArray(_currentEvent.sessions);
+			SessionInfo info = (SessionInfo) callData;
+			info.list.add(_currentEvent);
+			_currentEvent = null;
+			_sessionList = null;
+		} else {
+			super.endElement(name, callData);
+		}
+	}
+

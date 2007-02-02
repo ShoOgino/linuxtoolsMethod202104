@@ -1,0 +1,64 @@
+	// Restore the state of the display based on the last exit state
+	private boolean _restoreState(IMemento memento)
+	{
+		// Restore DisplayInfo
+		IMemento[] events = memento.getChildren(TAG_EVENT);
+		for (int i = 0; i < events.length; ++i)
+		{
+			String event = events[i].getString(TAG_EVENT_NAME);
+			if (event != null && _actions.containsKey(event))
+			{
+				DisplayInfo info = new DisplayInfo();
+				
+				// Get expanded elements
+				info.expandedElements = null;
+				ArrayList elements = new ArrayList();
+				IMemento expanded = events[i].getChild(TAG_EXPANDED);
+				if (expanded != null)
+				{
+					IMemento[] mem = expanded.getChildren(TAG_ELEMENT);
+					for (int j = 0; j < mem.length; ++j)
+					{
+						String id = mem[j].getString(TAG_ELEMENT_ID);
+						IProfileElement element = _getEventObject(event, id);
+						if (element != null)
+							elements.add(element);
+					}
+				}
+				if (elements.size() > 0)
+				{
+					info.expandedElements = new Object[elements.size()];
+					elements.toArray(info.expandedElements);
+				}
+
+				// Get veritcal position
+				info.verticalPosition = 0;
+				Integer pos = events[i].getInteger(TAG_VERTICAL_POSITION);
+				if (pos != null)
+					info.verticalPosition = pos.intValue();
+				
+				// Get selection
+				info.selection = null;
+				String selection = events[i].getString(TAG_SELECTION);
+				if (selection != null)
+				{
+					IProfileElement obj = _getEventObject(event, selection);
+					if (obj != null)
+						info.selection = new Object[] {obj};
+				}
+				
+				// Save DisplayInfo into list
+				_displays.put(event, info);
+			}
+		}
+			
+		// Restore last viewed event
+		String last = memento.getString(TAG_LAST_EVENT);
+		if (last != null && _actions.containsKey(last)) {
+			_showEvent(last);
+			return true;
+		}
+		
+		return false;
+	}
+
