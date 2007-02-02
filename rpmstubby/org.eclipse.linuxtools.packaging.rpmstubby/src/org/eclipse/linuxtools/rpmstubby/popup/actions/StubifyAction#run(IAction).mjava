@@ -1,0 +1,131 @@
+	/**
+	 * @see IActionDelegate#run(IAction)
+	 */
+	public void run(IAction action) {
+		
+		List /* of FeatureModel */ features = new ArrayList();
+		
+		/* SRPM Stuff */
+		String name = "";
+		String version = "";
+		String release = "";
+		String summary = "";
+		String license = "";
+		String url = "";
+
+		List /* of ImportModel */ buildRequirements = new ArrayList();
+		
+		StructuredSelection structuredSelection = (StructuredSelection) selection;
+		for (Iterator selectionIter = structuredSelection.iterator(); selectionIter.hasNext();) {
+			IProject project = null;
+			IFile featureFile = null;
+			
+			Object selected = (Object) selectionIter.next();
+			if (selected instanceof IProject) {
+				project = (IProject) selected;
+				featureFile = project.getFile(new Path("/feature.xml"));
+			} else if (selected instanceof IFile) {
+				featureFile = (IFile) selected;
+				project = featureFile.getProject();
+			} else {
+				// FIXME:  error
+			}
+			
+			// Process the feature
+			FeatureModelFactory featureModelFactory = new FeatureModelFactory();
+			try {
+				FeatureModel featureModel = featureModelFactory
+				.parseFeature(featureFile.getContents());
+				features.add(featureModel);
+			} catch (CoreException e) {
+				// Hmm.  What could cause this?  Malformed feature.xml?
+			} catch (SAXException e) {
+				// Malformed feature.xml?
+			}
+		}
+		
+		for (Iterator iter = features.iterator(); iter.hasNext();) {
+			FeatureModel featureModel = (FeatureModel) iter.next();
+			URLEntryModel descriptionModel = featureModel.getDescriptionModel();
+
+			if (descriptionModel != null)
+				url = "URL:  " + descriptionModel.getURLString();
+			else
+				url = "URL:  FIXME";
+			
+			URLEntryModel licenseModel = featureModel.getLicenseModel();
+			if (licenseModel != null) {
+				String urlString = licenseModel.getURLString();
+				if (urlString.contains("epl")) {
+					String newLicense = "EPL";
+					if (!license.equals(newLicense)) {
+						license += " " + newLicense;
+					}
+				}
+			}
+			
+			System.out.println("Version of " + featureModel.getFeatureIdentifier() + ":  " + featureModel.getFeatureVersion());
+		}
+		
+		for (Iterator iter = features.iterator(); iter.hasNext();) {
+			FeatureModel featureModel = (FeatureModel) iter.next();
+			
+			System.out.println(fixme("This should be a shorter name than the feature id"));
+			System.out.println("%package  " + featureModel.getFeatureIdentifier());
+			System.out.println("Summary:  " + featureModel.getLabel());
+			System.out.println(fixme("What should the group for this sub-package be?"));
+			// FIXME:  add a default?
+			System.out.println("Group:");
+			
+			URLEntryModel descriptionModel = featureModel.getDescriptionModel();
+			
+			
+			if (descriptionModel != null) {
+				System.out.println("%description");
+				System.out.println(descriptionModel.getAnnotation());
+			} else {
+				System.out.println("%description");
+				System.out.println("FIXME");
+			}
+			
+			System.out.println();
+				
+			// Plugins that are part of this feature
+			PluginEntryModel[] includedPlugins = featureModel.getPluginEntryModels();
+			for (int i = 0; i < includedPlugins.length; i++) {
+				System.out.print("Provides:  " + includedPlugins[i].getPluginIdentifier());
+				System.out.println(" = " + includedPlugins[i].getPluginVersion());
+			}
+			
+			ImportModel[] requirements = getRequirements(featureModel);
+			for (int i = 0; i < requirements.length; i++) {
+				buildRequirements.add(requirements[i]);
+			}
+			System.out.println(printRequirements(getRequirements(featureModel), "Requires:  "));
+		}
+		
+		System.out.println(fixme("What should the SRPM name be?"));
+		System.out.println("Name:  ");
+		System.out.println(fixme("What should the SRPM summary be?"));
+		System.out.println("Summary:  ");
+		System.out.println(fixme("What should the SRPM version be?"));
+		System.out.println("Version:  ");
+		System.out.println(fixme("What should the SRPM release be?"));
+		System.out.println("Release:  ");
+		// FIXME:  we can probably get this from below
+		System.out.println(fixme("What should the SRPM license be?"));
+		System.out.println("License:  ");
+		// FIXME:  source(s) and/or generating script?
+		// FIXME:  build script?
+		System.out.println("BuildRoot:  %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)");
+		System.out.println();
+		// FIXME:  do we need an SRPM description?
+		
+		System.out.println(printRequirements((ImportModel[]) buildRequirements.toArray(), "BuildRequires:  "));
+		Shell shell = StubbyPlugin.getActiveWorkbenchShell();
+		MessageDialog.openInformation(
+			shell,
+			"Plug-in RPM Stubber",
+			"Stub out an RPM specfile was executed.");
+	}
+
