@@ -1,0 +1,45 @@
+	protected IFile createChangeLog(IPath changelog) {
+		IWorkspaceRoot myWorkspaceRoot = getWorkspaceRoot();
+		IWorkbench ws = getWorkbench();
+
+		final IFile changelog_File = myWorkspaceRoot.getFile(changelog);
+		final InputStream initialContents = new ByteArrayInputStream(
+				new byte[0]);
+
+		WorkspaceModifyOperation operation = new WorkspaceModifyOperation() {
+			public void execute(IProgressMonitor monitor) throws CoreException {
+				try {
+					monitor.beginTask("Adding ChangeLog", 2000); //$NON-NLS-1$
+					changelog_File.create(initialContents, false, monitor);
+
+					if (monitor.isCanceled()) {
+						throw new OperationCanceledException();
+					}
+
+				} finally {
+					monitor.done();
+				}
+			}
+		};
+
+		try {
+			new ProgressMonitorDialog(ws.getActiveWorkbenchWindow().getShell())
+					.run(true, true, operation);
+		} catch (InterruptedException e) {
+			reportErr("Interruped while creating changelog", e);
+			return null;
+		} catch (InvocationTargetException e) {
+			reportErr("Couldn't create changelog process", e);
+			return null;
+		}
+
+		try {
+			myWorkspaceRoot.refreshLocal(2, null);
+		} catch (CoreException e) {
+			reportErr("Couldn't refresh local resources", e);
+			return null;
+		}
+
+		return changelog_File;
+	}
+

@@ -1,0 +1,64 @@
+	public Object execute(ExecutionEvent event) throws ExecutionException {
+
+		try {
+			currentEditor = getWorkbench().getActiveWorkbenchWindow()
+					.getActivePage().getActiveEditor();
+		} catch (Exception e) {
+			// no editor is active now so do nothing
+			return null;
+		}
+
+		// make sure an editor is selected.
+		if (currentEditor == null) {
+			return null;
+		}
+
+		ChangeLogWriter clw = new ChangeLogWriter();
+
+		// load settings from extensions + user pref.
+		loadPreferences();
+
+		// get file path from target file
+		clw.setEntryFilePath(getEntryFilePath());
+
+		// err check. do nothing if no file is being open/edited
+		if (clw.getEntryFilePath() == "") {
+			return null;
+		}
+
+		String editorName = getEditorName();
+
+		// get a parser for this file
+		IParserChangeLogContrib parser = extensionManager
+				.getParserContributor(editorName);
+
+		// if no parser for this type of document, then don't guess function
+		// name
+		// and set it as "".
+		if (parser == null) {
+			clw.setGuessedFName("");
+		} else {
+			// guess function name
+			clw.setGuessedFName(parseFunctionName(parser));
+		}
+
+		// get formatter
+
+		clw.setFormatter(extensionManager.getFormatterContributor(clw
+				.getEntryFilePath(), pref_Formatter));
+
+		// select changelog
+		clw.setChangelog(getChangelog());
+
+		// write to changelog
+
+		clw.setDateLine(clw.getFormatter().formatDateLine(pref_AuthorName,
+				pref_AuthorEmail));
+
+		clw.setChangelogLocation(getDocumentLocation(clw.getChangelog(), true));
+
+		clw.writeChangeLog();
+
+		return null;
+	}
+

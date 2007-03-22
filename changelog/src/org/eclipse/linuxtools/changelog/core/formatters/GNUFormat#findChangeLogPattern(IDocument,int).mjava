@@ -1,0 +1,31 @@
+	private int findChangeLogPattern(IDocument changelog_doc, int startOffset) {
+		// find the "pattern" of a changelog entry. Not a specific one,
+		// but one that "looks" like an entry
+		int nextEntry = startOffset;
+		int line_length = 0;
+		String entry = "";
+		while (nextEntry < changelog_doc.getLength()) {
+			try {
+				// Get the line of interest in the changelog document
+				line_length = changelog_doc.getLineOfOffset(nextEntry);
+				entry = changelog_doc.get(nextEntry, changelog_doc
+						.getLineLength(line_length));
+				// Attempt to find date pattern on line
+				if (matchDatePattern(entry)) {
+					//nextDate -= entry.length()+1;
+					break;
+				}
+				// If no date matches, move to the next line
+				nextEntry += changelog_doc.getLineLength(line_length);
+			} catch (BadLocationException e) {
+				ChangelogPlugin.getDefault().getLog().log(
+						new Status(IStatus.ERROR, "Changelog", IStatus.ERROR, e
+								.getMessage(), e
+								
+						));
+			}
+			
+		}
+		return nextEntry;
+	}
+

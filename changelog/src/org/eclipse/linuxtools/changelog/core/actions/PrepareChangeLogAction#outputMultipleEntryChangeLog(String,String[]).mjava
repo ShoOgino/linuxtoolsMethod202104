@@ -1,0 +1,52 @@
+	public void outputMultipleEntryChangeLog(String entryFileName,
+			String[] functionGuess) {
+
+		ChangeLogWriter clw = new ChangeLogWriter();
+
+		// load settings from extensions + user pref.
+		loadPreferences();
+
+		// get file path from target file
+		clw.setEntryFilePath(entryFileName);
+
+		// err check. do nothing if no file is being open/edited
+		if (clw.getEntryFilePath() == "") {
+			return;
+		}
+
+		// get formatter
+		clw.setFormatter(extensionManager.getFormatterContributor(
+				entryFileName, pref_Formatter));
+
+		IEditorPart changelog = null;
+
+		changelog = getChangelog(entryFileName);
+
+		if (changelog == null)
+			changelog = askChangeLogLocation(entryFileName);
+
+		if (changelog == null) {
+			System.out.println("oops, coudln't get changelog");
+			return;
+		}
+
+		// select changelog
+		clw.setChangelog(changelog);
+
+		// write to changelog
+
+		clw.setDateLine(clw.getFormatter().formatDateLine(pref_AuthorName,
+				pref_AuthorEmail));
+
+		clw.setChangelogLocation(getDocumentLocation(clw.getChangelog(), true));
+
+		// print multiple changelog entries with different
+		// function guess names.
+		for (int i = 0; i < functionGuess.length; i++) {
+
+			clw.setGuessedFName(functionGuess[i]);
+			clw.writeChangeLog();
+		}
+
+	}
+

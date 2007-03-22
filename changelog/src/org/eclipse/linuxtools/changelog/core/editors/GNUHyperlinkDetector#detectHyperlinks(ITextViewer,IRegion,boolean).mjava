@@ -1,0 +1,89 @@
+	/**
+	 * Detector using RuleBasedScanner.
+	 */
+	public IHyperlink[] detectHyperlinks(ITextViewer textViewer,
+			IRegion region, boolean canShowMultipleHyperlinks) {
+
+		IDocument thisDoc = textViewer.getDocument();
+
+		GNUElementScanner scanner = new GNUElementScanner();
+
+		scanner.setDefaultReturnToken(new Token("default"));
+
+		IRegion lineInfo = null;
+
+		try {
+			lineInfo = thisDoc.getLineInformationOfOffset(region.getOffset());
+		} catch (org.eclipse.jface.text.BadLocationException e1) {
+			e1.printStackTrace();
+			return null;
+		}
+
+		if (lineInfo == null)
+			return null;
+
+		scanner.setRange(thisDoc, lineInfo.getOffset(), lineInfo.getLength());
+
+		Token tmpToken = (Token) scanner.nextToken();
+
+		String tokenStr = (String) tmpToken.getData();
+
+		if (tokenStr == null) {
+			return null;
+		}
+
+		// try to find non-default token if fail, return null.
+		while (tokenStr.equals("default")) {
+			tmpToken = (Token) scanner.nextToken();
+			tokenStr = (String) tmpToken.getData();
+			if (tokenStr == null)
+				return null;
+
+		}
+
+		Region tokenRegion = new Region(scanner.getTokenOffset(), scanner
+				.getTokenLength());
+
+		String line = "";
+		try {
+			line = thisDoc
+					.get(tokenRegion.getOffset(), tokenRegion.getLength());
+		} catch (org.eclipse.jface.text.BadLocationException e1) {
+			e1.printStackTrace();
+			return null;
+		}
+
+		// process file link
+		if (tokenStr.equals(GNUElementScanner.FILE_NAME)) {
+
+			Region pathRegion = null;
+
+			// cut "* "
+			line = line.substring(2);
+			int trailingWhiteSpace;
+			if (((trailingWhiteSpace = line.indexOf(":")) > 0)
+					|| ((trailingWhiteSpace = line.indexOf(" ")) > 0)) {
+
+				line = line.substring(0, trailingWhiteSpace);
+				pathRegion = new Region(tokenRegion.getOffset() + 2,
+						trailingWhiteSpace);
+			} else {
+				pathRegion = new Region(tokenRegion.getOffset() + 2, line
+						.length());
+			}
+			
+			
+			if (documentLocation == null)
+				return null;
+
+			IPath filePath = documentLocation.append(line);
+
+			return new IHyperlink[] { new FileHyperlink(pathRegion,
+					((Workspace) ResourcesPlugin.getWorkspace())
+							.getFileSystemManager().fileForLocation(filePath)) };
+
+		}
+
+		return null;
+	}
+
