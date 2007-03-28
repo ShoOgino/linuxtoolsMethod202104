@@ -1,0 +1,26 @@
+	public SpecfilePartitionScanner() {
+		// FIXME:  do we need this?
+		super();
+		
+		IToken specScript = new Token(SPEC_SCRIPT);
+		IToken specFiles = new Token(SPEC_FILES);
+		IToken specChangelog = new Token(SPEC_CHANGELOG);
+
+		List rules = new ArrayList();
+		
+		// %changelog
+		rules.add(new MultiLineRule("%changelog", "", specChangelog, (char)0 , true));
+		
+		// "%prep", "%build", "%install", "%pre", "%preun", "%post", "%postun"
+		for (int i = 0; i < sectionHeaders.length; i++)
+			rules.add(new SectionRule(sectionHeaders[i], sectionEndingHeaders, specScript));
+
+		// %files
+		rules.add(new SectionRule("%files", new String[] { "%files",
+				"%changelog" }, specFiles));
+		
+		IPredicateRule[] result= new IPredicateRule[rules.size()];
+		rules.toArray(result);
+		setPredicateRules(result);
+	}
+
