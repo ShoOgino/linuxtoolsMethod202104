@@ -1,30 +1,31 @@
-	private SpecfileDefine parseDefine(String lineText, Specfile specfile,
-			int lineNumber) {
-		List<String> tokens = Arrays.asList(lineText.split("\\s+")); //$NON-NLS-1$
+	private SpecfileDefine parseDefine(String lineText, Specfile specfile, int lineNumber) {
+		List tokens = Arrays.asList(lineText.split("\\s+"));
 		SpecfileDefine toReturn = null;
-		for (Iterator<String> iter = tokens.iterator(); iter.hasNext();) {
-			// Eat the actual "%define" or "%global" token
+		for (Iterator iter = tokens.iterator(); iter.hasNext();) {
+			// Eat the actual "%define" token
 			iter.next();
 			while (iter.hasNext()) {
-				String defineName = iter.next();
-				// FIXME: is this true? investigate in rpmbuild source
+				String defineName = (String) iter.next();
+				// FIXME: is this true?  investigate in rpmbuild source
 				// Definitions must being with a letter
-				if (!Character.isLetter(defineName.charAt(0))
-						&& (defineName.charAt(0) != '_')) {
-					errorHandler.handleError(new SpecfileParseException(
-							Messages.getString("SpecfileParser.6"), //$NON-NLS-1$
+				if (!Character.isLetter(defineName.charAt(0)) && (defineName.charAt(0) != '_')) {
+					errorHandler
+					.handleError(new SpecfileParseException(
+							"Definition lvalue must begin with a letter or an underscore.",
 							lineNumber, 0, lineText.length(),
 							IMarker.SEVERITY_ERROR));
 					return null;
 				} else {
 					if (!iter.hasNext()) {
 						// FIXME: Should this be an error?
-						errorHandler.handleError(new SpecfileParseException(
-								Messages.getString("SpecfileParser.7"), //$NON-NLS-1$
-								lineNumber, 0, lineText.length(),
+						errorHandler
+						.handleError(new SpecfileParseException(
+								"No value name after define.",
+								lineNumber, 0, lineText
+								.length(),
 								IMarker.SEVERITY_WARNING));
 					} else {
-						String defineStringValue = iter.next();
+						String defineStringValue = (String) iter.next();
 						// Defines that are more than one token
 						if (iter.hasNext()) {
 							defineStringValue = lineText.substring(lineText
@@ -36,14 +37,14 @@
 						int defineIntValue = -1;
 						try {
 							defineIntValue = Integer
-									.parseInt(defineStringValue);
+							.parseInt(defineStringValue);
 						} catch (NumberFormatException e) {
 							toReturn = new SpecfileDefine(defineName,
 									defineStringValue, specfile);
 						}
 						if (toReturn == null)
 							toReturn = new SpecfileDefine(defineName,
-									defineIntValue, specfile);
+								defineIntValue, specfile);
 					}
 				}
 			}

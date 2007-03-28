@@ -15,10 +15,10 @@
 
 			// there is some random number suffix to the category positions,
 			// we need to find the one we want
-			for (String positionCategory: positionCategories) {
-				if (positionCategory.startsWith("__content_types_category")) { //$NON-NLS-1$
-					contentTypesPositionCategory = positionCategory;
-				}
+			for (int i = 0; i < positionCategories.length; i++) {
+				if (positionCategories[i]
+						.startsWith("__content_types_category"))
+					contentTypesPositionCategory = positionCategories[i];
 			}
 
 			if (contentTypesPositionCategory != null) {
@@ -26,7 +26,8 @@
 					Position[] sectionPositions = doc
 							.getPositions(contentTypesPositionCategory);
 					ITypedRegion changelogPartition = null;
-					for (Position position: sectionPositions) {
+					for (int i = 0; i < sectionPositions.length; i++) {
+						Position position = sectionPositions[i];
 						int offset = position.getOffset();
 
 						ITypedRegion partition = doc.getPartition(offset);
@@ -39,24 +40,24 @@
 					// there was no changelog partition - add it.
 					if (changelogPartition == null) {
 						System.err
-								.println(Messages.SpecfileChangelogAction_0);
+								.println("Did not get changelog partition. Please make me one!");
 					}
 
 					// now add the entry stub
-					System.err.println(Messages.SpecfileChangelogAction_1
-							+ changelogPartition.getOffset() + Messages.SpecfileChangelogAction_2
+					System.err.println("Got specfile partition: "
+							+ changelogPartition.getOffset() + ","
 							+ changelogPartition.getLength());
 					String changelogText = doc.get(changelogPartition
 							.getOffset(), changelogPartition.getLength());
-					String[] changelogLines = changelogText.split(NEW_LINE);
-					StringBuilder buf = new StringBuilder();
-					buf.append(changelogLines[0]).append(NEW_LINE);
-					buf.append(createChangelogEntry(specEditor.getSpecfile())).append(NEW_LINE);
-					buf.append(" - \n"); //$NON-NLS-1$
+					String[] changelogLines = changelogText.split("\n");
+					StringBuffer buf = new StringBuffer();
+					buf.append(changelogLines[0] + "\n");
+					buf.append(createChangelogEntry(specEditor.getSpecfile(), doc) + "\n");
+					buf.append(" - \n");
 					int newCursorOffset = changelogPartition.getOffset() + buf.length() -1;
 					
-					for (String changelogLine: changelogLines) {
-						buf.append(changelogLine).append(NEW_LINE);
+					for (int i = 1; i < changelogLines.length; i++) {
+						buf.append(changelogLines[i] + "\n");
 					}
 
 					doc.replace(changelogPartition.getOffset(),
@@ -64,9 +65,11 @@
 					specEditor.selectAndReveal(newCursorOffset, 0);
 					specEditor.setFocus();
 				} catch (BadPositionCategoryException e) {
-					SpecfileLog.logError(e);
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				} catch (BadLocationException e) {
-					SpecfileLog.logError(e);
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
 			} else {
 				// log error, we didn't find content type category positions,
@@ -74,8 +77,8 @@
 			}
 		} else {
 			// TODO: Log error.
-			System.err.println(Messages.SpecfileChangelogAction_3 + editor.getClass().toString()
-					+ Messages.SpecfileChangelogAction_4);
+			System.err.println("Got " + editor.getClass().toString()
+					+ " editor");
 		}
 	}
 

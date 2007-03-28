@@ -2,24 +2,21 @@
 	// has *already been set*.  If this is not true, it will simply do nothing
 	public void changeReferences(int oldPatchNumber) {
 		Specfile specfile = this.getSpecfile();
-		Pattern patchPattern;
-		if (oldPatchNumber == 0) {
-			patchPattern = Pattern.compile("%patch" + oldPatchNumber + "|%patch"); //$NON-NLS-1$ //$NON-NLS-2$
-		} else {
-			patchPattern = Pattern.compile("%patch" + oldPatchNumber); //$NON-NLS-1$
-		}
-		for (int lineNumber: getLinesUsed()){
+		Pattern patchPattern = Pattern.compile("%patch" + oldPatchNumber);
+		for (Iterator lineIter = getLinesUsed().iterator(); lineIter.hasNext();) {
+			int lineNumber = ((Integer) lineIter.next()).intValue();
 			String line;
 			try {
 				line = specfile.getLine(lineNumber);
 				Matcher patchMatcher = patchPattern.matcher(line);
 				if (!patchMatcher.find()) {
-					System.out.println(Messages.getString("SpecfileSource.0") + patchPattern.pattern()); //$NON-NLS-1$
+					System.out.println("error:  can't match " + patchPattern.pattern());
 //					throw new BadLocationException("can't match " + patchPattern);
 				}
-				specfile.changeLine(lineNumber, line.replaceAll(patchPattern.pattern(), Messages.getString("SpecfileSource.1") + number)); //$NON-NLS-1$
+				specfile.changeLine(lineNumber, line.replaceAll(patchPattern.pattern(), "%patch" + number));
 			} catch (BadLocationException e) {
-				SpecfileLog.logError(e);
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}
 	}
