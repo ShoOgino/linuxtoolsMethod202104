@@ -10,8 +10,19 @@
 				line = reader.readLine();
 			}
 		} catch (IOException e) {
-			RpmPackageBuildProposalsJob.update();
-			SpecfileLog.logError(e);
+			boolean isOk = showProposalsWarningDialog();
+			if (isOk) {
+				PreferenceDialog preferenceDialog = PreferencesUtil
+				.createPreferenceDialogOn(
+						Activator.getDefault().getWorkbench()
+						.getActiveWorkbenchWindow().getShell(),
+						"org.eclipse.linuxtools.rpm.ui.editor.preferences.RpmProposalsPreferencePage",
+						null, null);
+				PreferencePage page = (PreferencePage) preferenceDialog.getSelectedPage();
+				page.setErrorMessage(Activator.getDefault().getPreferenceStore().getString(PreferenceConstants.P_RPM_LIST_FILEPATH) + " file do not exist.\nplease click on the 'Build Proposals Now' button");
+				page.setValid(false);
+				preferenceDialog.open();
+			}
 		}
 	}
 

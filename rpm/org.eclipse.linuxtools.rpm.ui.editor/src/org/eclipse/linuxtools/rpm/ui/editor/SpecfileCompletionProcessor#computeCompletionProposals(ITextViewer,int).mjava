@@ -1,64 +1,33 @@
-	/* (non-Javadoc)
-	 * @see org.eclipse.jface.text.contentassist.IContentAssistProcessor#computeCompletionProposals(org.eclipse.jface.text.ITextViewer, int)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.eclipse.jface.text.contentassist.IContentAssistProcessor#computeCompletionProposals(org.eclipse.jface.text.ITextViewer,
+	 *      int)
 	 */
 	public ICompletionProposal[] computeCompletionProposals(ITextViewer viewer,
 			int offset) {
-		List<ICompletionProposal> result = new ArrayList<ICompletionProposal>();
-		Specfile specfile = editor.getSpecfile();
+		List result = new ArrayList();
+		Specfile specfile = sEditor.getSpecfile();
 		if (specfile == null)
 			return null;
 		ITextSelection selection = (ITextSelection) viewer
 				.getSelectionProvider().getSelection();
-		// adjust offset to start of normalized selection
+		// adjust offset to start of normalized selection:
 		if (selection.getOffset() != offset)
 			offset = selection.getOffset();
 		String prefix = getPrefix(viewer, offset);
 		Region region = new Region(offset - prefix.length(), prefix.length()
 				+ selection.getLength());
-		// RPM macro's are useful in the whole specfile.
-		List<ICompletionProposal> rpmMacroProposals = computeRpmMacroProposals(
-				region, specfile, prefix);
-		// Sources completion
-		List<ICompletionProposal> sourcesProposals = computeSourcesProposals(
-				region, specfile, prefix);
-		result.addAll(sourcesProposals);
-		// Get the current content type
-		String currentContentType = editor.getInputDocument().getDocumentPartitioner().getContentType(region.getOffset());
-		if (currentContentType.equals(SpecfilePartitionScanner.SPEC_PREP)){
-			List<ICompletionProposal> patchesProposals = computePatchesProposals(
-					region, specfile, prefix);
-			result.addAll(patchesProposals);
-		}
-		
-		if (currentContentType.equals(SpecfilePartitionScanner.SPEC_PACKAGES)) {
-			// don't show template in the RPM packages content type.
-			// (when the line begin with Requires, BuildRequires etc...)
-			List<ICompletionProposal> rpmPackageProposals = computeRpmPackageProposals(
-					region, prefix);
-			result.addAll(rpmPackageProposals);
-			result.addAll(rpmMacroProposals);
-		} else {
-			// don't show RPM packages proposals in all others content type. 
-			List<? extends ICompletionProposal> templateProposals = computeTemplateProposals(
-					viewer, region, specfile, prefix);
-			result.addAll(templateProposals);
-			result.addAll(rpmMacroProposals);
-		}
-		if (currentContentType.equals(SpecfilePartitionScanner.SPEC_GROUP)){
-			IDocument document = viewer.getDocument();
-			try {
-				int lineNumber = document.getLineOfOffset(region.getOffset());
-				int lineOffset = document.getLineOffset(lineNumber);
-				if (region.getOffset() - lineOffset > 5){
-					result.clear();
-					String groupPrefix = getGroupPrefix(viewer, offset);
-					result.addAll(computeRpmGroupProposals(region, groupPrefix));
-				}
-			} catch (BadLocationException e) {
-				SpecfileLog.logError(e);
-			}
-		}
-		return result
+		ICompletionProposal[] templateProposals = computeTemplateProposals(
+				viewer, region, specfile, prefix);
+		ICompletionProposal[] rpmMacroProposals = computeRpmMacroProposals(
+				viewer, region, prefix);
+		ICompletionProposal[] rpmPackageProposals = computeRpmPackageProposals(
+				viewer, region, specfile, prefix);		
+		result.addAll(Arrays.asList(templateProposals));
+		result.addAll(Arrays.asList(rpmMacroProposals));
+		result.addAll(Arrays.asList(rpmPackageProposals));
+		return (ICompletionProposal[]) result
 				.toArray(new ICompletionProposal[result.size()]);
 	}
 

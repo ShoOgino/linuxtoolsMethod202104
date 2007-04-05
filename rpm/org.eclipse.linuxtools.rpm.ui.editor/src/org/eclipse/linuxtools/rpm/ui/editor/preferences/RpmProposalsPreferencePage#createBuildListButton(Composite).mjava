@@ -1,0 +1,58 @@
+	public void createBuildListButton(Composite parent) {
+		Button builRpmProposalsButton = new Button(parent,
+				SWT.PUSH);
+		GridData data = new GridData ();
+		data.horizontalAlignment = GridData.END;
+		data.verticalIndent = 10;
+		data.grabExcessHorizontalSpace = true;
+		builRpmProposalsButton.setLayoutData(data);
+		builRpmProposalsButton.setText("Build proposals now ...");
+		builRpmProposalsButton.addListener(SWT.Selection, new Listener() {
+
+			public void handleEvent(Event event) {
+				IRunnableWithProgress runnable = new IRunnableWithProgress() {
+					public void run(IProgressMonitor monitor)
+							throws InvocationTargetException,
+							InterruptedException {
+						performApply();
+						String rpmListCmd = getPreferenceStore().getString(PreferenceConstants.P_CURRENT_RPMTOOLS);
+						String rpmListFilepath = getPreferenceStore().getString(PreferenceConstants.P_RPM_LIST_FILEPATH);
+						try {
+							String[] cmd = new String[] {"/bin/sh", "-c", rpmListCmd};
+							monitor.beginTask("Get RPM proposals list...", IProgressMonitor.UNKNOWN);
+							Process child = Runtime.getRuntime().exec(cmd);
+							InputStream in = child.getInputStream();
+							BufferedWriter out = new BufferedWriter(new FileWriter(rpmListFilepath, false));
+							BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+							monitor.setTaskName("Write RPM proposals list into "
+							+ rpmListFilepath + " file ...");
+							String line;
+							while ((line = reader.readLine()) != null) {
+								monitor.subTask("Add package: " + line);
+								out.write(line + "\n");
+					        }
+							in.close();
+							out.close();
+							// validate the page and hide the error message.
+							setValid(true);
+							setErrorMessage(null);
+						} catch (IOException e) {
+							setErrorMessage("Error when building the RPM packages list:\n" + e.getMessage());
+						} finally {
+							monitor.done();
+						}
+					}
+				};
+				try {
+					ProgressMonitorDialog progressMonitor = new ProgressMonitorDialog(getShell());
+					//FIXME: If we will use a non forked thread, we may implement something to access this 
+					// pref. page outside the main thread. Seems to be easy for Editors but not for Preference pages.
+					progressMonitor.run(false, true, runnable);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+
+		});
+	}
+

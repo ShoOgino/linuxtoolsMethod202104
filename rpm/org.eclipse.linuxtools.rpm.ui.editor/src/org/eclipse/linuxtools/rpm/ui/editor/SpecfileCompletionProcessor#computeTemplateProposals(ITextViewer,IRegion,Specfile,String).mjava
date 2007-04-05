@@ -14,20 +14,21 @@
 	 * @return 
 	 *            a ICompletionProposal[]
 	 */
-	private List<? extends ICompletionProposal> computeTemplateProposals(ITextViewer viewer,
+	private ICompletionProposal[] computeTemplateProposals(ITextViewer viewer,
 			IRegion region, Specfile specfile, String prefix) {
 		TemplateContext context = createContext(viewer, region, specfile);
-		List<TemplateProposal> matches = new ArrayList<TemplateProposal>();
 		if (context == null) {
-			return matches;
+			return new ICompletionProposal[0];
 		}
 		ITextSelection selection = (ITextSelection) viewer
 				.getSelectionProvider().getSelection();
-		context.setVariable("selection", selection.getText()); //$NON-NLS-1$
+		context.setVariable("selection", selection.getText());
 		String id = context.getContextType().getId();
 		Template[] templates = Activator.getDefault().getTemplateStore()
 				.getTemplates(id);
-		for (Template template : templates) {
+		List matches = new ArrayList();
+		for (int i = 0; i < templates.length; i++) {
+			Template template = templates[i];
 			try {
 				context.getContextType().validate(template.getPattern());
 			} catch (TemplateException e) {
@@ -36,10 +37,11 @@
 			int relevance = getRelevance(template, prefix);
 			if (relevance > 0) {
 				matches.add(new TemplateProposal(template, context, region,
-						Activator.getDefault().getImage(TEMPLATE_ICON), relevance));
+						getImage(TEMPLATE_ICON), relevance));
 			}
 		}
 		Collections.sort(matches, proposalComparator);
-		return matches;
+		return (ICompletionProposal[]) matches
+				.toArray(new ICompletionProposal[matches.size()]);
 	}
 

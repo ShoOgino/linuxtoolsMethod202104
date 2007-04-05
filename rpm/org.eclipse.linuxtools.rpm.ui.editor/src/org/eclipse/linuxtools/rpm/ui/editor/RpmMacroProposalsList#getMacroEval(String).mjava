@@ -2,15 +2,23 @@
 	 * Return the ouput of the <code>rpm --eval</code> command for a given
 	 * macro.
 	 *  
-	 * @param macroName The macro name to eval.
-	 * @return the resolved macro content.
+	 * @param macroName
+	 *            the macro name to eval.
+	 * @return the resoved macro content.
 	 */
 	public static String getMacroEval(String macroName) {
-		String eval = EMPTY_STRING;
+		String 	eval = "";
+		String[] cmd = {"rpm", "--eval", macroName};
 		try {
-			eval = Utils.runCommandToString( "rpm", "--eval", macroName); //$NON-NLS-1$//$NON-NLS-2$
+			Process child = Runtime.getRuntime().exec(cmd);
+			InputStream in = child.getInputStream();
+			int c;
+			while ((c = in.read()) != -1) {
+				eval += ((char) c);
+			}
+			in.close();
 		} catch (IOException e) {
-			SpecfileLog.logError(e);
+			e.printStackTrace();
 		}
 		return eval.trim();
 	}

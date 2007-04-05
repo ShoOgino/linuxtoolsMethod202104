@@ -1,20 +1,27 @@
 	public String getRpmInfo(String pkgName) {
-		String ret = ""; //$NON-NLS-1$
+		String ret = "";
+		String[] cmd = { "rpm", "-q", pkgName, "--qf",
+				getformattedRpmInformations() };
 		try {
-			ret = Utils.runCommandToString("rpm", "-q", pkgName, "--qf",  //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$
-					getformattedRpmInformations());
+			Process child = Runtime.getRuntime().exec(cmd);
+			InputStream in = child.getInputStream();
+			int c;
+			while ((c = in.read()) != -1) {
+				ret += ((char) c);
+			}
+			in.close();
 		} catch (IOException e) {
-			SpecfileLog.logError(e);
-			return Messages.RpmPackageProposalsList_2
-					+ Messages.RpmPackageProposalsList_3;
+			e.printStackTrace();
+			return "Cannot retrieve RPM information.\n\n"
+					+ "Please adjust your preferences:\n\nSpecfile Editor-> Macro proposals-> Package Info";
 		}
 		// Create encoder and decoder
-		CharsetDecoder decoder = Charset.forName(System.getProperty("file.encoding")).newDecoder(); //$NON-NLS-1$
+		CharsetDecoder decoder = Charset.forName(System.getProperty("file.encoding")).newDecoder();
 		/*
 		 * TODO: Jcharset may be used to detect the inputstream encoding if it's required?
 		 * http://jchardet.sourceforge.net
 		 */
-		CharsetEncoder encoder = Charset.forName("ISO-8859-1").newEncoder(); //$NON-NLS-1$
+		CharsetEncoder encoder = Charset.forName("ISO-8859-1").newEncoder();
 		try {
 			ByteBuffer bbuf = encoder.encode(CharBuffer.wrap(ret));
 			CharBuffer cbuf = decoder.decode(bbuf);
