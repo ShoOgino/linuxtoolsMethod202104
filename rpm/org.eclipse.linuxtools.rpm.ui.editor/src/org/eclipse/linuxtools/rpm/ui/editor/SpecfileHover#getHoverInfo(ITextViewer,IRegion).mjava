@@ -5,25 +5,25 @@
 		Specfile spec = editor.getSpecfile();
 		
 		
-		String macroName;
+		String currentSelection;
 		try {
-			macroName = textViewer.getDocument().get(hoverRegion.getOffset() + 1, hoverRegion.getLength() - 1);
+			currentSelection = textViewer.getDocument().get(hoverRegion.getOffset() + 1, hoverRegion.getLength() - 1);
 		} catch (BadLocationException e) {
 			return null;
 		}
 		
                 
                 // First we try to get a define based on the given name
-		SpecfileDefine define = spec.getDefine(macroName);
+		SpecfileDefine define = spec.getDefine(currentSelection);
 		
-                String value = macroName + ": ";
+                String value = currentSelection + ": ";
                 
 		if (define != null) {
                     value += define.getStringValue();
                     return value;
                 }
                 
-		String macroLower = macroName.toLowerCase();
+		String macroLower = currentSelection.toLowerCase();
 
 		// If there's no such define we try to see if it corresponds to
 		// a Source or Patch declaration
@@ -60,17 +60,25 @@
 
        // If it does not correspond to a Patch or Source macro, try to find it
        // in the macro proposals list.
-       if (Activator.getDefault().getRpmMacroList().findKey("%" + macroName)) {
+       if (Activator.getDefault().getRpmMacroList().findKey("%" + currentSelection)) {
     	   String currentConfig = Activator.getDefault().getPreferenceStore().getString(PreferenceConstants.P_MACRO_HOVER_CONTENT);
     	   // Show content of the macro according with the configuration set
     	   // in the macro preference page.
     	   if (currentConfig.equals(PreferenceConstants.P_MACRO_HOVER_CONTENT_VIEWDESCRIPTION))
-    		   value += Activator.getDefault().getRpmMacroList().getValue(macroName);
+    		   value += Activator.getDefault().getRpmMacroList().getValue(currentSelection);
     	   else
-    		   value += RpmMacroProposalsList.getMacroEval("%" + macroName);
+    		   value += RpmMacroProposalsList.getMacroEval("%" + currentSelection);
            return value;
-       }                 
-                
-		return value;
+       }
+       
+       // If it does not correspond to a macro in the list, try to find it
+       // in the RPM list. 
+       String packageDescription = Activator.getDefault().getRpmPackageList().getValue(currentSelection.replaceFirst(":",""));
+       if (packageDescription != null)
+    	   return packageDescription;
+       
+       // We return null in other cases, so we don't show hover information
+       // for unrecognized macros and RPM packages.
+       return null;
 	}
 
