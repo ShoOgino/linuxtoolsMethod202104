@@ -1,0 +1,21 @@
+	/*
+	 * @see org.eclipse.jface.text.ITextHover#getHoverRegion(org.eclipse.jface.text.ITextViewer, int)
+	 */
+	public final IRegion getHoverRegion(ITextViewer textViewer, int offset) {
+		fAnnotationCache= null;
+		if (!(textViewer instanceof ISourceViewer))
+			return null;
+		ISourceViewer viewer= (ISourceViewer) textViewer;
+		IAnnotationModel model= viewer.getAnnotationModel();
+		
+		// hover region should not have length 0 to get meaningful relevances
+		IRegion hoverRegion= new Region(offset, 1);
+		List tuples= getAnnotations(model, hoverRegion);
+		List selected= select(tuples, hoverRegion);
+		IRegion coverage= computeCoverage(selected);
+		if (coverage == NO_REGION)
+			return null;
+		fAnnotationCache= selected;
+		return coverage;
+	}
+
