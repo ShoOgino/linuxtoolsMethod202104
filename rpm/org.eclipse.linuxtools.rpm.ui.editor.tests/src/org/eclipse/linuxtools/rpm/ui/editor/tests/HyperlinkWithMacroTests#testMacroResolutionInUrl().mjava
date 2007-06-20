@@ -4,14 +4,18 @@
 			newFile(testText);
 			macroDetector = new URLHyperlinkWithMacroDetector(specfile);
 			IRegion region = new Region(20, 0);
-			ITextViewer textViewer = null;
-			// FIXME: need to get a textViewer here.  Perhaps will have to do something like in AutomakeColourizationTests here:
-			// :pserver:anonymous@sources.redhat.com:/cvs/eclipse
-			// autotools/com.redhat.eclipse.cdt.autotools.tests
-			// src/com/redhat/eclipse/cdt/autotools/tests/editors/AutomakeColourizationTests.java
-			IHyperlink[] returned = macroDetector.detectHyperlinks(textViewer, region, false);
+			IEditorPart openEditor = org.eclipse.ui.ide.IDE.openEditor(
+					Activator.getDefault().getWorkbench()
+							.getActiveWorkbenchWindow().getActivePage(),
+					testFile,
+					"org.eclipse.linuxtools.rpm.ui.editor.SpecfileEditor");
+
+			editor = (SpecfileEditor) openEditor;
+			IHyperlink[] returned = macroDetector.detectHyperlinks(editor
+					.getSpecfileSourceViewer(), region, false);
 			URLHyperlink url = (URLHyperlink) returned[0];
 			assertEquals("http://www.eclipse.org/", url.getURLString());
+			editor.dispose();
 		} catch (Exception e) {
 			fail();
 		}
