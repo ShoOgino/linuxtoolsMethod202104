@@ -1,19 +1,27 @@
 	public void run(IMarker marker) {
 	
-		SpecfileEditor editor = getEditor(marker); 
-		if (editor == null) {
-			return;
-		}
-		IDocument doc = editor.getSpecfileSourceViewer().getDocument(); 
+		// Open or activate the editor. 
+		IWorkbenchPage page = PlatformUI.getWorkbench() 
+		.getActiveWorkbenchWindow().getActivePage(); 
+		IEditorPart part; 
+		try { 
+			part = IDE.openEditor(page, marker); 
+		} 
+		catch (PartInitException e) { 
+			RpmlintLog.logError(e); 
+			return; 
+		} 
+		// Get the editor's document. 
+		if (!(part instanceof ITextEditor)) { 
+			return; 
+		} 
+		ITextEditor editor = (ITextEditor) part; 
+		IDocument doc = editor.getDocumentProvider() 
+		.getDocument(editor.getEditorInput()); 
 
 		try {
-			int lineNumber = marker.getAttribute(IMarker.LINE_NUMBER, 0);
-			int index = doc.getLineOffset(lineNumber);
-			String line = editor.getSpecfile().getLine(lineNumber);
-			int rowIndex = line.indexOf(getOriginalString());
-			if (rowIndex > -1){
-				doc.replace(index+rowIndex, getOriginalString().length(), getReplaceString()); 
-			}
+			int index = doc.getLineOffset(marker.getAttribute(IMarker.LINE_NUMBER, 0));
+			doc.replace(index, getOriginalString().length(), getReplaceString()); 
 		} catch (BadLocationException e) {
 			RpmlintLog.logError(e);
 		}
