@@ -1,7 +1,24 @@
 	private void populateGroupCombo(Combo groupsCombo) {
-		List<String> rpmGroups = Activator.getDefault().getRpmGroups();
-		for (String rpmGroup : rpmGroups) {
-			groupsCombo.add(rpmGroup);
+		// FIXME: Can we assume that all distros place 
+		// documentations files in the below path
+		String docDir = "/usr/share/doc/";
+		File dir = new File(docDir);
+		String files[] = dir.list(new FilenameFilter() {
+			public boolean accept(File dir, String name) {
+				return name.startsWith("rpm-");
+			}
+		});
+		try {
+			// Normally only one version of RPM is installed on a system,
+			// so we take the first one here.
+			LineNumberReader reader = new LineNumberReader(new FileReader(
+					docDir + files[0] + "/GROUPS"));
+			String line;
+			while ((line = reader.readLine()) != null) {
+				groupsCombo.add(line);
+			}
+		} catch (IOException e) {
+			SpecfileLog.logError(e);
 		}
 	}
 
