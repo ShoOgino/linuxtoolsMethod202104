@@ -1,32 +1,39 @@
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.eclipse.jface.text.contentassist.IContentAssistProcessor#computeCompletionProposals(org.eclipse.jface.text.ITextViewer,
-	 *      int)
+	/* (non-Javadoc)
+	 * @see org.eclipse.jface.text.contentassist.IContentAssistProcessor#computeCompletionProposals(org.eclipse.jface.text.ITextViewer, int)
 	 */
 	public ICompletionProposal[] computeCompletionProposals(ITextViewer viewer,
 			int offset) {
 		List result = new ArrayList();
-		Specfile specfile = sEditor.getSpecfile();
+		Specfile specfile = editor.getSpecfile();
 		if (specfile == null)
 			return null;
 		ITextSelection selection = (ITextSelection) viewer
 				.getSelectionProvider().getSelection();
-		// adjust offset to start of normalized selection:
+		// adjust offset to start of normalized selection
 		if (selection.getOffset() != offset)
 			offset = selection.getOffset();
 		String prefix = getPrefix(viewer, offset);
 		Region region = new Region(offset - prefix.length(), prefix.length()
 				+ selection.getLength());
-		ICompletionProposal[] templateProposals = computeTemplateProposals(
-				viewer, region, specfile, prefix);
+		// RPM macro's are useful in the whole specfile.
 		ICompletionProposal[] rpmMacroProposals = computeRpmMacroProposals(
-				viewer, region, prefix);
-		ICompletionProposal[] rpmPackageProposals = computeRpmPackageProposals(
-				viewer, region, specfile, prefix);		
-		result.addAll(Arrays.asList(templateProposals));
-		result.addAll(Arrays.asList(rpmMacroProposals));
-		result.addAll(Arrays.asList(rpmPackageProposals));
+				viewer, region, specfile, prefix);
+		// Get the current content type
+		String currentContentType = editor.getInputDocument().getDocumentPartitioner().getContentType(region.getOffset());		
+		if (currentContentType.equals(SpecfilePartitionScanner.SPEC_PACKAGES)) {
+			// don't show template in the RPM packages content type.
+			// (when the line begin with Requires, BuildRequires etc...)
+			ICompletionProposal[] rpmPackageProposals = computeRpmPackageProposals(
+					viewer, region, prefix);
+			result.addAll(Arrays.asList(rpmPackageProposals));
+			result.addAll(Arrays.asList(rpmMacroProposals));
+		} else {
+			// don't show RPM packages proposals in all others content type. 
+			ICompletionProposal[] templateProposals = computeTemplateProposals(
+					viewer, region, specfile, prefix);
+			result.addAll(Arrays.asList(templateProposals));
+			result.addAll(Arrays.asList(rpmMacroProposals));
+		}
 		return (ICompletionProposal[]) result
 				.toArray(new ICompletionProposal[result.size()]);
 	}
