@@ -8,12 +8,7 @@
 
 		ResourceMapping[] mappings = getResourceMappings(selected.toArray());
 
-		IResource resource;
-		if (element instanceof SimpleResourceMapping)
-			resource = (IResource) ((SimpleResourceMapping) element)
-					.getModelObject();
-		else
-			resource = (IResource) element;
+		IResource resource = (IResource) element;
 
 		projectPath = resource.getProject().getFullPath().toOSString();
 
@@ -22,17 +17,13 @@
 			StringDiffOperation sdo = new StringDiffOperation(getWorkbench()
 					.getActiveWorkbenchWindow().getPartService()
 					.getActivePart(), mappings,
-					new LocalOption[] { Diff.INCLUDE_NEWFILES }, false, true,
+					false, true,
 					ResourcesPlugin.getWorkspace().getRoot().getFullPath());
 
 			sdo.execute(monitor);
 
 			diffResult = sdo.getResult();
-		} catch (CVSException e) {
-
-			e.printStackTrace();
-			return;
-		} catch (InterruptedException e) {
+		}catch (Exception e) {
 
 			e.printStackTrace();
 			return;
@@ -86,8 +77,13 @@
 
 			// System.out.println(pf.getPath().toOSString());
 			String[] funcGuessList = guessFunctionNames(pf);
-
-			outputMultipleEntryChangeLog(pf.getPath().toOSString(),
+			
+			String defaultContent = null;
+			
+			if (pf.isNewfile())
+				defaultContent = "New File.";
+			
+			outputMultipleEntryChangeLog(pf.getPath().toOSString(), defaultContent,
 					funcGuessList);
 
 			/*

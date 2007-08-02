@@ -20,6 +20,7 @@
 		if (st.countTokens() == 0) 
 			return null;
 		int unitwork = 250 / st.countTokens();
+		boolean newFileFlag = false;
 		while (st.hasMoreTokens()) {
 			String ln = st.nextToken();
 			// this line contains file path relative to resource
@@ -39,7 +40,12 @@
 				inRange = false;
 				continue;
 			}
-
+			
+			// if this file is a new file, flag it
+			if (ln.indexOf("diff -N") == 0) {
+				newFileFlag = true;
+				continue;
+			}
 			if (fileList.size() > 0) {
 
 				PatchFile tpe = (PatchFile) fileList.get(fileList.size() - 1);
@@ -47,6 +53,12 @@
 
 					Matcher linem = lineInfoPattern.matcher(ln);
 
+					// if newfileflag is set, add this info to PatchFile object
+					if (newFileFlag) {
+						tpe.setNewfile(true);
+						newFileFlag=false;
+					}
+					
 					if (linem.matches()) {
 						inRange = true;
 						int from = 1;
