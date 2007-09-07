@@ -1,0 +1,104 @@
+	public String generateSpecfile() {
+		StringBuffer buffer = new StringBuffer();
+		String packageName = "eclipse-" + getPackageName(mainPackage.getName());
+		if (withGCJSupport)
+			buffer.append("%define gcj_support    1\n\n"); 
+		buffer.append("Name:           " + packageName + "\n");
+		buffer.append("Version:        " + mainPackage.getVersion().replaceAll("\\.qualifier","") + "\n");
+		buffer.append("Release:        1%{?dist}" + "\n");
+		buffer.append("Summary:        " + mainPackage.getSummary() + "\n\n");
+		buffer.append("Group:          Development/Tools\n");
+		buffer.append("License:        " + mainPackage.getURL() + "\n");
+		buffer.append("URL:            " + mainPackage.getLicense() + "\n");
+		buffer.append("Source0:        FIXME\n");
+		if (withFetchScript) 
+			buffer.append("Source1:        "+ packageName +"-fetch-src.sh\n");
+		buffer.append("BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)\n\n");
+		if (withGCJSupport) {
+			buffer.append("%if %{gcj_support}\n");
+			buffer.append("BuildRequires:    gcc-java\n");
+			buffer.append("BuildRequires:    java-gcj-compat-devel\n");
+			buffer.append("Requires(post):   java-gcj-compat\n");
+			buffer.append("Requires(postun): java-gcj-compat\n");
+			buffer.append("%else\n");
+			buffer.append("BuildRequires:    java-devel >= 1.5.0\n");
+			buffer.append("%endif\n");
+			buffer.append("%if ! %{gcj_support}\n");
+			buffer.append("BuildArch: noarch\n");
+			buffer.append("%endif\n\n");
+		} else
+			buffer.append("BuildArch: noarch\n\n");			
+		buffer.append("BuildRequires: eclipse-pde >= 1:3.3.0\n");
+		buffer.append("Requires: eclipse-platform >= 3.3.1\n");
+		buffer.append(getDepsOrReqs("Requires: ", mainPackage.getRequires()));
+		buffer.append(getDepsOrReqs("Provides: ", mainPackage.getProvides()));
+		buffer.append("\n%description\n" + mainPackage.getDescription() + "\n");
+		for (Iterator iterator = subPackages.iterator(); iterator.hasNext();) {
+			SubPackage subPackage = (SubPackage) iterator.next();
+			String subPackageName = getPackageName(subPackage.getName());
+			buffer.append("\n%package  " + subPackageName + "\n");
+			buffer.append("Summary:  "+ subPackage.getSummary() +"\n");
+			buffer.append("Requires: %{name} = %{version}-%{release}\n");
+			buffer.append(getDepsOrReqs("Requires: ", subPackage.getRequires()));
+			buffer.append(getDepsOrReqs("Provides: ", subPackage.getProvides()));
+			buffer.append("Group: Development/Tools\n\n");
+			buffer.append("%description " + subPackageName + "\n");
+			buffer.append(subPackage.getDescription() + "\n");
+		}
+		buffer.append("%prep\n%setup -q -n FIXME\n\n");
+		buffer.append("/bin/sh -x %{eclipse_base}/buildscripts/copy-platform SDK %{eclipse_base}\n");
+		buffer.append("mkdir home\n\n");
+		buffer.append("%build\n");
+		buffer.append("SDK=$(cd SDK > /dev/null && pwd)\n");
+		buffer.append("homedir=$(cd home > /dev/null && pwd)\n");
+		buffer.append("java -cp $SDK/startup.jar \\\n");
+		buffer.append("     -Dosgi.sharedConfiguration.area=%{_libdir}/eclipse/configuration \\\n");
+		buffer.append("      org.eclipse.core.launcher.Main \\\n");
+		buffer.append("     -application org.eclipse.ant.core.antRunner \\\n");
+		buffer.append("     -Dtype=feature \\\n");
+		buffer.append("     -Did=" + mainPackage.getName() + "\\\n");
+		buffer.append("     -DbaseLocation=$SDK \\\n");
+		buffer.append("     -DsourceDirectory=$(pwd) \\\n");
+		buffer.append("     -DbuildDirectory=$(pwd)/build \\\n");
+		buffer.append("     -Dbuilder=%{eclipse_base}/plugins/org.eclipse.pde.build/templates/package-build \\\n");
+		buffer.append("     -f %{eclipse_base}/plugins/org.eclipse.pde.build/scripts/build.xml \\\n");
+		buffer.append("     -vmargs -Duser.home=$homedir\\\n\n");
+		buffer.append("%install\n");
+		buffer.append("%{__rm} -rf %{buildroot}\n");
+		buffer.append("%{__unzip} -q -d %{buildroot}%{eclipse_base}/.. \\\n");
+		buffer.append("     build/rpmBuild/" + mainPackage.getName() + ".zip \n\n");
+		if (withGCJSupport) {
+			buffer.append("%if %{gcj_support}\n");
+			buffer.append("  %{_bindir}/aot-compile-rpm\n");
+			buffer.append("%endif\n\n");
+		}
+		buffer.append("%clean\n");
+		buffer.append("%{__rm} -rf %{buildroot}\n\n");
+		if (withGCJSupport) {
+			buffer.append("%if %{gcj_support}\n");
+			buffer.append("%post\n");
+			buffer.append("if [ -x %{_bindir}/rebuild-gcj-db ]; then\n");
+			buffer.append("  %{_bindir}/rebuild-gcj-db\n");
+			buffer.append("fi\n\n");
+			buffer.append("%preun\n");
+			buffer.append("if [ -x %{_bindir}/rebuild-gcj-db ]; then\n");
+			buffer.append("  %{_bindir}/rebuild-gcj-db\n");
+			buffer.append("fi\n\n");
+		}
+		buffer.append("%files\n");
+		buffer.append("%defattr(-,root,root,-)\n");
+		buffer.append("%dir %{eclipse_base}/features/" + mainPackage.getName() + "_*/\n");
+		buffer.append("%doc %{eclipse_base}/features/" + mainPackage.getName() + "_*/*.html\n");
+		buffer.append("%{eclipse_base}/features/" + mainPackage.getName() + "_*/feature.*\n");
+		buffer.append(getPackageFiles(mainPackage.getProvides(), withGCJSupport) + "\n");
+		for (Iterator iterator = subPackages.iterator(); iterator.hasNext();) {
+			SubPackage subPackage = (SubPackage) iterator.next();
+			buffer.append("%files " + getPackageName(subPackage.getName()) + "\n");
+			buffer.append("%dir %{eclipse_base}/features/" + subPackage.getName() + "_*/\n");
+			buffer.append("%doc %{eclipse_base}/features/" + subPackage.getName() + "_*/*.html\n");
+			buffer.append("%{eclipse_base}/features/" + subPackage.getName() + "_*/feature.*\n");		
+			buffer.append(getPackageFiles(subPackage.getProvides(), withGCJSupport) + "\n");
+		}
+		return buffer.toString();
+	}
+

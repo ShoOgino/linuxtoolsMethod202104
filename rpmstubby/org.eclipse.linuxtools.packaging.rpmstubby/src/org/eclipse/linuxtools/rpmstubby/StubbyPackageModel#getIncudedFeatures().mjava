@@ -1,0 +1,38 @@
+	public List getIncudedFeatures() {
+		FeatureModelFactory featureModelFactory = new FeatureModelFactory();
+		IIncludedFeatureReference[] includedFeatureReferences = featureModel.getFeatureIncluded();
+		includedFeatureIdentifiers = new String[includedFeatureReferences.length];
+		includedFeatureIdentifiersAdded = new ArrayList();
+		try {
+			for (int i = 0; i < includedFeatureReferences.length; i++) {
+				VersionedIdentifier versionedIdentifier = includedFeatureReferences[i].getVersionedIdentifier();
+				includedFeatureIdentifiers[i] = versionedIdentifier.getIdentifier();
+			}
+	        IWorkspaceRoot workspace = ResourcesPlugin.getWorkspace().getRoot();
+	        IProject[] projects = workspace.getProjects();
+	        for (int i = 0; i < projects.length; i++) {
+				FeatureVisitor featureVisitor = new FeatureVisitor();
+				projects[i].accept(featureVisitor);
+		        for (Iterator iterator = featureVisitor.getFeatures().iterator(); iterator.hasNext();) {
+		        	IFile featureFile = (IFile) iterator.next();
+		        	FeatureModel includedFeatureModel = featureModelFactory.parseFeature(featureFile.getContents());
+		        	if (checkFeatureIncluded(includedFeatureModel.getFeatureIdentifier())) {
+		        		// Each feature that include other feature is considered as a
+		        		// top-level RPM package
+		        		if (includedFeatureModel.getFeatureIncluded().length > 0) {
+		        			SpecfileWriter specfileWriter = new SpecfileWriter();
+		        			specfileWriter.write(featureFile);
+		        		} else 
+		        			includedFeatureIdentifiersAdded.add(includedFeatureModel.getFeatureIdentifier());
+		        			includedFeatureFiles.add(featureFile);
+		        	}
+		        }
+	        }
+		} catch (CoreException e) {
+			e.printStackTrace();
+		} catch (SAXException e) {
+			e.printStackTrace();
+		} 
+		return includedFeatureFiles;
+	}
+
