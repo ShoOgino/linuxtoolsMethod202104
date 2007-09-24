@@ -1,0 +1,35 @@
+	/**
+	 * Compute patches proposals, these proposals are usable in the whole document.
+	 * Return an array of patches proposals for the given viewer, region, prefix.
+	 * 
+	 * @param viewer
+	 *            the viewer for which the context is created
+	 * @param region
+	 *            the region into <code>document</code> for which the context
+	 *            is created
+	 * @param prefix
+	 * 			  the prefix string to find
+	 * @return 
+	 *            a ICompletionProposal[]
+	 */
+	private ICompletionProposal[] computePatchesProposals(ITextViewer viewer,
+			IRegion region, Specfile specfile, String prefix) {
+		Map patchesProposalsMap = Activator.getDefault().getRpmMacroList().getProposals(prefix);
+		// grab patches and put them into the proposals map
+		patchesProposalsMap.putAll(getPatches(specfile, prefix));
+		if (patchesProposalsMap == null)
+			return new ICompletionProposal[0];
+		ArrayList proposals = new ArrayList();
+		String key;
+		Iterator iterator = patchesProposalsMap.keySet().iterator();
+		while (iterator.hasNext()) {
+			key = (String) iterator.next();
+			proposals.add(new CompletionProposal(key, 
+							region.getOffset(), region.getLength(),
+							key.length(), Activator.getDefault().getImage(PATCH_ICON),
+							key, null, (String) patchesProposalsMap.get(key)));
+		}
+		return (ICompletionProposal[]) proposals
+				.toArray(new ICompletionProposal[proposals.size()]);
+	}
+
