@@ -1,28 +1,48 @@
 	/**
 	 * Retrieve the package list
 	 * 
-	 * @param monitor to update
+	 * @param monitor
+	 *            to update
 	 * @return a <code>IStatus</code>
 	 */
 	private IStatus retrievePackageList(IProgressMonitor monitor) {
-		String rpmListCmd = Activator.getDefault().getPreferenceStore().getString(PreferenceConstants.P_CURRENT_RPMTOOLS);
-		String rpmListFilepath = Activator.getDefault().getPreferenceStore().getString(PreferenceConstants.P_RPM_LIST_FILEPATH);
+		String rpmListCmd = Activator.getDefault().getPreferenceStore()
+				.getString(PreferenceConstants.P_CURRENT_RPMTOOLS);
+		String rpmListFilepath = Activator.getDefault().getPreferenceStore()
+				.getString(PreferenceConstants.P_RPM_LIST_FILEPATH);
+		String rpmListBkup = rpmListFilepath + ".bkup";
+		File bkupFile = new File(rpmListBkup);
 		try {
-			String[] cmd = new String[] {"/bin/sh", "-c", rpmListCmd};
-			monitor.beginTask("Get the list of RPM packages...", IProgressMonitor.UNKNOWN);
+			String[] cmd = new String[] { "/bin/sh", "-c", rpmListCmd };
+			monitor.beginTask("Retrive packages list...",
+					IProgressMonitor.UNKNOWN);
 			Process child = Runtime.getRuntime().exec(cmd);
 			InputStream in = child.getInputStream();
-			BufferedWriter out = new BufferedWriter(new FileWriter(rpmListFilepath, false));
-			BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-			monitor.subTask("Write the list of RPM packages into "
-			+ rpmListFilepath + " file ...");
+			// backup list
+			Utils.copyFile(new File(rpmListFilepath), bkupFile);
+			BufferedWriter out = new BufferedWriter(new FileWriter(
+					rpmListFilepath, false));
+			BufferedReader reader = new BufferedReader(
+					new InputStreamReader(in));
+			monitor.subTask("Write packages list into " + rpmListFilepath
+					+ " ...");
 			String line;
 			while ((line = reader.readLine()) != null) {
 				monitor.subTask("Add package: " + line);
 				out.write(line + "\n");
-	        }
+				if (monitor.isCanceled()) {
+					in.close();
+					out.close();
+					// restore backup
+					Utils.copyFile(new File(rpmListBkup), new File(rpmListFilepath));
+					bkupFile.delete();
+					Activator.packagesList = new RpmPackageProposalsList();
+					return Status.CANCEL_STATUS;
+				}
+			}
 			in.close();
 			out.close();
+			bkupFile.delete();
 		} catch (IOException e) {
 			SpecfileLog.logError(e);
 			return null;
@@ -31,6 +51,6 @@
 		}
 		// Update package list
 		Activator.packagesList = new RpmPackageProposalsList();
-		return Status.OK_STATUS; 
+		return Status.OK_STATUS;
 	}
 

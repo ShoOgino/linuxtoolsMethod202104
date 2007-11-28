@@ -1,21 +1,26 @@
 	/**
-	 * Run the Job if it's needed according with the configuration set in the preference page.
+	 * Run the Job if it's needed according with the configuration set in the
+	 * preference page.
 	 */
-	protected static void update() {   
+	protected static void update() {
 		boolean runJob = false;
-	    // Today's date
-	    Date today = new Date();
-		if (preferences.getBoolean(PreferenceConstants.P_RPM_LIST_BACKGROUND_BUILD)) {
-			int period = preferences.getInt(PreferenceConstants.P_RPM_LIST_BUILD_PERIOD); 
+		// Today's date
+		Date today = new Date();
+		if (preferences
+				.getBoolean(PreferenceConstants.P_RPM_LIST_BACKGROUND_BUILD)) {
+			int period = preferences
+					.getInt(PreferenceConstants.P_RPM_LIST_BUILD_PERIOD);
 			// each time that the plugin is loaded.
 			if (period == 1) {
 				runJob = true;
 			} else {
-				long lastBuildTime = preferences.getLong(PreferenceConstants.P_RPM_LIST_LAST_BUILD);
+				long lastBuildTime = preferences
+						.getLong(PreferenceConstants.P_RPM_LIST_LAST_BUILD);
 				if (lastBuildTime == 0) {
 					runJob = true;
 				} else {
-					long interval = (today.getTime() - lastBuildTime) / (1000 * 60 * 60 * 24);
+					long interval = (today.getTime() - lastBuildTime)
+							/ (1000 * 60 * 60 * 24);
 					// run the job once a week
 					if (period == 2 && interval >= 7)
 						runJob = true;
@@ -24,11 +29,20 @@
 						runJob = true;
 				}
 			}
-			if (job == null && runJob) {
-				job = new RpmPackageBuildProposalsJob(JOB_NAME);
-				job.schedule();
-				// update last build preference with the current date.
-				preferences.setValue(PreferenceConstants.P_RPM_LIST_LAST_BUILD, today.getTime());
+			if (runJob) {
+				if (job == null) {
+					job = new RpmPackageBuildProposalsJob(JOB_NAME);
+					job.schedule();
+					preferences.setValue(
+							PreferenceConstants.P_RPM_LIST_LAST_BUILD, today
+									.getTime());
+				} else {
+					job.cancel();
+					job.schedule();
+					preferences.setValue(
+							PreferenceConstants.P_RPM_LIST_LAST_BUILD, today
+									.getTime());
+				}
 			}
 		} else {
 			if (job != null) {
@@ -36,5 +50,5 @@
 				job = null;
 			}
 		}
-	} 
+	}
 
