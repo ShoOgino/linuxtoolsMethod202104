@@ -1,0 +1,134 @@
+	private void prepareChangeLog(IProgressMonitor monitor) {
+
+		Object element = selected.getFirstElement();
+		
+		IResource resource = null;
+		Vector newList = new Vector();
+		Vector removeList = new Vector();
+		Vector changeList = new Vector();
+		int totalChanges = 0;
+		
+		if (element instanceof IResource) {
+			resource = (IResource)element;
+		} else if (element instanceof ISynchronizeModelElement) {
+			ISynchronizeModelElement sme = (ISynchronizeModelElement)element;
+			resource = sme.getResource();
+		} else if (element instanceof IAdaptable) {
+			resource = (IResource)((IAdaptable)element).getAdapter(IResource.class);
+		}
+
+		if (resource == null)
+			return;
+
+		IProject project = resource.getProject();
+
+		// Get the repository provider so we can support multiple types of
+		// code repositories without knowing exactly which (e.g. CVS, SVN, etc..).
+		RepositoryProvider r = RepositoryProvider.getProvider(project);
+		if (r == null)
+			return;
+		SyncInfoSet set = new SyncInfoSet();
+		Subscriber s = r.getSubscriber();
+		if (s == null)
+			return;
+		if (element instanceof ISynchronizeModelElement) {
+			// We can extract the ChangeLog list from the synchronize view which
+			// allows us to skip items removed from the view
+			ISynchronizeModelElement d = (ISynchronizeModelElement)element;
+			while (d.getParent() != null)
+				d = (ISynchronizeModelElement)d.getParent();
+			extractSynchronizeModelInfo(d, new Path(""), newList, removeList, changeList);
+			totalChanges = newList.size() + removeList.size() + changeList.size();
+		}
+		else {
+			// We can then get a list of all out-of-sync resources.
+			s.collectOutOfSync(new IResource[] {project}, IResource.DEPTH_INFINITE, set, monitor);
+			SyncInfo[] infos = set.getSyncInfos();
+			totalChanges = infos.length;
+			// Iterate through the list of changed resources and categorize them into
+			// New, Removed, and Changed lists.
+			for (int i = 0; i < infos.length; ++i) {
+				int kind = SyncInfo.getChange(infos[i].getKind());
+				PatchFile p = new PatchFile(infos[i].getLocal().getFullPath());
+
+				// Check the type of entry and sort into lists.  Do not add an entry
+				// for ChangeLog files.
+				if (!(p.getPath().lastSegment().equals("ChangeLog"))) { // $NON-NLS-1$
+					if (kind == SyncInfo.ADDITION) {
+						p.setNewfile(true);
+						newList.add(p);
+					} else if (kind == SyncInfo.DELETION) {
+						p.setRemovedFile(true);
+						removeList.add(p);
+					} else if (kind == SyncInfo.CHANGE) {
+						changeList.add(p);
+						// Save the resource so we can later figure out which lines were changed
+						p.setResource(infos[i].getLocal());
+					}
+				}
+			}
+		}
+		
+		if (totalChanges == 0)
+			return; // nothing to parse
+		
+		PatchFile[] patchFileInfoList = new PatchFile[totalChanges];
+	
+		// Group like changes together and sort them by path name.
+		// We want removed files, then new files, then changed files.
+		// To get this, we put them in the array in reverse order.
+		int index = 0;
+		if (changeList.size() > 0) {
+			// Get the repository provider so we can support multiple types of
+			// code repositories without knowing exactly which (e.g. CVS, SVN, etc..).
+			Collections.sort(changeList, new PatchFileComparator());
+			int size = changeList.size();
+			for (int i = 0; i < size; ++i) {
+				PatchFile p = (PatchFile)changeList.get(i);
+				getChangedLines(s, p, monitor);
+				patchFileInfoList[index+(size-i-1)] = p;
+			}
+			index += size;
+		}
+		
+		if (newList.size() > 0) {
+			Collections.sort(newList, new PatchFileComparator());
+			int size = newList.size();
+			for (int i = 0; i < size; ++i)
+				patchFileInfoList[index+(size-i-1)] = (PatchFile)newList.get(i);
+			index += size;
+		}
+		
+		if (removeList.size() > 0) {
+			Collections.sort(removeList, new PatchFileComparator());
+			int size = removeList.size();
+			for (int i = 0; i < size; ++i)
+				patchFileInfoList[index+(size-i-1)] = (PatchFile)removeList.get(i);
+		}
+	
+		// now, find out modified functions/classes.
+		// try to use the the extension point. so it can be extended easily
+		// for all files in patch file info list, get function guesses of each
+		// file.
+		monitor.subTask(Messages.getString("ChangeLog.WritingMessage")); // $NON-NLS-1$
+		int unitwork = 250 / patchFileInfoList.length;
+		for (int pfIndex = 0; pfIndex < patchFileInfoList.length; pfIndex++) {
+			// for each file
+
+			PatchFile pf = patchFileInfoList[pfIndex];
+
+			String[] funcGuessList = guessFunctionNames(pf);
+			
+			outputMultipleEntryChangeLog(pf, funcGuessList);
+
+			/*
+			 * // print info for debug
+			 * System.out.println(pf.getPath().toOSString()); for (int i = 0; i <
+			 * funcGuessList.length; i++) {
+			 * System.out.println(funcGuessList[i]); }
+			 * System.out.println("---------------------");
+			 */
+			monitor.worked(unitwork);
+		}
+	}
+

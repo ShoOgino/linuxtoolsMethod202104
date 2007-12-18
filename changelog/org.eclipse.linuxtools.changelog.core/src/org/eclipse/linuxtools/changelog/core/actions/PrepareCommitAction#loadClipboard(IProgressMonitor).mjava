@@ -17,31 +17,77 @@
 		
 		
 	//	System.out.println(currentEditor.getTitle());
-		String diffResult;
-
+		String diffResult = "";
+		IEditorInput input = currentEditor.getEditorInput();
+		ResourceMapping mapping = getResourceMapping(input);
+		// Experiment Jeff
+		IProject project = mapping.getProjects()[0];
 		
-		try {
+		RepositoryProvider r = RepositoryProvider.getProvider(project);
+		SyncInfoSet set = new SyncInfoSet();
+		Subscriber s = r.getSubscriber();
+		s.collectOutOfSync(new IResource[] { (IResource)mapping.getModelObject() }, IResource.DEPTH_ZERO, set, monitor);
+		SyncInfo[] infos = set.getSyncInfos();
 
-			StringDiffOperation sdo = new StringDiffOperation(getWorkbench()
-					.getActiveWorkbenchWindow().getPartService()
-					.getActivePart(), new ResourceMapping[] {getResourceMapping(currentEditor.getEditorInput())},
-					 false, true,
-					ResourcesPlugin.getWorkspace().getRoot().getFullPath());
-			//NullProgressMonitor np = new NullProgressMonitor();
-			sdo.execute(monitor);
-			
-			diffResult = sdo.getResult();
+		if (infos.length == 1) {
+			int kind = SyncInfo.getChange(infos[0].getKind());
+			if (kind == SyncInfo.CHANGE) {
+				try {
+					IDiff d = s.getDiff(infos[0].getLocal());
+					if (d instanceof IThreeWayDiff
+							&& ((IThreeWayDiff)d).getDirection() == IThreeWayDiff.OUTGOING) {
+						IThreeWayDiff diff = (IThreeWayDiff)d;
+						monitor.beginTask(null, 100);
+						IResourceDiff localDiff = (IResourceDiff)diff.getLocalChange();
+						IFile file = (IFile)localDiff.getResource();
+						monitor.subTask(Messages.getString("ChangeLog.MergingDiffs")); // $NON-NLS-1$
+						String osEncoding = file.getCharset();
+						IFileRevision ancestorState = localDiff.getBeforeState();
+						IStorage ancestorStorage;
+						if (ancestorState != null)
+							ancestorStorage = ancestorState.getStorage(monitor);
+						else 
+							ancestorStorage = null;
 
-		} catch (Exception e) {
+						RangeDifference[] rd = null;
 
-			e.printStackTrace();
-			return;
+						try {
+							LineComparator left = new LineComparator(ancestorStorage.getContents(), osEncoding);
+							LineComparator right = new LineComparator(file.getContents(), osEncoding);
+							rd = RangeDifferencer.findDifferences(left, right);
+							for (int j = 0; j < rd.length; ++j) {
+								RangeDifference tmp = rd[j];
+								if (tmp.kind() == RangeDifference.CHANGE) {
+									LineNumberReader l = new LineNumberReader(new InputStreamReader(file.getContents()));
+									int rightLength = tmp.rightLength() > 0 ? tmp.rightLength() : tmp.rightLength() + 1;
+									for (int i = 0; i < tmp.rightStart(); ++i) {
+										try {
+											l.readLine(); 
+										} catch (IOException e) {
+											break;
+										}
+									}
+									for (int i = 0; i < rightLength; ++i) {
+										try {
+											diffResult += l.readLine() + "\n"; // $NON-NLS-1$
+										} catch (IOException e) {
+											// do nothing
+										}
+									}
+								}
+							}
+						} catch (UnsupportedEncodingException e) {
+							// do nothing for now
+						}
+						monitor.done();
+					}
+				} catch (CoreException e) {
+					// do nothing
+				}
+			}
 		}
 		
-		
-		populateClipboardBuffer(extractNewLines(diffResult));
-		
-		
-		
+		if (!diffResult.equals(""))
+			populateClipboardBuffer(diffResult);
 	}
 
