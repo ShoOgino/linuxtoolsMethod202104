@@ -9,18 +9,33 @@
 		try {
 			IWorkbenchPage ref = getWorkbench().getActiveWorkbenchWindow().getActivePage();
 			IWorkbenchPart part = ref.getActivePart();
-			ISelection selected = ref.getSelection();
-			if (selected instanceof IStructuredSelection) {
-				IResource r = null;
-				IStructuredSelection iss = (IStructuredSelection)selected;
-				Object o = ((IStructuredSelection)selected).getFirstElement();
-				if (o instanceof ISynchronizeModelElement) {
-					r = ((ISynchronizeModelElement)o).getResource();
-				} else if (o instanceof IAdaptable) {
-					r = (IResource)((IAdaptable)o).getAdapter(IResource.class);
+			if (part instanceof IEditorPart) {
+				// If we are in an editor, check if the file being edited is an IResource
+				// that belongs to a project in the workspace
+				IEditorPart editorPart = (IEditorPart)part;
+				IEditorInput input = editorPart.getEditorInput();
+				IResource r = (IResource)input.getAdapter(IResource.class);
+				if (r != null) {
+					// We have an IResource to work with, so create a selection we can use
+					// in PrepareChangeLogAction
+					tempResult = new StructuredSelection(r);
 				}
-				if (r != null)
-					tempResult = iss;
+			} else {
+				// Otherwise, our view is not an editor, see if we have an IResource or something
+				// that will lead us to an IResource
+				ISelection selected = ref.getSelection();
+				if (selected instanceof IStructuredSelection) {
+					IResource r = null;
+					IStructuredSelection iss = (IStructuredSelection)selected;
+					Object o = ((IStructuredSelection)selected).getFirstElement();
+					if (o instanceof ISynchronizeModelElement) {
+						r = ((ISynchronizeModelElement)o).getResource();
+					} else if (o instanceof IAdaptable) {
+						r = (IResource)((IAdaptable)o).getAdapter(IResource.class);
+					}
+					if (r != null)
+						tempResult = iss;
+				}
 			}
 			if (tempResult == null) {
 			    // We don't have an obvious project match in the current active view.  
