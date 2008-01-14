@@ -10,16 +10,19 @@
 
 		scanner.setDefaultReturnToken(new Token("default"));
 
-		ITypedRegion partitionInfo = null;
+		IRegion lineInfo = null;
 
 		try {
-			partitionInfo = thisDoc.getPartition(region.getOffset());
+			lineInfo = thisDoc.getLineInformationOfOffset(region.getOffset());
 		} catch (org.eclipse.jface.text.BadLocationException e1) {
 			e1.printStackTrace();
 			return null;
 		}
 
-		scanner.setRange(thisDoc, partitionInfo.getOffset(), partitionInfo.getLength());
+		if (lineInfo == null)
+			return null;
+
+		scanner.setRange(thisDoc, lineInfo.getOffset(), lineInfo.getLength());
 
 		Token tmpToken = (Token) scanner.nextToken();
 
@@ -29,14 +32,13 @@
 			return null;
 		}
 
-		// try to find non-default token containing region..if none, return null.
-		while (region.getOffset() < scanner.getTokenOffset() ||
-				region.getOffset() > scanner.getOffset() ||
-				tokenStr.equals("default")) {
+		// try to find non-default token if fail, return null.
+		while (tokenStr.equals("default")) {
 			tmpToken = (Token) scanner.nextToken();
 			tokenStr = (String) tmpToken.getData();
 			if (tokenStr == null)
 				return null;
+
 		}
 
 		Region tokenRegion = new Region(scanner.getTokenOffset(), scanner
@@ -56,31 +58,23 @@
 
 			Region pathRegion = null;
 
-			int lineOffset = 0;
-			
-			// cut "* " if necessary
-			if (line.startsWith("* ")) {
-				lineOffset = 2;
-				line = line.substring(2);
-			}
-//			int trailingWhiteSpace;
-//			if (((trailingWhiteSpace = line.indexOf(":")) > 0)
-//					|| ((trailingWhiteSpace = line.indexOf(" ")) > 0)) {
-//
-//				line = line.substring(0, trailingWhiteSpace);
-//				pathRegion = new Region(tokenRegion.getOffset() + lineOffset,
-//						trailingWhiteSpace);
-//			} else {
-				pathRegion = new Region(tokenRegion.getOffset() + lineOffset, line
+			// cut "* "
+			line = line.substring(2);
+			int trailingWhiteSpace;
+			if (((trailingWhiteSpace = line.indexOf(":")) > 0)
+					|| ((trailingWhiteSpace = line.indexOf(" ")) > 0)) {
+
+				line = line.substring(0, trailingWhiteSpace);
+				pathRegion = new Region(tokenRegion.getOffset() + 2,
+						trailingWhiteSpace);
+			} else {
+				pathRegion = new Region(tokenRegion.getOffset() + 2, line
 						.length());
-//			}
+			}
 			
 			
 			if (documentLocation == null)
 				return null;
-
-			// Replace any escape characters added to name
-			line = line.replaceAll("\\\\(.)", "$1");
 
 			IPath filePath = documentLocation.append(line);
 

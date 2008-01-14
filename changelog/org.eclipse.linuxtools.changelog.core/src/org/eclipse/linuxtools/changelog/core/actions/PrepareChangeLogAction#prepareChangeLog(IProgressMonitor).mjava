@@ -3,9 +3,9 @@
 		Object element = selected.getFirstElement();
 		
 		IResource resource = null;
-		Vector<PatchFile> newList = new Vector<PatchFile>();
-		Vector<PatchFile> removeList = new Vector<PatchFile>();
-		Vector<PatchFile> changeList = new Vector<PatchFile>();
+		Vector newList = new Vector();
+		Vector removeList = new Vector();
+		Vector changeList = new Vector();
 		int totalChanges = 0;
 		
 		if (element instanceof IResource) {
@@ -47,9 +47,9 @@
 			totalChanges = infos.length;
 			// Iterate through the list of changed resources and categorize them into
 			// New, Removed, and Changed lists.
-			for (SyncInfo info : infos) {
-				int kind = SyncInfo.getChange(info.getKind());
-				PatchFile p = new PatchFile(info.getLocal().getFullPath());
+			for (int i = 0; i < infos.length; ++i) {
+				int kind = SyncInfo.getChange(infos[i].getKind());
+				PatchFile p = new PatchFile(infos[i].getLocal().getFullPath());
 
 				// Check the type of entry and sort into lists.  Do not add an entry
 				// for ChangeLog files.
@@ -61,11 +61,9 @@
 						p.setRemovedFile(true);
 						removeList.add(p);
 					} else if (kind == SyncInfo.CHANGE) {
-						if (info.getLocal().getType() == IResource.FILE) {
-							changeList.add(p);
-							// Save the resource so we can later figure out which lines were changed
-							p.setResource(info.getLocal());
-						}
+						changeList.add(p);
+						// Save the resource so we can later figure out which lines were changed
+						p.setResource(infos[i].getLocal());
 					}
 				}
 			}
@@ -86,7 +84,7 @@
 			Collections.sort(changeList, new PatchFileComparator());
 			int size = changeList.size();
 			for (int i = 0; i < size; ++i) {
-				PatchFile p = changeList.get(i);
+				PatchFile p = (PatchFile)changeList.get(i);
 				getChangedLines(s, p, monitor);
 				patchFileInfoList[index+(size-i-1)] = p;
 			}
@@ -97,7 +95,7 @@
 			Collections.sort(newList, new PatchFileComparator());
 			int size = newList.size();
 			for (int i = 0; i < size; ++i)
-				patchFileInfoList[index+(size-i-1)] = newList.get(i);
+				patchFileInfoList[index+(size-i-1)] = (PatchFile)newList.get(i);
 			index += size;
 		}
 		
@@ -105,7 +103,7 @@
 			Collections.sort(removeList, new PatchFileComparator());
 			int size = removeList.size();
 			for (int i = 0; i < size; ++i)
-				patchFileInfoList[index+(size-i-1)] = removeList.get(i);
+				patchFileInfoList[index+(size-i-1)] = (PatchFile)removeList.get(i);
 		}
 	
 		// now, find out modified functions/classes.
@@ -114,12 +112,22 @@
 		// file.
 		monitor.subTask(Messages.getString("ChangeLog.WritingMessage")); // $NON-NLS-1$
 		int unitwork = 250 / patchFileInfoList.length;
-		for (PatchFile pf: patchFileInfoList) {
+		for (int pfIndex = 0; pfIndex < patchFileInfoList.length; pfIndex++) {
 			// for each file
-			if (pf != null) { // any ChangeLog changes will have null entries for them
-				String[] funcGuessList = guessFunctionNames(pf);
-				outputMultipleEntryChangeLog(pf, funcGuessList);
-			}
+
+			PatchFile pf = patchFileInfoList[pfIndex];
+
+			String[] funcGuessList = guessFunctionNames(pf);
+			
+			outputMultipleEntryChangeLog(pf, funcGuessList);
+
+			/*
+			 * // print info for debug
+			 * System.out.println(pf.getPath().toOSString()); for (int i = 0; i <
+			 * funcGuessList.length; i++) {
+			 * System.out.println(funcGuessList[i]); }
+			 * System.out.println("---------------------");
+			 */
 			monitor.worked(unitwork);
 		}
 	}
