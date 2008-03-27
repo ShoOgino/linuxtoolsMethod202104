@@ -3,10 +3,15 @@
 	 */
 	public String parseCurrentFunction(IEditorInput input, int offset)
 			throws CoreException {
+
+		String currentElementName;
+
+		// Get the working copy and connect to input.		
 		IWorkingCopyManager manager = CUIPlugin.getDefault()
 				.getWorkingCopyManager();
 		manager.connect(input);
 
+		// Retrieve the C/C++ Element in question.
 		IWorkingCopy workingCopy = manager.getWorkingCopy(input);
 		ICElement method = workingCopy.getElementAtOffset(offset);
 
@@ -16,13 +21,16 @@
 		if (method == null)
 			return "";
 
-		String currentElementName = "";
-
-		if ((currentElementName = method.getElementName()) == null) {
+		// Get the current element name, to test it.
+		currentElementName = method.getElementName();
+		
+		// Element doesn't have a name. Can go no further.
+		if (currentElementName == null) {
 			// element doesn't have a name
 			return "";
 		}
 
+		// Get the Element Type to test.
 		int elementType = method.getElementType();
 
 		switch (elementType) {
@@ -33,22 +41,23 @@
 		case ICElement.C_MODEL:
 			return "";
 
+		// So it's not a method, field, function, or model. Where are we?			
 		default:
 			ICElement tmpMethodType;
-			if (((tmpMethodType = method.getAncestor(ICElement.C_FUNCTION)) == null)
-					&& ((tmpMethodType = method.getAncestor(ICElement.C_METHOD)) == null)
-					&& ((tmpMethodType = method.getAncestor(ICElement.C_CLASS)) == null)) {
-				return "";
-			} else {
-				// cursor is inside a class, but not method
-				method = tmpMethodType;
-				currentElementName = method.getElementName();
-			}
+		if (((tmpMethodType = method.getAncestor(ICElement.C_FUNCTION)) == null)
+				&& ((tmpMethodType = method.getAncestor(ICElement.C_METHOD)) == null)
+				&& ((tmpMethodType = method.getAncestor(ICElement.C_CLASS)) == null)) {
+			return "";
+		} else {
+			// In a class, but not in a method. Return class name instead.
+			method = tmpMethodType;
+			currentElementName = method.getElementName();
+		}
 
 		}
 
-		// now append all ancestor class names to string
-
+		// Build all ancestor classes.
+		// Append all ancestor class names to string
 		ICElement tmpParent = method.getParent();
 
 		while (tmpParent != null) {
