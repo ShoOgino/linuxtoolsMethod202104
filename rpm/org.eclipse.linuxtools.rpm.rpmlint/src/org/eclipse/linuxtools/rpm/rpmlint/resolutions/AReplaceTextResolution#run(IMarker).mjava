@@ -12,16 +12,21 @@
 			return; 
 		} 
 		// Get the editor's document. 
-		if (!(part instanceof ITextEditor)) { 
+		if (!(part instanceof SpecfileEditor)) { 
 			return; 
 		} 
-		ITextEditor editor = (ITextEditor) part; 
+		SpecfileEditor editor = (SpecfileEditor) part; 
 		IDocument doc = editor.getDocumentProvider() 
 		.getDocument(editor.getEditorInput()); 
 
 		try {
-			int index = doc.getLineOffset(marker.getAttribute(IMarker.LINE_NUMBER, 0));
-			doc.replace(index, getOriginalString().length(), getReplaceString()); 
+			int lineNumber = marker.getAttribute(IMarker.LINE_NUMBER, 0);
+			int index = doc.getLineOffset(lineNumber);
+			String line = editor.getSpecfile().getLine(lineNumber);
+			int rowIndex = line.indexOf(getOriginalString());
+			if (rowIndex > -1){
+				doc.replace(index+rowIndex, getOriginalString().length(), getReplaceString()); 
+			}
 		} catch (BadLocationException e) {
 			RpmlintLog.logError(e);
 		}
