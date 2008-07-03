@@ -23,55 +23,57 @@
 					if (!name.equals("package")) {
 						toReturn = new SpecfileSection(name, specfile);
 						specfile.addComplexSection(toReturn);
-					}	
+					}
 					while (iter.hasNext()) {
 						String nextToken = iter.next();
 						if (nextToken.equals("-n")) {
 							if (!iter.hasNext()) {
 								errorHandler
-								.handleError(new SpecfileParseException(
-										"No package name after -n in "
-										+ name
-										+ " section.",
-										lineNumber, 0, lineText
-										.length(),
-										IMarker.SEVERITY_ERROR));
+										.handleError(new SpecfileParseException(
+												"No package name after -n in "
+														+ name + " section.",
+												lineNumber, 0, lineText
+														.length(),
+												IMarker.SEVERITY_ERROR));
 								continue;
 							}
 
 							nextToken = iter.next();
 							if (nextToken.startsWith("-")) {
 								errorHandler
-								.handleError(new SpecfileParseException(
-										"Package name must not start with '-': "
-										+ nextToken + ".",
-										lineNumber, 0, lineText
-										.length(),
-										IMarker.SEVERITY_ERROR));
+										.handleError(new SpecfileParseException(
+												"Package name must not start with '-': "
+														+ nextToken + ".",
+												lineNumber, 0, lineText
+														.length(),
+												IMarker.SEVERITY_ERROR));
 							}
-							
+
 						} else if (nextToken.equals("-p")) {
 							// FIXME: rest of line is the actual section
 							break;
 						} else if (nextToken.equals("-f")) {
 							break;
 						}
-                                                
-                                                // this is a package
-                                                if (toReturn == null ){
-                                                    toReturn = specfile.getPackage(nextToken);
-                                                    
-                                                    if (toReturn == null){
-                                                        toReturn = new SpecfilePackage(nextToken, specfile);
-                                                        specfile.addPackage((SpecfilePackage)toReturn);
-                                                    }
-                                                    return toReturn;
-                                                }
-                                                
-                                                // this is another section
-						SpecfilePackage enclosingPackage = specfile.getPackage(nextToken);
-						if (enclosingPackage == null){
-							enclosingPackage = new SpecfilePackage(nextToken, specfile);
+
+						// this is a package
+						if (toReturn == null) {
+							toReturn = specfile.getPackage(nextToken);
+
+							if (toReturn == null) {
+								toReturn = new SpecfilePackage(nextToken,
+										specfile);
+								specfile.addPackage((SpecfilePackage) toReturn);
+							}
+							return toReturn;
+						}
+
+						// this is another section
+						SpecfilePackage enclosingPackage = specfile
+								.getPackage(nextToken);
+						if (enclosingPackage == null) {
+							enclosingPackage = new SpecfilePackage(nextToken,
+									specfile);
 							specfile.addPackage(enclosingPackage);
 						}
 						toReturn.setPackage(enclosingPackage);
@@ -81,7 +83,8 @@
 			}
 		}
 
-                // if this package is part of the top level package, add it to it
+                // if this package is part of the top level package, add it to
+				// it
                 if (toReturn != null && toReturn.getPackage() == null){
                     SpecfilePackage topPackage = specfile.getPackage(specfile.getName());
                     if (topPackage == null){
