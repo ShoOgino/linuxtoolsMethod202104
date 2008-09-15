@@ -2,18 +2,10 @@
 		// Get the arguments to be passed to config from build model
 		ITool tool = cfg.getToolFromOutputExtension("status"); //$NON-NLS-1$
 		IOption[] options = tool.getOptions();
-		ArrayList<String> configArgs = new ArrayList<String>();
+		ArrayList configArgs = new ArrayList();
 		for (int i = 0; i < options.length; ++i) {
 			if (options[i].getValueType() == IOption.STRING) {
 				String value = (String) options[i].getValue();
-				try {
-					String resolved = ManagedBuildManager.getBuildMacroProvider().resolveValue(value, "", null, 
-							IBuildMacroProvider.CONTEXT_CONFIGURATION, cfg);
-					if(resolved != null && (resolved = resolved.trim()).length() > 0)
-						value = resolved;
-				} catch (BuildMacroException e) {
-					// do nothing
-				}
 				String id = options[i].getId();
 				if (id.indexOf("configdir") > 0 || id.indexOf("builddir") > 0) //$NON-NLS-1$ $NON-NLS-2$
 					continue;
@@ -35,10 +27,6 @@
 								finished = true;
 							}
 						}
-					} else {
-						// No --xxx arguments, but there might still be some NAME=VALUE args
-						// and we should pass them on regardless
-						configArgs.add(value);
 					}
 				}
 				else if (value.trim().length() > 0) {

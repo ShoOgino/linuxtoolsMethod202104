@@ -4,33 +4,15 @@
 		for (int i = 0; i < options.length; ++i) {
 			String id = options[i].getId();
 			if (id.indexOf("builddir") > 0) { //$NON-NLS-1$
-				buildDir = (String) options[i].getValue();
+				this.buildDir = (String) options[i].getValue();
 				try {
-					String resolved = ManagedBuildManager.getBuildMacroProvider().resolveValue(buildDir, "", null, 
-							IBuildMacroProvider.CONTEXT_CONFIGURATION, cfg);
-					if (resolved != null && (resolved = resolved.trim()).length() > 0)
-						buildDir = resolved;
-				} catch (BuildMacroException e) {
-					// do nothing
+					builder.setBuildAttribute(IMakeCommonBuildInfo.BUILD_LOCATION, 
+							project.getLocation().append(buildDir).toOSString());
+				} catch (CoreException e) {
+					e.printStackTrace();
 				}
-				// Fix for 266451.  Check if value has changed and use setBuildPath() instead of setBuildAttribute() 
-				// since we want the builder marked as dirty and the project info saved.  We must use getBuildAttribute()
-				// instead of getBuildPath() to avoid an infinite loop where getBuildPath() may call this function to
-				// find the default path.
-				String oldPath = builder.getBuildAttribute(IMakeCommonBuildInfo.BUILD_LOCATION,"");
-				String newPath = "${workspace_loc:/" + project.getName() + "/" + buildDir + "}";
-				if (oldPath == null || !oldPath.equals(newPath))
-					builder.setBuildPath(newPath);
 			} else if (id.indexOf("configdir") > 0) {  //$NON-NLS-1$
-				srcDir = (String) options[i].getValue();
-				try {
-					String resolved = ManagedBuildManager.getBuildMacroProvider().resolveValue(srcDir, "", null, 
-							IBuildMacroProvider.CONTEXT_CONFIGURATION, cfg);
-					if (resolved != null && (resolved = resolved.trim()).length() > 0)
-						srcDir = resolved;
-				} catch (BuildMacroException e) {
-					// do nothing
-				}
+				this.srcDir = (String) options[i].getValue();
 			}
 		}
 	}
