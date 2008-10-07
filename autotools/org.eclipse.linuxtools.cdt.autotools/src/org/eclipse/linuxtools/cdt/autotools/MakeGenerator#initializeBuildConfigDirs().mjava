@@ -4,7 +4,15 @@
 		for (int i = 0; i < options.length; ++i) {
 			String id = options[i].getId();
 			if (id.indexOf("builddir") > 0) { //$NON-NLS-1$
-				this.buildDir = (String) options[i].getValue();
+				buildDir = (String) options[i].getValue();
+				try {
+					String resolved = ManagedBuildManager.getBuildMacroProvider().resolveValue(buildDir, "", null, 
+							IBuildMacroProvider.CONTEXT_CONFIGURATION, cfg);
+					if (resolved != null && (resolved = resolved.trim()).length() > 0)
+						buildDir = resolved;
+				} catch (BuildMacroException e) {
+					// do nothing
+				}
 				try {
 					builder.setBuildAttribute(IMakeCommonBuildInfo.BUILD_LOCATION, 
 							project.getLocation().append(buildDir).toOSString());
@@ -12,7 +20,15 @@
 					e.printStackTrace();
 				}
 			} else if (id.indexOf("configdir") > 0) {  //$NON-NLS-1$
-				this.srcDir = (String) options[i].getValue();
+				srcDir = (String) options[i].getValue();
+				try {
+					String resolved = ManagedBuildManager.getBuildMacroProvider().resolveValue(srcDir, "", null, 
+							IBuildMacroProvider.CONTEXT_CONFIGURATION, cfg);
+					if (resolved != null && (resolved = resolved.trim()).length() > 0)
+						srcDir = resolved;
+				} catch (BuildMacroException e) {
+					// do nothing
+				}
 			}
 		}
 	}
