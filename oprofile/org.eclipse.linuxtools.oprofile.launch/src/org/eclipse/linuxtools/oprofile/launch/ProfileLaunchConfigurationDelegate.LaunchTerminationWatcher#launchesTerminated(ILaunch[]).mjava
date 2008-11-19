@@ -1,0 +1,25 @@
+		public void launchesTerminated(ILaunch[] launches) {
+			try {
+				for (ILaunch l : launches)
+				{
+					//when the launch terminates, dump the samples and shut down oprofile
+					if (l.equals(launch)) {
+						OprofileCorePlugin.getDefault().getOpcontrolProvider().dumpSamples();
+						OprofileCorePlugin.getDefault().getOpcontrolProvider().shutdownDaemon();
+
+						//need to run this in the ui thread otherwise get SWT Exceptions
+						// based on concurrency issues
+						Display.getDefault().syncExec(new Runnable() {
+							public void run() {
+								//stolen from AbstractOprofileUiAction::_updateViews() 
+								SystemProfileView view = OprofileUiPlugin.getDefault().getSystemProfileView();
+								if (view != null) {
+									view.refreshView();
+								}
+							}
+						});
+					}
+				}
+			} catch (OpcontrolException ignore) {}
+		}
+

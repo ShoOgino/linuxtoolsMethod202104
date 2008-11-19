@@ -1,0 +1,32 @@
+	//if there is more than one matching profile launch configuration, pop up a selection
+	// dialog for the user to choose from, then launch it
+	private void openLaunchSelectionDialog(ArrayList<ILaunchConfiguration> profilingLaunchConfigs, String launchMode) {
+		ILaunchConfiguration [] configs = new ILaunchConfiguration[profilingLaunchConfigs.size()];
+		profilingLaunchConfigs.toArray(configs);
+		
+		ElementListSelectionDialog dialog = new ElementListSelectionDialog(LaunchPlugin.getActiveWorkbenchShell(), new LabelProvider() {
+			public String getText(Object element) {
+				if (element instanceof ILaunchConfiguration) {
+					return ((ILaunchConfiguration)element).getName();
+				} else {
+					return OprofileLaunchMessages.getString("launchshortcut.launchselectiondialog.no_project_name");
+				}
+			}
+		});
+		
+		dialog.setTitle(OprofileLaunchMessages.getString("launchshortcut.launchselectiondialog.title"));
+		dialog.setMessage(OprofileLaunchMessages.getString("launchshortcut.launchselectiondialog.message"));
+		dialog.setElements(configs);
+		dialog.setBlockOnOpen(true);
+		dialog.open();
+		
+		ILaunchConfiguration result = null;
+		Object [] results = dialog.getResult();
+		
+		if (results != null && results.length > 0) {
+			result = (ILaunchConfiguration)results[0];
+		}
+		
+		launchProfilingLaunchConfiguration(result, launchMode);
+	}
+
