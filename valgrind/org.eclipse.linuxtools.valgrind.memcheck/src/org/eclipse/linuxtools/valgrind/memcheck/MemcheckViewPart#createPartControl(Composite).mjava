@@ -48,30 +48,14 @@
 					ValgrindStackFrame frame = ((StackFrameTreeElement) element).getFrame();
 					if (frame.getFile() != null) {
 						String strpath = frame.getDir() + Path.SEPARATOR + frame.getFile();
-						Path path = new Path(strpath);
-
-						if (path.toFile().exists()) {
-							IWorkbenchPage activePage = ValgrindUIPlugin.getDefault().getWorkbench().getActiveWorkbenchWindow().getActivePage();
-							IFileStore file = EFS.getLocalFileSystem().getStore(path);
-							try {
-								IEditorPart editor = IDE.openEditorOnFileStore(activePage, file);
-								if (editor instanceof ITextEditor) {
-									ITextEditor textEditor = (ITextEditor) editor;
-									int line = frame.getLine();
-									if (line > 0) {
-										IDocumentProvider provider = textEditor.getDocumentProvider();
-										IDocument document = provider.getDocument(textEditor.getEditorInput());
-
-										int start = document.getLineOffset(line - 1); //zero-indexed
-										textEditor.selectAndReveal(start, 0);
-									}
-								}
-							} catch (PartInitException e) {
-								e.printStackTrace();
-							} catch (BadLocationException e) {
-								e.printStackTrace();
-							}
-						}
+						int line = frame.getLine();
+						try {
+							ProfileUIUtils.openEditorAndSelect(strpath, line);
+						} catch (PartInitException e) {
+							e.printStackTrace();
+						} catch (BadLocationException e) {
+							e.printStackTrace();
+						}						
 					}
 				}
 				else {
