@@ -1,0 +1,51 @@
+	/**
+	 * @see org.eclipse.ui.IWorkbenchPart#createPartControl(Composite)
+	 */
+	public void createPartControl(Composite parent)
+	{
+		_viewer = new TreeViewer(parent);
+		_viewer.setContentProvider(new ProfileContentProvider());
+		_viewer.setLabelProvider(new ProfileLabelProvider());
+		_viewer.addSelectionChangedListener(new ISelectionChangedListener()
+		{
+			public void selectionChanged(SelectionChangedEvent sce)
+			{
+				TreeItem[] items = _viewer.getTree().getSelection();
+				if (items.length > 0)
+				{
+					IProfileElement element = (IProfileElement) items[0].getData();
+					_showInSampleView(element);
+				}
+			}
+		});		
+		
+		
+		// Create profile roots for events
+		_refreshEvents();
+		
+		// Create Actions
+		_createActions();
+		
+		// Update menus
+		_updateMenus();
+		
+		// Restore state
+		boolean haveState = false;
+		if (_memento != null)
+		{
+			haveState = _restoreState(_memento);
+			_memento = null;
+		}
+		
+		if (!haveState)
+		{
+			// No previous state
+			if (!_eventList.isEmpty()) {
+				String first = (String) _eventList.keySet().iterator().next();
+				_showEvent(first);
+			}
+		}
+		
+		OprofileUiPlugin.getDefault().setSystemProfileView(this);
+	}
+

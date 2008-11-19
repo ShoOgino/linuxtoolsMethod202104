@@ -1,0 +1,49 @@
+	protected void _createColumns(Table table)
+	{
+		SelectionListener headerListener = new SelectionAdapter()
+		{
+			public void widgetSelected(SelectionEvent se)
+			{
+				int column = _viewer.getTable().indexOf((TableColumn) se.widget);
+				SampleSorter oldSorter = (SampleSorter) _viewer.getSorter();
+				if (oldSorter != null && column == oldSorter.getColumnNumber())
+				{
+					oldSorter.setReversed(!oldSorter.isReversed());
+					_viewer.refresh();
+				}
+				else
+					_viewer.setSorter(new SampleSorter(column));
+			}
+		};
+		
+		if (_memento != null)
+		{
+			IMemento[] children = _memento.getChildren(TAG_COLUMN);
+			if (children != null)
+			{
+				for (int i = 0; i < children.length; ++i)
+				{
+					Integer val = children[i].getInteger(TAG_NUMBER);
+					if (val != null)
+					{
+						int idx = val.intValue();
+						val = children[i].getInteger(TAG_WIDTH);
+						if (val != null)
+							_columnLayouts[idx] = new ColumnPixelData(val.intValue(), true);
+					}
+				}
+			}
+		}
+		
+		TableLayout layout = new TableLayout();
+		table.setLayout(layout);
+		for (int i = 0; i < _columnHeaders.length; ++i)
+		{
+			layout.addColumnData(_columnLayouts[i]);
+			TableColumn column = new TableColumn(table, SWT.NONE, i);
+			column.setResizable(_columnLayouts[i].resizable);
+			column.setText(_columnHeaders[i]);
+			column.addSelectionListener(headerListener);
+		}		
+	}	
+

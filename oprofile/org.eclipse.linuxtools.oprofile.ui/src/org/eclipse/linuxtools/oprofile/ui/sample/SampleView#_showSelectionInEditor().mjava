@@ -1,0 +1,40 @@
+	// Opens the selected file editor, at the appropriate line number.
+	private void _showSelectionInEditor()
+	{
+		TableItem[] items = _viewer.getTable().getSelection();
+		
+		if (items.length > 0)
+		{
+			// Show for first item
+			IProfileElement element = (IProfileElement) items[0].getData();
+			String filename = element.getFileName();
+			int line = element.getLineNumber();
+			if (filename.length() > 0 && line > 0)
+			{
+				IEditorPart editor = null;
+				IPath path = new Path(filename);
+				IFile ifile = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(path);
+
+				if (ifile == null) {
+					//file not in workspace
+					editor = _openEditor(path.toOSString());
+				} else {
+					//file is a resource in the workspace
+					editor = _openEditor(ifile);
+				}
+				
+				if (editor != null)
+					_gotoLine (editor, line);
+
+			} else if (element instanceof SystemProfileShLib || element instanceof SystemProfileExecutable || element instanceof SystemProfileSymbol) {
+				//if a user dbl-clicks on a row in the sample view for a shlib/executable/symbol,
+				// change the selection in the system profile view to it (which will update the 
+				// sample view with its new children)
+				String name = element.getFileName();
+				if (name.length() > 0) {
+					_setNewSelection(element);	
+				}
+			}
+		}
+	}
+
