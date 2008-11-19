@@ -1,7 +1,7 @@
 	public MassifTreeViewer(Composite parent) {
 		super(parent);
 		
-		contentProvider = new ITreeContentProvider() {
+		setContentProvider(new ITreeContentProvider() {
 			public Object[] getChildren(Object parentElement) {
 				return ((MassifHeapTreeNode) parentElement).getChildren();
 			}
@@ -23,34 +23,31 @@
 
 			public void inputChanged(Viewer viewer, Object oldInput,
 					Object newInput) {}
-
-		};
-		setContentProvider(contentProvider);
-
+			
+		});
+		
 		setLabelProvider(new LabelProvider() {
 			@Override
 			public String getText(Object element) {
 				return ((MassifHeapTreeNode) element).getText();
 			}
-
+			
 			@Override
 			public Image getImage(Object element) {
 				Image img = null;
 				if (((MassifHeapTreeNode) element).getParent() == null) { // only show for root elements
 					img = MassifPlugin.imageDescriptorFromPlugin(MassifPlugin.PLUGIN_ID, "icons/memory_view.gif").createImage(); //$NON-NLS-1$
-				} else { // stack frame
-					img = DebugUITools.getImage(IDebugUIConstants.IMG_OBJS_STACKFRAME);
 				}
 				return img;
 			}
 		});
-
-		doubleClickListener = new IDoubleClickListener() {
+		
+		addDoubleClickListener(new IDoubleClickListener() {
 			public void doubleClick(DoubleClickEvent event) {
 				MassifHeapTreeNode element = (MassifHeapTreeNode) ((TreeSelection) event.getSelection()).getFirstElement();
 				if (element.hasSourceFile()) {
 					// do source lookup
-					ISourceLocator sourceLocator = MassifPlugin.getDefault().getSourceLocator();
+					ISourceLocator sourceLocator = MassifPlugin.getDefault().getLaunch().getSourceLocator();
 					if (sourceLocator instanceof ISourceLookupDirector) {
 						Object obj = ((ISourceLookupDirector) sourceLocator).getSourceElement(element.getFilename());
 						if (obj != null && obj instanceof IFile) {
@@ -63,12 +60,8 @@
 							}
 						}
 					}
-				} 
-				if (contentProvider.hasChildren(element)) {
-					expandToLevel(element, 1);
 				}
 			}			
-		};
-		addDoubleClickListener(doubleClickListener);
+		});
 	}
 
