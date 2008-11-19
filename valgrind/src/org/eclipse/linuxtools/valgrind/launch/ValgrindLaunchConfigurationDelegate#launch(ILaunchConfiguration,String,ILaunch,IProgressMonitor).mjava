@@ -1,0 +1,53 @@
+	public void launch(ILaunchConfiguration config, String mode,
+			ILaunch launch, IProgressMonitor m) throws CoreException {
+		if (m == null) {
+			m = new NullProgressMonitor();
+		}
+		SubMonitor monitor = SubMonitor.convert(m, Messages.getString("ValgrindLaunchConfigurationDelegate.Profiling_Local_CCPP_Application"), 10); //$NON-NLS-1$
+		// check for cancellation
+		if (monitor.isCanceled()) {
+			return;
+		}
+
+		try {
+			monitor.worked(1);
+			IPath exePath = verifyProgramPath(config);
+
+			String[] arguments = getProgramArgumentsArray(config);
+			
+			// tool that was launched
+			toolID = getTool(config);
+			// ask tool extension for arguments
+			dynamicDelegate = ValgrindLaunchPlugin.getDefault().getToolDelegate(toolID);
+			String[] opts = getValgrindArgumentsArray(config);
+
+			// set the default source locator if required
+			setDefaultSourceLocator(launch, config);
+
+			File wd = getWorkingDirectory(config);
+			if (wd == null) {
+				wd = new File(System.getProperty("user.home", ".")); //$NON-NLS-1$ //$NON-NLS-2$
+			}
+			
+			ArrayList<String> cmdLine = new ArrayList<String>(1 + arguments.length);
+			cmdLine.add(ValgrindCommand.VALGRIND_CMD);
+			cmdLine.addAll(Arrays.asList(opts));
+			cmdLine.add(exePath.toOSString());
+			cmdLine.addAll(Arrays.asList(arguments));
+			String[] commandArray = (String[]) cmdLine.toArray(new String[cmdLine.size()]);
+			boolean usePty = config.getAttribute(ICDTLaunchConfigurationConstants.ATTR_USE_TERMINAL, ICDTLaunchConfigurationConstants.USE_TERMINAL_DEFAULT);
+			monitor.worked(3);
+
+			command = new ValgrindCommand();
+			command.execute(commandArray, getEnvironment(config), wd, usePty);
+			monitor.worked(3);
+			DebugPlugin.newProcess(launch, command.getProcess(), renderProcessLabel(commandArray[0]));
+		
+			dynamicDelegate.launch(command, monitor.newChild(3));
+		} catch (IOException e) {
+			abort(Messages.getString("ValgrindLaunchConfigurationDelegate.Error_starting_process"), e, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR); //$NON-NLS-1$
+		} finally {
+			monitor.done();			
+		}
+	}
+
