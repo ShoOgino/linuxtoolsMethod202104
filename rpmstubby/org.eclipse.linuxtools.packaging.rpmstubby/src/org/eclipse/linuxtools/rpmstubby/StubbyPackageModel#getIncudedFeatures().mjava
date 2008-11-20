@@ -1,37 +1,44 @@
 	public List<IFile> getIncudedFeatures() {
 		FeatureModelFactory featureModelFactory = new FeatureModelFactory();
-		IIncludedFeatureReference[] includedFeatureReferences = featureModel.getFeatureIncluded();
-		includedFeatureIdentifiers = new String[includedFeatureReferences.length];
+		IIncludedFeatureReference[] includedFeatureReferences = featureModel
+				.getFeatureIncluded();
+		includedFeatureIdentifiers = new ArrayList<String>();
 		includedFeatureIdentifiersAdded = new ArrayList<String>();
 		try {
-			for (int i = 0; i < includedFeatureReferences.length; i++) {
-				VersionedIdentifier versionedIdentifier = includedFeatureReferences[i].getVersionedIdentifier();
-				includedFeatureIdentifiers[i] = versionedIdentifier.getIdentifier();
+			for (IIncludedFeatureReference includedFeatureReference: includedFeatureReferences) {
+				VersionedIdentifier versionedIdentifier = includedFeatureReference.getVersionedIdentifier();
+				includedFeatureIdentifiers.add(versionedIdentifier
+						.getIdentifier());
 			}
-	        IWorkspaceRoot workspace = ResourcesPlugin.getWorkspace().getRoot();
-	        IProject[] projects = workspace.getProjects();
-	        for (int i = 0; i < projects.length; i++) {
+			IWorkspaceRoot workspace = ResourcesPlugin.getWorkspace().getRoot();
+			IProject[] projects = workspace.getProjects();
+			for (IProject project: projects) {
 				FeatureVisitor featureVisitor = new FeatureVisitor();
-				projects[i].accept(featureVisitor);
-		        for (IFile featureFile: featureVisitor.getFeatures()) {
-		        	FeatureModel includedFeatureModel = featureModelFactory.parseFeature(featureFile.getContents());
-		        	if (isFeatureIncluded(includedFeatureModel.getFeatureIdentifier())) {
-		        		// Each feature that include other features is considered as a
-		        		// top-level RPM package.
-		        		if (includedFeatureModel.getFeatureIncluded().length > 0) {
-		        			SpecfileWriter specfileWriter = new SpecfileWriter();
-		        			specfileWriter.write(featureFile);
-		        		} else 
-		        			includedFeatureIdentifiersAdded.add(includedFeatureModel.getFeatureIdentifier());
-		        			includedFeatureFiles.add(featureFile);
-		        	}
-		        }
-	        }
+				project.accept(featureVisitor);
+				for (IFile featureFile : featureVisitor.getFeatures()) {
+					FeatureModel includedFeatureModel = featureModelFactory
+							.parseFeature(featureFile.getContents());
+					if (isFeatureIncluded(includedFeatureModel
+							.getFeatureIdentifier())) {
+						// Each feature that include other features is
+						// considered as a
+						// top-level RPM package.
+						if (includedFeatureModel.getFeatureIncluded().length > 0) {
+							SpecfileWriter specfileWriter = new SpecfileWriter();
+							specfileWriter.write(featureFile);
+						} else
+							includedFeatureIdentifiersAdded
+									.add(includedFeatureModel
+											.getFeatureIdentifier());
+						includedFeatureFiles.add(featureFile);
+					}
+				}
+			}
 		} catch (CoreException e) {
 			StubbyLog.logError(e);
 		} catch (SAXException e) {
 			StubbyLog.logError(e);
-		} 
+		}
 		return includedFeatureFiles;
 	}
 
