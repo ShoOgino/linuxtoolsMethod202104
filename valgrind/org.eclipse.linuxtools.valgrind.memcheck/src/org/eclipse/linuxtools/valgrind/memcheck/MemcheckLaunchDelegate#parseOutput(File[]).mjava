@@ -1,0 +1,33 @@
+	protected void parseOutput(File[] logs)
+			throws ParserConfigurationException, IOException, CoreException,
+			SAXException {
+		final ArrayList<ValgrindError> errors = new ArrayList<ValgrindError>(logs.length);
+		for (File log : logs) {
+			ValgrindXMLParser parser;
+			parser = new ValgrindXMLParser(new FileInputStream(log));
+
+			errors.addAll(parser.getErrors());
+		}		
+
+		Display.getDefault().syncExec(new Runnable() {
+			public void run() {
+				try {
+					IWorkbenchPage activePage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+					activePage.showView(ValgrindUIPlugin.VIEW_ID);
+
+					ValgrindViewPart view = ValgrindUIPlugin.getDefault().getView();
+					view.createDynamicView(TOOL_ID);
+					IValgrindToolView memcheckPart = view.getDynamicView();
+					if (memcheckPart instanceof MemcheckViewPart) {
+						((MemcheckViewPart) memcheckPart).setErrors(errors.toArray(new ValgrindError[errors.size()]));
+					}						
+					view.refreshView();
+				} catch (PartInitException e) {
+					e.printStackTrace();
+				} catch (CoreException e) {
+					e.printStackTrace();
+				}
+			}					
+		});
+	}
+
