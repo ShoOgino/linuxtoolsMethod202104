@@ -1,0 +1,31 @@
+	protected void parseOutput(File[] massifOutputs) throws IOException {
+		ArrayList<MassifSnapshot> list = new ArrayList<MassifSnapshot>();
+		for (File output : massifOutputs) {
+			MassifParser parser = new MassifParser(output);
+			list.addAll(Arrays.asList(parser.getSnapshots()));
+		}
+
+		snapshots = list.toArray(new MassifSnapshot[list.size()]);
+
+		Display.getDefault().syncExec(new Runnable() {
+			public void run() {
+				try {
+					IWorkbenchPage activePage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+					activePage.showView(ValgrindUIPlugin.VIEW_ID);
+
+					ValgrindViewPart view = ValgrindUIPlugin.getDefault().getView();
+					view.createDynamicView(TOOL_ID);
+					IValgrindToolView massifPart = view.getDynamicView();
+					if (massifPart instanceof MassifViewPart) {
+						((MassifViewPart) massifPart).setSnapshots(snapshots);
+					}						
+					view.refreshView();
+				} catch (PartInitException e) {
+					e.printStackTrace();
+				} catch (CoreException e) {
+					e.printStackTrace();
+				}
+			}					
+		});
+	}
+
