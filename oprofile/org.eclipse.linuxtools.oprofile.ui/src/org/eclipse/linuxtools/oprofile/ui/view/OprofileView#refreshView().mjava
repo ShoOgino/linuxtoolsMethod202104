@@ -4,8 +4,12 @@
 	 *   machines this will probably only be a blip.
 	 */
 	public void refreshView() {
-		final OprofileView thisView = this;
-		
+		try {
+			PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().showView(OprofileUiPlugin.ID_OPROFILE_VIEW);
+		} catch (PartInitException e) {
+			e.printStackTrace();
+		}
+
 		IRunnableWithProgress refreshRunner = new IRunnableWithProgress() {
 			@Override
 			public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
@@ -20,16 +24,14 @@
 				final UiModelRoot UiRoot = UiModelRoot.getDefault();
 				UiRoot.refreshModel();
 				
-				//must be done this way otherwise SWT invalid thread access exception
 				Display.getDefault().asyncExec(new Runnable() {
 					@Override
 					public void run() {
-						_viewer.setInput(UiRoot);
-						//focus on the oprofile view
-						PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().activate(thisView);
+						OprofileUiPlugin.getDefault().getOprofileView().getTreeViewer().setInput(UiRoot);
 					}
 				});
 				monitor.worked(1);
+
 				monitor.done();
 			}
 		};
