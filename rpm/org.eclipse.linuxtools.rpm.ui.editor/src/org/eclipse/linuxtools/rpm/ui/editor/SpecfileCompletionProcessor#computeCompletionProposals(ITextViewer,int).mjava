@@ -16,33 +16,33 @@
 		Region region = new Region(offset - prefix.length(), prefix.length()
 				+ selection.getLength());
 		// RPM macro's are useful in the whole specfile.
-		ICompletionProposal[] rpmMacroProposals = computeRpmMacroProposals(
+		List<ICompletionProposal> rpmMacroProposals = computeRpmMacroProposals(
 				viewer, region, specfile, prefix);
 		// Sources completion
-		ICompletionProposal[] sourcesProposals = computeSourcesProposals(
+		List<ICompletionProposal> sourcesProposals = computeSourcesProposals(
 				viewer, region, specfile, prefix);
-		result.addAll(Arrays.asList(sourcesProposals));
+		result.addAll(sourcesProposals);
 		// Get the current content type
 		String currentContentType = editor.getInputDocument().getDocumentPartitioner().getContentType(region.getOffset());
 		if (currentContentType.equals(SpecfilePartitionScanner.SPEC_PREP)){
-			ICompletionProposal[] patchesProposals = computePatchesProposals(
+			List<ICompletionProposal> patchesProposals = computePatchesProposals(
 					viewer, region, specfile, prefix);
-			result.addAll(Arrays.asList(patchesProposals));
+			result.addAll(patchesProposals);
 		}
 		
 		if (currentContentType.equals(SpecfilePartitionScanner.SPEC_PACKAGES)) {
 			// don't show template in the RPM packages content type.
 			// (when the line begin with Requires, BuildRequires etc...)
-			ICompletionProposal[] rpmPackageProposals = computeRpmPackageProposals(
+			List<ICompletionProposal> rpmPackageProposals = computeRpmPackageProposals(
 					viewer, region, prefix);
-			result.addAll(Arrays.asList(rpmPackageProposals));
-			result.addAll(Arrays.asList(rpmMacroProposals));
+			result.addAll(rpmPackageProposals);
+			result.addAll(rpmMacroProposals);
 		} else {
 			// don't show RPM packages proposals in all others content type. 
-			ICompletionProposal[] templateProposals = computeTemplateProposals(
+			List<? extends ICompletionProposal> templateProposals = computeTemplateProposals(
 					viewer, region, specfile, prefix);
-			result.addAll(Arrays.asList(templateProposals));
-			result.addAll(Arrays.asList(rpmMacroProposals));
+			result.addAll(templateProposals);
+			result.addAll(rpmMacroProposals);
 		}
 		return result
 				.toArray(new ICompletionProposal[result.size()]);
