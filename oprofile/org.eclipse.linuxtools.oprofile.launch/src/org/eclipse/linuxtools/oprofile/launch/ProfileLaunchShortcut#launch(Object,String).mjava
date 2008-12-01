@@ -6,6 +6,8 @@
 			project = ((IFile)element).getProject();
 		} else if (element instanceof IProject) {
 			project = (IProject)element;
+		} else if (element instanceof IBinary) {
+			project = ((IBinary)element).getCProject().getProject();
 		} else {
 			project = null;
 			System.out.println(element);
@@ -13,29 +15,30 @@
 		
 		if (project == null) {
 			MessageDialog.openError(LaunchPlugin.getActiveWorkbenchShell(), OprofileLaunchMessages.getString("launchshortcut.errordialog.title"), OprofileLaunchMessages.getString("launchshortcut.no_project_error"));
-		}
+		} else {
 		
-		//find the C launch configuration(s) associated with the project,
-		// then find any profiling configurations that use any of these C 
-		// launch configs
-		ConfigRunner configRunner = new ConfigRunner(project);
-		
-		ProgressMonitorDialog dialog = new ProgressMonitorDialog(LaunchPlugin.getActiveWorkbenchShell());
-		
-		try {
-			dialog.run(true, false, configRunner);
-		} 
-		catch (InvocationTargetException e) { e.printStackTrace(); } 
-		catch (InterruptedException e) { e.printStackTrace(); }
-		
-		ArrayList<ILaunchConfiguration> profilingLaunchConfigs = configRunner.getProfilingConfigs();
-		
-		if (profilingLaunchConfigs == null) {
-			MessageDialog.openError(null, OprofileLaunchMessages.getString("launchshortcut.errordialog.title"), OprofileLaunchMessages.getString("launchshortcut.errordialog.no_launch_error"));
-		} else if (profilingLaunchConfigs.size() == 1) {
-			launchProfilingLaunchConfiguration(profilingLaunchConfigs.get(0), mode);
-		} else if (profilingLaunchConfigs.size() > 1) {
-			openLaunchSelectionDialog(profilingLaunchConfigs, mode);
+			//find the C launch configuration(s) associated with the project,
+			// then find any profiling configurations that use any of these C 
+			// launch configs
+			ConfigRunner configRunner = new ConfigRunner(project);
+			
+			ProgressMonitorDialog dialog = new ProgressMonitorDialog(LaunchPlugin.getActiveWorkbenchShell());
+			
+			try {
+				dialog.run(true, false, configRunner);
+			} 
+			catch (InvocationTargetException e) { e.printStackTrace(); } 
+			catch (InterruptedException e) { e.printStackTrace(); }
+			
+			ArrayList<ILaunchConfiguration> profilingLaunchConfigs = configRunner.getProfilingConfigs();
+			
+			if (profilingLaunchConfigs == null) {
+				MessageDialog.openError(null, OprofileLaunchMessages.getString("launchshortcut.errordialog.title"), OprofileLaunchMessages.getString("launchshortcut.errordialog.no_launch_error"));
+			} else if (profilingLaunchConfigs.size() == 1) {
+				launchProfilingLaunchConfiguration(profilingLaunchConfigs.get(0), mode);
+			} else if (profilingLaunchConfigs.size() > 1) {
+				openLaunchSelectionDialog(profilingLaunchConfigs, mode);
+			}
 		}
 	}
 
