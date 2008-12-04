@@ -1,44 +1,204 @@
 	/**
-	 * Essentially the constructor for this tab; creates the 'default event'
-	 * checkbox and an appropriate number of counter tabs.
-	 * @param parent the parent composite
+	 * @see org.eclipse.debug.ui.ILaunchConfigurationTab#createControl(Composite)
 	 */
-	public void createControl(Composite parent) {
+	public void createControl(Composite parent)
+	{
+		GridData data;
+		GridLayout layout;
+
 		Composite top = new Composite(parent, SWT.NONE);
 		setControl(top);
-		top.setLayout(new GridLayout());
+		layout = new GridLayout();
+		top.setLayout(layout);
+		data = new GridData(GridData.FILL_HORIZONTAL);
+		top.setLayoutData(data);
 
 		createVerticalSpacer(top, 1);
 
-		//default event checkbox
-		_defaultEventCheck = new Button(top, SWT.CHECK);
-		_defaultEventCheck.setText(OprofileLaunchMessages.getString("tab.event.defaultevent.button.text")); //$NON-NLS-1$
-		_defaultEventCheck.setLayoutData(new GridData());
-		_defaultEventCheck.addSelectionListener(new SelectionAdapter() {
-			public void widgetSelected(SelectionEvent se) {
+		// Create combo for counter configuration
+		_counterCombo = new Combo(top, SWT.DROP_DOWN | SWT.READ_ONLY);
+		_counters = OprofileCounter.getCounters(null);
+		for (int i = 0; i < _counters.length; i++)
+		{
+			String s = _counters[i].getText();
+			_counterCombo.add(s);
+			_counterCombo.setData(s, _counters[i]);
+		}
+		data = new GridData();
+		data.widthHint =
+			_counterCombo.computeSize(SWT.DEFAULT, SWT.DEFAULT).x + 30;
+		_counterCombo.setLayoutData(data);
+		_counterCombo.addSelectionListener(new SelectionAdapter()
+		{
+			public void widgetSelected(SelectionEvent se)
+			{
+				_updateComboFromSelection();
+			}
+		});
+		_counterCombo.setEnabled(false);
+
+		// Create container for counter settings
+		Group g = new Group(top, SWT.SHADOW_ETCHED_IN);
+		g.setText(OprofileLaunchMessages.getString("tab.event.counterSettings.label.text")); //$NON-NLS-1$
+		layout = new GridLayout();
+		layout.numColumns = 2;
+		layout.marginHeight = 0;
+		layout.marginWidth = 0;
+		g.setLayout(layout);
+		data = new GridData(GridData.FILL_HORIZONTAL);
+		g.setLayoutData(data);
+
+		_enabledButton = new Button(g, SWT.CHECK);
+		_enabledButton.setText(OprofileLaunchMessages.getString("tab.event.counterSettings.enabled.button.text")); //$NON-NLS-1$
+		data = new GridData();
+		data.horizontalSpan = 2;
+		_enabledButton.setLayoutData(data);
+		_enabledButton.addSelectionListener(new SelectionAdapter()
+		{
+			public void widgetSelected(SelectionEvent se)
+			{
 				_handleEnabledToggle();
 			}
 		});
+		_enabledButton.setEnabled(false);
 
-		createVerticalSpacer(top, 1);
+		Label l = new Label(top, SWT.NONE);
+		l.setText(OprofileLaunchMessages.getString("tab.event.eventDescription.label.text")); //$NON-NLS-1$
+		data = new GridData(GridData.FILL_HORIZONTAL);
+		data.horizontalSpan = 2;
+		l.setLayoutData(data);
 
-		//tabs for each of the counters
-		OprofileCounter[] counters = OprofileCounter.getCounters(null);
-		TabItem[] counterTabs = new TabItem[counters.length];
-		_counterSubTabs = new CounterSubTab[counters.length];
+		Composite left = new Composite(g, SWT.NONE);
+		layout = new GridLayout();
+		left.setLayout(layout);
+		data = new GridData(GridData.FILL_BOTH);
+		left.setLayoutData(data);
+		_eventList =
+			new ListViewer(left, SWT.SINGLE | SWT.V_SCROLL | SWT.H_SCROLL | SWT.BORDER);
+			// Fix layout data (height, width) after we construct right-hand composite.
+//		data = new GridData(GridData.FILL_BOTH);
+//		data.widthHint = 100; // SUCK FIXME! How to get font metrics?
+//		_eventList.getList().setLayoutData(data);
+		_eventList.setLabelProvider(new OpEventLabelProvider());
+		_eventList.setContentProvider(new IStructuredContentProvider()
+		{
+			public void dispose()
+			{
+			}
+			public void inputChanged(Viewer arg0, Object arg1, Object arg2)
+			{
+			}
+			public Object[] getElements(Object inputElement)
+			{
+				OprofileCounter ctr = (OprofileCounter) inputElement;
+				return (OpEvent[]) ctr.getValidEvents();
+			}
+		});
+		_eventList.addSelectionChangedListener(new ISelectionChangedListener()
+		{
+			public void selectionChanged(SelectionChangedEvent sce)
+			{
+				_updateEventDisplayFromSelection();
+			}
+		});
+		_eventList.getList().addMouseMoveListener(new MouseMoveListener()
+		{
+			public void mouseMove(MouseEvent event)
+			{
+				_handleMouseMove(event);
+			}
+		});
+		_eventList.getList().addMouseTrackListener(new MouseTrackAdapter()
+		{
+			// FIXME: This doesn't work very well... Only when mouse moves
+			// slowly does this really work. Must be a way to get Enter/Leave events...
+			public void mouseExit(MouseEvent ev)
+			{
+				_resetEventDesc();
+			}
+		});
+
+		Composite right = new Composite(g, SWT.NONE);
+		layout = new GridLayout();
+		layout.marginWidth = 0;
+		right.setLayout(layout);
+		data = new GridData(GridData.FILL_BOTH);
+		right.setLayoutData(data);
+		_profileKernelButton = new Button(right, SWT.CHECK);
+		_profileKernelButton.setText(OprofileLaunchMessages.getString("tab.event.counterSettings.profileKernel.check.text")); //$NON-NLS-1$
+		_profileKernelButton.addSelectionListener(new SelectionAdapter()
+		{
+			public void widgetSelected(SelectionEvent se)
+			{
+				_handleProfileKernelToggle();
+			}
+		});
+		_profileUserspaceButton = new Button(right, SWT.CHECK);
+		_profileUserspaceButton.setText(OprofileLaunchMessages.getString("tab.event.counterSettings.profileUser.check.text")); //$NON-NLS-1$
+		_profileUserspaceButton.addSelectionListener(new SelectionAdapter()
+		{
+			public void widgetSelected(SelectionEvent se)
+			{
+				_handleProfileUserToggle();
+			}
+		});
+		Composite p = new Composite(right, SWT.NONE);
+		layout = new GridLayout();
+		layout.numColumns = 2;
+		layout.marginHeight = 0;
+		layout.marginWidth = 0;
+		p.setLayout(layout);
+
+		l = new Label(p, SWT.NONE);
+		l.setText(OprofileLaunchMessages.getString("tab.event.counterSettings.count.label.text")); //$NON-NLS-1$
+		_countText = new Text(p, SWT.SINGLE | SWT.BORDER);
+		data = new GridData();
+		data.widthHint = 60; // FIXME SUCK: Once again: font metrics?
+		_countText.setLayoutData(data);
+		_countText.addModifyListener(new ModifyListener()
+		{
+			public void modifyText(ModifyEvent me)
+			{
+				_handleModify();
+			}
+		});
+		_countText.addVerifyListener(new VerifyListener()
+		{
+			public void verifyText(VerifyEvent ve)
+			{
+				// Only allow numbers and non-text events (ie. backspace and delete)
+				// SUCK FIXME: i18n?
+				try
+				{
+					//An event which doesn't contain text (backspace and delete)
+					//should still be allowed.
+					String text = ve.text;
+					if (text.length() != 0)
+					{					
+						int count = Integer.parseInt(text);
+						if (count < 0)
+							ve.doit = false;
+					}
+				}
+				catch (NumberFormatException e)
+				{
+					ve.doit = false;
+				}
+			}
+		});
+
+		_unitMaskViewer = new UnitMaskViewer(right);
+
+		_eventDescText = new Text(top, SWT.SINGLE | SWT.BORDER | SWT.READ_ONLY);
+		data = new GridData(GridData.FILL_HORIZONTAL);
+		data.horizontalSpan = 2;
+		_eventDescText.setLayoutData(data);
 		
-		TabFolder tabFolder = new TabFolder(top, SWT.NONE);
-		tabFolder.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-
-
-		for (int i = 0; i < counters.length; i++) {
-			Composite c = new Composite(tabFolder, SWT.NONE);
-			CounterSubTab currentTab = new CounterSubTab(c, counters[i]);
-			_counterSubTabs[i] = currentTab;
-			
-			counterTabs[i] = new TabItem(tabFolder, SWT.NONE);
-			counterTabs[i].setControl(c);
-			counterTabs[i].setText("Ctr " + String.valueOf(i));		//TODO: externalize this
-		}
+		// Now that the right-hand comosite has been constructed, compute the
+		// heightHint for the event list.
+		data = new GridData(GridData.FILL_BOTH);
+		data.widthHint = 250; // SUCK FIXME! How to get font metrics?
+		data.heightHint = right.getBounds().height;
+		_eventList.getList().setLayoutData(data);
 	}
 
