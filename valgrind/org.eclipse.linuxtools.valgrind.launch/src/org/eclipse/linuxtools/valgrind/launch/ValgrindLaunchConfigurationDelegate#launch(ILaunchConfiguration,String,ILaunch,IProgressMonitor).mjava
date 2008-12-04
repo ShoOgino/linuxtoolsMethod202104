@@ -9,8 +9,10 @@
 			return;
 		}
 
+		this.config = config;
+		this.launch	= launch;
 		try {
-			command = new ValgrindCommand();
+			command = new ValgrindCommand(HistoryFile.getInstance().createOutputDir());
 			monitor.worked(1);
 			IPath exePath = verifyProgramPath(config);
 
@@ -39,13 +41,25 @@
 			boolean usePty = config.getAttribute(ICDTLaunchConfigurationConstants.ATTR_USE_TERMINAL, ICDTLaunchConfigurationConstants.USE_TERMINAL_DEFAULT);
 			monitor.worked(3);
 
+			// call Valgrind
 			command.execute(commandArray, getEnvironment(config), wd, usePty);
 			monitor.worked(3);
-			IProcess p = DebugPlugin.newProcess(launch, command.getProcess(), renderProcessLabel(commandArray[0]));
+			process = DebugPlugin.newProcess(launch, command.getProcess(), renderProcessLabel(commandArray[0]));
 			
-			// write launch history to history file
-			HistoryFile.getInstance().write(config.getName(), toolID, command.getDataDir().getName(), p.getLabel());
+			// create launch summary string to distinguish this launch
+			launchStr = createLaunchStr();
+			
+			// create view
+			ValgrindUIPlugin.getDefault().createView(launchStr, toolID);
+			
+			// pass off control to extender
 			dynamicDelegate.launch(command, config, launch, monitor.newChild(3));
+			
+			// refresh view
+			ValgrindUIPlugin.getDefault().refreshView();
+			
+			// save results of launch to persistent storage
+			saveState();
 		} catch (IOException e) {
 			abort(Messages.getString("ValgrindLaunchConfigurationDelegate.Error_starting_process"), e, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR); //$NON-NLS-1$
 		} finally {
