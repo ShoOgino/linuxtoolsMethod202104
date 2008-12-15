@@ -1,0 +1,18 @@
+	protected ICProject createProject(Bundle bundle, String projname) throws CoreException, URISyntaxException,
+			InvocationTargetException, InterruptedException, IOException {
+		ICProject proj = CProjectHelper.createCProject(projname , "Debug"); //$NON-NLS-1$
+		URL location = FileLocator.find(bundle, new Path("resources/" + projname), null); //$NON-NLS-1$
+		File testDir = new File(FileLocator.toFileURL(location).toURI());
+		
+		ImportOperation op = new ImportOperation(proj.getProject().getFullPath(), testDir, FileSystemStructureProvider.INSTANCE, new IOverwriteQuery() {
+			public String queryOverwrite(String pathString) {
+				return ALL;
+			}			
+		});
+		op.setCreateContainerStructure(false);
+		op.run(null);
+		proj.getProject().build(IncrementalProjectBuilder.FULL_BUILD, null);
+		proj.getProject().refreshLocal(IResource.DEPTH_INFINITE, null);
+		return proj;
+	}
+

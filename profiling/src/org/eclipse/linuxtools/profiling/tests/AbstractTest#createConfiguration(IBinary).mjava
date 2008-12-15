@@ -1,0 +1,24 @@
+	protected ILaunchConfiguration createConfiguration(IBinary bin) {
+		ILaunchConfiguration config = null;
+		try {
+			String projectName = bin.getResource().getProjectRelativePath().toString();
+			ILaunchConfigurationType configType = getLaunchConfigType();
+			ILaunchConfigurationWorkingCopy wc = configType.newInstance(null, getLaunchManager().generateUniqueLaunchConfigurationNameFrom(bin.getElementName()));
+	
+			wc.setAttribute(ICDTLaunchConfigurationConstants.ATTR_PROGRAM_NAME, projectName);
+			wc.setAttribute(ICDTLaunchConfigurationConstants.ATTR_PROJECT_NAME, bin.getCProject().getElementName());
+			wc.setMappedResources(new IResource[] {bin.getResource(), bin.getResource().getProject()});
+			wc.setAttribute(ICDTLaunchConfigurationConstants.ATTR_WORKING_DIRECTORY, (String) null);
+			
+			// Make launch run in foreground
+			wc.setAttribute(IDebugUIConstants.ATTR_LAUNCH_IN_BACKGROUND, false);
+			
+			setProfileAttributes(wc);
+	
+			config = wc.doSave();
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+		return config;
+	}
+
