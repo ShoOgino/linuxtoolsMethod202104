@@ -1,15 +1,21 @@
 	@SuppressWarnings("unchecked")
 	public static final Chart createLine(MassifSnapshot[] snapshots) {
-		String unit = snapshots[0].getUnit().toString().toLowerCase();
+		TimeUnit timeUnit = snapshots[0].getUnit();
+		int xScaling = getXScaling(snapshots, timeUnit);
+		int xMultiplier =  getMultiplier(timeUnit);
+		int yScaling = getYScaling(snapshots);
+		
+		int xDiv = (int) Math.pow(xMultiplier, xScaling);
+		int yDiv = (int) Math.pow(BYTE_MULT, yScaling);
 		
 		double[] time = new double[snapshots.length];
 		double[] dataUseful = new double[snapshots.length];
 		double[] dataExtra = new double[snapshots.length];
 		double[] dataTotal = new double[snapshots.length];
 		for (int i = 0; i < snapshots.length; i++) {
-			time[i] = snapshots[i].getTime();
-			dataUseful[i] = snapshots[i].getHeapBytes();
-			dataExtra[i] = snapshots[i].getHeapExtra();
+			time[i] = snapshots[i].getTime() / xDiv;
+			dataUseful[i] = snapshots[i].getHeapBytes() / yDiv;
+			dataExtra[i] = snapshots[i].getHeapExtra() / yDiv;
 			dataTotal[i] = dataUseful[i] + dataExtra[i];
 		}
 
@@ -18,29 +24,51 @@
 		cwaLine.setType("Line Chart"); //$NON-NLS-1$
 		cwaLine.setSubType("Overlay"); //$NON-NLS-1$
 
+		Font font = JFaceResources.getDialogFont();
+		FontData fd = font.getFontData()[0];
+		
+		// Title
+		FontDefinition titleFont = cwaLine.getTitle().getLabel().getCaption().getFont();
+		titleFont.setName(fd.getName());
+		titleFont.setSize(fd.getHeight() + 2);
+		
 		// Plot
 		cwaLine.getBlock().setBackground(ColorDefinitionImpl.WHITE());
 		Plot p = cwaLine.getPlot();
 		p.getClientArea().setBackground(
 				ColorDefinitionImpl.create(255, 255, 225));
 
-		// Title
-		cwaLine.getTitle().setVisible(false);
-
 		// X-Axis
 		Axis xAxisPrimary = cwaLine.getPrimaryBaseAxes()[0];
 		xAxisPrimary.setType(AxisType.LINEAR_LITERAL);
 		xAxisPrimary.getMajorGrid().setTickStyle(TickStyle.BELOW_LITERAL);
 		xAxisPrimary.getOrigin().setType(IntersectionType.VALUE_LITERAL);
-		xAxisPrimary.getTitle().getCaption().setValue(unit);
+		xAxisPrimary.getTitle().getCaption().setValue(getScaledUnit(timeUnit, xScaling));
 		xAxisPrimary.getTitle().setVisible(true);
+		
+		FontDefinition xAxisFont = xAxisPrimary.getTitle().getCaption().getFont();
+		xAxisFont.setName(fd.getName());
+		xAxisFont.setSize(fd.getHeight());
+		
+		xAxisFont = xAxisPrimary.getLabel().getCaption().getFont();
+		xAxisFont.setName(fd.getName());
+		xAxisFont.setSize(fd.getHeight());
 		
 		// Y-Axis
 		Axis yAxisPrimary = cwaLine.getPrimaryOrthogonalAxis(xAxisPrimary);
 		yAxisPrimary.getMajorGrid().setTickStyle(TickStyle.LEFT_LITERAL);
-		yAxisPrimary.getTitle().getCaption().setValue(Messages.getString("ChartBuilder.bytes")); //$NON-NLS-1$
+		yAxisPrimary.getMajorGrid().getLineAttributes().setVisible(true);
+		yAxisPrimary.getTitle().getCaption().setValue(getScaledUnit(TimeUnit.BYTES, yScaling));
 		yAxisPrimary.getTitle().setVisible(true);
+		
+		FontDefinition yAxisFont = yAxisPrimary.getTitle().getCaption().getFont();
+		yAxisFont.setName(fd.getName());
+		yAxisFont.setSize(fd.getHeight());
 
+		yAxisFont = yAxisPrimary.getLabel().getCaption().getFont();
+		yAxisFont.setName(fd.getName());
+		yAxisFont.setSize(fd.getHeight());
+		
 		// Z-Axis
 		Axis zAxis = AxisImpl.create(Axis.ANCILLARY_BASE);
 		zAxis.setType(AxisType.LINEAR_LITERAL);
@@ -50,6 +78,15 @@
 		zAxis.setOrientation(Orientation.HORIZONTAL_LITERAL);
 		xAxisPrimary.getAncillaryAxes().add(zAxis);
 
+		// Legend
+		Legend legend = cwaLine.getLegend();
+		legend.setPosition(Position.BELOW_LITERAL);
+		legend.setOrientation(Orientation.HORIZONTAL_LITERAL);
+		
+		FontDefinition legendFont = legend.getText().getFont();
+		legendFont.setName(fd.getName());
+		legendFont.setSize(fd.getHeight());
+		
 		// Data Set
 		NumberDataSet mainValues = NumberDataSetImpl.create(time);
 		NumberDataSet orthoValues1 = NumberDataSetImpl.create(dataUseful);
