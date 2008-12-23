@@ -1,7 +1,7 @@
 	public MassifTreeViewer(Composite parent) {
 		super(parent);
-
-		setContentProvider(new ITreeContentProvider() {
+		
+		contentProvider = new ITreeContentProvider() {
 			public Object[] getChildren(Object parentElement) {
 				return ((MassifHeapTreeNode) parentElement).getChildren();
 			}
@@ -24,7 +24,8 @@
 			public void inputChanged(Viewer viewer, Object oldInput,
 					Object newInput) {}
 
-		});
+		};
+		setContentProvider(contentProvider);
 
 		setLabelProvider(new LabelProvider() {
 			@Override
@@ -37,6 +38,8 @@
 				Image img = null;
 				if (((MassifHeapTreeNode) element).getParent() == null) { // only show for root elements
 					img = MassifPlugin.imageDescriptorFromPlugin(MassifPlugin.PLUGIN_ID, "icons/memory_view.gif").createImage(); //$NON-NLS-1$
+				} else { // stack frame
+					img = DebugUITools.getImage(IDebugUIConstants.IMG_OBJS_STACKFRAME);
 				}
 				return img;
 			}
@@ -60,6 +63,9 @@
 							}
 						}
 					}
+				} 
+				if (contentProvider.hasChildren(element)) {
+					expandToLevel(element, 1);
 				}
 			}			
 		};
