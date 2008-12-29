@@ -1,0 +1,60 @@
+			/**
+			 * Disposes of the old unit mask check list and creates a new one with 
+			 *   the appropriate default value. 
+			 * @param oe the event
+			 */
+			public void displayEvent(OpEvent oe) {
+				OpUnitMask mask = oe.getUnitMask();
+				int totalMasks = mask.numMasks();
+				
+				if (_maskListComp != null) {
+					_maskListComp.dispose();
+				}
+				
+				Composite newMaskComp = new Composite(_top, SWT.NONE);
+				newMaskComp.setLayout(new GridLayout());
+				newMaskComp.setLayoutData(new GridData(SWT.LEFT, SWT.FILL, false, true));
+				_maskListComp = newMaskComp;
+
+				//creates these buttons with the default masks
+				mask.setDefaultMaskValue();
+				
+				ArrayList<Button> maskButtons = new ArrayList<Button>();
+				
+				for (int i = 0; i < totalMasks; i++) {
+					Button maskButton;
+					
+					if (mask.getType() == OpUnitMask.MANDATORY) {
+						maskButton = new Button(newMaskComp, SWT.RADIO);
+						maskButton.setEnabled(false);
+						maskButton.setText(mask.getText(i));
+						maskButton.setSelection(true);
+					} else {
+						int buttonType;
+						final int maskButtonIndex = i;
+						boolean selected = mask.isMaskSetFromIndex(maskButtonIndex);
+
+						if (mask.getType() == OpUnitMask.EXCLUSIVE) {
+							buttonType = SWT.RADIO;
+						} else {	//mask type is OpUnitMask.BITMASK
+							buttonType = SWT.CHECK;
+						}
+						
+						maskButton = new Button(newMaskComp, buttonType);
+						maskButton.setEnabled(true);
+						maskButton.setText(mask.getText(i));
+						maskButton.setSelection(selected);
+						maskButton.addSelectionListener(new SelectionAdapter() {
+							public void widgetSelected(SelectionEvent se) {
+								_handleToggle((Button)se.getSource(), maskButtonIndex);
+							}
+						});
+						
+						maskButtons.add(maskButton);
+					}
+				}
+				
+				_unitMaskButtons = new Button[maskButtons.size()];
+				maskButtons.toArray(_unitMaskButtons);
+			}
+
