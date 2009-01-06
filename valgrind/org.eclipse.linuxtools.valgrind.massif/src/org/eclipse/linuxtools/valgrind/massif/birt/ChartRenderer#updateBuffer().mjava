@@ -44,35 +44,31 @@
 					SWT.COLOR_WHITE));
 			gc.fillRectangle(buffer.getBounds());
 
-			final Bounds bo = BoundsImpl.create(X_OFFSET, Y_OFFSET,
+			Bounds bo = BoundsImpl.create(X_OFFSET, Y_OFFSET,
 					adjustedRe.width - 2 * X_OFFSET, adjustedRe.height - 2
-							* Y_OFFSET);
+					* Y_OFFSET);
 
-			IDeviceRenderer deviceRenderer = null;
 			try {
-				deviceRenderer = PluginSettings.instance().getDevice("dv.SWT"); //$NON-NLS-1$
-				deviceRenderer
-						.setProperty(IDeviceRenderer.GRAPHICS_CONTEXT, gc);
+				deviceRenderer.setProperty(IDeviceRenderer.GRAPHICS_CONTEXT, gc);
+
 				bo.scale(72d / deviceRenderer.getDisplayServer()
-						.getDpiResolution()); // CONVERT
-				// TO
-				// POINTS
+						.getDpiResolution()); // convert to points
 
-				// GENERATE AND RENDER THE CHART
-				final Generator gr = Generator.instance();
-				RunTimeContext rtc = new RunTimeContext();
+				// generate and render the cart
+				Generator gr = Generator.instance();
+				if (needsGeneration) {
+					needsGeneration = false;
+					RunTimeContext rtc = new RunTimeContext();
 
-				GeneratedChartState state = gr.build(deviceRenderer
-						.getDisplayServer(), cm, bo, null, rtc, null);
+					state = gr.build(deviceRenderer
+							.getDisplayServer(), cm, bo, null, rtc, null);
 
+				}
 				gr.render(deviceRenderer, state);
 			} catch (Exception ex) {
 				paintError = ex;
 			} finally {
 				gc.dispose();
-				if (deviceRenderer != null) {
-					deviceRenderer.dispose();
-				}
 			}
 
 			if (paintError != null) {
