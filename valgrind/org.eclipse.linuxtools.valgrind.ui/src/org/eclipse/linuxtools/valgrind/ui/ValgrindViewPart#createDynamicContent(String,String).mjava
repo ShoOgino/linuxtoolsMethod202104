@@ -1,0 +1,35 @@
+	public IValgrindToolView createDynamicContent(String description, String toolID) throws CoreException {
+		setContentDescription(description);
+
+		// remove tool specific toolbar controls
+		IToolBarManager toolbar = getViewSite().getActionBars().getToolBarManager();
+		if (dynamicActions != null) {
+			for (ActionContributionItem item : dynamicActions) {
+				toolbar.remove(item);
+			}
+		}
+
+		// remove old view controls
+		for (Control child : dynamicViewHolder.getChildren()) {
+			child.dispose();
+		}
+		dynamicView = ValgrindUIPlugin.getDefault().getToolView(toolID);
+		dynamicView.createPartControl(dynamicViewHolder);
+
+		// create toolbar items
+		IAction[] actions = dynamicView.getToolbarActions();
+		if (actions != null) {
+			dynamicActions = new ActionContributionItem[actions.length];
+			for (int i = 0; i < actions.length; i++) {
+				dynamicActions[i] = new ActionContributionItem(actions[i]);
+				toolbar.appendToGroup(ValgrindUIPlugin.TOOLBAR_LOC_GROUP_ID, dynamicActions[i]);
+//				toolbar.add(dynamicActions[i]);
+			}
+		}
+		toolbar.update(true);
+		
+		dynamicViewHolder.layout(true);
+
+		return dynamicView;
+	}
+
