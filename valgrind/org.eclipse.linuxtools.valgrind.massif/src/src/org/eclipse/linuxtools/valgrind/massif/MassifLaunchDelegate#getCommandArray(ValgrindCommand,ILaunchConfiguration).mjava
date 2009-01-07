@@ -1,0 +1,29 @@
+	@SuppressWarnings("unchecked")
+	public String[] getCommandArray(ValgrindCommand command, ILaunchConfiguration config)
+	throws CoreException {
+		ArrayList<String> opts = new ArrayList<String>();
+
+		try {
+			opts.add(OPT_MASSIF_OUTFILE + EQUALS + command.getDatadir().getCanonicalPath() + File.separator + OUT_FILE);
+
+			opts.add(OPT_HEAP + EQUALS + (config.getAttribute(MassifToolPage.ATTR_MASSIF_HEAP, true) ? YES : NO));
+			opts.add(OPT_HEAPADMIN + EQUALS + config.getAttribute(MassifToolPage.ATTR_MASSIF_HEAPADMIN, 8));
+			opts.add(OPT_STACKS + EQUALS + (config.getAttribute(MassifToolPage.ATTR_MASSIF_STACKS, false) ? YES : NO));
+			opts.add(OPT_DEPTH + EQUALS + config.getAttribute(MassifToolPage.ATTR_MASSIF_DEPTH, 30));
+			List<String> allocFns = config.getAttribute(MassifToolPage.ATTR_MASSIF_ALLOCFN, Collections.EMPTY_LIST);
+			for (String func : allocFns) {
+				opts.add(OPT_ALLOCFN + EQUALS + func);
+			}
+			opts.add(OPT_THRESHOLD + EQUALS + config.getAttribute(MassifToolPage.ATTR_MASSIF_THRESHOLD, 10) / 10.0);
+			opts.add(OPT_PEAKINACCURACY + EQUALS + config.getAttribute(MassifToolPage.ATTR_MASSIF_PEAKINACCURACY, 10) / 10.0);
+			opts.add(OPT_TIMEUNIT + EQUALS + config.getAttribute(MassifToolPage.ATTR_MASSIF_TIMEUNIT, MassifToolPage.TIME_I));
+			opts.add(OPT_DETAILEDFREQ + EQUALS + config.getAttribute(MassifToolPage.ATTR_MASSIF_DETAILEDFREQ, 10));
+			opts.add(OPT_MAXSNAPSHOTS + EQUALS + config.getAttribute(MassifToolPage.ATTR_MASSIF_MAXSNAPSHOTS, 100));
+			opts.add(OPT_ALIGNMENT + EQUALS + config.getAttribute(MassifToolPage.ATTR_MASSIF_ALIGNMENT, 8));
+		} catch (IOException e) {
+			abort(Messages.getString("MassifLaunchDelegate.Retrieving_massif_data_dir"), e, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR); //$NON-NLS-1$
+		}
+
+		return opts.toArray(new String[opts.size()]);
+	}
+
