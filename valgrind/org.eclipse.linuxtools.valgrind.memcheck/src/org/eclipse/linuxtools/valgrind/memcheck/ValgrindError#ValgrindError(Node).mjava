@@ -1,0 +1,45 @@
+	public ValgrindError(Node errorNode) throws CoreException, IOException {
+		pid = findPid(errorNode);
+
+		NodeList list = errorNode.getChildNodes();
+		for (int i = 0; i < list.getLength(); i++) {
+			Node n = list.item(i);
+			if (n.getNodeName().equals("unique")) { //$NON-NLS-1$
+				unique = n.getTextContent();
+			}
+			else if (n.getNodeName().equals("tid")) { //$NON-NLS-1$
+				tid = n.getTextContent();
+			}
+			else if (n.getNodeName().equals("kind")) { //$NON-NLS-1$
+				kind = n.getTextContent();
+			}
+			else if (n.getNodeName().equals("what")) { //$NON-NLS-1$
+				what = n.getTextContent();
+			}
+			else if (n.getNodeName().equals("stack")) { //$NON-NLS-1$
+				NodeList frameNodes = n.getChildNodes();
+				// main stack or aux stack?
+				ArrayList<ValgrindStackFrame> stack;
+				if (auxwhat == null) {
+					frames = new ArrayList<ValgrindStackFrame>();
+					stack = frames;
+				}
+				else {
+					auxframes = new ArrayList<ValgrindStackFrame>();
+					stack = auxframes;
+				}
+				for (int j = 0; j < frameNodes.getLength(); j++) {
+					Node m = frameNodes.item(j);
+					if (m.getNodeName().equals("frame")) { //$NON-NLS-1$
+						stack.add(new ValgrindStackFrame(m));	
+					}
+				}
+			}
+			else if (n.getNodeName().equals("auxwhat")) { //$NON-NLS-1$
+				auxwhat = n.getTextContent();
+			}
+		}
+		
+		createMarker();
+	}
+

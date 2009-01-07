@@ -1,0 +1,22 @@
+	protected void createMarker() throws CoreException, IOException {
+		IMarker marker = null;		
+		// find the topmost stack frame within the workspace to annotate with marker
+		for (int i = 0; i < frames.size() && marker == null; i++) {
+			ValgrindStackFrame frame = frames.get(i);
+			if (frame.getDir() != null && frame.getFile() != null && frame.getLine() > 0) {
+				String strpath = frame.getDir() + Path.SEPARATOR + frame.getFile();
+				File file = new File(strpath);
+				Path path = new Path(file.getCanonicalPath());
+				
+				IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+				IFile resource = root.getFileForLocation(path);
+				if (resource != null && resource.exists()) {
+					marker = resource.createMarker(MemcheckPlugin.MARKER_TYPE);
+					marker.setAttribute(IMarker.MESSAGE, what);
+					marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
+					marker.setAttribute(IMarker.LINE_NUMBER, frame.getLine());
+				}
+			}
+		}
+	}
+
