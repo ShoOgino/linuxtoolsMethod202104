@@ -1,0 +1,53 @@
+	private void updateCheckboxData(boolean useProject) {
+		// Combine user preference string with existing libhover extensions.
+		getExtensions();
+		HashMap<String,String> copyMap = (HashMap<String,String>)mapItems.clone();
+		ArrayList<TableData> data = new ArrayList<TableData>();
+		ArrayList<TableData> checkedData = new ArrayList<TableData>();
+		// See what the user has set in preferences/properties and make sure that
+		// any libhover referred to is a valid current extension.
+		// Drop any preference for a non-existent extension.
+		String prop = null;
+		String pref = null;
+		// User wants to use project settings.  If they already exist, honor them.
+		if (useProject)
+			prop = getPropertyString();
+		// If no property settings exist or the user has not asked for project
+		// specific settings, then use the preferences as default.
+		if (prop == null)
+		    pref = getPreferenceStore().getString(PreferenceConstants.P_LIBHOVER);
+		else // otherwise use the property settings
+			pref = prop;
+		// The property string has the same format as the preference string which is
+		// id1:boolean1:id2:boolean2:id3:boolean3 (where booleanx is checked or not)
+		String[] tokens = pref.split(":");
+		if (tokens.length > 1) {
+			for (int i = 0; i < tokens.length; i+=2) {
+				String id = tokens[i];
+				Boolean checked = Boolean.valueOf(tokens[i+1]);
+				String value = copyMap.get(id);
+				if (value != null) {
+					TableData d = new TableData(id, value);
+					data.add(d);
+					if (checked)
+						checkedData.add(d);
+					copyMap.remove(id);
+				}
+			}
+		}
+		// Add any remaining libhover extensions to end of list.  If there is an
+		// existing property string, we treat them as unchecked.  If we are
+		// defaulting to the preferences, then we treat them as checked.
+		String[] leftovers = new String[copyMap.size()];
+		leftovers = copyMap.keySet().toArray(leftovers);
+		for (int i = 0; i < leftovers.length; ++i) {
+			TableData d = new TableData(leftovers[i], copyMap.get(leftovers[i]));
+			data.add(d);
+			if (!useProject || prop == null)
+				checkedData.add(d);
+		}
+		tv.setInput(data.toArray());
+		tv.setCheckedElements(checkedData.toArray());
+		updateButtons();
+	}
+
