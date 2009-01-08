@@ -1,11 +1,6 @@
 	// Will add opcontrol program to beginning of args
 	// args: list of opcontrol arguments (not including opcontrol program itself)
-	/**
-	 * @return true if any output was produced on the error stream. Unfortunately
-	 * this appears to currently be the only way we can tell if user correctly
-	 * entered the password
-	 */
-	private boolean _runOpcontrol(ArrayList<String> args) throws OpcontrolException {
+	private void _runOpcontrol(ArrayList<String> args) throws OpcontrolException {
 		args.add(0, OPCONTROL_PROGRAM);
 		// Verbosity hack. If --start or --start-daemon, add verbosity, if set
 		String cmd = (String) args.get(1);
@@ -25,33 +20,21 @@
 				p = null;
 			}
 			
-			throw new OpcontrolException(OprofileCorePlugin.createErrorStatus("opcontrolRun", ioe)); //$NON-NLS-1$
+			throw new OpcontrolException(OprofileCorePlugin.createErrorStatus("opcontrolRun", ioe));
 		}
 		
 		if (p != null) {
-			BufferedReader errout = new BufferedReader(new InputStreamReader(p.getErrorStream()));
-			String output = "", s; //$NON-NLS-1$
+			BufferedReader stdout = new BufferedReader(new InputStreamReader(p.getInputStream()));
 			try {
-				while ((s = errout.readLine()) != null) {
-					output += s;
+				while ((stdout.readLine()) != null) {
+					// drain
 				}
-				
-				int ret = p.waitFor();
-				if (ret != 0) {
-					System.out.println(output);
-					throw new OpcontrolException(OprofileCorePlugin.createErrorStatus("opcontrolNonZeroExitCode", null)); //$NON-NLS-1$
-				}
-				
-				if (output.length() != 0) {
-					return true;
-				}
-				
-			} catch (IOException ioe) { 
-				ioe.printStackTrace();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+			} catch (IOException ioe) { /* We don't care if there were errors draining the output */ }
+			
+//			if (p.exitValue() != 0) {
+//				Status status = new Status(Status.ERROR, OprofileCorePlugin.getId(), 0 /* code */, "opcontrol return status indicates a failure!", null);
+//				throw new OpcontrolException(status);
+//			}
 		}
-		return false;
 	}
 
