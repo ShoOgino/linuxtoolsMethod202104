@@ -1,13 +1,21 @@
 	public ChartControl(Composite parent, Chart chart, int style) {
 		super(parent, SWT.BORDER);
+		cm = chart;
 		setLayoutData(new GridData(GridData.FILL_BOTH));
 		setBackground(Display.getDefault().getSystemColor(SWT.COLOR_WHITE));
 
 		try {
-			ChartRenderer renderer = new ChartRenderer(chart, this);
-			addPaintListener(renderer);
-			addControlListener(renderer);
-			renderer.renderModel();
+			deviceRenderer = PluginSettings.instance().getDevice("dv.SWT"); //$NON-NLS-1$
+			deviceRenderer.setProperty(IDeviceRenderer.UPDATE_NOTIFIER, this);
+
+			addDisposeListener(new DisposeListener() {
+				public void widgetDisposed(DisposeEvent e) {
+					deviceRenderer.dispose();
+				}				
+			});
+
+			addPaintListener(this);
+			addControlListener(this);
 		} catch (ChartException e) {
 			e.printStackTrace();
 		}

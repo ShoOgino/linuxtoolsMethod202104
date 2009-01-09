@@ -1,14 +1,10 @@
-	/**
-	 * Generate and render the chart model,the chart image is stored in a
-	 * buffer. The buffer will be updated only when the chart model is changed.
-	 */
-	private void updateBuffer() {
+	public void paintControl(PaintEvent pe) {
 		if (bIsPainting) {
 			return;
 		}
 		Throwable paintError = null;
 
-		Rectangle re = canvas.getClientArea();
+		Rectangle re = getClientArea();
 		final Rectangle adjustedRe = new Rectangle(0, 0, re.width, re.height);
 
 		if (adjustedRe.width - 2 * X_OFFSET <= 0
@@ -37,19 +33,19 @@
 				}
 			}
 
-			GC gc = new GC(buffer);
+			GC gcImage = new GC(buffer);
 
 			// fill default backgournd as white.
-			gc.setForeground(Display.getDefault().getSystemColor(
+			gcImage.setForeground(Display.getDefault().getSystemColor(
 					SWT.COLOR_WHITE));
-			gc.fillRectangle(buffer.getBounds());
+			gcImage.fillRectangle(buffer.getBounds());
 
 			Bounds bo = BoundsImpl.create(X_OFFSET, Y_OFFSET,
 					adjustedRe.width - 2 * X_OFFSET, adjustedRe.height - 2
 					* Y_OFFSET);
 
 			try {
-				deviceRenderer.setProperty(IDeviceRenderer.GRAPHICS_CONTEXT, gc);
+				deviceRenderer.setProperty(IDeviceRenderer.GRAPHICS_CONTEXT, gcImage);
 
 				bo.scale(72d / deviceRenderer.getDisplayServer()
 						.getDpiResolution()); // convert to points
@@ -65,20 +61,24 @@
 
 				}
 				gr.render(deviceRenderer, state);
+				if (paintError != null) {
+					buffer = oldBuffer;
+				}
+				if (oldBuffer != null && oldBuffer != buffer) {
+					oldBuffer.dispose();
+				}
+				GC gc = pe.gc;
+				if (buffer != null) {
+					gc.drawImage(buffer, 0, 0);
+				}
 			} catch (Exception ex) {
 				paintError = ex;
 			} finally {
-				gc.dispose();
-			}
-
-			if (paintError != null) {
-				buffer = oldBuffer;
-			}
-			if (oldBuffer != null && oldBuffer != buffer) {
-				oldBuffer.dispose();
-			}
+				gcImage.dispose();
+			}			
 			bIsPainting = false;
 		}
+
 
 	}
 
