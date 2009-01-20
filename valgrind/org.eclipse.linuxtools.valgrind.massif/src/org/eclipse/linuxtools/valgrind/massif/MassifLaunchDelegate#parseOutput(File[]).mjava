@@ -1,16 +1,16 @@
 	protected void parseOutput(File[] massifOutputs) throws IOException {
-		ArrayList<MassifSnapshot> list = new ArrayList<MassifSnapshot>();
-		for (File output : massifOutputs) {
-			MassifParser parser = new MassifParser(output);
-			list.addAll(Arrays.asList(parser.getSnapshots()));
+		output = new MassifOutput();
+		for (File file : massifOutputs) {
+			MassifParser parser = new MassifParser(file);
+			output.putSnapshots(parser.getPid(), parser.getSnapshots());
 		}
-
-		snapshots = list.toArray(new MassifSnapshot[list.size()]);
 		
 		ValgrindViewPart view = ValgrindUIPlugin.getDefault().getView();
 		IValgrindToolView massifPart = view.getDynamicView();
 		if (massifPart instanceof MassifViewPart) {
-			((MassifViewPart) massifPart).setSnapshots(snapshots);
+			((MassifViewPart) massifPart).setOutput(output);
+			// initialize to first pid
+			((MassifViewPart) massifPart).setPid(output.getPids()[0]);
 		}
 	}
 
