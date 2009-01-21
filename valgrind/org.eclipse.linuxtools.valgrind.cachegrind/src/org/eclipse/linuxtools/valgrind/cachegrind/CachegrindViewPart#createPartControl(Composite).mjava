@@ -25,5 +25,45 @@
 		viewer.setContentProvider(new CachegrindTreeContentProvider());
 		viewer.setLabelProvider(labelProvider);
 		viewer.setAutoExpandLevel(2);
+		viewer.addDoubleClickListener(new IDoubleClickListener() {
+			public void doubleClick(DoubleClickEvent event) {
+				Object selection = ((StructuredSelection) event.getSelection()).getFirstElement();
+				String path = null;
+				int line = 0;
+				if (selection instanceof CachegrindFile) {
+					path = ((CachegrindFile) selection).getPath();
+				}
+				else if (selection instanceof CachegrindLine) {
+					CachegrindLine element = (CachegrindLine) selection;
+					CachegrindFile file = (CachegrindFile) element.getParent().getParent();
+					path = file.getPath();
+					line = element.getLine();
+				}
+				else if (selection instanceof CachegrindFunction) {
+					CachegrindFunction function = (CachegrindFunction) selection;
+					path = ((CachegrindFile) function.getParent()).getPath();
+					if (function.getModel() instanceof ISourceReference) {
+						ISourceReference model = (ISourceReference) function.getModel();
+						try {
+							ISourceRange sr = model.getSourceRange();
+							if (sr != null) {
+								line = sr.getStartLine();
+							}
+						} catch (CModelException e) {
+							e.printStackTrace();
+						}						
+					}
+				}
+				if (path != null) {
+					try {
+						ProfileUIUtils.openEditorAndSelect(path, line);
+					} catch (PartInitException e) {
+						e.printStackTrace();
+					} catch (BadLocationException e) {
+						e.printStackTrace();
+					}
+				}
+			}			
+		});
 	}
 
