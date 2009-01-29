@@ -1,0 +1,46 @@
+	static public List <ProtocolDescriptor> findProcotols (String[] reqCapabilities) {
+		Collection<IExtension> extensions =
+			PluginUtils.getInstalledExtensions(PROTOCOLS_EXTENSION);
+		
+		List <ProtocolDescriptor> pdList = new LinkedList<ProtocolDescriptor>();
+		
+		for (IExtension extension:extensions){
+			IConfigurationElement[] protocolElements = extension.getConfigurationElements();
+			for (IConfigurationElement protocolElement:protocolElements) {
+				IConfigurationElement[] capabilityElements = protocolElement.getChildren(CAPABILITY);
+				
+				boolean allCapabilitiesFound = true;
+				for (String reqCapability:reqCapabilities) {
+					boolean capabilityMissing = true;
+					for (IConfigurationElement capabilityElement:capabilityElements) {
+						String capabilityStr = capabilityElement.getAttribute(ID);
+						if(capabilityStr.equalsIgnoreCase(reqCapability)) {
+							capabilityMissing = false; //Capability found
+							break;
+						}
+					}
+					if (true == capabilityMissing) {
+						allCapabilitiesFound = false;
+						break; // Could not find one of the req'd capabilities
+					}
+				}
+				
+				if(true == allCapabilitiesFound) {
+					String protDefaultPortStr = protocolElement.getAttribute(DEFAULT_PORT);
+					Integer protDefaultPort = new Integer(protDefaultPortStr);
+					String protIdStr = protocolElement.getAttribute(ID);
+					String protNameStr = protocolElement.getAttribute(NAME);
+					try {
+						IConnectionProvider protConnProv = (IConnectionProvider) protocolElement.createExecutableExtension(CLASS);
+						pdList.add(new ProtocolDescriptor((Class) protConnProv.getClass(), protNameStr,
+														  protIdStr, protDefaultPort.intValue()));
+					} catch (CoreException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+		return pdList;
+	}
+
