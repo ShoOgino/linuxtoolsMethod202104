@@ -1,0 +1,31 @@
+	/**
+	 * This method will be executed in a separated thread and will produce
+	 * an event to be sent to the registered listeners. 
+	 */
+	/* (non-Javadoc)
+	 * @see org.eclipse.tml.linuxmemorymapviewer.network.IConnectionProvider#login(java.lang.String, java.lang.String)
+	 */
+	public void login(String user, String password) throws IOException {
+		final String userAux = user;
+		final String passwordAux = password;
+		final TelnetWrapper connectionWrapperAux = connectionWrapper;
+
+		/*TODO: Enhance this. It would be great if all these executed-in-other threads
+				were located under a synchronized block */ 
+		loginThread = new Thread() {
+			public void run() {
+				try {
+					OperationCode opCode;
+					opCode = connectionWrapperAux.login(userAux, passwordAux);
+					TelnetProvider.this.notifyListeners(
+							EventCode.EVT_PROVIDER_LOGIN_FINISHED, opCode);
+				} catch (IOException ie) {
+					TelnetProvider.this.notifyListeners(
+							EventCode.EVT_PROVIDER_LOGIN_ERROR,
+							OperationCode.UNEXPECTED_RESULT);					
+				}
+			}
+		};
+		loginThread.start();
+	}
+

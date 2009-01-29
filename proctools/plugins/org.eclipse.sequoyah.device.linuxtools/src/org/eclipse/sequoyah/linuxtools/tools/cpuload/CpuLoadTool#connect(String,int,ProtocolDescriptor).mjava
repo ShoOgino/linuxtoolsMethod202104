@@ -1,0 +1,28 @@
+	/* (non-Javadoc)
+	 * @see org.eclipse.tml.linuxtools.tools.ITool#createConnection(java.lang.String, int, java.lang.String)
+	 */
+	public void connect (String host,
+								int port,
+								ProtocolDescriptor protocol) {
+	
+		Class<IConnectionProvider> connectionProviderClass =
+			protocol.getConnectionProviderClass();
+		
+		try {
+			Object aux = connectionProviderClass.newInstance();
+			connectionProvider = (IConnectionProvider) aux;
+		} catch (InstantiationException ie) {
+		} catch (IllegalAccessException iae) {
+		} catch (ClassCastException cce) {
+		}
+	
+		connectionProvider.addListener(this);
+		try {
+			connectionProvider.connect(host, port);
+		} catch (IOException ie) { }
+		processor = new CpuLoadProcessor(connectionProvider);
+
+		processor.addListener(this);
+		toolState = ToolStateEnum.STOPPED;
+	}
+
