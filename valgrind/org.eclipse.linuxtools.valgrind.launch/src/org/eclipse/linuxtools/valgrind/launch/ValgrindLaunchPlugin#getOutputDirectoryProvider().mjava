@@ -1,0 +1,24 @@
+	public IValgrindOutputDirectoryProvider getOutputDirectoryProvider() throws CoreException {
+		IValgrindOutputDirectoryProvider provider = null;
+		IExtensionPoint extPoint = Platform.getExtensionRegistry().getExtensionPoint(PLUGIN_ID, PluginConstants.OUTPUT_DIR_EXT_ID);
+
+		// if we find more than one provider just take the first one
+		IConfigurationElement[] configs = extPoint.getConfigurationElements();
+		for (int i = 0; i < configs.length && provider == null; i++) {
+			IConfigurationElement config = configs[i];
+			if (config.getName().equals(EXT_ELEMENT_PROVIDER)) {
+				Object obj = config.createExecutableExtension(EXT_ATTR_CLASS);
+				if (obj instanceof IValgrindOutputDirectoryProvider) {
+					provider = (IValgrindOutputDirectoryProvider) obj;
+				}
+			}
+		}
+		
+		// if no extender, use default
+		if (provider == null) {
+			provider = new ValgrindOutputDirectoryProvider();
+		}
+
+		return provider;
+	}
+

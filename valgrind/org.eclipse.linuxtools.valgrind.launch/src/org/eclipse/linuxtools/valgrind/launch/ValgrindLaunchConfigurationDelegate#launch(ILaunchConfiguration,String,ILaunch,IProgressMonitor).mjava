@@ -3,7 +3,7 @@
 		if (m == null) {
 			m = new NullProgressMonitor();
 		}
-		
+
 		SubMonitor monitor = SubMonitor.convert(m, Messages.getString("ValgrindLaunchConfigurationDelegate.Profiling_Local_CCPP_Application"), 10); //$NON-NLS-1$
 		// check for cancellation
 		if (monitor.isCanceled()) {
@@ -13,8 +13,7 @@
 		this.config = config;
 		this.launch	= launch;
 		try {
-			datadir = ValgrindLaunchPlugin.getDefault().getStateLocation().toFile();
-			command = new ValgrindCommand(datadir);
+			command = new ValgrindCommand();
 
 			// find Valgrind
 			String valgrindCmd = null;
@@ -26,6 +25,7 @@
 
 			monitor.worked(1);
 			IPath exePath = verifyProgramPath(config);
+			outputPath = verifyOutputPath(config);
 
 			String[] arguments = getProgramArgumentsArray(config);
 
@@ -60,7 +60,8 @@
 			command.execute(commandArray, getEnvironment(config), wd, usePty);
 			monitor.worked(3);
 			process = DebugPlugin.newProcess(launch, command.getProcess(), renderProcessLabel(commandArray[0]));
-
+			// set the command line used
+			process.setAttribute(IProcess.ATTR_CMDLINE, command.getCommandLine());
 			while (!process.isTerminated()) {
 				Thread.sleep(100);
 			}
@@ -77,8 +78,7 @@
 				monitor.worked(1);
 
 				// pass off control to extender
-				dynamicDelegate.launch(command, config, launch, monitor.newChild(3));
-
+				dynamicDelegate.launch(config, launch, monitor.newChild(3));
 
 				// refresh view
 				ValgrindUIPlugin.getDefault().refreshView();
@@ -95,15 +95,6 @@
 
 				// find this process' console and write any error messages stored in the log to it
 				IOConsole console = (IOConsole) DebugUITools.getConsole(process);
-//				IConsole[] consoles = ConsolePlugin.getDefault().getConsoleManager().getConsoles();
-//				IOConsole console = null;
-//				String procLabel = process.getLabel();
-//				for (int i = 0; i < consoles.length; i++) {
-//					String name = consoles[i].getName();
-//					if (consoles[i] instanceof IOConsole && name != null && name.contains(procLabel)) {
-//						console = (IOConsole) consoles[i];
-//					}
-//				}
 
 				if (console != null) {
 					writeErrorsToConsole(errorLog, console);

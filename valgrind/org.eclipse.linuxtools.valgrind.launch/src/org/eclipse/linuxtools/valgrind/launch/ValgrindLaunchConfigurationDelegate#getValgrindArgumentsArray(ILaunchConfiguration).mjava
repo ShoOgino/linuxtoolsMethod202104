@@ -1,31 +1,28 @@
 	protected String[] getValgrindArgumentsArray(ILaunchConfiguration config) throws CoreException, IOException {
 		ArrayList<String> opts = new ArrayList<String>();
-		opts.add(ValgrindCommand.OPT_TOOL + EQUALS + ValgrindLaunchPlugin.getDefault().getToolName(toolID));
-		opts.add(ValgrindCommand.OPT_QUIET);
-		opts.add(ValgrindCommand.OPT_LOGFILE + EQUALS + datadir.getCanonicalPath() + File.separator + LOG_FILE);
+		opts.add(CommandLineConstants.OPT_TOOL + EQUALS + ValgrindLaunchPlugin.getDefault().getToolName(toolID));
+		opts.add(CommandLineConstants.OPT_QUIET); // suppress uninteresting output
+		opts.add(CommandLineConstants.OPT_LOGFILE + EQUALS + outputPath.append(LOG_FILE).toOSString());
 
-		opts.add(ValgrindCommand.OPT_TRACECHILD + EQUALS + (config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_TRACECHILD, false) ? YES : NO));
-		opts.add(ValgrindCommand.OPT_CHILDSILENT + EQUALS + YES);//(config.getAttribute(ValgrindLaunchPlugin.ATTR_GENERAL_CHILDSILENT, false) ? YES : NO));
-		//		opts.add(ValgrindCommand.OPT_TRACKFDS + EQUALS + (config.getAttribute(ValgrindLaunchPlugin.ATTR_GENERAL_TRACKFDS, false) ? YES : NO));
-		//		opts.add(ValgrindCommand.OPT_TIMESTAMP + EQUALS + (config.getAttribute(ValgrindLaunchPlugin.ATTR_GENERAL_TIMESTAMP, false) ? YES : NO));
-		opts.add(ValgrindCommand.OPT_FREERES + EQUALS + (config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_FREERES, true) ? YES : NO));
+		opts.add(CommandLineConstants.OPT_TRACECHILD + EQUALS + (config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_TRACECHILD, LaunchConfigurationConstants.DEFAULT_GENERAL_TRACECHILD) ? YES : NO));
+		opts.add(CommandLineConstants.OPT_CHILDSILENT + EQUALS + YES); // necessary for parsing
+		opts.add(CommandLineConstants.OPT_FREERES + EQUALS + (config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_FREERES, LaunchConfigurationConstants.DEFAULT_GENERAL_FREERES) ? YES : NO));
 
-		opts.add(ValgrindCommand.OPT_DEMANGLE + EQUALS + (config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_DEMANGLE, true) ? YES : NO));
-		opts.add(ValgrindCommand.OPT_NUMCALLERS + EQUALS + config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_NUMCALLERS, 12));
-		opts.add(ValgrindCommand.OPT_ERRLIMIT + EQUALS + (config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_ERRLIMIT, true) ? YES : NO));
-		opts.add(ValgrindCommand.OPT_BELOWMAIN + EQUALS + (config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_BELOWMAIN, false) ? YES : NO));
-		opts.add(ValgrindCommand.OPT_MAXFRAME + EQUALS + config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_MAXFRAME, 2000000));
+		opts.add(CommandLineConstants.OPT_DEMANGLE + EQUALS + (config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_DEMANGLE, LaunchConfigurationConstants.DEFAULT_GENERAL_DEMANGLE) ? YES : NO));
+		opts.add(CommandLineConstants.OPT_NUMCALLERS + EQUALS + config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_NUMCALLERS, LaunchConfigurationConstants.DEFAULT_GENERAL_NUMCALLERS));
+		opts.add(CommandLineConstants.OPT_ERRLIMIT + EQUALS + (config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_ERRLIMIT, LaunchConfigurationConstants.DEFAULT_GENERAL_ERRLIMIT) ? YES : NO));
+		opts.add(CommandLineConstants.OPT_BELOWMAIN + EQUALS + (config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_BELOWMAIN, LaunchConfigurationConstants.DEFAULT_GENERAL_BELOWMAIN) ? YES : NO));
+		opts.add(CommandLineConstants.OPT_MAXFRAME + EQUALS + config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_MAXFRAME, LaunchConfigurationConstants.DEFAULT_GENERAL_MAXFRAME));
 
-		String strpath = config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_SUPPFILE, EMPTY_STRING);
+		String strpath = config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_SUPPFILE, LaunchConfigurationConstants.DEFAULT_GENERAL_SUPPFILE);
 		if (!strpath.equals(EMPTY_STRING)) {
-			File suppfile = ValgrindLaunchPlugin.getDefault().parseWSPath(strpath);
+			IPath suppfile = ValgrindLaunchPlugin.getDefault().parseWSPath(strpath);
 			if (suppfile != null) {
-				String escapedPath = ValgrindLaunchPlugin.getDefault().escapeAndQuote(suppfile.getCanonicalPath());
-				opts.add(ValgrindCommand.OPT_SUPPFILE + EQUALS + escapedPath);
+				opts.add(CommandLineConstants.OPT_SUPPFILE + EQUALS + suppfile.toOSString());
 			}
 		}
 
-		opts.addAll(Arrays.asList(dynamicDelegate.getCommandArray(command, config)));		
+		opts.addAll(Arrays.asList(dynamicDelegate.getCommandArray(config)));		
 
 		String[] ret = new String[opts.size()];
 		return opts.toArray(ret);
