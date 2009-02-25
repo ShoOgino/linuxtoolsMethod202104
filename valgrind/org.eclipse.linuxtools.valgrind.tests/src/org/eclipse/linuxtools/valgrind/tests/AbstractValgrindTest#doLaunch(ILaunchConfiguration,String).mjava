@@ -1,0 +1,15 @@
+	protected ILaunch doLaunch(ILaunchConfiguration config, String testName) throws Exception {
+		URL location = FileLocator.find(getBundle(), new Path("valgrindFiles"), null); //$NON-NLS-1$
+		File file = new File(FileLocator.toFileURL(location).toURI());
+		IPath pathToFiles = new Path(file.getAbsolutePath()).append(testName);
+
+		ILaunchConfigurationWorkingCopy wc = config.getWorkingCopy();
+		wc.setAttribute(LaunchConfigurationConstants.ATTR_OUTPUT_DIR, pathToFiles.toOSString());
+		Set<String> modes = new HashSet<String>(1);
+		modes.add(ILaunchManager.PROFILE_MODE);
+		wc.setPreferredLaunchDelegate(modes, ValgrindTestsPlugin.DELEGATE_ID);
+		wc.doSave();
+
+		return config.launch(ILaunchManager.PROFILE_MODE, null, true);
+	}
+

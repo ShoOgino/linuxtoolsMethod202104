@@ -1,0 +1,25 @@
+	public void testChartCallback() throws Exception {
+		IBinary bin = proj.getBinaryContainer().getBinaries()[0];
+		ILaunchConfiguration config = createConfiguration(bin);
+		doLaunch(config, "testChartCallback"); //$NON-NLS-1$
+		
+		ValgrindViewPart view = ValgrindUIPlugin.getDefault().getView();
+		IAction chartAction = getChartAction(view);
+		assertNotNull(chartAction);
+		chartAction.run();
+		
+		IEditorPart part = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().getActiveEditor();
+		if (part instanceof ChartEditor) {
+			ChartControl control = ((ChartEditor) part).getControl();
+			DataPointHints source = new DataPointHints(null, null, null, null, null, null, null, null, null, 4, null, 0, null);
+			control.callback(null, new WrappedStructureSource(source), null);
+			
+			TableViewer viewer = ((MassifViewPart) view.getDynamicView()).getTableViewer();
+			MassifSnapshot[] snapshots = (MassifSnapshot[]) viewer.getInput();
+			MassifSnapshot snapshot = (MassifSnapshot) ((StructuredSelection) viewer.getSelection()).getFirstElement();
+			assertEquals(4, Arrays.asList(snapshots).indexOf(snapshot));
+		} else {
+			fail();
+		}
+	}
+
