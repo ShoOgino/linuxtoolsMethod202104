@@ -26,7 +26,11 @@
 			monitor.worked(1);
 			IPath exePath = verifyProgramPath(config);
 			String[] arguments = getProgramArgumentsArray(config);
-			
+			File workDir = getWorkingDirectory(config);
+			if (workDir == null) {
+				workDir = new File(System.getProperty("user.home", ".")); //$NON-NLS-1$ //$NON-NLS-2$
+			}
+
 			// set output directory in config
 			setOutputPath(config);
 			outputPath = verifyOutputPath(config);
@@ -42,11 +46,6 @@
 			// set the default source locator if required
 			setDefaultSourceLocator(launch, config);
 
-			File wd = getWorkingDirectory(config);
-			if (wd == null) {
-				wd = new File(System.getProperty("user.home", ".")); //$NON-NLS-1$ //$NON-NLS-2$
-			}
-
 			ArrayList<String> cmdLine = new ArrayList<String>(1 + arguments.length);
 			cmdLine.add(valgrindCmd);
 			cmdLine.addAll(Arrays.asList(opts));
@@ -61,7 +60,7 @@
 				return;
 			}
 			// call Valgrind
-			command.execute(commandArray, getEnvironment(config), wd, usePty);
+			command.execute(commandArray, getEnvironment(config), workDir, usePty);
 			monitor.worked(3);
 			process = DebugPlugin.newProcess(launch, command.getProcess(), renderProcessLabel(commandArray[0]));
 			// set the command line used
