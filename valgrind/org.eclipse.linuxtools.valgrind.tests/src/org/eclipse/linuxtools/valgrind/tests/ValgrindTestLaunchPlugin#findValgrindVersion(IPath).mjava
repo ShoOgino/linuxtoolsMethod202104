@@ -1,0 +1,26 @@
+	@Override
+	public Version findValgrindVersion(IPath valgrindLocation) throws CoreException {
+		if (valgrindVersion == null) {
+			try {
+				URL location = FileLocator.find(testBundle, new Path("valgrindFiles"), null); //$NON-NLS-1$
+				File file = new File(FileLocator.toFileURL(location).toURI());
+				IPath versionFile = new Path(file.getCanonicalPath()).append(VERSION_FILE);
+
+				if (!ValgrindTestsPlugin.RUN_VALGRIND) {
+					valgrindVersion = readVersion(versionFile);
+				}
+				else {
+					valgrindVersion = super.findValgrindVersion(valgrindLocation);
+					if (ValgrindTestsPlugin.GENERATE_FILES) {
+						writeVersion(valgrindVersion, versionFile);
+					}				
+				}
+			} catch (URISyntaxException e) {
+				throw new CoreException(new Status(IStatus.ERROR, ValgrindTestsPlugin.PLUGIN_ID, null, e));
+			} catch (IOException e) {
+				throw new CoreException(new Status(IStatus.ERROR, ValgrindTestsPlugin.PLUGIN_ID, null, e));
+			}
+		}
+		return valgrindVersion;
+	}
+

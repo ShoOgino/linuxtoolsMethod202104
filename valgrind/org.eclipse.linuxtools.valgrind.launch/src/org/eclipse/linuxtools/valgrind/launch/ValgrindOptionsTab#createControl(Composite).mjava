@@ -1,6 +1,21 @@
 	public void createControl(Composite parent) {
-		Composite top = new Composite(parent, SWT.NONE);
-		setControl(top);
+		try {
+			valgrindLocation = getPlugin().findValgrindLocation();
+			valgrindVersion = getPlugin().findValgrindVersion(valgrindLocation);
+		} catch (CoreException e) {
+			// report in dialog later
+			ex = e;
+			e.printStackTrace();
+		}
+		
+		scrollTop = new ScrolledComposite(parent,	SWT.H_SCROLL | SWT.V_SCROLL);
+		scrollTop.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+		scrollTop.setExpandVertical(true);
+		scrollTop.setExpandHorizontal(true);
+		
+		setControl(scrollTop);
+		
+		top = new Composite(scrollTop, SWT.NONE);
 		top.setLayout(new GridLayout());
 
 		createVerticalSpacer(top, 1);
@@ -26,6 +41,10 @@
 
 		createErrorOptions(generalTop);
 
+		createVerticalSpacer(generalTop, 1);
+
+		createSuppressionsOption(generalTop);		
+		
 		generalTab.setControl(generalTop);
 
 		toolTab = new TabItem(optionsFolder, SWT.NONE);
@@ -36,5 +55,8 @@
 		dynamicTabHolder.setLayoutData(new GridData(GridData.FILL_BOTH));
 
 		toolTab.setControl(dynamicTabHolder);
+		
+		scrollTop.setContent(top);
+		recomputeSize();
 	}
 
