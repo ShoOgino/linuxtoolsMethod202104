@@ -1,0 +1,27 @@
+	public void testL2Cache() throws Exception {
+		ILaunchConfigurationWorkingCopy wc = initConfig();
+
+		assertFalse(dynamicTab.getL2SizeSpinner().isEnabled());
+		dynamicTab.getL2Button().setSelection(true);
+		dynamicTab.checkL2Enablement();
+		assertTrue(dynamicTab.getL2SizeSpinner().isEnabled());
+
+		dynamicTab.getL2SizeSpinner().setSelection(0);
+		dynamicTab.getL2AssocSpinner().setSelection(0);
+		dynamicTab.getL2LineSizeSpinner().setSelection(0);
+
+		tab.performApply(wc);
+		wc.doSave();
+
+		ILaunch launch = saveAndLaunch(wc, "testL2Cache"); //$NON-NLS-1$
+		IProcess[] p = launch.getProcesses();
+		if (p.length > 0) {
+			String cmd = p[0].getAttribute(IProcess.ATTR_CMDLINE);
+			assertFalse(p[0].getExitValue() == 0);
+			assertTrue(cmd.contains("--L2=0,0,0")); //$NON-NLS-1$
+		}
+		else {
+			fail();
+		}
+	}
+

@@ -1,0 +1,27 @@
+	public void testI1Cache() throws Exception {
+		ILaunchConfigurationWorkingCopy wc = initConfig();
+		
+		assertFalse(dynamicTab.getI1SizeSpinner().isEnabled());
+		dynamicTab.getI1Button().setSelection(true);
+		dynamicTab.checkI1Enablement();
+		assertTrue(dynamicTab.getI1SizeSpinner().isEnabled());
+		
+		dynamicTab.getI1SizeSpinner().setSelection(0);
+		dynamicTab.getI1AssocSpinner().setSelection(0);
+		dynamicTab.getI1LineSizeSpinner().setSelection(0);
+		
+		tab.performApply(wc);
+		wc.doSave();
+		
+		ILaunch launch = saveAndLaunch(wc, "testI1Cache"); //$NON-NLS-1$
+		IProcess[] p = launch.getProcesses();
+		if (p.length > 0) {
+			String cmd = p[0].getAttribute(IProcess.ATTR_CMDLINE);
+			assertFalse(p[0].getExitValue() == 0);
+			assertTrue(cmd.contains("--I1=0,0,0")); //$NON-NLS-1$
+		}
+		else {
+			fail();
+		}
+	}
+
