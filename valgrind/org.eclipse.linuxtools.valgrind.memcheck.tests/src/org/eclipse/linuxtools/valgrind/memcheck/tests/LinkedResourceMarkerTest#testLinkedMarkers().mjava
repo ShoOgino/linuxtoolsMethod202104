@@ -1,0 +1,30 @@
+	public void testLinkedMarkers() throws Exception {
+		IBinary bin = proj.getBinaryContainer().getBinaries()[0];
+		ILaunchConfiguration config = createConfiguration(bin);
+		doLaunch(config, "testLinkedMarkers"); //$NON-NLS-1$
+
+		MemcheckViewPart view = (MemcheckViewPart) ValgrindUIPlugin.getDefault().getView().getDynamicView();
+		ValgrindError[] errors = view.getErrors();
+
+		ArrayList<IMarker> markers = new ArrayList<IMarker>(Arrays.asList(proj.getProject().findMarkers(MemcheckPlugin.MARKER_TYPE, true, IResource.DEPTH_INFINITE)));
+		for (ValgrindError error : errors) {
+			ValgrindStackFrame frame = getTopWorkspaceFrame(error.getFrames());
+
+			int ix = -1;
+			for (int i = 0; i < markers.size(); i++) {
+				IMarker marker = markers.get(i);
+				if (marker.getAttribute(IMarker.MESSAGE).equals(error.getWhat())
+						&& marker.getResource().getName().equals(frame.getFile())
+						&& marker.getAttribute(IMarker.LINE_NUMBER).equals(frame.getLine())) {
+					assertTrue(marker.getResource().isLinked(IResource.CHECK_ANCESTORS));
+					ix = i;
+				}
+			}
+			if (ix < 0) {
+				fail();
+			}
+			markers.remove(ix);
+		}
+		assertEquals(0, markers.size());
+	}
+
