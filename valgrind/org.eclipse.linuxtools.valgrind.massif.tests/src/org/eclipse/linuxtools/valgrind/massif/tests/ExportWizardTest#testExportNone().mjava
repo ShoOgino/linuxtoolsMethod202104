@@ -1,0 +1,30 @@
+	public void testExportNone() throws Exception {
+		IBinary bin = proj.getBinaryContainer().getBinaries()[0];
+		ILaunchConfiguration config = createConfiguration(bin);
+		ILaunch launch = doLaunch(config, "testExport"); //$NON-NLS-1$
+		
+		IProcess p = launch.getProcesses()[0];
+		assertEquals(0, p.getExitValue());
+		
+		createWizard();
+		
+		// set the output path, should trigger modify listener
+		File[] selectedFiles = page.getSelectedFiles();
+		page.getViewer().setCheckedElements(new Object[0]);
+		assertEquals(0, page.getSelectedFiles().length);
+		
+		IPath pathToFiles = proj.getProject().getLocation();
+		page.getDestText().setText(pathToFiles.toOSString());
+		
+		assertTrue(page.isPageComplete());
+		assertTrue(wizard.canFinish());
+		
+		assertTrue(wizard.performFinish());
+		
+		// check files were not copied
+		for (File log : selectedFiles) {
+			File copy = new File(pathToFiles.toFile(), log.getName());
+			assertFalse(copy.exists());
+		}
+	}
+

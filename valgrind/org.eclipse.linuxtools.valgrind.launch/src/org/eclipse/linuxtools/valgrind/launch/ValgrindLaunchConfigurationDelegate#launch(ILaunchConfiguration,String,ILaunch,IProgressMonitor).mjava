@@ -50,6 +50,15 @@
 			boolean usePty = config.getAttribute(ICDTLaunchConfigurationConstants.ATTR_USE_TERMINAL, ICDTLaunchConfigurationConstants.USE_TERMINAL_DEFAULT);
 			monitor.worked(1);
 
+			// Cleanup
+			IHandlerService service = (IHandlerService) PlatformUI.getWorkbench().getService(IHandlerService.class);
+			if (handlerActivation != null) {
+				// remove old handler
+				service.deactivateHandler(handlerActivation);
+			}
+			// remove any output from previous run
+			ValgrindUIPlugin.getDefault().resetView();
+			
 			// check for cancellation
 			if (monitor.isCanceled()) {
 				return;
@@ -63,9 +72,6 @@
 			while (!process.isTerminated()) {
 				Thread.sleep(100);
 			}
-
-			// remove any output from previous run
-			ValgrindUIPlugin.getDefault().resetView();
 
 			if (process.getExitValue() == 0) {
 				// create launch summary string to distinguish this launch
@@ -85,6 +91,26 @@
 				ValgrindUIPlugin.getDefault().showView();
 				monitor.worked(1);
 
+				IHandler handler = new AbstractHandler() {
+					public Object execute(ExecutionEvent event) throws ExecutionException {
+						Display.getDefault().syncExec(new Runnable() {
+							public void run() {
+								Shell parent = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
+								IWorkbenchWizard wizard = new ValgrindExportWizard();
+								wizard.init(PlatformUI.getWorkbench(), null);
+								
+								WizardDialog dialog = new WizardDialog(parent, wizard);
+								dialog.open();
+							}							
+						});
+						
+						return null;
+					}					
+				};
+				handlerActivation = service.activateHandler(PluginConstants.EXPORT_CMD_ID, handler);
+				
+				getPlugin().setLaunchConfiguration(config);
+				getPlugin().setLaunch(launch);
 				// save results of launch to persistent storage
 				//			saveState(monitor.newChild(2));
 			}

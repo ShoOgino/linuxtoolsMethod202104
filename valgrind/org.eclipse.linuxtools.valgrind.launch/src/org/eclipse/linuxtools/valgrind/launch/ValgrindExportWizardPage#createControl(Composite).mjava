@@ -1,0 +1,83 @@
+	public void createControl(Composite parent) {
+		Composite top = new Composite(parent, SWT.NONE);
+		top.setLayout(new GridLayout());
+		top.setLayoutData(new GridData(GridData.FILL_BOTH));
+
+		IPath logPath = null;
+
+		// Retrieve location of Valgrind logs from launch configuration
+		ILaunchConfiguration config = getPlugin().getLaunchConfiguration();
+		if (config != null && config.exists()) {
+			String strpath;
+			try {
+				strpath = config.getAttribute(LaunchConfigurationConstants.ATTR_INTERNAL_OUTPUT_DIR, (String) null);
+				if (strpath != null) {
+					logPath = Path.fromPortableString(strpath);
+				}
+			} catch (CoreException e) {
+				setErrorMessage(e.getLocalizedMessage());
+				e.printStackTrace();
+			}			
+		}
+
+		Label selectFilesLabel = new Label(top, SWT.NONE);
+		selectFilesLabel.setText(Messages.getString("ValgrindExportWizardPage.Viewer_label")); //$NON-NLS-1$
+
+		viewer = CheckboxTableViewer.newCheckList(top, SWT.BORDER);
+		viewer.getTable().setLayoutData(new GridData(GridData.FILL_BOTH));
+		viewer.setContentProvider(new ArrayContentProvider());
+		viewer.setLabelProvider(new LabelProvider() {
+			@Override
+			public String getText(Object element) {
+				return ((File) element).getName();
+			}
+
+			@Override
+			public Image getImage(Object element) {
+				return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_FILE);
+			}
+		});
+
+		Composite selectAllNoneTop = new Composite(top, SWT.NONE);
+		selectAllNoneTop.setLayout(new GridLayout(2, true));
+		selectAllNoneTop.setLayoutData(new GridData(SWT.TRAIL, SWT.DEFAULT, false, false));
+
+		selectAllButton = new Button(selectAllNoneTop, SWT.NONE);
+		selectAllButton.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+		selectAllButton.setText(Messages.getString("ValgrindExportWizardPage.Select_all")); //$NON-NLS-1$
+		selectAllButton.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				viewer.setAllChecked(true);
+			}
+		});
+
+		deselectAllButton = new Button(selectAllNoneTop, SWT.NONE);
+		deselectAllButton.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+		deselectAllButton.setText(Messages.getString("ValgrindExportWizardPage.Deselect_all")); //$NON-NLS-1$
+		deselectAllButton.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				viewer.setAllChecked(false);
+			}
+		});
+
+		createDestinationGroup(top);
+
+		if (logPath != null) {
+			// List all output files in our output directory from the recent launch
+			File logs[] = logPath.toFile().listFiles(new FileFilter() {
+				public boolean accept(File pathname) {
+					return pathname.isFile();
+				}				
+			});
+			viewer.setInput(logs);
+			viewer.setAllChecked(true);
+		}
+
+		// catch any errors so far
+		setPageComplete(isValid());
+		
+		setControl(top);
+	}
+
