@@ -1,0 +1,21 @@
+	public void testExec() throws Exception {
+		IBinary bin = proj.getBinaryContainer().getBinaries()[0];
+		ILaunchConfigurationWorkingCopy config = createConfiguration(bin).getWorkingCopy();
+		config.setAttribute(LaunchConfigurationConstants.ATTR_GENERAL_TRACECHILD, true);
+		config.doSave();
+		doLaunch(config, "testExec"); //$NON-NLS-1$
+		
+		MassifViewPart view = (MassifViewPart) ValgrindUIPlugin.getDefault().getView().getDynamicView();
+		MassifOutput output = view.getOutput();
+		
+		Integer[] pids = output.getPids();
+		assertEquals(2, pids.length);
+		
+		// child not necessarily higher PID than parent
+		MassifSnapshot[] snapshots1 = output.getSnapshots(pids[0]);
+		assertTrue(snapshots1.length == 8 || snapshots1.length == 14);
+		MassifSnapshot[] snapshots2 = output.getSnapshots(pids[1]);
+		assertTrue(snapshots2.length == 8 || snapshots2.length == 14);
+		assertTrue(snapshots1.length != snapshots2.length);
+	}
+
