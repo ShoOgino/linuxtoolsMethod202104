@@ -1,0 +1,28 @@
+	public void testFileNames() throws Exception {
+		IBinary bin = proj.getBinaryContainer().getBinaries()[0];
+		ILaunchConfigurationWorkingCopy config = createConfiguration(bin).getWorkingCopy();
+		config.setAttribute(LaunchConfigurationConstants.ATTR_GENERAL_TRACECHILD, true);
+		config.doSave();
+		doLaunch(config, "testExec"); //$NON-NLS-1$
+		
+		CachegrindViewPart view = (CachegrindViewPart) ValgrindUIPlugin.getDefault().getView().getDynamicView();
+		
+		int pidIx = 0;
+		CachegrindOutput output = view.getOutputs()[pidIx];
+		CachegrindFile file = getFileByName(output, "cpptest.cpp"); //$NON-NLS-1$
+		if (file == null) {
+			pidIx = 1;
+			output = view.getOutputs()[pidIx];
+			file = getFileByName(output, "cpptest.cpp"); //$NON-NLS-1$
+		}
+		assertNotNull(file);
+		file = getFileByName(output, "cpptest.h"); //$NON-NLS-1$
+		assertNotNull(file);
+		
+		// test other pid
+		pidIx = (pidIx + 1) % 2;
+		output = view.getOutputs()[pidIx];
+		file = getFileByName(output, "parent.cpp"); //$NON-NLS-1$
+		assertNotNull(file);
+	}
+
