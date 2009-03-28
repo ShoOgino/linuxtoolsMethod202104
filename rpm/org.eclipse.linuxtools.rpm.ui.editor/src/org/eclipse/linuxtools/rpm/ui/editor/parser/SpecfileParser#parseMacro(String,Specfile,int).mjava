@@ -1,20 +1,26 @@
-	private SpecfileElement parseMacro(String lineText, Specfile specfile, int lineNumber) {
-		// FIXME:  handle other macros
-		
+	private SpecfileElement parseMacro(String lineText, Specfile specfile,
+			int lineNumber) {
+		// FIXME: handle other macros
+
 		if (lineText.startsWith("%define") || lineText.startsWith("%global")) { //$NON-NLS-1$ //$NON-NLS-2$
 			return parseDefine(lineText, specfile, lineNumber);
 		} else if (lineText.startsWith("%patch")) { //$NON-NLS-1$
 			return parsePatch(lineText, lineNumber);
 		}
-		
-		String[] sections = new String[simpleSections.length + complexSections.length];
+
+		String[] sections = new String[simpleSections.length
+				+ complexSections.length];
 		System.arraycopy(simpleSections, 0, sections, 0, simpleSections.length);
-		System.arraycopy(complexSections, 0, sections, simpleSections.length, complexSections.length);
+		System.arraycopy(complexSections, 0, sections, simpleSections.length,
+				complexSections.length);
 		for (String section : sections) {
-			if (lineText.startsWith(section))
-				return parseSection(lineText, specfile, lineNumber);
+			if (lineText.startsWith(section)) {
+				lastSection = parseSection(lineText, specfile, lineNumber);
+				lastSection.setSectionEndLine(lineNumber+1);
+				return lastSection;
+			}
 		}
-		// FIXME:  add handling of lines containing %{SOURCENNN}
+		// FIXME: add handling of lines containing %{SOURCENNN}
 		return null;
 	}
 
