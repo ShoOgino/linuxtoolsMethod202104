@@ -6,7 +6,7 @@
 		top.setLayout(topLayout);
 		top.setLayoutData(new GridData(GridData.FILL_BOTH));
 
-		viewer = new TreeViewer(top, SWT.SINGLE | SWT.BORDER
+		viewer = new TreeViewer(top, SWT.SINGLE | SWT.H_SCROLL | SWT.V_SCROLL
 				| SWT.FULL_SELECTION);
 
 		labelProvider = new CachegrindLabelProvider();
@@ -23,7 +23,8 @@
 		column.getColumn().addSelectionListener(getHeaderListener());
 		column.setLabelProvider(labelProvider);
 
-		viewer.setContentProvider(new CachegrindTreeContentProvider());
+		contentProvider = new CachegrindTreeContentProvider();
+		viewer.setContentProvider(contentProvider);
 		viewer.setLabelProvider(labelProvider);
 		viewer.setAutoExpandLevel(2);
 		doubleClickListener = new IDoubleClickListener() {
@@ -67,5 +68,24 @@
 			}			
 		};
 		viewer.addDoubleClickListener(doubleClickListener);
+		
+		expandAction = new ExpandAction(viewer);
+		collapseAction = new CollapseAction(viewer);
+		
+		MenuManager manager = new MenuManager();
+		manager.addMenuListener(new IMenuListener() {
+			public void menuAboutToShow(IMenuManager manager) {
+				ITreeSelection selection = (ITreeSelection) viewer.getSelection();
+				ICachegrindElement element = (ICachegrindElement) selection.getFirstElement();
+				if (contentProvider.hasChildren(element)) {
+					manager.add(expandAction);
+					manager.add(collapseAction);
+				}
+			}			
+		});
+		
+		manager.setRemoveAllWhenShown(true);	
+		Menu contextMenu = manager.createContextMenu(viewer.getTree());
+		viewer.getControl().setMenu(contextMenu);
 	}
 
