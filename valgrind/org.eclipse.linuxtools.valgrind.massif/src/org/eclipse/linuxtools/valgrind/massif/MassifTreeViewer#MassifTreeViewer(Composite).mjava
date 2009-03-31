@@ -1,5 +1,5 @@
 	public MassifTreeViewer(Composite parent) {
-		super(parent);
+		super(parent, SWT.SINGLE | SWT.H_SCROLL | SWT.V_SCROLL);
 		
 		contentProvider = new ITreeContentProvider() {
 			public Object[] getChildren(Object parentElement) {
@@ -70,5 +70,24 @@
 			}			
 		};
 		addDoubleClickListener(doubleClickListener);
+		
+		expandAction = new ExpandAction(this);
+		collapseAction = new CollapseAction(this);
+		
+		MenuManager manager = new MenuManager();
+		manager.addMenuListener(new IMenuListener() {
+			public void menuAboutToShow(IMenuManager manager) {
+				ITreeSelection selection = (ITreeSelection) getSelection();
+				MassifHeapTreeNode element = (MassifHeapTreeNode) selection.getFirstElement();
+				if (contentProvider.hasChildren(element)) {
+					manager.add(expandAction);
+					manager.add(collapseAction);
+				}
+			}			
+		});
+		
+		manager.setRemoveAllWhenShown(true);	
+		Menu contextMenu = manager.createContextMenu(getTree());
+		getControl().setMenu(contextMenu);
 	}
 
