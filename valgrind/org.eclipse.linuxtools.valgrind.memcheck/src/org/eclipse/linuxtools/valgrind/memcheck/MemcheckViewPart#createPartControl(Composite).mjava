@@ -1,8 +1,8 @@
 	@Override
 	public void createPartControl(Composite parent) {
-		viewer = new TreeViewer(parent);
+		viewer = new TreeViewer(parent, SWT.SINGLE | SWT.H_SCROLL | SWT.V_SCROLL);
 		viewer.getControl().setLayoutData(new GridData(GridData.FILL_BOTH));
-		viewer.setContentProvider(new ITreeContentProvider() {
+		contentProvider = new ITreeContentProvider() {
 
 			public Object[] getChildren(Object parentElement) {
 				return ((ValgrindTreeElement) parentElement).getChildren();
@@ -25,7 +25,8 @@
 			public void inputChanged(Viewer viewer, Object oldInput,
 					Object newInput) {}
 
-		});
+		};
+		viewer.setContentProvider(contentProvider);
 
 		viewer.setLabelProvider(new LabelProvider() {
 			@Override
@@ -69,6 +70,24 @@
 			}
 		};
 		viewer.addDoubleClickListener(doubleClickListener);
-
+		
+		expandAction = new ExpandAction(viewer);
+		collapseAction = new CollapseAction(viewer);
+		
+		MenuManager manager = new MenuManager();
+		manager.addMenuListener(new IMenuListener() {
+			public void menuAboutToShow(IMenuManager manager) {
+				ITreeSelection selection = (ITreeSelection) viewer.getSelection();
+				ValgrindTreeElement element = (ValgrindTreeElement) selection.getFirstElement();
+				if (contentProvider.hasChildren(element)) {
+					manager.add(expandAction);
+					manager.add(collapseAction);
+				}
+			}			
+		});
+		
+		manager.setRemoveAllWhenShown(true);	
+		Menu contextMenu = manager.createContextMenu(viewer.getTree());
+		viewer.getControl().setMenu(contextMenu);
 	}
 
