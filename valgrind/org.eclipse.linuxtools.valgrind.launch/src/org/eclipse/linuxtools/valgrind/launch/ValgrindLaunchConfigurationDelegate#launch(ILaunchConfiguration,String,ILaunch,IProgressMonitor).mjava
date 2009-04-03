@@ -15,6 +15,12 @@
 		try {
 			command = getValgrindCommand();
 
+			// remove any output from previous run
+			ValgrindUIPlugin.getDefault().resetView();
+			// reset stored launch data
+			getPlugin().setCurrentLaunchConfiguration(null);
+			getPlugin().setCurrentLaunch(null);
+			
 			// find Valgrind binary if not already done
 			IPath valgrindLocation = getPlugin().findValgrindLocation();
 
@@ -49,15 +55,6 @@
 			String[] commandArray = (String[]) cmdLine.toArray(new String[cmdLine.size()]);
 			boolean usePty = config.getAttribute(ICDTLaunchConfigurationConstants.ATTR_USE_TERMINAL, ICDTLaunchConfigurationConstants.USE_TERMINAL_DEFAULT);
 			monitor.worked(1);
-
-			// Cleanup
-			IHandlerService service = (IHandlerService) PlatformUI.getWorkbench().getService(IHandlerService.class);
-			if (handlerActivation != null) {
-				// remove old handler
-				service.deactivateHandler(handlerActivation);
-			}
-			// remove any output from previous run
-			ValgrindUIPlugin.getDefault().resetView();
 			
 			// check for cancellation
 			if (monitor.isCanceled()) {
@@ -66,14 +63,13 @@
 			// call Valgrind
 			command.execute(commandArray, getEnvironment(config), workDir, usePty);
 			monitor.worked(3);
-			process = DebugPlugin.newProcess(launch, command.getProcess(), renderProcessLabel(commandArray[0]));
+			process = createNewProcess(launch, command.getProcess() ,commandArray[0]);
 			// set the command line used
 			process.setAttribute(IProcess.ATTR_CMDLINE, command.getCommandLine());
 			while (!process.isTerminated()) {
 				Thread.sleep(100);
 			}
 
-			System.out.println("org.eclipse.debug.core.model.IProcess Exit Code: " + process.getExitValue());
 			if (process.getExitValue() == 0) {
 				// create launch summary string to distinguish this launch
 				launchStr = createLaunchStr();
@@ -91,29 +87,10 @@
 				// show view
 				ValgrindUIPlugin.getDefault().showView();
 				monitor.worked(1);
-
-				IHandler handler = new AbstractHandler() {
-					public Object execute(ExecutionEvent event) throws ExecutionException {
-						Display.getDefault().syncExec(new Runnable() {
-							public void run() {
-								Shell parent = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
-								IWorkbenchWizard wizard = new ValgrindExportWizard();
-								wizard.init(PlatformUI.getWorkbench(), null);
-								
-								WizardDialog dialog = new WizardDialog(parent, wizard);
-								dialog.open();
-							}							
-						});
-						
-						return null;
-					}					
-				};
-				handlerActivation = service.activateHandler(PluginConstants.EXPORT_CMD_ID, handler);
 				
-				getPlugin().setLaunchConfiguration(config);
-				getPlugin().setLaunch(launch);
-				// save results of launch to persistent storage
-				//			saveState(monitor.newChild(2));
+				// store these for use by other classes
+				getPlugin().setCurrentLaunchConfiguration(config);
+				getPlugin().setCurrentLaunch(launch);
 			}
 			else {
 				handleValgrindError();
