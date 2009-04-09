@@ -1,0 +1,38 @@
+	/**
+	 * 
+	 * Execute Systemtap binary, cpature stdout and return.
+	 * 
+	 * @param tapset to request coverage data from.
+	 * @return
+	 */
+	
+	// TODO: This could stand to be completely rewritten to be safer,
+	// and be tolerant of faults. As it is we ship default meta-data
+	// so this should never be executed in the user context. But eventually
+	// an option will be made available to the user to regenerate the data.
+	private StringBuffer[] executeSystemTap(String tapset) {
+
+		ArrayList<StringBuffer> data = new ArrayList<StringBuffer>();
+
+		try {
+			String a;
+			Process p = Runtime.getRuntime().exec(
+					"stap -L " + tapset + ".*");
+			BufferedReader in = new BufferedReader(new InputStreamReader(p
+					.getInputStream()), 5000);
+			while ((a = in.readLine()) != null) {
+				data.add(new StringBuffer(a));
+			}
+			p.waitFor();
+			in.close();
+		} catch (IOException e) {
+			return new StringBuffer[] {};
+		}
+
+		catch (java.lang.InterruptedException ie) {
+			return new StringBuffer[] {};
+		}
+
+		return data.toArray(new StringBuffer[0]);
+	}
+

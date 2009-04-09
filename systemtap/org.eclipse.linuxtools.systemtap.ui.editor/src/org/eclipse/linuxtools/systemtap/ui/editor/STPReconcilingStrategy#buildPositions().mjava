@@ -1,0 +1,31 @@
+	/**
+	 * 
+	 * Build a list of locations to mark beginning and end of folding regions.
+	 * 
+	 * @throws BadLocationException
+	 */
+	private void buildPositions() throws BadLocationException {
+        while (nextCharPosition < endOfDocumentPostion) {
+        	switch (classifyComponent(nextCharPosition)) 
+        	{
+        		// All of these cases have found the beginning of a tag
+        	    // to start folding. Each element must now be find
+        		// the end of the region it represents.
+            	case STP_MULTILINE_COMMENT_TAG:
+            		currentTagEnd = findEndOfComment();
+            		writePosition(currentTagStart,currentTagEnd);
+            		nextCharPosition = currentTagStart + currentTagEnd;
+            		break;
+            	case STP_PROBE:
+            	case STP_FUNCTION:
+            		currentTagEnd = findEndOfProbeOrFunction();
+            		writePosition(currentTagStart,currentTagEnd);
+            		nextCharPosition = currentTagStart + currentTagEnd;
+            		break;
+            	default:
+            		nextCharPosition++;
+            		break;
+            }
+        }
+	}
+
