@@ -1,0 +1,43 @@
+	/**
+	 * This method does the actual work in code completion. It checks the word prior to the character 
+	 * that triggered code completion (generally '.') against the probe tree and also looks for if. If
+	 * the previous word is a probe alias or if the completion code is invoked.
+	 */
+	public ICompletionProposal[] computeCompletionProposals(ITextViewer viewer, int documentOffset) {
+		LogManager.logDebug("Start computeCompletionProposals: viewer-" + viewer + ", documentOffset-" + documentOffset, this);
+		IPreferenceStore p = IDEPlugin.getDefault().getPreferenceStore();
+		if (!p.getBoolean(IDEPreferenceConstants.P_USE_CODE_ASSIST)) return null;
+
+		try {
+			LinkedList<CompletionProposal> proposals = new LinkedList<CompletionProposal>();
+			WhitespaceDetector white = new WhitespaceDetector();
+			IDocument doc = viewer.getDocument();
+
+			int set = 1;
+			while (!(white.isWhitespace(doc.getChar(documentOffset - set)))) 
+				set++;
+			String pre = doc.get(documentOffset - set + 1, set - 1);
+
+			String[] conditionalFilters = p.getString(IDEPreferenceConstants.P_CONDITIONAL_FILTERS).split(File.pathSeparator);
+			
+			if(pre.startsWith("if(")) {
+				for(int i=0; i<conditionalFilters.length; i++) {
+					if(conditionalFilters[i].startsWith(pre))
+						proposals.add(new CompletionProposal(conditionalFilters[i], documentOffset-pre.length(), pre.length(), conditionalFilters[i].length()));
+				}
+			} else {
+				for(int i=0; i<availableProbes.length; i++) {
+					if(availableProbes[i].startsWith(pre))
+						proposals.add(new CompletionProposal(availableProbes[i], documentOffset-pre.length(), pre.length(), availableProbes[i].length()));
+				}
+			}
+			
+			CompletionProposal[] props = new CompletionProposal[proposals.size()];
+			proposals.toArray(props);
+			return props;
+		} catch(BadLocationException ble) {
+			LogManager.logCritical("BadLocationException computeCompletionProposals: " + ble.getMessage(), this);
+		}
+		return null;
+	}
+

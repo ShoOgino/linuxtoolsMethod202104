@@ -1,0 +1,39 @@
+	/**
+	 * Initiates and sets up damage repair objects in order to repaint specific sections of the editor
+	 * when they are dirtied by the user.
+	 */
+	public IPresentationReconciler getPresentationReconciler(ISourceViewer sourceViewer) {
+		LogManager.logDebug("Start getPresentationReconciler: sourceViewer-" + sourceViewer, this);
+		PresentationReconciler reconciler = new PresentationReconciler();
+
+		DefaultDamagerRepairer dr = new DefaultDamagerRepairer(getSTPScanner());
+		reconciler.setDamager(dr, IDocument.DEFAULT_CONTENT_TYPE);
+		reconciler.setRepairer(dr, IDocument.DEFAULT_CONTENT_TYPE);
+
+		IPreferenceStore store = IDEPlugin.getDefault().getPreferenceStore();
+		RGB comment = PreferenceConverter.getColor(store, IDEPreferenceConstants.P_STP_COMMENT_COLOR);
+		RGB embeddedc = PreferenceConverter.getColor(store, IDEPreferenceConstants.P_STP_EMBEDDED_C_COLOR);
+		RGB embedded = PreferenceConverter.getColor(store, IDEPreferenceConstants.P_STP_EMBEDDED_COLOR);
+		
+		NonRuleBasedDamagerRepairer ndr =
+			new NonRuleBasedDamagerRepairer(
+				new TextAttribute(colorManager.getColor(comment)));
+		reconciler.setDamager(ndr, STPPartitionScanner.STP_COMMENT);
+		reconciler.setRepairer(ndr, STPPartitionScanner.STP_COMMENT);
+		
+		NonRuleBasedDamagerRepairer ndr2 =
+			new NonRuleBasedDamagerRepairer(
+				new TextAttribute(colorManager.getColor(embeddedc)));
+		reconciler.setDamager(ndr2, STPPartitionScanner.STP_EMBEDDEDC);
+		reconciler.setRepairer(ndr2, STPPartitionScanner.STP_EMBEDDEDC);
+		
+		NonRuleBasedDamagerRepairer ndr3 =
+			new NonRuleBasedDamagerRepairer(
+				new TextAttribute(colorManager.getColor(embedded)));
+		reconciler.setDamager(ndr3, STPPartitionScanner.STP_EMBEDDED);
+		reconciler.setRepairer(ndr3, STPPartitionScanner.STP_EMBEDDED);
+
+		LogManager.logDebug("End getPresentationReconciler: returnVal-" + reconciler, this);
+		return reconciler;
+	}
+

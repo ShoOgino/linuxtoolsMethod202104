@@ -1,0 +1,42 @@
+	/**
+	 * Opposite action as writeTree. Reads the <code>IMemento</code> passed in into the <code>TreeNode</code>
+	 * up to the requested maximum depth.
+	 * @param data The <code>IMemento</code> to read the tree out of.
+	 * @param parent The <code>TreeNode</code> to store the tree in.
+	 * @param depth The maximum depth to read.
+	 */
+	private static void readTree(IMemento data, TreeNode parent, int depth) {
+		IMemento[] children = data.getChildren("level" + depth);
+
+		try {
+			if(null != children) {
+				for(int i=0; i<children.length; i++) {
+					String s = children[i].getString("string");
+					String d = children[i].getString("data");
+					String def = children[i].getString("definition");
+
+					boolean c = ((0==children[i].getInteger("click").intValue())?false:true);
+					
+					if("<null>".equals(s))
+						s = null;
+					if("<null>".equals(d))
+						d = null;
+					
+					TreeNode t;
+					if(null == def) {
+						t = new TreeNode(d, s, c);
+					} else {
+						if("<null>".equals(def))
+							def = null;
+						
+						t = new TreeDefinitionNode(d, s, def, c);
+					}
+					parent.add(t);
+					
+					readTree(children[i], t, depth+1);
+				}
+			}
+		} catch(NullPointerException e) {
+		}
+	}
+

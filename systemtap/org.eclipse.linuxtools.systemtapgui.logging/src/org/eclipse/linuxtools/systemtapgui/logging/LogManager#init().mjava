@@ -1,0 +1,34 @@
+	/**
+	 * Gets user logging preferences and prepares the logging system to operate.
+	 */
+	private void init() {
+		BufferedWriter writer = null;
+		IPreferenceStore store = LoggingPlugin.getDefault().getPreferenceStore();
+		boolean enabled = store.getBoolean(PreferenceConstants.P_LOG_ENABLED);
+		int level = Integer.parseInt(store.getString(PreferenceConstants.P_LOG_LEVEL));
+		int type = Integer.parseInt(store.getString(PreferenceConstants.P_LOG_TYPE));
+		String filename = store.getString(PreferenceConstants.P_LOG_FILE);
+		
+		if(enabled) {
+			if(CONSOLE == type)
+				writer = new BufferedWriter(new OutputStreamWriter(System.out));
+			if(FILE == type) {
+				try {
+					File file = new File(filename);
+					if(!file.exists()) {
+						file.getParentFile().mkdirs();
+						file.createNewFile();
+					}
+					writer = new BufferedWriter(new FileWriter(file));
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			if(null != writer) {
+				log(INFO, "Initialized - Stream " + writer.toString());
+				new LogDaemon(writer, level);
+			}
+		} else
+			disable();
+	}
+

@@ -1,0 +1,77 @@
+	/**
+	 * This method creates the framework for what will be displayed by this dialog box.
+	 * @param parent The composite that will contain all the elements from this dialog
+	 */
+	public void createPartControl(Composite parent) {
+		LogManager.logDebug("Start createPartControl: parent-" + parent, this);
+
+		parent.setLayout(new FormLayout());
+		FormData data1 = new FormData();
+		Composite cmpCoolBar = new Composite(parent, SWT.NONE);
+		data1.left = new FormAttachment(0, 0);
+		data1.top = new FormAttachment(0, 0);
+		data1.right = new FormAttachment(100, 0);
+		data1.bottom = new FormAttachment(0, 10);
+		cmpCoolBar.setLayoutData(data1);
+
+		FormData data2 = new FormData();
+		data2.left = new FormAttachment(0, 0);
+		data2.top = new FormAttachment(cmpCoolBar);
+		data2.right = new FormAttachment(100, 0);
+		data2.bottom = new FormAttachment(100, 0);
+		Composite cmpGraph = new Composite(parent, SWT.NONE);
+		cmpGraph.setLayoutData(data2);
+
+		//This is for the tab view
+		cmpGraph.setLayout(new FormLayout());
+
+		folder = new CTabFolder(cmpGraph, SWT.NONE);
+		FormData data = new FormData();
+		data.top = new FormAttachment(0, 0);
+		data.left = new FormAttachment(0, 0);
+		data.right = new FormAttachment(100, 0);
+		data.bottom = new FormAttachment(100, 0);
+		folder.setLayoutData(data);
+
+		listener = new ButtonClickListener();
+		folder.addSelectionListener(listener);
+
+		folder.addCTabFolder2Listener(new CTabFolder2Listener() {
+			public void restore(CTabFolderEvent e) {}
+			public void showList(CTabFolderEvent e) {}
+			public void minimize(CTabFolderEvent e) {}
+			public void maximize(CTabFolderEvent e) {}
+			public void close(CTabFolderEvent e) {
+				int selected = folder.indexOf((CTabItem)e.item)-2;
+				if(null != updater)
+					updater.removeUpdateListener((IGraph)graphs.get(selected));
+				graphs.remove(selected);
+				fireTabCloseEvent();
+			}
+		});
+
+		//This is a tab/button for opening new graphs
+		CTabItem newGraph = new CTabItem(folder, SWT.NONE);
+		newGraph.setImage(GraphingPlugin.getImageDescriptor("icons/actions/new_wiz.gif").createImage());
+
+		//Tab containing the data table
+		CTabItem item = new CTabItem(folder, SWT.NONE);
+		item.setText(Localization.getString("GraphDisplaySet.DataView"));
+		Composite c = new Composite(folder, SWT.NONE);
+		GridLayout grid = new GridLayout();
+		grid.marginHeight = 0;
+		grid.marginWidth = 0;
+		c.setLayout(grid);
+
+		GridData gd = new GridData(SWT.FILL, SWT.FILL, true, true);
+		DataGrid table = DataSetFactory.getDataGrid(c, dataSet);
+		if(null != updater)
+			updater.addUpdateListener(table);
+		table.getControl().setLayoutData(gd);
+		item.setControl(c);
+		folder.setSelection(item);
+		lastSelectedTab = 1;
+
+		LogManager.logDebug("End createPartControl", this);
+	}
+

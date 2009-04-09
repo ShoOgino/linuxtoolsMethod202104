@@ -1,0 +1,52 @@
+	public void handleUpdateEvent() {
+		if(table.isDisposed()) return;
+		
+		table.getDisplay().asyncExec(new Runnable() {
+			public void run() {
+				TableItem item;
+				int startLocation, endLocation = filteredDataSet.getRowCount();
+				
+				if(FULL_UPDATE == (style & FULL_UPDATE)) {
+					//Remove extra items so save memory.
+					removedItems += table.getItemCount();
+					table.removeAll();
+					startLocation = 0;
+				} else {
+					startLocation = table.getItemCount()+removedItems;
+				}
+				
+				//Add all the new items to the table
+				Object[] os;
+				for(int j,i=startLocation; i<endLocation; i++) {
+					item = new TableItem(table, SWT.NONE);
+					os = filteredDataSet.getRow(i);
+
+					item.setText(0, "" + i);
+					for(j=0; j<os.length; j++)
+						item.setText(j+1, columnFormat[j].format(os[j].toString()));
+				}
+				
+				if(FULL_UPDATE != (style & FULL_UPDATE)) {
+					//Remove extra items so save memory.
+					if(table.getItemCount() > prefs.getInt(GraphingAPIPreferenceConstants.P_MAX_DATA_ITEMS)) {
+						int items = table.getItemCount()-prefs.getInt(GraphingAPIPreferenceConstants.P_MAX_DATA_ITEMS);
+						table.remove(0, items-1);
+						removedItems += items;
+					}
+				}
+
+				//Resize the columns
+				TableColumn col = table.getColumn(0);
+				col.pack();
+				if(!manualResize) {
+					TableColumn[] cols = table.getColumns();
+					for(int i=1; i<cols.length; i++)
+						cols[i].pack();
+				}
+				//Use if we want to set focus to newly added item
+				if(prefs.getBoolean(GraphingAPIPreferenceConstants.P_JUMP_NEW_TABLE_ENTRY))
+					table.showItem(table.getItem(table.getItemCount()-1));
+			}
+		});
+	}
+

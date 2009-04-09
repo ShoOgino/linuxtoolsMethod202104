@@ -1,0 +1,44 @@
+	public Menu initMenus() {
+		Menu menu = new Menu(table.getShell(), SWT.POP_UP);
+		menu.addMenuListener(new MainMenuListener());
+
+		Menu formatMenu = new Menu(menu);
+		MenuItem item = new MenuItem(menu, SWT.CASCADE);
+		item.setText(Localization.getString("DataGrid.FormatAs"));
+		item.setMenu(formatMenu);
+
+		//if(dataSet instanceof IFilteredDataSet) {
+			filterMenu = new Menu(menu);
+			item = new MenuItem(menu, SWT.CASCADE);
+			item.setText(Localization.getString("DataGrid.AddFilter"));
+			item.addSelectionListener(new AddFilterSelection());
+
+			item = new MenuItem(menu, SWT.CASCADE);
+			item.setText(Localization.getString("DataGrid.RemoveFilter"));
+			item.setMenu(filterMenu);
+			
+			IDataSetFilter[] filters = filteredDataSet.getFilters();
+			if(null != filters) {
+				for(int i=0; i<filters.length; i++) {
+					item = new MenuItem(filterMenu, SWT.CASCADE);
+					item.setText(AvailableFilterTypes.getFilterName(filters[i].getID()));
+					item.setData(filters[i]);
+					item.addSelectionListener(new RemoveFilterSelection());
+				}
+			}
+		//}
+		
+		item = new MenuItem(menu, SWT.CHECK);
+		item.setText(Localization.getString("DataGrid.ManualyResize"));
+		item.addSelectionListener(new MenuManualyResizedSelection());
+
+		for(int i=0; i<IFormattingStyles.FORMAT_TITLES.length; i++) {
+			item = new MenuItem(formatMenu, SWT.RADIO);
+			item.setText(IFormattingStyles.FORMAT_TITLES[i]);
+			item.addSelectionListener(new MenuFormatSelection());
+		}
+		
+		formatMenu.addMenuListener(new FormatMenuListener());
+		return menu;
+	}
+

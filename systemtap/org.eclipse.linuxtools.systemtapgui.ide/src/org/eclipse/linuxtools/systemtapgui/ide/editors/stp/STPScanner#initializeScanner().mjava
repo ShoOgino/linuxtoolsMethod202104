@@ -1,0 +1,51 @@
+	/**
+	 * Specifies colors taken from preferences to string types. Sets up single line comment rules,
+	 * rules governing text surrounded in quotes, the generic whitespace rule, and rules for keywords,
+	 * types, and constants.
+	 */
+	public void initializeScanner() {
+		LogManager.logDebug("Start initializeScanner:", this);
+		IPreferenceStore store = IDEPlugin.getDefault().getPreferenceStore();
+		RGB keywordColor, typeColor, stringColor, commentColor, defaultColor;
+		
+		keywordColor = PreferenceConverter.getColor(store, IDEPreferenceConstants.P_STP_KEYWORD_COLOR);
+		typeColor = PreferenceConverter.getColor(store, IDEPreferenceConstants.P_STP_TYPE_COLOR);
+		stringColor = PreferenceConverter.getColor(store, IDEPreferenceConstants.P_STP_STRING_COLOR);
+		commentColor = PreferenceConverter.getColor(store, IDEPreferenceConstants.P_STP_COMMENT_COLOR);
+		defaultColor = PreferenceConverter.getColor(store, IDEPreferenceConstants.P_STP_DEFAULT_COLOR);
+
+		IToken keyword = new Token(new TextAttribute(manager.getColor(keywordColor), null, SWT.BOLD));
+		IToken type = new Token(new TextAttribute(manager.getColor(typeColor)));
+		IToken string = new Token(new TextAttribute(manager.getColor(stringColor)));
+		IToken comment = new Token(new TextAttribute(manager.getColor(commentColor)));
+		IToken other = new Token(new TextAttribute(manager.getColor(defaultColor)));
+		
+		List<IRule> rules= new ArrayList<IRule>();
+		
+		// Add rules for single line comments.
+		rules.add(new EndOfLineRule("#", comment)); //$NON-NLS-1$
+		rules.add(new EndOfLineRule("//", comment)); //$NON-NLS-1$
+		
+		// Add rule for strings and character constants.
+		rules.add(new SingleLineRule("\"", "\"", string, '\\')); //$NON-NLS-2$ //$NON-NLS-1$
+		rules.add(new SingleLineRule("'", "'", string, '\\')); //$NON-NLS-2$ //$NON-NLS-1$
+	
+		// Add generic whitespace rule.
+		rules.add(new WhitespaceRule(new WhitespaceDetector()));
+		
+		// Add word rule for keywords, types, and constants.
+		WordRule wordRule= new WordRule(new WordDetector(), other);
+		for (int i= 0; i < fgKeywords.length; i++)
+			wordRule.addWord(fgKeywords[i], keyword);
+		for (int i= 0; i < fgTypes.length; i++)
+			wordRule.addWord(fgTypes[i], type);
+		for (int i= 0; i < fgConstants.length; i++)
+			wordRule.addWord(fgConstants[i], type);
+		rules.add(wordRule);
+				
+		IRule[] result= new IRule[rules.size()];
+		rules.toArray(result);
+		setRules(result);
+		LogManager.logDebug("End initializeScanner:", this);
+	}
+
