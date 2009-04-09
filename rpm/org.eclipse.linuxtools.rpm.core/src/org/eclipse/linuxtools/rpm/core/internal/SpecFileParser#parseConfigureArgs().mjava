@@ -1,0 +1,85 @@
+    /**
+     * Method parseConfigureArgs.
+     * This method takes a spec file path and parses it to see if there are any options
+     * that need to be passed to the "configure" script when conmfiguring an RPM.
+     * @param path_to_specfile - contains a string with a path to the spec file to be
+     * searched to see if the "configure" command has any options to be applied
+     * @return a string containing the options to pass to configure if any were found
+     */
+    private String parseConfigureArgs() throws CoreException {
+        String path_to_specfile = specFile.getLocation().toOSString();
+    
+        boolean found_config = false;
+        int lines = 0;
+        int config_line = 0;
+        String config_opts = ""; //$NON-NLS-1$
+        
+        try {
+            FileReader sp_file = new FileReader(path_to_specfile);
+            StreamTokenizer st = new StreamTokenizer(sp_file);
+//            st.resetSyntax();
+
+            // Make sure numbers, colons and percent signs are considered valid
+            st.wordChars('a','z');
+            st.wordChars('A','Z');
+            st.wordChars(':', ':');
+            st.wordChars('0', '9');
+            st.wordChars('%', '%');
+            st.wordChars('{', '}');
+            st.wordChars('-', '-');
+            st.wordChars('/','/');
+            st.wordChars('=','=');
+            st.wordChars('.','.');
+            st.wordChars('_','_');
+            st.eolIsSignificant(true);
+            
+            String new_word;
+            int if_ctr = 0;
+            int token = st.nextToken();
+            while (token != StreamTokenizer.TT_EOF) {
+                token = st.nextToken();
+
+                switch (token) {
+                case StreamTokenizer.TT_EOL:
+                  lines++;  
+                  break;
+                case StreamTokenizer.TT_WORD:
+                    new_word = st.sval;
+                    // System.out.println("---- " + new_word + line_sep + "   line no = " + st.lineno());
+                    
+                    // If '%configure' was found, gather the options if there were any
+                    if (found_config & config_line == lines) {
+                        config_opts = config_opts + " --" + new_word; //$NON-NLS-1$
+                        break;
+                    }
+                    if (found_config & !(config_line == lines)) {
+                        found_config = false;
+                        break;
+                    }
+
+                        // See if there is a %configure section
+                        if (new_word.equals("%configure")) { //$NON-NLS-1$
+                            found_config = true;
+                            config_line = lines;
+                            
+                            break;
+                        }
+                }
+            }
+
+            sp_file.close();
+        } catch (IOException e) {
+            String throw_message = Messages.getString(
+                    "RPMCore.Error_parsing_the_spec_file_in_the_project_--_157") + //$NON-NLS-1$
+                    path_to_specfile;
+            IStatus error = new Status(IStatus.ERROR, IRPMConstants.ERROR, 1, throw_message,
+                    null);
+            throw new CoreException(error);
+        }
+
+        if(!found_config) {
+            return null;
+        }
+        return config_opts;
+    }
+

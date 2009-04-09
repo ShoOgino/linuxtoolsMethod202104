@@ -1,0 +1,45 @@
+	public void importSourceRPM(File externalFile) throws CoreException {
+		// Copy original SRPM to workspace
+		IFile srpmFile = getConfiguration().getSrpmsFolder().getFile(externalFile.getName());
+		try {
+			srpmFile.create(new FileInputStream(externalFile), false, null);
+		} catch(FileNotFoundException e) {
+			String throw_message = Messages.getString("RPMCore.Error_trying_to_copy__") + //$NON-NLS-1$
+				rpmConfig.getSpecsFolder().getLocation().toOSString();
+			IStatus error = new Status(IStatus.ERROR, IRPMConstants.ERROR, 1, throw_message, null);
+			throw new CoreException(error); 
+		}
+		setSourceRPM(new SourceRPM(srpmFile));
+        
+        // Install the SRPM
+        RPM rpm = new RPM(getConfiguration());
+        rpm.install(getSourceRPM().getFile());
+		getProject().refreshLocal(IResource.DEPTH_INFINITE, null);
+		
+        // Set the spec file
+        IResource[] installedSpecs = {};
+        installedSpecs = getConfiguration().getSpecsFolder().members();
+        if (installedSpecs.length != 1) {
+            String throw_message = Messages.getString("RPMCore.spec_file_ambiguous") + //$NON-NLS-1$
+            	rpmConfig.getSpecsFolder().getLocation().toOSString();
+            IStatus error = new Status(IStatus.ERROR, IRPMConstants.ERROR, 1, throw_message, null);
+            throw new CoreException(error); 
+        }
+        setSpecFile(new SpecFile(getConfiguration().getSpecsFolder().getFile(installedSpecs[0].getName())));
+		
+		// Prepare the sources
+		buildPrep();
+		getProject().refreshLocal(IResource.DEPTH_INFINITE, null);
+		
+		// Copy sources from build root
+		copySources();
+		
+		// Set the project nature
+		RPMProjectNature.addRPMNature(getProject(), null);
+		
+		// Generate and store project checksum
+		long checksum = generateProjectChecksum(getProject().getLocation().toOSString(), 0);
+		getProject().setPersistentProperty(new QualifiedName(RPMCorePlugin.ID, 
+				IRPMConstants.CHECKSUM_PROPERTY), new Long(checksum).toString());
+	}
+

@@ -1,0 +1,50 @@
+	/**
+	 * Generates a patch given a project's export delta.
+	 * @param exportOp the export delta
+	 * @return the patch
+	 * @throws CoreException if:
+	 * <ul>
+	 * <li>The supplied patch name already exists</li>
+	 * <li>Patch generation fails</li>
+	 * </ul>
+	 */
+	private IPatch generatePatch(RPMExportDelta exportOp) throws CoreException {
+		// Make sure patch name is unique
+		String patch_name = exportOp.getPatchName();
+		IFile patchFile = getConfiguration().getSourcesFolder().getFile(patch_name);
+		if(patchFile.exists()) {
+			String throw_message = Messages.getString(
+			"RPMCore.The_patch_name__109") + patch_name + //$NON-NLS-1$
+			Messages.getString("RPMCore._is_not_unique._110") + //$NON-NLS-1$
+			Messages.getString(
+			"RPMCore._nPlease_modify_the___Patch_tag___field_and_try_again._111"); //$NON-NLS-1$
+			IStatus error = new Status(IStatus.ERROR, IRPMConstants.ERROR, 1, throw_message,
+					null);
+			throw new CoreException(error);
+		}
+		
+		String diff_old_dir = null;
+		if(getSourceRPM().getSourcesFolder() != null) {
+			diff_old_dir = getSourceRPM().getSourcesFolder().getLocation().toOSString();
+		}
+		else {
+			diff_old_dir = getConfiguration().getBuildFolder().getLocation().toOSString();
+		}
+		String diff_new_dir = getProject().getName();
+
+		// Figure out what resources to exclude from the diff
+		String[] excludes = findExcludedFiles();
+		
+		// Do the diff
+		Diff diff = new Diff(getProject().getParent().getLocation().toOSString(),
+				diff_old_dir, diff_new_dir, excludes, patchFile.getLocation().toOSString());
+		diff.exec();
+		
+		// Construct a new patch
+		IPatch patch = new Patch();
+		patch.setChangelogEntry(exportOp.getChangelogEntry());
+		patch.setFile(patchFile);
+		patch.setPatchName(patch_name);
+		return patch;
+	}
+

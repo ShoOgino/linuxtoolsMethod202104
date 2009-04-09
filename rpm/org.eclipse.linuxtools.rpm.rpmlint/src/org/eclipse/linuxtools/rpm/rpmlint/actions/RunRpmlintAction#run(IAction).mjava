@@ -1,0 +1,32 @@
+	public void run(IAction action) {
+		if (selection instanceof IStructuredSelection) {
+			for (Object element : ((IStructuredSelection) selection).toList()) {
+				IFile rpmFile = null;
+				if (element instanceof IFile) {
+					rpmFile = (IFile) element;
+				} else if (element instanceof IAdaptable) {
+					rpmFile = (IFile) ((IAdaptable) element)
+							.getAdapter(IFile.class);
+				}
+				if (rpmFile != null) {
+					try {
+						String output = Utils.runCommandToString(Activator
+								.getRpmlintPath(), "-i", rpmFile.getLocation() //$NON-NLS-1$
+								.toString());
+						MessageConsole myConsole = findConsole(Messages.RunRpmlintAction_0);
+						MessageConsoleStream out = myConsole.newMessageStream();
+						myConsole.clearConsole();
+						myConsole.activate();
+						out.println(output);
+
+					} catch (IOException e) {
+						// FIXME: rpmlint is not installed in the default place
+						// -> ask user to open the prefs page.
+						RpmlintLog.logError(e);
+					}
+				}
+			}
+		}
+
+	}
+

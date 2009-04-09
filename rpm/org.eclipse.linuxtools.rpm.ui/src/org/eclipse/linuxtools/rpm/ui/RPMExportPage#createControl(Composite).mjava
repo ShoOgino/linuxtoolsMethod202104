@@ -1,0 +1,46 @@
+	/**
+	 * @see org.eclipse.jface.dialogs.IDialogPage#createControl(Composite)
+	 *
+	 * Parent control. Creates the listbox, Destination box, and options box
+	 *
+	 */
+	public void createControl(Composite parent) {
+		Composite composite = new Composite(parent, SWT.NULL);
+
+		// Create a layout for the wizard page
+		composite.setLayout(new GridLayout());
+		composite.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_FILL));
+		setControl(composite);
+
+		// Create contols on the page
+		createProjectBox(composite);
+		createSpecFileFields(composite);
+		createSpacer(composite);
+		createExportTypeControls(composite);
+		createPatchHint(composite);
+		
+		// Fill in the fields
+		setSpecFileField();
+		setVersionReleaseFields();
+
+		// Check if the project has changed
+		// and therefore the project needs a patch
+		boolean projectChanged = false;
+		try {
+			if(rpmProject != null) {
+				projectChanged = rpmProject.isChanged();
+			}
+		} catch(CoreException e) {
+			ExceptionHandler.handle(e, getShell(), Messages.getString("ErrorDialog.title"),
+					e.getMessage());
+		}
+		if(projectChanged) {
+			patchNeedHintGrid.setVisible(true);
+			setPatchNeeded(true);
+			setPageComplete(true);
+		} else {
+			setPatchNeeded(false);
+			setPageComplete(false);
+		}
+	}
+

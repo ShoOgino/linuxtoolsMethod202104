@@ -1,0 +1,81 @@
+	/* (non-Javadoc)
+	 * @see org.eclipse.core.resources.IResourceVisitor#visit(org.eclipse.core.resources.IResource)
+	 */
+	public boolean visit(IResource resource) throws CoreException {
+		if (Activator.SPECFILE_EXTENSION.equals(resource.getFileExtension())) {
+			firstWarningInResource = true;
+			for (RpmlintItem item : rpmlintItems) {
+				if (item.getFileName().equals(resource.getLocation().toOSString())) {
+					currentFile = ((IFile)resource);
+					if (firstWarningInResource) {
+						RpmlintParser.getInstance().deleteMarkers(resource);
+						// remove internal marks on the current resource
+						currentFile.deleteMarkers(SpecfileErrorHandler.SPECFILE_ERROR_MARKER_ID, false, IResource.DEPTH_ZERO);
+						firstWarningInResource = false;
+					}
+
+					specContent = fileToString(currentFile);
+					// FIXME: workaround the wrong line number with configure-without-libdir-spec
+					if (item.getId().equals("configure-without-libdir-spec")) { //$NON-NLS-1$
+						item.setLineNbr(-1);
+						lineNumber = RpmlintParser.getInstance().getRealLineNbr(specContent, "./configure"); //$NON-NLS-1$
+						if (lineNumber == -1)
+							lineNumber = RpmlintParser.getInstance().getRealLineNbr(specContent, "%configure"); //$NON-NLS-1$
+						item.setLineNbr(lineNumber);
+					}
+					
+					lineNumber = item.getLineNbr();
+					if (lineNumber == -1) {
+						lineNumber = RpmlintParser.getInstance().getRealLineNbr(specContent, item.getReferedContent());
+						if (lineNumber == -1) {
+							lineNumber = 1;
+						}
+					}
+					lineNumber -= 1;
+					// end workaround
+					
+					// BTW we mark specfile with the internal marker.
+					builder.getSpecfileParser().setErrorHandler(builder.getSpecfileErrorHandler(currentFile, specContent));
+					builder.getSpecfileParser().setTaskHandler(builder.getSpecfileTaskHandler(currentFile, specContent));
+					builder.getSpecfileParser().parse(specContent);
+
+					document = new Document(specContent);
+					charStart = getLineOffset(lineNumber);
+					charEnd = charStart + getLineLenght(lineNumber);
+					RpmlintParser.getInstance().addMarker((IFile) resource, item.getId() + ": " //$NON-NLS-1$
+							+ item.getMessage(), lineNumber, charStart, charEnd,
+							item.getSeverity(), item.getId(),
+							item.getReferedContent());
+				}
+			}
+		} else if (Activator.RPMFILE_EXTENSION.equals(resource
+				.getFileExtension())) {
+			firstWarningInResource = true;
+			for (RpmlintItem item : rpmlintItems) {
+					currentFile = ((IFile) resource);
+					if (firstWarningInResource) {
+						RpmlintParser.getInstance().deleteMarkers(resource);
+						// remove internal marks on the current resource
+						currentFile.deleteMarkers(
+								SpecfileErrorHandler.SPECFILE_ERROR_MARKER_ID,
+								false, IResource.DEPTH_ZERO);
+						firstWarningInResource = false;
+					}
+
+					// BTW we mark specfile with the internal marker.
+					builder.getSpecfileParser().setErrorHandler(
+							builder.getSpecfileErrorHandler(currentFile,
+									specContent));
+					builder.getSpecfileParser().setTaskHandler(
+							builder.getSpecfileTaskHandler(currentFile,
+									specContent));
+
+					RpmlintParser.getInstance().addMarker((IFile) resource,
+							item.getId() + ": " //$NON-NLS-1$
+									+ item.getMessage(), item.getSeverity(),
+							item.getId(), item.getReferedContent());
+			}
+		}
+		return true;
+	}
+

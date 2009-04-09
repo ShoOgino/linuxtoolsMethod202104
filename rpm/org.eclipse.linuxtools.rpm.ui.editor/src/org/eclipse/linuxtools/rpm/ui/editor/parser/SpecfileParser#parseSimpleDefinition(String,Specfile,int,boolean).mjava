@@ -1,6 +1,6 @@
 	private SpecfileElement parseSimpleDefinition(String lineText,
 			Specfile specfile, int lineNumber, boolean warnMultipleValues) {
-		List<String> tokens = Arrays.asList(lineText.split(SPACE_REGEX));
+		List<String> tokens = Arrays.asList(lineText.split("\\s+")); //$NON-NLS-1$
 		SpecfileTag toReturn = null;
 
 		for (Iterator<String> iter = tokens.iterator(); iter.hasNext();) {
@@ -16,8 +16,7 @@
 					possValue += ' ' + iter.next();
 				}
 				toReturn = new SpecfileTag(token.substring(0,
-						token.length() - 1).toLowerCase(), possValue, specfile,
-						null);
+						token.length() - 1).toLowerCase(), possValue, specfile);
 				if (iter.hasNext() && !warnMultipleValues) {
 					errorHandler.handleError(new SpecfileParseException(
 							token.substring(0, token.length() - 1)
@@ -26,6 +25,14 @@
 							IMarker.SEVERITY_ERROR));
 					return null;
 				}
+				// FIXME: investigate whether we should keep this or not
+				// } else {
+				// errorHandler.handleError(new SpecfileParseException(
+				// token.substring(0, token.length() - 1) +
+				// " should be an acronym.",
+				// lineNumber, 0, lineText.length(),
+				// IMarker.SEVERITY_WARNING));
+				// }
 			} else {
 				errorHandler.handleError(new SpecfileParseException(token
 						.substring(0, token.length() - 1)
@@ -35,11 +42,21 @@
 			}
 		}
 		if ((toReturn != null) && (toReturn.getStringValue() != null)) {
+			if (toReturn.getStringValue().indexOf("_") > 0) { //$NON-NLS-1$
+				if (toReturn.getName().equalsIgnoreCase("release")) //$NON-NLS-1$
+					errorHandler
+							.handleError(new SpecfileParseException(
+									Messages.getString("SpecfileParser.15"), lineNumber, //$NON-NLS-1$
+									0, lineText.length(),
+									IMarker.SEVERITY_WARNING));
+			}
 			try {
 				int intValue = Integer.parseInt(toReturn.getStringValue());
-				toReturn.setValue(intValue);
+				toReturn.setIntValue(intValue);
+				toReturn.setStringValue(null);
+				toReturn.setTagType(SpecfileTag.TagType.INT);
 			} catch (NumberFormatException e) {
-				if (toReturn.getName().equalsIgnoreCase(RpmTags.EPOCH)) {
+				if (toReturn.getName().equals("epoch")) { //$NON-NLS-1$
 					errorHandler
 							.handleError(new SpecfileParseException(
 									Messages.getString("SpecfileParser.16"), lineNumber, //$NON-NLS-1$
