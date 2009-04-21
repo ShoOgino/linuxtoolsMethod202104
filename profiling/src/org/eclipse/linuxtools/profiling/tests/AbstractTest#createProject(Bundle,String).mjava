@@ -1,7 +1,17 @@
-	public ICProject createProject(Bundle bundle, String projname)
+	protected ICProject createProject(Bundle bundle, String projname)
 			throws CoreException, URISyntaxException, IOException,
 			InvocationTargetException, InterruptedException {
-		ICProject proj = CProjectHelper.createCProject(projname , BIN_DIR);
+		// Turn off auto-building
+		IWorkspace wsp = ResourcesPlugin.getWorkspace();
+		IWorkspaceDescription desc = wsp.getDescription();
+		desc.setAutoBuilding(false);
+		wsp.setDescription(desc);
+		
+		// Disable the indexer while the project is being created to avoid threading issues
+		IIndexManager indexManager = CCorePlugin.getIndexManager();
+		indexManager.setDefaultIndexerId(IIndexManager.ID_NO_INDEXER);
+		
+		ICProject proj = CProjectHelper.createCProject(projname, BIN_DIR);
 		URL location = FileLocator.find(bundle, new Path("resources/" + projname), null); //$NON-NLS-1$
 		File testDir = new File(FileLocator.toFileURL(location).toURI());
 		
@@ -12,6 +22,22 @@
 		});
 		op.setCreateContainerStructure(false);
 		op.run(null);
+		
+		IStatus status = op.getStatus();
+		if (!status.isOK()) {
+			throw new CoreException(status);
+		}
+				
+		// Project should not be indexed yet
+		assertFalse(indexManager.isProjectIndexed(proj));
+		
+		// Re-enable the indexer 
+		indexManager.setDefaultIndexerId(CCorePlugin.DEFAULT_INDEXER);
+		
+		// Index the project
+		indexManager.reindex(proj);
+		indexManager.joinIndexer(IIndexManager.FOREVER, new NullProgressMonitor());
+		
 		return proj;
 	}
 
