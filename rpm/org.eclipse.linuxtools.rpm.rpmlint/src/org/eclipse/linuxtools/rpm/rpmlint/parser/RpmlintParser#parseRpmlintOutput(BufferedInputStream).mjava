@@ -11,13 +11,13 @@
 		ArrayList<RpmlintItem> rpmlintItems = new ArrayList<RpmlintItem>();
 		LineNumberReader reader = new LineNumberReader(new InputStreamReader(in));
 		String line;
-		boolean firtItemLine = true;
+		boolean isFirtItemLine = true;
 		String[] lineItems;
 		String description = EMPTY_STRING;
 		try {
 			while ((line = reader.readLine()) != null) {
-				if (firtItemLine) {
-					firtItemLine=false;
+				if (isFirtItemLine) {
+					isFirtItemLine = false;
 					lineItems = line.split(COLON, 4);
 					item.setFileName(lineItems[0]);
 					int lineNbr;
@@ -51,23 +51,33 @@
 					} 
 					item.setLineNbr(lineNbr);					
 					item.setId(lineItems[0]);
-					// get content
-					if (lineItems.length > 1)
-						item.setReferedContent(lineItems[1]);
-					else
-						item.setReferedContent(EMPTY_STRING);
+					if (lineItems.length > 1) {
+						// Maybe this error occur when rpmlint execute 'rpm -q --qf=
+						// --specfile file.spec' command
+						RpmlintItem tmpItem = parseRpmOutput(item, lineItems[1]) ;
+						if (tmpItem == null) {
+							item.setRefferedContent(lineItems[1]);
+						} else {
+							item = tmpItem;
+						}
+					} else {
+						item.setRefferedContent(EMPTY_STRING);
+					}
 				} else {
 					description += line + '\n';
 				}
 				
 				if (line.equals(EMPTY_STRING)) {
-					item.setMessage(description.substring(0, description.length() - 2));
-					int useOfTabsAndSpaces = getMixedUseOfTabsAndSpaces(item.getReferedContent());
+					if (item.getMessage() == null)
+						item.setMessage(description.substring(0, description.length() - 2));
+					int useOfTabsAndSpaces = getMixedUseOfTabsAndSpaces(item.getRefferedContent());
 					if (useOfTabsAndSpaces != -1) 
 						item.setLineNbr(useOfTabsAndSpaces);
 					rpmlintItems.add(item);
 					item = new RpmlintItem();
-					firtItemLine=true;
+					
+					// Reinitialize parser for the next item
+					isFirtItemLine=true;
 					description = EMPTY_STRING;
 				}
 
