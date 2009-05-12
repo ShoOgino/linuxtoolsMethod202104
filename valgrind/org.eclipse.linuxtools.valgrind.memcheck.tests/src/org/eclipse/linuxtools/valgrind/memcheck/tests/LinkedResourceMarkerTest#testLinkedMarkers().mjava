@@ -2,27 +2,15 @@
 		ILaunchConfiguration config = createConfiguration(proj.getProject());
 		doLaunch(config, "testLinkedMarkers"); //$NON-NLS-1$
 
-		MemcheckViewPart view = (MemcheckViewPart) ValgrindUIPlugin.getDefault().getView().getDynamicView();
-		ValgrindError[] errors = view.getErrors();
+		ValgrindViewPart view = ValgrindUIPlugin.getDefault().getView();
+		IValgrindMessage[] errors = view.getMessages();
 
-		ArrayList<IMarker> markers = new ArrayList<IMarker>(Arrays.asList(proj.getProject().findMarkers(MemcheckPlugin.MARKER_TYPE, true, IResource.DEPTH_INFINITE)));
-		for (ValgrindError error : errors) {
-			ValgrindStackFrame frame = getTopWorkspaceFrame(error.getFrames());
-
-			int ix = -1;
-			for (int i = 0; i < markers.size(); i++) {
-				IMarker marker = markers.get(i);
-				if (marker.getAttribute(IMarker.MESSAGE).equals(error.getWhat())
-						&& marker.getResource().getName().equals(frame.getFile())
-						&& marker.getAttribute(IMarker.LINE_NUMBER).equals(frame.getLine())) {
-					assertTrue(marker.getResource().isLinked(IResource.CHECK_ANCESTORS));
-					ix = i;
-				}
-			}
-			if (ix < 0) {
-				fail();
-			}
-			markers.remove(ix);
+		ArrayList<IMarker> markers = new ArrayList<IMarker>(Arrays.asList(proj
+				.getProject().findMarkers(ValgrindLaunchPlugin.MARKER_TYPE,
+						true, IResource.DEPTH_INFINITE)));
+		assertEquals(4, markers.size());
+		for (IValgrindMessage error : errors) {
+			findMarker(markers, error);
 		}
 		assertEquals(0, markers.size());
 	}

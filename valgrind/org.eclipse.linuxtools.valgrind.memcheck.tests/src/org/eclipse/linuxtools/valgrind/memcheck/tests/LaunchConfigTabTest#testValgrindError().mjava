@@ -7,50 +7,13 @@
 
 		assertFalse(tab.isValid(config));
 
-		ILaunch launch = doLaunch(config, "testValgrindError"); //$NON-NLS-1$
+		doLaunch(config, "testValgrindError"); //$NON-NLS-1$
 
-		IProcess[] p = launch.getProcesses();
-		if (p.length > 0) {
-			assertTrue(p[0].getExitValue() != 0);
-			IOConsole console = (IOConsole) DebugUITools.getConsole(p[0]);
-			IPropertyChangeListener consoleListener = new IPropertyChangeListener() {
-				public void propertyChange(PropertyChangeEvent event) {
-					if (event.getProperty().equals(IConsoleConstants.P_CONSOLE_OUTPUT_COMPLETE)) {
-						consoleFinished = true;
-					}
-				}				
-			};
-
-			// must be atomic, otherwise we could wait infinitely
-			synchronized (console) {
-				// only output should be from Valgrind
-				if (console.getDocument().getLength() > 0) {
-					consoleFinished = true;
-				}
-				else {
-					consoleFinished = false;					
-					console.addPropertyChangeListener(consoleListener);
-				}
-			}
-
-			// sleep until console done
-			Display display = Display.getCurrent();
-			while (!consoleFinished) {
-				if (display != null) {
-					if (!display.readAndDispatch()) {
-						display.sleep();
-					}
-				}
-				else {
-					Thread.sleep(1000);
-				}
-			}
-
-			String text = console.getDocument().get();
-			assertTrue(text.contains(notExistentFile));
-		}
-		else {
-			fail();
-		}
+		ValgrindViewPart view = ValgrindUIPlugin.getDefault().getView();
+		IValgrindMessage[] messages = view.getMessages(); 
+		assertTrue(messages.length > 0);
+		
+		String text = messages[0].getText();
+		assertTrue(text.contains(notExistentFile));
 	}
 

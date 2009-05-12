@@ -69,13 +69,22 @@
 			while (!process.isTerminated()) {
 				Thread.sleep(100);
 			}
+			
+//			if (process.getExitValue() == 0) {
+				// store these for use by other classes
+				getPlugin().setCurrentLaunchConfiguration(config);
+				getPlugin().setCurrentLaunch(launch);
 
-			if (process.getExitValue() == 0) {
+				// parse Valgrind logs
+				IValgrindMessage[] messages = parseLogs(outputPath);
+				
 				// create launch summary string to distinguish this launch
 				launchStr = createLaunchStr();
 
 				// create view
 				ValgrindUIPlugin.getDefault().createView(launchStr, toolID);
+				// set log messages
+				ValgrindUIPlugin.getDefault().getView().setMessages(messages);
 				monitor.worked(1);
 
 				// pass off control to extender
@@ -86,15 +95,11 @@
 
 				// show view
 				ValgrindUIPlugin.getDefault().showView();
-				monitor.worked(1);
-				
-				// store these for use by other classes
-				getPlugin().setCurrentLaunchConfiguration(config);
-				getPlugin().setCurrentLaunch(launch);
-			}
-			else {
-				handleValgrindError();
-			}
+				monitor.worked(1);				
+//			}
+//			else {
+//				handleValgrindError();
+//			}
 		} catch (IOException e) {
 			abort(Messages.getString("ValgrindLaunchConfigurationDelegate.Error_starting_process"), e, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR); //$NON-NLS-1$
 			e.printStackTrace();
