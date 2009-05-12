@@ -7,7 +7,7 @@
 		desc.setAutoBuilding(false);
 		wsp.setDescription(desc);
 		
-		// Disable the indexer while the project is being created to avoid threading issues
+		// Disable the indexer while the project is being created
 		IIndexManager indexManager = CCorePlugin.getIndexManager();
 		indexManager.setDefaultIndexerId(IIndexManager.ID_NO_INDEXER);
 		
@@ -15,7 +15,12 @@
 		URL location = FileLocator.find(bundle, new Path("resources/" + projname), null); //$NON-NLS-1$
 		File testDir = new File(FileLocator.toFileURL(location).toURI());
 		
-		ImportOperation op = new ImportOperation(proj.getProject().getFullPath(), testDir, FileSystemStructureProvider.INSTANCE, new IOverwriteQuery() {
+		IProject project = proj.getProject();
+		// Add these natures before project is imported due to #273079
+		ManagedCProjectNature.addManagedNature(project, null);
+		ScannerConfigNature.addScannerConfigNature(project);
+		
+		ImportOperation op = new ImportOperation(project.getFullPath(), testDir, FileSystemStructureProvider.INSTANCE, new IOverwriteQuery() {
 			public String queryOverwrite(String pathString) {
 				return ALL;
 			}			
@@ -37,6 +42,10 @@
 		// Index the project
 		indexManager.reindex(proj);
 		indexManager.joinIndexer(IIndexManager.FOREVER, new NullProgressMonitor());
+		
+		// These natures must be enabled at this point to continue
+		assertTrue(project.isNatureEnabled(ScannerConfigNature.NATURE_ID));
+		assertTrue(project.isNatureEnabled(ManagedCProjectNature.MNG_NATURE_ID));
 		
 		return proj;
 	}
