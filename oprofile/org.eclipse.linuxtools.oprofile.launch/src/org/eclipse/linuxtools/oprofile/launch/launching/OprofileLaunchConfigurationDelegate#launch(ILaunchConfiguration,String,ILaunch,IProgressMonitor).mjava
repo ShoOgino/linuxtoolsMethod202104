@@ -89,7 +89,8 @@
 			final OprofileDaemonEvent[] fDaemonEvents = daemonEvents;
 			Display.getDefault().asyncExec(new Runnable() { 
 				public void run() {
-					//TODO: have a initialization dialog to do reset and setupDaemon
+					//TODO: have a initialization dialog to do reset and setupDaemon?
+					// using a progress dialog, can't abort the launch if there's an exception..
 					try {
 						OprofileCorePlugin.getDefault().getOpcontrolProvider().reset();
 						OprofileCorePlugin.getDefault().getOpcontrolProvider().setupDaemon(fOptions.getOprofileDaemonOptions(), fDaemonEvents);
@@ -102,10 +103,25 @@
 					OprofiledControlDialog dlg = new OprofiledControlDialog();
 					dlg.open();
 
-					//TODO: have a dialog to do show the shutdown (for interactivity purposes)
+					//progress dialog for ensuring the daemon is shut down
+					IRunnableWithProgress refreshRunner = new IRunnableWithProgress() {
+						public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
+							monitor.beginTask(OprofileLaunchMessages.getString("oprofiledcontroldialog.post.stopdaemon"), 1); //$NON-NLS-1$
+							try {
+								OprofileCorePlugin.getDefault().getOpcontrolProvider().shutdownDaemon();
+							} catch (OpcontrolException e) {
+//								e.printStackTrace();
+							}
+							monitor.worked(1);
+							monitor.done();
+						}
+					};
+					ProgressMonitorDialog dialog = new ProgressMonitorDialog(null);
 					try {
-						OprofileCorePlugin.getDefault().getOpcontrolProvider().shutdownDaemon();
-					} catch (OpcontrolException e) {
+						dialog.run(true, false, refreshRunner);
+					} catch (InvocationTargetException e) {
+						e.printStackTrace();
+					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
 				} 
