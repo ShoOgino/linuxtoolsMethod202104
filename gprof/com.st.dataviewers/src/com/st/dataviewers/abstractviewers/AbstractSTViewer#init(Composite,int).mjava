@@ -1,0 +1,83 @@
+	/**
+	 * Initializes the viewers. It sets:
+	 * the columns of the viewers, 
+	 * a viewer setting (similar to memento)
+	 * a column manager
+	 * a viewer comparator
+	 * ColumnViewerToolTipSupport
+	 * an OpenListener
+	 * a KeyListener
+	 * a PaintListener
+	 * a DisposeListener
+	 * the input
+	 * the content provider
+	 * 
+	 * 
+	 */
+	protected void init(Composite parent,int style) {
+		viewer = createViewer(parent, style);
+		viewerSettings = createSTAbstractDataViewersSettings();
+		
+		fields = getAllFields();
+		
+		createColumns();
+		restoreColumnOrder();
+		
+		// building columns manager
+		// (needs the columns to be created first)
+		STDataViewersHideShowManager manager =
+			buildHideShowManager();
+		manager.restoreState(viewerSettings);
+		setHideShowManager(manager);
+		
+
+		// building the column comparator
+		// (needs the columns to be created first)
+		STDataViewersComparator comparator = buildComparator();
+		comparator.restoreState(viewerSettings);
+		setComparator(comparator);
+		setSortIndicators();
+		
+		IContentProvider cp =
+			createContentProvider();
+		
+		viewer.setContentProvider(cp);
+		
+		STOwnerDrawLabelProvider.setUpOwnerDraw(viewer);
+		
+		viewer.setUseHashlookup(true);
+		
+		GridData data = new GridData(SWT.FILL, SWT.FILL, true, true);
+		viewer.getControl().setLayoutData(data);
+		
+		viewer.setInput(createDefaultViewerInput());
+		
+		ColumnViewerToolTipSupport.enableFor(viewer);
+
+		Scrollable scrollable = (Scrollable) viewer.getControl();
+		ScrollBar bar = scrollable.getVerticalBar();
+		if (bar != null) {
+			bar.setSelection(restoreVerticalScrollBarPosition());
+		}
+		bar = scrollable.getHorizontalBar();
+		if (bar != null) {
+			bar.setSelection(restoreHorizontalScrollBarPosition());
+		}
+		
+		viewer.addOpenListener(new IOpenListener() {
+			public void open(OpenEvent event) {
+				handleOpenEvent(event);
+			}
+		});
+		
+		viewer.getControl().addKeyListener(new KeyAdapter() {
+			public void keyPressed(KeyEvent e) {
+				handleKeyPressed(e);
+			}
+		});
+		
+		viewer.getControl().addDisposeListener(
+				createDisposeListener());
+
+	}
+

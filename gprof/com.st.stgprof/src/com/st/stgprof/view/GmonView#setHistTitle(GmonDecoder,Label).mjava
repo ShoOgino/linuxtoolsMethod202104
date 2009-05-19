@@ -1,0 +1,30 @@
+	/**
+	 * set the gprof view title
+	 * @param decoder the gmon decoder
+	 * @param titleLabel the title label
+	 */
+	public static void setHistTitle(GmonDecoder decoder, Label titleLabel) {
+		String title = " gmon file: "
+			+ decoder.getGmonFile()
+			+ "\n program file: "
+			+ decoder.getProgram().getPath();
+		HistogramDecoder histo = decoder.getHistogramDecoder();
+		if (histo.hasValues()) {
+			double prof_rate = histo.getProf_rate();
+			String period = "";
+			if (prof_rate != 0){
+				char tUnit = histo.getTimeDimension();
+				switch (tUnit) {
+				case 's': prof_rate /= 1000000000; break;
+				case 'm': prof_rate /= 1000000; break;
+				case 'u': prof_rate /= 1000; break;
+				}
+				period = ", each sample counts as " + SampleProfField.getValue(1, prof_rate);
+			}
+			title += "\n " +histo.getBucketSize()
+			+ " bytes per bucket" + period;
+		}
+		titleLabel.setText(title);
+		titleLabel.getParent().layout(true);
+	}
+

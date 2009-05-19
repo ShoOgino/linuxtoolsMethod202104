@@ -1,0 +1,33 @@
+	/**
+	 * Display gmon results in the GProf View.
+	 * NOTE: this method has to be called from within the UI thread.
+	 * @param binaryPath
+	 * @param gmonPath
+	 * @param instanceName
+	 */
+	public static GmonView displayGprofView(String binaryPath, String gmonPath, String instanceName){
+		IBinaryObject binary = STSymbolManager.sharedInstance.getBinaryObject(new Path(binaryPath));
+		if (binary == null) {
+			MessageDialog.openError(
+					PlatformUI.getWorkbench().getDisplay().getActiveShell(),
+					"Invalid binary file",
+					binaryPath + " is not a valid binary file.");
+			return null;
+		}
+
+		GmonDecoder decoder = new GmonDecoder(binary);
+		try {
+			decoder.read(gmonPath);
+		} catch(Exception e) {
+			Status status = new Status(
+					Status.ERROR,
+					Activator.PLUGIN_ID,
+					IStatus.ERROR,
+					e.getMessage(),
+					e
+			);
+			Activator.getDefault().getLog().log(status);
+		}
+		return displayGprofView(decoder, gmonPath, instanceName);
+	}
+

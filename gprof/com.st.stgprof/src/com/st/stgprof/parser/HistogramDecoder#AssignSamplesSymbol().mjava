@@ -1,0 +1,47 @@
+	/**
+	 * Assign the hits to the given symbols
+	 * @param symblist 
+	 */
+	public void AssignSamplesSymbol()
+	{
+		if (hist_sample == null || hist_sample.length == 0) return;
+		ISymbol[] symblist = this.decoder.getProgram().getSymbols();
+		/* read samples and assign to namelist symbols */
+		int j = 1;
+		for (int i = 0; i < hist_sample.length; i++)
+		{
+			int ccnt = hist_sample[i];
+			if (ccnt != 0)
+			{
+				long pcl = lowpc + (long) (scale*i);
+				long pch = lowpc + (long) (scale * (i+1));
+				total_time += ccnt;
+				long svalue0;
+				long svalue1 = symblist[j-1].getAddress().getValue().longValue();
+				for (j = j-1; j < symblist.length - 1; j++)
+				{
+					svalue0 = svalue1;
+					svalue1 = symblist[j+1].getAddress().getValue().longValue();
+					/* if high end of tick is below entry address,
+					 * go for next tick. */
+					if(pch < svalue0)
+						break;
+					/* if low end of tick into next routine,
+					 * go for next routine. */
+					if(pcl < svalue1)
+					{   
+						long start_addr = pcl>svalue0?pcl:svalue0;
+						long end_addr   = pch<svalue1?pch:svalue1;
+						long overlap = end_addr - start_addr;
+						if(overlap > 0)
+						{
+							int time = (int) ((overlap * ccnt) / scale);
+							Bucket   bck = new Bucket(start_addr, end_addr, time);
+							addBucket(bck,symblist[j]);
+						}
+					}
+				}
+			}
+		}
+	}
+

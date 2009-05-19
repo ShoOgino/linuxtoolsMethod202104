@@ -1,0 +1,44 @@
+	/**
+	 * Percentage drawer
+	 */
+	public void handleEvent(Event event) { 
+		Item item = (Item)event.item;
+		Display display = event.widget.getDisplay();
+		int index = event.index;
+		int widthcol = 0;
+		
+		if (event.widget instanceof Tree) {
+			Tree tree = 
+				(Tree)event.widget;
+			widthcol =
+				tree.getColumn(index).getWidth();
+		} else { //event.widget instanceof Table
+			Table table = 
+				(Table)event.widget;
+			widthcol =
+				table.getColumn(index).getWidth();
+		}
+		
+		float d = getPercentage(item.getData());
+		int percent = (int) (d + 0.5);
+		GC gc = event.gc;
+		Color foreground = gc.getForeground();
+		Color background = gc.getBackground();
+		gc.setForeground(display.getSystemColor(SWT.COLOR_RED));
+		gc.setBackground(display.getSystemColor(SWT.COLOR_YELLOW));
+		int width = (widthcol - 1) * percent / 100;
+		if (width > 0){
+			gc.fillGradientRectangle(event.x, event.y, width, event.height, true);					
+			Rectangle rect = new Rectangle(event.x, event.y, width-1, event.height-1);
+			gc.drawRectangle(rect);
+		}
+		gc.setForeground(display.getSystemColor(SWT.COLOR_LIST_FOREGROUND));
+		String text = "%";
+		text =  (isSettedNumberFormat()?getNumberFormat().format(d):d) + text;
+		Point size = gc.textExtent(text);					
+		int offset = Math.max(0, (event.height - size.y) / 2);
+		gc.drawText(text, event.x+2, event.y+offset, true);
+		gc.setForeground(foreground);
+		gc.setBackground(background);
+	}
+

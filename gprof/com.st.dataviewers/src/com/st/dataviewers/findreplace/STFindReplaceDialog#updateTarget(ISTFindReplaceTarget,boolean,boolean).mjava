@@ -1,0 +1,55 @@
+	/**
+	 * Updates this dialog because of a different target.
+	 * @param target the new target
+	 * @param isTargetEditable <code>true</code> if the new target can be modified
+	 * @param initializeFindString <code>true</code> if the find string of this dialog should be initialized based on the viewer's selection
+	 * @since 2.0
+	 */
+	public void updateTarget(ISTFindReplaceTarget target, boolean isTargetEditable, boolean initializeFindString) {
+
+		fIsTargetEditable= isTargetEditable;
+		fNeedsInitialFindBeforeReplace= true;
+
+		if (target != fTarget) {
+			//TO ADAPT with ISTFindReplaceTarget
+			/*if (fTarget != null && fTarget instanceof IFindReplaceTargetExtension)
+				((IFindReplaceTargetExtension) fTarget).endSession();*/
+
+			fTarget= target;
+			if (fTarget != null)
+				fIsTargetSupportingRegEx= fTarget instanceof ISTFindReplaceTarget;
+
+			
+			if (fTarget instanceof ISTFindReplaceTarget) {
+				//((IFindReplaceTargetExtension) fTarget).beginSession();
+
+				fGlobalInit= true;
+				fGlobalRadioButton.setSelection(fGlobalInit);
+				fSelectedRangeRadioButton.setSelection(!fGlobalInit);
+				fUseSelectedLines= !fGlobalInit;
+			}
+		}
+
+		if (okToUse(fIsRegExCheckBox))
+			fIsRegExCheckBox.setEnabled(fIsTargetSupportingRegEx);
+
+		if (okToUse(fWholeWordCheckBox))
+			fWholeWordCheckBox.setEnabled(!isRegExSearchAvailableAndChecked());
+
+		/*if (okToUse(fIncrementalCheckBox))
+			fIncrementalCheckBox.setEnabled(!isRegExSearchAvailableAndChecked());*/
+
+		if (okToUse(fReplaceLabel)) {
+			fReplaceLabel.setEnabled(isEditable());
+			fReplaceField.setEnabled(isEditable());
+			if (initializeFindString) {
+				initFindStringFromSelection();
+				fGiveFocusToFindField= true;
+			}
+			initIncrementalBaseLocation();
+			updateButtonState();
+		}
+
+		setContentAssistsEnablement(isRegExSearchAvailableAndChecked());
+	}
+

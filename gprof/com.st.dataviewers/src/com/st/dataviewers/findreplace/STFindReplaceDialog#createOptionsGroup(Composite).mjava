@@ -1,0 +1,100 @@
+	/**
+	 * Creates the functional options part of the options defining
+	 * section of the find replace dialog.
+	 *
+	 * @param parent the parent composite
+	 * @return the options group
+	 */
+	private Composite createOptionsGroup(Composite parent) {
+
+		Composite panel= new Composite(parent, SWT.NONE);
+		GridLayout layout= new GridLayout();
+		layout.marginWidth= 0;
+		layout.marginHeight= 0;
+		panel.setLayout(layout);
+
+		Group group= new Group(panel, SWT.SHADOW_NONE);
+		group.setText(EditorMessages.FindReplace_Options);
+		GridLayout groupLayout= new GridLayout();
+		groupLayout.numColumns= 2;
+		groupLayout.makeColumnsEqualWidth= true;
+		group.setLayout(groupLayout);
+		group.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+
+		SelectionListener selectionListener= new SelectionListener() {
+			public void widgetSelected(SelectionEvent e) {
+				storeSettings();
+			}
+
+			public void widgetDefaultSelected(SelectionEvent e) {
+			}
+		};
+
+		fCaseCheckBox= new Button(group, SWT.CHECK | SWT.LEFT);
+		fCaseCheckBox.setText(EditorMessages.FindReplace_CaseCheckBox_label);
+		setGridData(fCaseCheckBox, SWT.LEFT, false, SWT.CENTER, false);
+		fCaseCheckBox.setSelection(fCaseInit);
+		fCaseCheckBox.addSelectionListener(selectionListener);
+
+		fWrapCheckBox= new Button(group, SWT.CHECK | SWT.LEFT);
+		fWrapCheckBox.setText(EditorMessages.FindReplace_WrapCheckBox_label);
+		setGridData(fWrapCheckBox, SWT.LEFT, false, SWT.CENTER, false);
+		fWrapCheckBox.setSelection(fWrapInit);
+		fWrapCheckBox.addSelectionListener(selectionListener);
+
+		fWholeWordCheckBox= new Button(group, SWT.CHECK | SWT.LEFT);
+		fWholeWordCheckBox.setText(EditorMessages.FindReplace_WholeWordCheckBox_label);
+		setGridData(fWholeWordCheckBox, SWT.LEFT, false, SWT.CENTER, false);
+		fWholeWordCheckBox.setSelection(fWholeWordInit);
+		fWholeWordCheckBox.addSelectionListener(selectionListener);
+
+		fIncrementalCheckBox= new Button(group, SWT.CHECK | SWT.LEFT);
+		fIncrementalCheckBox.setText(EditorMessages.FindReplace_IncrementalCheckBox_label);
+		setGridData(fIncrementalCheckBox, SWT.LEFT, false, SWT.CENTER, false);
+		fIncrementalCheckBox.setSelection(fIncrementalInit);
+		fIncrementalCheckBox.addSelectionListener(new SelectionListener() {
+			public void widgetSelected(SelectionEvent e) {
+				if (isIncrementalSearch() && !isRegExSearch())
+					initIncrementalBaseLocation();
+
+				storeSettings();
+			}
+
+			public void widgetDefaultSelected(SelectionEvent e) {
+			}
+		});
+		
+		fIncrementalCheckBox.setEnabled(false);
+
+		fIsRegExCheckBox= new Button(group, SWT.CHECK | SWT.LEFT);
+		fIsRegExCheckBox.setText(EditorMessages.FindReplace_RegExCheckbox_label);
+		setGridData(fIsRegExCheckBox, SWT.LEFT, false, SWT.CENTER, false);
+		((GridData)fIsRegExCheckBox.getLayoutData()).horizontalSpan= 2;
+		fIsRegExCheckBox.setSelection(fIsRegExInit);
+		fIsRegExCheckBox.addSelectionListener(new SelectionAdapter() {
+			/*
+			 * @see org.eclipse.swt.events.SelectionAdapter#widgetSelected(org.eclipse.swt.events.SelectionEvent)
+			 */
+			public void widgetSelected(SelectionEvent e) {
+				boolean newState= fIsRegExCheckBox.getSelection();
+				fIncrementalCheckBox.setEnabled(!newState);
+				updateButtonState();
+				storeSettings();
+				setContentAssistsEnablement(newState);
+			}
+		});
+		
+		
+		fWholeWordCheckBox.setEnabled(!isRegExSearchAvailableAndChecked());
+		fWholeWordCheckBox.addSelectionListener(new SelectionAdapter() {
+			/*
+			 * @see org.eclipse.swt.events.SelectionAdapter#widgetSelected(org.eclipse.swt.events.SelectionEvent)
+			 */
+			public void widgetSelected(SelectionEvent e) {
+				updateButtonState();
+			}
+		});
+		fIncrementalCheckBox.setEnabled(!isRegExSearchAvailableAndChecked());
+		return panel;
+	}
+

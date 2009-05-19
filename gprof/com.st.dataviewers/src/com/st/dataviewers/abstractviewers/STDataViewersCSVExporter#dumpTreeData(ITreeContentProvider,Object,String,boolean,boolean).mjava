@@ -1,0 +1,46 @@
+	private void dumpTreeData(ITreeContentProvider tcp ,Object element, String prefix, boolean isLastChild, boolean monitoring) {
+		String childMarker = isLastChild ?
+				CSVLastChildMarker
+				: CSVChildMarker;
+		
+		boolean isLeaf = !tcp.hasChildren(element);
+		String leafMarker = (isLeaf?CSVLeafMarker:CSVNodeMarker); 
+		dumpNodeData(element, prefix + childMarker + leafMarker);
+		
+		if ( (expandAll || expandedElts.contains(element)) && !isLeaf) {
+			Object[] children = tcp.getChildren(element);
+			if (children != null) {
+				
+				// monitoring stuff
+				int tempWork = 0;
+				int workFloor = children.length/100;
+				if (workFloor == 0) {
+					workFloor = 1;
+				}
+				
+				// exporting children
+				Arrays.sort(children, comparator);
+				for (int i = 0; i < children.length; i++ ) {
+					String prefixAdd = isLastChild ?
+							CSVNoChildLink
+							: CSVChildLink;
+					dumpTreeData(tcp, children[i], prefix + prefixAdd, i==children.length-1, false);
+					
+					// monitoring
+					if (monitor != null && monitoring) {
+						tempWork++;
+						if (tempWork >= workFloor) {
+							monitor.worked(tempWork);
+							tempWork = 0;
+						}
+					}
+				}
+				
+				//monitoring
+				if (monitor != null && monitoring && tempWork > 0) {
+					monitor.worked(tempWork);
+				}
+			}
+		}
+	}
+

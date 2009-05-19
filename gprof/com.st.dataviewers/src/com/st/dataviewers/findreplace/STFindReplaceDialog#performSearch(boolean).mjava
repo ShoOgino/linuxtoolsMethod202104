@@ -1,0 +1,38 @@
+	/**
+	 * Locates the user's findString in the text of the target.
+	 *
+	 * @param mustInitIncrementalBaseLocation <code>true</code> if base location must be initialized
+	 * @since 3.0
+	 */
+	private void performSearch(boolean mustInitIncrementalBaseLocation) {
+
+		if (mustInitIncrementalBaseLocation)
+			initIncrementalBaseLocation();
+
+		String findString= getFindString();
+		
+		if (fIncrementalBaseLocation != null){
+			findString = findString + fIncrementalBaseLocation.getText();
+		}
+		
+		boolean somethingFound= false;
+
+		if (findString != null && findString.length() > 0) {
+
+			try {
+				somethingFound= findNext(findString, isForwardSearch(), isCaseSensitiveSearch(), isWrapSearch(), isWholeWordSearch(), isIncrementalSearch() && !isRegExSearchAvailableAndChecked(), isRegExSearchAvailableAndChecked());
+				if (somethingFound) {
+					statusMessage(""); //$NON-NLS-1$
+				} else {
+					statusMessage(EditorMessages.FindReplace_Status_noMatch_label);
+				}
+			} catch (PatternSyntaxException ex) {
+				statusError(ex.getLocalizedMessage());
+			} catch (IllegalStateException ex) {
+				// we don't keep state in this dialog
+			}
+		}
+		writeSelection();
+		updateButtonState(!somethingFound);
+	}
+

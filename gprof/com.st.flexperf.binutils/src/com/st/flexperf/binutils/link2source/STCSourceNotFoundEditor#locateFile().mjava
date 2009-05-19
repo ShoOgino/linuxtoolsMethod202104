@@ -1,0 +1,33 @@
+	protected void locateFile() {
+		FileDialog dialog = new FileDialog(getEditorSite().getShell(), SWT.NONE);
+		IPath missingPath = getMissingFile();
+		dialog.setFilterNames(new String[] {"Missing Source File"});
+		dialog.setFilterExtensions(new String[] {"*." + missingPath.getFileExtension()}); //$NON-NLS-1$
+		String res = dialog.open();
+		if (res != null) {
+			Path newPath = new Path(res);
+			
+			if (newPath.lastSegment().equalsIgnoreCase(missingPath.lastSegment())) {
+				
+				if (missingPath.segmentCount() > 1) {
+					int missingPathSegCount = missingPath.segmentCount() - 2;
+					int newPathSegCount = newPath.segmentCount() - 2;
+					while (missingPathSegCount >= 0 && newPathSegCount >= 0) {
+						if (!newPath.segment(newPathSegCount).equalsIgnoreCase(missingPath.segment(missingPathSegCount)))
+							break;
+						newPathSegCount--;
+						missingPathSegCount--;
+					}
+					IPath compPath = missingPath.removeLastSegments(missingPath.segmentCount() - missingPathSegCount - 1);
+					IPath newSourcePath = newPath.removeLastSegments(newPath.segmentCount() - newPathSegCount - 1);
+					try {
+						addSourceMappingToCommon(compPath, newSourcePath);							
+					} catch (CoreException e) {}					
+					
+				}
+				openSourceFileAtLocation(getProject(), newPath, getLineNumber());
+				closeEditor();
+			}
+		}
+	}
+

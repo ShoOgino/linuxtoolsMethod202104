@@ -1,0 +1,59 @@
+	/**
+	 * Creates the panel where the user specifies the text to search
+	 * for and the optional replacement text.
+	 *
+	 * @param parent the parent composite
+	 * @return the input panel
+	 */
+	private Composite createInputPanel(Composite parent) {
+
+		ModifyListener listener= new ModifyListener() {
+			public void modifyText(ModifyEvent e) {
+				updateButtonState();
+			}
+		};
+
+		Composite panel= new Composite(parent, SWT.NULL);
+		GridLayout layout= new GridLayout();
+		layout.numColumns= 2;
+		panel.setLayout(layout);
+
+		Label findLabel= new Label(panel, SWT.LEFT);
+		findLabel.setText(EditorMessages.FindReplace_Find_label);
+		setGridData(findLabel, SWT.LEFT, false, SWT.CENTER, false);
+		
+		// Create the find content assist field 
+		ComboContentAdapter contentAdapter= new ComboContentAdapter();
+		RegExContentProposalProvider findProposer= new RegExContentProposalProvider(true);
+		fFindField= new Combo(panel, SWT.DROP_DOWN | SWT.BORDER);
+		fContentAssistFindField= new ContentAssistCommandAdapter(
+				fFindField,
+				contentAdapter,
+				findProposer, 
+				ITextEditorActionDefinitionIds.CONTENT_ASSIST_PROPOSALS,
+				new char[] {'\\', '[', '('},
+				true);
+		setGridData(fFindField, SWT.FILL, true, SWT.CENTER, false);
+		addDecorationMargin(fFindField);
+		fFindField.addModifyListener(fFindModifyListener);
+
+		fReplaceLabel= new Label(panel, SWT.LEFT);
+		fReplaceLabel.setText(EditorMessages.FindReplace_Replace_label);
+		setGridData(fReplaceLabel, SWT.LEFT, false, SWT.CENTER, false);
+
+		// Create the replace content assist field
+		RegExContentProposalProvider replaceProposer= new RegExContentProposalProvider(false);
+		fReplaceField= new Combo(panel, SWT.DROP_DOWN | SWT.BORDER);
+		fContentAssistReplaceField= new ContentAssistCommandAdapter(
+				fReplaceField,
+				contentAdapter, replaceProposer, 
+				ITextEditorActionDefinitionIds.CONTENT_ASSIST_PROPOSALS,
+				new char[] {'$'},
+				true);
+		setGridData(fReplaceField, SWT.FILL, true, SWT.CENTER, false);
+		addDecorationMargin(fReplaceField);
+		fReplaceField.addModifyListener(listener);
+
+		return panel;
+	}
+

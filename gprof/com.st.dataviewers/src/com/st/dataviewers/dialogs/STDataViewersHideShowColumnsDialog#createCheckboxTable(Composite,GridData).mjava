@@ -1,0 +1,47 @@
+	private CheckboxTableViewer createCheckboxTable(Composite parent, GridData layoutData) {
+		CheckboxTableViewer tableViewer = CheckboxTableViewer.newCheckList(
+				parent,
+				SWT.SINGLE
+				| SWT.HIDE_SELECTION
+				| SWT.H_SCROLL
+				| SWT.V_SCROLL
+				| SWT.BORDER);
+		tableViewer.getControl().setLayoutData(layoutData);
+		
+		tableViewer.setContentProvider(new IStructuredContentProvider() {
+			public Object[] getElements(Object inputElement) {
+				if (inputElement instanceof Item[]) {
+					Item[] columns = (Item[])inputElement;
+					int[] order = stViewer.getColumnOrder();
+					Item[] elements = new Item[columns.length];
+					
+					// sort the columns according to their actual display order
+					for (int i = columns.length; i-->0;) {
+						elements[i] = columns[order[i]];
+					}
+					
+					return elements;
+				}
+				return new Object[]{};
+			}
+			public void dispose() {}
+			public void inputChanged(Viewer viewer, Object oldInput, Object newInput) {}
+		});
+
+		tableViewer.setLabelProvider(new LabelProvider() {
+			public String getText(Object element) {
+				if (element instanceof Item) {
+					Item column = (Item)element;
+					
+					if (manager.getWidth(stViewer.getColumnIndex(column)) == 0) {
+						return column.getText() + " (width = 0)";
+					}
+					return column.getText();
+				}
+				return element.toString();
+			}
+		});
+		
+		return tableViewer;
+	}
+

@@ -1,0 +1,43 @@
+	/**
+	 * Returns the position of the specified search string, or <code>-1</code> if the string can
+	 * not be found when searching using the given options.
+	 *
+	 * @param findString the string to search for
+	 * @param startPosition the position at which to start the search
+	 * @param forwardSearch the direction of the search
+	 * @param caseSensitive	should the search be case sensitive
+	 * @param wrapSearch	should the search wrap to the start/end if arrived at the end/start
+	 * @param wholeWord does the search string represent a complete word
+	 * @param regExSearch if <code>true</code> findString represents a regular expression
+	 * @return the occurrence of the find string following the options or <code>-1</code> if nothing found
+	 * @since 3.0
+	 */
+	private ViewerCell findIndex(String findString, ViewerCell startPosition, boolean forwardSearch, boolean caseSensitive, boolean wrapSearch, boolean wholeWord, boolean regExSearch) {
+
+		if (forwardSearch) {
+			if (wrapSearch) {
+				ViewerCell index= findAndSelect(startPosition, findString, true, caseSensitive, wholeWord,regExSearch,wrapSearch);
+				if (index == null) {
+					if (okToUse(getShell()) && !isIncrementalSearch())
+						getShell().getDisplay().beep();
+					
+					index= findAndSelect(fTarget.getFirstCell(startPosition,ViewerRow.ABOVE), findString, true, caseSensitive, wholeWord,regExSearch,wrapSearch);
+				}
+				return index;
+			}
+			return findAndSelect(startPosition, findString, true, caseSensitive, wholeWord,regExSearch,wrapSearch);
+		}
+
+		// backward
+		if (wrapSearch) {
+			ViewerCell index= findAndSelect(startPosition, findString, false, caseSensitive, wholeWord,regExSearch,wrapSearch);
+			if (index == null) {
+				if (okToUse(getShell()) && !isIncrementalSearch())
+					getShell().getDisplay().beep();
+				index= findAndSelect(fTarget.getFirstCell(startPosition,ViewerRow.BELOW), findString, false, caseSensitive, wholeWord,regExSearch,wrapSearch);
+			}
+			return index;
+		}
+		return findAndSelect(startPosition, findString, false, caseSensitive, wholeWord,regExSearch,wrapSearch);
+	}
+

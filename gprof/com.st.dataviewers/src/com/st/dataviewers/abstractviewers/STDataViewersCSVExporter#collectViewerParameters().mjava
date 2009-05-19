@@ -1,0 +1,64 @@
+	private void collectViewerParameters() {
+		Display.getDefault().syncExec(new Runnable() {
+			public void run() {
+				// getting columns with the right order
+				Item[] unOrdColumns = stViewer.getColumns();
+				Item[] columns = new Item[unOrdColumns.length];
+				int[] columnOrder = stViewer.getColumnOrder();
+				for (int i = 0; i < unOrdColumns.length; i++ ) {
+					columns[i] = unOrdColumns[columnOrder[i]];
+				}
+				
+				// getting fields mapping
+				// (before removing hidden columns)
+				Map<Item, ISTDataViewersField> fieldsMap = 
+					new HashMap<Item, ISTDataViewersField>();
+				for (Item column : columns) {
+					fieldsMap.put(column, (ISTDataViewersField)column.getData());
+				}
+				
+				// creating a GUI-thread-independent comparator
+				comparator =
+					new CSVDataComparator(
+							stViewer.getTableSorter(),
+							fieldsMap);
+				
+				// getting only visible columns, using the column order
+				if (!showHiddenColumns) {
+					int[] columnsState = stViewer.getHideShowManager().getColumnsState();
+					List<Item> enabledColumns = new ArrayList<Item>();
+					for (int i = 0; i < columnsState.length; i++) {
+						if (columnsState[columnOrder[i]] == STDataViewersHideShowManager.STATE_SHOWN) {
+							enabledColumns.add(columns[i]);
+						}
+					}
+					columns = enabledColumns.toArray(new Item[enabledColumns.size()]);
+				}
+				
+				// collecting fields from columns (ordered & shown)
+				fields = new ISTDataViewersField[columns.length];
+				for (int i = 0; i < columns.length; i++) {
+					fields[i] = (ISTDataViewersField)columns[i].getData();
+				}
+				
+				// getting input object
+				input = stViewer.getViewer().getInput();
+				
+				// getting content provider
+				contentProvider =
+					stViewer.getViewer().getContentProvider();
+				
+				// getting expanded elements if necessary
+				expandedElts = new ArrayList<Object>();
+				if (!expandAll
+						&& stViewer.getViewer() instanceof TreeViewer
+						) {
+					TreeViewer tv = 
+						(TreeViewer)stViewer.getViewer();
+					expandedElts =
+						Arrays.asList(tv.getExpandedElements());
+				}
+			}
+		});
+	}
+

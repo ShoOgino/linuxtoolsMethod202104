@@ -1,0 +1,79 @@
+	@Override
+	/**
+	 * Create the columns in the table.
+	 * 
+	 */
+	protected void createColumns() {
+		Table table = getViewer().getTable();
+		TableLayout layout = new TableLayout();
+		table.setLayout(layout);
+		table.setHeaderVisible(true);
+		table.setLinesVisible(true);
+		
+		for (int i = 0; i < getAllFields().length; i++) {
+			ISTDataViewersField field = getAllFields()[i];
+			TableColumn tc = new TableColumn(table, field.getAlignment(), i);
+			tc.setText(field.getColumnHeaderText());
+			tc.setToolTipText(field.getColumnHeaderTooltip());
+			tc.setImage(field.getColumnHeaderImage());
+			tc.setWidth(field.getPreferredWidth());
+			tc.setResizable(true);
+			tc.setMoveable(true);
+			
+			tc.addSelectionListener(createHeaderListener());
+			tc.setData(field);
+			
+			// defining the column label provider.
+			// this has to be done after setting the column's data.
+			TableViewerColumn viewerColumn =
+				new TableViewerColumn(getViewer(), tc);
+			viewerColumn.setLabelProvider(createColumnLabelProvider(tc));
+		}
+		
+		
+		table.addMouseListener(new MouseAdapter(){
+					public void mouseDoubleClick(MouseEvent e) {
+						Table table = (Table)e.widget;
+						TableItem item = table.getItem(new Point(e.x,e.y));
+						if (item != null){
+							for(int i=0;i<table.getColumnCount();i++){
+								ISTDataViewersField field = getAllFields()[i];
+								if (field.isHyperLink(item.getData())){
+									Rectangle bounds = item.getBounds(i);
+									if (bounds.contains(e.x,e.y)){
+										handleHyperlink(field,item.getData());
+									}
+								}
+							}
+						}
+					}
+				});
+			
+		table.addMouseMoveListener(new MouseMoveListener(){
+			
+						@Override
+						public void mouseMove(MouseEvent e) {
+							Table table = (Table)e.widget;
+							TableItem item = table.getItem(new Point(e.x,e.y));
+							if (item == null) return;
+			
+							for(int i=0;i<table.getColumnCount();i++){
+								ISTDataViewersField field = getAllFields()[i];
+								Cursor cursor = null ;
+								if (field.isHyperLink(item.getData())){
+									Rectangle bounds = item.getBounds(i);
+								if (bounds.contains(e.x,e.y)){
+										cursor = new Cursor(e.display,SWT.CURSOR_HAND);
+										table.setCursor(cursor);
+										return;
+									}
+								}
+								cursor = new Cursor(e.display,SWT.CURSOR_ARROW);
+								table.setCursor(cursor);
+							}
+			
+						}
+			
+					});
+	}
+

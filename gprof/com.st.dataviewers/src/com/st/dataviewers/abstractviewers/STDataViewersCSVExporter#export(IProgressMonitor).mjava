@@ -1,0 +1,156 @@
+	public void export(IProgressMonitor monitor) {
+		
+		// monitoring
+		this.monitor = monitor;
+
+		monitor.beginTask(
+					"Exporting to CSV (file: "+ getFilePath()+")",
+					IProgressMonitor.UNKNOWN);
+		
+		// save this configuration
+		saveState();
+		
+		// init the printStream
+		initPrintStream(filePath);
+		
+		// get the viewer's parameters
+		if (monitor != null) {
+			monitor.subTask("collecting viewer's parameters...");
+		}
+		collectViewerParameters();
+		
+		// start dumping to csv file
+		dumpColumnHeaders();
+		
+		if (input != null) {
+			if (contentProvider instanceof ITreeContentProvider) {
+				ITreeContentProvider treeContentProvider =
+					(ITreeContentProvider)contentProvider;
+				Object[] topElements = 
+					treeContentProvider.getElements(input);
+				
+				if (topElements != null) {
+					
+					// monitoring
+					int work = topElements.length;
+					for (Object element : topElements) {
+						if (treeContentProvider.hasChildren(element)) {
+							work += treeContentProvider.getChildren(element).length;
+						}
+					}
+					if (monitor != null) {
+						monitor.beginTask(
+								"Exporting to CSV (file: "+ getFilePath()+")",
+								work);
+						monitor.subTask("exporting tree data...");
+					}
+					
+					// monitoring stuff
+					int tempWork = 0;
+					int workFloor = topElements.length/100;
+					if (workFloor == 0) {
+						workFloor = 1;
+					}
+					
+					// exporting tree
+					Arrays.sort(topElements, comparator);
+					for (int i = 0; i < topElements.length; i++) {
+						dumpTreeData(
+								treeContentProvider,
+								topElements[i],
+								"",
+								i==topElements.length-1,
+								true);
+						
+						// monitoring
+						if (monitor != null) {
+							tempWork++;
+							if (tempWork >= workFloor) {
+								if (monitor.isCanceled()){
+									ps.close();
+									return;
+								}
+								monitor.worked(tempWork);
+								tempWork = 0;
+							}
+						}
+					}
+					
+					//monitoring
+					if (monitor != null && tempWork > 0) {
+						monitor.worked(tempWork);
+					}
+				}
+				
+			} else if (contentProvider instanceof IStructuredContentProvider) {
+				IStructuredContentProvider structContentProvider =
+					(IStructuredContentProvider)contentProvider;
+				Object[] topElements = 
+					structContentProvider.getElements(input);
+				
+				if (topElements != null) {
+					
+					// monitoring
+					if (monitor != null) {
+						monitor.beginTask(
+								"Exporting to CSV (file: "+ getFilePath()+")",
+								topElements.length);
+						monitor.subTask("exporting table data...");
+					}
+					
+					// monitoring stuff
+					int tempWork = 0;
+					int workFloor = topElements.length/100;
+					if (workFloor == 0) {
+						workFloor = 1;
+					}
+					
+					// exporting table
+					Arrays.sort(topElements, comparator);
+					for (int n = 0; n < topElements.length; n++) {
+						if (n < topElements.length -1) {
+							dumpNodeData(topElements[n], CSVChildMarker);
+						} else {
+							dumpNodeData(topElements[n], CSVLastChildMarker);
+						}
+						
+						// monitoring
+						if (monitor != null) {
+							tempWork++;
+							if (tempWork >= workFloor) {
+								if (monitor.isCanceled()){
+									ps.close();
+									return;
+								}
+								monitor.worked(tempWork);
+								tempWork = 0;
+							}
+						}
+					}
+					
+					//monitoring
+					if (monitor != null && tempWork > 0) {
+						monitor.worked(tempWork);
+					}
+				}
+			}
+		}
+
+		// close the stream
+		ps.close();
+		
+		// end monitoring
+		monitor.done();
+		
+		IFile c = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(new Path(getFilePath()));
+		if (c != null){
+			try {
+				c.refreshLocal(1, new NullProgressMonitor());
+			} catch (CoreException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+	}
+

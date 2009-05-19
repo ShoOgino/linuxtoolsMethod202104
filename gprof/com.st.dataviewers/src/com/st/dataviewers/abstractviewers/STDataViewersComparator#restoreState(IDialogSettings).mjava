@@ -1,0 +1,50 @@
+	/** Restore the sort order preferences of the user
+	 *  from the given {@link IDialogSettings}
+	 * @param dialogSettings
+	 */
+	public void restoreState(IDialogSettings dialogSettings) {
+		if (dialogSettings == null) {
+			// no settings section
+			resetState();
+			return;
+		}
+		IDialogSettings settings = dialogSettings
+				.getSection(STDataViewersSettings.TAG_SECTION_SORTER);
+		if (settings == null) {
+			// no settings saved
+			resetState();
+			return;
+		}
+		try {
+			for (int i = 0; i < priorities.length; i++) {
+				String priority = settings.get(STDataViewersSettings.TAG_SORTER_PRIORITY_ + i);
+				if (priority == null) {
+					// no priority data
+					resetState();
+					return;
+				}
+				
+				int colIndex = Integer.parseInt(priority);
+				//Make sure it is not old data from a different sized array
+				if(colIndex < columns.length) {
+					priorities[i] = colIndex;
+				} else {
+					// data from a different sized array
+					resetState();
+					return;
+				}
+				String direction = settings.get(STDataViewersSettings.TAG_SORTER_DIRECTION_ + i);
+				if (direction == null) {
+					// no direction data
+					resetState();
+					return;
+				}
+				directions[i] = Integer.parseInt(direction);
+			}
+		} catch (NumberFormatException e) {
+			// invalid entry
+			resetState();
+			return;
+		}
+	}
+

@@ -1,0 +1,53 @@
+	/**
+	 * Returns whether the specified search string can be found using the given options.
+	 *
+	 * @param findString the string to search for
+	 * @param forwardSearch the direction of the search
+	 * @param caseSensitive	should the search be case sensitive
+	 * @param wrapSearch	should the search wrap to the start/end if arrived at the end/start
+	 * @param wholeWord does the search string represent a complete word
+	 * @param incremental is this an incremental search
+	 * @param regExSearch if <code>true</code> findString represents a regular expression
+	 * @return <code>true</code> if the search string can be found using the given options
+	 *
+	 * @since 3.0
+	 */
+	private boolean findNext(String findString, boolean forwardSearch, boolean caseSensitive, boolean wrapSearch, boolean wholeWord, boolean incremental, boolean regExSearch) {
+		if (fTarget == null)
+			return false;
+
+		ViewerCell r= null;
+		
+		if (incremental)
+			r= fIncrementalBaseLocation;
+		else{
+			r= fTarget.getSelection(index);
+		}
+
+		//restores the original value 
+		if (findReplacePosition != null){
+			AbstractSTViewer target = (AbstractSTViewer) fTarget;
+			if (target.getAllFields()[findReplacePosition.getColumnIndex()].getSpecialDrawer(findReplacePosition.getElement()) != null){
+				findReplacePosition.setBackground(target.getAllFields()[findReplacePosition.getColumnIndex()].getBackground(findReplacePosition.getElement()));
+			}
+			else
+				fTarget.getViewer().refresh(findReplacePosition.getElement());
+		}
+		
+		findReplacePosition = r;
+
+		findReplacePosition = findIndex(findString, findReplacePosition, forwardSearch, caseSensitive, wrapSearch, wholeWord, regExSearch);
+		
+		if (findReplacePosition != null){
+			findReplacePosition.setBackground(findReplacePosition.getControl().getShell().getDisplay().getSystemColor(SWT.COLOR_GREEN));
+	
+			calcolateIndex(forwardSearch);
+			
+			fNeedsInitialFindBeforeReplace= false;
+
+			return true;
+		}
+		
+		return false;
+	}
+
