@@ -1,0 +1,35 @@
+	/**
+	 * Fetch the class info for a given class.
+	 * 
+	 * @param className the name of the class to fetch info for
+	 * @return ClassInfo or null if no class info can be found
+	 */
+	public ClassInfo getClassInfo(String className) {
+		String typedefName = className.replaceAll("<.*>", "<>"); // $NON-NLS-1$ // $NON-NLS-2$
+		TypedefInfo typedef = getHoverInfo().typedefs.get(typedefName);
+		if (typedef != null) {
+			className = typedef.getTransformedType(className);  // Reset class name to typedef transformation
+		}
+		int index = className.indexOf('<');
+		// Check if it is a template reference.
+		if (index != -1) {
+			// It is.  We want to see if there are partial specific templates
+			// and we choose the first match.  If nothing matches our particular
+			// case, we fall back on the initial generic template.
+			ClassInfo info = getHoverInfo().classes.get(className.substring(0, index));
+			ArrayList<ClassInfo> children = info.getChildren();
+			if (children != null && children.size() > 0) {
+				for (int x = 0; x < children.size(); ++x) {
+					ClassInfo child = children.get(x);
+					if (className.matches(child.getClassName())) {
+						info = child;
+						break;
+					}
+				}
+			}
+			return info;
+		}
+		// Otherwise no template, just fetch the class info directly.
+		return getHoverInfo().classes.get(className);
+	}
+
