@@ -1,0 +1,184 @@
+	// Run an autotools script (e.g. configure, autogen.sh, config.status).
+	private int runScript(IPath commandPath, IPath runPath, String[] args,
+			String jobDescription, String errMsg, IConsole console, 
+			boolean consoleStart) throws BuildException, CoreException,
+			NullPointerException, IOException {
+		// TODO: Figure out what this next stuff is used for
+		// //try to resolve the build macros in the builder command
+		// try{
+		// String resolved =
+		// ManagedBuildManager.getBuildMacroProvider().resolveValueToMakefileFormat(
+		// configCmd,
+		// "", //$NON-NLS-1$
+		// " ", //$NON-NLS-1$
+		// IBuildMacroProvider.CONTEXT_CONFIGURATION,
+		// info.getDefaultConfiguration());
+		// if((resolved = resolved.trim()).length() > 0)
+		// configCmd = resolved;
+		// } catch (BuildMacroException e){
+		// }
+
+		int rc = IStatus.OK;
+		
+		removeAllMarkers(project);
+		
+		// We want to run the script via the shell command.  So, we add the command
+		// script as the first argument and expect "sh" to be on the runtime path.
+		// Any other arguments are placed after the script name.
+		String[] configTargets = null;
+		if (args == null)
+			configTargets = new String[1];
+		else {
+			configTargets = new String[args.length+1];
+			System.arraycopy(args, 0, configTargets, 1, args.length);
+		}
+		configTargets[0] = commandPath.toOSString();
+		
+		String[] msgs = new String[2];
+		msgs[0] = commandPath.toString();
+		msgs[1] = project.getName();
+		monitor.subTask(AutotoolsPlugin.getFormattedString(
+				"MakeGenerator.make.message", msgs)); //$NON-NLS-1$
+
+
+		ConsoleOutputStream consoleOutStream = null;
+		StringBuffer buf = new StringBuffer();
+
+		// Launch command - main invocation
+		if (consoleStart)
+			console.start(project);
+		consoleOutStream = console.getOutputStream();
+		String[] consoleHeader = new String[3];
+
+		consoleHeader[0] = jobDescription;
+		consoleHeader[1] = cfg.getName();
+		consoleHeader[2] = project.getName();
+		buf.append(System.getProperty("line.separator", "\n")); //$NON-NLS-1$	//$NON-NLS-2$
+		buf.append(jobDescription);
+		buf.append(System.getProperty("line.separator", "\n")); //$NON-NLS-1$	//$NON-NLS-2$
+		buf.append(System.getProperty("line.separator", "\n")); //$NON-NLS-1$	//$NON-NLS-2$
+
+		if (!cfg.isSupported()) {
+			String msgArgs[] = new String[1];
+			msgArgs[0] = cfg.getName();
+			buf.append(AutotoolsPlugin.getFormattedString("MakeGenerator.unsupportedConfig", msgArgs));
+			buf.append(System.getProperty("line.separator", "\n")); //$NON-NLS-1$	//$NON-NLS-2$
+			buf.append(System.getProperty("line.separator", "\n")); //$NON-NLS-1$	//$NON-NLS-2$
+		}
+		consoleOutStream.write(buf.toString().getBytes());
+		consoleOutStream.flush();
+
+		// Get a launcher for the config command
+		CommandLauncher launcher = new CommandLauncher();
+		// Set the environment
+		IEnvironmentVariable variables[] = ManagedBuildManager
+				.getEnvironmentVariableProvider().getVariables(cfg, true);
+		String[] env = null;
+		ArrayList<String> envList = new ArrayList<String>();
+		if (variables != null) {
+			for (int i = 0; i < variables.length; i++) {
+				envList.add(variables[i].getName()
+						+ "=" + variables[i].getValue()); //$NON-NLS-1$
+			}
+			env = (String[]) envList.toArray(new String[envList.size()]);
+		}
+
+		// // Hook up an error parser manager
+		// String[] errorParsers =
+		// info.getDefaultConfiguration().getErrorParserList();
+		// ErrorParserManager epm = new ErrorParserManager(project, topBuildDir,
+		// this, errorParsers);
+		// epm.setOutputStream(consoleOutStream);
+		OutputStream stdout = consoleOutStream;
+		OutputStream stderr = consoleOutStream;
+
+		launcher.showCommand(true);
+		// Run the shell script via shell command.
+		Process proc = launcher.execute(new Path(SHELL_COMMAND), configTargets, env,
+				runPath, new NullProgressMonitor());
+		if (proc != null) {
+			try {
+				// Close the input of the process since we will never write to
+				// it
+				proc.getOutputStream().close();
+			} catch (IOException e) {
+			}
+
+			if (launcher.waitAndRead(stdout, stderr, new SubProgressMonitor(
+					monitor, IProgressMonitor.UNKNOWN)) != CommandLauncher.OK) {
+				errMsg = launcher.getErrorMessage();
+			}
+
+			// Force a resync of the projects without allowing the user to
+			// cancel.
+			// This is probably unkind, but short of this there is no way to
+			// ensure
+			// the UI is up-to-date with the build results
+			// monitor.subTask(ManagedMakeMessages
+			// .getResourceString(REFRESH));
+			monitor.subTask(AutotoolsPlugin.getResourceString("MakeGenerator.refresh")); //$NON-NLS-1$
+			try {
+				project.refreshLocal(IResource.DEPTH_INFINITE, null);
+			} catch (CoreException e) {
+				monitor.subTask(AutotoolsPlugin
+						.getResourceString("MakeGenerator.refresh.error")); //$NON-NLS-1$
+			}
+		} else {
+			errMsg = launcher.getErrorMessage();
+		}
+
+		// Report either the success or failure of our mission
+		buf = new StringBuffer();
+		if (errMsg != null && errMsg.length() > 0) {
+			String errorDesc = AutotoolsPlugin
+					.getResourceString("MakeGenerator.generation.error"); //$NON-NLS-1$
+			buf.append(System.getProperty("line.separator", "\n")); //$NON-NLS-1$//$NON-NLS-2$
+			buf.append(errorDesc);
+			buf.append(System.getProperty("line.separator", "\n")); //$NON-NLS-1$//$NON-NLS-2$
+			buf.append("(").append(errMsg).append(")"); //$NON-NLS-1$ //$NON-NLS-2$
+			rc = IStatus.ERROR;
+		} else if (proc.exitValue() >= 1 || proc.exitValue() < 0) {
+			// We have an invalid return code from configuration.
+			String[] errArg = new String[2];
+			errArg[0] = Integer.toString(proc.exitValue());
+			errArg[1] = commandPath.toString();
+			errMsg = AutotoolsPlugin.getFormattedString(
+					"MakeGenerator.config.error", errArg); //$NON-NLS-1$
+			buf.append(System.getProperty("line.separator", "\n")); //$NON-NLS-1$//$NON-NLS-2$
+			buf.append(AutotoolsPlugin.getResourceString("MakeGenerator.generation.error")); //$NON-NLS-1$
+			buf.append(System.getProperty("line.separator", "\n")); //$NON-NLS-1$//$NON-NLS-2$
+			if (proc.exitValue() == 1)
+				rc = IStatus.WARNING;
+			else
+			    rc = IStatus.ERROR;
+		} else {
+			// Report a successful build
+			String successMsg = 
+				AutotoolsPlugin.getResourceString("MakeGenerator.success"); //$NON-NLS-1$
+			buf.append(successMsg);
+			buf.append(System.getProperty("line.separator", "\n")); //$NON-NLS-1$//$NON-NLS-2$
+			rc = IStatus.OK;
+		}
+
+		// Write message on the console
+		consoleOutStream.write(buf.toString().getBytes());
+		consoleOutStream.flush();
+
+		// // Generate any error markers that the build has discovered
+		// monitor.subTask(ManagedMakeMessages
+		// .getResourceString(MARKERS));
+		// epm.reportProblems();
+		consoleOutStream.close();
+		
+		// TODO: For now, add a marker with our generated error message.
+		// In the future, we might add an error parser to do this properly
+		// and give the actual error line, etc..
+		if (rc == IStatus.ERROR) {
+			addMarker(project, -1, errMsg, SEVERITY_ERROR_BUILD, null);
+			// Mark the configuration as needing a full rebuild.
+			cfg.setRebuildState(true);
+		}
+		
+		return rc;
+	}
+

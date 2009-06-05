@@ -1,0 +1,51 @@
+	protected void removeBuildDir(IProgressMonitor monitor) {
+		try {
+			// use brute force approach
+			IProject project = getProject();
+			IWorkspace workspace = AutotoolsPlugin.getWorkspace();
+			IManagedBuildInfo info = ManagedBuildManager.getBuildInfo(project);
+			IConfiguration cfg = info.getDefaultConfiguration();
+			IManagedBuilderMakefileGenerator generator = ManagedBuildManager.getBuildfileGenerator(cfg);
+			generator.initialize(getProject(), info, monitor);
+			String buildPath = project.getFullPath().append(generator.getBuildWorkingDir()).toOSString();
+			IResource rc = workspace.getRoot().findMember(buildPath);
+			if (rc == null || rc.getType() != IResource.FOLDER)
+				return;
+			IFolder buildDir = (IFolder)rc;
+			String status = AutotoolsPlugin.getFormattedString("AutotoolsMakefileBuilder.message.clean.deleting.output", new String[]{buildDir.getName()});	//$NON-NLS-1$
+			monitor.subTask(status);
+			workspace.delete(new IResource[]{buildDir}, true, monitor);
+			StringBuffer buf = new StringBuffer();
+			// write to the console
+
+//			IConsole console = CCorePlugin.getDefault().getConsole();
+//			console.start(getProject());
+			// Get a build console for the project
+			IConsole console = CCorePlugin.getDefault().getConsole();
+			console.start(project);
+//			IConsole console = bInfo.getConsole();
+			ConsoleOutputStream consoleOutStream = console.getOutputStream();
+			String[] consoleHeader = new String[3];
+			consoleHeader[0] = AutotoolsPlugin.getResourceString(TYPE_CLEAN);
+			consoleHeader[1] = cfg.getName();
+			consoleHeader[2] = project.getName();
+			buf.append(System.getProperty("line.separator", "\n"));	//$NON-NLS-1$	//$NON-NLS-2$
+			buf.append(AutotoolsPlugin.getFormattedString(CONSOLE_HEADER, consoleHeader));
+			buf.append(System.getProperty("line.separator", "\n"));	//$NON-NLS-1$	//$NON-NLS-2$
+			consoleOutStream.write(buf.toString().getBytes());
+			consoleOutStream.flush();
+			buf = new StringBuffer();
+			// Report a successful clean
+			String successMsg = AutotoolsPlugin.getFormattedString(BUILD_FINISHED, new String[]{project.getName()});
+			buf.append(successMsg);
+			buf.append(System.getProperty("line.separator", "\n"));  //$NON-NLS-1$//$NON-NLS-2$
+			consoleOutStream.write(buf.toString().getBytes());
+			consoleOutStream.flush();
+			consoleOutStream.close();
+		}  catch (IOException io) {
+			//  Ignore console failures...
+		}  catch (CoreException e) {
+			//  Ignore console failures...		
+		}
+	}
+

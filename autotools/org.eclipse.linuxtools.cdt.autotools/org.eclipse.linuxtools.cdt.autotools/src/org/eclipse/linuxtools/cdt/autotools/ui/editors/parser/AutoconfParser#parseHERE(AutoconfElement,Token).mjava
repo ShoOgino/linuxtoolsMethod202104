@@ -1,0 +1,40 @@
+	/**
+	 * Parse the Here document, whose control token is provided (SH_HERE or SH_HERE_DASH).
+	 * Contents are thrown away except for any macro calls.
+	 * @param parent
+	 * @param controlToken
+	 */
+	private void parseHERE(AutoconfElement parent, Token controlToken) {
+		Token token = tokenizer.readToken();
+		if (token.getType() == ITokenConstants.EOL || token.getType() == ITokenConstants.EOF) {
+			handleError(parent, token,
+					AutoconfEditorMessages.getString(INCOMPLETE_INLINE_MARKER));
+			
+		} else {
+			String hereTag = token.getText();
+		
+			boolean atEOL = false;
+			while (true) {
+				token = tokenizer.readToken();
+				if (token.getType() == ITokenConstants.EOF) {
+					handleError(parent, token, AutoconfEditorMessages.getFormattedString(UNTERMINATED_CONSTRUCT, parent.getName()));
+					break;
+				} else if (token.getType() == ITokenConstants.EOL) {
+					atEOL = true;
+				} else {
+					if (atEOL && token.getText().equals(hereTag)) {
+						// only the end if it is also followed by EOL without any whitespace
+						Token eol = tokenizer.readToken();
+						if (eol.getType() == ITokenConstants.EOL && eol.getOffset() == token.getOffset() + token.getLength()) {
+							break;
+						}
+					}
+					if (token.getType() == ITokenConstants.WORD) {
+						checkMacro(parent, token);
+					}
+					atEOL = false;
+				}
+			}
+		}
+	}
+

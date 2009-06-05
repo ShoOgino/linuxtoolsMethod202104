@@ -1,0 +1,29 @@
+    /*
+	 * @see org.eclipse.ui.editors.text.TextFileDocumentProvider#createFileInfo(java.lang.Object)
+	 */
+	protected FileInfo createFileInfo(Object element) throws CoreException {
+		IMakefile original = null;
+		if (element instanceof IFileEditorInput) {	
+			IFileEditorInput input= (IFileEditorInput) element;
+			if (input.getFile().exists())
+				original= createMakefile(input.getFile().getLocation().toOSString());
+		} else if (element instanceof IURIEditorInput) {
+			IURIEditorInput input = (IURIEditorInput)element;
+			original = createMakefile(input.getURI().getPath().toString());
+		}
+		if (original == null)
+			return null;
+
+		FileInfo info= super.createFileInfo(element);
+		if (!(info instanceof AutomakefileFileInfo)) {
+			return null;
+		}
+
+		AutomakefileFileInfo makefileInfo= (AutomakefileFileInfo) info;
+		setUpSynchronization(makefileInfo);
+
+		makefileInfo.fCopy = original;
+
+		return makefileInfo;
+	}
+

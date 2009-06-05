@@ -1,0 +1,52 @@
+	/**
+	 * Add the Autotools builder to the project
+	 * @param project
+	 * @param monitor
+	 * @throws CoreException
+	 */
+	public static void addAutotoolsBuilder(IProject project, IProgressMonitor monitor) throws CoreException {
+		// Add the builder to the project
+		IProjectDescription description = project.getDescription();
+		ICommand[] commands = description.getBuildSpec();
+	
+		// TODO Remove the cbuilder check when the new StandardBuild nature adds the cbuilder
+		for (int i = 0; i < commands.length; i++) {
+			ICommand command = commands[i];
+			String builderName = command.getBuilderName();
+			// If there is a ManagedMake makefile generator, remove it as it will
+			// cause an additional build "all" to occur when we are making any target.
+			if (builderName.equals("org.eclipse.cdt.core.cbuilder") ||
+					builderName.equals(AutotoolsMakefileBuilder.MANAGED_BUILDER_ID)) { //$NON-NLS-1$
+				// Remove the command
+				Vector<ICommand> vec = new Vector<ICommand>(Arrays.asList(commands));
+				vec.removeElementAt(i);
+				vec.trimToSize();
+				ICommand[] tempCommands = (ICommand[]) vec.toArray(new ICommand[commands.length-1]); 
+				description.setBuildSpec(tempCommands);
+				project.setDescription(description, new NullProgressMonitor());
+				break;
+			}
+		}
+		
+		commands = description.getBuildSpec();
+		boolean found = false;
+		// See if the builder is already there
+		for (int i = 0; i < commands.length; ++i) {
+		   if (commands[i].getBuilderName().equals(AutotoolsMakefileBuilder.BUILDER_ID)) {
+			  found = true;
+			  break;
+		   }
+		}
+		if (!found) { 
+		   //add builder to project
+		   ICommand command = description.newCommand();
+		   command.setBuilderName(AutotoolsMakefileBuilder.BUILDER_ID);
+		   ICommand[] newCommands = new ICommand[commands.length + 1];
+		   // Add it before other builders.
+		   System.arraycopy(commands, 0, newCommands, 1, commands.length);
+		   newCommands[0] = command;
+		   description.setBuildSpec(newCommands);
+		   project.setDescription(description, new NullProgressMonitor());
+		}		
+	}
+

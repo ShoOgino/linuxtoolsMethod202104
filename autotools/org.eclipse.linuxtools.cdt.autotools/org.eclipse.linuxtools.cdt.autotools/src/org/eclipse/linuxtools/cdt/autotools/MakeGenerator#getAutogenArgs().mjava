@@ -1,0 +1,43 @@
+	private String[] getAutogenArgs() throws BuildException {
+		// Get the arguments to be passed to config from build model
+		ITool[] tool = cfg.getToolsBySuperClassId(AUTOGEN_TOOL_ID);
+		IOption[] options = tool[0].getOptions();
+		ArrayList<String> autogenArgs = new ArrayList<String>();
+		
+		for (int i = 0; i < options.length; ++i) {
+			if (options[i].getValueType() == IOption.STRING) {
+				String value = (String) options[i].getValue();
+				try {
+					String resolved = ManagedBuildManager.getBuildMacroProvider().resolveValue(value, "", null, 
+							IBuildMacroProvider.CONTEXT_CONFIGURATION, cfg);
+					if(resolved != null && (resolved = resolved.trim()).length() > 0)
+						value = resolved;
+				} catch (BuildMacroException e) {
+					// do nothing
+				}
+				String id = options[i].getId();
+				if (id.indexOf("user") > 0) { //$NON-NLS-1$
+					// May be multiple user-specified options in which case we
+					// need to split them up into individual options
+					value = value.trim();
+					boolean finished = false;
+					int lastIndex = value.indexOf("--"); //$NON-NLS-1$
+					if (lastIndex != -1) {
+						while (!finished) {
+							int index = value.indexOf("--",lastIndex+2); //$NON-NLS-1$
+							if (index != -1) {
+								String previous = value.substring(lastIndex, index).trim();
+								autogenArgs.add(previous);
+								value = value.substring(index);
+							} else {
+								autogenArgs.add(value);
+								finished = true;
+							}
+						}
+					}
+				}
+			}
+		}
+		return (String[]) autogenArgs.toArray(new String[autogenArgs.size()]);
+	}
+

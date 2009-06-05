@@ -1,0 +1,99 @@
+	private Control createSyntaxPage(Composite parent) {
+		
+		Composite colorComposite= new Composite(parent, SWT.NONE);
+		colorComposite.setLayout(new GridLayout());
+
+		Label label= new Label(colorComposite, SWT.LEFT);
+		label.setText(AutotoolsPreferencesMessages.getString("AutomakeEditorPreferencePage.Foreground")); //$NON-NLS-1$
+		label.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+
+		Composite editorComposite= new Composite(colorComposite, SWT.NONE);
+		GridLayout layout= new GridLayout();
+		layout.numColumns= 2;
+		layout.marginHeight= 0;
+		layout.marginWidth= 0;
+		editorComposite.setLayout(layout);
+		GridData gd= new GridData(GridData.FILL_BOTH);
+		editorComposite.setLayoutData(gd);		
+
+		fHighlightingColorListViewer= new TableViewer(editorComposite, SWT.SINGLE | SWT.V_SCROLL | SWT.BORDER | SWT.FULL_SELECTION);
+		fHighlightingColorListViewer.setLabelProvider(new ColorListLabelProvider());
+		fHighlightingColorListViewer.setContentProvider(new ColorListContentProvider());
+		fHighlightingColorListViewer.setComparator(new WorkbenchViewerComparator());
+		gd= new GridData(GridData.FILL_BOTH);
+		gd.heightHint= convertHeightInCharsToPixels(5);
+		fHighlightingColorListViewer.getControl().setLayoutData(gd);
+						
+		Composite stylesComposite= new Composite(editorComposite, SWT.NONE);
+		layout= new GridLayout();
+		layout.marginHeight= 0;
+		layout.marginWidth= 0;
+		layout.numColumns= 2;
+		stylesComposite.setLayout(layout);
+		stylesComposite.setLayoutData(new GridData(GridData.FILL_BOTH));
+		
+		label= new Label(stylesComposite, SWT.LEFT);
+		label.setText(AutotoolsPreferencesMessages.getString("AutomakeEditorPreferencePage.color")); //$NON-NLS-1$
+		gd= new GridData();
+		gd.horizontalAlignment= GridData.BEGINNING;
+		label.setLayoutData(gd);
+
+		fSyntaxForegroundColorEditor= new ColorEditor(stylesComposite);
+		Button foregroundColorButton= fSyntaxForegroundColorEditor.getButton();
+		gd= new GridData(GridData.FILL_HORIZONTAL);
+		gd.horizontalAlignment= GridData.BEGINNING;
+		foregroundColorButton.setLayoutData(gd);
+		
+		fBoldCheckBox= new Button(stylesComposite, SWT.CHECK);
+		fBoldCheckBox.setText(AutotoolsPreferencesMessages.getString("AutomakeEditorPreferencePage.bold")); //$NON-NLS-1$
+		gd= new GridData(GridData.FILL_HORIZONTAL);
+		gd.horizontalAlignment= GridData.BEGINNING;
+		gd.horizontalSpan= 2;
+		fBoldCheckBox.setLayoutData(gd);
+		
+		fItalicCheckBox= new Button(stylesComposite, SWT.CHECK);
+		fItalicCheckBox.setText(AutotoolsPreferencesMessages.getString("AutomakeEditorPreferencePage.italic")); //$NON-NLS-1$
+		gd= new GridData(GridData.FILL_HORIZONTAL);
+		gd.horizontalAlignment= GridData.BEGINNING;
+		gd.horizontalSpan= 2;
+		fItalicCheckBox.setLayoutData(gd);
+
+		fHighlightingColorListViewer.addSelectionChangedListener(new ISelectionChangedListener() {
+			public void selectionChanged(SelectionChangedEvent event) {
+				handleSyntaxColorListSelection();
+			}
+		});
+
+		foregroundColorButton.addSelectionListener(new SelectionListener() {
+			public void widgetDefaultSelected(SelectionEvent e) {
+				// do nothing
+			}
+			public void widgetSelected(SelectionEvent e) {
+				HighlightingColorListItem item= getHighlightingColorListItem();
+				PreferenceConverter.setValue(getOverlayStore(), item.getColorKey(), fSyntaxForegroundColorEditor.getColorValue());
+			}
+		});
+
+		fBoldCheckBox.addSelectionListener(new SelectionListener() {
+			public void widgetDefaultSelected(SelectionEvent e) {
+				// do nothing
+			}
+			public void widgetSelected(SelectionEvent e) {
+				HighlightingColorListItem item= getHighlightingColorListItem();
+				getOverlayStore().setValue(item.getBoldKey(), fBoldCheckBox.getSelection());
+			}
+		});
+				
+		fItalicCheckBox.addSelectionListener(new SelectionListener() {
+			public void widgetDefaultSelected(SelectionEvent e) {
+				// do nothing
+			}
+			public void widgetSelected(SelectionEvent e) {
+				HighlightingColorListItem item= getHighlightingColorListItem();
+				getOverlayStore().setValue(item.getItalicKey(), fItalicCheckBox.getSelection());
+			}
+		});
+				
+		return colorComposite;
+	}
+

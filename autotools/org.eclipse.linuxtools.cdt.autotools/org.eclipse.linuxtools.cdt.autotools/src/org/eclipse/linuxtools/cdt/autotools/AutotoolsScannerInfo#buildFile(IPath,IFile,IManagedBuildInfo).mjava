@@ -1,0 +1,62 @@
+	private String buildFile (IPath filePath, IFile makefile, IManagedBuildInfo info) {
+		String outString = "";
+		IPath dir = makefile.getFullPath().removeLastSegments(1);
+		IPath relFilePath = filePath.removeFirstSegments(dir.segmentCount());
+		CommandLauncher launcher = new CommandLauncher();
+		String[] env = null;
+		ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+		ByteArrayOutputStream stderr = stdout;
+		IPath makeCommandPath = new Path(info.getBuildCommand());
+		ITool tool = info.getToolFromOutputExtension("status"); // $NON-NLS-1$
+		IOption[] options = tool.getOptions();
+		IPath runPath = null;
+		boolean done = false;
+
+		for (int i = 0; i < options.length && !done; ++i) {
+			try {
+				if (options[i].getValueType() == IOption.STRING) {
+					String value = (String) options[i].getValue();
+					String id = options[i].getId();
+					if (id.indexOf("builddir") > 0) { // $NON-NLS-1$
+						runPath = makefile.getProject().getLocation().append(value.trim());
+					}
+					done = true;
+				}
+			} catch (BuildException e) {
+				// do nothing
+			}
+		}
+
+		IProgressMonitor monitor = new NullProgressMonitor();
+		String errMsg = null;
+		String[] makeArgs = new String[3];
+		makeArgs[0] = "-n"; // $NON-NLS-1$
+		makeArgs[1] = "all"; // $NON-NLS-1$
+		makeArgs[2] = "MAKE=make -W " + relFilePath.toOSString(); //$NON-NLS-1$
+
+		try {
+			Process proc = launcher.execute(makeCommandPath, makeArgs, env,
+					runPath, new NullProgressMonitor());
+			if (proc != null) {
+				try {
+					// Close the input of the process since we will never write to
+					// it
+					proc.getOutputStream().close();
+				} catch (IOException e) {
+				}
+
+				if (launcher.waitAndRead(stdout, stderr, new SubProgressMonitor(
+						monitor, IProgressMonitor.UNKNOWN)) != CommandLauncher.OK) {
+					errMsg = launcher.getErrorMessage();
+				}
+				outString = stdout.toString();
+			} else {
+				errMsg = launcher.getErrorMessage();
+			}
+		} catch (CoreException e) {
+			errMsg = e.getLocalizedMessage();
+			AutotoolsPlugin.logErrorMessage(errMsg);
+		}
+		return outString;
+	}
+

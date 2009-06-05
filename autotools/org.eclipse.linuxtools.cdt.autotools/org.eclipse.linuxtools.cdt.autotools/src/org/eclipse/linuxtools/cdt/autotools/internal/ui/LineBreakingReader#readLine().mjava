@@ -1,0 +1,34 @@
+	/**
+	 * Reads the next line. The lengths of the line will not exceed the gived maximum
+	 * width.
+	 */
+	public String readLine() throws IOException {
+		if (fLine == null) {
+			String line= fReader.readLine();
+			if (line == null) {
+				return null;
+			}
+								
+			int lineLen= fGC.textExtent(line).x;
+			if (lineLen < fMaxWidth) {
+				return line;
+			}
+			fLine= line;
+			fLineBreakIterator.setText(line);
+			fOffset= 0;
+		}
+		int breakOffset= findNextBreakOffset(fOffset);
+		String res;
+		if (breakOffset != BreakIterator.DONE) {
+			res= fLine.substring(fOffset, breakOffset);
+			fOffset= findWordBegin(breakOffset);
+			if (fOffset == fLine.length()) {
+				fLine= null;
+			}
+		} else {
+			res= fLine.substring(fOffset);
+			fLine= null;
+		}
+		return res;
+	}
+

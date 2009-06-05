@@ -1,0 +1,55 @@
+	private Token parseBlockExpression(Token open, AutoconfElement block) throws BlockEndCondition {
+		Token token;
+		try {
+			if (block instanceof AutoconfIfElement 
+					|| block instanceof AutoconfElifElement 
+					|| block instanceof AutoconfCaseElement 
+					|| block instanceof AutoconfWhileElement) {
+				token = parseExpression(block);
+			} else if (block instanceof AutoconfForElement) {
+				token = parseForExpression(block);
+			} else {
+				// no expression
+				return open;
+			}
+			block.setVar(getTokenSpanTextBetween(open, token));
+		} catch (BlockEndCondition e) {
+			// oops, premature end
+			setSourceEnd(block, e.getToken());
+			throw e;
+		}
+	
+		// check for expected token
+		while (true) {
+			token = tokenizer.readToken();
+			if (token.getType() == ITokenConstants.EOF)
+				break;
+			if (token.getType() != ITokenConstants.EOL)
+				break;
+		}
+		
+		if (token.getType() == ITokenConstants.SH_DO) {
+			checkBlockValidity(block, token, 
+					new Class[] { AutoconfForElement.class, AutoconfWhileElement.class },
+					INVALID_DO);
+		}
+		else if (token.getType() == ITokenConstants.SH_THEN) {
+			checkBlockValidity(block, token, 
+					new Class[] { AutoconfIfElement.class, AutoconfElifElement.class },
+					INVALID_THEN);
+		} 
+		else {
+			String exp;
+			if (block instanceof AutoconfIfElement || block instanceof AutoconfElifElement)
+				exp = "then";
+			else
+				exp = "do";
+			
+			handleError(block, token, AutoconfEditorMessages.getFormattedString(MISSING_SPECIFIER, exp));
+
+			// assume we're still in the block...
+			tokenizer.unreadToken(token);
+		}
+		return token;
+	}
+

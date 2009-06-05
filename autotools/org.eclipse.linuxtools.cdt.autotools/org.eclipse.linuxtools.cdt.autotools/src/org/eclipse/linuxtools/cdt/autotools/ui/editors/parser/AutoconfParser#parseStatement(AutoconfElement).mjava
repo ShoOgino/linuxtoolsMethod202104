@@ -1,0 +1,148 @@
+	/**
+	 * Parse a single statement (macro call or a shell construct).
+	 * This can recursively invoke parseBlock() or parseStatement() to populate the tree.
+	 * Whenever a token terminates a block, we check its validity and then throw BlockEndCondition.
+	 * @param parent the parent into which to add statements.  The type of this element is used
+	 * to validate the legality of block closing tokens.
+	 */
+	protected void parseStatement(AutoconfElement parent) throws BlockEndCondition {
+	
+		boolean atStart = true;
+		
+		while (true) {
+			Token token = tokenizer.readToken();
+			
+			switch (token.getType()) {
+			// 0. Check EOF
+			case ITokenConstants.EOF:
+				AutoconfElement element = parent;
+				while (element != null && !(element instanceof AutoconfRootElement)) {
+					handleError(element, token, AutoconfEditorMessages.getFormattedString(UNTERMINATED_CONSTRUCT, element.getName()));
+					element = element.getParent();
+				}
+				throw new BlockEndCondition(token);
+			
+			
+			// 1. Check for end of statement
+			case ITokenConstants.EOL:
+			case ITokenConstants.SEMI:
+				return;
+			
+			
+			// 2. Check macro expansions
+			case ITokenConstants.WORD:
+				checkMacro(parent, token);
+				atStart = false;
+				break;
+			
+			// Check for shell constructs.  These should appear at the start of a line
+			// or after a semicolon.  If they don't,  just report an error and continue, 
+			// to be tolerant of our own lax parsing.
+			
+			// 3.a) Check dollar variables
+			case ITokenConstants.SH_DOLLAR:
+				// skip the next token
+				atStart = false;
+				token = tokenizer.readToken();
+				continue;
+				
+			// 3.b) Look for if/else/elif/fi constructs,
+			// being tolerant of nesting problems by allowing
+			// stranded else/elif nodes but reporting errors.
+			case ITokenConstants.SH_IF:
+				checkLineStart(parent, token, atStart);
+				parseBlock(parent, token, new AutoconfIfElement());
+				break;
+				
+			case ITokenConstants.SH_ELIF:
+				checkLineStart(parent, token, atStart);
+				checkBlockValidity(
+						parent, token, 
+						new Class[] { AutoconfIfElement.class, AutoconfElifElement.class },
+						INVALID_ELIF);
+				parseBlock(parent, token, new AutoconfElifElement());
+				token = tokenizer.peekToken();
+				throw new BlockEndCondition(token);
+			
+			case ITokenConstants.SH_ELSE:
+				checkLineStart(parent, token, atStart);
+				checkBlockValidity(
+						parent, token, 
+						new Class[] { AutoconfIfElement.class, AutoconfElifElement.class },
+						INVALID_ELSE);
+				parseBlock(parent, token, new AutoconfElseElement());
+				token = tokenizer.peekToken();
+				throw new BlockEndCondition(token);
+			
+			case ITokenConstants.SH_FI:
+				checkLineStart(parent, token, atStart);
+				checkBlockValidity(
+						parent, token, 
+						new Class[] { AutoconfIfElement.class, AutoconfElifElement.class, AutoconfElseElement.class },
+						INVALID_FI);
+				throw new BlockEndCondition(token);
+			
+				
+			// 4. Look for for/while loops
+			case ITokenConstants.SH_FOR:
+				checkLineStart(parent, token, atStart);
+				parseBlock(parent, token, new AutoconfForElement());
+				break;
+				
+			case ITokenConstants.SH_WHILE:
+				checkLineStart(parent, token, atStart);
+				parseBlock(parent, token, new AutoconfWhileElement());
+				break;
+				
+			case ITokenConstants.SH_UNTIL:
+				checkLineStart(parent, token, atStart);
+				parseBlock(parent, token, new AutoconfUntilElement());
+				break;
+				
+			case ITokenConstants.SH_SELECT:
+				checkLineStart(parent, token, atStart);
+				parseBlock(parent, token, new AutoconfSelectElement());
+				break;
+				
+			case ITokenConstants.SH_DONE:
+				checkLineStart(parent, token, atStart);
+				checkBlockValidity(
+						parent, token, 
+						new Class[] { AutoconfForElement.class, AutoconfWhileElement.class,
+								AutoconfUntilElement.class, AutoconfSelectElement.class },
+						INVALID_DONE);
+				throw new BlockEndCondition(token);
+			
+			// 5. Look for case statements
+			case ITokenConstants.SH_CASE:
+				checkLineStart(parent, token, atStart);
+				parseCaseBlock(parent, token, new AutoconfCaseElement());
+				break;
+				
+			case ITokenConstants.SH_CASE_CONDITION_END:
+				checkBlockValidity(
+						parent, token, 
+						new Class[] { AutoconfCaseConditionElement.class },
+						IMPROPER_CASE_CONDITION);
+				throw new BlockEndCondition(token);
+			
+			case ITokenConstants.SH_ESAC:
+				checkLineStart(parent, token, atStart);
+				checkBlockValidity(
+						parent, token, 
+						// note: we don't strictly recurse here, so accept either parent
+						new Class[] { AutoconfCaseElement.class, AutoconfCaseConditionElement.class },
+						INVALID_ESAC);
+				throw new BlockEndCondition(token);
+			
+			
+			// 6. Check for HERE documents
+			case ITokenConstants.SH_HERE:
+			case ITokenConstants.SH_HERE_DASH:
+
+				parseHERE(parent, token);
+				break;
+			}
+		}
+	}
+

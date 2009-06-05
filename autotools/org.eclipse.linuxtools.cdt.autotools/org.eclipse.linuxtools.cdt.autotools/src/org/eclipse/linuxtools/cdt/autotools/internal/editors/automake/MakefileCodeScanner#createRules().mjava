@@ -1,0 +1,48 @@
+	protected List<IRule> createRules() {
+		IToken keyword = getToken(ColorManager.MAKE_KEYWORD_COLOR);
+		IToken function = getToken(ColorManager.MAKE_FUNCTION_COLOR);
+		IToken comment = getToken(ColorManager.MAKE_COMMENT_COLOR);
+		IToken macroRef = getToken(ColorManager.MAKE_MACRO_REF_COLOR);
+		IToken macroDef = getToken(ColorManager.MAKE_MACRO_DEF_COLOR);
+		IToken other = getToken(ColorManager.MAKE_DEFAULT_COLOR);
+
+		List<IRule> rules = new ArrayList<IRule>();
+
+		// Add rule for single line comments.
+		rules.add(new EndOfLineRule("#", comment, '\\', true)); //$NON-NLS-1$
+
+		// Add generic whitespace rule.
+		rules.add(new WhitespaceRule(new IWhitespaceDetector() {
+			public boolean isWhitespace(char character) {
+				return Character.isWhitespace(character);
+			}
+		}));
+
+		// Put before the the word rules
+		MultiLineRule defineRule = new MultiLineRule("define", "endef", macroDef); //$NON-NLS-1$ //$NON-NLS-2$
+		defineRule.setColumnConstraint(0);
+		rules.add(defineRule);
+		rules.add(new MacroDefinitionRule(macroDef, other));
+
+		// Add word rule for keywords, types, and constants.
+		// We restring the detection of the keywords to be the first column to be valid.
+		WordRule keyWordRule = new WordRule(new MakefileWordDetector(), other);
+		for (int i = 0; i < keywords.length; i++) {
+			keyWordRule.addWord(keywords[i], keyword);
+		}
+		keyWordRule.setColumnConstraint(0);
+		rules.add(keyWordRule);
+
+		WordRule functionRule = new WordRule(new MakefileWordDetector(), other);
+		for (int i = 0; i < functions.length; i++)
+			functionRule.addWord(functions[i], function);
+		rules.add(functionRule);
+
+		rules.add(new MacroReferenceRule(macroRef, "$(", ")")); //$NON-NLS-1$ //$NON-NLS-2$
+		rules.add(new MacroReferenceRule(macroRef, "${", "}")); //$NON-NLS-1$ //$NON-NLS-2$
+
+		setDefaultReturnToken(other);
+
+		return rules;
+	}
+
