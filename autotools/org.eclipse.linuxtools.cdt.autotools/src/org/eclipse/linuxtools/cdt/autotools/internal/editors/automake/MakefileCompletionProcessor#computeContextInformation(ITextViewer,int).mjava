@@ -1,0 +1,44 @@
+	/* (non-Javadoc)
+	 * @see org.eclipse.jface.text.contentassist.IContentAssistProcessor#computeContextInformation(org.eclipse.jface.text.ITextViewer, int)
+	 */
+	public IContextInformation[] computeContextInformation(ITextViewer viewer, int documentOffset) {
+		WordPartDetector wordPart = new WordPartDetector(viewer, documentOffset);
+		boolean macro = WordPartDetector.inMacro(viewer, documentOffset);
+		IMakefile makefile = fManager.getWorkingCopy(fEditor.getEditorInput());
+		ArrayList contextList = new ArrayList();
+		if (macro) {
+			IDirective[] statements = makefile.getMacroDefinitions();
+			for (int i = 0; i < statements.length; i++) {
+				if (statements[i] instanceof IMacroDefinition) {
+					String name = ((IMacroDefinition) statements[i]).getName();
+					if (name != null && name.equals(wordPart.toString())) {
+						String value = ((IMacroDefinition) statements[i]).getValue().toString();
+						if (value != null && value.length() > 0) {
+							contextList.add(value);
+						}
+					}
+				}
+			}
+			statements = makefile.getBuiltinMacroDefinitions();
+			for (int i = 0; i < statements.length; i++) {
+				if (statements[i] instanceof IMacroDefinition) {
+					String name = ((IMacroDefinition) statements[i]).getName();
+					if (name != null && name.equals(wordPart.toString())) {
+						String value = ((IMacroDefinition) statements[i]).getValue().toString();
+						if (value != null && value.length() > 0) {
+							contextList.add(value);
+						}
+					}
+				}
+			}
+		}
+
+		IContextInformation[] result = new IContextInformation[contextList.size()];
+		for (int i = 0; i < result.length; i++) {
+			String context = (String)contextList.get(i);
+			result[i] = new ContextInformation(imageMacro, wordPart.toString(), context);
+		}
+		return result;
+
+	}
+

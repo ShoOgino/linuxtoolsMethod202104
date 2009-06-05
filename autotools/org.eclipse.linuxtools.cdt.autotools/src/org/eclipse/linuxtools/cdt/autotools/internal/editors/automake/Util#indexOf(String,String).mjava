@@ -1,0 +1,34 @@
+	/**
+	 * Special indexOf() method that makes sure that what we are searching
+	 * is not between parentheses and brackets like a macro $(foo) ${bar}
+	 */
+	public static int indexOf(String line, String tokens) {
+		int paren = 0;
+		int bracket = 0;
+		char prev = 0;
+		char pprev = 0;
+		for (int i = 0; i < line.length(); i++) {
+			char ch = line.charAt(i);
+			if (ch == '(' && prev == '$' && pprev != '\\') {
+				paren++;
+			} else if (ch == '{' && prev == '$'  && pprev != '\\') {
+				bracket++;
+			} else if (ch == ')' && prev != '\\') {
+				if (paren > 0) {
+					paren--;
+				}
+			} else if (ch == '}' && prev != '\\') {
+				if (bracket > 0) {
+					bracket--;
+				}
+			} else if (tokens.indexOf(ch) != -1) {
+				if (paren == 0 && bracket == 0) {
+					return i;
+				}
+			}
+			pprev = prev;
+			prev = ch;
+		}
+		return -1;
+	}
+

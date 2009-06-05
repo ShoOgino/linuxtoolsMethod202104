@@ -1,24 +1,41 @@
-	protected HashMap<String, String> executeCommand(IPath command,
+	protected HashMap executeCommand(IPath command,
 			String[] argumentList, String[] envList, IPath execDir) {
-		try {
-			ExecuteProgressDialog d = new ExecuteProgressDialog(command,
-					argumentList, envList, execDir);
-			new ProgressMonitorDialog(new Shell()).run(false, false, d);
-			if (d.getStatus() == -1)
-				showError(InvokeMessages
-					.getString("InvokeAction.execute.windowTitle.error"), InvokeMessages //$NON-NLS-1$
-					.getString("InvokeAction.execute.message") //$NON-NLS-1$
-					+ command.toOSString()); //$NON-NLS-1$
-			return d.getOutputs();
-		} catch (InvocationTargetException e) {
+
+		ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+		ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+		CommandLauncher cmdL = new CommandLauncher();
+
+		// invoke command
+		Process automakeProcess = cmdL.execute(command, argumentList, envList,
+				execDir);
+
+		if (cmdL.waitAndRead(stdout, stderr) == CommandLauncher.OK) {
+			try {
+				automakeProcess.getOutputStream().close();
+			} catch (IOException e) {
+				// ignore
+			}
+		} else {
+			// failed to execute command
 			showError(InvokeMessages
-					.getString("InvokeAction.execute.windowTitle.error"), InvokeMessages //$NON-NLS-1$
-					.getString("InvokeAction.execute.message") //$NON-NLS-1$
-					+ command.toOSString()); //$NON-NLS-1$
-			AutotoolsPlugin.logException(e);
+									.getString("InvokeAction.execute.windowTitle.error"), InvokeMessages //$NON-NLS-1$
+									.getString("InvokeAction.execute.message") //$NON-NLS-1$
+									+ command.toOSString()); //$NON-NLS-1$
 			return null;
-		} catch (InterruptedException e) {
-		    return null;
 		}
+
+		HashMap outputs = new HashMap();
+
+		outputs.put("stdout", stdout.toString()); //$NON-NLS-1$
+		outputs.put("stderr", stderr.toString()); //$NON-NLS-1$
+
+		try {
+			stdout.close();
+			stderr.close();
+		} catch (IOException e) {
+			// ignore
+		}
+
+		return outputs;
 	}
 

@@ -19,8 +19,8 @@
 					String id = options[i].getId();
 					if (id.indexOf("builddir") > 0) { // $NON-NLS-1$
 						runPath = makefile.getProject().getLocation().append(value.trim());
-						done = true;
 					}
+					done = true;
 				}
 			} catch (BuildException e) {
 				// do nothing
@@ -34,28 +34,23 @@
 		makeArgs[1] = "all"; // $NON-NLS-1$
 		makeArgs[2] = "MAKE=make -W " + relFilePath.toOSString(); //$NON-NLS-1$
 
-		try {
-			Process proc = launcher.execute(makeCommandPath, makeArgs, env,
-					runPath, new NullProgressMonitor());
-			if (proc != null) {
-				try {
-					// Close the input of the process since we will never write to
-					// it
-					proc.getOutputStream().close();
-				} catch (IOException e) {
-				}
+		Process proc = launcher.execute(makeCommandPath, makeArgs, env,
+				runPath);
+		if (proc != null) {
+			try {
+				// Close the input of the process since we will never write to
+				// it
+				proc.getOutputStream().close();
+			} catch (IOException e) {
+			}
 
-				if (launcher.waitAndRead(stdout, stderr, new SubProgressMonitor(
-						monitor, IProgressMonitor.UNKNOWN)) != CommandLauncher.OK) {
-					errMsg = launcher.getErrorMessage();
-				}
-				outString = stdout.toString();
-			} else {
+			if (launcher.waitAndRead(stdout, stderr, new SubProgressMonitor(
+					monitor, IProgressMonitor.UNKNOWN)) != CommandLauncher.OK) {
 				errMsg = launcher.getErrorMessage();
 			}
-		} catch (CoreException e) {
-			errMsg = e.getLocalizedMessage();
-			AutotoolsPlugin.logErrorMessage(errMsg);
+			outString = stdout.toString();
+		} else {
+			errMsg = launcher.getErrorMessage();
 		}
 		return outString;
 	}

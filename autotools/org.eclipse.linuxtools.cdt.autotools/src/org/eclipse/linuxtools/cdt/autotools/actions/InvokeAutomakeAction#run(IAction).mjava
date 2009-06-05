@@ -5,7 +5,7 @@
 			return;
 		
 		IPath execDir = getExecDir(container);
-		String cwd = InvokeMessages.getString("CWD") + getCWD(container); //$NON-NLS-1$
+		String cwd = "CWD:" + getCWD(container);
 ;
 		TwoInputDialog optionDialog = new TwoInputDialog(new Shell(), cwd,
 		InvokeMessages
@@ -52,10 +52,29 @@ InvokeMessages
 			
 			// If automake path not set for the project, default to system path
 			if (automakeCommand == null)
-				automakeCommand = DEFAULT_COMMAND;
+				automakeCommand = "automake"; // $NON-NLS-1$
 
-			executeConsoleCommand(DEFAULT_COMMAND, automakeCommand,
-					argumentList, execDir);
+			HashMap result = executeCommand(new Path(automakeCommand),
+					argumentList, null, execDir);
+
+			String autoconf_error = (String)result.get("stderr"); //$NON-NLS-1$
+			String autoconf_result = (String)result.get("stdout"); //$NON-NLS-1$
+
+			// if the process produced stdout/err, display in dialog
+			if (autoconf_error.length() > 0) {
+				showError(InvokeMessages
+						.getString("InvokeAutomakeAction.windowTitle.stderr"), //$NON-NLS-1$
+						autoconf_error);
+			} else if (autoconf_result.length() > 0) {
+				showInformation(InvokeMessages
+						.getString("InvokeAutomakeAction.windowTitle.stdout"), //$NON-NLS-1$
+						autoconf_result);
+			} else {
+				showSuccess(InvokeMessages
+						.getString("InvokeAutomakeAction.command")); //$NON-NLS-1$
+			}
+	
 		}
+
 	}
 

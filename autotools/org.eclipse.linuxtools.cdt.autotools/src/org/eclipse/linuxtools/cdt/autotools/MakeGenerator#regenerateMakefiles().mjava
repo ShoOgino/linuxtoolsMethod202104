@@ -57,8 +57,9 @@
 			IFile configStatus = root.getFileForLocation(configfile);
 			IFile makefile = root.getFileForLocation(makefilePath);
 			IPath configSettingsPath = getConfigSettingsPath();
-			File configSettings = configSettingsPath.toFile();
+			IFile configSettings = root.getFileForLocation(configSettingsPath);
 			String[] configArgs = getConfigArgs();
+			PathVar autogenPath = new PathVar();
 
 			// We need to figure out if the end-user has changed the configuration
 			// settings.  In such a case, we need to reconfigure from scratch
@@ -69,9 +70,11 @@
 				int i = 0;
 				boolean needSaveConfigArgs = false;
 				needFullConfigure = false;
+				IPath settingsPath = getConfigSettingsPath();
 				try {
+					File f = new File(settingsPath.toOSString());
 					DataInputStream settings = new DataInputStream(
-							new BufferedInputStream(new FileInputStream(configSettings)));
+							new BufferedInputStream(new FileInputStream(f)));
 					// Get the first String in the configure settings file.
 					// Newer configure settings file start with the project name.  
 					// If the project name is present and doesn't match the
@@ -108,9 +111,7 @@
 					// If we are going to do a full reconfigure, then if the current
 					// build directory exists, we should clean it out first.  This is
 					// because the reconfiguration could change compile flags, etc..
-					// and the Makefile might not detect a rebuild is required.  In
-					// addition, the build directory itself could have been changed and
-					// we should remove the previous build.
+					// and the Makefile might not detect a rebuild is required.
 					IResource r = root.findMember(project.getFullPath().append(buildDir));
 					if (r != null && r.exists()) {
 						// See what type of cleaning the user has set up in the
@@ -167,12 +168,6 @@
 					saveConfigArgs(configArgs);
 				}
 			}
-			
-			ArrayList<String> configureEnvs = new ArrayList<String>();
-			IPath configurePath = getConfigurePath(configureEnvs);
-			ArrayList<String> autogenEnvs = new ArrayList<String>();
-			IPath autogenPath = getAutogenPath(autogenEnvs);
-			
 			// Check if we have a config.status (meaning configure has already run).
     		if (!needFullConfigure && configStatus != null && configStatus.exists()) {
 			    // If no corresponding Makefile in the same build location, then we
@@ -182,16 +177,16 @@
 					rc = runScript(configfile, project.getLocation().append(
 							buildDir), null, 
 							AutotoolsPlugin.getResourceString("MakeGenerator.run.config.status"), //$NON-NLS-1$
-							errMsg, console, null, true);
+							errMsg, console, true);
 				}
 			}
 			// Look for configure and configure from scratch
-			else if (configurePath.toFile().exists()) {
-				rc = runScript(configurePath, 
+			else if (configureExists()) {
+				rc = runScript(getConfigurePath(), 
 						project.getLocation().append(buildDir),
 						configArgs, 
 						AutotoolsPlugin.getResourceString("MakeGenerator.gen.makefile"), //$NON-NLS-1$
-						errMsg, console, configureEnvs, true);
+						errMsg, console, true);
 				if (rc != IStatus.ERROR) {
 					File makefileFile = project.getLocation().append(buildDir)
 					.append(MAKEFILE).toFile();
@@ -203,37 +198,33 @@
 			}
 			// If no configure, look for autogen.sh which may create configure and
     		// possibly even run it.
-			else if (autogenPath.toFile().exists()) {
+			else if (autogenExists(autogenPath)) {
 				// Remove the existing config.status file since we use it
 				// to figure out if configure was run.
 				if (configStatus.exists())
 					configStatus.delete(true, null);
 				// Get any user-specified arguments for autogen.
 				String[] autogenArgs = getAutogenArgs();
-				rc = runScript(autogenPath,
-						autogenPath.removeLastSegments(1), autogenArgs,
+				rc = runScript(autogenPath.path,
+						autogenPath.path.removeLastSegments(1), autogenArgs,
 						AutotoolsPlugin.getResourceString("MakeGenerator.autogen.sh"), //$NON-NLS-1$
-						errMsg, console, autogenEnvs, true);
+						errMsg, console, true);
 				if (rc != IStatus.ERROR) {
 					configStatus = root.getFileForLocation(configfile);
 					// Check for config.status.  If it is created, then
 					// autogen.sh ran configure and we should not run it
 					// ourselves.
 					if (configStatus == null || !configStatus.exists()) {
-						rc = runScript(configurePath, 
+						rc = runScript(getConfigurePath(), 
 								project.getLocation().append(buildDir),
 								configArgs, 
 								AutotoolsPlugin.getResourceString("MakeGenerator.gen.makefile"), //$NON-NLS-1$
-								errMsg, console, configureEnvs, false);
+								errMsg, console, false);
 						if (rc != IStatus.ERROR) {
 							File makefileFile = project.getLocation().append(buildDir)
 							.append(MAKEFILE).toFile();
 							addMakeTargetsToManager(makefileFile);
 						}
-					} else {
-						File makefileFile = project.getLocation().append(buildDir)
-						.append(MAKEFILE).toFile();
-						addMakeTargetsToManager(makefileFile);						
 					}
 				}
 			}
@@ -254,41 +245,7 @@
 					saveConfigArgs(configArgs);
 				}
 			}
-			// If nothing this far, try running autoreconf -i
-			else {
-				String[] reconfArgs = new String[1];
-				String reconfCmd = project.getPersistentProperty(AutotoolsPropertyConstants.AUTORECONF_TOOL);
-				if (reconfCmd == null)
-					reconfCmd = "autoreconf"; // $NON-NLS-1$
-				IPath reconfCmdPath = new Path(reconfCmd);
-				reconfArgs[0] = "-i"; //$NON-NLS-1$
-				rc = runCommand(reconfCmdPath,
-						project.getLocation().append(srcDir),
-						reconfArgs,
-						AutotoolsPlugin.getResourceString("MakeGenerator.autoreconf"), //$NON-NLS-1$
-						errMsg, console, true);
-				// Check if configure generated and if yes, run it.
-				if (rc != IStatus.ERROR) {
-					if (configurePath.toFile().exists()) {
-						
-						rc = runScript(configurePath, 
-								project.getLocation().append(buildDir),
-								configArgs, 
-								AutotoolsPlugin.getResourceString("MakeGenerator.gen.makefile"), //$NON-NLS-1$
-								errMsg, console, configureEnvs, true);
-						if (rc != IStatus.ERROR) {
-							File makefileFile = project.getLocation().append(buildDir)
-							.append(MAKEFILE).toFile();
-							addMakeTargetsToManager(makefileFile);
-							// TODO: should we do something special if configure doesn't
-							// return ok?
-							saveConfigArgs(configArgs);
-						}
-					}
-				}
-			}
-    		
-    		// Treat no Makefile as generation error.
+    		// If we didn't create a Makefile, consider that an error.
 			if (makefile == null || !makefile.exists()) {
 				rc = IStatus.ERROR;
 				errMsg = AutotoolsPlugin.getResourceString("MakeGenerator.didnt.generate"); //$NON-NLS-1$

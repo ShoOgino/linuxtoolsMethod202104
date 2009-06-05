@@ -1,0 +1,32 @@
+	public Map getExpandedEnvironment() throws CoreException {
+		Map env = null;
+		if (appendProjectEnvironment()) {
+			IMakeBuilderInfo projectInfo;
+			projectInfo = MakeCorePlugin.createBuildInfo(getProject(), manager.getBuilderID(targetBuilderID));
+			env = projectInfo.getEnvironment();
+		}
+		if (env == null) {
+			env = getEnvironment();
+		} else {
+			env.putAll(getEnvironment());
+		}
+		HashMap envMap = new HashMap(env.entrySet().size());
+		Iterator iter = env.entrySet().iterator();
+		boolean win32 = Platform.getOS().equals(Constants.OS_WIN32);
+		while (iter.hasNext()) {
+			Map.Entry entry = (Map.Entry)iter.next();
+			String key = (String)entry.getKey();
+			if (win32) {
+				// Win32 vars are case insensitive. Uppercase everything so
+				// that (for example) "pAtH" will correctly replace "PATH"
+				key = key.toUpperCase();
+			}
+			String value = (String)entry.getValue();
+			// translate any string substitution variables
+			String translated = value;
+			translated = VariablesPlugin.getDefault().getStringVariableManager().performStringSubstitution(value, false);
+			envMap.put(key, translated);
+		}
+		return envMap;
+	}
+

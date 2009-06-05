@@ -1,0 +1,22 @@
+	protected Document getAsXML() throws CoreException {
+		Document doc;
+		try {
+			doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+		} catch (ParserConfigurationException ex) {
+			//This should never happen.
+			throw new CoreException(new Status(IStatus.ERROR, MakeCorePlugin.getUniqueIdentifier(), -1,
+					"Error creating new XML storage document", ex)); //$NON-NLS-1$
+		}
+		Element targetsRootElement = doc.createElement(BUILD_TARGET_ELEMENT);
+		doc.appendChild(targetsRootElement);
+		Iterator container = targetMap.entrySet().iterator();
+		while (container.hasNext()) {
+			List targets = (List) ((Map.Entry) container.next()).getValue();
+			for (int i = 0; i < targets.size(); i++) {
+				MakeTarget target = (MakeTarget) targets.get(i);
+				targetsRootElement.appendChild(createTargetElement(doc, target));
+			}
+		}
+		return doc;
+	}
+

@@ -1,0 +1,64 @@
+	private void match(ProjectionAnnotationModel model, List deletions, Map additions, List changes) {
+		if (deletions.isEmpty() || (additions.isEmpty() && changes.isEmpty()))
+			return;
+		
+		List newDeletions= new ArrayList();
+		List newChanges= new ArrayList();
+		
+		Iterator deletionIterator= deletions.iterator();
+		outer: while (deletionIterator.hasNext()) {
+			MakefileProjectionAnnotation deleted= (MakefileProjectionAnnotation) deletionIterator.next();
+			Position deletedPosition= model.getPosition(deleted);
+			if (deletedPosition == null)
+				continue;
+			
+			Iterator changesIterator= changes.iterator();
+			while (changesIterator.hasNext()) {
+				MakefileProjectionAnnotation changed= (MakefileProjectionAnnotation) changesIterator.next();
+				if (deleted.isComment() == changed.isComment()) {
+					Position changedPosition= model.getPosition(changed);
+					if (changedPosition == null)
+						continue;
+					
+					if (deletedPosition.getOffset() == changedPosition.getOffset()) {
+						
+						deletedPosition.setLength(changedPosition.getLength());
+						deleted.setElement(changed.getElement());
+						
+						deletionIterator.remove();
+						newChanges.add(deleted);
+						
+						changesIterator.remove();
+						newDeletions.add(changed);
+						
+						continue outer;
+					}
+				}
+			}
+			
+			Iterator additionsIterator= additions.keySet().iterator();
+			while (additionsIterator.hasNext()) {
+				MakefileProjectionAnnotation added= (MakefileProjectionAnnotation) additionsIterator.next();
+				if (deleted.isComment() == added.isComment()) {
+					Position addedPosition= (Position) additions.get(added);
+					
+					if (deletedPosition.getOffset() == addedPosition.getOffset()) {
+						
+						deletedPosition.setLength(addedPosition.getLength());
+						deleted.setElement(added.getElement());
+						
+						deletionIterator.remove();
+						newChanges.add(deleted);
+						
+						additionsIterator.remove();
+						
+						break;
+					}
+				}
+			}
+		}
+		
+		deletions.addAll(newDeletions);
+		changes.addAll(newChanges);
+	}
+

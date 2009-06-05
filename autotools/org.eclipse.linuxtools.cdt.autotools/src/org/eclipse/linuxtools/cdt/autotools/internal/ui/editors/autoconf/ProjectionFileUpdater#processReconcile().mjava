@@ -1,0 +1,74 @@
+	public void processReconcile() {
+		if (!isInstalled())
+			return;
+		
+		ProjectionAnnotationModel model= (ProjectionAnnotationModel) fEditor.getAdapter(ProjectionAnnotationModel.class);
+		if (model == null)
+			return;
+		
+		try {
+			IDocumentProvider provider= fEditor.getDocumentProvider();
+			fCachedDocument= provider.getDocument(fEditor.getEditorInput());
+			fAllowCollapsing= false;
+			
+			Map additions= new HashMap();
+			List deletions= new ArrayList();
+			List updates= new ArrayList();
+			
+			Map updated= computeAdditions(fEditor.getRootElement());
+			
+			Map previous= createAnnotationMap(model);
+			
+			
+			Iterator e= updated.keySet().iterator();
+			while (e.hasNext()) {
+				AutoconfProjectionAnnotation annotation= (AutoconfProjectionAnnotation) e.next();
+				AutoconfElement element= annotation.getElement();
+				Position position= (Position) updated.get(annotation);
+				
+				List annotations= (List) previous.get(element);
+				if (annotations == null) {
+					additions.put(annotation, position);
+				} else {
+					Iterator x= annotations.iterator();
+					while (x.hasNext()) {
+						AutoconfProjectionAnnotation a= (AutoconfProjectionAnnotation) x.next();
+						if (annotation.isComment() == a.isComment()) {
+							Position p= model.getPosition(a);
+							if (p != null && !position.equals(p)) {
+								p.setOffset(position.getOffset());
+								p.setLength(position.getLength());
+								updates.add(a);
+							}
+							x.remove();
+							break;
+						}
+					}
+										
+					if (annotations.isEmpty())
+						previous.remove(element);
+				}
+			}
+			
+			e= previous.values().iterator();
+			while (e.hasNext()) {
+				List list= (List) e.next();
+				int size= list.size();
+				for (int i= 0; i < size; i++)
+					deletions.add(list.get(i));
+			}
+
+			match(model, deletions, additions, updates);
+
+			Annotation[] removals= new Annotation[deletions.size()];
+			deletions.toArray(removals);
+			Annotation[] changes= new Annotation[updates.size()];
+			updates.toArray(changes);
+			model.modifyAnnotations(removals, additions, changes);
+			
+		} finally {
+			fCachedDocument= null;
+			fAllowCollapsing= true;
+		}
+	}
+

@@ -1,0 +1,27 @@
+	private void findFile(String[] includePaths, String name, ArrayList<IPath> list)
+			throws CoreException {
+		// in case it is an absolute path
+		IPath includeFile= new Path(name);		
+		if (includeFile.isAbsolute()) {
+			includeFile = PathUtil.getCanonicalPath(includeFile);
+			if (includeFile.toFile().exists()) {
+				list.add(includeFile);
+				return;
+			}
+		}
+		HashSet<IPath> foundSet = new HashSet<IPath>();
+		for (int i = 0; i < includePaths.length; i++) {
+			IPath path = PathUtil.getCanonicalPath(new Path(includePaths[i]).append(includeFile));
+			File file = path.toFile();
+			if (file.exists()) {
+				IPath[] paths = resolveIncludeLink(path);
+				for (int j = 0; j < paths.length; j++) {
+					IPath p = paths[j];
+					if (foundSet.add(p)) {
+						list.add(p);
+					}
+				}
+			} 
+		}
+	}
+

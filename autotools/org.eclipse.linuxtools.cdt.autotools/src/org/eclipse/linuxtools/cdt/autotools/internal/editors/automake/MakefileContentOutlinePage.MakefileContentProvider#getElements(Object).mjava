@@ -1,0 +1,38 @@
+		/* (non-Javadoc)
+		 * @see org.eclipse.jface.viewers.IStructuredContentProvider#getElements(java.lang.Object)
+		 */
+		public Object[] getElements(Object inputElement) {
+			IDirective[] directives;
+			if (inputElement == fInput) {
+				directives = makefile.getDirectives();
+			} else if (inputElement instanceof IRule) {
+				directives = ((IRule)inputElement).getCommands();
+			} else if (inputElement instanceof IParent) {
+				if (inputElement instanceof IInclude && !showIncludeChildren) {
+					directives = new IDirective[0];
+				} else {
+					directives = ((IParent)inputElement).getDirectives();
+				}
+			} else {
+				directives = new IDirective[0];
+			}
+			List list = new ArrayList(directives.length);
+			for (int i = 0; i < directives.length; i++) {
+				if (showMacroDefinition && directives[i] instanceof IMacroDefinition) {
+					list.add(directives[i]);
+				} else if (showInferenceRule && directives[i] instanceof IInferenceRule) {
+					list.add(directives[i]);
+				} else if (showTargetRule && directives[i] instanceof ITargetRule) {
+					list.add(directives[i]);
+				} else {
+					boolean irrelevant = (directives[i] instanceof IComment ||
+						directives[i] instanceof IEmptyLine ||
+						directives[i] instanceof ITerminal); 
+					if (!irrelevant) {
+						list.add(directives[i]);
+					}
+				}
+			}
+			return list.toArray();
+		}
+

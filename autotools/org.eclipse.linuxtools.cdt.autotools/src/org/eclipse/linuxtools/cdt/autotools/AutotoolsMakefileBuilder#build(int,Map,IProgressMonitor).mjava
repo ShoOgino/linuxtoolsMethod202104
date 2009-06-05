@@ -17,7 +17,7 @@
 				if (root != null) {
 					if (info.getDefaultConfiguration() == null)
 						return null;
-					generator = new MakeGenerator();
+					generator = ManagedBuildManager.getBuildfileGenerator(info.getDefaultConfiguration());
 					generator.initialize(getProject(), info, monitor);
 					IPath buildDir = project.getLocation().append(generator.getBuildWorkingDir());
 					IPath makefilePath = buildDir.append(generator.getMakefileName());
@@ -45,7 +45,6 @@
 			// perform a make from the top-level.
 			if(VERBOSE)
 				outputTrace(project.getName(), ">>build requested, type = " + kind); //$NON-NLS-1$
-			
 			IConfiguration cfg = info.getDefaultConfiguration();
 
 			// Assemble the information needed to generate the targets
@@ -128,7 +127,7 @@
 				if (tmp.length > 1)
 					System.arraycopy(tmp, 1, cmdargs, 0, tmp.length - 1);
 				proc = launcher.execute(new Path(tmp[0]), cmdargs, env,
-						project.getLocation().append(generator.getBuildWorkingDir()), monitor);
+						project.getLocation().append(generator.getBuildWorkingDir()));
 				if (proc != null) {
 					try {
 						// Close the input of the process since we will never write to
@@ -145,49 +144,36 @@
 			}
 
 			// Perform build
-
-			ToolChain toolChain = (ToolChain)cfg.getToolChain();
-			IBuilder builder = new AutotoolsBuilder(cfg.getEditableBuilder(), project, toolChain);
+			
+			IBuilder builders[] = new IBuilder[1];
+			// Hijack the builder itself so that instead of ManagedMake
+			// policy of defaulting the build path to the configuration name,
+			// we get the build occurring in the builddir configure tool setting.
+			builders[0] = new AutotoolsBuilder(cfg.getEditableBuilder(), project);
 			String buildLocation = null;
 			String buildCommand = null;
-			String buildArguments = null;
 			if (makeTargetName != null) {
-				// We have a MakeTarget.  Get the location and command.
 				buildLocation = (String)args.get("org.eclipse.cdt.make.core.build.location"); // $NON-NLS-1$
 				buildCommand = (String)args.get("org.eclipse.cdt.make.core.build.command"); // $NON-NLS-1$
-				buildArguments = (String)args.get("org.eclipse.cdt.make.core.build.arguments"); // $NON-NLS-1$
 			}
 			if (buildLocation == null)
-				builder.setBuildPath(project.getLocation().append(generator.getBuildWorkingDir()).toString());
+				builders[0].setBuildPath(project.getLocation().append(generator.getBuildWorkingDir()).toOSString());
 			else {
 				IWorkspace workspace = project.getWorkspace();
-				builder.setBuildPath(workspace.getRoot().getLocation().append(buildLocation).toString());
-				builder.setManagedBuildOn(false); // needed to avoid ManagedBuild from defaulting directory of makefile.
+				builders[0].setBuildPath(workspace.getRoot().getLocation().append(buildLocation).toOSString());
 			}
 			if (buildCommand != null)
-				builder.setBuildAttribute(IMakeCommonBuildInfo.BUILD_COMMAND, buildCommand);
-			if (buildArguments != null)
-				builder.setBuildAttribute(IMakeCommonBuildInfo.BUILD_ARGUMENTS, buildArguments);
-			builder.setAutoBuildEnable(true);
-			builder.setCleanBuildEnable(false); // Don't want clean build done ahead of our build.
-			// Following is needed to circumvent the CommonBuilder from using the default
-			// GNUMakefileGenerator.
-			builder.setBuildFileGeneratorElement(AutotoolsPlugin.getDefault().getGeneratorElement());
-			toolChain.setBuilder((Builder)builder);
-			
-			IProject[] projects = null;
-			try {
-				projects = super.build(kind, args, monitor);
-			} finally {
-				// Must ensure we reset ManagedBuild back on so configuration will be run in future.
-				builder.setManagedBuildOn(true);
-			}
+				builders[0].setBuildCommand(new Path(buildCommand));
+			builders[0].setAutoBuildEnable(true);
+			builders[0].setCleanBuildEnable(true);
+			IProject[] projects = build(kind, project, builders, true, monitor);
 
 			if(VERBOSE)
 				outputTrace(project.getName(), "<<done build requested, type = " + kind); //$NON-NLS-1$
 
 			results = projects;
 			buildCalled = false;
+			
 			// Check for a postbuild step and execute it if it exists.
 			if (!postbuildStep.equals("")) {
 				monitor.subTask(postannouncebuildStep);
@@ -206,7 +192,7 @@
 				if (tmp.length > 1)
 					System.arraycopy(tmp, 1, cmdargs, 0, tmp.length - 1);
 				proc = launcher.execute(new Path(tmp[0]), cmdargs, env,
-						project.getLocation().append(generator.getBuildWorkingDir()), monitor);
+						project.getLocation().append(generator.getBuildWorkingDir()));
 				if (proc != null) {
 					try {
 						// Close the input of the process since we will never write to
@@ -221,6 +207,7 @@
 					}
 				}
 			}
+
 		}
 		return results;
 	}
