@@ -6,8 +6,8 @@
 	 * @throws CoreException
 	 */
 	private void addMakeTargetsToManager(File makefileFile) throws CoreException {
-		// We don't bother if the Makefile wasn't created successfully.
-		if (!makefileFile.exists())
+		// Return immediately if no Makefile.
+		if (makefileFile == null || !makefileFile.exists())
 			return;
 		
 		checkCancel();
@@ -55,65 +55,6 @@
 		MakeTargetComparator compareMakeTargets = new MakeTargetComparator();
 		Arrays.sort(makeTargetArray, compareMakeTargets);
 		
-		// At this point, we could use IMakeTargetManager to add new targets and
-		// remove old ones that no longer exist.  Unfortunately, the Makefile
-		// MakeTarget class is rather inefficient at this and rewrites the .cproject
-		// file for every change made to the set of MakeTargets.  In our case,
-		// we are better off performing the rewrite of the .cproject file ourselves
-		// and then restarting the MakeTargetManager manually.  This will cause it
-		// to read the .cproject file to get the MakeTargets again but there is
-		// only 1 read and 1 write vs thousands of potential operations.
-		// each 
-		Document doc;
-		try {
-			doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
-		} catch (ParserConfigurationException ex) {
-			//This should never happen.
-			throw new CoreException(new Status(IStatus.ERROR, MakeCorePlugin.getUniqueIdentifier(), -1,
-					"Error creating new XML storage document", ex)); //$NON-NLS-1$
-		}
-		Element targetsRootElement = doc.createElement(BUILD_TARGET_ELEMENT);
-		doc.appendChild(targetsRootElement);
-		for (int i = 0; i < makeTargetArray.length; i++) {
-			IMakeTarget t = (IMakeTarget)makeTargetArray[i];
-			targetsRootElement.appendChild(createTargetElement(doc, t));
-		}
-		
-		try {
-			translateDocumentToCDTProject(doc);
-		} catch (CoreException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		// To perform the shutdown and restart, we know that MakeCorePlugin's
-		// MakeTargetManager has two special methods that are not exposed as
-		// part of IMakeTargetManager.  We use reflection to access them and
-		// avoid referencing an internal CDT class: MakeTargetManager.
-		Method shutdown;
-		Method startup;
-		try {
-			shutdown = makeTargetManager.getClass().getMethod("shutdown", (Class<?>[])null);
-			startup = makeTargetManager.getClass().getMethod("startup", (Class<?>[])null);
-			if (shutdown != null && startup != null) {
-				shutdown.invoke(makeTargetManager, (Object[])null);
-				startup.invoke(makeTargetManager, (Object[])null);
-			}
-		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchMethodException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalAccessException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InvocationTargetException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		saveTargets(makeTargetArray);
 	}
 
