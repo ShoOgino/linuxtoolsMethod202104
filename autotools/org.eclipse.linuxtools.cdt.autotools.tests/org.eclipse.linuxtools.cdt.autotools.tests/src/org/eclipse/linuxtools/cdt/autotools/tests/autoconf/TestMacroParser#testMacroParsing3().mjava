@@ -1,0 +1,27 @@
+	public void testMacroParsing3() throws Exception {
+		// 
+		String text =
+			"AC_ONE_ARG( [quoted( arg ), second] )\n" + 
+			"";
+		AutoconfElement root = parse(text);
+		assertTreeStructure(root, new String[] { "AC_ONE_ARG", "quoted( arg ), second", null });
+		
+		AutoconfElement[] kids = root.getChildren();
+		assertEquals(1, kids.length);
+		assertTrue(kids[0] instanceof AutoconfMacroElement);
+		AutoconfMacroElement macro = (AutoconfMacroElement) kids[0];
+		assertEquals("AC_ONE_ARG", macro.getName());
+		
+		AutoconfElement[] args = macro.getChildren();
+		assertEquals(1, macro.getParameterCount());
+		assertEquals(1, args.length);
+		assertTrue(args[0] instanceof AutoconfMacroArgumentElement);
+		
+		// spaces removed from outermost arguments, but not inner
+		assertEquals("quoted( arg ), second", ((AutoconfMacroArgumentElement)args[0]).getName());
+		assertEquals("quoted( arg ), second", macro.getParameter(0));
+		
+		assertEqualSource("[quoted( arg ), second]", args[0]);
+		assertEqualSource("AC_ONE_ARG( [quoted( arg ), second] )", macro);
+	}
+

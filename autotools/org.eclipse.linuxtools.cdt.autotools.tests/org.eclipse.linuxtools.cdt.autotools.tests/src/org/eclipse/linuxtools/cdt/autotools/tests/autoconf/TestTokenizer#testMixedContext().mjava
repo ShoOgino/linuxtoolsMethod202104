@@ -1,0 +1,45 @@
+	public void testMixedContext() {
+		String text = "AM_INIT([arg])if true\n";
+		IDocument document = createDocument(text);
+		AutoconfTokenizer tokenizer = createTokenizer(document);
+		tokenizer.setM4Context(false);
+		tokenizer.setM4Quote("[", "]");
+
+		Token token;
+		token = tokenizer.readToken();
+		checkToken(token, document, ITokenConstants.WORD, "AM_INIT");
+
+		// "hey, that's a macro"
+		tokenizer.setM4Context(true);
+
+		token = tokenizer.readToken();
+		checkToken(token, document, ITokenConstants.LPAREN, "(");
+		token = tokenizer.readToken();
+		checkToken(token, document, ITokenConstants.M4_STRING, "arg", 5);
+		token = tokenizer.readToken();
+		checkToken(token, document, ITokenConstants.RPAREN, ")");
+
+		// "check it's not a dangling paren"
+		// it'll still be an m4 word
+		token = tokenizer.readToken();
+		checkToken(token, document, ITokenConstants.WORD, "if");
+
+		// push back token
+		tokenizer.unreadToken(token);
+
+		// "done reading macro"
+		tokenizer.setM4Context(false);
+
+		// "get shell stuff"
+		token = tokenizer.readToken();
+		checkToken(token, document, ITokenConstants.SH_IF, "if");
+		token = tokenizer.readToken();
+		checkToken(token, document, ITokenConstants.WORD, "true");
+
+		token = tokenizer.readToken();
+		checkToken(token, document, ITokenConstants.EOL, "\n");
+
+		checkToken(tokenizer.readToken(), document, ITokenConstants.EOF);
+
+	}
+
