@@ -87,6 +87,7 @@
 		} else {
 			final LaunchOptions fOptions = options;
 			final OprofileDaemonEvent[] fDaemonEvents = daemonEvents;
+			final ILaunch fLaunch = launch;
 			Display.getDefault().asyncExec(new Runnable() { 
 				public void run() {
 					//TODO: have a initialization dialog to do reset and setupDaemon?
@@ -100,8 +101,12 @@
 					}
 					
 					//manual oprofile control dialog
-					OprofiledControlDialog dlg = new OprofiledControlDialog();
+					final OprofiledControlDialog dlg = new OprofiledControlDialog();
+					ILaunchManager lmgr = DebugPlugin.getDefault().getLaunchManager();
+					lmgr.addLaunchListener(new LaunchTerminationDialogCloser(fLaunch, dlg));
+					//FIXME: possible that the launch terminates here and an attempt to close the dialog fails?
 					dlg.open();
+					
 
 					//progress dialog for ensuring the daemon is shut down
 					IRunnableWithProgress refreshRunner = new IRunnableWithProgress() {
