@@ -7,10 +7,6 @@
 		desc.setAutoBuilding(false);
 		wsp.setDescription(desc);
 		
-		// Disable the indexer while the project is being created
-		IIndexManager indexManager = CCorePlugin.getIndexManager();
-		indexManager.setDefaultIndexerId(IIndexManager.ID_NO_INDEXER);
-		
 		ICProject proj = CProjectHelper.createCProject(projname, BIN_DIR);
 		URL location = FileLocator.find(bundle, new Path("resources/" + projname), null); //$NON-NLS-1$
 		File testDir = new File(FileLocator.toFileURL(location).toURI());
@@ -32,12 +28,13 @@
 		if (!status.isOK()) {
 			throw new CoreException(status);
 		}
-				
+
 		// Project should not be indexed yet
-		assertFalse(indexManager.isProjectIndexed(proj));
+		IIndexManager indexManager = CCorePlugin.getIndexManager();
+		assertTrue(indexManager.isIndexerSetupPostponed(proj));
 		
 		// Re-enable the indexer 
-		indexManager.setDefaultIndexerId(CCorePlugin.DEFAULT_INDEXER);
+		indexerParticipant.notifyIndexerSetup(proj);
 		
 		// Index the project
 		indexManager.reindex(proj);
