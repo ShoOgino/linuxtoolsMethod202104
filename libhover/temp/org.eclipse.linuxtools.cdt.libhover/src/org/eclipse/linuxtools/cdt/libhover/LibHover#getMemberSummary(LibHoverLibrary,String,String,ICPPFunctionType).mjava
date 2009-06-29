@@ -1,0 +1,73 @@
+	private IFunctionSummary getMemberSummary(LibHoverLibrary l, String className, 
+			String memberName, ICPPFunctionType methodType) {
+
+		ArrayList<String> templateTypes = new ArrayList<String>();
+		ClassInfo info = l.getClassInfo(className, templateTypes);
+		String[] args = new String[0];
+		@SuppressWarnings("unused")
+		IType returnType = null;
+		if (info == null)
+			return null;
+		if (methodType != null) {
+			try {
+				args = resolveArgs(info, methodType.getParameterTypes());
+				returnType = methodType.getReturnType();
+			} catch (DOMException e) {
+				// TODO Auto-generated catch block
+				return null;
+			}
+//			for (int i = 0; i < args.length; ++i)
+//				System.out.println("args<" + i + "> is " + args[i].toString());
+//			System.out.println("return type is " + returnType.toString());
+			
+		}
+		MemberInfo member = info.getMember(memberName);
+		if (member != null) {
+			MemberInfo m = null;
+			if (!isParmMatch(member, args)) {
+				ArrayList<MemberInfo> members = member.getChildren();
+				for (int i = 0; i < members.size(); ++i) {
+					MemberInfo k = members.get(i);
+					if (isParmMatch(k, args)) {
+						m = k;
+						break;
+					}
+				}
+			} else {
+				m = member;
+			}
+			
+			if (m != null) {
+				// FIXME: do some work to determine parameters and return type.
+				FunctionSummary f = new FunctionSummary();
+				f.ReturnType = m.getReturnType();
+				f.Prototype = m.getPrototype();
+				f.Summary = m.getDescription();
+				String actualClassName = className.substring(className.indexOf("::")+2); // $NON-NLS-1$
+				f.Name = actualClassName + "::" + memberName; // $NON-NLS-1$
+				String[] templateParms = info.getTemplateParms();
+				for (int i = 0; i < templateTypes.size(); ++i) {
+					f.ReturnType = f.ReturnType.replaceAll(templateParms[i], templateTypes.get(i));
+					f.Prototype = f.Prototype.replaceAll(templateParms[i], templateTypes.get(i));
+					f.Name = f.Name.replaceAll(templateParms[i], templateTypes.get(i));
+				}
+				if (f.ReturnType.indexOf('<') >= 0) {
+					f.ReturnType = f.ReturnType.replaceAll("<", "&lt;");
+					f.ReturnType = f.ReturnType.replaceAll(">", "&gt;");
+				}
+				if (f.Prototype.indexOf('<') >= 0) {
+					f.Prototype = f.Prototype.replaceAll("<", "&lt;");
+					f.Prototype = f.Prototype.replaceAll(">", "&gt;");
+				}
+				if (f.Name.indexOf('<') >= 0) {
+					f.Name = f.Name.replaceAll("<", "&lt;");
+					f.Name = f.Name.replaceAll(">", "&gt;");
+				}
+				f.setPrototypeHasBrackets(true);
+				f.setIncludeName(info.getInclude());
+				return f;
+			}
+		}
+		return null;
+	}
+

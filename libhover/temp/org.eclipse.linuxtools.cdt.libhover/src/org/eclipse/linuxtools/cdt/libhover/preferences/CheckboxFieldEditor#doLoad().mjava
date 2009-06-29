@@ -1,0 +1,40 @@
+	@SuppressWarnings("unchecked")
+	@Override
+	protected void doLoad() {
+		// Combine user preference string with existing libhover extensions.
+		getExtensions();
+		HashMap<String,String> copyMap = (HashMap<String,String>)mapItems.clone();
+		ArrayList<TableData> data = new ArrayList<TableData>();
+		ArrayList<TableData> checkedData = new ArrayList<TableData>();
+		// See what the user has set in preferences and make sure that
+		// any libhover referred to is a valid current extension.
+		// Drop any preference for a non-existent extension.
+		String pref = getPreferenceStore().getString(preferenceName);
+		String[] tokens = pref.split(":");
+		if (tokens.length > 1) {
+			for (int i = 0; i < tokens.length; i+=2) {
+				String id = tokens[i];
+				Boolean checked = Boolean.valueOf(tokens[i+1]);
+				String value = copyMap.get(id);
+				if (value != null) {
+					TableData d = new TableData(id, value);
+					data.add(d);
+					if (checked)
+						checkedData.add(d);
+					copyMap.remove(id);
+				}
+			}
+		}
+		// Add remaining libhover extensions to end of list as checked by default
+		String[] leftovers = new String[copyMap.size()];
+		leftovers = copyMap.keySet().toArray(leftovers);
+		for (int i = 0; i < leftovers.length; ++i) {
+			TableData d = new TableData(leftovers[i], copyMap.get(leftovers[i]));
+			data.add(d);
+			checkedData.add(d);
+		}
+		tv.setInput(data.toArray());
+		tv.setCheckedElements(checkedData.toArray());
+		updateButtons();
+	}
+

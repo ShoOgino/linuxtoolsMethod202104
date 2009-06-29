@@ -1,0 +1,39 @@
+	private String[] getTypedefTypes(String def) {
+		String[] result = null;
+		if (def.startsWith("typedef ")) { // $NON-NLS-1$
+			int startIndex = 8;
+			int count = 0;
+			int i = def.length() - 1;
+			// To break up types, we look for first blank outside of a template, working backwards.
+			// We need to work backwards because the transformed type may contain actual numeric parameters
+			// which could use the shift operators and we won't know whether they are shift operators or
+			// template specifiers without some actual parsing.
+			while (i >= 0) {
+				char ch = def.charAt(i);
+				if (ch == '<') {
+					--count;
+				}
+				else if (ch == '>') {
+					++count;
+				}
+				// We look at last blank not in a template as being the delimeter between
+				// type name and definition.
+				if (count == 0 && ch == ' ') {
+					startIndex = i + 1;
+					break;
+				}
+				--i;
+			}
+			result = new String[2];
+			result[1] = def.substring(startIndex);
+			// Following is a bit of a hack knowing the docs don't add the namespace when the transformed
+			// type is in the same space
+			int namespace = result[1].indexOf("::"); // $NON-NLS-1$
+			if (namespace < 0)
+				result[0] = def.substring(8, startIndex).trim();
+			else
+				result[0] = result[1].substring(0, namespace) + "::" + def.substring(8, startIndex).trim(); // $NON-NLS-1$
+		}
+		return result;
+	}
+
