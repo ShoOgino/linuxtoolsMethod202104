@@ -1,0 +1,53 @@
+	public IFunctionSummary[] getMatchingFunctions(ICHelpInvocationContext context, ICHelpBook[] helpBooks, String prefix) {
+		ArrayList<IFunctionSummary> fList = new ArrayList<IFunctionSummary>();
+
+		for (int di = 0; di < helpBooks.length; ++di) {
+			LibHoverLibrary l = libraries.get(helpBooks[di]);
+			LibHoverInfo cppInfo = l.getHoverInfo();
+			SortedMap<String, FunctionInfo> map = cppInfo.functions.tailMap(prefix);
+			Set<Map.Entry<String, FunctionInfo>> c = map.entrySet();
+			for (Iterator<Entry<String, FunctionInfo>> i = c.iterator(); i.hasNext();) {
+				Map.Entry<String, FunctionInfo> e = (Map.Entry<String, FunctionInfo>)i.next();
+				FunctionInfo x = e.getValue();
+				if (x.getName().startsWith(prefix)) {
+					FunctionSummary f = new FunctionSummary();
+					f.ReturnType = x.getReturnType();
+					f.Prototype = x.getPrototype();
+					f.Summary = x.getDescription();
+					f.Name = x.getName();
+					ArrayList<String> headers = x.getHeaders();
+					for (int i1 = 0; i1 < headers.size(); ++i1)
+						f.setIncludeName(headers.get(i1));
+					fList.add(f);
+				}
+			}
+			
+//			Document document = l != null ? l.getDocument() : null;
+//			if ((null != document) && (null != prefix)) {
+//				NodeList elems = document.getElementsByTagName("construct"); // $NON-NLS-1$
+//				for (int i = 0; i < elems.getLength(); ++i) {
+//					Element elem = (Element)elems.item(i);
+//					NamedNodeMap attrs = elem.getAttributes();
+//					Node id_node = attrs.item(0);
+//					String elemName = id_node.getNodeValue();
+//					if (elemName != null && elemName.startsWith("function-")) { // $NON-NLS-1$
+//						String funcName = elemName.substring(9);
+//						if (funcName != null && funcName.startsWith(prefix)) {
+//							NodeList functionNodes = elem.getElementsByTagName("function"); // $NON-NLS-1$
+//							for (int j = 0; j < functionNodes.getLength(); ++j) {
+//								Node function_node = functionNodes.item(j);
+//								FunctionSummary f = getFunctionSummaryFromNode(funcName, function_node, document);
+//								fList.add(f);
+//							}
+//						}
+//					}
+//				}
+//			}
+		}
+		IFunctionSummary[] summaries = new IFunctionSummary[fList.size()];
+		for (int k = 0; k < summaries.length; k++) {
+			summaries[k] = (IFunctionSummary)fList.get(k);
+		}
+		return summaries;
+	}
+
