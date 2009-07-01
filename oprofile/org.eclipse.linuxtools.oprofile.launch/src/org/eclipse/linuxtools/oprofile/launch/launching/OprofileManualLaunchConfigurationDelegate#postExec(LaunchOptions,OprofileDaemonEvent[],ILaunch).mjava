@@ -1,0 +1,31 @@
+	@Override
+	protected void postExec(LaunchOptions options, OprofileDaemonEvent[] daemonEvents, ILaunch launch) {
+		final LaunchOptions fOptions = options;
+		final OprofileDaemonEvent[] fDaemonEvents = daemonEvents;
+		final ILaunch fLaunch = launch;
+		Display.getDefault().asyncExec(new Runnable() { 
+			public void run() {
+				//TODO: have a initialization dialog to do reset and setupDaemon?
+				// using a progress dialog, can't abort the launch if there's an exception..
+				try {
+					OprofileCorePlugin.getDefault().getOpcontrolProvider().reset();
+					OprofileCorePlugin.getDefault().getOpcontrolProvider().setupDaemon(fOptions.getOprofileDaemonOptions(), fDaemonEvents);
+				} catch (OpcontrolException oe) {
+					OprofileCorePlugin.showErrorDialog("opcontrolProvider", oe); //$NON-NLS-1$
+					return;		//dont open the dialog
+				}
+				
+				//manual oprofile control dialog
+				final OprofiledControlDialog dlg = new OprofiledControlDialog();
+				ILaunchManager lmgr = DebugPlugin.getDefault().getLaunchManager();
+				
+				//possible for the launched process to have terminated before opening the dialog
+				if (!fLaunch.isTerminated()) {
+					dlg.setBlockOnOpen(false);
+					dlg.open();
+					lmgr.addLaunchListener(new LaunchTerminationDialogCloser(fLaunch, dlg));
+				}
+			} 
+		});
+	}
+

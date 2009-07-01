@@ -1,0 +1,59 @@
+	public void launch(ILaunchConfiguration config, String mode, ILaunch launch, IProgressMonitor monitor) throws CoreException {
+		//FIXME: this assumes that project names are always the directory names in the workspace.
+		//this assumption may be wrong, but a shallow lookup seems ok
+		String workspacePath = ResourcesPlugin.getWorkspace().getRoot().getLocation().toString();
+		String imagePath = workspacePath
+				+ Path.SEPARATOR
+				+ config.getAttribute(ICDTLaunchConfigurationConstants.ATTR_PROJECT_NAME, "") //$NON-NLS-1$
+				+ Path.SEPARATOR
+				+ config.getAttribute(ICDTLaunchConfigurationConstants.ATTR_PROGRAM_NAME, ""); //$NON-NLS-1$
+		
+		LaunchOptions options = new LaunchOptions();		//default options created in the constructor
+		options.loadConfiguration(config);
+		options.setBinaryImage(imagePath);
+
+		//if daemonEvents null or zero size, the default event will be used
+		OprofileDaemonEvent[] daemonEvents = null;
+		if (!config.getAttribute(OprofileLaunchPlugin.ATTR_USE_DEFAULT_EVENT, false)) {
+			//get the events to profile from the counters
+			OprofileCounter[] counters = OprofileCounter.getCounters(config);
+			ArrayList<OprofileDaemonEvent> events = new ArrayList<OprofileDaemonEvent>();
+			
+			for (int i = 0; i < counters.length; ++i) {
+				if (counters[i].getEnabled())
+					events.add(counters[i].getDaemonEvent());
+			}
+			
+			daemonEvents = new OprofileDaemonEvent[events.size()];
+			events.toArray(daemonEvents);
+		}
+		
+		preExec(options, daemonEvents);
+
+		/* 
+		 * this code written by QNX Software Systems and others and was 
+		 * originally in the CDT under LocalCDILaunchDelegate::RunLocalApplication
+		 */
+		//set up and launch the local c/c++ program
+		try {
+			IPath exePath = verifyProgramPath( config );
+			File wd = getWorkingDirectory( config );
+			if ( wd == null ) {
+				wd = new File( System.getProperty( "user.home", "." ) ); //$NON-NLS-1$ //$NON-NLS-2$
+			}
+			String arguments[] = getProgramArgumentsArray( config );
+			ArrayList<String> command = new ArrayList<String>( 1 + arguments.length );
+			command.add( exePath.toOSString() );
+			command.addAll( Arrays.asList( arguments ) );
+			String[] commandArray = (String[])command.toArray( new String[command.size()] );
+			boolean usePty = config.getAttribute(ICDTLaunchConfigurationConstants.ATTR_USE_TERMINAL, ICDTLaunchConfigurationConstants.USE_TERMINAL_DEFAULT);
+			Process process;
+			process = exec( commandArray, getEnvironment( config ), wd, usePty );
+			DebugPlugin.newProcess( launch, process, renderProcessLabel( commandArray[0] ) );
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		postExec(options, daemonEvents, launch);
+	}
+

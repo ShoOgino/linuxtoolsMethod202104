@@ -1,0 +1,36 @@
+		public void launchesTerminated(ILaunch[] launches) {
+			for (ILaunch l : launches) {
+				//kill the dialog when the launch is done
+				if (l.equals(launch)) {
+					//must be in the ui thread else thread access errors
+					Display.getDefault().syncExec(new Runnable() {
+						public void run() {
+							dialog.close();
+						}
+					});
+					
+					//progress dialog for ensuring the daemon is shut down
+					IRunnableWithProgress refreshRunner = new IRunnableWithProgress() {
+						public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
+							monitor.beginTask(OprofileLaunchMessages.getString("oprofiledcontroldialog.post.stopdaemon"), 1); //$NON-NLS-1$
+							try {
+								OprofileCorePlugin.getDefault().getOpcontrolProvider().shutdownDaemon();
+							} catch (OpcontrolException e) {
+//									e.printStackTrace();
+							}
+							monitor.worked(1);
+							monitor.done();
+						}
+					};
+					ProgressMonitorDialog dialog = new ProgressMonitorDialog(null);
+					try {
+						dialog.run(true, false, refreshRunner);
+					} catch (InvocationTargetException e) {
+						e.printStackTrace();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+
