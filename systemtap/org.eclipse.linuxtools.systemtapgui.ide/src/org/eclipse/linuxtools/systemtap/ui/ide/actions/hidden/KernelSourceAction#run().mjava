@@ -1,0 +1,48 @@
+	/**
+	 * The main code body for this action. Causes one of the following to occur:
+	 * <ul>
+	 * 	<li>If the selected node is clickable, as specified in <code>TreeNode.isClickable</code>
+	 * 		the browser creates an instance of <code>CEditor</code> on the file specified in the selection
+	 * 		(<code>KernelBrowserView</code>'s tree only marks clickable on files, not folders) and
+	 * 		opens it on the current window</li>
+	 * 	<li>If the selected node is not clickable, the code runs the action specified in
+	 * 		<code>TreeExpandCollapseAction</code></li>
+	 * @see org.eclipse.linuxtools.systemtap.ui.ide.editors.c.CEditor
+	 * @see TreeNode#isClickable()
+	 * @see TreeExpandCollapseAction
+	 */
+	public void run() {
+		LogManager.logDebug("Start run", this);
+		IWorkbench wb = PlatformUI.getWorkbench();
+		ISelection incoming = viewer.getViewer().getSelection();
+		IStructuredSelection selection = (IStructuredSelection)incoming;
+		Object o  = selection.getFirstElement();
+		if(o instanceof TreeNode) {
+			TreeNode t = (TreeNode)o;
+			if(t.isClickable()) {
+				
+				File file = (File)t.getData();
+				if (file != null) {
+					IEditorInput input= createEditorInput(file);
+					String editorId= getEditorId(file);
+					try {
+						IEditorPart editor = wb.getActiveWorkbenchWindow().getActivePage().getActiveEditor();
+						if(editor instanceof STPEditor)
+							IDESessionSettings.activeSTPEditor = (STPEditor)editor;
+						wb.getActiveWorkbenchWindow().getActivePage().openEditor(input, editorId);
+						LogManager.logDebug("Editor opened", this);
+					} catch (PartInitException e) {
+						LogManager.logCritical("PartInitException run: " + e.getMessage(), this);
+					}
+					
+				}
+			}
+			else
+			{
+				
+				expandAction.run();
+			}
+		}
+		LogManager.logDebug("End run", this);
+	}
+
