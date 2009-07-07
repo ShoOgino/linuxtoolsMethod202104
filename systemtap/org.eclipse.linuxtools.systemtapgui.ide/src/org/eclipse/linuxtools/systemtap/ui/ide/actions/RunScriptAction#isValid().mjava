@@ -5,10 +5,26 @@
 	 */
 	protected boolean isValid() {
 		IEditorPart ed = fWindow.getActivePage().getActiveEditor();
-
 		if(isValidFile(ed))
-			if(isValidDirectory(((PathEditorInput)ed.getEditorInput()).getPath().toString()))
+		{ 
+			if (ed.getEditorInput() instanceof FileStoreEditorInput)
+			{
+				URI uri = ((FileStoreEditorInput)ed.getEditorInput()).getURI();
+				IFileStore location = EFS.getLocalFileSystem().getStore(uri);
+				try {
+					fileName = location.toLocalFile(EFS.NONE, null).getAbsolutePath();
+				} catch (CoreException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+			if (ed.getEditorInput() instanceof FileEditorInput)
+				fileName = ((FileEditorInput)ed.getEditorInput()).getFile().getFullPath().toString();
+			if (ed.getEditorInput() instanceof PathEditorInput)
+				fileName = ((PathEditorInput)ed.getEditorInput()).getPath().toString();
+		if(isValidDirectory(fileName))
 				return true;
+		}	
 		return true;
 	}
 

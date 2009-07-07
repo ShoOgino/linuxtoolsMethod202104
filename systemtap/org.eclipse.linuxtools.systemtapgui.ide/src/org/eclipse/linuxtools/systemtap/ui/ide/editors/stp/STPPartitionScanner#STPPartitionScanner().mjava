@@ -1,20 +1,25 @@
-	/**
-	 * Sets up the STP Partition Scanner, specifies multi line rules to govern the use of comments and
-	 * embedded C code in the editor.
-	 */
 	public STPPartitionScanner() {
-		LogManager.logDebug("Start STPPartitionScanner:", this);
+		
 		IToken stpComment = new Token(STP_COMMENT);
-		IToken embeddedC = new Token(STP_EMBEDDEDC);
-		IToken embedded = new Token(STP_EMBEDDED);
+		IToken stpString = new Token(STP_STRING);
+		IToken stpConditional = new Token(STP_CONDITIONAL);
 		
-		IPredicateRule[] rules = new IPredicateRule[3];
+		// Add special case word rule.
+		EmptyCommentRule emptyCommentRule= new EmptyCommentRule(stpComment);
 
-		rules[0] = new MultiLineRule("/*", "*/", stpComment);
-		rules[1] = new MultiLineRule("%{", "%}", embeddedC); 
-		rules[2] = new MultiLineRule("%(", "%)", embedded); 
-		
-		setPredicateRules(rules);
-		LogManager.logDebug("End STPPartitionScanner", this);
+        setPredicateRules(new IPredicateRule[] {
+        		new MultiLineRule("/*", "*/", stpComment),
+        		new EndOfLineRule("/*", stpComment),
+                new EndOfLineRule("#",  stpComment),
+                new EndOfLineRule("//", stpComment),
+	            emptyCommentRule,    
+                new EndOfLineRule("#if", stpConditional),
+                new EndOfLineRule("#else", stpConditional),
+                new EndOfLineRule("#endif", stpConditional),
+                new EndOfLineRule("#define", stpConditional),                
+        		new SingleLineRule("\"", "\"", stpString, '\\'),
+                new SingleLineRule("'", "'", stpString, '\\'),
+             });
+
 	}
 

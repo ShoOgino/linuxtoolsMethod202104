@@ -1,43 +1,41 @@
-	/**
-	 * This method does the actual work in code completion. It checks the word prior to the character 
-	 * that triggered code completion (generally '.') against the probe tree and also looks for if. If
-	 * the previous word is a probe alias or if the completion code is invoked.
+	/* (non-Javadoc)
+	 * @see org.eclipse.jface.text.contentassist.IContentAssistProcessor#computeCompletionProposals(org.eclipse.jface.text.ITextViewer, int)
 	 */
-	public ICompletionProposal[] computeCompletionProposals(ITextViewer viewer, int documentOffset) {
-		LogManager.logDebug("Start computeCompletionProposals: viewer-" + viewer + ", documentOffset-" + documentOffset, this);
-		IPreferenceStore p = IDEPlugin.getDefault().getPreferenceStore();
-		if (!p.getBoolean(IDEPreferenceConstants.P_USE_CODE_ASSIST)) return null;
+	public ICompletionProposal[] computeCompletionProposals(ITextViewer viewer,
+			int offset) {
 
+		IDocument document = viewer.getDocument();
+
+		String prefix;
+		int locationOffset =0;
+
+		// Get completion hint from document
 		try {
-			LinkedList<CompletionProposal> proposals = new LinkedList<CompletionProposal>();
-			WhitespaceDetector white = new WhitespaceDetector();
-			IDocument doc = viewer.getDocument();
-
-			int set = 1;
-			while (!(white.isWhitespace(doc.getChar(documentOffset - set)))) 
-				set++;
-			String pre = doc.get(documentOffset - set + 1, set - 1);
-
-			String[] conditionalFilters = p.getString(IDEPreferenceConstants.P_CONDITIONAL_FILTERS).split(File.pathSeparator);
-			
-			if(pre.startsWith("if(")) {
-				for(int i=0; i<conditionalFilters.length; i++) {
-					if(conditionalFilters[i].startsWith(pre))
-						proposals.add(new CompletionProposal(conditionalFilters[i], documentOffset-pre.length(), pre.length(), conditionalFilters[i].length()));
-				}
-			} else {
-				for(int i=0; i<availableProbes.length; i++) {
-					if(availableProbes[i].startsWith(pre))
-						proposals.add(new CompletionProposal(availableProbes[i], documentOffset-pre.length(), pre.length(), availableProbes[i].length()));
-				}
-			}
-			
-			CompletionProposal[] props = new CompletionProposal[proposals.size()];
-			proposals.toArray(props);
-			return props;
-		} catch(BadLocationException ble) {
-			LogManager.logCritical("BadLocationException computeCompletionProposals: " + ble.getMessage(), this);
+			prefix = completionWord(document, offset);
+			locationOffset = completionReplaceWordLocation(document, offset);
+		} catch (Exception e) {
+			return NO_COMPLETIONS;
 		}
-		return null;
+
+		// If cannot find a place to replace our partial typed completion
+		// with the full one, abort with no completions.
+		if (locationOffset < 0)
+			return NO_COMPLETIONS;
+			
+		String[] completionData = STPMetadataSingleton.getCompletionResults(prefix);
+
+		// If cannot find  any completions
+		// abort with no completions.
+		if (completionData.length < 1)
+			return NO_COMPLETIONS;
+
+		// Build proposals and submit
+		ICompletionProposal[] result = new ICompletionProposal[completionData.length];
+		for (int i = 0; i < completionData.length; i++)
+			result[i] = new CompletionProposal(
+							completionData[i].substring(offset - locationOffset), 
+							offset, 0, completionData[i].length(), null, 
+							completionData[i], null, null);
+		return result;
 	}
 
