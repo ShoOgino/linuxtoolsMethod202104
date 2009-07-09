@@ -59,7 +59,6 @@
 			IPath configSettingsPath = getConfigSettingsPath();
 			IFile configSettings = root.getFileForLocation(configSettingsPath);
 			String[] configArgs = getConfigArgs();
-			PathVar autogenPath = new PathVar();
 
 			// We need to figure out if the end-user has changed the configuration
 			// settings.  In such a case, we need to reconfigure from scratch
@@ -115,8 +114,46 @@
 					// addition, the build directory itself could have been changed and
 					// we should remove the previous build.
 					IResource r = root.findMember(project.getFullPath().append(buildDir));
-					if (r != null && r.exists())
-						r.delete(true, new SubProgressMonitor(monitor, IProgressMonitor.UNKNOWN));
+					if (r != null && r.exists()) {
+						// See what type of cleaning the user has set up in the
+						// build properties dialog.
+						String cleanDelete = null;
+						try {
+							cleanDelete = getProject().getPersistentProperty(AutotoolsPropertyConstants.CLEAN_DELETE);
+						} catch (CoreException ce) {
+							// do nothing
+						}
+						
+						if (cleanDelete != null && cleanDelete.equals(AutotoolsPropertyConstants.TRUE))
+							r.delete(true, new SubProgressMonitor(monitor, IProgressMonitor.UNKNOWN));
+						else {
+							// There is a make target for cleaning.
+							if (makefile != null && makefile.exists()) {
+								String[] makeargs = new String[1];
+								IPath makeCmd = new Path("make"); //$NON-NLS-1$
+								String target = null;
+								try {
+									target = getProject().getPersistentProperty(AutotoolsPropertyConstants.CLEAN_MAKE_TARGET);
+								} catch (CoreException ce) {
+									// do nothing
+								}
+								if (target == null)
+									target = AutotoolsPropertyConstants.CLEAN_MAKE_TARGET_DEFAULT;
+								String args = builder.getBuildArguments();
+								if (args != null && !(args = args.trim()).equals("")) { //$NON-NLS-1$
+									String[] newArgs = makeArray(args);
+									makeargs = new String[newArgs.length + 1];
+									System.arraycopy(newArgs, 0, makeargs, 0, newArgs.length);
+								}
+								makeargs[makeargs.length - 1] = target;
+								rc = runCommand(makeCmd,
+										project.getLocation().append(buildDir),
+										makeargs,
+										AutotoolsPlugin.getResourceString("MakeGenerator.clean.builddir"), //$NON-NLS-1$
+										errMsg, console, true);
+							}
+						}
+					}
 					initializeBuildConfigDirs();
 					createDirectory(buildDir);
 					// Mark the scanner info as dirty.
@@ -132,6 +169,12 @@
 					saveConfigArgs(configArgs);
 				}
 			}
+			
+			ArrayList<String> configureEnvs = new ArrayList<String>();
+			IPath configurePath = getConfigurePath(configureEnvs);
+			ArrayList<String> autogenEnvs = new ArrayList<String>();
+			IPath autogenPath = getAutogenPath(autogenEnvs);
+			
 			// Check if we have a config.status (meaning configure has already run).
     		if (!needFullConfigure && configStatus != null && configStatus.exists()) {
 			    // If no corresponding Makefile in the same build location, then we
@@ -141,16 +184,16 @@
 					rc = runScript(configfile, project.getLocation().append(
 							buildDir), null, 
 							AutotoolsPlugin.getResourceString("MakeGenerator.run.config.status"), //$NON-NLS-1$
-							errMsg, console, true);
+							errMsg, console, null, true);
 				}
 			}
 			// Look for configure and configure from scratch
-			else if (configureExists()) {
-				rc = runScript(getConfigurePath(), 
+			else if (configurePath.toFile().exists()) {
+				rc = runScript(configurePath, 
 						project.getLocation().append(buildDir),
 						configArgs, 
 						AutotoolsPlugin.getResourceString("MakeGenerator.gen.makefile"), //$NON-NLS-1$
-						errMsg, console, true);
+						errMsg, console, configureEnvs, true);
 				if (rc != IStatus.ERROR) {
 					File makefileFile = project.getLocation().append(buildDir)
 					.append(MAKEFILE).toFile();
@@ -162,28 +205,28 @@
 			}
 			// If no configure, look for autogen.sh which may create configure and
     		// possibly even run it.
-			else if (autogenExists(autogenPath)) {
+			else if (autogenPath.toFile().exists()) {
 				// Remove the existing config.status file since we use it
 				// to figure out if configure was run.
 				if (configStatus.exists())
 					configStatus.delete(true, null);
 				// Get any user-specified arguments for autogen.
 				String[] autogenArgs = getAutogenArgs();
-				rc = runScript(autogenPath.path,
-						autogenPath.path.removeLastSegments(1), autogenArgs,
+				rc = runScript(autogenPath,
+						autogenPath.removeLastSegments(1), autogenArgs,
 						AutotoolsPlugin.getResourceString("MakeGenerator.autogen.sh"), //$NON-NLS-1$
-						errMsg, console, true);
+						errMsg, console, autogenEnvs, true);
 				if (rc != IStatus.ERROR) {
 					configStatus = root.getFileForLocation(configfile);
 					// Check for config.status.  If it is created, then
 					// autogen.sh ran configure and we should not run it
 					// ourselves.
 					if (configStatus == null || !configStatus.exists()) {
-						rc = runScript(getConfigurePath(), 
+						rc = runScript(configurePath, 
 								project.getLocation().append(buildDir),
 								configArgs, 
 								AutotoolsPlugin.getResourceString("MakeGenerator.gen.makefile"), //$NON-NLS-1$
-								errMsg, console, false);
+								errMsg, console, configureEnvs, false);
 						if (rc != IStatus.ERROR) {
 							File makefileFile = project.getLocation().append(buildDir)
 							.append(MAKEFILE).toFile();
@@ -228,12 +271,13 @@
 						errMsg, console, true);
 				// Check if configure generated and if yes, run it.
 				if (rc != IStatus.ERROR) {
-					if (configureExists()) {
-						rc = runScript(getConfigurePath(), 
+					if (configurePath.toFile().exists()) {
+						
+						rc = runScript(configurePath, 
 								project.getLocation().append(buildDir),
 								configArgs, 
 								AutotoolsPlugin.getResourceString("MakeGenerator.gen.makefile"), //$NON-NLS-1$
-								errMsg, console, true);
+								errMsg, console, configureEnvs, true);
 						if (rc != IStatus.ERROR) {
 							File makefileFile = project.getLocation().append(buildDir)
 							.append(MAKEFILE).toFile();
