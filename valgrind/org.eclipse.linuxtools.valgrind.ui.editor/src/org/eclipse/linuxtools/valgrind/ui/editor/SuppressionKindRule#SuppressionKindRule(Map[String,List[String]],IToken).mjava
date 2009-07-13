@@ -1,0 +1,32 @@
+	public SuppressionKindRule(Map<String, List<String>> suppKinds, IToken successToken) {
+		kinds = suppKinds;
+		token = successToken;
+		
+		final List<String> suppKindsList = new ArrayList<String>();
+		Set<String> tools = suppKinds.keySet();
+		for (String tool : tools) {
+			suppKindsList.addAll(suppKinds.get(tool));
+		}
+		
+		subrule = new WordRule(new IWordDetector() {
+		
+			public boolean isWordStart(char c) {
+				for (String kind : suppKindsList) {
+					if (c == kind.charAt(0)) {
+						return true;
+					}
+				}
+				return false;
+			}
+		
+			public boolean isWordPart(char c) {
+				return Character.isJavaIdentifierPart(c);
+			}
+			
+		});
+		
+		for (String kind : suppKindsList) {
+			subrule.addWord(kind, DUMMY_TOKEN);
+		}
+	}
+
