@@ -1,13 +1,20 @@
 	/**
-	 * Installs a given source RPM 
+	 * Installs a given source RPM
+	 * 
 	 * @param sourceRPM
 	 * @throws CoreException
 	 */
-    public void install(IFile sourceRPM) throws CoreException {
-        String command = rpmCmd;
-		command += macroDefines;
-        command += " -i " + sourceRPM.getLocation().toOSString(); //$NON-NLS-1$
-        ShellScript script = new ShellScript(command, 0);
-		script.exec();
-    }
+	public String install(IFile sourceRPM) throws CoreException {
+		List<String> command = new ArrayList<String>();
+		command.addAll(Arrays.asList(macroDefines));
+		command.add("-i"); //$NON-NLS-1$
+		command.add(sourceRPM.getLocation().toOSString());
+		try {
+			return Utils.runCommandToString(command
+					.toArray(new String[command.size()]));
+		} catch (IOException e) {
+			throw new CoreException(new Status(IStatus.ERROR, RPMCorePlugin.ID,
+					e.getMessage(), e));
+		}
+	}
 
