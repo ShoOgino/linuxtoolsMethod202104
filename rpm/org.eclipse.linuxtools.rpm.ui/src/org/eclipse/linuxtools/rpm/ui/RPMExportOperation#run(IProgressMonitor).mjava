@@ -1,9 +1,9 @@
 	/**
 	 * @see org.eclipse.jface.operation.IRunnableWithProgress#run(IProgressMonitor)
-	 *
+	 * 
 	 */
 	public void run(IProgressMonitor progressMonitor)
-		throws InvocationTargetException {
+			throws InvocationTargetException {
 		int totalWork = 2;
 
 		monitor = progressMonitor;
@@ -13,36 +13,51 @@
 
 		// Start progress
 		monitor.beginTask(Messages.getString("RPMExportOperation.Starting"), //$NON-NLS-1$
-		totalWork);
+				totalWork);
 		monitor.worked(1);
-		
-		switch(exportType) {
+		InputStream result = null;
+		switch (exportType) {
 		case ALL:
 			try {
-				monitor.setTaskName(Messages.getString("RPMExportOperation.Executing_RPM_Export")); //$NON-NLS-1$
-				rpmProject.buildAll();
-			} catch(Exception e) {
+				monitor.setTaskName(Messages
+						.getString("RPMExportOperation.Executing_RPM_Export")); //$NON-NLS-1$
+				result = rpmProject.buildAll();
+			} catch (Exception e) {
 				rpm_errorTable.add(e);
 			}
 			break;
-		
+
 		case BINARY:
-			monitor.setTaskName(Messages.getString("RPMExportOperation.Executing_RPM_Export")); //$NON-NLS-1$
+			monitor.setTaskName(Messages
+					.getString("RPMExportOperation.Executing_RPM_Export")); //$NON-NLS-1$
 			try {
-				rpmProject.buildBinaryRPM();
-			} catch(Exception e) {
+				result = rpmProject.buildBinaryRPM();
+			} catch (Exception e) {
 				rpm_errorTable.add(e);
 			}
 			break;
-		
+
 		case SOURCE:
-			monitor.setTaskName(Messages.getString("RPMExportOperation.Executing_SRPM_Export")); //$NON-NLS-1$
+			monitor.setTaskName(Messages
+					.getString("RPMExportOperation.Executing_SRPM_Export")); //$NON-NLS-1$
 			try {
-				rpmProject.buildSourceRPM();
-			} catch(Exception e) {
+				result = rpmProject.buildSourceRPM();
+			} catch (Exception e) {
 				rpm_errorTable.add(e);
 			}
 			break;
+		}
+		MessageConsole myConsole = findConsole("rpmbuild"); //$NON-NLS-1$
+		MessageConsoleStream out = myConsole.newMessageStream();
+		myConsole.clearConsole();
+		myConsole.activate();
+		if (null != result) {
+			try {
+				out.println(Utils.inputStreamToString(result));
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		monitor.worked(1);
 	}
