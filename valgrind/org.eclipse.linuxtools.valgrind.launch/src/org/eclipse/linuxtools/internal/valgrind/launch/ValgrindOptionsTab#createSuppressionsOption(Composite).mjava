@@ -1,17 +1,24 @@
 	protected void createSuppressionsOption(Composite top) {
-		Composite browseTop = new Composite(top, SWT.NONE);		
-		browseTop.setLayout(new GridLayout(4, false));
-		GridData browseData = new GridData(GridData.FILL_HORIZONTAL);
+		Composite browseTop = new Composite(top, SWT.BORDER);		
+		browseTop.setLayout(new GridLayout(2, false));
+		GridData browseData = new GridData(GridData.FILL_BOTH);
 		browseTop.setLayoutData(browseData);
 
 		Label suppFileLabel = new Label(browseTop, SWT.NONE);
 		suppFileLabel.setText(Messages.getString("ValgrindOptionsTab.suppressions_file")); //$NON-NLS-1$
 		
-		suppFileText = new Text(browseTop, SWT.BORDER);
-		suppFileText.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		suppFileText.addModifyListener(modifyListener);
+		createVerticalSpacer(browseTop, 1);
+		
+		suppFileList = new List(browseTop, SWT.BORDER);
+		suppFileList.setLayoutData(new GridData(GridData.FILL_BOTH));
 
-		Button workspaceBrowseButton = createPushButton(browseTop, Messages.getString("ValgrindOptionsTab.Workspace"), null);  //$NON-NLS-1$
+		Composite buttonTop = new Composite(browseTop, SWT.NONE);
+		GridLayout buttonLayout = new GridLayout();
+		buttonLayout.marginWidth = buttonLayout.marginHeight = 0;
+		buttonTop.setLayout(buttonLayout);
+		buttonTop.setLayoutData(new GridData(SWT.CENTER, SWT.BEGINNING, false, false));
+		
+		Button workspaceBrowseButton = createPushButton(buttonTop, Messages.getString("ValgrindOptionsTab.Workspace"), null);  //$NON-NLS-1$
 		workspaceBrowseButton.addSelectionListener(new SelectionAdapter() {
 			public void widgetSelected(SelectionEvent e) {
 				ElementTreeSelectionDialog dialog = new ElementTreeSelectionDialog(getShell(), new WorkbenchLabelProvider(), new WorkbenchContentProvider());
@@ -23,18 +30,31 @@
 					IResource resource = (IResource) dialog.getFirstResult();
 					String arg = resource.getFullPath().toString();
 					String fileLoc = VariablesPlugin.getDefault().getStringVariableManager().generateVariableExpression("workspace_loc", arg); //$NON-NLS-1$
-					suppFileText.setText(fileLoc);
+					suppFileList.add(fileLoc);
+					updateLaunchConfigurationDialog();
 				}
 			}
 		});
-		Button fileBrowseButton = createPushButton(browseTop, Messages.getString("ValgrindOptionsTab.File_System"), null); //$NON-NLS-1$
+		Button fileBrowseButton = createPushButton(buttonTop, Messages.getString("ValgrindOptionsTab.File_System"), null); //$NON-NLS-1$
 		fileBrowseButton.addSelectionListener(new SelectionAdapter() {
 			public void widgetSelected(SelectionEvent e) {
-				String filePath = suppFileText.getText();
+				String filePath = null;
 				FileDialog dialog = new FileDialog(getShell(), SWT.SAVE);
 				filePath = dialog.open();
 				if (filePath != null) {
-					suppFileText.setText(filePath);
+					suppFileList.add(filePath);
+					updateLaunchConfigurationDialog();
+				}
+			}
+		});
+		Button removeButton = createPushButton(buttonTop, Messages.getString("ValgrindOptionsTab.Supp_remove"), null); //$NON-NLS-1$
+		removeButton.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				int[] selected = suppFileList.getSelectionIndices();
+				if (selected.length > 0) {
+					suppFileList.remove(selected);
+					updateLaunchConfigurationDialog();
 				}
 			}
 		});

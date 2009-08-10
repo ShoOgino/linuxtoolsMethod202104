@@ -1,24 +1,19 @@
 	private boolean isGeneralValid() {
-		String strpath = suppFileText.getText();
-		boolean result = false;
-		if (strpath.equals(EMPTY_STRING)) {
-			result = true;
-		}
-		else {
+		String[] suppFiles = suppFileList.getItems();
+		boolean result = true;
+		for (int i = 0; i < suppFiles.length && result; i++) {
 			try {
-				IPath suppfile = getPlugin().parseWSPath(strpath);
-				if (suppfile.toFile().exists()) {
-					result = true;
+				IPath suppfile = getPlugin().parseWSPath(suppFiles[i]);
+				if (!suppfile.toFile().exists()) {
+					setErrorMessage(NLS.bind(Messages.getString("ValgrindOptionsTab.suppressions_file_doesnt_exist"), suppFiles[i])); //$NON-NLS-1$
+					result = false;
 				}
 			} catch (CoreException e) {
 				// should only occur if there's a cycle in variable substitution
 				e.printStackTrace();
 			}
 		}
-		
-		if (!result) {
-			setErrorMessage(NLS.bind(Messages.getString("ValgrindOptionsTab.suppressions_file_doesnt_exist"), strpath)); //$NON-NLS-1$
-		}
+
 		return result;
 	}
 
