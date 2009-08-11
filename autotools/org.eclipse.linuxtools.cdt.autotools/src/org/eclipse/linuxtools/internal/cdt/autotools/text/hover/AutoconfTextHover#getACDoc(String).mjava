@@ -1,0 +1,56 @@
+	protected static Document getACDoc(String acDocName) {
+		Document ac_document = null;
+		if (acHoverDocs == null) {
+			acHoverDocs = new HashMap<String, Document>();
+		}
+		ac_document = (Document)acHoverDocs.get(acDocName);
+		if (ac_document == null) {
+			Document doc = null;
+			try {
+				// see comment in initialize()
+				try {
+					// Either open the html file or file system file depending
+					// on what has been specified.
+					URI acDoc = new URI(acDocName);
+					IPath p = URIUtil.toPath(acDoc);
+					InputStream docStream = null;
+					if (p == null) {
+						URL url = acDoc.toURL();
+						docStream = url.openStream();
+					} else {
+						docStream = new FileInputStream(p.toFile());
+					}
+					DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+					factory.setValidating(false);
+					try {
+						DocumentBuilder builder = factory.newDocumentBuilder();
+						doc = builder.parse(docStream);
+					}
+					catch (SAXParseException saxException) {
+						doc = null;
+					}
+					catch (SAXException saxEx) {
+						doc = null;
+					}
+					catch (ParserConfigurationException pce) {
+						doc = null;
+					}
+					catch (IOException ioe) {
+						doc = null;
+					}
+				} catch (FileNotFoundException e) {
+					AutotoolsPlugin.log(e);
+				} catch (MalformedURLException e) {
+					AutotoolsPlugin.log(e);
+				} catch (URISyntaxException e) {
+					AutotoolsPlugin.log(e);
+				}
+				ac_document = doc;
+			}
+			catch (IOException ioe) {
+			}
+		}
+		acHoverDocs.put(acDocName, ac_document);
+		return ac_document;
+	}
+

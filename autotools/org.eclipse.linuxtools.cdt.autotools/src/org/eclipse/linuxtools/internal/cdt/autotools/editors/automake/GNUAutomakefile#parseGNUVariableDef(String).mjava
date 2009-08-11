@@ -1,0 +1,102 @@
+	protected GNUVariableDef parseGNUVariableDef(String line) {
+		line = line.trim();
+		GNUVariableDef vd;
+
+		// the default type.
+		int type = GNUVariableDef.TYPE_RECURSIVE_EXPAND;
+		boolean isDefine = false;
+		boolean isOverride = false;
+		boolean isTargetVariable = false;
+		boolean isExport = false;
+		String targetName = ""; //$NON-NLS-1$
+
+		String name;
+		StringBuffer value = new StringBuffer();
+
+		// Check for Target: Variable-assignment
+		isTargetVariable = GNUMakefileUtil.isTargetVariable(line);
+		if (isTargetVariable) {
+			// move to the first ':'
+			int colon = Util.indexOf(line, ':');
+			if (colon != -1) {
+				targetName = line.substring(0, colon).trim();
+				line = line.substring(colon + 1).trim();
+			} else {
+				targetName = ""; //$NON-NLS-1$
+			}
+		}
+
+		// Check for Override condition.
+		if (GNUMakefileUtil.isOverride(line)) {
+			isOverride = true;
+			// Move pass the keyword override.
+			for (int i = 0; i < line.length(); i++) {
+				if (Util.isSpace(line.charAt(i))) {
+					line = line.substring(i).trim();
+					break;
+				}
+			}
+		}
+
+		// Check for "define"
+		if (GNUMakefileUtil.isDefine(line)) {
+			isDefine = true;
+			// Move pass the keyword define.
+			for (int i = 0; i < line.length(); i++) {
+				if (Util.isSpace(line.charAt(i))) {
+					line = line.substring(i).trim();
+					break;
+				}
+			}
+		}
+
+		// Check for Override condition.
+		if (GNUMakefileUtil.isExport(line)) {
+			isExport = true;
+			// Move pass the keyword export.
+			for (int i = 0; i < line.length(); i++) {
+				if (Util.isSpace(line.charAt(i))) {
+					line = line.substring(i).trim();
+					break;
+				}
+			}
+		}
+
+		// Check for Target-variable
+
+		int index = line.indexOf('=');
+		if (index != -1) {
+			int separator = index;
+			// Check for "+=",  ":=", "?="
+			if (index > 0) {
+				type = line.charAt(index - 1);
+				if (type == GNUVariableDef.TYPE_SIMPLE_EXPAND
+					|| type == GNUVariableDef.TYPE_APPEND
+					|| type == GNUVariableDef.TYPE_CONDITIONAL) {
+					separator = index - 1;
+				} else {
+					type = GNUVariableDef.TYPE_RECURSIVE_EXPAND;
+				}
+			}
+			name = line.substring(0, separator).trim();
+			value.append(line.substring(index + 1).trim());
+		} else {
+			name = line;
+		}
+
+		if (isTargetVariable) {
+			vd = new TargetVariable(this, targetName, name, value, isOverride, type);
+		} else if (isOverride && isDefine) {
+			vd = new OverrideDefine(this, name, value);
+		} else if (isDefine) {
+			vd = new DefineVariable(this, name, value);
+		} else if (isOverride) {
+			vd = new OverrideVariable(this, name, value, type);
+		} else if (isExport) {
+			vd = new ExportVariable(this, name, value, type);
+		} else {
+			vd = new GNUVariableDef(this, name, value, type);
+		}
+		return vd;
+	}
+

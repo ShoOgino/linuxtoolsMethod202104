@@ -1,0 +1,50 @@
+	/**
+	 * @param line
+	 * @return
+	 */
+	protected SpecialRule parseSpecialRule(String line) {
+		line = line.trim();
+		String keyword =  null;
+		String[] reqs = null;
+		SpecialRule special = null;
+		int index = Util.indexOf(line, ':');
+		if (index != -1) {
+			keyword = line.substring(0, index).trim();
+			String req = line.substring(index + 1);
+			reqs = PosixMakefileUtil.findPrerequisites(req);
+		} else {
+			keyword = line;
+			reqs = new String[0];
+		}
+		if (keyword.equals(MakeFileConstants.RULE_IGNORE)) {
+			special = new IgnoreRule(this, reqs);
+		} else if (keyword.equals(MakeFileConstants.RULE_POSIX)) {
+			special = new PosixRule(this);
+		} else if (keyword.equals(MakeFileConstants.RULE_PRECIOUS)) {
+			special = new PreciousRule(this, reqs);
+		} else if (keyword.equals(MakeFileConstants.RULE_SILENT)) {
+			special = new SilentRule(this, reqs);
+		} else if (keyword.equals(MakeFileConstants.RULE_SUFFIXES)) {
+			special = new SuffixesRule(this, reqs);
+		} else if (keyword.equals(MakeFileConstants.RULE_DEFAULT)) {
+			special = new DefaultRule(this, new Command[0]);
+		} else if (keyword.equals(MakeFileConstants.RULE_SCCS_GET)) {
+			special = new SccsGetRule(this, new Command[0]);
+		} else if (keyword.equals(GNUMakefileConstants.RULE_PHONY)) {
+			special = new PhonyRule(this, reqs);
+		} else if (keyword.equals(GNUMakefileConstants.RULE_INTERMEDIATE)) {
+			special = new IntermediateRule(this, reqs);
+		} else if (keyword.equals(GNUMakefileConstants.RULE_SECONDARY)) {
+			special = new SecondaryRule(this, reqs);
+		} else if (keyword.equals(GNUMakefileConstants.RULE_DELETE_ON_ERROR)) {
+			special = new DeleteOnErrorRule(this, reqs);
+		} else if (keyword.equals(GNUMakefileConstants.RULE_LOW_RESOLUTION_TIME)) {
+			special = new LowResolutionTimeRule(this, reqs);
+		} else if (keyword.equals(GNUMakefileConstants.RULE_EXPORT_ALL_VARIABLES)) {
+			special = new ExportAllVariablesRule(this, reqs);
+		} else if (keyword.equals(GNUMakefileConstants.RULE_NOT_PARALLEL)) {
+			special = new NotParallelRule(this, reqs);
+		}
+		return special;
+	}
+

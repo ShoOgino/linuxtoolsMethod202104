@@ -1,0 +1,29 @@
+	private IFile getMakefile (IManagedBuildInfo info, IPath filePath) {
+		IWorkspaceRoot root = CCorePlugin.getWorkspace().getRoot();
+		IPath dir = filePath.removeLastSegments(1);
+		IFile makefile = null;
+		boolean done = false;
+		IPath makefilePath = null;
+		// Look starting at source file directory for the
+		// Makefile.in or Makefile for the given file.
+		while (!done) {
+			makefilePath = dir.append("Makefile.in"); // $NON-NLS-1$
+			makefile = root.getFile(makefilePath);
+			if (makefile != null && makefile.exists()) {
+				done = true;
+				continue;
+			}
+			makefilePath = dir.append("Makefile"); // $NON-NLS-1$
+			makefile = root.getFile(makefilePath);
+			if (makefile != null && makefile.exists()) {
+				done = true;
+			}
+			else {
+				dir = dir.removeLastSegments(1);
+				if (dir.lastSegment() == null)
+					done = true;
+			}
+		}
+		return makefile;
+	}
+

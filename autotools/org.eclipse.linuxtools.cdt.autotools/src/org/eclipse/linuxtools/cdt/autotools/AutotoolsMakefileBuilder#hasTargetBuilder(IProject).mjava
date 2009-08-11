@@ -1,0 +1,29 @@
+	public static boolean hasTargetBuilder(IProject project) {
+		try {
+			// When a project is converted to an Autotools project, we
+			// replace the ManagedMake builder with a special one that
+			// handles MakeTargets.  If a project is brought into Eclipse and
+			// uses the New Project Wizard to create a ManagedMake project that
+			// is of type: Autotools, this added step is not done.  If we know
+			// we have an Autotools project from the configuration id, then
+			// we should add the builder now.  We also should replace the
+			// default ManagedMake scanner provider with the Autotools one,
+			// then return true.
+			if (project.getNature(ManagedCProjectNature.MNG_NATURE_ID) != null) {
+				IManagedBuildInfo info = ManagedBuildManager.getBuildInfo(project);
+				IManagedProject m = info.getManagedProject();
+				if (m != null && m.getProjectType().getId().equals(AUTOTOOLS_PROJECT_TYPE_ID)) {
+					AutotoolsProjectNature.addAutotoolsBuilder(project, new NullProgressMonitor());
+					AutotoolsPlugin.verifyScannerInfoProvider(project);
+					return true;
+				}
+			}
+		} catch (CoreException e) {
+			// Don't care...fall through to not found.
+		} catch (Exception f) {
+			// Don't care...fall through to not found.
+		}
+		// Otherwise not found.
+		return false;
+	}
+

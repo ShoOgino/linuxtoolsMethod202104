@@ -1,0 +1,23 @@
+	/*
+	 * @see org.eclipse.ui.IElementFactory#createElement(org.eclipse.ui.IMemento)
+	 */
+	public IAdaptable createElement(IMemento memento) {
+        // Get the file name.
+        String fileName = memento.getString(TAG_PATH);
+        if (fileName == null) {
+			return null;
+		}
+
+        IPath location= new Path(fileName);
+        ICProject cProject= null;
+        
+        String projectName= memento.getString(TAG_PROJECT);
+        if (projectName != null) {
+        	IProject project= ResourcesPlugin.getWorkspace().getRoot().getProject(projectName);
+        	if (project.isAccessible() && CoreModel.hasCNature(project)) {
+        		cProject= CoreModel.getDefault().create(project);
+        	}
+        }
+		return EditorUtility.getEditorInputForLocation(location, cProject);
+	}
+

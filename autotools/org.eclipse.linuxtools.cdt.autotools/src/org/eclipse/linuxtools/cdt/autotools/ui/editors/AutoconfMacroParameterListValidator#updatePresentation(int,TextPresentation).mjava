@@ -1,0 +1,60 @@
+	/**
+	 * @see IContextInformationPresenter#updatePresentation(int, TextPresentation)
+	 */
+	public boolean updatePresentation(int position, TextPresentation presentation) {
+
+		int currentParameter= -1;
+		try {
+			currentParameter= getCharCount(fViewer.getDocument(), fPosition, position, ',', (char) 0, true);
+		} catch (BadLocationException x) {
+			return false;
+		}
+		
+		if (fCurrentParameter != -1) {
+			if (currentParameter == fCurrentParameter)
+				return false;
+		}
+		
+		presentation.clear();
+		fCurrentParameter= currentParameter;
+		
+		//Don't presume what has been done to the string, rather use as is
+		String s= fInformation.getInformationDisplayString();
+		
+		//@@@ This is obviously going to have problems with functions such
+		//int myfunction(int (*function_argument)(void * extra, int param), void * extra)
+		//int myfunction(/*A comment, indeed */int a);
+		int start= 0;
+		int occurrences= 0;
+		while (occurrences < fCurrentParameter) {
+			int found= s.indexOf(',', start);
+			if (found == -1)
+				break;
+			start= found + 1;
+			++ occurrences;
+		}
+		
+		if (occurrences < fCurrentParameter) {
+			presentation.addStyleRange(new StyleRange(0, s.length(), null, null, SWT.NORMAL));
+			return true;
+		}
+		
+		if (start == -1)
+			start= 0;
+		
+		int end= s.indexOf(',', start);
+		if (end == -1)
+			end= s.length();
+			
+		if (start > 0)	
+			presentation.addStyleRange(new StyleRange(0, start, null, null, SWT.NORMAL));
+		
+		if (end > start)
+			presentation.addStyleRange(new StyleRange(start, end - start, null, null, SWT.BOLD));
+		
+		if (end < s.length())
+			presentation.addStyleRange(new StyleRange(end, s.length() - end, null, null, SWT.NORMAL));
+			
+		return true;
+	}
+

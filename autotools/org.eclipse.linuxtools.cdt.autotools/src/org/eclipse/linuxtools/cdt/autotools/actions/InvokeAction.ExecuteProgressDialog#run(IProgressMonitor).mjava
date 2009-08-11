@@ -1,0 +1,48 @@
+		public void run(IProgressMonitor monitor)
+		throws InvocationTargetException, InterruptedException {
+			ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+			ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+			CommandLauncher cmdL = new CommandLauncher();
+			outputs = null;
+
+			// invoke command
+			try {
+				monitor.beginTask(
+						InvokeMessages.getFormattedString("InvokeAction.progress.message", // $NON-NLS-1$
+								new String[]{command.toOSString()}), IProgressMonitor.UNKNOWN);
+				monitor.worked(1);
+				Process process = cmdL.execute(command, argumentList, envList,
+						execDir, new NullProgressMonitor());
+
+				if (cmdL.waitAndRead(stdout, stderr) == CommandLauncher.OK) {
+					try {
+						status = 0;
+						monitor.done();
+						process.getOutputStream().close();
+					} catch (IOException e) {
+						// ignore
+					}
+				} else {
+					// failed to execute command
+					status = -1;
+					monitor.done();
+					return;
+				}
+			} catch (CoreException e) {
+				monitor.done();
+				throw new InvocationTargetException(e);
+			}
+
+			outputs = new HashMap<String, String>();
+
+			outputs.put("stdout", stdout.toString()); //$NON-NLS-1$
+			outputs.put("stderr", stderr.toString()); //$NON-NLS-1$
+
+			try {
+				stdout.close();
+				stderr.close();
+			} catch (IOException e) {
+				// ignore
+			}
+		}
+

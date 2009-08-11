@@ -1,0 +1,60 @@
+	/**
+	 * This method parses the given Makefile and produces MakeTargets for all targets so the
+	 * end-user can access them from the MakeTargets popup-menu.
+	 * 
+	 * @param makefileFile the Makefile to parse
+	 * @throws CoreException
+	 */
+	private void addMakeTargetsToManager(File makefileFile) throws CoreException {
+		// Return immediately if no Makefile.
+		if (makefileFile == null || !makefileFile.exists())
+			return;
+		
+		checkCancel();
+		if (monitor == null)
+			monitor = new NullProgressMonitor();
+		String statusMsg = AutotoolsPlugin.getResourceString("MakeGenerator.refresh.MakeTargets");	//$NON-NLS-1$
+		monitor.subTask(statusMsg);
+		
+		IMakeTargetManager makeTargetManager = 
+			MakeCorePlugin.getDefault().getTargetManager();
+		
+		IMakefile makefile = MakeCorePlugin.createMakefile(makefileFile.toURI(), false, null);
+		ITargetRule[] targets = makefile.getTargetRules();
+		ITarget target = null;
+		Map<String, IMakeTarget> makeTargets = new HashMap<String, IMakeTarget>(); // use a HashMap so duplicate names are handled
+		for (int i = 0; i < targets.length; i++) {
+			target = targets[i].getTarget();
+			String targetName = target.toString();
+			if (!isValidTarget(targetName, makeTargetManager))
+				continue;
+			try {
+				IMakeTarget makeTarget = makeTargetManager.createTarget(
+						project, targetName, "org.eclipse.linuxtools.cdt.autotools.builder1"); //$NON-NLS-1$
+				makeTarget.setContainer(project);
+				makeTarget.setStopOnError(true);
+				makeTarget.setRunAllBuilders(false);
+				makeTarget.setUseDefaultBuildCmd(true);
+
+				makeTarget.setBuildAttribute(GENERATED_TARGET, "true");
+				makeTarget.setBuildAttribute(IMakeTarget.BUILD_TARGET,
+						targetName);
+
+				makeTarget.setBuildAttribute(IMakeTarget.BUILD_LOCATION,
+						buildDir);
+				makeTargets.put(makeTarget.getName(), makeTarget);
+			} catch (CoreException e) {
+				// Duplicate target.  Ignore.
+			}
+		}
+		
+		IMakeTarget[] makeTargetArray = new IMakeTarget[makeTargets.size()];
+		Collection<IMakeTarget> values = makeTargets.values();
+		ArrayList<IMakeTarget> valueList = new ArrayList<IMakeTarget>(values);
+		valueList.toArray(makeTargetArray);
+		MakeTargetComparator compareMakeTargets = new MakeTargetComparator();
+		Arrays.sort(makeTargetArray, compareMakeTargets);
+		
+		saveTargets(makeTargetArray);
+	}
+
