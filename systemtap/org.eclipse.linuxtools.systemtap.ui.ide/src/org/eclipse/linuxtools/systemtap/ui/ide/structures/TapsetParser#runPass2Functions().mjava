@@ -1,0 +1,41 @@
+	/**
+	 * This method is used to build up the list of functions that were found
+	 * durring the first pass of stap.  These functions will then all be passed
+	 * on to have stap -up2 run on them in order to find the variable types
+	 * associated with them.
+	 */
+	private void runPass2Functions() {
+		int i, j, k, l=0;
+		TreeNode child;
+		String function;
+		String[] parameters = new String[0];
+		StringBuilder probe = new StringBuilder("");
+
+		ArrayList<String> functionNames = new ArrayList<String>();
+		
+		//Add Functions
+		for(i=0; i<functions.getChildCount(); i++) {
+			child = functions.getChildAt(i);
+			for(j=0; j<child.getChildCount(); j++) {
+				probe.delete(0, probe.length());
+				function = child.getChildAt(j).toString();
+				probe.append(function.substring(0, function.indexOf("(")+1));
+				function = function.substring(function.indexOf("(")+1, function.indexOf(")"));
+				parameters = function.split(",");
+
+				//Make sure each parameter has a distinct name so there isn't a type problem
+				if(parameters[0].length() > 0) {
+					for(k=0; k<parameters.length; k++) {
+						if(k>0)
+							probe.append(",");
+						probe.append(parameters[k] + l++);
+					}
+				}
+				probe.append(")\n");
+				functionNames.add(probe.toString());
+			}
+		}
+		parameters = (String[])functionNames.toArray(parameters);
+		runPass2FunctionSet(parameters, 0, parameters.length-1);
+	}
+

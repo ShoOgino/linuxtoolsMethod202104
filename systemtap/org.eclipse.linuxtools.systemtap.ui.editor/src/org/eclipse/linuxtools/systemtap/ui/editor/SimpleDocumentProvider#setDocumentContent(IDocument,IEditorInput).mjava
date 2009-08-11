@@ -1,0 +1,43 @@
+	/**
+	 * Tries to read the file pointed at by <code>input</code> if it is an
+	 * <code>IPathEditorInput</code>. If the file does not exist, <code>true</code>
+	 * is returned.
+	 *  
+	 * @param document the document to fill with the contents of <code>input</code>
+	 * @param input the editor input
+	 * @return <code>true</code> if setting the content was successful or no file exists, <code>false</code> otherwise
+	 * @throws CoreException if reading the file fails
+	 */
+	private boolean setDocumentContent(IDocument document, IEditorInput input) throws CoreException {
+		Reader reader;
+		String inputClassName = input.getClass().getName();
+		try {
+			if (input instanceof IPathEditorInput){
+				reader= new FileReader(((IPathEditorInput)input).getPath().toFile());
+			}
+			else if ( inputClassName.equals( "org.eclipse.ui.internal.editors.text.JavaFileEditorInput" )
+	                || inputClassName.equals( "org.eclipse.ui.ide.FileStoreEditorInput" ) )
+	            // The class 'org.eclipse.ui.internal.editors.text.JavaFileEditorInput'
+	            // is used when opening a file from the menu File > Open... in Eclipse 3.2.x
+	            // The class 'org.eclipse.ui.ide.FileStoreEditorInput' is used when
+	            // opening a file from the menu File > Open... in Eclipse 3.3.x
+	            {
+	                reader = new FileReader( new File( input.getToolTipText() ) );
+	            }
+	            else
+	            {
+	                return false;
+	            }
+		} catch (FileNotFoundException e) {
+			// return empty document and save later
+			return true;
+		}
+		
+		try {
+			setDocumentContent(document, reader);
+			return true;
+		} catch (IOException e) {
+			throw new CoreException(new Status(IStatus.ERROR, "org.eclipse.linuxtools.systemtap.ui.editor", IStatus.OK, "error reading file", e)); //$NON-NLS-1$ //$NON-NLS-2$
+		}
+	}
+

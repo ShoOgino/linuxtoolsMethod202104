@@ -1,0 +1,29 @@
+	/**
+	 * This method runs stap -up2 on the specified group of functions.
+	 * If errors result, it will break the batch in half and run again
+	 * on each subset
+	 * @param funcs The list of all functions available in the tapsets
+	 * @param low The lower bound of functions to use in this set
+	 * @param high The upper bound of functions to use in this set
+	 */
+	private void runPass2FunctionSet(String[] funcs, int low, int high) {
+		if(low == high)
+			return;
+		if(stopped)
+			return;
+		
+		StringBuilder functionStr = new StringBuilder("probe begin{\n");
+		for(int i=low; i<high; i++)
+			functionStr.append(funcs[i]);
+		functionStr.append("}\n");
+
+		String result = runStap(new String[] {"-u"}, functionStr.toString(), 2);
+		
+		if(0 < result.trim().length()) {
+			parsePass2Functions(result);
+		} else if(low+1 != high) {
+			runPass2FunctionSet(funcs, low, low+((high-low)>>1));
+			runPass2FunctionSet(funcs, low+((high-low)>>1), high);
+		}
+	}
+

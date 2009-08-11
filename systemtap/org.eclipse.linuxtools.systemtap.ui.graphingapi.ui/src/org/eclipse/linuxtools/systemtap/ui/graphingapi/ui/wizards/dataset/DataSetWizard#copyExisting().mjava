@@ -1,0 +1,30 @@
+	protected XMLMemento copyExisting() {
+		XMLMemento data = null;
+		try {
+			FileReader reader = new FileReader(metaFile);
+			if(!reader.ready())
+				return null;
+	
+			data = XMLMemento.createReadRoot(reader, IDataSetParser.XMLDataSetSettings);
+			IMemento[] children = data.getChildren(IDataSetParser.XMLFile);
+			
+			data = XMLMemento.createWriteRoot(IDataSetParser.XMLDataSetSettings);
+			
+			IMemento child;
+			String dataSetID;
+			for(int i=0; i<children.length; i++) {
+				if(!scriptFile.equals(children[i].getID())) {
+					child = data.createChild(IDataSetParser.XMLFile, children[i].getID());
+					dataSetID = children[i].getString(IDataSetParser.XMLdataset);
+					child.putString(IDataSetParser.XMLdataset, dataSetID);
+					
+					DataSetFactory.getParsingWizardPage(dataSetID).copyExisting(children[i], child);
+				}
+			}
+		} catch(FileNotFoundException fnfe) {
+		} catch(IOException ioe) {
+		} catch(WorkbenchException we) {}
+			
+		return data;
+	}
+

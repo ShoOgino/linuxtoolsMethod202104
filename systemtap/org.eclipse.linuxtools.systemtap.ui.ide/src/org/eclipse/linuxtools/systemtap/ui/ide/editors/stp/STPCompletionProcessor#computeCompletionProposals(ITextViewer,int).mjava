@@ -1,0 +1,41 @@
+	/* (non-Javadoc)
+	 * @see org.eclipse.jface.text.contentassist.IContentAssistProcessor#computeCompletionProposals(org.eclipse.jface.text.ITextViewer, int)
+	 */
+	public ICompletionProposal[] computeCompletionProposals(ITextViewer viewer,
+			int offset) {
+
+		IDocument document = viewer.getDocument();
+
+		String prefix;
+		int locationOffset =0;
+
+		// Get completion hint from document
+		try {
+			prefix = completionWord(document, offset);
+			locationOffset = completionReplaceWordLocation(document, offset);
+		} catch (Exception e) {
+			return NO_COMPLETIONS;
+		}
+
+		// If cannot find a place to replace our partial typed completion
+		// with the full one, abort with no completions.
+		if (locationOffset < 0)
+			return NO_COMPLETIONS;
+			
+		String[] completionData = STPMetadataSingleton.getCompletionResults(prefix);
+
+		// If cannot find  any completions
+		// abort with no completions.
+		if (completionData.length < 1)
+			return NO_COMPLETIONS;
+
+		// Build proposals and submit
+		ICompletionProposal[] result = new ICompletionProposal[completionData.length];
+		for (int i = 0; i < completionData.length; i++)
+			result[i] = new CompletionProposal(
+							completionData[i].substring(offset - locationOffset), 
+							offset, 0, completionData[i].length(), null, 
+							completionData[i], null, null);
+		return result;
+	}
+

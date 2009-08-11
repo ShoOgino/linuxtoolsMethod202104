@@ -1,0 +1,47 @@
+	/**
+	 * Construct a response object from a stream of bytes. If there are any
+	 * errors, the valid flag is set to false.
+	 * 
+	 * @param ba
+	 *            The array of bytes from the data manager, of length
+	 *            packetsize.
+	 */
+	public DMResponse(final byte[] ba) {
+
+		if (ba.length != packetsize) {
+			// usually happens when reading garbage data
+			// ignore for now, but can be useful
+//			System.err.println("Invalid packet length: " + ba.length);
+			valid = false;
+			return;
+		}
+
+		bacopy = ba;
+
+		final ByteArrayInputStream bais = new ByteArrayInputStream(ba);
+		final DataInputStream dis = new DataInputStream(bais);
+		int headerID = 0;
+
+		try {
+			headerID = dis.readInt();
+			source = dis.readInt();
+			scriptID = dis.readInt();
+			clientID = dis.readInt();
+			returnCode = dis.readInt();
+			size = dis.readInt();
+			// void ptr?
+		} catch (final EOFException eofe) {
+			valid = false;
+			new ErrorMessage("Response packet error!", "See stderr for more details").open();
+			System.err.println("response packet Error: " + eofe.getMessage());
+		} catch (final IOException ioe) {
+			valid = false;
+			new ErrorMessage("Response packet error!", "See stderr for more details").open();
+			System.err.println("response packet Error: " + ioe.getMessage());
+		}
+
+		valid = (headerID == BEGINSTR);
+		return;
+
+	}
+

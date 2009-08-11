@@ -1,0 +1,30 @@
+	/**
+	 * Adds a level to the kernel source tree.
+	 * 
+	 * @param top The top of the tree to add a level to.
+	 */
+	private void addLevel(TreeNode top) {
+		boolean add;
+		TreeNode current;
+		File f = (File)top.getData();
+		
+		File[] fs = f.listFiles(new CCodeFileFilter());
+		for(int i=0; i<fs.length; i++) {
+			add = true;
+			for(int j=0; j<excluded.length; j++) {
+				if(fs[i].isDirectory() && fs[i].getName().equals(excluded[j].substring(0, excluded[j].length()-1)))
+					add = false;
+			}
+			if(add) {
+				current = new TreeNode(fs[i], fs[i].getName(), !fs[i].isDirectory());
+				top.add(current);
+				if(fs[i].isDirectory()) {
+					addLevel(top.getChildAt(top.getChildCount()-1));
+					if(0 == current.getChildCount())
+						top.remove(top.getChildCount()-1);
+				}
+			}
+		}
+		top.sortLevel();
+	}
+

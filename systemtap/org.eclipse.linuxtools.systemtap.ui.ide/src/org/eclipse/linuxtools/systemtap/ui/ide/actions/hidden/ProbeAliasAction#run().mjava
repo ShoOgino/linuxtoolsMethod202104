@@ -1,0 +1,49 @@
+	/**
+	 * The main body of the action. This method checks for the current editor, creating one
+	 * if there is no active <code>STPEditor</code>, and then inserts a template probe for the
+	 * item that the user clicked on. 
+	 */
+	public void run() {
+		LogManager.logDebug("Start run:", this);
+		IWorkbenchPage page = window.getActivePage();
+		IEditorPart editor = page.getActiveEditor();
+		if(null == editor) {
+			NewFileAction action = new NewFileAction(page.getWorkbenchWindow());
+			//action.init(page.getWorkbenchWindow());
+			action.run();
+			editor = page.getWorkbenchWindow().getActivePage().getActiveEditor();
+		}
+		ISelection incoming = viewer.getViewer().getSelection();
+		IStructuredSelection selection = (IStructuredSelection)incoming;
+		Object o = selection.getFirstElement();
+		if (o instanceof TreeNode) {
+			TreeNode t = (TreeNode) o;
+			if(editor instanceof STPEditor) {
+				STPEditor stpeditor = (STPEditor)editor;
+				//build the string
+				StringBuilder s = new StringBuilder("\nprobe "+ t.toString());
+				if(!t.isClickable())
+					if(0 <t.getChildCount())
+						s.append(".*");
+					else
+						return;
+				s.append("\n{\n");
+				if(t.isClickable() && t.getChildCount() > 0) {
+					s.append("\t/*\n\t * " +
+							Localization.getString("ProbeAliasAction.AvailableVariables") +
+							"\n\t * ");
+					boolean first = true;
+					for(int i = 0; i < t.getChildCount(); i++) {
+						if(first) first = false;
+						else  s.append(", ");
+						s.append(t.getChildAt(i).toString());
+					}
+					s.append("\n\t */\n");
+				}
+				s.append("\n}\n");
+				stpeditor.insertText(s.toString());
+			}
+		}
+		LogManager.logDebug("End run:", this);
+	}
+

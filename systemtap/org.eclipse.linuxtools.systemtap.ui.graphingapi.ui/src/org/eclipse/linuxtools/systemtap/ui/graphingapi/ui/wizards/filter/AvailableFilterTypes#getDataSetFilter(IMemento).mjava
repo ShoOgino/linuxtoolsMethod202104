@@ -1,0 +1,37 @@
+	public static IDataSetFilter getDataSetFilter(IMemento xml) {
+		String id = xml.getID();
+		int column = xml.getInteger("column").intValue();
+		int style;
+		
+		switch(getIndex(id)) {
+		case 0:
+			String val = xml.getString("value");
+			style = xml.getInteger("style").intValue();
+			return new MatchFilter(column, val, style);
+		case 1:
+			style = xml.getInteger("style").intValue();
+			String l = xml.getString("low");
+			String h = xml.getString("high");
+			
+			Number low, high;
+			if(l.contains("."))
+				low = new Double(Double.parseDouble(l));
+			else
+				low = new Long(Long.parseLong(l));
+			if(h.contains("."))
+				high = new Double(Double.parseDouble(h));
+			else
+				high = new Long(Long.parseLong(h));
+			
+			return new RangeFilter(column, low, high, style);
+		case 2:
+			style = xml.getInteger("style").intValue();
+			return new SortFilter(column, style);
+		case 3:
+			String agg = xml.getString("aggregate");
+			style = xml.getInteger("style").intValue();
+			return new UniqueFilter(column, AggregateFactory.createAggregate(agg), style);
+		}
+		return null;
+	}
+

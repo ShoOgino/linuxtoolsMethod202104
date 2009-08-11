@@ -1,0 +1,50 @@
+	/**
+	 * Reads the contents of the cache file into memory.
+	 * @return True if the read is successful.
+	 */
+	private static boolean readData() {
+		if(null == settingsFile && !openFile())
+			return false;
+
+		try {
+			FileReader reader = new FileReader(settingsFile);
+
+			if(!reader.ready())
+				return false;
+
+			XMLMemento data = XMLMemento.createReadRoot(reader, "TreeSettings");
+
+			IMemento child = data.getChild("functionTree");
+			String s = child.getString("string");
+			if("<null>".equals(s))
+				s = null;
+			String d = child.getString("data");
+			if("<null>".equals(d))
+				d = null;
+
+			functions = new TreeNode(d, s, false);
+			readTree(child, functions, 0);
+			
+			child = data.getChild("probeTree");
+			s = child.getString("string");
+			if("<null>".equals(s))
+				s = null;
+			d = child.getString("data");
+			if("<null>".equals(d))
+				d = null;
+			probes = new TreeNode(d, s, false);
+			readTree(child, probes, 0);
+
+			child = data.getChild("modifiedDate");
+			treeFileDate = Long.parseLong(child.getString("date"));
+		} catch(FileNotFoundException fnfe) {
+			return false;
+		} catch(WorkbenchException we) {
+			return false;
+		} catch(Exception e) {
+			return false;
+		}
+
+		return true;
+	}
+

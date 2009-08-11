@@ -1,0 +1,35 @@
+	/**
+	 * The main body of the event. This code gets the filename from the selected entry in the viewer,
+	 * then opens a new <code>STPEditor</code> for that file. 
+	 */
+	public void run(IAction action) {
+		LogManager.logDebug("Start run: action-" + action, this);
+		if(!isEnabled())
+			return;
+		Object o = selection.getFirstElement();
+		if(!(o instanceof TreeDefinitionNode))
+			return;
+		TreeDefinitionNode t = (TreeDefinitionNode)o;
+		String filename = t.getDefinition();
+		Path p = new Path(filename);
+		
+		IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+		PathEditorInput input = new PathEditorInput(p, window);
+		try {
+			IEditorPart editorPart = window.getActivePage().openEditor(input, STPEditor.ID);
+			STPEditor editor = (STPEditor)editorPart;
+			int line;
+			
+			if(t.getData().toString().startsWith("probe"))
+				line = probeFind(t, editor);
+			else
+				line = functionFind(t, editor);
+
+			editor.jumpToLocation(++line, 0);
+		} catch (PartInitException e) {
+			LogManager.logCritical("Exception run: " + e.getMessage(), this);
+			e.printStackTrace();
+		}
+		LogManager.logDebug("End run:", this);
+	}
+

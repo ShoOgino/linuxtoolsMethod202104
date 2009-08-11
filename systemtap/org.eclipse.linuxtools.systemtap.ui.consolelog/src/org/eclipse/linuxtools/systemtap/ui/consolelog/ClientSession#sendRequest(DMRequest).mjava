@@ -1,0 +1,34 @@
+	/**
+	 * Send a request packet to the data manager. Synchronized, only
+	 * one request can be sent at a time.
+	 * 
+	 * @param req	The filled in request packet to send over the socket.
+	 * @return	true if successfully sent, false otherwise.
+	 */
+	public synchronized boolean sendRequest (DMRequest req) {
+		
+		try {
+			// open perma-socket:
+			Socket tmp = new Socket(hostname, portnumber);
+			OutputStream out = tmp.getOutputStream();
+			
+			out.write(req.getData());
+			out.flush();
+			out.flush();
+			out.close();
+			
+	    	return true;
+
+		} catch (final UnknownHostException uhe) {
+			new ErrorMessage("Unknown host!", "Check if server is running").open();
+			System.err.println("Unknown host: " + uhe.getMessage());
+			connected = false;
+			return false;
+		} catch (final IOException ioe) {
+			new ErrorMessage("Unable to send request!", "Check if server is running").open();
+			System.err.println("Req I/O error " + ioe.getMessage());
+			connected = false;
+			return false;
+		}
+	}
+
