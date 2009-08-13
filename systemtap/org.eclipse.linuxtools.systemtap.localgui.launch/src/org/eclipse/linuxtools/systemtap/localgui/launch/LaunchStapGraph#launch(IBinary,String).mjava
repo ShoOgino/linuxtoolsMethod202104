@@ -1,0 +1,64 @@
+	public void launch(IBinary bin, String mode) {
+		super.Init();		
+		name = Messages.getString("LaunchStapGraph.0"); //$NON-NLS-1$
+		binName = getName(bin);
+		config = createConfiguration(bin, name);
+
+		
+		partialScriptPath = PluginConstants.getPluginLocation()
+				+ "parse_function_partial.stp"; //$NON-NLS-1$
+
+		scriptPath = PluginConstants.DEFAULT_OUTPUT 
+				+ "callgraphGen.stp"; //$NON-NLS-1$
+
+		try {
+			String scriptContents = ""; //$NON-NLS-1$
+			File scriptFile = new File(scriptPath);
+			scriptFile.delete();
+			scriptFile.createNewFile();
+
+
+
+			//TODO: Just generate the scriptContents and write at the end
+			scriptContents += writeGlobalVariables();
+			scriptContents += writeStapMarkers();
+			String funcs = writeFunctionListToScript();
+			if (funcs == null)
+				return;
+			scriptContents += funcs;
+			scriptContents += writeFromPartialScript();
+			
+			BufferedWriter bw = new BufferedWriter(new FileWriter(scriptFile));
+			bw.write(scriptContents);
+			bw.close();
+
+			
+			binaryPath = bin.getResource().getLocation().toString();
+			arguments = binaryPath;
+			outputPath = PluginConstants.STAP_GRAPH_DEFAULT_IO_PATH;
+			
+			
+			ILaunchConfigurationWorkingCopy wc;
+			wc = config.getWorkingCopy();
+			wc.setAttribute(LaunchConfigurationConstants.GRAPHICS_MODE, true);
+			wc.setAttribute(LaunchConfigurationConstants.COMMAND_C_DIRECTIVES,
+					"-DMAXACTION=1000 -DSTP_NO_OVERLOAD -DMAXMAPENTRIES=10000"); //$NON-NLS-1$
+			wc.setAttribute(LaunchConfigurationConstants.GENERATED_SCRIPT, scriptContents);
+			wc.doSave();
+			
+			finishLaunch(name, mode);
+
+		} catch (IOException e) {
+			SystemTapUIErrorMessages mess = new SystemTapUIErrorMessages(
+					Messages.getString("LaunchStapGraph.GenerationError"), //$NON-NLS-1$
+					Messages.getString("LaunchStapGraph.GenerationErrorTitle"), //$NON-NLS-1$ 
+					Messages.getString("LaunchStapGraph.GenerationErrorMessage")); //$NON-NLS-1$
+			mess.schedule();
+			e.printStackTrace();
+		} catch (CoreException e1) {
+			e1.printStackTrace();
+		}
+		
+
+	}
+
