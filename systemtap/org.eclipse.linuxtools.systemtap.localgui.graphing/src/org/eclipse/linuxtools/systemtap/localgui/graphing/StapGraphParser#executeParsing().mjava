@@ -1,0 +1,83 @@
+	public IStatus executeParsing(){
+		//CLEAR THE MAPS THEY WILL GET NEW VALUES
+		isValidFile = false;
+		outNeighbours.clear();
+		timeMap.clear();
+		serialMap.clear();
+		cumulativeTimeMap.clear();
+		countMap.clear();
+		
+		try {
+			BufferedReader buff = new BufferedReader(new FileReader(filePath));
+			System.out.println(filePath);
+			System.out.println(PluginConstants.DEFAULT_OUTPUT);
+			String tmp;
+			while ((tmp = buff.readLine()) != null) {
+				if (monitor.isCanceled()) {
+					return Status.CANCEL_STATUS;
+				}
+				
+				if (tmp.equals("PROBE_BEGIN")){ //$NON-NLS-1$
+					isValidFile = true;
+					graphText = buff.readLine();
+					serialInfo = buff.readLine();
+					timeInfo = buff.readLine();
+					cumulativeTimeInfo = buff.readLine();
+					markedNodes = buff.readLine();
+				}
+			}
+			buff.close();
+					
+		} catch (IOException e) {
+			launchFileDialogError();
+			return Status.CANCEL_STATUS;
+		}
+		
+		//IF PROBE_BEGIN IS NOT FOUND THE FILE IS INVALID
+		if (isValidFile){
+//			System.out.println(graphText);			
+			
+			for (int i = 0; i < graphText.length(); i++){
+				if (monitor.isCanceled()) {
+					return Status.CANCEL_STATUS;
+				}
+				//RECORD VALID BRACKET NESTING
+				if (graphText.charAt(i) == '<'){
+					validator++;
+				}else if(graphText.charAt(i) == '>'){
+					validator--;
+				}
+			}
+			
+			//MATCHING BRACKETS
+			//IF BRACKETS DO NOT MATCH THEN PERHAPS THE BINARY USED 'exit(int)'
+			if (validator != 0){	
+				while (validator >= 0){
+					if (monitor.isCanceled()) {
+						return Status.CANCEL_STATUS;
+					}
+					graphText+='>';
+					validator--;
+				}
+			}
+			
+			
+			
+			//GENERATE THE MAPS FROM THE PARSED TEXT
+			if (timeInfo != null)
+				this.generateMaps();
+			else
+				return Status.CANCEL_STATUS;
+			
+			//Create a UIJob
+			GraphUIJob uijob = new GraphUIJob(Messages.getString("StapGraphParser.5"), this); //$NON-NLS-1$
+			uijob.schedule(); 
+		}else{
+			launchFileDialogError();
+			return Status.CANCEL_STATUS;
+		}
+
+		
+		return Status.OK_STATUS;
+	}
+

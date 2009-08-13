@@ -1,0 +1,82 @@
+	@SuppressWarnings("unchecked")
+	@Override
+	public void mouseDoubleClick(MouseEvent e) {
+		if (graph.getDrawMode() == StapGraph.CONSTANT_DRAWMODE_RADIAL) {
+			List<GraphNode> stapNodeList = graph.getSelection();
+			if (stapNodeList.isEmpty() || stapNodeList.size() != 1) {
+				graph.setSelection(null);
+				return;
+			}
+
+			/*
+			 * Check if the button is a StapButton (if not it must a StapNode).
+			 * Then perform button action
+			 */
+			// StapButton tempButton = new StapButton (graph, SWT.NONE, -100,
+			// -100, -100);
+			//
+			// if (tempButton.getClass() == stapNodeList.get(0).getClass()) {
+			// StapButton button = (StapButton) stapNodeList.remove(0);
+			// System.out.println("StapButton detected");
+			// if (button.actionID == StapButton.CYCLE_RIGHT) {
+			// if (graph.getNode(button.targetID) == null) {
+			// button.unhighlight();
+			// graph.setSelection(null);
+			// return;
+			// }
+			//					
+			// graph.deleteAll(button.targetID);
+			// int x = graph.getNode(button.targetID).getLocation().x;
+			// int y = graph.getNode(button.targetID).getLocation().y;
+			// graph.drawRadial(button.targetID);
+			// }
+			//				
+			// }
+			//			
+			// tempButton.dispose();
+			StapNode node = null;
+			if (stapNodeList.get(0) instanceof StapNode) {
+				node = (StapNode) stapNodeList.remove(0);
+			} else {
+				graph.setSelection(null);
+				return;
+			}
+			graph.getTreeViewer().expandToLevel(node.getData(), 0);
+			// TODO: Scroll
+
+			int id = node.getData().id;
+
+			graph.scale = 1;
+			// Redraw in the current mode with the new id as the center
+			// The x,y parameters to draw() are irrelevant for radial mode
+			graph.draw(id, 0, 0);
+
+			// Unhighlight the center node and give it a normal colour
+			node = graph.getNode(id);
+			node.unhighlight();
+			if (graph.getData(id).isMarked())
+				node.setBackgroundColor(StapGraph.CONSTANT_MARKED);
+			else
+				node.setBackgroundColor(graph.DEFAULT_NODE_COLOR);
+			return;
+		} else {
+
+			List<StapNode> stapNodeList = graph.getSelection();
+			if (stapNodeList.isEmpty() || stapNodeList.size() != 1) {
+				graph.setSelection(null);
+				return;
+			}
+
+			StapNode node = stapNodeList.remove(0);
+			unhighlightall(node);
+			graph.setSelection(null);
+			graph.getTreeViewer().expandToLevel(node.getData(), 0);
+
+			// Draw in current modes with 'id' at the top
+			int id = node.getData().id;
+			graph.draw(id, graph.getBounds().x / 2, 20);
+		}
+
+		graph.setSelection(null);
+	}
+

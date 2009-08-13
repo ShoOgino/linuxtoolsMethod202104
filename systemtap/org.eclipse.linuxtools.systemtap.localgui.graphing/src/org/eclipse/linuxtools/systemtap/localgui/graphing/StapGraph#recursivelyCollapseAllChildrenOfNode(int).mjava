@@ -1,0 +1,141 @@
+	/**
+	 * Recursively collapses all children of node id, and puts them in the
+	 * collapsedCallees list of id.
+	 * 
+	 * At the end of this run, each collapsed node will have a list of other
+	 * collapsed nodes AND a list of non-collapsed nodes. So will node #id.
+	 * 
+	 * Uncollapsed nodes, however, will not have a list of collapsed nodes attached. 
+	 * 
+	 * @param ID of node to start from (use getFirstUsefulNode() to collapse everything
+	 * @return True if successful
+	 */
+	public boolean recursivelyCollapseAllChildrenOfNode(int id) {
+		//-------------Initialize
+		//If all nodes have been collapsed, don't do anything
+		collapse_mode = true;
+
+		if (nodeDataMap.get(id).hasCollapsedChildren
+				|| nodeDataMap.get(id).callees.size() == 0)
+			return true;
+		nodeDataMap.get(id).hasCollapsedChildren = true;
+
+		
+		
+		// Name, id
+		HashMap<String, Integer> newNodeMap = new HashMap<String, Integer>();
+		// id of 'collapsed' node, id of its uncollapsed twin
+		HashMap<Integer, Integer> collapsedNodesWithOnlyOneNodeInThem = new HashMap<Integer, Integer>();
+		int size = nodeDataMap.get(id).callees.size();
+		
+		
+		
+		//-------------Iterate
+		for (int i = 0; i < size; i++) {
+
+			int childID = nodeDataMap.get(id).callees.get(i);
+			int childLevel = getLevelOfNode(childID);
+			if (collapsedLevelSize.get(childLevel) == null)
+				collapsedLevelSize.put(childLevel, 0);
+			String nodeName = nodeDataMap.get(childID).name;
+
+			/*
+			 * Aggregate data for the given node
+			 */
+			if (newNodeMap.get(nodeName) != null) {
+				int aggregateID = newNodeMap.get(nodeName);
+
+				if (collapsedNodesWithOnlyOneNodeInThem.get(aggregateID) != null) {
+					
+					//-------------Aggregate nodes - second node to be found
+					// We still think this is an only child - create a new
+					// data node and aggregate
+					this.loadData(SWT.NONE, aggregateID, nodeName, nodeDataMap
+							.get(childID).time, nodeDataMap.get(childID).called,
+							id, nodeDataMap.get(childID).isMarked(), ""); //$NON-NLS-1$
+					
+					if (getData(aggregateID).isMarked()) {
+						markedCollapsedNodes.add(aggregateID);
+						markedNodes.remove((Integer) aggregateID);
+					}
+					
+					nodeDataMap.get(id).callees.remove((Integer) aggregateID);
+					nodeDataMap.get(id).collapsedCallees.add(aggregateID);
+
+					nodeDataMap.get(aggregateID).collapsedCaller = id;
+
+					// Aggregate
+					int otherChildID = collapsedNodesWithOnlyOneNodeInThem
+							.get(aggregateID);
+					aggregateData(nodeDataMap.get(aggregateID), nodeDataMap
+							.get(otherChildID));
+					collapsedNodesWithOnlyOneNodeInThem.remove(aggregateID);
+					nodeDataMap.get(aggregateID).callees.addAll(nodeDataMap
+							.get(otherChildID).callees);
+
+					nodeDataMap.get(otherChildID).setPartOfCollapsedNode(true);
+
+				} else 
+					//-------------Aggregate - third and additional nodes
+					aggregateData(nodeDataMap.get(aggregateID), nodeDataMap
+							.get(childID));
+
+				
+				//-------------Complete aggregation
+				nodeDataMap.get(aggregateID).callees
+						.addAll(nodeDataMap.get(childID).callees);
+				nodeDataMap.get(aggregateID).isCollapsed = true;
+
+				if (nodeMap.get(childID) != null) {
+					nodeMap.get(childID).setLocation(
+							nodeMap.get(id).getLocation().x
+									- nodeMap.get(id).getSize().width,
+							nodeMap.get(id).getLocation().y);
+				}
+
+				nodeDataMap.get(childID).setPartOfCollapsedNode(true);
+			} else {
+				//-------------First child with this name
+				
+				idOfLastNode++;
+				newNodeMap.put(nodeName, idOfLastNode);
+				collapsedNodesWithOnlyOneNodeInThem.put(idOfLastNode, childID);
+				if (nodeMap.get(childID) != null) {
+					nodeMap.get(childID).setLocation(
+							nodeMap.get(id).getLocation().x,
+							nodeMap.get(id).getLocation().y);
+				}
+
+				int tmp = collapsedLevelSize.get(childLevel) + 1;
+				collapsedLevelSize.put(childLevel, tmp);
+			}
+		}
+
+		//-------------Handle nodes that only appeared once
+		for (int i : collapsedNodesWithOnlyOneNodeInThem.keySet()) {
+			int childID =collapsedNodesWithOnlyOneNodeInThem.get(i); 
+			nodeDataMap.get(childID).onlyChildWithThisName = true;
+			nodeDataMap.get(id).collapsedCallees.add(childID);
+			newNodeMap.remove(nodeDataMap.get(childID).name);
+			nodeDataMap.get(childID).collapsedCaller = id;
+			
+			if (getData(childID).isMarked())
+				markedCollapsedNodes.add(childID);
+		}
+
+
+		
+		//-------------Finish iterations
+		for (int i : nodeDataMap.get(id).collapsedCallees) {
+			recursivelyCollapseAllChildrenOfNode(i);
+		}
+
+		nodeDataMap.get(id).sortByTime();
+
+		collapsedNodesWithOnlyOneNodeInThem.clear();
+		newNodeMap.clear();
+
+		nodeDataMap.get(id).hasCollapsedChildren = true;
+		return true;
+	}
+

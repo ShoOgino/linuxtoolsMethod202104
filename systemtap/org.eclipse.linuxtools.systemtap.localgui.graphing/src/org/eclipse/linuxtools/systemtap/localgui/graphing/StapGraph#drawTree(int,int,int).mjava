@@ -1,0 +1,79 @@
+	/**
+	 * Draws a tree starting with node id, putting node id at location x,y
+	 * @param id
+	 * @param x
+	 * @param y
+	 */
+	public void drawTree(int id, int x, int y) {
+		
+		//-------------Create node id
+		// Create and set
+		if (nodeMap.get(id) == null) {
+			nodeMap.put(id, getData(id).makeNode(this));
+		}
+		StapNode n = getNode(id);
+		n.setLocation(x,y);
+		n.setSize(n.getSize().width/scale, n.getSize().height/scale);
+		if (getData(id).isMarked())
+			n.setBackgroundColor(CONSTANT_MARKED);
+		
+		
+		
+		
+		//-------------Get appropriate list of children
+		List<Integer> callees = null;
+		int usefulSize = 0;
+		
+		// Determine which list of callees to use
+		if (!collapse_mode)
+			callees = getData(id).callees;
+		else
+			callees = getData(id).collapsedCallees;
+		if (callees == null)
+			return;
+		
+		int cLevel = getLevelOfNode(id) + 1;
+		
+		if (!collapse_mode) {
+			if (levels.get(cLevel) != null) {
+				usefulSize = levels.get(cLevel).size() - collapsedLevelSize.get(cLevel);
+			}
+		}
+		else {
+		if (collapsedLevelSize.get(cLevel) != null)
+			usefulSize = collapsedLevelSize.get(cLevel);
+		}
+		//-------------Draw all children
+		for (int i = 0; i < callees.size(); i++) {
+			//Find the number of nodes on this level for spacing purposes
+			int childID = callees.get(i);
+			int childLevel = getLevelOfNode(childID);
+
+			
+			//Initialise the offset to roughly centre the nodes 
+			if (currentPositionInLevel.get(getLevelOfNode(childID)) == null) {
+				int tmp = (int) (CONSTANT_HORIZONTAL_SPACING/scale*(usefulSize-1) * -1);
+				currentPositionInLevel.put(childLevel, getNode(rootVisibleNode)
+						.getLocation().x + tmp);
+			}
+			
+			//Recursive iteration
+			if (childLevel <= bottomLevelToDraw && 
+					childLevel <= lowestLevelOfNodesAdded) {
+				drawTree(callees.get(i), currentPositionInLevel.get(childLevel), 
+						y + (int)(CONSTANT_VERTICAL_INCREMENT/scale));
+								
+				//Do not scale newSize or nodes will no longer be adjacent
+				int newSize = currentPositionInLevel.get(getLevelOfNode(childID)) 
+								+ getNode(childID).getSize().width;
+				
+				//Leave a small blank space between nodes for aesthetic purposes
+				if (i == callees.size() - 1)
+					newSize += CONSTANT_HORIZONTAL_SPACING/scale/3;
+				currentPositionInLevel.put(getLevelOfNode(childID), newSize);
+			}
+			
+		}
+		
+	}
+

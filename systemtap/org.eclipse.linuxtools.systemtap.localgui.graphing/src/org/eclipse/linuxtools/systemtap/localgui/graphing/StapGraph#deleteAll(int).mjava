@@ -1,0 +1,48 @@
+	/**
+	 * Delete all nodes except for the node with the specified nodeID
+	 * 
+	 * @param exception
+	 *            - id of node NOT to delete (use -1 for 'no exceptions')
+	 */
+	public void deleteAll(int exception) {		
+		//-------------Delete aggregate nodes
+		if (aggregateNodes != null){			
+			for (GraphNode n : aggregateNodes){
+				n.dispose();
+			}
+			aggregateNodes.clear();
+		}
+		
+		//-------------Save exception node's location
+		int x = -1;
+		int y = -1;
+		if (exception != -1 && nodeMap.get(exception) != null) {
+			x =	nodeMap.get(exception).getLocation().x;
+			y = nodeMap.get(exception).getLocation().y;
+		}
+
+		//-------------Delete all nodes
+		for (int i : nodeMap.keySet()) {
+			StapNode node = nodeMap.get(i);
+			if (node == null)
+				continue;
+			
+			for (int j: node.buttons) {
+				buttons.get(j).dispose();
+				buttons.remove(j);
+			}
+			
+			node.unhighlight();
+			node.dispose();
+		}
+		nodeMap.clear();
+
+		//-------------Recreate exception
+		if (x != -1 && y != -1) {
+			StapNode n =getData(exception).makeNode(this);
+			n.setLocation(x,y);
+			n.highlight();
+			nodeMap.put(exception, n);
+		}
+	}
+

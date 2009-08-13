@@ -1,0 +1,111 @@
+	/**
+	 * Draws with the given modes. (int x, y) do not function in all draw modes.
+	 * @param drawMode
+	 * @param animationMode
+	 * @param id
+	 * @param x
+	 * @param y
+	 */
+	public void draw(int drawMode, int animationMode, int id, int x, int y) {
+		setDrawMode(drawMode);
+		setAnimationMode(animationMode);
+		this.clearSelection();
+		
+		//-------------Draw tree
+		if (draw_mode == CONSTANT_DRAWMODE_TREE) {
+			if (animation_mode == CONSTANT_ANIMATION_SLOW) {
+				if (nodeMap.get(id) == null)
+					nodeMap.put(id, getData(id).makeNode(this));
+				int tempX = nodeMap.get(id).getLocation().x;
+				int tempY = nodeMap.get(id).getLocation().y;
+				Animation.markBegin();
+				moveAllNodesTo(tempX, tempY);
+				Animation.run(ANIMATION_TIME);
+				
+				deleteAll(id);
+				setLevelLimits(id);
+				rootVisibleNode = id;
+				drawTree(id, this.getBounds().width / 2, 20);
+				moveAllNodesTo(this.getBounds().width / 2, 20);
+				currentPositionInLevel.clear();
+
+				this.update();
+				Animation.markBegin();
+				drawTree(id, this.getBounds().width / 2, 20);
+
+				Animation.run(ANIMATION_TIME);
+				getNode(id).unhighlight();
+				currentPositionInLevel.clear();
+			} else {
+				deleteAll(id);
+				setLevelLimits(id);
+				rootVisibleNode = id;
+				drawTree(id, this.getBounds().width / 2, 20);
+				getNode(id).unhighlight();
+				currentPositionInLevel.clear();
+			}
+		}
+		
+		
+		//-------------Draw radial
+		else if (draw_mode == CONSTANT_DRAWMODE_RADIAL) {
+			
+			if (animation_mode == CONSTANT_ANIMATION_SLOW) {
+				rootVisibleNode = id;
+				deleteAll(id);
+
+				preDrawRadial(id);
+				this.redraw();
+				this.getLightweightSystem().getUpdateManager()
+						.performUpdate();
+	
+				Animation.markBegin();
+				nodeMap.get(id).setLocation(this.getBounds().width / 2,
+						this.getBounds().height / 2);
+				drawRadial(id); 
+				Animation.run(ANIMATION_TIME);
+			}
+	
+			else {	
+				deleteAll(id);
+				drawRadial(id);
+			}
+		}
+		
+		//-------------Draw box
+		else if (draw_mode == CONSTANT_DRAWMODE_BOX) {
+			rootVisibleNode = id;
+			if (animation_mode == CONSTANT_ANIMATION_SLOW) {
+				if (nodeMap.get(id) == null)
+					nodeMap.put(id, getData(id).makeNode(this));
+				
+				Animation.markBegin();
+				moveAllNodesTo(nodeMap.get(id).getLocation().x, nodeMap.get(id).getLocation().y);
+				Animation.run(ANIMATION_TIME);
+				
+				deleteAll(id);
+				
+				drawBox(id, 0, 0);
+				
+			} else {
+				if (nodeMap.get(id) == null)
+					nodeMap.put(id, getData(id).makeNode(this));
+				deleteAll(id);
+				drawBox(id, 0, 0);
+
+			}
+		}
+		
+		
+		//-------------Draw aggregate
+		else if (draw_mode == CONSTANT_DRAWMODE_AGGREGATE) {
+			rootVisibleNode = getFirstUsefulNode();
+			deleteAll(-1);
+			drawAggregateView();
+		}
+		
+		//THIS CAUSED A NULL POINTER GOING INTO AGGREGATE VIEW
+//		getNode(id).unhighlight();
+		clearSelection();
+	}
+
