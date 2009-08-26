@@ -1,0 +1,46 @@
+    /* (non-Javadoc)
+     * 
+     * @param request
+     */
+    private void serviceEventRequestByIndex(final TmfDataRequest<TmfEvent> request) {
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                int blockSize = request.getBlockize();
+
+                int nbRequestedEvents = request.getNbRequestedItems();
+                if (nbRequestedEvents == -1) {
+                    nbRequestedEvents = Integer.MAX_VALUE;
+                }
+
+                Vector<TmfEvent> events = new Vector<TmfEvent>();
+                int nbEvents = 0;
+
+                StreamContext context = new StreamContext(null);
+                TmfEvent event = fStream.getEvent(context, request.getIndex());
+
+                while (!request.isCancelled() && nbEvents < nbRequestedEvents && event != null)
+                {
+                    events.add(event);
+                    if (++nbEvents % blockSize == 0) {
+                    	TmfEvent[] result = new TmfEvent[events.size()];
+                    	events.toArray(result);
+                    	request.setData(result);
+                        request.handlePartialResult();
+                        events.removeAllElements();
+                    }
+                    // To avoid an unnecessary read passed the last event requested 
+                    if (nbEvents < nbRequestedEvents)
+                        event = fStream.getNextEvent(context);
+                }
+            	TmfEvent[] result = new TmfEvent[events.size()];
+            	events.toArray(result);
+
+            	request.setData(result);
+                request.handlePartialResult();
+                request.done();
+            }
+        };
+        thread.start();
+    }
+

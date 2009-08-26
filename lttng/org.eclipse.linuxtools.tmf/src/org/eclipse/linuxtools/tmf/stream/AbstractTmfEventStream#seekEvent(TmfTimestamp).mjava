@@ -1,0 +1,30 @@
+    public StreamContext seekEvent(TmfTimestamp timestamp) {
+
+        // First, find the right checkpoint
+    	int index = Collections.binarySearch(fCheckpoints, new TmfStreamCheckpoint(timestamp, 0));
+
+        // In the very likely event that the checkpoint was not found, bsearch
+        // returns its negated would-be location (not an offset...). From that
+        // index, we can then position the stream and get the event.
+        if (index < 0) {
+            index = Math.max(0, -(index + 2));
+        }
+
+        // Position the stream at the checkpoint
+        Object location = (index < fCheckpoints.size()) ? fCheckpoints.elementAt(index).getLocation() : null;
+        StreamContext nextEventContext;
+        synchronized(this) {
+        	nextEventContext = seekLocation(location);
+        }
+        StreamContext currentEventContext = new StreamContext(nextEventContext.location);
+
+        // And get the event
+        TmfEvent event = getNextEvent(nextEventContext);
+        while (event != null && event.getTimestamp().compareTo(timestamp, false) < 0) {
+        	currentEventContext.location = nextEventContext.location;
+        	event = getNextEvent(nextEventContext);
+        }
+
+        return currentEventContext;
+    }
+

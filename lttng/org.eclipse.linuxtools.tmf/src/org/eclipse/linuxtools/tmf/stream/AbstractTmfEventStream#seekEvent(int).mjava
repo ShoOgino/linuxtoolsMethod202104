@@ -1,0 +1,23 @@
+    public StreamContext seekEvent(int position) {
+
+        // Position the stream at the previous checkpoint
+        int index = position / fCacheSize;
+        Object location = (index < fCheckpoints.size()) ? fCheckpoints.elementAt(index).getLocation() : null;
+        StreamContext nextEventContext;
+        synchronized(this) {
+        	nextEventContext = seekLocation(location);
+        }
+        StreamContext currentEventContext = new StreamContext(nextEventContext.location);
+
+        // And locate the event (if it exists)
+        int current = index * fCacheSize;
+        TmfEvent event = getNextEvent(nextEventContext);
+        while (event != null && current < position) {
+        	currentEventContext.location = nextEventContext.location;
+        	event = getNextEvent(nextEventContext);
+            current++;
+        }
+
+        return currentEventContext;
+    }
+

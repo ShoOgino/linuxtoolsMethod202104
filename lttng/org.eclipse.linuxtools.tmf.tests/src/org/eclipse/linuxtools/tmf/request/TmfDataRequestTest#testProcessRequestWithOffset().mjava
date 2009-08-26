@@ -1,0 +1,32 @@
+    // @Test
+    public void testProcessRequestWithOffset() throws Exception {
+
+        final int NB_EVENTS  = -1;
+        final int BLOCK_SIZE =  1;
+        final int OFFSET = 5;
+        final Vector<TmfEvent> requestedEvents = new Vector<TmfEvent>();
+        int nbExpectedEvents = TmfRequestHandlerStub.MAX_GENERATED_EVENTS;
+
+        TmfTimeRange range = new TmfTimeRange(TmfTimestamp.BigBang, TmfTimestamp.BigCrunch);
+        final TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(range, OFFSET, NB_EVENTS, BLOCK_SIZE) {
+            @Override
+            public void handlePartialResult() {
+            	TmfEvent[] events = getData();
+                for (TmfEvent e : events) {
+                    requestedEvents.add(e);
+                }
+            }
+        };
+        fProcessor.processRequest(request, true);
+
+        assertEquals("nbEvents", nbExpectedEvents, requestedEvents.size());
+        assertTrue("isCompleted",  request.isCompleted());
+        assertFalse("isCancelled", request.isCancelled());
+
+        // Ensure that we have distinct events.
+        // Don't go overboard: we are not validating the stub! 
+        for (int i = 0; i < nbExpectedEvents; i++) {
+            assertEquals("Distinct events", i + OFFSET, requestedEvents.get(i).getTimestamp().getValue());
+        }
+    }
+
