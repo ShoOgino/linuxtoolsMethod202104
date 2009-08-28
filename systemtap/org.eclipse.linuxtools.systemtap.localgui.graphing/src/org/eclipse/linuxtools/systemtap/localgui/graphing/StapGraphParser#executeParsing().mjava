@@ -1,5 +1,5 @@
 	public IStatus executeParsing(){
-		//CLEAR THE MAPS THEY WILL GET NEW VALUES
+		//Clear maps (in case a previous execution left values hanging)
 		isValidFile = false;
 		outNeighbours.clear();
 		timeMap.clear();
@@ -31,15 +31,12 @@
 			return Status.CANCEL_STATUS;
 		}
 		
-		//IF PROBE_BEGIN IS NOT FOUND THE FILE IS INVALID
-		if (isValidFile){
-//			System.out.println(graphText);			
-			
+		if (isValidFile){			
 			for (int i = 0; i < graphText.length(); i++){
 				if (monitor.isCanceled()) {
 					return Status.CANCEL_STATUS;
 				}
-				//RECORD VALID BRACKET NESTING
+				//Check for valid nesting
 				if (graphText.charAt(i) == '<'){
 					validator++;
 				}else if(graphText.charAt(i) == '>'){
@@ -47,8 +44,7 @@
 				}
 			}
 			
-			//MATCHING BRACKETS
-			//IF BRACKETS DO NOT MATCH THEN PERHAPS THE BINARY USED 'exit(int)'
+			//If brackets don't match, check for potential exit call
 			if (validator != 0){	
 				while (validator >= 0){
 					if (monitor.isCanceled()) {
@@ -59,15 +55,13 @@
 				}
 			}
 			
-			
-			
-			//GENERATE THE MAPS FROM THE PARSED TEXT
-			if (timeInfo != null)
-				this.generateMaps();
-			else
+			if (timeInfo == null)
 				return Status.CANCEL_STATUS;
 			
-			//Create a UIJob
+			//Generate maps
+			this.generateMaps();
+			
+			//Create a UIJob to handle the rest
 			GraphUIJob uijob = new GraphUIJob(Messages.getString("StapGraphParser.5"), this); //$NON-NLS-1$
 			uijob.schedule(); 
 		}else{
