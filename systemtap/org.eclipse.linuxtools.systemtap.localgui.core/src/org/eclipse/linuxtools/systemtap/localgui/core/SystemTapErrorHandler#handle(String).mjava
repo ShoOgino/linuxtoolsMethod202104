@@ -1,0 +1,46 @@
+	/**
+	 * Search given string for recognizable error messages. Can append the contents of 
+	 * the string to the error log if writeToLog() or finishHandling() are called.
+	 * A call to finishHandling() will also open a popup window with user-friendly messages
+	 * corresponding to the recognizable errors.
+	 * 
+	 * @param doc
+	 */
+	public void handle (String message){		
+		if (errorMessage.length() < 1) {
+			errorMessage = 
+				Messages.getString("SystemTapErrorHandler.ErrorMessage") + //$NON-NLS-1$
+				Messages.getString("SystemTapErrorHandler.ErrorMessage1"); //$NON-NLS-1$
+		}
+		
+		//READ FROM THE PROP FILE AND DETERMINE TYPE OF ERROR
+		File file = new File(PluginConstants.PLUGIN_LOCATION+FILE_PROP);
+		try {
+			BufferedReader buff = new BufferedReader (new FileReader(file));
+			String line;
+			int index;
+			while ((line = buff.readLine()) != null){
+				index = line.indexOf('=');
+				String matchString = line.substring(0, index);
+				Matcher matcher = Pattern.compile(matchString, Pattern.DOTALL).matcher(message);
+
+				if (matcher.matches()) {
+					if (!isErrorRecognized()) {
+						errorMessage+=Messages.getString("SystemTapErrorHandler.ErrorMessage2"); //$NON-NLS-1$
+						setErrorRecognized(true);
+					}
+						
+					errorMessage+=line.substring(index+1) 
+					+ PluginConstants.NEW_LINE + PluginConstants.NEW_LINE;
+				}
+			}
+			
+			logContents += message;
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+	}
+
