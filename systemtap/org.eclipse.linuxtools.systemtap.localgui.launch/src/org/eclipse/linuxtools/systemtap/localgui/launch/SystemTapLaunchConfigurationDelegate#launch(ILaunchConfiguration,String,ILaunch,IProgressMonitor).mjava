@@ -277,14 +277,28 @@
 						Messages.getString("SystemTapLaunchConfigurationDelegate.0") + //$NON-NLS-1$
 						Messages.getString("SystemTapLaunchConfigurationDelegate.7")); //$NON-NLS-1$
 				mess.schedule();
-				IDocument doc = Helper.getConsoleDocumentByName(config.getName());
+				IDocument doc = ((TextConsole)Helper.getConsoleByName(config.getName())).getDocument();
 //				getConsoleByName(config.getName()).clearConsole();
 				File errorLog = new File(PluginConstants.DEFAULT_OUTPUT + "Error.log"); //$NON-NLS-1$
-
-				if (!errorLog.exists()){
+				
+				if (!errorLog.exists() || errorLog.length() > PluginConstants.MAX_LOG_SIZE){
+					errorLog.delete();
 					errorLog.createNewFile();
 				}
-				Helper.appendToFile(errorLog.getAbsolutePath(), PluginConstants.NEW_LINE+doc.get());
+				
+				Calendar cal = Calendar.getInstance(TimeZone.getDefault());
+				int year = cal.get(Calendar.YEAR);
+				int month =  cal.get(Calendar.MONTH);
+				int day = cal.get(Calendar.DAY_OF_MONTH);
+				int hour = cal.get(Calendar.HOUR_OF_DAY);
+				int minute = cal.get(Calendar.MINUTE);
+				int second = cal.get(Calendar.SECOND);
+				
+				Helper.appendToFile(errorLog.getAbsolutePath(), 
+						PluginConstants.NEW_LINE+day+"/"+month+"/"+year
+						+" - "+hour+":"+minute+":"+second+PluginConstants.NEW_LINE
+						+doc.get());
+				
 				return;
 			}
 					
