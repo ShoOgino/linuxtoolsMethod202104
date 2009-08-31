@@ -9,20 +9,21 @@
 	 * @param bin
 	 * @return
 	 */
-	protected ArrayList<String> getFunctionsFromBinary(IBinary bin) {
+	protected ArrayList<String> getFunctionsFromBinary(IBinary bin, String targetResource) {
 		ArrayList<String> funcs = new ArrayList<String>();
-		try {
-			
+		try {			
 			ArrayList<ITranslationUnit> list = new ArrayList<ITranslationUnit>();
 			
 			for (ICElement b : bin.getCProject().getChildrenOfType(ICElement.C_CCONTAINER)) {
 				ICContainer c = (ICContainer) b;
 				for (ITranslationUnit ast : c.getTranslationUnits()) {
-					if (searchForResource && ast.getElementName().equals(resourceToSearchFor)) {
+					if (searchForResource && ast.getElementName().contains(targetResource)) {
 						TranslationUnitVisitor v = new TranslationUnitVisitor();
 						ast.accept(v);
 						funcs.addAll(v.getFunctions());
+						return funcs;
 					} else {
+						if (!ast.getElementName().contains(".h"))
 						list.add(ast);
 					}
 				}
@@ -36,9 +37,11 @@
 			}
 			
 			if (list.size() > 1) {
-				for (Object obj : chooseUnit(list)) {
+				Object[] unitList = chooseUnit(list); 
+				for (Object obj : unitList) {
 					if (obj instanceof ITranslationUnit) {
 						ITranslationUnit ast = (ITranslationUnit) obj;
+						System.out.println(ast.getElementName());
 						TranslationUnitVisitor v = new TranslationUnitVisitor();
 						ast.accept(v);
 						funcs.addAll(v.getFunctions());

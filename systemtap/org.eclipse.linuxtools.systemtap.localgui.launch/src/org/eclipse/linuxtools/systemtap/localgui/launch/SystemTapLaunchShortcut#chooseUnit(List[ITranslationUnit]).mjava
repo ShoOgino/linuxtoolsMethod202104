@@ -9,7 +9,9 @@
 		ILabelProvider programLabelProvider = new LabelProvider() {
 			public String getText(Object element) {
 				if (element instanceof ITranslationUnit) {
-					return ((ITranslationUnit) element).getElementName();
+					String name = ((ITranslationUnit) element).getElementName();
+					//Only select names that are not .h files
+					return name;
 				}
 				return super.getText(element);
 			}
@@ -21,8 +23,9 @@
 			public String getText(Object element) {
 				try {
 					if (element instanceof ITranslationUnit) {
+						//Only select names that are not .h files
 						TranslationUnitVisitor v = new TranslationUnitVisitor();
-							((ITranslationUnit) element).accept(v);
+						((ITranslationUnit) element).accept(v);
 						return "Functions: " + v.getNumberOfFunctions();
 					}
 				} catch (CoreException e) {
@@ -32,12 +35,15 @@
 			}
 		};
 	
-		TwoPaneElementSelector dialog = new TwoPaneElementSelector(getActiveWorkbenchShell(), programLabelProvider, qualifierLabelProvider);
+		ElementListSelectionDialog dialog = new ElementListSelectionDialog(
+				getActiveWorkbenchShell(), programLabelProvider);
+//		TwoPaneElementSelector dialog = new TwoPaneElementSelector(
+//				getActiveWorkbenchShell(), programLabelProvider, qualifierLabelProvider);
 		dialog.setElements(list.toArray());
 		dialog.setTitle("Choose files"); //$NON-NLS-1$
-		dialog.setMessage("Profile all functions in selected files."); //$NON-NLS-1$
-		dialog.setUpperListLabel("Detected files"); //$NON-NLS-1$
-		dialog.setLowerListLabel("Number of functions"); //$NON-NLS-1$
+		dialog.setMessage("Probe functions declared in selected files."); //$NON-NLS-1$
+//		dialog.setUpperListLabel("Detected files"); //$NON-NLS-1$
+//		dialog.setLowerListLabel("Number of functions"); //$NON-NLS-1$
 		dialog.setMultipleSelection(true);
 		dialog.setInitialElementSelections(list);
 		if (dialog.open() == Window.OK) {
