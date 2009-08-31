@@ -44,26 +44,61 @@
 		
 		limits = new Action("Set limits", Action.AS_PUSH_BUTTON) {
 			private Spinner limit;
+			private Spinner buffer;
 			private Shell sh;
 			public void run() {
 				sh = new Shell();
 				sh.setLayout(new GridLayout());
-				sh.setSize(150, 100);
+				sh.setSize(150, 200);
+				Label limitLabel = new Label(sh, SWT.NONE);
+				limitLabel.setLayoutData(new GridData(SWT.CENTER, SWT.DEFAULT, true, false));
+				limitLabel.setText("Max nodes: ");
 				limit = new Spinner(sh, SWT.BORDER);
-				limit.setSelection(graph.getLevelBuffer());
+				limit.setMaximum(5000);
+				limit.setSelection(graph.getMaxNodes());
 				limit.setLayoutData(new GridData(SWT.CENTER, SWT.DEFAULT, true, false));
 				
+				Label bufferLabel = new Label(sh, SWT.NONE);
+				bufferLabel.setLayoutData(new GridData(SWT.CENTER, SWT.DEFAULT, true, false));
+				bufferLabel.setText("Max depth: ");
+				buffer = new Spinner(sh, SWT.BORDER);
+				buffer.setMaximum(5000);
+				buffer.setSelection(graph.getLevelBuffer());
+				buffer.setLayoutData(new GridData(SWT.CENTER, SWT.DEFAULT, true, false));
+				
 				Button set_limit = new Button(sh, SWT.PUSH);
-				set_limit.setText("Set new limit");
+				set_limit.setText("Set values");
 				set_limit.setLayoutData(new GridData(SWT.CENTER, SWT.DEFAULT, true, false));
 				set_limit.addSelectionListener(new SelectionAdapter() {
 					public void widgetSelected(SelectionEvent e) {
-						if (limit.getSelection() > 0)
-							graph.setLevelBuffer(limit.getSelection());
+						boolean redraw = false;
+						if (limit.getSelection() > 0 && buffer.getSelection() > 0) {
+							graph.setMaxNodes(limit.getSelection());
+							graph.setLevelBuffer(buffer.getSelection());
+							
+							if (graph.changeLevelLimits(graph.getLevelOfNode(graph.getRootVisibleNode()))) {
+								SystemTapUIErrorMessages mess = new SystemTapUIErrorMessages(
+										"LevelBuffer too high", "LevelBuffer too high", 
+										"Unfortunately the requested setting for level buffer " +
+										"could not be processed due to the maximum number of nodes. " +
+										"Setting levelBuffer to the maximum number of levels possible " +
+										"without hitting the max nodes(" + graph.getLevelBuffer() +
+										")." + PluginConstants.NEW_LINE + PluginConstants.NEW_LINE +  
+										"If you really want to see more levels, increment max nodes. " +
+										"This may cause lag on some systems.");
+								mess.schedule();
+							}
+							
+							redraw = true;
+						}
 						sh.dispose();
+						
+						if (redraw)
+							graph.draw();
 					}
 					
 				});
+
 				
 				sh.open();
 			}
