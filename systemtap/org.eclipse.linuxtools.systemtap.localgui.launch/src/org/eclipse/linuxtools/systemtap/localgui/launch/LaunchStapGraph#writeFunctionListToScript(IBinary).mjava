@@ -1,0 +1,49 @@
+	/**
+	 * Prompts the user for a list of functions to probe
+	 * 
+	 * @param bw
+	 * @return
+	 * @throws IOException
+	 */
+	private String writeFunctionListToScript(IBinary bin) throws IOException {
+		String toWrite = ""; //$NON-NLS-1$
+
+
+		ArrayList<String> funcs = new ArrayList<String>();
+		/*
+		 * Find all relevant function names
+		 */
+		try {
+			for (ICElement b : bin.getCProject().getChildrenOfType(ICElement.C_CCONTAINER)) {
+				ICContainer c = (ICContainer) b;
+				for (ITranslationUnit ast : c.getTranslationUnits()) {
+					if (searchForResource && ast.getElementName().equals(resourceToSearchFor)) {
+						TranslationUnitVisitor v = new TranslationUnitVisitor();
+						ast.accept(v);
+						funcs.addAll(v.getFunctions());
+					} else {
+						TranslationUnitVisitor v = new TranslationUnitVisitor();
+						ast.accept(v);
+						funcs.addAll(v.getFunctions());
+					}
+			}
+			}
+		} catch (CModelException e) {
+			e.printStackTrace();
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+		
+		
+		if (funcs.size() < 1) {
+			failedToLaunch(Messages.getString("LaunchStapGraph.InvalidFunctionsReason")); //$NON-NLS-1$
+			throw new IOException();
+		}
+		
+		for (String func : funcs) {
+			toWrite += generateProbe(func);
+		}
+
+		return toWrite;
+	}
+
