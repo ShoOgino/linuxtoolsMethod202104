@@ -19,6 +19,8 @@
 				if (tmp.equals("PROBE_BEGIN")){ //$NON-NLS-1$
 					isValidFile = true;
 					text = buff.readLine();
+					endingTimeInNS = Long.parseLong(buff.readLine());
+					totalTime = Long.parseLong(buff.readLine())/100;
 				}
 			}
 			buff.close();
@@ -31,9 +33,9 @@
 		
 		if (text.length() > 0) {
 			
+			ArrayList<Integer> shouldGetEndingTimeForID = new ArrayList <Integer>();
 			String[] callsAndReturns = text.split(";");
 			String[] args;
-			ArrayList<Integer> position = new ArrayList<Integer>();
 			ArrayList<String> nameList = new ArrayList<String>();
 			ArrayList<Integer> idList = new ArrayList<Integer>();
 			String name;
@@ -53,42 +55,52 @@
 						id = Integer.parseInt(args[1]);
 						time = Long.parseLong(args[2]);
 						name = args[0];
-						System.out.println(name + ", id :" + id);
-						serialMap.put(id, args[0]);
+						name = cleanName(name);
+						serialMap.put(id, name);
 						timeMap.put(id, time);
 						
-						if (cumulativeTimeMap.get(name) == null)
+						if (cumulativeTimeMap.get(name) == null){
 							cumulativeTimeMap.put(name, (long) 0);
+						}
 						//Use - for start times
-						cumulativeTime = cumulativeTimeMap.get(name) - time;
-						cumulativeTimeMap.put(name, cumulativeTime);
+//						cumulativeTime = cumulativeTimeMap.get(name) - time;
+//						cumulativeTimeMap.put(name, cumulativeTime);
+
+						//IF THERE ARE PREVIOUS FUNCTIONS WITH THE SAME NAME
+						//WE ARE IN ONE OF THEM SO DO NOT ADD TO CUMULATIVE TIME
+						if (nameList.indexOf(name) == -1) {
+							cumulativeTime = cumulativeTimeMap.get(name) - time;
+							cumulativeTimeMap.put(name, cumulativeTime);
+							shouldGetEndingTimeForID.add(id);
+						}
 						
-						if (countMap.get(name) == null)
+						
+						if (countMap.get(name) == null){
 							countMap.put(name, 0);
+						}
 						countMap.put(name, countMap.get(name) + 1);
 						
 						nameList.add(name);
 						idList.add(id);
 						
-						if (outNeighbours.get(id) == null)
+						if (outNeighbours.get(id) == null){
 							outNeighbours.put(id, new ArrayList<Integer>());
-						
-						
+						}
 						break;
 					case '>' :
 						//args[0] = name
 						//args[1] = time of event
 						args = s.substring(1, s.length()).split(":");
 						name = args[0];
+						name = cleanName(name);
 						int lastOccurance = nameList.lastIndexOf(name);
 						if (lastOccurance < 0) {
 							parseError();
-							break;
+							return Status.CANCEL_STATUS;
 						}
 						
 						nameList.remove(lastOccurance);
 						id = idList.remove(lastOccurance);
-						System.out.println(name + ", id :" + id);
 						
 						//Get the last function that was called but never returned
 						if (idList.size() > 0) {
@@ -98,14 +110,22 @@
 						
 						if (timeMap.get(id) == null) {
 							parseError();
-							break;
+							return Status.CANCEL_STATUS;
 						}		
 						time =  Long.parseLong(args[1]) - timeMap.get(id);
 						timeMap.put(id, time);
 						
+						
+						//IF AN ID IS IN THIS ARRAY IT IS BECAUSE WE NEED THE ENDING TIME
+						// TO BE ADDED TO THE CUMULATIVE TIME FOR FUNCTIONS OF THIS NAME
+						if (shouldGetEndingTimeForID.contains(id)){
+							cumulativeTime = cumulativeTimeMap.get(name) + Long.parseLong(args[1]);
+							cumulativeTimeMap.put(name, cumulativeTime);
+						}
+						
 						//Use + for end times
-						cumulativeTime = cumulativeTimeMap.get(name) + Long.parseLong(args[1]);
-						cumulativeTimeMap.put(name, cumulativeTime);
+//						cumulativeTime = cumulativeTimeMap.get(name) + Long.parseLong(args[1]);
+//						cumulativeTimeMap.put(name, cumulativeTime);
 						break;
 					default : 
 						parseError();
@@ -113,17 +133,25 @@
 					
 				}
 				
-			
 			}
 			
-			
-			
-			
-			
-			
-			
+			//CHECK FOR EXIT() CALL
+			if (idList.size() != 0){
+				for (int val : idList){
+					name = serialMap.get(val);
+					time =  endingTimeInNS - timeMap.get(val);
+					timeMap.put(val, time);
+					if (shouldGetEndingTimeForID.contains(val)){
+						cumulativeTime = cumulativeTimeMap.get(name) + endingTimeInNS;
+						cumulativeTimeMap.put(name, cumulativeTime);
+					}
+				}
+			}
 			
 		}
+		
+		
+		
 //		if (isValidFile){			
 //			for (int i = 0; i < graphText.length(); i++){
 //				if (monitor.isCanceled()) {
@@ -161,8 +189,7 @@
 //			launchFileDialogError();
 //			return Status.CANCEL_STATUS;
 //		}
-
-		
+			
 		return Status.OK_STATUS;
 	}
 
