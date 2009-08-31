@@ -9,10 +9,10 @@
 	 * @param bin
 	 * @return
 	 */
-	protected ArrayList<String> getFunctionsFromBinary(IBinary bin, String targetResource) {
-		ArrayList<String> funcs = new ArrayList<String>();
+	protected String getFunctionsFromBinary(IBinary bin, String targetResource) {
+		String funcs = "";
 		try {			
-			ArrayList<ITranslationUnit> list = new ArrayList<ITranslationUnit>();
+			ArrayList<ICContainer> list = new ArrayList<ICContainer>();
 			TranslationUnitVisitor v = new TranslationUnitVisitor();
 //			ASTTranslationUnitVisitor v  = new ASTTranslationUnitVisitor();
 			
@@ -22,12 +22,14 @@
 				for (ITranslationUnit tu : c .getTranslationUnits()) {
 					if (searchForResource && tu.getElementName().contains(targetResource)) {
 						tu.accept(v);
-						funcs.addAll(v.getFunctions());
+						funcs+=v.getFunctions();
 						return funcs;
 					} else {
-						if (!tu.getElementName().contains(".h")) {
-							list.add(tu);
-						}
+						if (!list.contains(c))
+							list.add(c);
+//						if (!tu.getElementName().contains(".h")) {
+//							list.add(tu);
+//						}
 					}
 				}
 				
@@ -39,12 +41,14 @@
 						for (ITranslationUnit tu : e.getTranslationUnits()) {
 							if (searchForResource && tu.getElementName().contains(targetResource)) {
 								tu.accept(v);
-								funcs.addAll(v.getFunctions());
+								funcs+=(v.getFunctions());
 								return funcs;
 							} else {
-								if (!tu.getElementName().contains(".h")) {
-									list.add(tu);
-								}
+								if (!list.contains(c))
+									list.add(c);
+//								if (!tu.getElementName().contains(".h")) {
+//									list.add(tu);
+//								}
 							}
 						}
 					}
@@ -52,45 +56,40 @@
 				}
 			}
 			
-			if (list.size() == 1) {
-				ITranslationUnit tu = (ITranslationUnit) list.get(0);
-				tu.accept(v);
-				funcs.addAll(v.getFunctions());
-			}
-			
-			if (list.size() > 1) {
-				funcs.clear();
-				funcs.add("*");
-//				Object[] unitList = chooseUnit(list); 
+			int numberOfFiles = numberOfValidFiles(list.toArray());
+			if (numberOfFiles == 1) {
+				for (ICContainer c : list) {
+					for (ITranslationUnit e : c.getTranslationUnits()) {
+						if (e.getElementName().endsWith(".c") || 
+								e.getElementName().endsWith(".cpp")) {
+							e.accept(v);
+							funcs+=v.getFunctions();
+						}
+					}
+				}
+			} else {
+//				funcs.clear();
+//				funcs.add("*");
+				Object[] unitList = chooseUnit(list, numberOfFiles); 
 //				if (unitList.length >= list.size()) {
+//					//User selected all items, just add * instead of searching
 //					funcs.clear();
 //					funcs.add("*");
 //				} else {
-//				for (Object obj : unitList) {
-//					if (obj instanceof ITranslationUnit) {
-//						ITranslationUnit tu = (ITranslationUnit) obj;
-//						tu.accept(v);
-//						funcs.addAll(v.getFunctions());
-//					}
-//				}
-//				}
-				
-//				for (ITranslationUnit tu : list) {
-////					System.out.println(tu.getElementName());
-//					try {
-//						long snapshot = System.currentTimeMillis();
-//					IASTTranslationUnit ast = tu.getAST();
-//					System.out.println("Creating AST: " + (System.currentTimeMillis() - snapshot));
-//					if (ast == null) continue;
-//					v.setFileName(tu.getElementName());
-//					snapshot = System.currentTimeMillis();
-//					ast.accept(v);
-//					System.out.println("Visiting AST: " + (System.currentTimeMillis() - snapshot));
-//					funcs.addAll(v.getFunctions());
-//					} catch (Exception e) {
-//						continue;
-//					}
-//				}
+				if (unitList == null || unitList.length == 0) {
+					return null;
+				}
+				for (Object obj : unitList) {
+					if (obj instanceof ITranslationUnit) {
+						ITranslationUnit tu = (ITranslationUnit) obj;
+						tu.accept(v);
+						funcs+=(v.getFunctions());
+					} else {
+						//Non-Translation unit object added to list, just probe *
+						funcs = "*";
+						return funcs;
+					}
+				}
 					
 			}
 			

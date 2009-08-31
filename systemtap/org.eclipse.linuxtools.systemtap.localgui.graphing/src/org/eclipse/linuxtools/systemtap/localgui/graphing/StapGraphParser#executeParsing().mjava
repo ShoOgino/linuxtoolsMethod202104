@@ -1,6 +1,5 @@
 	public IStatus executeParsing(){
 		//Clear maps (in case a previous execution left values hanging)
-		isValidFile = false;
 		outNeighbours.clear();
 		timeMap.clear();
 		serialMap.clear();
@@ -17,10 +16,9 @@
 				}
 				
 				if (tmp.equals("PROBE_BEGIN")){ //$NON-NLS-1$
-					isValidFile = true;
 					text = buff.readLine();
 					endingTimeInNS = Long.parseLong(buff.readLine());
-					totalTime = Long.parseLong(buff.readLine())/100;
+					totalTime = Long.parseLong(buff.readLine());
 				}
 			}
 			buff.close();
@@ -55,16 +53,15 @@
 						id = Integer.parseInt(args[1]);
 						time = Long.parseLong(args[2]);
 						name = args[0];
-						name = cleanName(name);
+						if (!isNameClean(name))
+							break;
+//						name = cleanName(name);
 						serialMap.put(id, name);
 						timeMap.put(id, time);
 						
 						if (cumulativeTimeMap.get(name) == null){
 							cumulativeTimeMap.put(name, (long) 0);
 						}
-						//Use - for start times
-//						cumulativeTime = cumulativeTimeMap.get(name) - time;
-//						cumulativeTimeMap.put(name, cumulativeTime);
 
 						//IF THERE ARE PREVIOUS FUNCTIONS WITH THE SAME NAME
 						//WE ARE IN ONE OF THEM SO DO NOT ADD TO CUMULATIVE TIME
@@ -92,10 +89,12 @@
 						//args[1] = time of event
 						args = s.substring(1, s.length()).split(":");
 						name = args[0];
-						name = cleanName(name);
+						if (!isNameClean(name))
+							break;
+//						name = cleanName(name);
 						int lastOccurance = nameList.lastIndexOf(name);
 						if (lastOccurance < 0) {
-							parseError();
+							parsingError();
 							return Status.CANCEL_STATUS;
 						}
 						
@@ -109,7 +108,7 @@
 						}
 						
 						if (timeMap.get(id) == null) {
-							parseError();
+							parsingError();
 							return Status.CANCEL_STATUS;
 						}		
 						time =  Long.parseLong(args[1]) - timeMap.get(id);
@@ -128,8 +127,8 @@
 //						cumulativeTimeMap.put(name, cumulativeTime);
 						break;
 					default : 
-						parseError();
-						break;
+						parsingError();
+						return Status.CANCEL_STATUS;
 					
 				}
 				
@@ -150,45 +149,10 @@
 			
 		}
 		
-		
-		
-//		if (isValidFile){			
-//			for (int i = 0; i < graphText.length(); i++){
-//				if (monitor.isCanceled()) {
-//					return Status.CANCEL_STATUS;
-//				}
-//				//Check for valid nesting
-//				if (graphText.charAt(i) == '<'){
-//					validator++;
-//				}else if(graphText.charAt(i) == '>'){
-//					validator--;
-//				}
-//			}
-//			
-//			//If brackets don't match, check for potential exit call
-//			if (validator != 0){	
-//				while (validator >= 0){
-//					if (monitor.isCanceled()) {
-//						return Status.CANCEL_STATUS;
-//					}
-//					graphText+='>';
-//					validator--;
-//				}
-//			}
-//			
-//			if (timeInfo == null)
-//				return Status.CANCEL_STATUS;
-//			
-//			//Generate maps
-//			this.generateMaps();
-//			
-//			//Create a UIJob to handle the rest
-			GraphUIJob uijob = new GraphUIJob(Messages.getString("StapGraphParser.5"), this); //$NON-NLS-1$
-			uijob.schedule(); 
-//		}else{
-//			launchFileDialogError();
-//			return Status.CANCEL_STATUS;
-//		}
+
+		//Create a UIJob to handle the rest
+		GraphUIJob uijob = new GraphUIJob(Messages.getString("StapGraphParser.5"), this); //$NON-NLS-1$
+		uijob.schedule(); 
 			
 		return Status.OK_STATUS;
 	}
