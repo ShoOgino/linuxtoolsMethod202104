@@ -1,0 +1,41 @@
+	protected Object[] chooseUnit(List<ITranslationUnit> list) {
+		ILabelProvider programLabelProvider = new LabelProvider() {
+			public String getText(Object element) {
+				if (element instanceof ITranslationUnit) {
+					return ((ITranslationUnit) element).getElementName();
+				}
+				return super.getText(element);
+			}
+		};
+	
+		//TODO: Currently we end up visiting the translation unit twice, could be
+		//expensive for larger programs
+		ILabelProvider qualifierLabelProvider = new LabelProvider() {
+			public String getText(Object element) {
+				try {
+					if (element instanceof ITranslationUnit) {
+						TranslationUnitVisitor v = new TranslationUnitVisitor();
+							((ITranslationUnit) element).accept(v);
+						return "Functions: " + v.getNumberOfFunctions();
+					}
+				} catch (CoreException e) {
+					e.printStackTrace();
+				}
+				return super.getText(element);
+			}
+		};
+	
+		TwoPaneElementSelector dialog = new TwoPaneElementSelector(getActiveWorkbenchShell(), programLabelProvider, qualifierLabelProvider);
+		dialog.setElements(list.toArray());
+		dialog.setTitle("Choose files"); //$NON-NLS-1$
+		dialog.setMessage("Profile all functions in selected files."); //$NON-NLS-1$
+		dialog.setUpperListLabel("Detected files"); //$NON-NLS-1$
+		dialog.setLowerListLabel("Number of functions"); //$NON-NLS-1$
+		dialog.setMultipleSelection(true);
+		if (dialog.open() == Window.OK) {
+			return (Object[]) dialog.getResult();
+		}
+	
+		return null;
+	}
+
