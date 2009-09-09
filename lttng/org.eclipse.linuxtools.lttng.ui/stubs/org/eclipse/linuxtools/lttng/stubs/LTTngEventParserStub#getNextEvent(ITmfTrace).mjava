@@ -1,0 +1,39 @@
+    public TmfEvent getNextEvent(ITmfTrace eventStream) throws IOException {
+
+        if (! (eventStream instanceof LTTngEventStreamStub)) {
+            return null;
+        }
+
+        RandomAccessFile stream = ((LTTngEventStreamStub) eventStream).getStream();
+        String name = eventStream.getName();
+        name = name.substring(name.lastIndexOf('/') + 1);
+
+        try {
+            long ts        = stream.readLong();
+            String source  = stream.readUTF();
+            String type    = stream.readUTF();
+            @SuppressWarnings("unused")
+			int reference  = stream.readInt();
+            int typeIndex  = Integer.parseInt(type.substring(typePrefix.length()));
+            String[] fields = new String[typeIndex];
+            for (int i = 0; i < typeIndex; i++) {
+                fields[i] = stream.readUTF();
+            }
+            String content = "[";
+            for (int i = 0; i < typeIndex; i++) {
+                content += fields[i] + ", ";
+            }
+            content += "]";
+            
+            TmfEvent event = new TmfEvent(
+                    new LTTngTimestampStub(ts),
+                    new TmfEventSource(source),
+                    new TmfEventType(type, fFormats[typeIndex]),
+                    new TmfEventContent(content, fFormats[typeIndex]),
+                    new TmfEventReference(name));
+            return event;
+        } catch (EOFException e) {
+        }
+        return null;
+    }
+

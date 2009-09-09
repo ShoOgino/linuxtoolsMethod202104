@@ -1,0 +1,64 @@
+	/**
+	 * Process an index range request - this has to be seriously re-worked...
+	 * Does not work for multiple traces - yet
+	 * 
+	 * @param request
+	 */
+	private void processEventRequestByIndex(final TmfDataRequest<TmfEvent> request) {
+
+		Thread thread = new Thread() {
+
+			private ITmfTrace[] traces = new ITmfTrace[0];
+			private StreamContext[] contexts;
+			private TmfEvent[] peekEvents;
+
+			@Override
+			public void run() {
+				// Extract the request information
+				int blockSize = request.getBlockize();
+
+				int nbRequestedEvents = request.getNbRequestedItems();
+				if (nbRequestedEvents == -1) {
+					nbRequestedEvents = Integer.MAX_VALUE;
+				}
+
+				// Create the result buffer
+				Vector<TmfEvent> events = new Vector<TmfEvent>();
+				int nbEvents = 0;
+
+				// Initialize the traces array and position the streams
+				traces = fTraces.toArray(traces);
+				contexts = new StreamContext[traces.length];
+				peekEvents = new TmfEvent[traces.length];
+				for (int i = 0; i < contexts.length; i++) {
+					contexts[i] = traces[i].seekEvent(request.getIndex());
+					peekEvents[i] = traces[i].peekEvent(contexts[i]);
+				}
+
+				// Get the ordered events
+				TmfEvent event = getNextEvent(traces, contexts, peekEvents);
+				while (!request.isCancelled() && nbEvents < nbRequestedEvents && event != null) {
+					events.add(event);
+					if (++nbEvents % blockSize == 0) {
+						TmfEvent[] result = new TmfEvent[events.size()];
+						events.toArray(result);
+						request.setData(result);
+						request.handleData();
+						events.removeAllElements();
+					}
+					// To avoid an unnecessary read passed the last event
+					// requested
+					if (nbEvents < nbRequestedEvents)
+						event = getNextEvent(traces, contexts, peekEvents);
+				}
+				TmfEvent[] result = new TmfEvent[events.size()];
+				events.toArray(result);
+
+				request.setData(result);
+				request.handleData();
+				request.done();
+			}
+		};
+		thread.start();
+	}
+

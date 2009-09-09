@@ -1,0 +1,34 @@
+	public void indexExperiment() {
+		ITmfTrace[] traces = new ITmfTrace[0];
+		StreamContext[] contexts;
+		TmfEvent[] peekEvents;
+
+		traces = fTraces.toArray(traces);
+		contexts = new StreamContext[traces.length];
+		peekEvents = new TmfEvent[traces.length];
+		for (int i = 0; i < contexts.length; i++) {
+			contexts[i] = traces[i].seekEvent(TmfTimestamp.BigBang);
+			peekEvents[i] = traces[i].peekEvent(contexts[i]);
+		}
+
+		// Initialize the indices
+		StreamContext[] ctx = new StreamContext[contexts.length];
+		for (int i = 0; i < ctx.length; i++) {
+			ctx[i] = new StreamContext(contexts[i]);
+		}
+		fIndices.add(ctx);
+
+		// Get the ordered events and populate the indices
+		int nbEvents = 0;
+		while (getNextEvent(traces, contexts, peekEvents) != null)
+		{
+			if (++nbEvents % CACHE_SIZE == 0) {
+				ctx = new StreamContext[contexts.length];
+				for (int i = 0; i < ctx.length; i++) {
+					ctx[i] = new StreamContext(contexts[i]);
+				}
+				fIndices.add(ctx);
+			}
+		}
+	}
+

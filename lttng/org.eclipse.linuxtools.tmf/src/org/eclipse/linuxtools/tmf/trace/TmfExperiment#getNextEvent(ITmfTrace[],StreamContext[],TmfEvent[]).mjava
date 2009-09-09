@@ -1,0 +1,20 @@
+    // Returns the next event in chronological order
+	// TODO: Consider the time adjustment
+	private TmfEvent getNextEvent(ITmfTrace[] traces, StreamContext[] contexts, TmfEvent[] peekEvents) {
+		int index = 0;
+		TmfEvent evt = peekEvents[0];
+		TmfTimestamp ts0 = evt != null ? evt.getTimestamp() : TmfTimestamp.BigCrunch;
+		for (int i = 1; i < traces.length; i++) {
+			if (peekEvents[i] != null) {
+				TmfTimestamp ts1 = peekEvents[i].getTimestamp();
+				if (ts1.compareTo(ts0, true) < 0) {
+					index = i;
+					ts0 = ts1;
+				}
+			}
+		}
+		TmfEvent event = traces[index].getNextEvent(contexts[index]);
+		peekEvents[index] = traces[index].peekEvent(contexts[index]);
+		return event;
+	}
+
