@@ -4,16 +4,43 @@
 	 * C Project 
 	 */
 	public static ArrayList<String> getAllFunctions(ICProject project, Object [] listOfFiles){
+		long val = System.currentTimeMillis();
+		ArrayList<String> functionList = new ArrayList<String>();
+		IIndexManager manager = CCorePlugin.getIndexManager();
+		IIndex index = null;
+		
 		try {
-			GetFunctionsJob j = new GetFunctionsJob(project.getHandleIdentifier(), project, listOfFiles);
-			j.schedule();
-			j.join();
-			ArrayList<String> functionList = j.getFunctionList();
+			index = manager.getIndex(project);
+			index.acquireReadLock();
 			
-			return functionList;
+			IIndexFile[] blah = index.getAllFiles();
+			for (IIndexFile file : blah) {
+				String fullFilePath = file.getLocation().getFullPath();
+				if (fullFilePath == null || !specialContains(listOfFiles, fullFilePath)) {
+					continue;
+				}
+
+				IIndexName[] indexNamesArray = file.findNames(0, Integer.MAX_VALUE);
+				for (IIndexName name : indexNamesArray) {
+					if (name.isDefinition() && specialContains(listOfFiles, name.getFile().getLocation().getFullPath())) {
+							IIndexBinding binder = index.findBinding(name);
+							if (binder instanceof IFunction && !functionList.contains(binder.getName())) {
+									functionList.add(binder.getName());					
+							}
+					}
+				}
+				
+			}
+			
+		} catch (CoreException e) {
+			e.printStackTrace();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		return null;
+		
+		index.releaseReadLock();
+		System.out.println("TOTAL FUNCTIONS : "+ functionList.size());
+		System.out.println("TIME : "+(System.currentTimeMillis() - val));
+		return functionList;
 	}
 
