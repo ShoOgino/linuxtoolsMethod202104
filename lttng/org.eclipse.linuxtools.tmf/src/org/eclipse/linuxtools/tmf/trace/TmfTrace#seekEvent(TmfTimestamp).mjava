@@ -1,7 +1,10 @@
-    public StreamContext seekEvent(TmfTimestamp timestamp) {
+    /* (non-Javadoc)
+     * @see org.eclipse.linuxtools.tmf.trace.ITmfTrace#seekEvent(org.eclipse.linuxtools.tmf.event.TmfTimestamp)
+     */
+    public TmfTraceContext seekEvent(TmfTimestamp timestamp) {
 
         // First, find the right checkpoint
-    	int index = Collections.binarySearch(fCheckpoints, new TmfStreamCheckpoint(timestamp, 0));
+    	int index = Collections.binarySearch(fCheckpoints, new TmfTraceCheckpoint(timestamp, 0));
 
         // In the very likely event that the checkpoint was not found, bsearch
         // returns its negated would-be location (not an offset...). From that
@@ -12,11 +15,11 @@
 
         // Position the stream at the checkpoint
         Object location = (index < fCheckpoints.size()) ? fCheckpoints.elementAt(index).getLocation() : null;
-        StreamContext nextEventContext;
+        TmfTraceContext nextEventContext;
         synchronized(this) {
         	nextEventContext = seekLocation(location);
         }
-        StreamContext currentEventContext = new StreamContext(nextEventContext.location, index * fCacheSize);
+        TmfTraceContext currentEventContext = new TmfTraceContext(nextEventContext.location, index * fPageSize);
 
         // And get the event
         TmfEvent event = getNextEvent(nextEventContext);

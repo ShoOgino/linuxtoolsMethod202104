@@ -1,14 +1,13 @@
     /**
-     * Method to parse a single field identified by its id.<p>
-     * 
-     * All parsing will be done on C side as we need LTT functions.
+     * Method to parse a single field identified by its id<br>
+     * All parsing will be done on C side as we need Ltt function
      * 
      * @param   eventToParse    The jni event we want to parse. 
      * @param   fieldPosition   The position (or id) of the field we want to parse
      * 
      * @return                  An Object that contain the JniEvent payload parsed by the C, or null, if if was impossible to parse (i.e., wrong position)
      * 
-     * @see org.eclipse.linuxtools.lttng.jni.eclipse.linuxtools.lttng.jni.JniEvent
+     * @see org.eclipse.linuxtools.lttng.jni.JniEvent
      */
     static public Object parseField(JniEvent eventToParse, int fieldPosition) {
         
@@ -17,10 +16,14 @@
             return null;
         }
         
-        JniMarkerField tmpField = eventToParse.requestEventMarker().getMarkerFieldsArrayList().get(fieldPosition);
+        // *** HACK ***
+        // We cannot use "Object" directly as java does not support swapping primitive value
+        //  We either need to create a new object type or to use a "non-primitive" type that have "Setter()" functions
+        // ***
+        ParsedObjectContent parsedData = new ParsedObjectContent();
         
         // Call the parsing function in C. The result will be put in parsedData object
-        ltt_getParsedData(parsedData, eventToParse.getEventPtr().getPointer(), tmpField.getMarkerFieldPtr().getPointer() );
+        ltt_getParsedData(parsedData, eventToParse.getEventPtr().getPointer(), eventToParse.requestEventMarker().getMarkerFieldsArrayList().get(fieldPosition).getMarkerFieldPtr().getPointer() );
         
         return parsedData.getData();
     }

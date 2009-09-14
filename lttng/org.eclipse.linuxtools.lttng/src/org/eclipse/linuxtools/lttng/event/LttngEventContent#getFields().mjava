@@ -1,25 +1,18 @@
-    /**
-     * Parse all fields and return them as an array of LttngFields.<p>
-     * 
-     * Note : This function is heavy and should only be called if all fields are really needed.
-     * 
-     * @return  All fields.
-     * 
-     * @see @see org.eclipse.linuxtools.lttng.event.LttngEventField
+    /* (non-Javadoc)
+     * @see org.eclipse.linuxtools.tmf.event.TmfEventContent#getFields()
      */
     @Override
     public LttngEventField[] getFields() {
-        LttngEventField tmpField = null;
+    	
+    	// Request the field variable from the inherited class
+        LttngEventField[] fields = (LttngEventField[])super.getFields();
         
-        LttngEventType tmpType = (LttngEventType)fParentEvent.getType();
-        
-        for ( int pos=0; pos<tmpType.getNbFields(); pos++ ) {
-            String name = tmpType.getLabel(pos);
-            Object newValue = ((LttngEvent)getEvent()).convertEventTmfToJni().parseFieldByName(name);
-            
-            tmpField = new LttngEventField(this, name, newValue );
-            fFieldsMap.put(name, tmpField);
+        // Field may be null if the content hasn't been parse yet
+        // If that's the case, call the parsing function
+        if (fields == null) {
+            fields = ((LttngEventFormat) this.getFormat()).parse(this.getContent());
+            setFields(fields);
         }
-        return fFieldsMap.values().toArray(new LttngEventField[fFieldsMap.size()]);
+        return fields;
     }
 

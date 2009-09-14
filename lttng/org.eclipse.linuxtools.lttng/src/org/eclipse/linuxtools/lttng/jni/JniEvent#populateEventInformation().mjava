@@ -1,11 +1,20 @@
     /* 
      * This function populates the event data with data from LTT
      * 
-     * NOTE : To get better performance, we copy very few data into memory here
-     * 
      */
     private void populateEventInformation() {
-    	// We need to save the time, as it is not a primitive (can't be dynamically called in getter)
-    	eventTime.setTime(ltt_getNanosencondsTime(thisEventPtr.getPointer() ));
+        if (thisEventPtr.getPointer() == NULL) {
+            printlnC("Pointer is NULL, trace closed? (populateEventInformation)");
+        }
+        else {
+            tracefilePtr = new C_Pointer( ltt_getTracefilePtr(thisEventPtr.getPointer()) );
+            eventMarkerId = ltt_getEventMarkerId(thisEventPtr.getPointer());
+
+            // Creation of time is a bit different, we need to pass the object
+            // reference to C
+            ltt_feedEventTime(thisEventPtr.getPointer(), eventTime);
+
+            eventDataSize = ltt_getEventDataSize(thisEventPtr.getPointer());
+        }
     }
 

@@ -1,9 +1,11 @@
     /**
-     * Return the next event in the events stack, determined by timestamp, in the trace (all the tracefiles).<p>
+     * Return the next event, determined by timestamp, among the trace files.
+     * The event content is populated.
+     *  
+     * Returns  null in case of error or if we reach end of trace.
      * 
-     * @return The next event in the trace or null if no event is available.
-     * 
-     * @see org.eclipse.linuxtools.lttng.jni.eclipse.linuxtools.lttng.jni.JniEvent
+     * @return The next event in the trace or null
+     * @see org.eclipse.linuxtools.lttng.jni.JniEvent
      */
     public JniEvent readNextEvent() {
         // Get the "next" event on the top of the heap but DO NOT remove it
@@ -15,8 +17,7 @@
         }
         
         // Otherwise, we need to make sure the timestamp of the event we got is not the same as the last "NextEvent" we requested 
-        // NOTE : JniEvent.compareTo() compare by timestamp AND type, as 2 events of different type could have the same timestamp.
-        if ( tmpEvent.compareTo(currentEvent) == 0 ) {
+        if (tmpEvent.getEventTime().getTime() == currentEventTimestamp.getTime() ) {
             // Remove the event on top as it is the same currentEventTimestamp
             eventsHeap.poll();
             
@@ -31,14 +32,16 @@
             // Pick the top event again
             tmpEvent = eventsHeap.peek();
             
-            // Save the event we just read as the "current event"
-            currentEvent = tmpEvent;
+            // Save the timestamp if the event is not null (null mean we reached the last event in the trace)
+            if (tmpEvent != null) {
+                currentEventTimestamp = tmpEvent.getEventTime();
+            }
         }
-        // If the event on top has different timestamp than the currentTimestamp, just save this timestamp as current
+        // If the event on top has differetn timestamp than the currentTimestamp, just save this timestamp as current
         else {
-            currentEvent = tmpEvent;
+            currentEventTimestamp = tmpEvent.getEventTime();
         }
-        
+            
         return tmpEvent;
     }
 

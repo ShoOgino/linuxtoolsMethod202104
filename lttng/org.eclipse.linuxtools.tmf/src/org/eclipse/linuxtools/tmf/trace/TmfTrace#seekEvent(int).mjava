@@ -1,16 +1,19 @@
-    public StreamContext seekEvent(int position) {
+    /* (non-Javadoc)
+     * @see org.eclipse.linuxtools.tmf.trace.ITmfTrace#seekEvent(int)
+     */
+    public TmfTraceContext seekEvent(int position) {
 
         // Position the stream at the previous checkpoint
-        int index = position / fCacheSize;
+        int index = position / fPageSize;
         Object location = (index < fCheckpoints.size()) ? fCheckpoints.elementAt(index).getLocation() : null;
-        StreamContext nextEventContext;
+        TmfTraceContext nextEventContext;
         synchronized(this) {
         	nextEventContext = seekLocation(location);
         }
-        StreamContext currentEventContext = new StreamContext(nextEventContext);
+        TmfTraceContext currentEventContext = new TmfTraceContext(nextEventContext);
 
         // And locate the event (if it exists)
-        int current = index * fCacheSize;
+        int current = index * fPageSize;
         TmfEvent event = getNextEvent(nextEventContext);
         while (event != null && current < position) {
         	currentEventContext.location = nextEventContext.location;

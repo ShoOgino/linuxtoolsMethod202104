@@ -1,7 +1,7 @@
     /* 
      * This function populates the trace data with data from LTT
      * 
-     * @throws JniException
+     * @throws JafException
      */
     private void populateTraceInformation() throws JniException {
         if (thisTracePtr.getPointer() == NULL) {
@@ -23,29 +23,21 @@
         startMonotonic = ltt_getStartMonotonic( thisTracePtr.getPointer() );
 
         // Creation of time is a bit different, we need to pass the object reference to C
-        //
-        // *** NOTE : LTTv consider "raw startTime" (time without any frequency adjustement) to be default startTime
-        //			  So "startTimeNoAdjustement" is obtain throught "ltt_feedStartTime()" and
-        //			  "startTime" is obtained from ltt_feedStartTimeFromTimestampCurrentCounter()
-        startTimeNoAdjustement = new JniTime();
-        ltt_feedStartTime( thisTracePtr.getPointer(), startTimeNoAdjustement );
-        
         startTime = new JniTime();
-        ltt_feedStartTimeFromTimestampCurrentCounter( thisTracePtr.getPointer(), startTime );
+        ltt_feedStartTime( thisTracePtr.getPointer(), startTime );
+
+        startTimeFromTimestampCurrentCounter = new JniTime();
+        ltt_feedStartTimeFromTimestampCurrentCounter( thisTracePtr.getPointer(), startTimeFromTimestampCurrentCounter );
 
         // Call the fill up function for the tracefiles map
         if ( tracefilesMap== null ) {
             tracefilesMap = new HashMap<String, JniTracefile>();
         }
-        ltt_feedAllTracefiles( thisTracePtr.getPointer() );
         
-        // Now, obtain the trace "endTime"
-        // Note that we discard "startTime" right away, as we already have it
-        endTime = new JniTime();
-        ltt_feedTracefileTimeRange(thisTracePtr.getPointer(), new JniTime(), endTime);
+        ltt_getAllTracefiles( thisTracePtr.getPointer() );
         
         if (eventsHeap == null) {
-            eventsHeap = new PriorityQueue<JniEvent>(tracefilesMap.size());
+            eventsHeap = new PriorityQueue<JniEvent>(tracefilesMap.size(), eventComparator);
         }
         
         // Populate the heap with events

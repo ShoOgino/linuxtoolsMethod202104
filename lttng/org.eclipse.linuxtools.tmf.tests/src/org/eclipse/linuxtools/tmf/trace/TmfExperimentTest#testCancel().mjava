@@ -1,0 +1,24 @@
+    @Test
+    public void testCancel() throws Exception {
+        final int BLOCK_SIZE = fDefaultBlockSize;
+        final Vector<TmfEvent> requestedEvents = new Vector<TmfEvent>();
+
+        TmfTimeRange range = new TmfTimeRange(TmfTimestamp.BigBang, TmfTimestamp.BigCrunch);
+        final TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(range, 0, NB_EVENTS, BLOCK_SIZE) {
+            @Override
+            public void handleData() {
+            	TmfEvent[] events = getData();
+                for (TmfEvent e : events) {
+                    requestedEvents.add(e);
+                }
+                // Cancel request after the first chunk is received
+                cancel();
+            }
+        };
+        fExperiment.processRequest(request, true);
+
+        assertEquals("nbEvents",  BLOCK_SIZE, requestedEvents.size());
+        assertTrue("isCompleted", request.isCompleted());
+        assertTrue("isCancelled", request.isCancelled());
+    }
+

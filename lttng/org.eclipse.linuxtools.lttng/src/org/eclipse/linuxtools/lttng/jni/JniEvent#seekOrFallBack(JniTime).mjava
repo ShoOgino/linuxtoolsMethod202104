@@ -1,27 +1,28 @@
     /**
-     * Try to seek to a certain time and seek back if it failed.<p>
+     * Seek to a certain time or seek back if it fails.<br>
+     * <br>
+     * Seek to a certain time and read event at this exact time or the next one if there is no event there.<br>
+     * If the seek fails, we will seek back to the previous position, so the event will stay in a consistent state. 
      * 
-     * Seek to a certain time and read event at this exact time or the next one if there is no event there.<p>
-     * 
-     * If the seek fails, we will seek back to the previous position, so the event will stay in a consistent state.<p> 
-     * 
-     * @return LTT read status, as defined in Jni_C_Common
-     * 
-     * @see org.eclipse.linuxtools.lttng.jni.eclipse.linuxtools.lttng.jni.Jni_C_Common
+     * @return The read status, as defined in Jni_C_Common
+     * @see org.eclipse.linuxtools.lttng.jni.Jni_C_Common
      */
     public int seekOrFallBack(JniTime seekTime) {
         // Save the old time
-        JniTime oldTime = new JniTime(eventTime);
+        JniTime oldTime = eventTime;
 
         // Call seek to move ahead
-        // Save the state for the return (eventState will be modified if we seek back)
-        int returnState = seekToTime(seekTime);
+        seekToTime(seekTime);
+        // Save the state for the return
+        int returnState = eventState;
 
         // If the event state is sane populate it
-        if (returnState == EOK) {
+        if (eventState == EOK) {
             populateEventInformation();
         }
-        else {
+
+        // Move to Next event only if the state of the event is sane
+        if (eventState != EOK) {
             seekToTime(oldTime);
         }
 
