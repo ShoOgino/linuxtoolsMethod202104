@@ -7,6 +7,7 @@
 	 * @param doc
 	 */
 	public void handle (String message){		
+		mismatchedProbePoints = false;
 		if (errorMessage.length() < 1) {
 			errorMessage = 
 				Messages.getString("SystemTapErrorHandler.ErrorMessage") + //$NON-NLS-1$
@@ -19,11 +20,14 @@
 			BufferedReader buff = new BufferedReader (new FileReader(file));
 			String line;
 			int index;
+			boolean firstLine = true; //Keep the error about mismatched probe points first
 			while ((line = buff.readLine()) != null){
 				index = line.indexOf('=');
 				String matchString = line.substring(0, index);
-				Matcher matcher = Pattern.compile(matchString, Pattern.DOTALL).matcher(message);
+				Pattern pat = Pattern.compile(matchString, Pattern.DOTALL);
+				Matcher matcher = pat.matcher(message);
 
+				
 				if (matcher.matches()) {
 					if (!isErrorRecognized()) {
 						errorMessage+=Messages.getString("SystemTapErrorHandler.ErrorMessage2"); //$NON-NLS-1$
@@ -32,7 +36,14 @@
 						
 					errorMessage+=line.substring(index+1) 
 					+ PluginConstants.NEW_LINE + PluginConstants.NEW_LINE;
+				
+					if (firstLine) {
+						functions.clear();
+						findFunctions(message, pat);
+						mismatchedProbePoints = true;
+					}
 				}
+				firstLine = false;
 			}
 			
 			logContents += message;
