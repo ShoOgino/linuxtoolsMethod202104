@@ -1,0 +1,27 @@
+	@Override
+	public String generateScript(ArrayList<String> exclusions) throws IOException {
+		boolean exclude = false;
+		if (exclusions != null)
+			if (exclusions.size() > 0)
+				exclude = true;
+		
+		String scriptContents = "";  //$NON-NLS-1$
+		File scriptFile = new File(scriptPath);
+		scriptFile.delete();
+		scriptFile.createNewFile();
+
+		scriptContents += writeGlobalVariables();
+//		scriptContents += writeStapMarkers();
+		String funcs = writeFunctionListToScript(resourceToSearchFor, exclusions);
+		if (funcs == null)
+			return null;
+		scriptContents += funcs;
+		scriptContents += writeFromPartialScript(bin.getCProject().getElementName());
+		
+		BufferedWriter bw = new BufferedWriter(new FileWriter(scriptFile));
+//		bw.write("probe begin { printf(\"HELLO\") }");
+		bw.write(scriptContents);
+		bw.close();
+		return scriptContents;
+	}
+
