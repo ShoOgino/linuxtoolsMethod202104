@@ -8,47 +8,62 @@
 	 * @param n
 	 * @return
 	 */
-    static ITimeEvent findEvent(ITmfTimeAnalysisEntry thread, long time, int n) {
-        if (null == thread)
-            return null;
-        List<TimeEvent> list = thread.getTraceEvents();
-        Iterator<TimeEvent> it = list.iterator();
-        ITimeEvent nextEvent = null;
-        ITimeEvent currEvent = null;
-        ITimeEvent prevEvent = null;
+	static ITimeEvent findEvent(ITmfTimeAnalysisEntry thread, long time, int n) {
+		if (null == thread)
+			return null;
+		List<TimeEvent> list = thread.getTraceEvents();
+		Iterator<TimeEvent> it = list.iterator();
+		ITimeEvent event = null;
+		ITimeEvent prevEvent = null;
+		ITimeEvent nextEvent = null;
+		if (it.hasNext()) {
+			event = (ITimeEvent) it.next();
+			long currStartTime = event.getTime();
+			long currEndTime = currStartTime + event.getDuration();
 
-        while (it.hasNext()) {
-            nextEvent = (ITimeEvent) it.next();
-            long nextStartTime = nextEvent.getTime();
-            
-            if (nextStartTime > time) {
-                break;
-            }
-            
-            if (currEvent == null || currEvent.getTime() != nextStartTime) {
-                prevEvent = currEvent;
-                currEvent = nextEvent;
-            }
-        }
-        
-        if (n == -1) { //previous
-            if (currEvent != null && currEvent.getTime() + currEvent.getDuration() >= time) {
-                return prevEvent;
-            } else {
-                return currEvent;
-            }
-        } else if (n == 0) { //current
-            if (currEvent != null && currEvent.getTime() + currEvent.getDuration() >= time) {
-                return currEvent;
-            } else {
-                return null;
-            }
-        } else if (n == 1) { //next
-            return nextEvent;
-        } else if (n == 2) { //current or previous when in empty space
-            return currEvent;
-        }
-        
-        return null;
-    }
+			if (time < currStartTime) {
+				if (1 != n)
+					event = null;
+				return event;
+			}
+			while (it.hasNext()) {
+				currStartTime = event.getTime();
+				currEndTime = currStartTime + event.getDuration();
+				nextEvent = (ITimeEvent) it.next();
+
+				long nextEventTime = nextEvent.getTime();
+				currEndTime = currEndTime >= nextEventTime ? (nextEventTime - 1)
+						: currEndTime;
+
+//				Trace.debug("currStartTime: " + currStartTime
+//						+ " currEndTime: " + currEndTime + " nextEventTime: "
+//						+ nextEventTime + " time: " + time);
+				if (currStartTime <= time && time <= currEndTime) {
+					if (1 == n)
+						event = nextEvent;
+					else if (-1 == n)
+						event = prevEvent;
+					return event;
+				}
+
+				if (time > currEndTime && time < nextEventTime) {
+					//Located in a non Event area
+					if (2 == n || -1 == n) {
+						return event;
+					} else if (1 == n) {
+						return nextEvent;
+					}
+					return null;
+				}
+
+				prevEvent = event;
+				event = nextEvent;
+			}
+		}
+		if (1 == n)
+			event = null;
+		else if (-1 == n)
+			event = prevEvent;
+		return event;
+	}
 

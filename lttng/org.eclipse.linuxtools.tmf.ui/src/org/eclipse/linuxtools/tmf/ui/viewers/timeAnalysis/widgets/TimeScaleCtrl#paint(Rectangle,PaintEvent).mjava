@@ -1,75 +1,70 @@
-	@Override
 	void paint(Rectangle rect, PaintEvent e) {
 
 		if (_isInUpdate || null == _timeProvider)
 			return;
 
 		GC gc = e.gc;
-		gc.fillRectangle(rect);
-		
 		if (null == _timeProvider) {
+			gc.fillRectangle(rect);
 			return;
 		}
 
+		gc.setBackground(_colors.getColor(TraceColorScheme.TOOL_BACKGROUND));
+		gc.setForeground(_colors.getColor(TraceColorScheme.TOOL_FOREGROUND));
 		long time0 = _timeProvider.getTime0();
 		long time1 = _timeProvider.getTime1();
 		long selectedTime = _timeProvider.getSelectedTime();
 		int leftSpace = _timeProvider.getNameSpace();
 		int timeSpace = _timeProvider.getTimeSpace();
-		
-		gc.setBackground(_colors.getColor(TraceColorScheme.TOOL_BACKGROUND));
-		gc.setForeground(_colors.getColor(TraceColorScheme.TOOL_FOREGROUND));
-		Utils.init(_rect0, rect);
-		
-		// draw top left area
-		_rect0.width = leftSpace;
-		_rect0.x += 4;
-		_rect0.width -= 4;
-		if (_rect0.width > 0) {
-		    Utils.drawText(gc, Messages._Timescale + ":", _rect0, true);
-		}
-		int messageWidth = gc.stringExtent(Messages._Timescale + ":").x + 4;
-		Rectangle absHeaderRect = new Rectangle(_rect0.x + messageWidth, _rect0.y, _rect0.width - messageWidth, _rect0.height);
-		_rect0.x -= 4;
-		_rect0.width += 4;
-		
-		// prepare and draw right rect of the timescale
-		_rect0.x += leftSpace;
-		_rect0.width = rect.width - leftSpace;
-		
-		// draw bottom border and erase all other area
-		gc.drawLine(rect.x, rect.y + rect.height - 1, rect.x + rect.width - 1,
-		        rect.y + rect.height - 1);
-		_rect0.height--;
-		gc.fillRectangle(_rect0);
-		
+
 		if (time1 <= time0 || timeSpace < 2) {
-		    return;
+			gc.fillRectangle(rect);
+			return;
 		}
-		
+
 		int numDigits = calculateDigits(time0, time1);
-		
+
+		Utils.init(_rect0, rect);
 		int labelWidth = gc.getCharWidth('0') * numDigits;
-		double pixelsPerNanoSec = (timeSpace <= RIGHT_MARGIN) ? 0 :
-		    (double) (timeSpace - RIGHT_MARGIN) / (time1 - time0);
-		calcTimeDelta(labelWidth, pixelsPerNanoSec);
+		double K = 1;
+		if (rect.width - leftSpace > 0) {
+			K = (double) timeSpace / (time1 - time0);
+			calcTimeDelta(labelWidth, K);
+		}
 		
 		TimeDraw timeDraw = getTimeDraw(_timeDelta);
 
-		// draw zoom rectangle
-        if (3 == _dragState && null != _timeProvider) {
-            if (_dragX0 < _dragX) {
-                gc.drawRectangle(leftSpace + _dragX0, rect.y, _dragX - _dragX0 - 1, rect.height - 8);
-            } else if (_dragX0 > _dragX) {
-                gc.drawRectangle(leftSpace + _dragX, rect.y, _dragX0 - _dragX - 1, rect.height - 8);
-            }
-        }
+		// draw top left area
+		_rect0.width = leftSpace;
+		gc.fillRectangle(_rect0);
+		_rect0.x += 4;
+		_rect0.width -= 4;
+		if (_rect0.width > 0) {
+// TODO: Check if we really need that piece of code...			
+//			if (false && rect.width - leftSpace > 0)
+//				Utils.drawText(gc, Messages._Timescale + ": "
+//						+ timeDraw.hint(), _rect0, true);
+//			else
+				Utils.drawText(gc, Messages._Timescale + ":", _rect0, true);
+		}
+		_rect0.x -= 4;
+		_rect0.width += 4;
+
+		// prepare and draw right rect of the timescale
+		_rect0.x += leftSpace;
+		_rect0.width = rect.width - leftSpace;
+
+		// draw bottom border and erase all other area
+		gc.drawLine(rect.x, rect.y + rect.height - 1, rect.x + rect.width - 1,
+				rect.y + rect.height - 1);
+		_rect0.height--;
+		gc.fillRectangle(_rect0);
 
 		if (_rect0.isEmpty())
 			return;
 
 		// draw selected time
-		int x = _rect0.x + (int) ((double)(selectedTime - time0) * pixelsPerNanoSec);
+		int x = _rect0.x + (int) ((selectedTime - time0) * K);
 		if (x >= _rect0.x && x < _rect0.x + _rect0.width) {
 			gc.setForeground(_colors.getColor(TraceColorScheme.SELECTED_TIME));
 			gc.drawLine(x, _rect0.y + _rect0.height - 6, x, _rect0.y
@@ -83,23 +78,12 @@
 		_rect0.y = rect.y;
 		_rect0.height = rect.height - 4;
 		_rect0.width = labelWidth;
-		
-		long time;
-        if (_timeProvider != null && _timeProvider.isCalendarFormat()) {
-            time = floorToCalendar(time0, _timeDelta);
-        } else {
-            time = (long) (Math.ceil((double) time0 / _timeDelta) * _timeDelta);
-        }
-		
+		long time = (long) (Math.floor(time0 / _timeDeltaD) * _timeDeltaD);
 		// long t = (long) (time * 1000000000);
+		long t = time;
 		int y = _rect0.y + _rect0.height;
-
-        if (_timeProvider != null && _timeProvider.isCalendarFormat()) {
-            timeDraw.drawAbsHeader(gc, time, absHeaderRect);
-        }
-		
 		while (true) {
-			x = rect.x + leftSpace + (int) (Math.floor((time - time0) * pixelsPerNanoSec));
+			x = rect.x + leftSpace + (int) ((time - time0) * K);
 			if (x >= rect.x + leftSpace + rect.width - _rect0.width) {
 				break;
 			}
@@ -107,24 +91,10 @@
 				gc.drawLine(x, y, x, y + 4);
 				_rect0.x = x;
 				if (x + _rect0.width <= rect.x + rect.width)
-					timeDraw.draw(gc, time, _rect0);
+					timeDraw.draw(gc, t, _rect0);
 			}
-			if (pixelsPerNanoSec == 0 || time > Long.MAX_VALUE - _timeDelta) {
-			    break;
-			}
-			time += _timeDelta;
-            if (_timeProvider != null && _timeProvider.isCalendarFormat()) {
-                if (_timeDelta >= YEAR_IN_NS) {
-                    GREGORIAN_CALENDAR.setTime(new Date(time / 1000000));
-                    GREGORIAN_CALENDAR.set(Calendar.MONTH, 0); // January 1st of year
-                    GREGORIAN_CALENDAR.set(Calendar.DAY_OF_MONTH, 1);
-                    time = GREGORIAN_CALENDAR.getTimeInMillis() * 1000000;
-                } else if (_timeDelta >= MONTH_IN_NS) {
-                    GREGORIAN_CALENDAR.setTime(new Date(time / 1000000));
-                    GREGORIAN_CALENDAR.set(Calendar.DAY_OF_MONTH, 1); // 1st of month
-                    time = GREGORIAN_CALENDAR.getTimeInMillis() * 1000000;
-                }
-            }
+			time += _timeDeltaD;
+			t += _timeDelta;
 		}
 	}
 
