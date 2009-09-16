@@ -15,7 +15,50 @@
 				errorMessage); //$NON-NLS-1$ //$NON-NLS-2$
 		mes.schedule();
 		
-		
 		writeToLog();
+		
+		if (mismatchedProbePoints){
+			StringBuffer resultFileContent = new StringBuffer();
+			String fileLocation = PluginConstants.DEFAULT_OUTPUT + "callgraphGen.stp";
+			String line;
+			boolean isBadFunction = false;
+			
+			File file = new File(fileLocation);
+			try {
+				BufferedReader buff = new BufferedReader(new FileReader(file));
+				while ((line = buff.readLine()) != null){
+					isBadFunction = false;
+					
+					for (String func : functions){
+						if (line.contains(func)){
+							isBadFunction = true;
+							buff.readLine();
+							buff.readLine();
+						}
+					}
+					
+					if (!isBadFunction){
+						if (!line.equals("\n")){							
+							resultFileContent.append(line);
+							resultFileContent.append("\n");
+						}
+					}
+				}
+				
+				buff.close();
+				
+				BufferedWriter wbuff= new BufferedWriter(new FileWriter(file));
+				wbuff.write(resultFileContent.toString());
+				wbuff.close();
+				
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			
+		}
+		
+		
 	}
 
