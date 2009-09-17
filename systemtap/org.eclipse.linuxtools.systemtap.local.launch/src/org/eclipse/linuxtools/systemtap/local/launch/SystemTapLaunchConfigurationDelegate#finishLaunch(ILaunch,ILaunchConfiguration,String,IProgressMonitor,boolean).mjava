@@ -75,9 +75,11 @@
 			process.setAttribute(IProcess.ATTR_CMDLINE,
 					cmd);
 			monitor.worked(1);
-			
 			((TextConsole)Helper.getConsoleByName(config.getName())).activate();
 			
+			stringBuff = new StringBuffer();
+			process.getStreamsProxy().getErrorStreamMonitor().addListener(new StreamListener());
+
 
 			while (!process.isTerminated()) {
 				Thread.sleep(100);
@@ -99,14 +101,29 @@
 				//Sometimes the console has not been printed to yet, wait for a little while longer
 				if (doc.get().length() < 1)
 					Thread.sleep(300);
-				doc = Helper.getConsoleDocumentByName(config.getName());
 				SystemTapErrorHandler errorHandler = new SystemTapErrorHandler();
 				errorHandler.handle(config.getName() + Messages.getString("SystemTapLaunchConfigurationDelegate.stap_command")  //$NON-NLS-1$
 						+ PluginConstants.NEW_LINE + cmd
-						+ PluginConstants.NEW_LINE + PluginConstants.NEW_LINE 
-						+ doc.get());
+						+ PluginConstants.NEW_LINE + PluginConstants.NEW_LINE);
+				System.out.println("Handling errors");
+				errorHandler.handle(new FileReader(outputPath + "ERROR"));
+				
+				
 				if (errorHandler.hasMismatchedProbePoints() && retry) {
-					errorHandler.finishHandling();
+//					errorHandler.finishHandling();
+					ArrayList<String> exclusions = errorHandler.getFunctions();
+					
+					
+					LaunchStapGraph l = new LaunchStapGraph();
+					l.setExclusions(exclusions);
+					l.scriptPath = config.getAttribute(LaunchConfigurationConstants.SCRIPT_PATH, LaunchConfigurationConstants.DEFAULT_SCRIPT_PATH);
+					l.setFuncs(config.getAttribute("MOREDATA_LOL", ""));
+					l.setProjectName(config.getAttribute("PROJECT_NAME_LOL", ""));
+					l.setPartialScriptPath(PluginConstants.getPluginLocation()
+				+ "parse_function_partial.stp");
+					l.generateScript();
+					
+					
 					finishLaunch(launch, config, command, monitor, false);
 					return;
 				}
