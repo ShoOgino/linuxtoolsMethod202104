@@ -1,43 +1,34 @@
     /**
-     * Method to convert a JniEvent into a LttngEvent
+     * Method tp convert a JniEvent into a LttngEvent
      * 
-     * @param   jniEvent        The JniEvent to convert into LttngEvent
+     * @param   jniEvent        The JniEvent to convert
      * @param   isParsingNeeded A boolean value telling if the event should be parsed or not.
-     * 
-     * @return  The converted LttngEvent
-     * 
-     * @see org.eclipse.linuxtools.org.eclipse.linuxtools.lttng.jni.JniEvent
-     * @see org.eclipse.linuxtools.lttng.event.LttngEvent
+     * @return  LttngEvent   The converted event
+     * @see org.eclipse.linuxtools.lttng.jni.JniEvent
      */
-    public LttngEvent convertJniEventToTmf(JniEvent jniEvent, boolean isParsingNeeded) {
-        // *** HACK *** 
-        // To save time here, we only set value instead of allocating new object
-        // This give an HUGE performance improvement
-        // all allocation done in the LttngTrace constructor
-        
-        eventTimestamp.setValue(jniEvent.getEventTime().getTime());
-        eventSource.setSourceId(jniEvent.requestEventSource());
-        
-        eventType = traceTypes.get( EventTypeKey.getEventTypeKey(jniEvent) );
-        
-        eventReference.setValue(jniEvent.getParentTracefile().getTracefilePath());
-        eventReference.setTracepath(this.getName());
-        
-//        eventContent.setEvent(currentLttngEvent);
-//        eventContent.setType(eventType);
-        eventContent.emptyContent();
-        
-//        currentLttngEvent.setContent(eventContent);
-        currentLttngEvent.setType(eventType);
-        // Save the jni reference
-        currentLttngEvent.updateJniEventReference(jniEvent);
-        
-        // Parse now if was asked
-        // Warning : THIS IS SLOW
-        if (isParsingNeeded == true ) {
-            eventContent.getFields();
+    public LttngEvent convertJniEventToTmf(JniEvent jniEvent, boolean parsingIsNeeded) {
+        LttngEventFormat eventFormat = new LttngEventFormat();
+        String content = "";
+        LttngEventField[] fields = null;
+
+        if (parsingIsNeeded) {
+            fields = eventFormat.parse(jniEvent.parseAllFields());
+            for (int y = 0; y < fields.length; y++) {
+                content += fields[y].toString() + " ";
+            }
         }
         
-        return currentLttngEvent;
+        LttngEvent event = new LttngEvent(
+        		new LttngTimestamp(jniEvent.getEventTime().getTime()),
+                new LttngEventSource(jniEvent.requestEventSource() ), 
+                new LttngEventType(jniEvent.getParentTracefile().getTracefileName(),
+                                   jniEvent.getParentTracefile().getCpuNumber(),
+                                   jniEvent.requestEventMarker().getName(),
+                                   eventFormat),
+                new LttngEventContent(eventFormat, content, fields), 
+                new LttngEventReference(jniEvent.getParentTracefile().getTracefilePath(), this.getName()),
+                jniEvent);
+        
+        return event;
     }
 
