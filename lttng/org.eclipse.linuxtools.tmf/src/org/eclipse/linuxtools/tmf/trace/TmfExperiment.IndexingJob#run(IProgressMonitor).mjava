@@ -1,0 +1,66 @@
+		/* (non-Javadoc)
+		 * @see org.eclipse.core.runtime.jobs.Job#run(org.eclipse.core.runtime.IProgressMonitor)
+		 */
+		@Override
+		protected IStatus run(IProgressMonitor monitor) {
+
+			// Minimal check
+			if (fTraces.size() == 0) {
+	            fIndexing = false;
+				return Status.OK_STATUS;
+			}
+
+			monitor.beginTask("Indexing " + fExperimentId, IProgressMonitor.UNKNOWN);
+
+    		ITmfTrace[] traces = new ITmfTrace[0];
+    		TmfTraceContext[] contexts;
+    		TmfEvent[] events;
+
+    		// Initialize the traces and contexts arrays
+    		traces = fTraces.toArray(traces);
+    		contexts = new TmfTraceContext[traces.length];
+    		events = new TmfEvent[traces.length];
+    		TmfTraceContext[] savedContexts = new TmfTraceContext[contexts.length];
+    		for (int i = 0; i < contexts.length; i++) {
+    			// Context of the first event of the trace
+    			contexts[i] = traces[i].seekLocation(null);
+    			savedContexts[i] = new TmfTraceContext(contexts[i]);
+    			// Set the peeked event
+    			events[i] = traces[i].getNextEvent(new TmfTraceContext(contexts[i]));
+    		}
+    
+    		// Initialize the index array
+    		fIndices.clear();
+			
+    		// Get the ordered events and populate the indices
+    		int nbEvents = 0;
+    		while ((getNextEvent(traces, contexts, events)) != null)
+    		{
+    			if (nbEvents++ % DEFAULT_PAGE_SIZE == 0) {
+    	    		for (int i = 0; i < contexts.length; i++) {
+    	    			savedContexts[i].timestamp = events[i].getTimestamp();
+    	    		}
+    				fIndices.add(savedContexts);
+    			}
+    			// Prepare the saved contexts for the upcoming save (next iteration)
+    			if ((nbEvents + 1) % DEFAULT_PAGE_SIZE == 0) {
+    				savedContexts = new TmfTraceContext[contexts.length];
+    				for (int i = 0; i < contexts.length; i++) {
+    					savedContexts[i] = new TmfTraceContext(contexts[i]);
+    				}
+    			}
+
+    			monitor.worked(1);
+                // Check monitor *after* fCheckpoints has been updated
+                if (monitor.isCanceled()) {
+                    monitor.done();
+                	return Status.CANCEL_STATUS;
+                }
+    		}
+
+            monitor.done();
+
+            fIndexing = false;
+            return Status.OK_STATUS;
+		}
+

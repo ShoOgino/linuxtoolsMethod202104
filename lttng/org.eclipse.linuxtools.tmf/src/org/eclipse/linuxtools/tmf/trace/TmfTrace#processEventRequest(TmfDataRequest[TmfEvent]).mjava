@@ -1,0 +1,60 @@
+	/**
+	 * Process a data request
+	 * 
+	 * @param request
+	 */
+	private void processEventRequest(final TmfDataRequest<TmfEvent> request) {
+
+		// Initialize the trace context
+		final TmfTraceContext context = (request.getRange() != null) ? 
+				seekEvent(request.getRange().getStartTime()) : 
+			    seekEvent(request.getIndex());
+
+		final TmfTimestamp endTime = (request.getRange() != null) ? 
+				request.getRange().getEndTime() :
+				TmfTimestamp.BigCrunch;
+
+		// Process the request
+		Thread thread = new Thread() {
+
+			@Override
+			public void run() {
+				// Extract the general request information
+				int blockSize = request.getBlockize();
+				int nbRequestedEvents = request.getNbRequestedItems();
+				if (nbRequestedEvents == -1) {
+					nbRequestedEvents = Integer.MAX_VALUE;
+				}
+
+				// Create the result buffer
+				Vector<TmfEvent> events = new Vector<TmfEvent>();
+				int nbEvents = 0;
+
+				// Get the ordered events
+				TmfEvent event = getNextEvent(context);
+				while (!request.isCancelled() && nbEvents < nbRequestedEvents && event != null
+						&& event.getTimestamp().compareTo(endTime, false) <= 0)
+				{
+					events.add(event);
+					if (++nbEvents % blockSize == 0) {
+						TmfEvent[] result = new TmfEvent[events.size()];
+						events.toArray(result);
+						request.setData(result);
+						request.handleData();
+						events.removeAllElements();
+					}
+					// To avoid an unnecessary read passed the last event requested
+					if (nbEvents < nbRequestedEvents)
+						event = getNextEvent(context);
+				}
+				TmfEvent[] result = new TmfEvent[events.size()];
+				events.toArray(result);
+				request.setData(result);
+
+				request.handleData();
+				request.done();
+			}
+		};
+		thread.start();
+	}
+

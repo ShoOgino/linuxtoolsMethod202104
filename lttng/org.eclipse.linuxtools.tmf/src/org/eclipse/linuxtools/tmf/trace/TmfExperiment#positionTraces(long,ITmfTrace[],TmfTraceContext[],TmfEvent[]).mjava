@@ -1,0 +1,38 @@
+	/**
+	 * Given an experiment event index, position the set of traces at the
+	 * corresponding location.
+	 * 
+	 * @param index
+	 * @param traces
+	 * @param contexts
+	 * @param peekEvents
+	 */
+	private void positionTraces(long index, ITmfTrace[] traces, TmfTraceContext[] contexts, TmfEvent[] peekEvents) {
+
+		// Initialize the contexts at the page boundary
+		TmfTraceContext[] ctx = new TmfTraceContext[contexts.length];
+		for (int i = 0; i < contexts.length; i++) {
+			contexts[i] = new TmfTraceContext(traces[i].seekLocation(null));
+		}
+
+		int entry = (int) index / DEFAULT_PAGE_SIZE;
+		if (entry < fIndices.size()) {
+			ctx = fIndices.elementAt((int) index / DEFAULT_PAGE_SIZE);
+			for (int i = 0; i < contexts.length; i++) {
+				contexts[i] = new TmfTraceContext(ctx[i]);
+			}
+		}
+
+		// Set the current position (a page boundary)
+		int current = ((int) index / DEFAULT_PAGE_SIZE) * DEFAULT_PAGE_SIZE;
+
+		for (int i = 0; i < contexts.length; i++) {
+			peekEvents[i] = traces[i].getNextEvent(contexts[i]);
+		}
+
+		// Position the traces
+		while (current++ < index) {
+			getNextEvent(traces, contexts, peekEvents);
+		}
+	}
+

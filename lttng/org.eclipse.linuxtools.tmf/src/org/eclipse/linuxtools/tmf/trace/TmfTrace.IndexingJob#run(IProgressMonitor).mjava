@@ -18,45 +18,50 @@
                 }
                 TmfTraceContext currentEventContext = new TmfTraceContext(nextEventContext);
                 TmfEvent event = getNextEvent(nextEventContext);
-                if (event != null) {
-                	startTime = event.getTimestamp();
-                	lastTime  = event.getTimestamp();
+                if (event == null) {
+                	return Status.OK_STATUS;
                 }
 
+               	startTime = event.getTimestamp();
+               	lastTime  = event.getTimestamp();
+               	fCheckpoints.add(new TmfTraceCheckpoint(lastTime, currentEventContext.location));
+                currentEventContext.location = nextEventContext.location;
+
                 rangeStartTime = startTime;
-                while (event != null) {
+                while ((event = getNextEvent(nextEventContext)) != null) {
                     lastTime = event.getTimestamp();
-                    if ((nbEvents++ % fPageSize) == 0) {
-                        TmfTraceCheckpoint bookmark = new TmfTraceCheckpoint(lastTime, currentEventContext.location);
+                    if ((++nbEvents % fPageSize) == 0) {
                         synchronized(this) {
-                        	fCheckpoints.add(bookmark);
+                        	fCheckpoints.add(new TmfTraceCheckpoint(lastTime, currentEventContext.location));
                         	fNbEvents = nbEvents;
                             fTimeRange = new TmfTimeRange(startTime, lastTime);
                         }
                         notifyListeners(new TmfTimeRange(rangeStartTime, lastTime));
+
                         monitor.worked(1);
+
                         // Check monitor *after* fCheckpoints has been updated
                         if (monitor.isCanceled()) {
+                            monitor.done();
                         	return Status.CANCEL_STATUS;
                         }
                     }
 
                     // Do whatever
                     processEvent(event);
-
                     currentEventContext.location = nextEventContext.location;
-					event = getNextEvent(nextEventContext);
                 }
             }
             finally {
                 synchronized(this) {
-                	fNbEvents = nbEvents;
+                	fNbEvents = ++nbEvents;
                 	fTimeRange = new TmfTimeRange(startTime, lastTime);
+            		fIndexing = false;
                 }
                 notifyListeners(new TmfTimeRange(rangeStartTime, lastTime));
                 monitor.done();
             }
 
-			return Status.OK_STATUS;
+            return Status.OK_STATUS;
 		}
 

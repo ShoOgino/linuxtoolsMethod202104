@@ -1,10 +1,24 @@
 	/**
-	 * Process a time range request - this has to be seriously re-worked...
+	 * Process a data request
 	 * 
 	 * @param request
 	 */
-	private void processEventRequestByTimestamp(final TmfDataRequest<TmfEvent> request) {
+	private void processEventRequest(final TmfDataRequest<TmfEvent> request) {
 
+		// General request parameters
+		final TmfTimestamp endTime;
+		final long index;
+
+		// Initialize depending on request type
+		if (request.getRange() != null) {
+			index = getIndex(request.getRange().getStartTime());
+			endTime = request.getRange().getEndTime();
+    	} else {
+    		index = request.getIndex();
+    		endTime = TmfTimestamp.BigCrunch;
+    	}
+
+		// Process the request
 		Thread thread = new Thread() {
 
 			private ITmfTrace[] traces = new ITmfTrace[0];
@@ -13,11 +27,8 @@
 
 			@Override
 			public void run() {
-				// Extract the request information
-				TmfTimestamp startTime = request.getRange().getStartTime();
-				TmfTimestamp endTime = request.getRange().getEndTime();
+				// Extract the general request information
 				int blockSize = request.getBlockize();
-
 				int nbRequestedEvents = request.getNbRequestedItems();
 				if (nbRequestedEvents == -1) {
 					nbRequestedEvents = Integer.MAX_VALUE;
@@ -31,10 +42,7 @@
 				traces = fTraces.toArray(traces);
 				contexts = new TmfTraceContext[traces.length];
 				peekEvents = new TmfEvent[traces.length];
-				for (int i = 0; i < contexts.length; i++) {
-					contexts[i] = traces[i].seekEvent(startTime);
-					peekEvents[i] = traces[i].peekEvent(contexts[i]);
-				}
+				positionTraces(index, traces, contexts, peekEvents);
 
 				// Get the ordered events
 				TmfEvent event = getNextEvent(traces, contexts, peekEvents);

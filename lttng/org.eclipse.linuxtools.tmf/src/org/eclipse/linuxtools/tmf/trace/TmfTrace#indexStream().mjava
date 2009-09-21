@@ -1,21 +1,21 @@
     public void indexStream() {
-    	final IndexingJob job = new IndexingJob(fName);
+    	synchronized (fIndexing) {
+    		if (fIndexing) {
+    			return;
+    		}
+    		fIndexing = true;
+    	}
+
+    	final IndexingJob job = new IndexingJob("Indexing " + fName);
     	job.schedule();
-    	if (fIndex) {
-            ProgressMonitorDialog dialog = new ProgressMonitorDialog(null);
-            try {
-                dialog.run(true, true, new IRunnableWithProgress() {
-                    public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
-                        monitor.beginTask("Indexing " + getName(), IProgressMonitor.UNKNOWN);
-        				job.join();
-                        monitor.done();
-                    }
-                });
-            } catch (InvocationTargetException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+
+    	if (fWaitForIndexCompletion) {
+    		try {
+    			job.join();
+    		} catch (InterruptedException e) {
+    			// TODO Auto-generated catch block
+    			e.printStackTrace();
+    		}
     	}
     }
 

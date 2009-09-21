@@ -3,7 +3,11 @@
      */
     public TmfTraceContext seekEvent(TmfTimestamp timestamp) {
 
-        // First, find the right checkpoint
+    	if (timestamp == null) {
+    		timestamp = TmfTimestamp.BigBang;
+    	}
+
+    	// First, find the right checkpoint
     	int index = Collections.binarySearch(fCheckpoints, new TmfTraceCheckpoint(timestamp, 0));
 
         // In the very likely event that the checkpoint was not found, bsearch
@@ -15,11 +19,9 @@
 
         // Position the stream at the checkpoint
         Object location = (index < fCheckpoints.size()) ? fCheckpoints.elementAt(index).getLocation() : null;
-        TmfTraceContext nextEventContext;
-        synchronized(this) {
-        	nextEventContext = seekLocation(location);
-        }
-        TmfTraceContext currentEventContext = new TmfTraceContext(nextEventContext.location, index * fPageSize);
+        TmfTraceContext nextEventContext = seekLocation(location);
+        nextEventContext.index = index * fPageSize;
+        TmfTraceContext currentEventContext = new TmfTraceContext(nextEventContext);
 
         // And get the event
         TmfEvent event = getNextEvent(nextEventContext);
@@ -29,6 +31,7 @@
         	event = getNextEvent(nextEventContext);
         }
 
+    	currentEventContext.timestamp = (event != null) ? event.getTimestamp() : null;
         return currentEventContext;
     }
 
