@@ -24,46 +24,56 @@
 	    dialog.setSize(cap(topLevel.length*10, 30, 55), 
 	    		cap((int) (topLevel.length*1.5), 3, 13));
 
+	    dialog.create();
+	    OKButton = dialog.getOkButton();
+	    
+	    Object[] result = null;
 	    
 	    
-		if (dialog.open() == Window.OK) {
-			Object[] result = dialog.getResult();
-			if (result == null)
-				return null;
-			
-			ArrayList<Object> output = new ArrayList<Object>();
-			try {
-				for (Object obj : result) {
-					if (obj instanceof ICContainer){
-						ICElement[] array = ((ICContainer) obj).getChildren();
-						for (ICElement c : array) {
-							if (!(c.getElementName().endsWith(".c") || //$NON-NLS-1$
-									c.getElementName().endsWith(".cpp"))) //$NON-NLS-1$
-								continue;
-							if (!output.contains(c))
-								output.add(c);
-						}
+	    if (testMode) {
+	    	OKButton.setSelection(true);
+	    	result = list.toArray();
+	    }
+	    else {
+	    	if (dialog.open() == Window.CANCEL)
+	    		return null;
+	    	result = dialog.getResult();
+	    }
+
+		if (result == null)
+			return null;
+		
+		ArrayList<Object> output = new ArrayList<Object>();
+		try {
+			for (Object obj : result) {
+				if (obj instanceof ICContainer){
+					ICElement[] array = ((ICContainer) obj).getChildren();
+					for (ICElement c : array) {
+						if (!(c.getElementName().endsWith(".c") || //$NON-NLS-1$
+								c.getElementName().endsWith(".cpp"))) //$NON-NLS-1$
+							continue;
+						if (!output.contains(c))
+							output.add(c);
 					}
-					else if (obj instanceof ICElement) {
-						if (((ICElement) obj).getElementName().endsWith(".c")  //$NON-NLS-1$
-								|| ((ICElement) obj).getElementName().endsWith(".cpp")) { //$NON-NLS-1$
-							if (!output.contains(obj)) {
-								output.add(obj);
-							}
+				}
+				else if (obj instanceof ICElement) {
+					if (((ICElement) obj).getElementName().endsWith(".c")  //$NON-NLS-1$
+							|| ((ICElement) obj).getElementName().endsWith(".cpp")) { //$NON-NLS-1$
+						if (!output.contains(obj)) {
+							output.add(obj);
 						}
 					}
 				}
-			
-				if ( output.size() >= numberOfValidFiles) {
-					output.clear();
-					output.add(USER_SELECTED_ALL);
-				}
-			} catch (CModelException e) {
-				e.printStackTrace();
 			}
-			
-			return output.toArray();
+		
+			if ( output.size() >= numberOfValidFiles) {
+				output.clear();
+				output.add(USER_SELECTED_ALL);
+			}
+		} catch (CModelException e) {
+			e.printStackTrace();
 		}
-		return null;
+		
+		return output.toArray();
 	}
 
