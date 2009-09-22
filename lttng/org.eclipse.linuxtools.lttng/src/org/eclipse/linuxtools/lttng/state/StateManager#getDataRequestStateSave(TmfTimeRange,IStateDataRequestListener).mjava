@@ -3,9 +3,11 @@
 
 		final TmfEvent[] evt = new TmfEvent[1];
 
-		// ***TODO***
-		// The override of handlePartialResult is similar to the one in
+		// ***FIXME***
+		// The override of handlePartialResult is exactly the same as the one in
 		// getDataRequestByPosition()
+		// However, there is no way to override it in only one place to avoid
+		// code duplication!
 		// ***
 
 		// Create the new request and override the handlePartialResult function
@@ -16,14 +18,14 @@
 			@Override
 			public void handleData() {
 				TmfEvent[] result = getData();
-				
+
 				evt[0] = (result.length > 0) ? result[0] : null;
 				// Dispatch information for Event processing
 				stateIn.processEvent(evt[0]);
 
 				// Call the function that will save a checkpoint if needed at
 				// that point
-				// Note : We call this function before incrementing eventCount
+				// Note : We call this function before eventCount incrementation
 				// to avoid skipping the "0th" event
 				if (evt[0] != null) {
 					saveCheckPointIfNeeded(getNumOfEvents(), evt[0]
@@ -35,16 +37,10 @@
 				eventCount++;
 			}
 
-			@Override
 			public void handleCompleted() {
-				if (isCancelled() || isFailed()) {
-					// No notification to end request handlers
-				} else {
-					// notify the associated end request handlers
-					requestCompleted();
-				}
+				requestCompleted();
 
-				// notify listeners
+				// Notify listeners of the completion of this request.
 				notifyCompletion();
 				TraceDebug.debug("number of events processed on file opening"
 						+ getNumOfEvents());
