@@ -1,5 +1,7 @@
 	private void finishLaunch(ILaunch launch, ILaunchConfiguration config, String command,
 			IProgressMonitor monitor, boolean retry) {
+		String errorMessage = "";
+
 		try {
 			File workDir = getWorkingDirectory(config);
 			if (workDir == null) {
@@ -106,6 +108,7 @@
 			}
 			Thread.sleep(100);
 			s.close();
+			
 
 			if (process.getExitValue() != 0) {
 				//SystemTap terminated with errors, parse console to figure out which error 
@@ -117,7 +120,7 @@
 				errorHandler.handle(monitor, config.getName() + Messages.getString("SystemTapLaunchConfigurationDelegate.stap_command")  //$NON-NLS-1$
 						+ PluginConstants.NEW_LINE + cmd
 						+ PluginConstants.NEW_LINE + PluginConstants.NEW_LINE);
-				errorHandler.handle(monitor, new FileReader(TEMP_ERROR_OUTPUT)); //$NON-NLS-1$
+				errorMessage = errorHandler.handle(monitor, new FileReader(TEMP_ERROR_OUTPUT)); //$NON-NLS-1$
 				if (monitor != null && monitor.isCanceled())
 					return;
 				
@@ -148,9 +151,10 @@
 		} catch (CoreException e) {
 			e.printStackTrace();
 		} finally {
+			errorMessage = generateErrorMessage(config.getName(), command) + errorMessage;
+			
 			DocWriter dw = new DocWriter(Messages.getString("SystemTapLaunchConfigurationDelegate.DocWriterName"),  //$NON-NLS-1$
-					((TextConsole)Helper.getConsoleByName(config.getName())), config.getName(),
-					binaryArguments);
+					((TextConsole)Helper.getConsoleByName(config.getName())), errorMessage);
 			dw.schedule();
 			monitor.done();
 		}
