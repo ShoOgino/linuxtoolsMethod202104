@@ -1,0 +1,62 @@
+	/**
+	 * Search given string for recognizable error messages. Can append the contents of 
+	 * the string to the error log if writeToLog() or finishHandling() are called.
+	 * A call to finishHandling() will also open a popup window with user-friendly messages
+	 * corresponding to the recognizable errors.
+	 * 
+	 * @param doc
+	 */
+	public void handle (IProgressMonitor m, String errors){	
+		String[] blah = errors.split("\n"); //$NON-NLS-1$
+		
+		//READ FROM THE PROP FILE AND DETERMINE TYPE OF ERROR
+		File file = new File(PluginConstants.PLUGIN_LOCATION+FILE_PROP);
+		try {
+			BufferedReader buff = new BufferedReader (new FileReader(file));
+			String line;
+			int index;
+			
+			for (String message : blah) {
+				boolean firstLine = true; //Keep the error about mismatched probe points first
+				buff = new BufferedReader (new FileReader(file));
+				while ((line = buff.readLine()) != null){
+					if (m != null && m.isCanceled())
+						return;
+					index = line.indexOf('=');
+					String matchString = line.substring(0, index);
+					Pattern pat = Pattern.compile(matchString, Pattern.DOTALL);
+					Matcher matcher = pat.matcher(message);
+	
+					
+					if (matcher.matches()) {
+						if (!isErrorRecognized()) {
+							errorMessage+=Messages.getString("SystemTapErrorHandler.ErrorMessage2"); //$NON-NLS-1$
+							setErrorRecognized(true);
+						}
+						
+						//TODO: Rough hack, very slow
+						if (!errorMessage.contains(line.substring(index+1))) {
+						errorMessage+=line.substring(index+1) 
+							+ PluginConstants.NEW_LINE;
+						}
+					
+						if (firstLine) {
+							findFunctions(m, message, pat);
+							mismatchedProbePoints = true;
+						}
+						break;
+					}
+					firstLine = false;
+				}
+				buff.close();
+			}
+			
+			logContents.append(errors);
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+	}
+

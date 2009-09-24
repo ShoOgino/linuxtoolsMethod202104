@@ -1,0 +1,60 @@
+	public void launch(IBinary bin, String mode) {
+		super.Init();
+		this.bin = bin;
+		name = "SystemTapGraph";  //$NON-NLS-1$
+		binName = getName(bin);
+		partialScriptPath = PluginConstants.getPluginLocation()
+				+ "parse_function_partial.stp";  //$NON-NLS-1$
+
+		scriptPath = PluginConstants.DEFAULT_OUTPUT 
+				+ "callgraphGen.stp";  //$NON-NLS-1$
+		
+		parserID = "org.eclipse.linuxtools.callgraph.graphparser";
+		
+
+		
+		if (projectName == null || projectName.length() < 1)
+			projectName = bin.getCProject().getElementName();
+		
+		try {
+			 
+			config = createConfiguration(bin, name);
+			binaryPath = bin.getResource().getLocation().toString();
+			arguments = binaryPath;
+			outputPath = PluginConstants.STAP_GRAPH_DEFAULT_IO_PATH;
+			
+			writeFunctionListToScript(resourceToSearchFor);
+			if (funcs == null || funcs.length() < 0)
+				return;
+			generatedScript = generateScript();
+			if (generatedScript == null || generatedScript.length() < 0)
+				return;
+
+			generatedScript+= "probe syscall.exit {\n" +
+								"if (pid() == target()) {\n" + 
+								"finalTime = gettimeofday_ns()\n" +
+								"}\n" + 
+								"}\n";
+			needToGenerate = true;
+			
+			finishLaunch(name, mode);
+
+		} catch (IOException e) {
+			SystemTapUIErrorMessages mess = new SystemTapUIErrorMessages(
+					"LaunchShortcutScriptGen",  //$NON-NLS-1$
+					Messages.getString("LaunchStapGraph.0"),   //$NON-NLS-1$
+					Messages.getString("LaunchStapGraph.6"));  //$NON-NLS-1$
+			mess.schedule();
+			e.printStackTrace();
+		} catch (CoreException e1) {
+			e1.printStackTrace();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			resourceToSearchFor = ""; //$NON-NLS-1$
+			searchForResource = false;
+		}
+		
+		
+	}
+

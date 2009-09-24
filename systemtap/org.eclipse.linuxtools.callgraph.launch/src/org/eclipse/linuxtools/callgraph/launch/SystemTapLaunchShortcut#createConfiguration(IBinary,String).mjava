@@ -1,0 +1,43 @@
+	/**
+	 * Allows null configurations to be launched. Any launch that uses a binary should
+	 * never call this configuration with a null parameter, and any launch that does not
+	 * use a binary should never call this function. The null handling is included for 
+	 * ease of testing.
+	 * 
+	 * @param bin
+	 * @param name - Customize the name based on the shortcut being launched
+	 * @return A launch configuration, or null
+	 */
+	protected ILaunchConfiguration createConfiguration(IBinary bin, String name) {
+		if (bin != null) {
+			config = null;
+			try {
+				String projectName = bin.getResource().getProjectRelativePath().toString();
+				ILaunchConfigurationType configType = getLaunchConfigType();
+				ILaunchConfigurationWorkingCopy wc = configType.newInstance(null, 
+						getLaunchManager().generateUniqueLaunchConfigurationNameFrom(name + " - " + bin.getElementName())); //$NON-NLS-1$
+		
+				wc.setAttribute(ICDTLaunchConfigurationConstants.ATTR_PROGRAM_NAME, projectName);
+				wc.setAttribute(ICDTLaunchConfigurationConstants.ATTR_PROJECT_NAME, bin.getCProject().getElementName());
+				wc.setMappedResources(new IResource[] {bin.getResource(), bin.getResource().getProject()});
+				wc.setAttribute(ICDTLaunchConfigurationConstants.ATTR_WORKING_DIRECTORY, (String) null);
+		
+				setDefaultProfileAttributes(wc);
+		
+				config = wc.doSave();
+			} catch (CoreException e) {
+				e.printStackTrace();
+			}
+		}
+		else
+			try {
+				ILaunchConfigurationWorkingCopy wc = getLaunchConfigType().newInstance(null, getLaunchManager().generateUniqueLaunchConfigurationNameFrom(name)); //$NON-NLS-1$
+				setDefaultProfileAttributes(wc);
+				config = wc.doSave();
+			} catch (CoreException e) {
+				e.printStackTrace();
+				return null;
+			}
+		return config;
+	}
+
