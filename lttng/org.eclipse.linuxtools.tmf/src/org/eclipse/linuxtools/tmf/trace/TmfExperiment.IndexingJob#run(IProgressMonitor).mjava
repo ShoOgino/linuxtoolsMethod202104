@@ -4,6 +4,8 @@
 		@Override
 		protected IStatus run(IProgressMonitor monitor) {
 
+			Vector<TmfTraceContext[]> indices = new Vector<TmfTraceContext[]>();
+			
 			// Minimal check
 			if (fTraces.size() == 0) {
 	            fIndexing = false;
@@ -15,43 +17,52 @@
     		ITmfTrace[] traces = new ITmfTrace[0];
     		TmfTraceContext[] contexts;
     		TmfEvent[] events;
+    		int nbTraces = fTraces.size();
 
     		// Initialize the traces and contexts arrays
     		traces = fTraces.toArray(traces);
-    		contexts = new TmfTraceContext[traces.length];
-    		events = new TmfEvent[traces.length];
-    		TmfTraceContext[] savedContexts = new TmfTraceContext[contexts.length];
-    		for (int i = 0; i < contexts.length; i++) {
+    		contexts = new TmfTraceContext[nbTraces];
+    		events = new TmfEvent[nbTraces];
+    		TmfTraceContext[] savedContexts = new TmfTraceContext[nbTraces];
+    		for (int i = 0; i < nbTraces; i++) {
     			// Context of the first event of the trace
     			contexts[i] = traces[i].seekLocation(null);
     			savedContexts[i] = new TmfTraceContext(contexts[i]);
     			// Set the peeked event
     			events[i] = traces[i].getNextEvent(new TmfTraceContext(contexts[i]));
+    			// And fix the timestamp
+    			savedContexts[i].timestamp = (events[i] != null) ? events[i].getTimestamp() : null;
     		}
-    
-    		// Initialize the index array
-    		fIndices.clear();
-			
+
     		// Get the ordered events and populate the indices
     		int nbEvents = 0;
     		while ((getNextEvent(traces, contexts, events)) != null)
     		{
-    			if (nbEvents++ % DEFAULT_PAGE_SIZE == 0) {
-    	    		for (int i = 0; i < contexts.length; i++) {
-    	    			savedContexts[i].timestamp = events[i].getTimestamp();
+    			if (nbEvents % DEFAULT_PAGE_SIZE == 0) {
+	    			// Udpate the contexts timestamp
+    				// Special case: if the total number of events is a
+    				// multiple of the DEFAULT_PAGE_SIZE then all the 
+    				// pending events are null. In this case, we don't
+    				// store an additional entry in the index table.
+    				int nullTimestamps = 0;
+    	    		for (int i = 0; i < nbTraces; i++) {
+    	    			savedContexts[i].timestamp = (events[i] != null) ? events[i].getTimestamp() : null;
+    	    			if (events[i] == null)
+    	    				nullTimestamps++;
     	    		}
-    				fIndices.add(savedContexts);
+    	    		if (nullTimestamps < nbTraces)
+    	    			indices.add(savedContexts);
     			}
-    			// Prepare the saved contexts for the upcoming save (next iteration)
-    			if ((nbEvents + 1) % DEFAULT_PAGE_SIZE == 0) {
-    				savedContexts = new TmfTraceContext[contexts.length];
-    				for (int i = 0; i < contexts.length; i++) {
+
+                // Prepare the saved contexts for the upcoming save (next iteration)
+    			if (++nbEvents % DEFAULT_PAGE_SIZE == 0) {
+    				savedContexts = new TmfTraceContext[nbTraces];
+    				for (int i = 0; i < nbTraces; i++) {
     					savedContexts[i] = new TmfTraceContext(contexts[i]);
     				}
     			}
 
     			monitor.worked(1);
-                // Check monitor *after* fCheckpoints has been updated
                 if (monitor.isCanceled()) {
                     monitor.done();
                 	return Status.CANCEL_STATUS;
@@ -59,6 +70,7 @@
     		}
 
             monitor.done();
+            fIndices = indices;
 
             fIndexing = false;
             return Status.OK_STATUS;

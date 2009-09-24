@@ -9,22 +9,22 @@
 	 */
 	private void positionTraces(long index, ITmfTrace[] traces, TmfTraceContext[] contexts, TmfEvent[] peekEvents) {
 
-		// Initialize the contexts at the page boundary
+		// Set the contexts at page boundary (if possible)
 		TmfTraceContext[] ctx = new TmfTraceContext[contexts.length];
-		for (int i = 0; i < contexts.length; i++) {
-			contexts[i] = new TmfTraceContext(traces[i].seekLocation(null));
-		}
-
 		int entry = (int) index / DEFAULT_PAGE_SIZE;
+		int current = ((int) index / DEFAULT_PAGE_SIZE) * DEFAULT_PAGE_SIZE;
 		if (entry < fIndices.size()) {
 			ctx = fIndices.elementAt((int) index / DEFAULT_PAGE_SIZE);
 			for (int i = 0; i < contexts.length; i++) {
 				contexts[i] = new TmfTraceContext(ctx[i]);
 			}
+		} else { // set at the start...
+			for (int i = 0; i < contexts.length; i++) {
+				if (contexts[i] == null)
+					contexts[i] = new TmfTraceContext(traces[i].seekLocation(null));
+			}
+			current = 0;
 		}
-
-		// Set the current position (a page boundary)
-		int current = ((int) index / DEFAULT_PAGE_SIZE) * DEFAULT_PAGE_SIZE;
 
 		for (int i = 0; i < contexts.length; i++) {
 			peekEvents[i] = traces[i].getNextEvent(contexts[i]);
