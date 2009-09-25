@@ -18,10 +18,22 @@
 
                 if ( process != null ) {
                     
-                    TimeRangeEventProcess localProcess = procContainer.findProcess(process.getPid(),  process.getCpu(), traceSt.getTraceId(), process.getCreation_time());
+                    // *** VERIFY ***
+                    // This make no sense in our java implementation and should be ignored, right?
+                    //
+                    //   if(likely(process_list->current_hash_data[trace_num][cpu] != NULL) ){
+                    //        hashed_process_data = process_list->current_hash_data[trace_num][cpu];
+                    //   }
+                    TimeRangeEventProcess localProcess = procContainer.findProcess(process.getPid(), process.getCreation_time().getValue(), traceSt.getTraceId());
                     
                     if ( localProcess == null ) {
                         if ( (process.getPid() == 0) || (process.getPid() != process.getPpid()) ) {
+                            // *** VERIFY ***
+                            // What am I supposed to do with that?
+                            //   Drawing_t *drawing = control_flow_data->drawing;
+                            //   ProcessInfo *process_info;
+                            //   gtk_widget_set_size_request(drawing->drawing_area, -1, pl_height);
+                            //   gtk_widget_queue_draw(drawing->drawing_area);
                             TmfTimeRange timeRange = traceSt.getInputDataRef().getTraceTimeWindow();
                             localProcess = addLocalProcess(process, timeRange.getStartTime().getValue(), timeRange.getEndTime().getValue(), traceSt.getTraceId());
                         }
@@ -32,6 +44,10 @@
                     else {
                         // If we found the process, the name might be missing. Let's add it here.
                         localProcess.setName(process.getName());
+                        
+                        // *** FIXME ***
+                        // I feel like we are missing something here... what are we suppose to do with that?
+                        //   process_list->current_hash_data[trace_num][process->cpu] = hashed_process_data;
                     }
                 }
                 else {

@@ -1,0 +1,26 @@
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @seeorg.eclipse.linuxtools.lttng.state.IStateDataRequestListener#
+	 * processingStarted(org.eclipse.linuxtools.lttng.state.StateDataRequest)
+	 */
+	@TmfSignalHandler
+	public void processingStarted(RequestStartedSignal signal) {
+		StateDataRequest request = signal.getRequest();
+		cancelPendingRequests();
+		if (request != null) {
+			// make sure there are no duplicates
+			if (!pendingDataRequests.contains(request)) {
+				pendingDataRequests.add(request);
+			}
+			pendingDataRequests.add(request);
+			StateManager smanager = request.getStateManager();
+			// Clear the children on the Processes related to this manager.
+			// Leave the GUI in charge of the updated data.
+			String traceId = smanager.getEventLog().getName();
+			FlowModelFactory.getProcContainer().clearChildren(traceId);
+			// Start over
+			FlowModelFactory.getParamsUpdater().setEventsDiscarded(0);
+		}
+	}
+

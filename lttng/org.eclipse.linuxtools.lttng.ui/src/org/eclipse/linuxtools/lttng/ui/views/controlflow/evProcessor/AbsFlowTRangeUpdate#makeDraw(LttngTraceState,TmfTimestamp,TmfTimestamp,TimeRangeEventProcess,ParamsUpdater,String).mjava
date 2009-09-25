@@ -1,0 +1,105 @@
+	/**
+	 * @param traceSt
+	 * @param startTime
+	 * @param endTime
+	 * @param localProcess
+	 * @param params
+	 * @param stateMode
+	 * @return
+	 */
+	protected boolean makeDraw(LttngTraceState traceSt, TmfTimestamp startTime,
+			TmfTimestamp endTime, TimeRangeEventProcess localProcess,
+			ParamsUpdater params, String stateMode) {
+
+		// Determine start and end times to establish duration
+		Long stime = startTime.getValue();
+		Long etime = endTime.getValue();
+
+		if (etime < stime) {
+			// Validate the sequential order of events
+			params.incrementEventsDiscardedWrongOrder();
+			return false;
+		}
+
+		if (!withinViewRange(stime, etime)) {
+			// No use to process the event since it's outside
+			// the visible time range of the window
+			params.incrementEventsDiscarded();
+			return false;
+		}
+
+		// Determine if the time range event will fit it the current
+		// pixel map
+		double duration = etime - stime;
+		double k = getPixelsPerNs(traceSt, params);
+		double pixels = duration * k;
+
+		// ***VERIFY***
+		// Is all this equivalent to this call in C??
+		// if(ltt_time_compare(hashed_process_data->next_good_time,evtime) > 0)
+		// ***
+		// Visibility check
+		// Display a "more information" indication by allowing non visible event
+		// as long as its previous event is visible.
+		boolean visible = true;
+		if (pixels < 1) {
+			boolean prevEventVisibility = true;
+			// Get the visibility indication on previous event for
+			// this process
+			Vector<TimeRangeComponent> inMemEvents = localProcess
+					.getTraceEvents();
+			if (inMemEvents.size() != 0) {
+				TimeRangeComponent prevEvent = inMemEvents.get(inMemEvents
+						.size() - 1);
+				prevEventVisibility = prevEvent.isVisible();
+
+				// ***VERIFY***
+				// This replace all C Call like this one ?
+				// #ifdef EXTRA_CHECK if(ltt_time_compare(evtime,
+				// time_window.start_time) == -1 || ltt_time_compare(evtime,
+				// time_window.end_time) == 1)
+
+				// if previous event visibility is false and the time span
+				// between events less than two pixels, there is no need to
+				// load it in memory i.e. not visible and a more indicator is
+				// within two pixels.
+				// return i.e. event discarded to free up memory
+				Long eventSpan = stime - prevEvent.getStartTime();
+				if (prevEventVisibility == false
+						&& ((double) eventSpan * k) < 2) {
+
+					// discard the item
+					params.incrementEventsDiscarded();
+					return false;
+
+				}
+			}
+
+			// if previous event is visible, set this one to not
+			// visible and continue
+			visible = false;
+		}
+
+		// Create the time-range event
+		// *** VERIFY ***
+		// This should replace this C call, right?
+		// TimeWindow time_window =
+		// lttvwindow_get_time_window(control_flow_data->tab);
+		TimeRangeEvent time_window = new TimeRangeEvent(stime, etime,
+				localProcess, Type.PROCESS_MODE, stateMode);
+
+		// *** VERIFY ***
+		// This is added to replace the multiple draw and gtk/glib command but
+		// I'm not sure about it
+		time_window.setVisible(visible);
+		localProcess.getTraceEvents().add(time_window);
+
+		// *** VERIFY ***
+		// Missing checks like this one?
+		// #ifdef EXTRA_CHECK if(ltt_time_compare(evtime,
+		// time_window.start_time) == -1 || ltt_time_compare(evtime,
+		// time_window.end_time) == 1)
+
+		return false;
+	}
+

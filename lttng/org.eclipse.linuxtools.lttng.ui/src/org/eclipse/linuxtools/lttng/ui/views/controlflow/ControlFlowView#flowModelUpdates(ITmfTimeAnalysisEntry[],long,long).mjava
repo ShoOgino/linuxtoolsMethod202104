@@ -1,0 +1,31 @@
+	// @Override
+	public void flowModelUpdates(final ITmfTimeAnalysisEntry[] items,
+			final long startTime, final long endTime) {
+		final Table table = tableViewer.getTable();
+		Display display = table.getDisplay();
+
+		// Perform the updates on the UI thread
+		display.asyncExec(new Runnable() {
+			public void run() {
+				tableViewer.setInput(items); // This shall be the minimal
+				// initial
+				tableFilter = new ViewProcessFilter(tableViewer);
+				tableViewer.setFilters(new ViewerFilter[] { tableFilter });
+
+				resizeTableColumns(table);
+				table.update();
+				tableViewer.refresh();
+
+				tsfviewer.display(items, startTime, endTime);
+				tsfviewer.resizeControls();
+
+				// Adjust the size of the vertical scroll bar to fit the
+				// contents
+				if (scrollFrame != null && wrapper != null) {
+					updateScrolls(scrollFrame, wrapper);
+					// scrollFrame.update();
+				}
+			}
+		});
+	}
+

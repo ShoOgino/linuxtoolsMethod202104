@@ -1,0 +1,39 @@
+	private TimeRangeEventResource createSoftIrqResource(int newId,
+			long newStartTime, long newStopTime, String newName,
+			String newGroupName, String newClassName, ResourceTypes newType,
+			Long newResourceId) {
+
+		TimeRangeEventResource resource = new TimeRangeEventResource(newId,
+				newStartTime, newStopTime, newName, newGroupName, newClassName,
+				newType, newResourceId) {
+
+			@Override
+			public String getStateMode(LttngTraceState traceSt) {
+				// Get the resource id.
+				Long softIrqId = getResourceId();
+				// Get the resource state mode
+				long running = traceSt.getSoft_irq_states().get(softIrqId)
+						.getRunning().longValue();
+				long pending = traceSt.getSoft_irq_states().get(softIrqId)
+						.getPending().longValue();
+
+				String softIrqStateMode;
+				if (running > 0) {
+					softIrqStateMode = StateStrings.SoftIRQMode.LTTV_SOFT_IRQ_BUSY
+							.getInName();
+				} else if (pending > 0) {
+					softIrqStateMode = StateStrings.SoftIRQMode.LTTV_SOFT_IRQ_PENDING
+							.getInName();
+				} else {
+					softIrqStateMode = StateStrings.SoftIRQMode.LTTV_SOFT_IRQ_IDLE
+							.getInName();
+				}
+
+				return softIrqStateMode;
+			}
+
+		};
+
+		return resource;
+	}
+

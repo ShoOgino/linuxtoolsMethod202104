@@ -1,9 +1,292 @@
-	/* (non-Javadoc)
-	 * @see org.eclipse.ui.part.WorkbenchPart#createPartControl(org.eclipse.swt.widgets.Composite)
+	/**
+	 * This is a callback that will allow us to create the viewer and initialize
+	 * it.
 	 */
 	@Override
 	public void createPartControl(Composite parent) {
-		// TODO Auto-generated method stub
+		top = new Composite(parent, SWT.BORDER);
 
+		top.setLayout(new FillLayout());
+
+		scrollFrame = new ScrolledComposite(top, SWT.V_SCROLL | SWT.H_SCROLL);
+		scrollFrame.setBounds(top.getClientArea());
+
+		wrapper = new Composite(scrollFrame, SWT.NONE);
+		scrollFrame.setEnabled(true);
+		scrollFrame.setRedraw(true);
+		scrollFrame.setExpandVertical(true);
+		scrollFrame.setExpandHorizontal(true);
+		scrollFrame.setContent(wrapper);
+		scrollFrame.setAlwaysShowScrollBars(true);
+		wrapper.setLayout(new FillLayout());
+
+		SashForm sash = new SashForm(wrapper, SWT.NONE);
+		final Composite tableComposite = new Composite(sash, SWT.NO_SCROLL);
+		FillLayout layout = new FillLayout();
+		tableComposite.setLayout(layout);
+		tableViewer = new TableViewer(tableComposite, SWT.FULL_SELECTION
+				| SWT.H_SCROLL);
+		tableViewer.setContentProvider(new ViewContentProvider(tableViewer));
+		tableViewer.setLabelProvider(new ViewLabelProvider());
+		Table table = tableViewer.getTable();
+		tableViewer
+				.addSelectionChangedListener(new ISelectionChangedListener() {
+					public void selectionChanged(SelectionChangedEvent event) {
+						ISelection sel = event.getSelection();
+						if (!sel.isEmpty()) {
+							Object firstSel = null;
+							if (sel instanceof IStructuredSelection) {
+								firstSel = ((IStructuredSelection) sel)
+										.getFirstElement();
+
+								// Make sure the selection is visible
+								updateScrollOrigin();
+
+								if (firstSel instanceof ITmfTimeAnalysisEntry) {
+									ITmfTimeAnalysisEntry trace = (ITmfTimeAnalysisEntry) firstSel;
+									tsfviewer.setSelectedTrace(trace);
+								}
+							}
+						}
+					}
+
+					/**
+					 * Make sure the selected item is visible
+					 */
+					private void updateScrollOrigin() {
+						Table table = tableViewer.getTable();
+						if (table != null && table.getItemCount() > 0) {
+							TableItem item = table.getSelection()[0];
+							if (item == null) {
+								// no selected reference to go up or down
+								return;
+							}
+
+							Rectangle itemRect = item.getBounds();
+							int step = itemRect.height;
+
+							// calculate height of horizontal bar
+							int hscrolly = 0;
+							ScrollBar hbar = scrollFrame.getHorizontalBar();
+							if (hbar != null) {
+								hscrolly = hbar.getSize().y;
+							}
+
+							int visibleHeight = scrollFrame.getSize().y
+									- hscrolly;
+
+							// the current scrollbar offset to adjust i.e. start
+							// of
+							// the visible window
+							Point origin = scrollFrame.getOrigin();
+							// end of visible window
+							int endy = origin.y + visibleHeight;
+
+							int itemStartPos = itemRect.y
+									+ table.getHeaderHeight()
+									+ table.getBorderWidth()
+									+ table.getParent().getBorderWidth();
+
+							// Item End Position
+							int itemEndPos = itemStartPos + step;
+
+							// check if need to go up
+							if (origin.y >= step && itemStartPos < origin.y) {
+								// one step up
+								scrollFrame
+										.setOrigin(origin.x, origin.y - step);
+
+							}
+
+							// check if it needs to go down
+							if (itemEndPos > endy) {
+								// one step down
+								scrollFrame
+										.setOrigin(origin.x, origin.y + step);
+
+							}
+						}
+					}
+				});
+
+		// Listen to page up /down and Home / Enc keys
+		tableViewer.getTable().addKeyListener(new KeyListener() {
+			public void keyPressed(KeyEvent e) {
+				Table table = tableViewer.getTable();
+				Point origin = scrollFrame.getOrigin();
+				if (table == null || table.getItemCount() < 1) {
+					// nothing to page
+					return;
+				}
+
+				TableItem item;
+				int count;
+
+				switch (e.keyCode) {
+				case SWT.PAGE_DOWN:
+					updateScrollPageDown();
+					break;
+				case SWT.PAGE_UP:
+					updateScrollUp();
+					break;
+				case SWT.HOME:
+					// Home
+					count = table.getItemCount();
+					item = table.getItem(0);
+					// Go to the top
+					scrollFrame.setOrigin(origin.x, 0);
+					break;
+				case SWT.END:
+					// End Selected
+					count = table.getItemCount();
+					item = table.getItem(count - 1);
+					int itemStartPos = item.getBounds().y;
+					// Get to the bottom
+					scrollFrame.setOrigin(origin.x, itemStartPos);
+					break;
+				default:
+					break;
+				}
+			}
+
+			public void keyReleased(KeyEvent e) {
+				// Nothing to do
+
+			}
+
+			/**
+			 * Scroll one page down
+			 */
+			private void updateScrollPageDown() {
+				// null protection before calling private method
+				Table table = tableViewer.getTable();
+				int step = table.getItemHeight();
+
+				int hscrolly = 0;
+				ScrollBar hbar = scrollFrame.getHorizontalBar();
+				if (hbar != null) {
+					hscrolly = hbar.getSize().y;
+				}
+
+				Point origin = scrollFrame.getOrigin();
+				int visibleHeight = scrollFrame.getSize().y - hscrolly;
+				int endy = origin.y + visibleHeight;
+
+				scrollFrame.setOrigin(origin.x, endy - step);
+			}
+
+			/**
+			 * Scroll one page up
+			 */
+			private void updateScrollUp() {
+				// null protection before calling private method
+				Table table = tableViewer.getTable();
+				int step = table.getItemHeight();
+
+				int hscrolly = 0;
+				ScrollBar hbar = scrollFrame.getHorizontalBar();
+				if (hbar != null) {
+					hscrolly = hbar.getSize().y;
+				}
+
+				Point origin = scrollFrame.getOrigin();
+				int visibleHeight = scrollFrame.getSize().y - hscrolly;
+				int pageUpPos = origin.y - visibleHeight + step;
+				pageUpPos = pageUpPos > 0 ? pageUpPos : 0;
+				scrollFrame.setOrigin(origin.x, pageUpPos);
+			}
+
+		});
+		// Describe table
+		applyTableLayout(table);
+
+		int borderWidth = table.getBorderWidth();
+
+		int itemHeight = table.getItemHeight();
+		int headerHeight = table.getHeaderHeight();
+		table.getVerticalBar().setVisible(false);
+
+		tsfviewer = TmfViewerFactory.createViewer(sash,
+				new TimeRangeViewerProvider());
+
+		tsfviewer.addWidgetSelectionListner(this);
+		tsfviewer.addWidgetTimeScaleSelectionListner(this);
+
+		// Traces shall not be grouped to allow synchronization
+		tsfviewer.groupTraces(false);
+		tsfviewer.setItemHeight(itemHeight);
+		tsfviewer.setBorderWidth(borderWidth);
+		tsfviewer.setHeaderHeight(headerHeight);
+		tsfviewer.setVisibleVerticalScroll(false);
+		// Names provided by the table
+		tsfviewer.setNameWidthPref(0);
+		tsfviewer.setAcceptSelectionAPIcalls(true);
+
+		// Viewer to notify selection to this class
+		// This class will synchronize selections with table.
+		tsfviewer.addWidgetSelectionListner(this);
+		tsfviewer.addFilterSelectionListner(this);
+		tsfviewer.addWidgetTimeScaleSelectionListner(this);
+
+		sash.setWeights(new int[] { 1, 1 });
+		// Create the help context id for the viewer's control
+		// TODO: Associate with help system
+		PlatformUI.getWorkbench().getHelpSystem().setHelp(
+				tableViewer.getControl(),
+				"org.eclipse.linuxtools.lttnng.ui.views.flow.viewer"); //$NON-NLS-1$
+
+		makeActions();
+		hookContextMenu();
+		hookDoubleClickAction();
+		contributeToActionBars();
+
+		scrollFrame.addControlListener(new ControlAdapter() {
+			@Override
+			public void controlResized(ControlEvent e) {
+				tsfviewer.resizeControls();
+				updateScrolls(scrollFrame, wrapper);
+			}
+		});
+
+		tableComposite.addControlListener(new ControlListener() {
+			public void controlResized(ControlEvent e) {
+				scrollFrame.getParent().update();
+			}
+
+			public void controlMoved(ControlEvent e) {
+
+			}
+		});
+
+		// Register the updater in charge to refresh elements as we update the
+		// time ranges
+		// FlowParamsUpdater listener = FlowModelFactory.getParamsUpdater();
+		// tsfviewer.addWidgetTimeScaleSelectionListner(listener);
+
+		// Register this view to receive updates when the model is updated with
+		// fresh info
+		// ModelListenFactory.getRegister().addFlowModelUpdatesListener(this);
+
+		// Register the event processor factory in charge of event handling
+		EventProcessorProxy.getInstance().addEventProcessorFactory(
+				FlowTRangeUpdateFactory.getInstance());
+
+		// set the initial view parameter values
+		// Experiment start and end time
+		// as well as time space width in pixels, used by the time analysis
+		// widget
+		ParamsUpdater paramUpdater = FlowModelFactory.getParamsUpdater();
+		StateExperimentManager experimentManger = StateManagerFactory
+				.getExperimentManager();
+		// Read relevant values
+		int timeSpaceWidth = tsfviewer.getTimeSpace();
+		TmfTimeRange timeRange = experimentManger.getExperimentTimeRange();
+		if (timeRange != null) {
+			long time0 = timeRange.getStartTime().getValue();
+			long time1 = timeRange.getEndTime().getValue();
+			paramUpdater.update(time0, time1, timeSpaceWidth);
+		}
+
+		experimentManger.readExperiment("flowView", this);
 	}
 

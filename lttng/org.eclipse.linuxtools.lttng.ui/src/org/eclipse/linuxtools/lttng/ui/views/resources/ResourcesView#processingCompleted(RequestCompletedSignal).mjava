@@ -1,0 +1,85 @@
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @seeorg.eclipse.linuxtools.lttng.state.IStateDataRequestListener#
+	 * processingCompleted(org.eclipse.linuxtools.lttng.state.StateDataRequest)
+	 */
+	@TmfSignalHandler
+	public void processingCompleted(
+			RequestCompletedSignal completedSignal) {
+		StateDataRequest request = completedSignal.getRequest();
+
+		if (request == null) {
+			return;
+		} else {
+			// Remove from the pending requests record
+			pendingDataRequests.remove(request);
+		}
+
+		// No data refresh actions for cancelled requests.
+		if (request.isCancelled() || request.isFailed()) {
+			if (TraceDebug.isDEBUG()) {
+				TmfTimeRange range = request.getRange();
+				TraceDebug.debug("Request cancelled: "
+						+ range.getStartTime().toString() + " - "
+						+ range.getEndTime().toString());
+			}
+			return;
+		}
+
+		StateManager smanager = request.getStateManager();
+		long experimentStartTime = -1;
+		long experimentEndTime = -1;
+		TmfTimeRange experimentTimeRange = smanager.getExperimentTimeWindow();
+		if (experimentTimeRange != null) {
+			experimentStartTime = experimentTimeRange.getStartTime().getValue();
+			experimentEndTime = experimentTimeRange.getEndTime().getValue();
+		}
+
+		// Obtain the current resource list
+		TimeRangeEventResource[] resourceArr = ResourceModelFactory
+				.getResourceContainer().readResources();
+
+		// Sort the array by pid
+		Arrays.sort(resourceArr);
+
+		// Update the view part
+		resourceModelUpdates(resourceArr, experimentStartTime,
+				experimentEndTime);
+
+		// reselect to original time
+		ParamsUpdater paramUpdater = ResourceModelFactory.getParamsUpdater();
+		final Long selTime = paramUpdater.getSelectedTime();
+		if (selTime != null) {
+			Display display = tsfviewer.getControl().getDisplay();
+			display.asyncExec(new Runnable() {
+				public void run() {
+					tsfviewer.setSelectedTime(selTime, false, this);
+				}
+			});
+		}
+
+		if (TraceDebug.isDEBUG()) {
+			Long count = smanager.getEventCount();
+			int eventCount = 0;
+			for (TimeRangeEventResource resource : resourceArr) {
+				eventCount += resource.getTraceEvents().size();
+			}
+
+			int discarded = ResourceModelFactory.getParamsUpdater()
+					.getEventsDiscarded();
+			int discardedOutofOrder = ResourceModelFactory.getParamsUpdater()
+					.getEventsDiscardedWrongOrder();
+			TraceDebug
+					.debug("Events handled: "
+							+ count
+							+ " Events loaded in Resource view: "
+							+ eventCount
+							+ " Number of events discarded: "
+							+ discarded
+							+ "\n\tNumber of events discarded with start time earlier than next good time: "
+							+ discardedOutofOrder);
+		}
+
+	}
+
