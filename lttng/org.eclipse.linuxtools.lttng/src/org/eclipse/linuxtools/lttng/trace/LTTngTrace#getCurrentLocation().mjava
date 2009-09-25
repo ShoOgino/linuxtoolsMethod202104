@@ -1,15 +1,19 @@
     /**
      * Return location (timestamp) of our current position in the trace.
      * 
-     * @return LttngTimestamp The current LTT timestamp, in long. Unit is nanosecond.
+     * @return LttngTimestamp  The time JUST AFTER the current event or AFTER endTime if no more event is available.
      */
-	@Override
+    @Override
 	public Object getCurrentLocation() {
+        
         LttngTimestamp returnedLocation = null;
         JniEvent tmpJniEvent = currentJniTrace.findNextEvent();
         
-        if (tmpJniEvent != null) {
-            returnedLocation = new LttngTimestamp(tmpJniEvent.getEventTime().getTime());
+        if ( tmpJniEvent != null  ) {
+            returnedLocation = new LttngTimestamp(tmpJniEvent.getEventTime().getTime() + 1);
+        }
+        else {
+            returnedLocation = new LttngTimestamp( getEndTime().getValue() + 1 );
         }
         
         return returnedLocation;

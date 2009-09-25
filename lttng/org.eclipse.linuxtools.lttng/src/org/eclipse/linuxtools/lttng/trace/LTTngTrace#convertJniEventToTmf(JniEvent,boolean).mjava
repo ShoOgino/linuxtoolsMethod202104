@@ -1,33 +1,50 @@
-    /**
+    /*
      * Method tp convert a JniEvent into a LttngEvent
      * 
      * @param   jniEvent        The JniEvent to convert
      * @param   isParsingNeeded A boolean value telling if the event should be parsed or not.
+     * 
      * @return  LttngEvent   The converted event
+     * 
      * @see org.eclipse.linuxtools.lttng.jni.JniEvent
      */
-    public LttngEvent convertJniEventToTmf(JniEvent jniEvent, boolean parsingIsNeeded) {
-        LttngEventFormat eventFormat = new LttngEventFormat();
+    public LttngEvent convertJniEventToTmf(JniEvent jniEvent, boolean isParsingNeeded) {
+    	
+    	// *** FIXME ***
+    	// Format seems weird to me... we need to revisit Format/Fields/Content to find a better ways
+    	//
+    	// Generate fields
+    	String[] labels = new String[jniEvent.requestEventMarker().getMarkerFieldsHashMap().size()];
+    	labels = jniEvent.requestEventMarker().getMarkerFieldsHashMap().keySet().toArray( labels );
+    	
+    	// We need a format for content and fields
+        LttngEventFormat eventFormat = new LttngEventFormat(labels);
         String content = "";
         LttngEventField[] fields = null;
 
-        if (parsingIsNeeded) {
+        if (isParsingNeeded == true) {
             fields = eventFormat.parse(jniEvent.parseAllFields());
             for (int y = 0; y < fields.length; y++) {
                 content += fields[y].toString() + " ";
             }
         }
         
-        LttngEvent event = new LttngEvent(
-        		new LttngTimestamp(jniEvent.getEventTime().getTime()),
-                new LttngEventSource(jniEvent.requestEventSource() ), 
-                new LttngEventType(jniEvent.getParentTracefile().getTracefileName(),
-                                   jniEvent.getParentTracefile().getCpuNumber(),
-                                   jniEvent.requestEventMarker().getName(),
-                                   eventFormat),
-                new LttngEventContent(eventFormat, content, fields), 
-                new LttngEventReference(jniEvent.getParentTracefile().getTracefilePath(), this.getName()),
-                jniEvent);
+        LttngEvent event = null;
+        try {
+        	event = new LttngEvent(
+	        			new LttngTimestamp(jniEvent.getEventTime().getTime()),
+	        			new TmfEventSource(jniEvent.requestEventSource() ), 
+	        			new LttngEventType(jniEvent.getParentTracefile().getTracefileName(),
+	                                       jniEvent.getParentTracefile().getCpuNumber(),
+	                                       jniEvent.requestEventMarker().getName(),
+	                                       eventFormat),
+	                    new LttngEventContent(eventFormat, content, fields), 
+	                    new LttngEventReference(jniEvent.getParentTracefile().getTracefilePath(), this.getName()),
+	                    jniEvent);
+        }
+        catch (LttngException e) {
+        	System.out.println("ERROR : Event creation returned :" + e.getMessage() );
+        }
         
         return event;
     }
