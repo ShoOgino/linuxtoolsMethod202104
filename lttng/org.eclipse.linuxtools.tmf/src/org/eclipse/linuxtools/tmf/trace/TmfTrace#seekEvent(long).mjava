@@ -4,18 +4,21 @@
     public TmfTraceContext seekEvent(long position) {
 
         // Position the stream at the previous checkpoint
-        int index = (int) position / fPageSize;
-        Object location = (index < fCheckpoints.size()) ? fCheckpoints.elementAt(index).getLocation() : null;
+        int index = (int) position / fCacheSize;
+        Object location;
+        synchronized (fCheckpoints) { //Just in case we are re-indexing
+            location = (index < fCheckpoints.size()) ? fCheckpoints.elementAt(index).getLocation() : null;
+        }
         TmfTraceContext nextEventContext = seekLocation(location);
-        nextEventContext.index = index * fPageSize;
+        nextEventContext.setIndex(index * fCacheSize);
         TmfTraceContext currentEventContext = new TmfTraceContext(nextEventContext);
 
         // And locate the event (if it exists)
         TmfEvent event = getNextEvent(nextEventContext);
-        while (event != null && currentEventContext.index < position) {
-        	currentEventContext.location = nextEventContext.location;
-        	currentEventContext.timestamp = event.getTimestamp();
-        	currentEventContext.index++;
+        while (event != null && currentEventContext.getIndex() < position) {
+        	currentEventContext.setLocation(nextEventContext.getLocation());
+        	currentEventContext.setTimestamp(event.getTimestamp());
+        	currentEventContext.incrIndex();
         	event = getNextEvent(nextEventContext);
         }
 

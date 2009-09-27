@@ -27,38 +27,41 @@
     		for (int i = 0; i < nbTraces; i++) {
     			// Context of the first event of the trace
     			contexts[i] = traces[i].seekLocation(null);
-    			savedContexts[i] = new TmfTraceContext(contexts[i]);
+    			savedContexts[i] = new TmfTraceContext(contexts[i].getLocation(), null, 0);
     			// Set the peeked event
     			events[i] = traces[i].getNextEvent(new TmfTraceContext(contexts[i]));
-    			// And fix the timestamp
-    			savedContexts[i].timestamp = (events[i] != null) ? events[i].getTimestamp() : null;
+    			// We don't know the event timestamp before we parse it, at which time
+    			// the trace points to the beginning of the *next* event...
+    			// So, once the event is read, we can retrofit the timestamp of the context 
+    			savedContexts[i].setTimestamp((events[i] != null) ? events[i].getTimestamp() : null);
     		}
 
     		// Get the ordered events and populate the indices
     		int nbEvents = 0;
     		while ((getNextEvent(traces, contexts, events)) != null)
     		{
-    			if (nbEvents % DEFAULT_PAGE_SIZE == 0) {
+    			if (nbEvents % fIndexPageSize == 0) {
 	    			// Udpate the contexts timestamp
-    				// Special case: if the total number of events is a
-    				// multiple of the DEFAULT_PAGE_SIZE then all the 
-    				// pending events are null. In this case, we don't
-    				// store an additional entry in the index table.
+    				// Special case: if the total number of events is a multiple of the
+    				// DEFAULT_PAGE_SIZE then all the pending events are null. In that
+    				// case, we don't store an additional entry in the index array.
     				int nullTimestamps = 0;
     	    		for (int i = 0; i < nbTraces; i++) {
-    	    			savedContexts[i].timestamp = (events[i] != null) ? events[i].getTimestamp() : null;
+    	    			savedContexts[i].setTimestamp((events[i] != null) ? events[i].getTimestamp() : null);
     	    			if (events[i] == null)
     	    				nullTimestamps++;
     	    		}
-    	    		if (nullTimestamps < nbTraces)
+    	    		if (nullTimestamps < nbTraces) {
     	    			indices.add(savedContexts);
+    	    		}
     			}
 
                 // Prepare the saved contexts for the upcoming save (next iteration)
-    			if (++nbEvents % DEFAULT_PAGE_SIZE == 0) {
+    			// The timestamp will then be set
+    			if (++nbEvents % fIndexPageSize == 0) {
     				savedContexts = new TmfTraceContext[nbTraces];
     				for (int i = 0; i < nbTraces; i++) {
-    					savedContexts[i] = new TmfTraceContext(contexts[i]);
+    					savedContexts[i] = new TmfTraceContext(contexts[i].getLocation(), null, nbEvents);
     				}
     			}
 
@@ -70,7 +73,9 @@
     		}
 
             monitor.done();
-            fIndices = indices;
+            fExperimentIndex = indices;
+
+//            dumpIndex();
 
             fIndexing = false;
             return Status.OK_STATUS;

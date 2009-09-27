@@ -3,13 +3,13 @@
 	 * 
 	 * @param request
 	 */
-	private void processEventRequest(final TmfDataRequest<TmfEvent> request) {
+	private void processDataRequest(final TmfDataRequest<TmfEvent> request) {
 
 		// General request parameters
 		final TmfTimestamp endTime;
 		final long index;
 
-		// Initialize depending on request type
+		// Initialize request params depending on request type
 		if (request.getRange() != null) {
 			index = getIndex(request.getRange().getStartTime());
 			endTime = request.getRange().getEndTime();
@@ -21,13 +21,14 @@
 		// Process the request
 		Thread thread = new Thread() {
 
-			private ITmfTrace[] traces = new ITmfTrace[0];
-			private TmfTraceContext[] contexts;
-			private TmfEvent[] peekEvents;
-
 			@Override
 			public void run() {
-				
+
+				// Key variables
+				ITmfTrace[] traces = new ITmfTrace[0];	// The set of traces
+				TmfTraceContext[] contexts;				// The set of trace contexts
+				TmfEvent[] nextEvents;					// The next event of each trace
+
 				// Extract the general request information
 				int blockSize = request.getBlockize();
 				int nbRequestedEvents = request.getNbRequestedItems();
@@ -39,34 +40,27 @@
 				Vector<TmfEvent> events = new Vector<TmfEvent>();
 				int nbEvents = 0;
 
-				// Initialize the traces array and position the streams
+				// Initialize the traces array and position the traces
+				// at the first requested event
 				traces = fTraces.toArray(traces);
 				contexts = new TmfTraceContext[traces.length];
-				peekEvents = new TmfEvent[traces.length];
-				positionTraces(index, traces, contexts, peekEvents);
+				nextEvents = new TmfEvent[traces.length];
+				positionTraces(index, traces, contexts, nextEvents);
 
 				// Get the ordered events
-				TmfEvent event = getNextEvent(traces, contexts, peekEvents);
+				TmfEvent event = getNextEvent(traces, contexts, nextEvents);
 				while (!request.isCancelled() && nbEvents < nbRequestedEvents && event != null
-						&& event.getTimestamp().compareTo(endTime, false) <= 0)
+						&& event.getTimestamp().compareTo(endTime, false) < 0)
 				{
 					events.add(event);
 					if (++nbEvents % blockSize == 0) {
-						TmfEvent[] result = new TmfEvent[events.size()];
-						events.toArray(result);
-						request.setData(result);
-						request.handleData();
-						events.removeAllElements();
+						pushData(request, events);
 					}
-					// To avoid an unnecessary read passed the last event requested
+					// Avoid an unnecessary read passed the last event requested
 					if (nbEvents < nbRequestedEvents)
-						event = getNextEvent(traces, contexts, peekEvents);
+						event = getNextEvent(traces, contexts, nextEvents);
 				}
-				TmfEvent[] result = new TmfEvent[events.size()];
-				events.toArray(result);
-				request.setData(result);
-
-				request.handleData();
+				pushData(request, events);
 				request.done();
 			}
 		};

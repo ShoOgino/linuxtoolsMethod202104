@@ -2,11 +2,13 @@
 	 * @see org.eclipse.linuxtools.tmf.trace.TmfTrace#parseEvent()
 	 */
 	@Override
-	public synchronized TmfEvent parseEvent(TmfTraceContext context) {
+	public TmfEvent parseEvent(TmfTraceContext context) {
        	try {
-       		fTrace.seek((context.location != null) ? (Long) context.location : 0);
-      		TmfEvent event = fParser.parseNextEvent(this);
-      		context = new TmfTraceContext(getCurrentLocation(), null, 0);
+   			// paserNextEvent updates the context
+   			TmfEvent event = fParser.parseNextEvent(this, context);
+   			if (event != null) {
+   				context.setTimestamp(event.getTimestamp());
+   			}
        		return event;
        	}
        	catch (IOException e) {

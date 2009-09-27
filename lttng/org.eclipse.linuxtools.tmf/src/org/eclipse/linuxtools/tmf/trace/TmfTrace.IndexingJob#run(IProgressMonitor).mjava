@@ -11,12 +11,11 @@
 
             monitor.beginTask("Indexing " + fName, IProgressMonitor.UNKNOWN);
 
-            try {
-                TmfTraceContext nextEventContext;
-                synchronized(this) {
-                	nextEventContext = seekLocation(null);
-                }
+			try {
+                TmfTraceContext nextEventContext = null;
+               	nextEventContext = seekLocation(null);
                 TmfTraceContext currentEventContext = new TmfTraceContext(nextEventContext);
+
                 TmfEvent event = getNextEvent(nextEventContext);
                 if (event == null) {
                 	return Status.OK_STATUS;
@@ -24,18 +23,16 @@
 
                	startTime = event.getTimestamp();
                	lastTime  = event.getTimestamp();
-               	fCheckpoints.add(new TmfTraceCheckpoint(lastTime, currentEventContext.location));
-                currentEventContext.location = nextEventContext.location;
+               	fCheckpoints.add(new TmfTraceCheckpoint(lastTime, currentEventContext.getLocation()));
+                currentEventContext.setLocation(nextEventContext.getLocation());
 
                 rangeStartTime = startTime;
                 while ((event = getNextEvent(nextEventContext)) != null) {
                     lastTime = event.getTimestamp();
-                    if ((++nbEvents % fPageSize) == 0) {
-                        synchronized(this) {
-                        	fCheckpoints.add(new TmfTraceCheckpoint(lastTime, currentEventContext.location));
-                        	fNbEvents = nbEvents;
-                            fTimeRange = new TmfTimeRange(startTime, lastTime);
-                        }
+                    if ((++nbEvents % fCacheSize) == 0) {
+                       	fCheckpoints.add(new TmfTraceCheckpoint(lastTime, currentEventContext.getLocation()));
+                       	fNbEvents = nbEvents - 1;
+                        fTimeRange = new TmfTimeRange(startTime, lastTime);
                         notifyListeners(new TmfTimeRange(rangeStartTime, lastTime));
 
                         monitor.worked(1);
@@ -49,7 +46,7 @@
 
                     // Do whatever
                     processEvent(event);
-                    currentEventContext.location = nextEventContext.location;
+                    currentEventContext.setLocation(nextEventContext.getLocation());
                 }
             }
             finally {

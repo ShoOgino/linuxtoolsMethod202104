@@ -1,20 +1,28 @@
-	// Returns the next event in chronological order
-	// TODO: Consider the time adjustment
-	private TmfEvent getNextEvent(ITmfTrace[] traces, TmfTraceContext[] contexts, TmfEvent[] peekEvents) {
-		int index = 0;
-		TmfEvent current = peekEvents[0];
-		TmfTimestamp currentTS = (current != null) ? current.getTimestamp() : TmfTimestamp.BigCrunch;
+	/**
+	 * Scan the next events from all traces and return the next one
+	 * in chronological order.
+	 * 
+	 * @param traces
+	 * @param contexts
+	 * @param nextEvents
+	 * @return
+	 */
+	private TmfEvent getNextEvent(ITmfTrace[] traces, TmfTraceContext[] contexts, TmfEvent[] nextEvents) {
+		// TODO: Consider the time adjustment
+		int trace = 0;
+		TmfEvent event = nextEvents[0];
+		TmfTimestamp timestamp = (event != null) ? event.getTimestamp() : TmfTimestamp.BigCrunch;
 		for (int i = 1; i < traces.length; i++) {
-			if (peekEvents[i] != null) {
-				TmfTimestamp newTS = peekEvents[i].getTimestamp();
-				if (newTS.compareTo(currentTS, true) < 0) {
-					index = i;
-					currentTS = newTS;
-					current = peekEvents[i];
+			if (nextEvents[i] != null) {
+				TmfTimestamp otherTS = nextEvents[i].getTimestamp();
+				if (otherTS.compareTo(timestamp, true) < 0) {
+					trace = i;
+					timestamp = otherTS;
+					event = nextEvents[i];
 				}
 			}
 		}
-		peekEvents[index] = traces[index].getNextEvent(contexts[index]);
-		return current;
+		nextEvents[trace] = traces[trace].getNextEvent(contexts[trace]);
+		return event;
 	}
 

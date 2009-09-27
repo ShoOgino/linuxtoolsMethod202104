@@ -3,7 +3,7 @@
 	 * 
 	 * @param request
 	 */
-	private void processEventRequest(final TmfDataRequest<TmfEvent> request) {
+	private void processDataRequest(final TmfDataRequest<TmfEvent> request) {
 
 		// Initialize the trace context
 		final TmfTraceContext context = (request.getRange() != null) ? 
@@ -37,21 +37,13 @@
 				{
 					events.add(event);
 					if (++nbEvents % blockSize == 0) {
-						TmfEvent[] result = new TmfEvent[events.size()];
-						events.toArray(result);
-						request.setData(result);
-						request.handleData();
-						events.removeAllElements();
+						pushData(request, events);
 					}
 					// To avoid an unnecessary read passed the last event requested
 					if (nbEvents < nbRequestedEvents)
 						event = getNextEvent(context);
 				}
-				TmfEvent[] result = new TmfEvent[events.size()];
-				events.toArray(result);
-				request.setData(result);
-
-				request.handleData();
+				pushData(request, events);
 				request.done();
 			}
 		};

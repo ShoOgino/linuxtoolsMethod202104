@@ -10,7 +10,7 @@
     	// First, find the right checkpoint
     	int index = Collections.binarySearch(fCheckpoints, new TmfTraceCheckpoint(timestamp, 0));
 
-        // In the very likely event that the checkpoint was not found, bsearch
+        // In the very likely case that the checkpoint was not found, bsearch
         // returns its negated would-be location (not an offset...). From that
         // index, we can then position the stream and get the event.
         if (index < 0) {
@@ -18,20 +18,23 @@
         }
 
         // Position the stream at the checkpoint
-        Object location = (index < fCheckpoints.size()) ? fCheckpoints.elementAt(index).getLocation() : null;
+        Object location;
+        synchronized (fCheckpoints) { //Just in case we are re-indexing
+            location = (index < fCheckpoints.size()) ? fCheckpoints.elementAt(index).getLocation() : null;
+        }
         TmfTraceContext nextEventContext = seekLocation(location);
-        nextEventContext.index = index * fPageSize;
+        nextEventContext.setIndex(index * fCacheSize);
         TmfTraceContext currentEventContext = new TmfTraceContext(nextEventContext);
 
         // And get the event
         TmfEvent event = getNextEvent(nextEventContext);
         while (event != null && event.getTimestamp().compareTo(timestamp, false) < 0) {
-        	currentEventContext.location = nextEventContext.location;
-        	currentEventContext.index++;
+        	currentEventContext.setLocation(nextEventContext.getLocation());
+        	currentEventContext.incrIndex();
         	event = getNextEvent(nextEventContext);
         }
 
-    	currentEventContext.timestamp = (event != null) ? event.getTimestamp() : null;
+    	currentEventContext.setTimestamp((event != null) ? event.getTimestamp() : null);
         return currentEventContext;
     }
 

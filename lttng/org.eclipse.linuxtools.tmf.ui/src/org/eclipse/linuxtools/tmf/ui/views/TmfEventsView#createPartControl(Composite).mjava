@@ -29,20 +29,8 @@
 			}
 
 			public void widgetSelected(SelectionEvent e) {
-				// Get the timestamp string
-				String time = fTable.getSelection()[0].getText();
-
-				// Compose a timestamp
-				int pos = time.indexOf('.');
-				String integer = time.substring(0, pos);
-				String fraction = time.substring(pos + 1);
-
-				byte exponent = (byte) -fraction.length();
-				String value = integer + fraction;
-				TmfTimestamp ts = new TmfTimestamp(new Long(value), exponent);
-
-				// Generate the synchronization event
-				TmfSignalManager.dispatchSignal(new TmfTimeSynchSignal(fTable, ts));
+				TmfTimestamp ts = extractTimestamp(fTable.getSelection()[0].getText());
+				broadcastSignal(new TmfTimeSynchSignal(this, ts));
 			}
         });
 
@@ -66,5 +54,11 @@
 
         fTable.setItemCount(0);
     	fTitlePrefix = getTitle();
+
+    	// If an experiment is already selected, update the table
+    	fExperiment = TmfExperiment.getCurrentExperiment();
+    	if (fExperiment != null) {
+    		experimentSelected(new TmfExperimentSelectedSignal(fTable, fExperiment));
+    	}
     }
 

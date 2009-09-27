@@ -1,38 +1,53 @@
 	/**
-	 * Given an experiment event index, position the set of traces at the
-	 * corresponding location.
+	 * Given an experiment event index, position the set of traces so a call
+	 * to getNextEvent() will retrieve the corresponding event.
 	 * 
 	 * @param index
 	 * @param traces
 	 * @param contexts
-	 * @param peekEvents
+	 * @param nextEvents
 	 */
-	private void positionTraces(long index, ITmfTrace[] traces, TmfTraceContext[] contexts, TmfEvent[] peekEvents) {
+	private void positionTraces(long index, ITmfTrace[] traces, TmfTraceContext[] contexts, TmfEvent[] nextEvents) {
 
-		// Set the contexts at page boundary (if possible)
-		TmfTraceContext[] ctx = new TmfTraceContext[contexts.length];
-		int entry = (int) index / DEFAULT_PAGE_SIZE;
-		int current = ((int) index / DEFAULT_PAGE_SIZE) * DEFAULT_PAGE_SIZE;
-		if (entry < fIndices.size()) {
-			ctx = fIndices.elementAt((int) index / DEFAULT_PAGE_SIZE);
+		// Compute the index page and corresponding index
+		int page = (int) index / fIndexPageSize;
+		int current = page * fIndexPageSize;
+
+		// Retrieve the checkpoint and set the contexts (make copies)
+		TmfTraceContext[] saveContexts = new TmfTraceContext[contexts.length];
+		if (page < fExperimentIndex.size()) {
+			saveContexts = fExperimentIndex.elementAt(page);
 			for (int i = 0; i < contexts.length; i++) {
-				contexts[i] = new TmfTraceContext(ctx[i]);
+				contexts[i] = new TmfTraceContext(saveContexts[i]);
 			}
-		} else { // set at the start...
-			for (int i = 0; i < contexts.length; i++) {
-				if (contexts[i] == null)
+		} else {
+			// If the page entry doesn't exist (e.g. indexing not completed),
+			// set contexts at the the last entry (if it exists)
+			page = fExperimentIndex.size() - 1;
+			if (page >= 0) {
+				saveContexts = fExperimentIndex.elementAt(page);
+				for (int i = 0; i < contexts.length; i++) {
+					contexts[i] = new TmfTraceContext(saveContexts[i]);
+				}
+				current = page * fIndexPageSize;
+			}
+			// Index is empty... position traces at their beginning
+			else {
+				for (int i = 0; i < contexts.length; i++) {
 					contexts[i] = new TmfTraceContext(traces[i].seekLocation(null));
+				}
+				current = 0;
 			}
-			current = 0;
 		}
 
+		// Set the next events
 		for (int i = 0; i < contexts.length; i++) {
-			peekEvents[i] = traces[i].getNextEvent(contexts[i]);
+			nextEvents[i] = traces[i].getNextEvent(contexts[i]);
 		}
 
-		// Position the traces
+		// Position the traces at the requested index
 		while (current++ < index) {
-			getNextEvent(traces, contexts, peekEvents);
+			getNextEvent(traces, contexts, nextEvents);
 		}
 	}
 
