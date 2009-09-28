@@ -1,0 +1,58 @@
+	@Test
+	public void testEventsLoop() {
+		JniTrace trace = null;
+		JniEvent event = null;
+		try {
+			trace = new JniTrace(tracepath);
+		} catch (JniException e) {
+			e.printStackTrace();
+		}
+
+		HashMap<String, Integer> eventCount = new HashMap<String, Integer>();
+		while (true) {
+			event = trace.readNextEvent();
+			if (event == null) {
+				break;
+			}
+			JniMarker dmarker = event.requestEventMarker();
+			assertNotNull(dmarker);
+
+			String name = dmarker.getName();
+
+			if (eventCount.containsKey(name)) {
+				Integer cnt = eventCount.get(name);
+				eventCount.put(name, cnt + 1);
+			} else {
+				eventCount.put(name, 1);
+				// Only print state transition states and it's format
+				if (stateSet.contains(name)) {
+					System.out.println("\nMarker name: " + name + "\nFields:");
+					
+					Object[] tmpMarkerFields = dmarker.getMarkerFieldsArrayList().toArray();
+					String[] fields = new String[tmpMarkerFields.length];
+					
+					for (int pos = 0; pos < tmpMarkerFields.length; pos++) {
+						fields[pos] = ((JniMarkerField) tmpMarkerFields[pos]).getField() + ":" + ((JniMarkerField) tmpMarkerFields[pos]).getFormat();
+					}
+					
+					for (String field : fields) {
+						System.out.println(field + " ");
+					}
+				}
+			}
+		}
+
+		for (String state : eventCount.keySet()) {
+			System.out.println(state + " : " + eventCount.get(state));
+		}
+
+		assertEquals("syscall_entry mismatch", expect_syscall_entry, eventCount
+				.get(EvStateTrans.syscall_entry.name()));
+		assertEquals("syscall_exit mismatch", expect_syscall_exit, eventCount
+				.get(EvStateTrans.syscall_exit.name()));
+		assertEquals("core_market_format mismatch", expect_core_marker_format,
+				eventCount.get("core_marker_format"));
+		assertEquals("core_market_id mismatch", expect_core_marker_id,
+				eventCount.get("core_marker_id"));
+	}
+

@@ -1,0 +1,59 @@
+        @Test
+        public void testEventDisplacement() {
+                
+                int readValue = -1;
+                int seekValue = -1; 
+                JniEvent testEvent = prepareEventToTest();
+                
+                // Test #1 readNextEvent()
+                readValue = testEvent.readNextEvent();
+                assertSame("readNextEvent() returned error (test #1)",0,readValue);
+                assertEquals("readNextEvent() event timestamp is incoherent (test #1)",secondEventTimestamp,testEvent.getEventTime().getTime() );
+                
+                // Test #2 readNextEvent()
+                readValue = testEvent.readNextEvent();
+                assertSame("readNextEvent() returned error (test #1)",0,readValue);
+                assertEquals("readNextEvent() event timestamp is incoherent (test #1)",thirdEventTimestamp,testEvent.getEventTime().getTime() );
+                
+                
+                // Test  #1 of seekToTime()
+                seekValue = testEvent.seekToTime(new JniTime(timestampToSeekTest1) );
+                assertSame("seekToTime() returned error (test #1)",0,seekValue);
+                // Read SHOULD NOT be performed after a seek!
+                assertEquals("readNextEvent() event timestamp is incoherent (test #1)",timestampToSeekTest1,testEvent.getEventTime().getTime() );
+                
+                readValue = testEvent.readNextEvent();
+                assertEquals("readNextEvent() event timestamp is incoherent (test #1)",timestampAfterSeekTest1,testEvent.getEventTime().getTime() );
+                
+                
+                // Test  #2 of seekToTime()
+                seekValue = testEvent.seekToTime(new JniTime(timestampToSeekLast) );
+                assertSame("seekToTime() returned error (test #2)",0,seekValue);
+                // Read SHOULD NOT be performed after a seek!
+                assertEquals("readNextEvent() event timestamp is incoherent (test #2)",timestampToSeekLast,testEvent.getEventTime().getTime() );
+                
+                // Read AFTER the last event should bring an error
+                readValue = testEvent.readNextEvent();
+                assertNotSame("readNextEvent() AFTER last event should return error (test #2)",0,readValue);
+                
+                
+                // Test to see if we can seek back
+                seekValue = testEvent.seekToTime(new JniTime(firstEventTimestamp) );
+                assertSame("seekToTime() returned error (test seek back)",0,seekValue);
+                // Read SHOULD NOT be performed after a seek!
+                assertEquals("readNextEvent() event timestamp is incoherent (test seek back)",firstEventTimestamp,testEvent.getEventTime().getTime() );
+                
+                
+                // Test  #1 of seekOrFallBack() (seek within range)
+                seekValue = testEvent.seekOrFallBack(new JniTime(timestampToSeekTest1) );
+                assertSame("seekToTime() returned error (test #1)",0,seekValue);
+                // Read SHOULD NOT be performed after a seek!
+                assertEquals("readNextEvent() event timestamp is incoherent (test #1)",timestampToSeekTest1,testEvent.getEventTime().getTime() );
+                
+                // Test  #2 of seekOrFallBack() (seek out of range, should fall back)
+                seekValue = testEvent.seekOrFallBack(new JniTime(timestampToSeekTooFarAway) );
+                assertNotSame("seekOrFallBack() should return an error (test #2)",0,seekValue);
+                // The read should return the "last" value as we seek back
+                assertEquals("readNextEvent() event timestamp is incoherent (test #2)",timestampToSeekTest1,testEvent.getEventTime().getTime() );
+        }
+

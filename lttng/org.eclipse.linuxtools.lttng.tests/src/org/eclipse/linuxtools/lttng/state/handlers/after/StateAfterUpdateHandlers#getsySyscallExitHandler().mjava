@@ -1,0 +1,40 @@
+	final IEventProcessing getsySyscallExitHandler() {
+		AbsStateUpdate handler = new AbsStateUpdate() {
+
+			private Events eventType = Events.LTT_EVENT_SYSCALL_EXIT;
+
+			// @Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+
+				// TraceDebug.debug("Syscall Exit After event called");
+				Long cpu = trcEvent.getCpuId();
+				LttngProcessState process = traceSt.getRunning_process().get(
+						cpu);
+
+				/* There can be no system call from PID 0 : unknown state */
+				if (process.getPid() == 0L) {
+					if (pid != 0L) {
+						TraceDebug
+								.debug("Unexpected pid from before and after verfication methods, before pid: "
+										+ pid
+										+ " after pid: "
+										+ process.getPid_time());
+					}
+					return true;
+				}
+				
+				//
+				// pop_state(cpu, StateStrings.ExecutionMode.LTTV_STATE_SYSCALL,
+				// traceSt, trcEvent.getTimestamp());
+				return false;
+
+			}
+
+			// @Override
+			public Events getEventHandleType() {
+				return eventType;
+			}
+		};
+		return handler;
+	}
+
