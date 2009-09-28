@@ -7,14 +7,21 @@
      * @see org.eclipse.linuxtools.lttng.jni.JniTrace
      */ 
     @Override
-	public synchronized TmfEvent parseEvent(TmfTraceContext context) {
+	public TmfEvent parseEvent(TmfTraceContext context) {
 
-    	seekLocation(context.getLocation());
-        JniEvent jniEvent = currentJniTrace.readNextEvent();
-        currentLttngEvent = convertJniEventToTmf(jniEvent, true);
-        context = new TmfTraceContext((LttngTimestamp) getCurrentLocation(),
-        		currentLttngEvent.getTimestamp(), context.getIndex() + 1);
-        
-        return currentLttngEvent;
+		JniEvent jniEvent;
+		LttngTimestamp timestamp = null;
+		
+    	synchronized (currentJniTrace) {
+    		seekLocation(context.getLocation());
+    		jniEvent = currentJniTrace.readNextEvent();
+    		currentLttngEvent = (jniEvent != null) ? convertJniEventToTmf(jniEvent, true) : null;
+    		timestamp = (LttngTimestamp) getCurrentLocation();
+    	}
+   		context.setLocation(timestamp);
+   		context.setTimestamp(timestamp);
+   		context.incrIndex();
+
+   		return currentLttngEvent;
     }
 
