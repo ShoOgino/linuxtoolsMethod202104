@@ -6,39 +6,16 @@
 	 * 
 	 * @param string @return IPath
 	 */
-	private IPath createDirectory(String dirName) throws CoreException {
+	private boolean createDirectory(String dirName) throws CoreException {
 		// Create or get the handle for the build directory
-		if (dirName.length() == 0 || dirName.equals("."))
-			return project.getFullPath();
-		IFolder folder = project.getFolder(dirName);
-		if (!folder.exists()) {
-			// Make sure that parent folders exist
-			IPath parentPath = (new Path(dirName)).removeLastSegments(1);
-			// Assume that the parent exists if the path is empty
-			if (!parentPath.isEmpty()) {
-				IFolder parent = project.getFolder(parentPath);
-				if (!parent.exists()) {
-					createDirectory(parentPath.toString());
-				}
-			}
+		boolean rc = true;
+		IPath path = new Path(dirName);
+		if (dirName.length() == 0 || dirName.startsWith(".") || !dirName.startsWith("/"))
+			path = project.getLocation().append(dirName);
+		File f = path.toFile();
+		if (!f.exists())
+			rc = f.mkdirs();
 
-			// Now make the requested folder
-			try {
-				folder.create(true, true, null);
-			} catch (CoreException e) {
-				if (e.getStatus().getCode() == IResourceStatus.PATH_OCCUPIED)
-					folder.refreshLocal(IResource.DEPTH_ZERO, null);
-				else
-					throw e;
-			}
-
-			// Make sure the folder is marked as derived so it is not added to
-			// CM
-			if (!folder.isDerived()) {
-				folder.setDerived(true);
-			}
-		}
-
-		return folder.getFullPath();
+		return rc;
 	}
 
