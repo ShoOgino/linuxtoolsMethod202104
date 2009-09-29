@@ -1,0 +1,35 @@
+	@Override
+	public IStatus runInUIThread(IProgressMonitor monitor) {
+
+		IExtensionRegistry reg = Platform.getExtensionRegistry();
+		IConfigurationElement[] extensions = reg.getConfigurationElementsFor(
+				PluginConstants.VIEW_RESOURCE, PluginConstants.VIEW_NAME,
+				viewID);
+
+		if (extensions == null || extensions.length < 1) {
+			SystemTapUIErrorMessages mess = new SystemTapUIErrorMessages(
+					"Couldn't load view", "Could not load view",
+					"Could not load view with id: " + viewID); //$NON-NLS-1$
+			mess.schedule();
+			return Status.CANCEL_STATUS;
+		}
+
+		IConfigurationElement element = extensions[0];
+
+		SystemTapView view;
+		try {
+			view = (SystemTapView) element
+					.createExecutableExtension(PluginConstants.ATTR_CLASS);
+
+			if (!view.setParser(parser))
+				return Status.CANCEL_STATUS;
+			view.initialize(this.getDisplay(), monitor);
+			
+			return Status.OK_STATUS;
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+
+		return Status.CANCEL_STATUS;
+	}
+
