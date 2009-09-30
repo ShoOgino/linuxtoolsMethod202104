@@ -1,6 +1,6 @@
-	@Override
-	public IStatus runInUIThread(IProgressMonitor monitor) {
-
+	public static CallgraphView makeView() {
+		CallgraphView cView = null;
+		String viewID = "org.eclipse.linuxtools.callgraph.callgraphview";
 		IExtensionRegistry reg = Platform.getExtensionRegistry();
 		IConfigurationElement[] extensions = reg.getConfigurationElementsFor(
 				PluginConstants.VIEW_RESOURCE, PluginConstants.VIEW_NAME,
@@ -11,29 +11,24 @@
 					"Couldn't load view", "Could not load view",
 					"Could not load view with id: " + viewID); //$NON-NLS-1$
 			mess.schedule();
-			return Status.CANCEL_STATUS;
+			return null;
 		}
 
 		IConfigurationElement element = extensions[0];
 
-		SystemTapView view;
 		try {
+			SystemTapView view;
+
 			view = (SystemTapView) element
 					.createExecutableExtension(PluginConstants.ATTR_CLASS);
 			view.forceDisplay();
-			viewer = view.getSingleInstance();
-			if (!viewer.setParser(parser))
-				return Status.CANCEL_STATUS;
-			viewer.initialize(this.getDisplay(), monitor);
-			if (!parser.realTime) {
-				viewer.updateMethod();
-			}
-			 
-			return Status.OK_STATUS;
+			cView = (CallgraphView) view.getSingleInstance();
+			cView.initialize(Display.getCurrent(), new NullProgressMonitor());
+
 		} catch (CoreException e) {
 			e.printStackTrace();
 		}
+		return cView;
 
-		return Status.CANCEL_STATUS;
 	}
 
