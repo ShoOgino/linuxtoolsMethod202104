@@ -27,7 +27,6 @@
 				// Key variables
 				ITmfTrace[] traces = new ITmfTrace[0];	// The set of traces
 				TmfTraceContext[] contexts;				// The set of trace contexts
-				TmfEvent[] nextEvents;					// The next event of each trace
 
 				// Extract the general request information
 				int blockSize = request.getBlockize();
@@ -44,11 +43,10 @@
 				// at the first requested event
 				traces = fTraces.toArray(traces);
 				contexts = new TmfTraceContext[traces.length];
-				nextEvents = new TmfEvent[traces.length];
-				positionTraces(index, traces, contexts, nextEvents);
+				positionTraces(index, traces, contexts);
 
 				// Get the ordered events
-				TmfEvent event = getNextEvent(traces, contexts, nextEvents);
+				TmfEvent event = getNextEvent(traces, contexts);
 				while (!request.isCancelled() && nbEvents < nbRequestedEvents && event != null
 						&& event.getTimestamp().compareTo(endTime, false) < 0)
 				{
@@ -58,7 +56,7 @@
 					}
 					// Avoid an unnecessary read passed the last event requested
 					if (nbEvents < nbRequestedEvents)
-						event = getNextEvent(traces, contexts, nextEvents);
+						event = getNextEvent(traces, contexts);
 				}
 				pushData(request, events);
 				request.done();
