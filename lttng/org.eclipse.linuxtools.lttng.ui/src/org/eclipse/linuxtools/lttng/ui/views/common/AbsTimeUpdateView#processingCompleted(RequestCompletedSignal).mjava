@@ -5,20 +5,23 @@
 	 * processingCompleted(org.eclipse.linuxtools.lttng.state.StateDataRequest)
 	 */
 	@TmfSignalHandler
-	public synchronized void processingCompleted(RequestCompletedSignal signal) {
+	public void processingCompleted(RequestCompletedSignal signal) {
 		StateDataRequest request = signal.getRequest();
 
 		if (request == null) {
 			return;
 		} else {
-			reqState.requestCompleted(request);
+			synchronized (this) {
+				reqState.setCurrentRequest(null);
+			}
 
 		}
 
-		// Update wait cursor
-		requestStateUpdate();
 		// No data refresh actions for cancelled requests.
 		if (request.isCancelled() || request.isFailed()) {
+
+			requestStateUpdate();
+
 			if (TraceDebug.isDEBUG()) {
 				TmfTimeRange trange = request.getRange();
 				if (request.isCancelled()) {
@@ -35,6 +38,7 @@
 			return;
 		} else {
 			ModelUpdateComplete(request);
+			requestStateUpdate();
 		}
 	}
 

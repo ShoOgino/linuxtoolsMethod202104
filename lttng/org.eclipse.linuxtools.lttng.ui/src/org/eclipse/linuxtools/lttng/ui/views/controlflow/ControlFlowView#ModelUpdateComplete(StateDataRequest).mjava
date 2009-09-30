@@ -1,32 +1,10 @@
 	/*
 	 * (non-Javadoc)
 	 * 
-	 * @seeorg.eclipse.linuxtools.lttng.state.IStateDataRequestListener#
-	 * processingCompleted(org.eclipse.linuxtools.lttng.state.StateDataRequest)
+	 * @seeorg.eclipse.linuxtools.lttng.ui.views.common.LttngTimeUpdateView#
+	 * ModelUpdateComplete(org.eclipse.linuxtools.lttng.state.StateDataRequest)
 	 */
-	@TmfSignalHandler
-	public void processingCompleted(RequestCompletedSignal signal) {
-		StateDataRequest request = signal.getRequest();
-
-		if (request == null) {
-			return;
-		} else {
-			// Remove from the pending requests record
-			pendingDataRequests.remove(request);
-		}
-
-		// No data refresh actions for cancelled requests.
-		if (request.isCancelled() || request.isFailed()) {
-			if (TraceDebug.isDEBUG()) {
-				TmfTimeRange range = request.getRange();
-				TraceDebug.debug("Request cancelled: "
-						+ range.getStartTime().toString() + " - "
-						+ range.getEndTime().toString());
-			}
-
-			return;
-		}
-
+	public void ModelUpdateComplete(StateDataRequest request) {
 		long experimentStartTime = -1;
 		long experimentEndTime = -1;
 		StateManager smanager = request.getStateManager();
@@ -35,7 +13,6 @@
 			experimentStartTime = experimentTimeRange.getStartTime().getValue();
 			experimentEndTime = experimentTimeRange.getEndTime().getValue();
 		}
-
 		// Obtain the current process list
 		Vector<TimeRangeEventProcess> processList = FlowModelFactory
 				.getProcContainer().readProcesses();
@@ -49,7 +26,7 @@
 		flowModelUpdates(processArr, experimentStartTime, experimentEndTime);
 
 		// reselect to original time
-		ParamsUpdater paramUpdater = ResourceModelFactory.getParamsUpdater();
+		ParamsUpdater paramUpdater = FlowModelFactory.getParamsUpdater();
 		final Long selTime = paramUpdater.getSelectedTime();
 		if (selTime != null) {
 			Display display = tsfviewer.getControl().getDisplay();
@@ -69,10 +46,11 @@
 
 			int discarded = FlowModelFactory.getParamsUpdater()
 					.getEventsDiscarded();
-			int discardedOutofOrder = ResourceModelFactory.getParamsUpdater()
+			int discardedOutofOrder = FlowModelFactory.getParamsUpdater()
 					.getEventsDiscardedWrongOrder();
-			TraceDebug
-					.debug("Events handled: "
+			TmfTimeRange range = request.getRange();
+			StringBuilder sb = new StringBuilder(
+					"Events handled: "
 							+ count
 							+ " Events loaded in Control Flow view: "
 							+ eventCount
@@ -80,6 +58,10 @@
 							+ discarded
 							+ "\n\tNumber of events discarded with start time earlier than next good time: "
 							+ discardedOutofOrder);
+
+			sb.append("\n\t\tRequested Time Range: " + range.getStartTime()
+					+ " - " + range.getEndTime());
+			TraceDebug.debug(sb.toString());
 		}
 	}
 

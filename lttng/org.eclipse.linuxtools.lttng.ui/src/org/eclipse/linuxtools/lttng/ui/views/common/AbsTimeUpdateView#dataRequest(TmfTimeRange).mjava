@@ -6,10 +6,25 @@
 	 * @param trange
 	 */
 	public synchronized void dataRequest(TmfTimeRange trange) {
-		boolean sent = reqState.processDataRequest(trange, viewID, this);
+		if (trange != null) {
+			// cancelPendingRequests();
+			StateDataRequest currentRequest = reqState.getCurrentRequest();
+			// If a request is ongoing queue the new request
+			if (reqState.getState().equals(RequestState.BUSY)) {
+				reqState.setQueued(trange);
+				currentRequest = reqState.getCurrentRequest();
+				if (currentRequest != null) {
+					currentRequest.cancel();
+				}
+			} else {
+				// Set the state to busy
+				reqState.setState(DataRequestState.RequestState.BUSY);
+				waitCursor(true);
+				// no request is ongoing, proceed with request
+				StateManagerFactory.getExperimentManager()
+						.readExperimentTimeWindow(trange, viewID, this);
 
-		if (sent) {
-			waitCursor(true);
+			}
 		}
 	}
 

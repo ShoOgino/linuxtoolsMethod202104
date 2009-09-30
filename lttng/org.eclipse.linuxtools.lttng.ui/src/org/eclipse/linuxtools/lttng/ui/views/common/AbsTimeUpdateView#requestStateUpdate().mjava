@@ -1,10 +1,17 @@
 	/**
-	 * Disable the wait cursor if the state is back to idle
+	 * Check for pending request an either send a new request or change the
+	 * state to idle
 	 */
 	private synchronized void requestStateUpdate() {
-		// disable the wait cursor if the state is back to idle
-		if (reqState.isIdle()) {
-			// no more in the queue
+		// Check if a new time range update is waiting to be processed
+		TmfTimeRange queuedRequest = reqState.popQueued();
+		if (queuedRequest != null) {
+			// Trigger the pending request
+			StateManagerFactory.getExperimentManager()
+					.readExperimentTimeWindow(queuedRequest, viewID, this);
+		} else {
+			// All requests cancelled and no more pending requests
+			reqState.setState(RequestState.IDLE);
 			waitCursor(false);
 		}
 	}
