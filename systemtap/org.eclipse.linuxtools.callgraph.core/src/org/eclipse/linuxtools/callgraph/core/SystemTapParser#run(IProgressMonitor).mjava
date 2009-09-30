@@ -1,40 +1,24 @@
 	@Override
 	protected IStatus run(IProgressMonitor monitor) {
-		this.monitor = monitor;
-		
-		String line;
-		text = new StringBuffer();
-		File file = new File(PluginConstants.DEFAULT_OUTPUT+"callgraph.out");
-		if (realTime){		
+		// Generate real-time job
+		if (realTime && viewID != null) {
 			try {
-				BufferedReader buff = new BufferedReader(new FileReader(file));
-				while (!isDone){
-					if ((line = buff.readLine()) != null){
-						text.append(line);
-					}
+				if (realTime) {
+					GraphUIJob job = new GraphUIJob("RealTimeUIJob", this,
+							this.viewID);
+					job.schedule();
+					job.join();
+					view = job.getViewer();
 				}
-				//TODO: how does 'text' get sent to the systemtapview
-				//or should some class that created the parser access it from here.
+				RunTimeJob job = new RunTimeJob("RealTimeParser");
+				job.schedule();
 				
-			} catch (IOException e) {
+				return Status.OK_STATUS;
+			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-		}/*else{
-			try {
-				BufferedReader buff = new BufferedReader(new FileReader(file));
-				while ((line = buff.readLine()) != null){
-						text.append(line);
-				}
-				//TODO: how does 'text' get sent to the systemtapview
-				//or should some class that created the parser access it from here.
-				
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}*/
-		
-		System.out.println(text.toString());
-		
+		}
+
 		IStatus returnStatus = executeParsing();
 		postProcessing();
 		return returnStatus;
