@@ -1,0 +1,66 @@
+	/**
+	 * Populates the Errors menu
+	 */
+	public void createErrorActions() {
+
+		error_errorLog = new Action("Open Log") { 
+			public void run() {
+				boolean error = false;
+				File log = new File(PluginConstants.DEFAULT_OUTPUT + "Error.log"); 
+				BufferedReader buff;
+				try {
+					buff = new BufferedReader(new FileReader(log));
+				String logText = ""; 
+				String line;
+				
+				while ((line = buff.readLine()) != null) {
+					logText+=line + PluginConstants.NEW_LINE;
+				}
+				
+				Shell sh = new Shell(SWT.BORDER | SWT.TITLE);
+				
+				sh.setText(Messages.getString("SystemTapView.15")); 
+				sh.setLayout(new FillLayout());
+				sh.setSize(600,600);
+				
+				StyledText txt = new StyledText(sh, SWT.MULTI | SWT.V_SCROLL | SWT.WRAP | SWT.READ_ONLY);
+				
+				txt.setText(logText);
+
+				sh.setText(Messages.getString("SystemTapView.21")); 
+				
+				sh.open();
+				txt.setTopIndex(txt.getLineCount());
+
+				
+				} catch (FileNotFoundException e) {
+					error = true;
+				} catch (IOException e) {
+					error = true;
+				} finally {
+					if (error) {
+						SystemTapUIErrorMessages mess = new SystemTapUIErrorMessages(
+							Messages.getString("SystemTapView.ErrorMessageName"), 
+							Messages.getString("SystemTapView.ErrorMessageTitle"), 
+							Messages.getString("SystemTapView.ErrorMessageBody") + 
+							Messages.getString("SystemTapView.ErrorMessageBody2")); 
+						mess.schedule();
+					}
+				}
+				
+			}
+		};
+		
+		
+		error_deleteError = new Action(Messages.getString("SystemTapView.ClearLog")) { 
+			public void run() {
+					if (!MessageDialog.openConfirm(new Shell(), Messages.getString("SystemTapView.DeleteLogsTitle"),  
+							Messages.getString("SystemTapView.DeleteLogsMessage") + 
+							Messages.getString("SystemTapView.DeleteLogsMessage2"))) 
+						return;
+					
+					SystemTapErrorHandler.delete();
+			}
+		};
+	}
+
