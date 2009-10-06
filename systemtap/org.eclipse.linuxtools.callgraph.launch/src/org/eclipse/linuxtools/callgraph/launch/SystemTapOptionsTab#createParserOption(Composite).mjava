@@ -49,8 +49,21 @@
 				IConfigurationElement[] extensions = reg
 						.getConfigurationElementsFor(PluginConstants.VIEW_RESOURCE, 
 								PluginConstants.VIEW_NAME);
+				ArrayList<IConfigurationElement> ext = new ArrayList<IConfigurationElement>();
+				for (IConfigurationElement el : extensions) {
+					if (!el.getNamespaceIdentifier().contains("org.eclipse.linuxtools"))
+						continue;
+					//TODO: Rough hack to get all the objects. We restrict to id's containing org.eclipse.linuxtools, then see if the class extends SystemTapView
+					try {
+						if (el.createExecutableExtension(PluginConstants.ATTR_CLASS) 
+								instanceof SystemTapView) {
+							ext.add(el);
+						}
+					} catch (CoreException e1) {
+					}
+				}
 				
-				dialog.setElements(extensions);
+				dialog.setElements(ext.toArray());
 				if (dialog.open() == IDialogConstants.OK_ID) {
 					String arg = getUsefulLabel(dialog.getFirstResult());
 					viewer.setText(arg);
