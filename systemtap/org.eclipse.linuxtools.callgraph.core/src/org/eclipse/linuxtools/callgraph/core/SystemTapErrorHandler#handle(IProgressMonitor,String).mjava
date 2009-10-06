@@ -1,46 +1,49 @@
 	/**
-	 * Search given string for recognizable error messages. Can append the contents of 
-	 * the string to the error log if writeToLog() or finishHandling() are called.
-	 * A call to finishHandling() will also open a popup window with user-friendly messages
-	 * corresponding to the recognizable errors.
+	 * Search given string for recognizable error messages. Can append the
+	 * contents of the string to the error log if writeToLog() or
+	 * finishHandling() are called. A call to finishHandling() will also open a
+	 * popup window with user-friendly messages corresponding to the
+	 * recognizable errors.
 	 * 
 	 * @param doc
 	 */
-	public void handle (IProgressMonitor m, String errors){	
+	public void handle(IProgressMonitor m, String errors) {
 		String[] blah = errors.split("\n"); //$NON-NLS-1$
-		
-		//READ FROM THE PROP FILE AND DETERMINE TYPE OF ERROR
-		File file = new File(PluginConstants.PLUGIN_LOCATION+FILE_PROP);
+
+		// READ FROM THE PROP FILE AND DETERMINE TYPE OF ERROR
+		File file = new File(PluginConstants.PLUGIN_LOCATION + FILE_PROP);
 		try {
-			BufferedReader buff = new BufferedReader (new FileReader(file));
+			BufferedReader buff = new BufferedReader(new FileReader(file));
 			String line;
 			int index;
-			
+
 			for (String message : blah) {
-				boolean firstLine = true; //Keep the error about mismatched probe points first
-				buff = new BufferedReader (new FileReader(file));
-				while ((line = buff.readLine()) != null){
+				boolean firstLine = true; // Keep the error about mismatched
+											// probe points first
+				buff = new BufferedReader(new FileReader(file));
+				while ((line = buff.readLine()) != null) {
 					if (m != null && m.isCanceled())
 						return;
 					index = line.indexOf('=');
-					String matchString = line.substring(0, index);
-					Pattern pat = Pattern.compile(matchString, Pattern.DOTALL);
+					Pattern pat = Pattern.compile(line.substring(0, index),
+							Pattern.DOTALL);
 					Matcher matcher = pat.matcher(message);
-	
-					
+
 					if (matcher.matches()) {
 						if (!isErrorRecognized()) {
-							errorMessage.append(Messages.getString("SystemTapErrorHandler.ErrorMessage2")); //$NON-NLS-1$
+							errorMessage
+									.append(Messages
+											.getString("SystemTapErrorHandler.ErrorMessage2")); //$NON-NLS-1$
 							setErrorRecognized(true);
 						}
-						
-						//TODO: Rough hack, very slow
-						//this can be removed pending stap removal of duplicate error posting
-						if (!errorMessage.toString().contains(line.substring(index+1))) {
-						errorMessage.append(line.substring(index+1) 
-							+ PluginConstants.NEW_LINE);
+						String tmp = line.substring(index+1);
+
+						if (!errorMessage.toString().contains(
+								tmp)) {
+							errorMessage.append(tmp
+									+ PluginConstants.NEW_LINE);
 						}
-					
+
 						if (firstLine) {
 							findFunctions(m, message, pat);
 							mismatchedProbePoints = true;
@@ -51,13 +54,13 @@
 				}
 				buff.close();
 			}
-			
+
 			logContents.append(errors);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 	}
 

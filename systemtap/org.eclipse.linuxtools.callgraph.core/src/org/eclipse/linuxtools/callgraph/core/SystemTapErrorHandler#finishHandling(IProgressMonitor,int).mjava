@@ -1,6 +1,6 @@
 	/**
-	 * Run this method when there are no more error messages to handle. 
-	 * Creates the error pop-up message and writes to log.
+	 * Run this method when there are no more error messages to handle. Creates
+	 * the error pop-up message and writes to log.
 	 * 
 	 */
 	public void finishHandling(IProgressMonitor m, int numberOfErrors) {
@@ -8,63 +8,69 @@
 			errorMessage.append(Messages.getString("SystemTapErrorHandler.4") + //$NON-NLS-1$
 					Messages.getString("SystemTapErrorHandler.5")); //$NON-NLS-1$
 		}
-		
+
 		writeToLog();
-		
-		if (mismatchedProbePoints){
+
+		if (mismatchedProbePoints) {
 			if (numberOfErrors > PluginConstants.MAX_ERRORS) {
 				errorMessage.setLength(0);
-				errorMessage.append(PluginConstants.NEW_LINE
-				+ Messages.getString("SystemTapErrorHandler.TooManyErrors1") + numberOfErrors +Messages.getString("SystemTapErrorHandler.TooManyErrors2") + //$NON-NLS-1$ //$NON-NLS-2$
-				Messages.getString("SystemTapErrorHandler.TooManyErrors3") + //$NON-NLS-1$
-				Messages.getString("SystemTapErrorHandler.TooManyErrors4")); //$NON-NLS-1$
+				errorMessage
+						.append(PluginConstants.NEW_LINE
+								+ Messages
+										.getString("SystemTapErrorHandler.TooManyErrors1") + numberOfErrors + Messages.getString("SystemTapErrorHandler.TooManyErrors2") + //$NON-NLS-1$ //$NON-NLS-2$
+								Messages
+										.getString("SystemTapErrorHandler.TooManyErrors3") + //$NON-NLS-1$
+								Messages
+										.getString("SystemTapErrorHandler.TooManyErrors4")); //$NON-NLS-1$
 				SystemTapUIErrorMessages mes = new SystemTapUIErrorMessages(
-						Messages.getString("SystemTapErrorHandler.ErrorMessageName"),  //$NON-NLS-1$
-						Messages.getString("SystemTapErrorHandler.ErrorMessageTitle"),  //$NON-NLS-1$
+						Messages
+								.getString("SystemTapErrorHandler.ErrorMessageName"), //$NON-NLS-1$
+						Messages
+								.getString("SystemTapErrorHandler.ErrorMessageTitle"), //$NON-NLS-1$
 						errorMessage.toString()); //$NON-NLS-1$ //$NON-NLS-2$
 				mes.schedule();
 				m.setCanceled(true);
 				return;
 			}
-			
-			
+
 			StringBuilder resultFileContent = new StringBuilder();
-			String fileLocation = PluginConstants.DEFAULT_OUTPUT + "callgraphGen.stp"; //$NON-NLS-1$
+			String fileLocation = PluginConstants.DEFAULT_OUTPUT
+					+ "callgraphGen.stp"; //$NON-NLS-1$
 			String line;
 			boolean skip = false;
 			File file = new File(fileLocation);
 			try {
 				BufferedReader buff = new BufferedReader(new FileReader(file));
-				while ((line = buff.readLine()) != null){
+				while ((line = buff.readLine()) != null) {
 					if (m != null && m.isCanceled())
 						return;
-					skip =  false;
-					for (String func : functions){
-						if (line.contains("function(\"" + func + "\").call")){ //$NON-NLS-1$ //$NON-NLS-2$
+					skip = false;
+					for (String func : functions) {
+						if (line.contains("function(\"" + func + "\").call")) { //$NON-NLS-1$ //$NON-NLS-2$
 							skip = true;
 							break;
 						}
 					}
-					
-					if (!skip && !line.equals("\n")){							 //$NON-NLS-1$
+
+					if (!skip && !line.equals("\n")) { //$NON-NLS-1$
 						resultFileContent.append(line);
 						resultFileContent.append("\n"); //$NON-NLS-1$
 					}
 				}
-				
+
 				buff.close();
-				
-				BufferedWriter wbuff= new BufferedWriter(new FileWriter(file));
+
+				BufferedWriter wbuff = new BufferedWriter(new FileWriter(file));
 				wbuff.write(resultFileContent.toString());
 				wbuff.close();
-				
+
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			
+
 		}
-		
+
 	}
 
