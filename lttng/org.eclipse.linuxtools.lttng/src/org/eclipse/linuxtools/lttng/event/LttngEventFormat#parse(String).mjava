@@ -1,9 +1,22 @@
-    /* *** FIXME ***
-     * Evil "do at least something" parse function
-     * THIS IS JUST FOR COMPATIBILITY! DO NOT USE!
-     * Content/Format/Fields interelation need to be revisited ASAP
-     */ 
+    /**
+     * <b>*DEPRECATED*</b><br>Parse from the content string.<p>
+     * 
+     * <b><u>DO NOT USE!</b></u> <br>
+     * This function will disapears soon! Use parse(LttngEvent) instead.<br>
+     * It is evil to parse content string directly as we <u>do not control the content</u>.<br>
+     * So this would theorically works but it could break at any moment if kernel developpers changes their usual format.<p>
+     * 
+     * This is provided because we need to implement this function since we inherit TmfFormat
+     * 
+     * @param  uselessContent    Content to parse as String
+     * 
+     * @return An array of TmfEventFields
+     */
     public LttngEventField[] parse(String uselessContent) {
+        
+        // This function is _under commented_ because you should not use it
+        //  (this imply you shouldn't read it as well).
+        
         // *** Begining of the evil "parse String" function
         // 
         // - 1st : Find the number of ":" in the String. This will be the number of fields in the String. 
@@ -19,13 +32,18 @@
         LttngEventField[] tmpFields = new LttngEventField[nbFields];
         
         // - 3rd : Fill the array
+        //      Content is the NAME:VALUE format with space separators
+        //
+        //      We search for 3 possible case : 
+        //          - Field name
+        //          - Value (AKA payload or parsed content)
+        //          - "Out of range" (EOF found)
+        //
+        //
         int fieldPosition = 0;
-        
         int lastFieldnamePos = 0;
         int lastDoubleDottedPos = 0;
-        
         int lastSpacePos = 0;
-        
         boolean isSearchingFieldname = true;
         
         String  fieldName   = "";
@@ -34,6 +52,7 @@
         int pos = 0;
         while ( (pos < uselessContent.length()) && (fieldPosition<nbFields) )
         {
+            // : symbol mean we found the end of "NAME" 
             if ( uselessContent.substring(pos, pos+1).equals(":") ) {
               
               if ( isSearchingFieldname==false ) {
@@ -45,6 +64,7 @@
               
               lastDoubleDottedPos = pos;
             }
+            // space mean we found the end of VALUE
             else if ( uselessContent.substring(pos, pos+1).equals(" ") ) {
                 
                 if ( isSearchingFieldname==true ) {
@@ -55,6 +75,7 @@
                 
                 lastSpacePos = pos;
             }
+            // pos+2 > length mean EOF
             else if ( pos+2 >= uselessContent.length() ) {
                 fieldName = uselessContent.substring(lastSpacePos+1, lastDoubleDottedPos);
                 fieldValue = uselessContent.substring(lastDoubleDottedPos+1, pos+1);

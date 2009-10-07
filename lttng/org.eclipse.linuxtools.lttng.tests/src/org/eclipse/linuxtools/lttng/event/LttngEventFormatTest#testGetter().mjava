@@ -1,0 +1,40 @@
+    @Test
+	public void testGetter() {
+    	LttngEventFormat testFormat = null;
+    	LTTngTrace tmpStream = null;
+    	LttngEvent tmpEvent = null;
+    	TmfTraceContext tmpContext = new TmfTraceContext(null, null, 0);
+    	
+    	//*** Position ourself to the second event to have something interesting to test with ***
+    	
+    	tmpStream = initializeEventStream();
+    	// Skip first events and seek to events past metadata
+    	tmpContext= tmpStream.seekLocation(new LttngTimestamp(timestampAfterMetadata) );
+    	// Skip first one
+    	tmpEvent = (LttngEvent)tmpStream.parseEvent(tmpContext);
+    	// Second event should have more fields
+    	tmpEvent = (LttngEvent)tmpStream.parseEvent(tmpContext);
+    	// Get a real format from the event
+    	testFormat = (LttngEventFormat)tmpEvent.getContent().getFormat();
+    	
+    	// Test getLabels()
+    	assertEquals("Label not as expected!",secondEventFirstField,testFormat.getLabels()[0].toString());
+    	assertEquals("Label not as expected!",secondEventSecondField,testFormat.getLabels()[1].toString());
+    	
+    	
+    	// Test different parse()
+    	// parse(event)
+    	assertNotSame("parse() returned null!",null, testFormat.parse(tmpEvent));
+    	assertEquals("Parsed field not as expected!",secondEventThirdFieldParsedValue,testFormat.parse(tmpEvent)[2].toString());
+    	
+    	// parse(hashmap)
+    	assertNotSame("parse() returned null!",null, testFormat.parse(tmpEvent.convertEventTmfToJni().parseAllFields()));
+    	assertEquals("Parsed field not as expected!",secondEventThirdFieldParsedValue,testFormat.parse(tmpEvent.convertEventTmfToJni().parseAllFields())[2].toString());
+    	
+    	
+    	// parse(string)
+    	System.out.println(tmpEvent.getContent().getContent().toString());
+    	assertNotSame("parse() returned null!",null, testFormat.parse(tmpEvent.getContent().getContent().toString()));
+    	assertEquals("Parsed field not as expected!",secondEventThirdFieldParsedValue,testFormat.parse(tmpEvent.getContent().getContent())[2].toString());
+    }
+
