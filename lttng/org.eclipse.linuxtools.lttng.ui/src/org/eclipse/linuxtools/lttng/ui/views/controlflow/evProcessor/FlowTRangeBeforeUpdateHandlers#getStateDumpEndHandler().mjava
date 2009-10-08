@@ -25,37 +25,38 @@
 				//
 				// And the draw is always the same then...
 
-				LttngProcessState process = null;
-				for (int proc_id = 0; proc_id < traceSt.getProcesses().size(); proc_id++) {
-					process = lttv_state_find_process(traceSt, traceSt
-							.getProcesses().get(proc_id).getCpu(), traceSt
-							.getProcesses().get(proc_id).getPid());
+				// The c-library loops through the local processes, search for
+				// the local processes in the state provider and then draws
+				// If it's present is the local processes why shuldn't they be
+				// present in the state provider?
+				// This seems more direct. and makes sure all processes are
+				// reflected in the control flow view.
+				List<LttngProcessState> processes = traceSt.getProcesses();
+				for (LttngProcessState process : processes) {
+					// Replace the C call :
+					// hashed_process_data =
+					// processlist_get_process_data(process_list,pid,process->cpu,&birth,trace_num);
+					TimeRangeEventProcess localProcess = procContainer
+							.findProcess(process.getPid(), process
+									.getCreation_time().getValue(), traceSt
+									.getTraceId());
 
-					if (process != null) {
-						// Replace the C call :
-						// hashed_process_data =
-						// processlist_get_process_data(process_list,pid,process->cpu,&birth,trace_num);
-						TimeRangeEventProcess localProcess = procContainer
-								.findProcess(process.getPid(), process
-										.getCreation_time().getValue(), traceSt
-										.getTraceId());
-						if (localProcess != null) {
-							// Call the function that will does the actual
-							// drawing
-							makeDraw(traceSt, trcEvent.getTimestamp()
-									.getValue(), process, localProcess, params);
-						} else {
-							TraceDebug
-									.debug("localProcess is null! (getStateDumpEndHandler)");
-						}
-					} else {
-						TraceDebug
-								.debug("Process is null! (getStateDumpEndHandler)");
+					// Add process to process list if not present
+					if (localProcess == null) {
+						TmfTimeRange timeRange = traceSt.getInputDataRef()
+								.getTraceTimeWindow();
+						localProcess = addLocalProcess(process, timeRange
+								.getStartTime().getValue(), timeRange
+								.getEndTime().getValue(), traceSt.getTraceId());
 					}
+
+					// Call the function that will does the actual
+					// drawing
+					makeDraw(traceSt, trcEvent.getTimestamp().getValue(),
+							process, localProcess, params);
 				}
 
 				return false;
-
 			}
 
 			// @Override

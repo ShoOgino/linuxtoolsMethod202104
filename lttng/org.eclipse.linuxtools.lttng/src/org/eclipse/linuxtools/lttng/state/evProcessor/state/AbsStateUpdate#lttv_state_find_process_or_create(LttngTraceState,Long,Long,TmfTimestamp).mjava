@@ -8,12 +8,18 @@
 	 */
 	protected LttngProcessState lttv_state_find_process_or_create(
 			LttngTraceState ts, Long cpu, Long pid, final TmfTimestamp timestamp) {
-
+	
 		LttngProcessState process = lttv_state_find_process(ts, cpu, pid);
-		/* Put ltt_time_zero creation time for unexisting processes */
+		/* Put ltt_time_zero creation time for non existing processes */
 		if (process == null) {
 			process = create_process(ts, cpu, pid, 0L, timestamp);
+			// leave only one entry in the execution stack
+			process.popFromExecutionStack();
+			LttngExecutionState es = process.getState();
+			es.setExec_mode(ExecutionMode.LTTV_STATE_MODE_UNKNOWN);
+			es.setProc_status(ProcessStatus.LTTV_STATE_UNNAMED);
 		}
+	
 		return process;
 	}
 
