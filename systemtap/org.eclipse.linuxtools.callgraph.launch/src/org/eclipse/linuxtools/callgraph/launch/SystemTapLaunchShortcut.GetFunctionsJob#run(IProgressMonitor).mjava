@@ -2,36 +2,48 @@
 		protected IStatus run(IProgressMonitor monitor) {
 			IIndexManager manager = CCorePlugin.getIndexManager();
 			IIndex index = null;
+			IProgressMonitor m = monitor;
 			
+			if (m == null)
+				m = new NullProgressMonitor();
+			m.worked(1);
+				
+
 			try {
 				index = manager.getIndex(project);
 				index.acquireReadLock();
-				
+
 				IIndexFile[] blah = index.getAllFiles();
 				for (IIndexFile file : blah) {
 					String fullFilePath = file.getLocation().getFullPath();
-					if (fullFilePath == null || !specialContains(listOfFiles, fullFilePath)) {
+					if (fullFilePath == null
+							|| !specialContains(listOfFiles, fullFilePath)) {
 						continue;
 					}
 
-					IIndexName[] indexNamesArray = file.findNames(0, Integer.MAX_VALUE);
+					IIndexName[] indexNamesArray = file.findNames(0,
+							Integer.MAX_VALUE);
 					for (IIndexName name : indexNamesArray) {
-						if (name.isDefinition() && specialContains(listOfFiles, name.getFile().getLocation().getFullPath())) {
-								IIndexBinding binder = index.findBinding(name);
-								if (binder instanceof IFunction && !functionList.contains(binder.getName())) {
-										functionList.add(binder.getName());					
-								}
+						if (name.isDefinition()
+								&& specialContains(listOfFiles, name.getFile()
+										.getLocation().getFullPath())) {
+							IIndexBinding binder = index.findBinding(name);
+							if (binder instanceof IFunction
+									&& !functionList.contains(binder.getName())) {
+								functionList.add(binder.getName());
+							}
 						}
 					}
 					
+					m.worked(1);
 				}
-				
+
 			} catch (CoreException e) {
 				e.printStackTrace();
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			
+
 			index.releaseReadLock();
 			return Status.OK_STATUS;
 		}
