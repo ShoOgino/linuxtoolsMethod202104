@@ -48,8 +48,8 @@
 				if (collapsedNodesWithOnlyOneNodeInThem.get(aggregateID) != null) {
 					
 					//-------------Aggregate nodes - second node to be found
-					// We still think this is an only child - create a new
-					// data node and aggregate
+					// We still think this is an only child, but now we know better.
+					// Create a new data node and aggregate
 					this.loadData(SWT.NONE, aggregateID, nodeName, nodeDataMap
 							.get(childID).time, nodeDataMap.get(childID).called,
 							id, nodeDataMap.get(childID).isMarked(), ""); //$NON-NLS-1$
@@ -62,9 +62,10 @@
 					nodeDataMap.get(id).callees.remove((Integer) aggregateID);
 					nodeDataMap.get(id).collapsedCallees.add(aggregateID);
 
-					nodeDataMap.get(aggregateID).collapsedCaller = id;
+					nodeDataMap.get(aggregateID).collapsedParent = id;
 
-					// Aggregate
+					// Aggregate the first node that we found, and set it
+					// as the uncollapsed piece of the aggregate node
 					int otherChildID = collapsedNodesWithOnlyOneNodeInThem
 							.get(aggregateID);
 					aggregateData(nodeDataMap.get(aggregateID), nodeDataMap
@@ -74,6 +75,7 @@
 							.get(otherChildID).callees);
 
 					nodeDataMap.get(otherChildID).setPartOfCollapsedNode(aggregateID);
+					nodeDataMap.get(aggregateID).uncollapsedPiece = otherChildID;
 
 				} else 
 					//-------------Aggregate - third and additional nodes
@@ -117,7 +119,7 @@
 			nodeDataMap.get(childID).onlyChildWithThisName = true;
 			nodeDataMap.get(id).collapsedCallees.add(childID);
 			newNodeMap.remove(nodeDataMap.get(childID).name);
-			nodeDataMap.get(childID).collapsedCaller = id;
+			nodeDataMap.get(childID).collapsedParent = id;
 			
 			if (getNodeData(childID).isMarked())
 				markedCollapsedNodes.add(childID);
