@@ -16,7 +16,7 @@
 		setCollapseMode(true);
 
 		if (nodeDataMap.get(id).hasCollapsedChildren
-				|| nodeDataMap.get(id).callees.size() == 0)
+				|| nodeDataMap.get(id).children.size() == 0)
 			return true;
 		nodeDataMap.get(id).hasCollapsedChildren = true;
 
@@ -26,14 +26,14 @@
 		HashMap<String, Integer> newNodeMap = new HashMap<String, Integer>();
 		// id of 'collapsed' node, id of its uncollapsed twin
 		HashMap<Integer, Integer> collapsedNodesWithOnlyOneNodeInThem = new HashMap<Integer, Integer>();
-		int size = nodeDataMap.get(id).callees.size();
+		int size = nodeDataMap.get(id).children.size();
 		
 		
 		
 		//-------------Iterate
 		for (int i = 0; i < size; i++) {
 
-			int childID = nodeDataMap.get(id).callees.get(i);
+			int childID = nodeDataMap.get(id).children.get(i);
 			int childLevel = getLevelOfNode(childID);
 			if (collapsedLevelSize.get(childLevel) == null)
 				collapsedLevelSize.put(childLevel, 0);
@@ -51,7 +51,7 @@
 					// We still think this is an only child, but now we know better.
 					// Create a new data node and aggregate
 					this.loadData(SWT.NONE, aggregateID, nodeName, nodeDataMap
-							.get(childID).time, nodeDataMap.get(childID).called,
+							.get(childID).time, nodeDataMap.get(childID).timesCalled,
 							id, nodeDataMap.get(childID).isMarked(), ""); //$NON-NLS-1$
 					
 					if (getNodeData(aggregateID).isMarked()) {
@@ -59,8 +59,8 @@
 						markedNodes.remove((Integer) aggregateID);
 					}
 					
-					nodeDataMap.get(id).callees.remove((Integer) aggregateID);
-					nodeDataMap.get(id).collapsedCallees.add(aggregateID);
+					nodeDataMap.get(id).children.remove((Integer) aggregateID);
+					nodeDataMap.get(id).collapsedChildren.add(aggregateID);
 
 					nodeDataMap.get(aggregateID).collapsedParent = id;
 
@@ -71,8 +71,8 @@
 					aggregateData(nodeDataMap.get(aggregateID), nodeDataMap
 							.get(otherChildID));
 					collapsedNodesWithOnlyOneNodeInThem.remove(aggregateID);
-					nodeDataMap.get(aggregateID).callees.addAll(nodeDataMap
-							.get(otherChildID).callees);
+					nodeDataMap.get(aggregateID).children.addAll(nodeDataMap
+							.get(otherChildID).children);
 
 					nodeDataMap.get(otherChildID).setPartOfCollapsedNode(aggregateID);
 					nodeDataMap.get(aggregateID).uncollapsedPiece = otherChildID;
@@ -84,8 +84,8 @@
 
 				
 				//-------------Complete aggregation
-				nodeDataMap.get(aggregateID).callees
-						.addAll(nodeDataMap.get(childID).callees);
+				nodeDataMap.get(aggregateID).children
+						.addAll(nodeDataMap.get(childID).children);
 				nodeDataMap.get(aggregateID).isCollapsed = true;
 
 				if (nodeMap.get(childID) != null) {
@@ -117,7 +117,7 @@
 		for (int i : collapsedNodesWithOnlyOneNodeInThem.keySet()) {
 			int childID =collapsedNodesWithOnlyOneNodeInThem.get(i); 
 			nodeDataMap.get(childID).onlyChildWithThisName = true;
-			nodeDataMap.get(id).collapsedCallees.add(childID);
+			nodeDataMap.get(id).collapsedChildren.add(childID);
 			newNodeMap.remove(nodeDataMap.get(childID).name);
 			nodeDataMap.get(childID).collapsedParent = id;
 			
@@ -128,7 +128,7 @@
 
 		
 		//-------------Finish iterations
-		for (int i : nodeDataMap.get(id).collapsedCallees) {
+		for (int i : nodeDataMap.get(id).collapsedChildren) {
 			recursivelyCollapseAllChildrenOfNode(i);
 		}
 
