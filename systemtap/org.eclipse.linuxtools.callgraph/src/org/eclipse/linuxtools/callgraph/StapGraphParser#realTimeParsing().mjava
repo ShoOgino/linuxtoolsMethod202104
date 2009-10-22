@@ -1,5 +1,66 @@
 	@Override
 	public IStatus realTimeParsing() {
-		return Status.CANCEL_STATUS;
+		if (!(internalData instanceof BufferedReader))
+			return Status.CANCEL_STATUS;
+
+		BufferedReader buff = (BufferedReader) internalData;
+		StringBuffer text = new StringBuffer();
+
+		String line;
+		boolean draw = false;
+		try {
+			while ((line = buff.readLine()) != null) {
+				draw = true; 
+				if (monitor.isCanceled())
+					return Status.CANCEL_STATUS;
+				if (line.length() < 1)
+					continue;
+				
+				if (line.equals("PROBE_BEGIN")) {
+					//TODO: Do not assume that project line is already printed
+					String tmp = buff.readLine();
+					
+					if (tmp != null && tmp.length() > 0) {
+						project = CoreModel.getDefault().getCModel().getCProject(tmp);
+					}
+					else {
+						launchFileErrorDialog();
+						return Status.CANCEL_STATUS;
+					}
+				} else if (parse(line) == Status.CANCEL_STATUS) {
+					if (line != null && line.length() > 0)
+						endingTimeInNS = Long.parseLong(line);
+					else {
+						launchFileErrorDialog();
+						return Status.CANCEL_STATUS;
+					}
+					
+					String tmp = buff.readLine();
+					while (tmp != null && tmp.length() > 0) {
+						totalTime = Long.parseLong(tmp);
+						tmp = buff.readLine();
+					}
+					
+					tmp = buff.readLine();
+					if (tmp != null && tmp.length() > 0 && (tmp = buff.readLine()) == null) {
+						markedMessages = tmp.split(";"); //$NON-NLS-1$
+					}
+					else
+						//Not having any marked messages is not an error
+						markedMessages = null;
+					
+					parseEnd();
+					parseMarked();
+				}
+			}
+			if (draw)
+				view.update();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
+		return Status.OK_STATUS;
 	}
 
