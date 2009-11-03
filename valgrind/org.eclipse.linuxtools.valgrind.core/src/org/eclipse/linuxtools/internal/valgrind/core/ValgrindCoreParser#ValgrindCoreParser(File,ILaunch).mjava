@@ -1,0 +1,55 @@
+	public ValgrindCoreParser(File inputFile, ILaunch launch) throws IOException {
+		this.launch = launch;
+		BufferedReader br = new BufferedReader(new FileReader(inputFile));
+		// keep track of nested messages and their corresponding indents
+		Stack<IValgrindMessage> messageStack = new Stack<IValgrindMessage>();
+		Stack<Integer> indentStack = new Stack<Integer>();
+		messages = new ArrayList<IValgrindMessage>();
+
+		try { 
+			pid = parsePID(inputFile.getName(), CommandLineConstants.LOG_PREFIX);
+			String line;
+			while ((line = br.readLine()) != null) {
+				// remove PID string
+				line = line.replaceFirst("==\\d+==", EMPTY_STRING); //$NON-NLS-1$
+
+				int indent;
+				for (indent = 0; indent < line.length()
+				&& line.charAt(indent) == ' '; indent++)
+					;
+
+				line = line.trim();
+				if (!line.equals(EMPTY_STRING)) { 
+					/*
+					 * indent == 1 -> top level message
+					 * indent > 1 -> child message
+					 * indent == 0 -> should not occur
+					 */
+					if (indent == 1) {
+						// top-level message, clear stacks
+						IValgrindMessage message = getMessage(null, line);
+						messages.add(message);
+						messageStack.clear();
+						messageStack.push(message);
+						indentStack.clear();
+						indentStack.push(indent);
+					}
+					else if (indent > 1) {
+						// find this message's parent
+						while (indent <= indentStack.peek()) {
+							messageStack.pop();
+							indentStack.pop();
+						}
+
+						messageStack.push(getMessage(messageStack.peek(), line));
+						indentStack.push(indent);
+					}
+				}
+			}
+		} finally {
+			if (br != null) {
+				br.close();
+			}
+		}
+	}
+

@@ -1,0 +1,38 @@
+	protected String[] getValgrindArgumentsArray(ILaunchConfiguration config) throws CoreException, IOException {
+		ArrayList<String> opts = new ArrayList<String>();
+		opts.add(CommandLineConstants.OPT_TOOL + EQUALS + getPlugin().getToolName(toolID));
+		opts.add(CommandLineConstants.OPT_QUIET); // suppress uninteresting output
+		opts.add(CommandLineConstants.OPT_LOGFILE + EQUALS + outputPath.append(LOG_FILE).toOSString());
+
+		opts.add(CommandLineConstants.OPT_TRACECHILD + EQUALS + (config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_TRACECHILD, LaunchConfigurationConstants.DEFAULT_GENERAL_TRACECHILD) ? YES : NO));
+		opts.add(CommandLineConstants.OPT_CHILDSILENT + EQUALS + YES); // necessary for parsing
+		opts.add(CommandLineConstants.OPT_FREERES + EQUALS + (config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_FREERES, LaunchConfigurationConstants.DEFAULT_GENERAL_FREERES) ? YES : NO));
+
+		opts.add(CommandLineConstants.OPT_DEMANGLE + EQUALS + (config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_DEMANGLE, LaunchConfigurationConstants.DEFAULT_GENERAL_DEMANGLE) ? YES : NO));
+		opts.add(CommandLineConstants.OPT_NUMCALLERS + EQUALS + config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_NUMCALLERS, LaunchConfigurationConstants.DEFAULT_GENERAL_NUMCALLERS));
+		opts.add(CommandLineConstants.OPT_ERRLIMIT + EQUALS + (config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_ERRLIMIT, LaunchConfigurationConstants.DEFAULT_GENERAL_ERRLIMIT) ? YES : NO));
+		opts.add(CommandLineConstants.OPT_BELOWMAIN + EQUALS + (config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_BELOWMAIN, LaunchConfigurationConstants.DEFAULT_GENERAL_BELOWMAIN) ? YES : NO));
+		opts.add(CommandLineConstants.OPT_MAXFRAME + EQUALS + config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_MAXFRAME, LaunchConfigurationConstants.DEFAULT_GENERAL_MAXFRAME));
+
+		// 3.4.0 specific
+		Version ver = getPlugin().getValgrindVersion();
+		if (ver.compareTo(ValgrindLaunchPlugin.VER_3_4_0) >= 0) {
+			boolean useMainStack = config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_MAINSTACK_BOOL, LaunchConfigurationConstants.DEFAULT_GENERAL_MAINSTACK_BOOL);
+			if (useMainStack) {
+				opts.add(CommandLineConstants.OPT_MAINSTACK + EQUALS + config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_MAINSTACK, LaunchConfigurationConstants.DEFAULT_GENERAL_MAINSTACK));
+			}
+		}
+		
+		List<?> suppFiles = config.getAttribute(LaunchConfigurationConstants.ATTR_GENERAL_SUPPFILES, LaunchConfigurationConstants.DEFAULT_GENERAL_SUPPFILES); 
+		for (Object strpath : suppFiles) {
+			IPath suppfile = getPlugin().parseWSPath((String) strpath);
+			if (suppfile != null) {
+				opts.add(CommandLineConstants.OPT_SUPPFILE + EQUALS + suppfile.toOSString());
+			}
+		}
+		opts.addAll(Arrays.asList(dynamicDelegate.getCommandArray(config)));		
+
+		String[] ret = new String[opts.size()];
+		return opts.toArray(ret);
+	}
+

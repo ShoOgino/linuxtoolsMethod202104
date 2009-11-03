@@ -1,0 +1,35 @@
+	public void refreshView() {
+		if (output != null && pid != null) {
+			MassifSnapshot[] snapshots = output.getSnapshots(pid);
+			pidAction.setPids(output.getPids());
+			if (snapshots != null) {
+				viewer.setInput(snapshots);
+
+				String timeWithUnit = TITLE_TIME + " (" + getUnitString(snapshots) + ")"; //$NON-NLS-1$ //$NON-NLS-2$
+				for (TableColumn column : viewer.getTable().getColumns()) {
+					if (column.getText().startsWith(TITLE_TIME)) {
+						column.setText(timeWithUnit);
+					}
+					viewer.getTable().layout(true);
+				}
+				MassifSnapshot[] detailed = getDetailed(snapshots);
+				nodes = new MassifHeapTreeNode[detailed.length];
+				for (int i = 0; i < detailed.length; i++) {
+					nodes[i] = detailed[i].getRoot();
+				}
+				treeViewer.setInput(nodes);
+
+				// create and display chart
+				if (snapshots.length > 0) {
+					ChartEditorInput input = getChartInput(pid);
+					if (input == null) {
+						createChart(snapshots);
+					}
+					else {
+						displayChart(input);
+					}
+				}
+			}
+		}
+	}
+
