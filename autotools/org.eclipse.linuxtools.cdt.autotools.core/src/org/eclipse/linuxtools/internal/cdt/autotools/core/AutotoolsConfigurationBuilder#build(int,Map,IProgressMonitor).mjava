@@ -1,0 +1,49 @@
+	@SuppressWarnings("unchecked")
+	@Override
+	protected IProject[] build(int kind, Map args, IProgressMonitor monitor)
+	throws CoreException {
+		IProject project = getProject();
+
+		boolean bPerformBuild = true;
+		IManagedBuildInfo info = ManagedBuildManager.getBuildInfo(project);
+		if (!shouldBuild(kind, info)) {
+			return new IProject[0];
+		}
+		if (kind == IncrementalProjectBuilder.AUTO_BUILD) {
+			IResourceDelta delta = getDelta(getProject());
+			if (delta != null) {
+				IResource res = delta.getResource();
+				if (res != null) {
+					bPerformBuild = res.getProject().equals(getProject());
+				}
+			} else {
+				bPerformBuild = false;
+			}
+		}
+		if (bPerformBuild) {
+			MultiStatus result = performMakefileGeneration(project, info, monitor);
+			if (result.getSeverity() == IStatus.ERROR) {
+				// Failure to create Makefile, output error message to console.
+				IConsole console = CCorePlugin.getDefault().getConsole();
+				console.start(project);
+
+				OutputStream cos = console.getOutputStream();
+				String errormsg = AutotoolsPlugin.getResourceString(BUILD_STOPPED);
+				StringBuffer buf = new StringBuffer(errormsg);
+				buf.append(System.getProperty("line.separator", "\n")); //$NON-NLS-1$ //$NON-NLS-2$
+				buf.append("(").append(result.getMessage()).append(")"); //$NON-NLS-1$ //$NON-NLS-2$
+
+				try {
+					cos.write(buf.toString().getBytes());
+					cos.flush();
+					cos.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					AutotoolsPlugin.log(e);
+				}
+			}
+		}
+		checkCancel(monitor);
+		return getProject().getReferencedProjects();
+	}
+

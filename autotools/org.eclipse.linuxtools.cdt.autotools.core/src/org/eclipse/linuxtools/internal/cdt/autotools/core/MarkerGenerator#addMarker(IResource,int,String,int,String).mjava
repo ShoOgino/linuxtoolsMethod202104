@@ -1,0 +1,38 @@
+	/*
+	 * callback from Output Parser
+	 */
+	public void addMarker(IResource file, int lineNumber, String errorDesc, int severity, String errorVar) {
+
+		try {
+			IMarker[] cur = file.findMarkers(ICModelMarker.C_MODEL_PROBLEM_MARKER, false, IResource.DEPTH_ONE);
+			/*
+			 * Try to find matching markers and don't put in duplicates
+			 */
+			if ((cur != null) && (cur.length > 0)) {
+				for (int i = 0; i < cur.length; i++) {
+					int line = ((Integer) cur[i].getAttribute(IMarker.LOCATION)).intValue();
+					int sev = ((Integer) cur[i].getAttribute(IMarker.SEVERITY)).intValue();
+					String mesg = (String) cur[i].getAttribute(IMarker.MESSAGE);
+					if (line == lineNumber && sev == mapMarkerSeverity(severity) && mesg.equals(errorDesc)) {
+						return;
+					}
+				}
+			}
+
+			IMarker marker = file.createMarker(ICModelMarker.C_MODEL_PROBLEM_MARKER);
+			marker.setAttribute(IMarker.LOCATION, lineNumber);
+			marker.setAttribute(IMarker.MESSAGE, errorDesc);
+			marker.setAttribute(IMarker.SEVERITY, mapMarkerSeverity(severity));
+			marker.setAttribute(IMarker.LINE_NUMBER, lineNumber);
+			marker.setAttribute(IMarker.CHAR_START, -1);
+			marker.setAttribute(IMarker.CHAR_END, -1);
+			if (errorVar != null) {
+				marker.setAttribute(ICModelMarker.C_MODEL_MARKER_VARIABLE, errorVar);
+			}
+		}
+		catch (CoreException e) {
+			CCorePlugin.log(e.getStatus());
+		}
+
+	}
+

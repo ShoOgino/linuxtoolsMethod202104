@@ -1,0 +1,32 @@
+	/**
+	 * Add the Autotools builder to the project
+	 * @param project
+	 * @param monitor
+	 * @throws CoreException
+	 */
+	public static void addAutotoolsBuilder(IProject project, IProgressMonitor monitor) throws CoreException {
+		// Add the builder to the project
+		IProjectDescription description = project.getDescription();
+		ICommand[] commands = description.getBuildSpec();
+		ArrayList<ICommand> commandList = new ArrayList<ICommand>();
+	
+		// Make sure the Autotools Configuration builder just precedes the Common Builder
+		for (int i = 0; i < commands.length; i++) {
+			ICommand command = commands[i];
+			if (command.getBuilderName().equals(AutotoolsConfigurationBuilder.BUILDER_ID)) {
+				// ignore it
+			} else {
+				if (command.getBuilderName().equals(BUILDER_ID)) {
+					// add Autotools Configuration builder just before builder
+					ICommand newCommand = description.newCommand();
+					newCommand.setBuilderName(AutotoolsConfigurationBuilder.BUILDER_ID);
+					commandList.add(newCommand);
+				}
+				commandList.add(command);
+			}
+		}
+		ICommand[] newCommands = new ICommand[commandList.size()];
+		description.setBuildSpec(commandList.toArray(newCommands));
+		project.setDescription(description, new NullProgressMonitor());
+	}
+

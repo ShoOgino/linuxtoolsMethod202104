@@ -1,0 +1,37 @@
+	public void saveConfigs(String projectName) {
+		try {
+			IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+			IResource res = (IProject)root.findMember(projectName, false);
+			if (res == null || res.getType() != IResource.PROJECT) {
+				AutotoolsPlugin.logErrorMessage(ConfigureMessages.getFormattedString(CFG_CANT_SAVE,
+						new String[]{projectName}));
+				return;
+			}
+			IProject project = (IProject)res;
+			IPath output = project.getLocation().append(CFG_FILE_NAME);
+			File f = output.toFile();
+			if (!f.exists())
+				f.createNewFile();
+			if (f.exists()) {
+				PrintWriter p = new PrintWriter(new BufferedWriter(new FileWriter(f)));
+				ArrayList<IAConfiguration> cfgs = configs.get(projectName);
+				p.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>"); //$NON-NLS-1$
+				p.println("<configurations>"); // $NON-NLS-1$
+				for (int i = 0; i < cfgs.size(); ++i) {
+					IAConfiguration cfg = cfgs.get(i);
+					p.println("<configuration name=\"" + cfg.getName() + "\">"); //$NON-NLS-1$ //$NON-NLS-2$
+					Collection<IConfigureOption> values = cfg.getOptions().values(); 
+					for (Iterator<IConfigureOption> j = values.iterator(); j.hasNext();) {
+						IConfigureOption opt = j.next();
+						p.println("<option id=\"" + opt.getName() + "\" value=\"" + opt.getValue() + "\"/>"); //$NON-NLS-1$ //$NON-NLS-2$ // $NON-NLS-3$
+					}
+					p.println("</configuration>"); //$NON-NLS-1$
+				}
+				p.println("</configurations>");
+				p.close();
+			}
+		} catch (IOException e) {
+			AutotoolsPlugin.log(e);
+		}
+	}
+

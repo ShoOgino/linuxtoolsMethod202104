@@ -1,0 +1,31 @@
+	/**
+	 * This method parses the .cdtproject file for the XML document describing the build targets.
+	 * 
+	 * @param input
+	 * @return
+	 */
+	protected Document translateCDTProjectToDocument() {
+		Document document = null;
+		Element rootElement = null;
+		try {
+			document = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+			ICDescriptor descriptor;
+			descriptor = CCorePlugin.getDefault().getCProjectDescription(getProject(), true);
+
+			rootElement = descriptor.getProjectData(MAKE_TARGET_KEY);
+		} catch (ParserConfigurationException e) {
+			return document;
+		} catch (CoreException e) {
+			return document;
+		}
+		NodeList list = rootElement.getChildNodes();
+		for (int i = 0; i < list.getLength(); i++) {
+			if (list.item(i).getNodeType() == Node.ELEMENT_NODE) {
+				Node appendNode = document.importNode(list.item(i), true);
+				document.appendChild(appendNode);
+				break; // should never have multiple <buildtargets>
+			}
+		}
+		return document;
+	}
+

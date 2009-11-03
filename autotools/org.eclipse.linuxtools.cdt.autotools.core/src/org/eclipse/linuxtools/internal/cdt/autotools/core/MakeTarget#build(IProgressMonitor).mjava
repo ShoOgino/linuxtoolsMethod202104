@@ -1,0 +1,51 @@
+	@SuppressWarnings("unchecked")
+	public void build(IProgressMonitor monitor) throws CoreException {
+		final String builderID = manager.getBuilderID(targetBuilderID);
+		final HashMap infoMap = new HashMap();
+
+		IMakeBuilderInfo info = MakeCorePlugin.createBuildInfo(infoMap, builderID);
+		info.setBuildAttribute(IMakeCommonBuildInfo.BUILD_COMMAND, getBuildAttribute(IMakeCommonBuildInfo.BUILD_COMMAND, "make")); //$NON-NLS-1$
+		info.setBuildAttribute(IMakeCommonBuildInfo.BUILD_ARGUMENTS, getBuildAttribute(IMakeCommonBuildInfo.BUILD_ARGUMENTS, "")); //$NON-NLS-1$
+		info.setUseDefaultBuildCmd(isDefaultBuildCmd());
+		info.setStopOnError(isStopOnError());
+		info.setIncrementalBuildEnable(true);
+		info.setBuildAttribute(IMakeBuilderInfo.BUILD_TARGET_INCREMENTAL, getBuildAttribute(IMakeTarget.BUILD_TARGET, "")); //$NON-NLS-1$
+		info.setEnvironment(getExpandedEnvironment());
+		info.setAppendEnvironment(appendEnvironment());
+		if (container != null) {
+			info.setBuildAttribute(IMakeCommonBuildInfo.BUILD_LOCATION, container.getFullPath().toString());
+		}
+		IMakeBuilderInfo projectInfo = MakeCorePlugin.createBuildInfo(getProject(), builderID);
+		info.setErrorParsers(projectInfo.getErrorParsers());
+		IWorkspaceRunnable op = new IWorkspaceRunnable() {
+
+			/*
+			 * (non-Javadoc)
+			 * 
+			 * @see org.eclipse.core.resources.IWorkspaceRunnable#run(org.eclipse.core.runtime.IProgressMonitor)
+			 */
+			public void run(IProgressMonitor monitor) throws CoreException {
+				if (runAllBuidlers) {
+					ICommand[] commands = project.getDescription().getBuildSpec();
+					monitor.beginTask("", commands.length); //$NON-NLS-1$
+					for (int i = 0; i < commands.length; i++) {
+						if (commands[i].getBuilderName().equals(builderID)) {
+							project.build(IncrementalProjectBuilder.FULL_BUILD, builderID, infoMap, new SubProgressMonitor(monitor, 1));
+						} else {
+							project.build(IncrementalProjectBuilder.FULL_BUILD, commands[i].getBuilderName(),
+									commands[i].getArguments(), new SubProgressMonitor(monitor, 1));
+						}
+					}
+					monitor.done();
+				} else {
+					project.build(IncrementalProjectBuilder.FULL_BUILD, builderID, infoMap, monitor);
+				}
+			}
+		};
+		try {
+			ResourcesPlugin.getWorkspace().run(op, monitor);
+		} finally {
+			monitor.done();
+		}
+	}
+

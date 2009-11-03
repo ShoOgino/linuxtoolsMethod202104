@@ -1,0 +1,42 @@
+	public MultiStatus regenerateMakefiles(boolean reconfigure) throws CoreException {
+		MultiStatus status = null;
+		if (cfg instanceof IMultiConfiguration) {
+			IMultiConfiguration mfcg = (IMultiConfiguration)cfg;
+			Object[] objs = mfcg.getItems();
+			for (int i = 0; i < objs.length; ++i) {
+				IConfiguration icfg = (IConfiguration)objs[i];
+				Status rc = regenerateMakefiles(icfg, reconfigure);
+				if (!rc.isOK()) {
+					if(status == null){
+						status = new MultiStatus(
+								AutotoolsPlugin.getUniqueIdentifier(),
+								IStatus.ERROR,
+								new String(),
+								null);
+					}
+					status.add(rc);	
+				}
+			}
+		} else {
+			Status rc = regenerateMakefiles(cfg, reconfigure);
+			if (!rc.isOK()) {
+				if(status == null){
+					status = new MultiStatus(
+							AutotoolsPlugin.getUniqueIdentifier(),
+							IStatus.ERROR,
+							new String(),
+							null);
+				}
+				status.add(rc);	
+			}
+		}
+		if(status == null){
+			status = new MultiStatus(
+					ManagedBuilderCorePlugin.getUniqueIdentifier(),
+					IStatus.OK,
+					new String(),
+					null);
+		}
+		return status;
+	}
+
