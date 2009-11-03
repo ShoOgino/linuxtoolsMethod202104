@@ -1,0 +1,318 @@
+	public MultiStatus regenerateMakefiles() throws CoreException {
+		MultiStatus status;
+		int rc = IStatus.OK;
+		String errMsg = new String();
+		boolean needFullConfigure = true;
+
+		// See if the user has cancelled the build
+		checkCancel();
+
+		// Create the top-level directory for the build output
+		if (!createDirectory(buildDir)) {
+			rc = IStatus.ERROR;
+			errMsg = AutotoolsPlugin.getFormattedString("MakeGenerator.createdir.error", //$NON-NLS-1$
+					new String[] {buildDir});
+			return new MultiStatus(AutotoolsPlugin.getUniqueIdentifier(), 
+					rc, errMsg, null);
+		}
+
+		checkCancel();
+
+		// // How did we do
+		// if (!getInvalidDirList().isEmpty()) {
+		// status = new MultiStatus (
+		// ManagedBuilderCorePlugin.getUniqueIdentifier(),
+		// IStatus.WARNING,
+		// new String(),
+		// null);
+		// // Add a new status for each of the bad folders
+		// iter = getInvalidDirList().iterator();
+		// while (iter.hasNext()) {
+		// status.add(new Status (
+		// IStatus.WARNING,
+		// ManagedBuilderCorePlugin.getUniqueIdentifier(),
+		// SPACES_IN_PATH,
+		// ((IContainer)iter.next()).getFullPath().toString(),
+		// null));
+		// }
+		// } else {
+		// status = new MultiStatus(
+		// ManagedBuilderCorePlugin.getUniqueIdentifier(),
+		// IStatus.OK,
+		// new String(),
+		// null);
+		// }
+
+		// Get a build console for the project
+		IConsole console = CCorePlugin.getDefault().getConsole("org.eclipse.linuxtools.cdt.autotools.configureConsole"); //$NON-NLS-1$
+
+		// Get the project and make sure there's a monitor to cancel the build
+		if (monitor == null) {
+			monitor = new NullProgressMonitor();
+		}
+
+		try {
+			// If a config.status file exists in the build directory, we call it
+			// to
+			// regenerate the makefile
+			IPath configfile = getProjectLocation().append(buildDir).append(
+					CONFIG_STATUS);
+			IPath makefilePath = getProjectLocation().append(buildDir).append(MAKEFILE);
+			File configStatus = configfile.toFile();
+			File makefile = makefilePath.toFile();
+			IPath configSettingsPath = getConfigSettingsPath();
+			File configSettings = configSettingsPath.toFile();
+			String[] configArgs = getConfigArgs();
+
+			// We need to figure out if the end-user has changed the configuration
+			// settings.  In such a case, we need to reconfigure from scratch
+			// regardless of whether config.status exists or not.
+			// We figure this out by saving the configuration settings to
+			// a special file and reading/comparing whenever we are asked to build.
+			if (configSettings.exists()) {
+				int i = 0;
+				boolean needSaveConfigArgs = false;
+				needFullConfigure = false;
+				try {
+					DataInputStream settings = new DataInputStream(
+							new BufferedInputStream(new FileInputStream(configSettings)));
+					// Get the first String in the configure settings file.
+					// Newer configure settings file start with the project name.  
+					// If the project name is present and doesn't match the
+					// current project name, the project has been refactored and
+					// we need to do a full reconfigure.
+					settings.mark(100);
+					String s = settings.readUTF();
+					if (s.startsWith("project=")) { //$NON-NLS-1$
+						if (!s.substring(8).equals(project.getName())) {
+							needFullConfigure = true;
+						}
+					} else {
+						// An older configure arguments file.  Reset
+						// to beginning and process as normal.
+						needSaveConfigArgs = true;
+						settings.reset();
+					}
+					while (i < configArgs.length) {
+						s = settings.readUTF();
+						if (!s.equals(configArgs[i])) {
+							i = configArgs.length;
+							needFullConfigure = true;
+						}
+						++i;
+					}
+					if (settings.available() > 0)
+						needFullConfigure = true;
+				} catch (EOFException e) {
+					needFullConfigure = true;
+				} catch (IOException e) {
+					needFullConfigure = true;
+				}
+				if (needFullConfigure) {
+					// If we are going to do a full reconfigure, then if the current
+					// build directory exists, we should clean it out first.  This is
+					// because the reconfiguration could change compile flags, etc..
+					// and the Makefile might not detect a rebuild is required.  In
+					// addition, the build directory itself could have been changed and
+					// we should remove the previous build.
+					File r = project.getLocation().append(buildDir).toFile();
+					if (r != null && r.exists()) {
+						// See what type of cleaning the user has set up in the
+						// build properties dialog.
+						String cleanDelete = null;
+						try {
+							cleanDelete = getProject().getPersistentProperty(AutotoolsPropertyConstants.CLEAN_DELETE);
+						} catch (CoreException ce) {
+							// do nothing
+						}
+						
+						if (cleanDelete != null && cleanDelete.equals(AutotoolsPropertyConstants.TRUE)) {
+							SubProgressMonitor sub = new SubProgressMonitor(monitor, IProgressMonitor.UNKNOWN);
+							sub.beginTask(AutotoolsPlugin.getResourceString("MakeGenerator.clean.builddir"), IProgressMonitor.UNKNOWN);
+							try {
+								r.delete();
+							} finally {
+								sub.done();
+							}
+						}
+						else {
+							// There is a make target for cleaning.
+							if (makefile != null && makefile.exists()) {
+								String[] makeargs = new String[1];
+								IPath makeCmd = new Path("make"); //$NON-NLS-1$
+								String target = null;
+								try {
+									target = getProject().getPersistentProperty(AutotoolsPropertyConstants.CLEAN_MAKE_TARGET);
+								} catch (CoreException ce) {
+									// do nothing
+								}
+								if (target == null)
+									target = AutotoolsPropertyConstants.CLEAN_MAKE_TARGET_DEFAULT;
+								String args = builder.getBuildArguments();
+								if (args != null && !(args = args.trim()).equals("")) { //$NON-NLS-1$
+									String[] newArgs = makeArray(args);
+									makeargs = new String[newArgs.length + 1];
+									System.arraycopy(newArgs, 0, makeargs, 0, newArgs.length);
+								}
+								makeargs[makeargs.length - 1] = target;
+								rc = runCommand(makeCmd,
+										project.getLocation().append(buildDir),
+										makeargs,
+										AutotoolsPlugin.getResourceString("MakeGenerator.clean.builddir"), //$NON-NLS-1$
+										errMsg, console, true);
+							}
+						}
+					}
+					initializeBuildConfigDirs();
+					createDirectory(buildDir);
+					// Mark the scanner info as dirty.
+					try {
+						project.setSessionProperty(AutotoolsPropertyConstants.SCANNER_INFO_DIRTY, Boolean.TRUE);
+					} catch (CoreException ce) {
+						// do nothing
+					}
+				} else if (needSaveConfigArgs) {
+					// No change in configuration args, but we have old
+					// style settings format which can't determine if project has
+					// been renamed.  Refresh the settings file.
+					saveConfigArgs(configArgs);
+				}
+			}
+			
+			ArrayList<String> configureEnvs = new ArrayList<String>();
+			IPath configurePath = getConfigurePath(configureEnvs);
+			ArrayList<String> autogenEnvs = new ArrayList<String>();
+			IPath autogenPath = getAutogenPath(autogenEnvs);
+			
+			// Check if we have a config.status (meaning configure has already run).
+    		if (!needFullConfigure && configStatus != null && configStatus.exists()) {
+			    // If no corresponding Makefile in the same build location, then we
+	            // can simply run config.status again to ensure the top level Makefile has been
+				// created.
+				if (makefile == null || !makefile.exists()) {
+					rc = runScript(configfile, project.getLocation().append(
+							buildDir), null, 
+							AutotoolsPlugin.getResourceString("MakeGenerator.run.config.status"), //$NON-NLS-1$
+							errMsg, console, null, true);
+				}
+			}
+			// Look for configure and configure from scratch
+			else if (configurePath.toFile().exists()) {
+				rc = runScript(configurePath, 
+						project.getLocation().append(buildDir),
+						configArgs, 
+						AutotoolsPlugin.getResourceString("MakeGenerator.gen.makefile"), //$NON-NLS-1$
+						errMsg, console, configureEnvs, true);
+				if (rc != IStatus.ERROR) {
+					File makefileFile = project.getLocation().append(buildDir)
+					.append(MAKEFILE).toFile();
+					addMakeTargetsToManager(makefileFile);
+					// TODO: should we do something special if configure doesn't
+					// return ok?
+					saveConfigArgs(configArgs);
+				}
+			}
+			// If no configure, look for autogen.sh which may create configure and
+    		// possibly even run it.
+			else if (autogenPath.toFile().exists()) {
+				// Remove the existing config.status file since we use it
+				// to figure out if configure was run.
+				if (configStatus.exists())
+					configStatus.delete();
+				// Get any user-specified arguments for autogen.
+				String[] autogenArgs = getAutogenArgs();
+				rc = runScript(autogenPath,
+						autogenPath.removeLastSegments(1), autogenArgs,
+						AutotoolsPlugin.getResourceString("MakeGenerator.autogen.sh"), //$NON-NLS-1$
+						errMsg, console, autogenEnvs, true);
+				if (rc != IStatus.ERROR) {
+					configStatus =configfile.toFile();
+					// Check for config.status.  If it is created, then
+					// autogen.sh ran configure and we should not run it
+					// ourselves.
+					if (configStatus == null || !configStatus.exists()) {
+						rc = runScript(configurePath, 
+								project.getLocation().append(buildDir),
+								configArgs, 
+								AutotoolsPlugin.getResourceString("MakeGenerator.gen.makefile"), //$NON-NLS-1$
+								errMsg, console, configureEnvs, false);
+						if (rc != IStatus.ERROR) {
+							File makefileFile = project.getLocation().append(buildDir)
+							.append(MAKEFILE).toFile();
+							addMakeTargetsToManager(makefileFile);
+						}
+					} else {
+						File makefileFile = project.getLocation().append(buildDir)
+						.append(MAKEFILE).toFile();
+						addMakeTargetsToManager(makefileFile);						
+					}
+				}
+			}
+			// If nothing this far, look for a Makefile.cvs file which needs to be run. 
+			else if (makefileCvsExists()) {
+				String[] makeargs = new String[1];
+				IPath makeCmd = new Path("make"); //$NON-NLS-1$
+				makeargs[0] = "-f" + getMakefileCVSPath().toOSString(); //$NON-NLS-1$
+				rc = runCommand(makeCmd,
+						project.getLocation().append(buildDir),
+						makeargs,
+						AutotoolsPlugin.getResourceString("MakeGenerator.makefile.cvs"), //$NON-NLS-1$
+						errMsg, console, true);
+				if (rc != IStatus.ERROR) {
+					File makefileFile = project.getLocation().append(buildDir)
+					.append(MAKEFILE).toFile();
+					addMakeTargetsToManager(makefileFile);
+					saveConfigArgs(configArgs);
+				}
+			}
+			// If nothing this far, try running autoreconf -i
+			else {
+				String[] reconfArgs = new String[1];
+				String reconfCmd = project.getPersistentProperty(AutotoolsPropertyConstants.AUTORECONF_TOOL);
+				if (reconfCmd == null)
+					reconfCmd = "autoreconf"; // $NON-NLS-1$
+				IPath reconfCmdPath = new Path(reconfCmd);
+				reconfArgs[0] = "-i"; //$NON-NLS-1$
+				rc = runCommand(reconfCmdPath,
+						project.getLocation().append(srcDir),
+						reconfArgs,
+						AutotoolsPlugin.getResourceString("MakeGenerator.autoreconf"), //$NON-NLS-1$
+						errMsg, console, true);
+				// Check if configure generated and if yes, run it.
+				if (rc != IStatus.ERROR) {
+					if (configurePath.toFile().exists()) {
+						
+						rc = runScript(configurePath, 
+								project.getLocation().append(buildDir),
+								configArgs, 
+								AutotoolsPlugin.getResourceString("MakeGenerator.gen.makefile"), //$NON-NLS-1$
+								errMsg, console, configureEnvs, false);
+						if (rc != IStatus.ERROR) {
+							File makefileFile = project.getLocation().append(buildDir)
+							.append(MAKEFILE).toFile();
+							addMakeTargetsToManager(makefileFile);
+							// TODO: should we do something special if configure doesn't
+							// return ok?
+							saveConfigArgs(configArgs);
+						}
+					}
+				}
+			}
+    		
+    		// Treat no Makefile as generation error.
+			if (makefile == null || !makefile.exists()) {
+				rc = IStatus.ERROR;
+				errMsg = AutotoolsPlugin.getResourceString("MakeGenerator.didnt.generate"); //$NON-NLS-1$
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			// forgetLastBuiltState();
+			rc = IStatus.ERROR;
+		} finally {
+			// getGenerationProblems().clear();
+			status = new MultiStatus(AutotoolsPlugin
+						.getUniqueIdentifier(), rc, errMsg, null);
+		}
+		return status;
+	}
+

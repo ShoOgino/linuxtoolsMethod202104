@@ -1,0 +1,35 @@
+	/**
+	 * Parse a block of nodes, which starts with an expression and contains
+	 * subnodes.  Divide text into macro calls and recognized shell constructs.  
+	 * Anything else is not accounted for.
+	 * @param parent
+	 */
+	protected void parseBlock(AutoconfElement parent, Token open, AutoconfElement block) throws BlockEndCondition {
+		parent.addChild(block);
+		
+		setSourceStart(block, open);
+		
+		// get the expression part
+		Token token;
+		try {
+			token = parseBlockExpression(open, block);
+		} catch (BlockEndCondition e) {
+			setSourceEndBefore(block, e.getToken());
+			throw e;
+		}
+		
+		// parse the block proper
+		if (token.getType() != ITokenConstants.EOF) {
+			while (true) {
+				try {
+					parseStatement(block);
+				} catch (BlockEndCondition e) {
+					setSourceEnd(block, e.getToken());
+					return;
+				}
+			}
+		} else {
+			setSourceEnd(block, token);
+		}
+	}
+

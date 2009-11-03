@@ -1,0 +1,60 @@
+	/**
+	 * This method determines for a given offset into a given document what the
+	 * region is which defines the current word. A word is defined as the set of
+	 * non "C" identifiers. So assuming that ! indicated the current cursor
+	 * postion: !afunction(int a, int b) --> word = length 0 afunc!tion(int a,
+	 * int b) --> word = afunction afunction!(int a, int b) --> word = afunction
+	 * afunction(!int a, int b) --> word = length 0 afunction(int a,! int b) -->
+	 * word = length 0 afunction(!) --> word = length 0
+	 * 
+	 * @param document
+	 *            The document to be examined
+	 * @param offset
+	 *            The offset into the document where a word should be
+	 *            idendified.
+	 * @return The region defining the current word, which may be a region of
+	 *         length 0 if the offset is not in a word, or null if there is an
+	 *         error accessing the docment data.
+	 */
+	public static IRegion findWord(IDocument document, int offset) {
+		int start = -1;
+		int end = -1;
+
+		try {
+			int pos = offset;
+			char c;
+
+			while (pos >= 0) {
+				c = document.getChar(pos);
+				if (!Character.isJavaIdentifierPart(c))
+					break;
+				--pos;
+			}
+
+			start = pos + 1;
+
+			pos = offset;
+			int length = document.getLength();
+
+			while (pos < length) {
+				c = document.getChar(pos);
+				if (!Character.isJavaIdentifierPart(c))
+					break;
+				++pos;
+			}
+
+			end = pos;
+
+		} catch (BadLocationException x) {
+		}
+
+		if (start > -1 && end > -1) {
+			if (start >= offset && end == offset)
+				return new Region(offset, 0);
+			else
+				return new Region(start, end - start);
+		}
+
+		return null;
+	}
+

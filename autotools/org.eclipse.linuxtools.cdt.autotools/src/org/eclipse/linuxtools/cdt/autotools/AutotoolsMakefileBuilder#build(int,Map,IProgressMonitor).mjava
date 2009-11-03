@@ -1,0 +1,228 @@
+	/* (non-Javadoc)
+	 * @see org.eclipse.core.internal.events.InternalBuilder#build(int, java.util.Map, org.eclipse.core.runtime.IProgressMonitor)
+	 */
+	@SuppressWarnings({ "unchecked", "deprecation" })
+	protected IProject[] build(int kind, Map args, IProgressMonitor monitor) throws CoreException {
+		IProject[] results = null;
+		IProject project = getProject();
+		IManagedBuildInfo info = ManagedBuildManager.getBuildInfo(project);
+		IManagedBuilderMakefileGenerator generator = null;
+		try {
+			// Figure out the working directory for the build and make sure there is a makefile there
+			// If not, mark a rebuild is required so that configuration will get
+			// invoked.
+			IWorkspace workspace = project.getWorkspace();
+			if (workspace != null) {
+				IWorkspaceRoot root = workspace.getRoot();
+				if (root != null) {
+					if (info.getDefaultConfiguration() == null)
+						return null;
+					generator = new MakeGenerator();
+					generator.initialize(getProject(), info, monitor);
+					IPath buildDir = project.getLocation().append(generator.getBuildWorkingDir());
+					IPath makefilePath = buildDir.append(generator.getMakefileName());
+					IFile makefile = root.getFileForLocation(makefilePath);
+					if (makefile == null || !makefile.exists()) {
+						info.setRebuildState(true);
+					}
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			makeTargetName = (String)args.get("org.eclipse.cdt.make.core.build.target.inc"); //$NON-NLS-1$
+			
+			buildCalled = true;
+			/**
+			 * @see IncrementalProjectBuilder#build
+			 */
+//			fBuildSet.start(this);
+
+			// Hijack the build.  This is because the CommonBuilder code will
+			// try and create builders for a MakeTarget build.  We don't want
+			// that because this will default to using the GnuMakefileGenerator
+			// which fails.  We want to use our Autotools MakeGenerator and
+			// perform a make from the top-level.
+			if(VERBOSE)
+				outputTrace(project.getName(), ">>build requested, type = " + kind); //$NON-NLS-1$
+			
+			IConfiguration cfg = info.getDefaultConfiguration();
+
+			// Assemble the information needed to generate the targets
+			String prebuildStep = cfg.getPrebuildStep();
+			try{
+				//try to resolve the build macros in the prebuild step
+				prebuildStep = ManagedBuildManager.getBuildMacroProvider().resolveValueToMakefileFormat(
+						prebuildStep,
+						EMPTY_STRING,
+						WHITESPACE,
+						IBuildMacroProvider.CONTEXT_CONFIGURATION,
+						cfg);
+			} catch (BuildMacroException e){
+			}
+			prebuildStep = prebuildStep.trim(); // Remove leading and trailing whitespace (and control characters)
+
+			String postbuildStep = cfg.getPostbuildStep();
+			try{
+				//try to resolve the build macros in the postbuild step
+				postbuildStep = ManagedBuildManager.getBuildMacroProvider().resolveValueToMakefileFormat(
+						postbuildStep,
+						EMPTY_STRING,
+						WHITESPACE,
+						IBuildMacroProvider.CONTEXT_CONFIGURATION,
+						cfg);
+					
+			} catch (BuildMacroException e){
+			}
+			postbuildStep = postbuildStep.trim(); // Remove leading and trailing whitespace (and control characters)
+			String preannouncebuildStep = cfg.getPreannouncebuildStep();
+			String postannouncebuildStep = cfg.getPostannouncebuildStep();
+
+			IConsole console = null;
+			ConsoleOutputStream consoleOutStream = null;
+			CommandLauncher launcher = null;
+			String[] env = null;
+			Process proc = null;
+			OutputStream stdout = null;
+			OutputStream stderr = null;
+			
+			// If we have a prebuild or postbuild step, set up a command launcher to use.
+			if (!prebuildStep.equals("") || !postbuildStep.equals("")) {
+				console = CCorePlugin.getDefault().getConsole("org.eclipse.linuxtools.cdt.autotools.buildStepsConsole"); // $NON-NLS-1$
+				console.start(project);
+				consoleOutStream = console.getOutputStream();
+				stdout = consoleOutStream;
+				stderr = consoleOutStream;
+				launcher = new CommandLauncher();
+				// Set the environment
+				IEnvironmentVariable variables[] = ManagedBuildManager
+						.getEnvironmentVariableProvider().getVariables(cfg, true);
+				ArrayList<String> envList = new ArrayList<String>();
+				if (variables != null) {
+					for (int i = 0; i < variables.length; i++) {
+						envList.add(variables[i].getName()
+								+ "=" + variables[i].getValue()); //$NON-NLS-1$
+					}
+					env = (String[]) envList.toArray(new String[envList.size()]);
+				}
+			}
+			
+			// Check for a prebuild step and execute it if it exists.
+			if (!prebuildStep.equals("")) {
+				monitor.subTask(preannouncebuildStep);
+
+				StringBuffer buffer = new StringBuffer();
+				buffer.append(preannouncebuildStep);
+				buffer.append(System.getProperty("line.separator", "\n")); // $NON-NLS-1$ // $NON-NLS-2$
+
+				try {
+					consoleOutStream.write(buffer.toString().getBytes());
+					consoleOutStream.flush();
+				} catch (IOException e) {
+					// do nothing
+				}
+
+				launcher.showCommand(true);
+				String[] tmp = prebuildStep.split("\\s");
+				String[] cmdargs = new String[tmp.length - 1];
+				if (tmp.length > 1)
+					System.arraycopy(tmp, 1, cmdargs, 0, tmp.length - 1);
+				proc = launcher.execute(new Path(tmp[0]), cmdargs, env,
+						project.getLocation().append(generator.getBuildWorkingDir()), monitor);
+				if (proc != null) {
+					try {
+						// Close the input of the process since we will never write to
+						// it
+						proc.getOutputStream().close();
+					} catch (IOException e) {
+					}
+
+					if (launcher.waitAndRead(stdout, stderr, new SubProgressMonitor(
+							monitor, IProgressMonitor.UNKNOWN)) != CommandLauncher.OK) {
+						preBuildErrMsg = launcher.getErrorMessage();
+					}
+				}
+			}
+
+			// Perform build
+
+			ToolChain toolChain = (ToolChain)cfg.getToolChain();
+			IBuilder oldBuilder = cfg.getBuilder();
+			IBuilder builder = new AutotoolsBuilder(cfg.getEditableBuilder(), project, toolChain);
+			String buildLocation = null;
+			String buildCommand = null;
+			String buildArguments = null;
+			if (makeTargetName != null) {
+				// We have a MakeTarget.  Get the location and command.
+				buildLocation = (String)args.get("org.eclipse.cdt.make.core.build.location"); // $NON-NLS-1$
+				buildCommand = (String)args.get("org.eclipse.cdt.make.core.build.command"); // $NON-NLS-1$
+				buildArguments = (String)args.get("org.eclipse.cdt.make.core.build.arguments"); // $NON-NLS-1$
+			}
+			if (buildLocation == null)
+				builder.setBuildPath(project.getLocation().append(generator.getBuildWorkingDir()).toString());
+			else {
+				IWorkspace workspace = project.getWorkspace();
+				builder.setBuildPath(workspace.getRoot().getLocation().append(buildLocation).toString());
+				builder.setManagedBuildOn(false); // needed to avoid ManagedBuild from defaulting directory of makefile.
+			}
+			if (buildCommand != null)
+				builder.setBuildAttribute(IMakeCommonBuildInfo.BUILD_COMMAND, buildCommand);
+			if (buildArguments != null)
+				builder.setBuildAttribute(IMakeCommonBuildInfo.BUILD_ARGUMENTS, buildArguments);
+			builder.setAutoBuildEnable(true);
+			builder.setCleanBuildEnable(false); // Don't want clean build done ahead of our build.
+			// Following is needed to circumvent the CommonBuilder from using the default
+			// GNUMakefileGenerator.
+			builder.setBuildFileGeneratorElement(AutotoolsPlugin.getDefault().getGeneratorElement());
+			toolChain.setBuilder((Builder)builder);
+			
+			IProject[] projects = null;
+			try {
+				projects = super.build(kind, args, monitor);
+			} finally {
+				// Must ensure we reset everything back so configuration will be run in future.
+				toolChain.setBuilder((Builder)oldBuilder);
+			}
+
+			if(VERBOSE)
+				outputTrace(project.getName(), "<<done build requested, type = " + kind); //$NON-NLS-1$
+
+			results = projects;
+			buildCalled = false;
+			// Check for a postbuild step and execute it if it exists.
+			if (!postbuildStep.equals("")) {
+				monitor.subTask(postannouncebuildStep);
+				StringBuffer buffer = new StringBuffer();
+				buffer.append(postannouncebuildStep);
+				buffer.append(System.getProperty("line.separator", "\n")); // $NON-NLS-1$ // $NON-NLS-2$
+
+				try {
+					consoleOutStream.write(buffer.toString().getBytes());
+					consoleOutStream.flush();
+				} catch (IOException e) {
+					// do nothing
+				}
+				String[] tmp = postbuildStep.split("\\s");
+				String[] cmdargs = new String[tmp.length - 1];
+				if (tmp.length > 1)
+					System.arraycopy(tmp, 1, cmdargs, 0, tmp.length - 1);
+				proc = launcher.execute(new Path(tmp[0]), cmdargs, env,
+						project.getLocation().append(generator.getBuildWorkingDir()), monitor);
+				if (proc != null) {
+					try {
+						// Close the input of the process since we will never write to
+						// it
+						proc.getOutputStream().close();
+					} catch (IOException e) {
+					}
+
+					if (launcher.waitAndRead(stdout, stderr, new SubProgressMonitor(
+							monitor, IProgressMonitor.UNKNOWN)) != CommandLauncher.OK) {
+						postBuildErrMsg = launcher.getErrorMessage();
+					}
+				}
+			}
+		}
+		return results;
+	}
+

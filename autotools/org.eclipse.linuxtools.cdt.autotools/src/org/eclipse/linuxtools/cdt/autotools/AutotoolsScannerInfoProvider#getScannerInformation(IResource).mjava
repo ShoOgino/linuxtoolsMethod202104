@@ -1,0 +1,46 @@
+	public synchronized IScannerInfo getScannerInformation(IResource resource) {
+		IResource res = AutotoolsScannerInfo.followIncludeChain(resource);
+		// We keep scanner info separate per configuration.
+		// This is because one configuration may result in a file being
+		// compiled with one include path while another configuration
+		// may change the include path / defined symbols.
+		IProject project = resource.getProject();
+		
+		// We punt for non-Autotools projects.  This ScannerInfoProvider is used for
+		// all C Projects and we might get called for a non-Autotools project (e.g.
+		// unsubscribe operation when converting to C project).
+		if (!AutotoolsMakefileBuilder.hasTargetBuilder(project))
+			return null;
+		
+		// Check if the scanner info has been marked dirty, in which case we need
+		// to mark all entries dirty.
+		Boolean isDirty = Boolean.FALSE;
+		try {
+			isDirty = (Boolean)project.getSessionProperty(AutotoolsPropertyConstants.SCANNER_INFO_DIRTY);
+		} catch (CoreException e) {
+			// do nothing
+		}
+		if (isDirty != null && isDirty.equals(Boolean.TRUE)) {
+			setDirty(project);
+			try {
+			project.setSessionProperty(AutotoolsPropertyConstants.SCANNER_INFO_DIRTY, Boolean.FALSE);
+			} catch (CoreException ce) {
+				// do nothing
+			}
+		}
+		String config = getCollectionName(project);
+		// Get the ScannerInfo collection for current configuration or else
+		// create an empty collection if one doesn't already exist.
+		Map<IResource, AutotoolsScannerInfo> infoCollection = infoCollections.get(config);
+		if (infoCollection == null) {
+			infoCollection = new HashMap<IResource, AutotoolsScannerInfo>();
+			infoCollections.put(config, infoCollection);
+		}
+		AutotoolsScannerInfo info = (AutotoolsScannerInfo)infoCollection.get(res);
+		if (info == null) {
+			info = new AutotoolsScannerInfo(res);
+			infoCollection.put(res, info);
+		}
+		return info; 
+	}
+

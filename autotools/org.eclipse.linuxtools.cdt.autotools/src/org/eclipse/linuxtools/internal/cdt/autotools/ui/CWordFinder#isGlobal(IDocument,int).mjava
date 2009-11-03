@@ -1,0 +1,42 @@
+	/**
+	 * This method will determine whether current offset is contained 
+	 * in any function's body or it's outside it. 
+	 * 
+	 * @param document
+	 *            The document to be examined
+	 * @param offset
+	 *            The offset into the document
+	 * @return 
+	 *      <code>true</code> if there is no function body around offset 
+	 *      <code>false</code> otherwise 
+	 */
+	public static boolean isGlobal(IDocument document, int offset) {
+		try {
+			int pos = offset;
+			int bracketcount = 0;
+			char c;
+
+			//Find left curled bracket from our position
+			while (pos > 0) {
+				c = document.getChar(pos--);
+
+				if (c == CBRACE_R) {
+					bracketcount++; // take into account nested blocks
+				} else if (c == CBRACE_L) {
+					if (bracketcount-- == 0) {
+						do {
+							c = document.getChar(pos--);
+							if (c == BRACE_R) return false;
+						} while (Character.isWhitespace(c));
+						// container block seems to be not a function or statement body
+						pos++;             // step back one symbol
+						bracketcount = 0;  // let's search for upper block
+					}
+				}
+			}
+			
+		} catch (BadLocationException x) { /* Ignore */	}
+		// return true in case of unknown result or exception 
+		return true;
+	}
+

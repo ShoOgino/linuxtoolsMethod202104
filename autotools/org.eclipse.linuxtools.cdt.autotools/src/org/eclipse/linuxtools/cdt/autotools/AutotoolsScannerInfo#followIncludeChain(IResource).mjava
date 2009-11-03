@@ -1,0 +1,34 @@
+	/**
+	 * 
+	 * @param resource the resource we are scanning
+	 * @return the final resource in the include chain if one exists
+	 * otherwise the resource itself
+	 */
+	public static IResource followIncludeChain(IResource resource) {
+		IResource res = resource;
+		try {
+			boolean done = false;
+			// In the case of include files, we chain to the file that
+			// included the header file.  This may end up ultimately as
+			// a source file which has build parameters such as flag
+			// defines and a separate include path.
+			while (!done) {
+				while (res.getSessionProperty(AutotoolsPropertyConstants.OPEN_INCLUDE) != null)
+					res = (IResource)res.getSessionProperty(AutotoolsPropertyConstants.OPEN_INCLUDE);
+				String chainPath = res.getPersistentProperty(AutotoolsPropertyConstants.OPEN_INCLUDE_P);
+				if (chainPath != null) {
+					IPath location = Path.fromPortableString(chainPath);
+					IResource next = res.getWorkspace().getRoot().getFileForLocation(location);
+					res.setSessionProperty(AutotoolsPropertyConstants.OPEN_INCLUDE, next);
+					res = next;
+				} else
+					done = true;
+			}
+		} catch (CoreException e) {
+			// Do nothing
+		} finally {
+			resource = res;
+		}
+		return resource;
+	}
+
