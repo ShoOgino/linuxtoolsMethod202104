@@ -1,0 +1,27 @@
+	public void testMacroParsing1() throws Exception {
+		// 
+		String text =
+			"AC_REQUIRE([AM_SANITY_CHECK])\n" + 
+			"";
+		AutoconfElement root = parse(text);
+		assertTreeStructure(root, new String[] { "AC_REQUIRE", "AM_SANITY_CHECK", null });
+		
+		AutoconfElement[] kids = root.getChildren();
+		assertEquals(1, kids.length);
+		assertTrue(kids[0] instanceof AutoconfMacroElement);
+		AutoconfMacroElement macro = (AutoconfMacroElement) kids[0];
+		assertEquals("AC_REQUIRE", macro.getName());
+		assertEquals(1, macro.getParameterCount());
+		
+		AutoconfElement[] args = macro.getChildren();
+		assertEquals(1, args.length);
+		assertTrue(args[0] instanceof AutoconfMacroArgumentElement);
+		
+		assertEquals("AM_SANITY_CHECK", ((AutoconfMacroArgumentElement)args[0]).getName());
+		assertEquals("AM_SANITY_CHECK", macro.getParameter(0));
+		
+		// keep quotes in source
+		assertEqualSource("[AM_SANITY_CHECK]", args[0]);
+		assertEqualSource("AC_REQUIRE([AM_SANITY_CHECK])", macro);
+	}
+
