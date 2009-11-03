@@ -1,0 +1,51 @@
+	private static AutoconfPrototype getPrototype(String name, Document document) {
+		AutoconfPrototype p = null;
+		if (document != null && name != null) {
+			Element elem = document.getElementById(name);
+			if (null != elem) {
+				int prototypeCount = -1;
+				p = new AutoconfPrototype();
+				p.setName(name);
+				NodeList nl = elem.getChildNodes();
+				for (int i = 0; i < nl.getLength(); ++i) {
+					Node n = nl.item(i);
+					String nodeName = n.getNodeName();
+					if (nodeName.equals("prototype")) { //$NON-NLS-1$
+						++prototypeCount;
+						int parmCount = 0;
+						int minParmCount = -1;
+						p.setNumPrototypes(prototypeCount  + 1);
+						NodeList varList = n.getChildNodes();
+						for (int j = 0; j < varList.getLength(); ++j) {
+							Node v = varList.item(j);
+							String vnodeName = v.getNodeName();
+							if (vnodeName.equals("parameter")) { //$NON-NLS-1$
+								++parmCount;
+								NamedNodeMap parms = v.getAttributes();
+								Node parmNode = parms.item(0);
+								String parm = parmNode.getNodeValue();
+								// Check for first optional parameter which means
+								// we know the minimum number of parameters needed.
+								if (minParmCount < 0 && (parm.charAt(0) == '[' ||
+										parm.startsWith("...")))
+									minParmCount = parmCount  - 1;
+								// Old style documentation sometimes had '[' in
+								// prototypes so look for one at end of a parm too.
+								else if (minParmCount < 0 && parm.endsWith("["))
+									minParmCount = parmCount;
+								p.setParmName(prototypeCount, parmCount - 1, parm);
+							}
+						}
+						p.setMaxParms(prototypeCount, parmCount);
+						// If we see no evidence of optional parameters, then
+						// the min and max number of parameters are equal.
+						if (minParmCount < 0)
+							minParmCount = parmCount;
+						p.setMinParms(prototypeCount, minParmCount);
+					}
+				}
+			}
+		}
+		return p;
+	}
+

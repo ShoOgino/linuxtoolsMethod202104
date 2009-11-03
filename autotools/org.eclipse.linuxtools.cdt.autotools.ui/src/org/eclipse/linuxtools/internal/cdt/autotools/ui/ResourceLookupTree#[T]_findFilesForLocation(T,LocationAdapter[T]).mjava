@@ -1,0 +1,24 @@
+	/**
+	 * Searches for all files with the given location. In case the name of the location is
+	 * a cdt-content type the lookup tree is consulted, otherwise as a fallback the platform's
+	 * method is called.
+	 */
+	public <T> IFile[] findFilesForLocation(T location, LocationAdapter<T> adapter) {
+		initFileExtensions();
+		String name= adapter.extractName(location);
+		Node[] candidates= null;
+		synchronized (fLock) {
+			initializeProjects(ResourcesPlugin.getWorkspace().getRoot().getProjects());
+			Object obj= fNodeMap.get(hashCode(name.toCharArray()));
+			if (obj != null) {
+				candidates= convert(obj);
+				IFile[] result= extractMatchesForLocation(candidates, location, adapter);
+				if (result.length > 0)
+					return result;
+			}
+		}	
+		
+		// fall back to platform functionality
+		return adapter.platformsFindFilesForLocation(location);
+	}
+

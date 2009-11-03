@@ -1,0 +1,41 @@
+	public void setSelection(IDirective directive, boolean moveCursor) {
+		int startLine = directive.getStartLine() - 1;
+		int endLine = directive.getEndLine() - 1;
+		try {
+			IDocument doc = getDocumentProvider().getDocument(getEditorInput());
+			int start = doc.getLineOffset(startLine);
+			int len = doc.getLineLength(endLine) - 1;
+			int length = (doc.getLineOffset(endLine) + len) - start;
+			setHighlightRange(start, length, true);
+			if (moveCursor) {
+				// Let see if we can move the cursor at the position also
+				String var = directive.toString().trim();
+				IWordDetector detector = new MakefileWordDetector();
+				for (len = 0; len < var.length(); len++) {
+					char c = var.charAt(len);
+					//if (! (Character.isLetterOrDigit(c) || c == '.' || c == '_')) {
+					if (!(detector.isWordPart(c) || detector.isWordStart(c) || c == '-' || c == '_')) {
+						break;
+					}
+				}
+				if (len > 0) {
+					var = var.substring(0, len);
+				}
+				IRegion region = getFindRepalceDocumentAdapter().find(start, var, true, true, true, false);
+
+				if (region != null) {
+					len = region.getOffset();
+					length = region.getLength();
+					getSourceViewer().revealRange(len, length);
+					// Selected region begins one index after offset
+					getSourceViewer().setSelectedRange(len, length);
+				}
+
+			}
+		} catch (IllegalArgumentException x) {
+			resetHighlightRange();
+		} catch (BadLocationException e) {
+			resetHighlightRange();
+		}
+	}
+

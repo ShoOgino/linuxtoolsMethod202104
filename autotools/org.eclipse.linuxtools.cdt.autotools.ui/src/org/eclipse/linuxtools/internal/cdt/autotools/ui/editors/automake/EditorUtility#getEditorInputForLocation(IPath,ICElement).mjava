@@ -1,0 +1,57 @@
+	/**
+	 * Utility method to get an editor input for the given file system location.
+	 * If the location denotes a workspace file, a <code>FileEditorInput</code>
+	 * is returned, otherwise, the input is an <code>IStorageEditorInput</code>
+	 * assuming the location points to an existing file in the file system.
+	 * The <code>ICElement</code> is used to determine the associated project
+	 * in case the location can not be resolved to a workspace <code>IFile</code>.
+	 * 
+	 * @param location  a valid file system location
+	 * @param context  an element related to the target file, may be <code>null</code>
+	 * @return an editor input
+	 */
+	public static IEditorInput getEditorInputForLocation(IPath location, ICElement context) {
+		IFile resource= getWorkspaceFileAtLocation(location, context);
+		if (resource != null) {
+			return new FileEditorInput(resource);
+		} 
+		
+		if (context == null) {
+			// try to synthesize a context for a location appearing on a project's
+			// include paths
+			try {
+				ICProject[] projects = CCorePlugin.getDefault().getCoreModel().getCModel().getCProjects();
+				outerFor: for (int i = 0; i < projects.length; i++) {
+					IIncludeReference[] includeReferences = projects[i].getIncludeReferences();
+					for (int j = 0; j < includeReferences.length; j++) {
+						if (includeReferences[j].isOnIncludeEntry(location)) {
+							context = projects[i];
+							break outerFor;
+						}
+					}
+				}
+				if (context == null && projects.length > 0) {
+					// last resort: just take any of them
+					context= projects[0];
+				}
+			} catch (CModelException e) {
+			}
+		}
+		
+		if (context != null) {
+			// try to get a translation unit from the location and associated element
+			ICProject cproject= context.getCProject();
+			if (cproject != null) {
+				ITranslationUnit unit = CoreModel.getDefault().createTranslationUnitFrom(cproject, location);
+				if (unit != null) {
+					return new ExternalEditorInput(unit, new FileStorage(location));
+				}
+				// no translation unit - still try to get a sensible marker resource
+				// from the associated element
+				IResource markerResource= cproject.getProject();
+				return new ExternalEditorInput(new FileStorage(location), markerResource);
+			}
+		}
+		return new ExternalEditorInput(new FileStorage(location));
+	}
+

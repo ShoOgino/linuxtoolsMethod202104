@@ -1,0 +1,76 @@
+	/**
+	 * Parse a case statement.  Scoop up statements into case conditional blocks.
+	 * <pre>
+	 * 'case' EXPR 'in' 
+	 * 		{ EXPR ')'  { STMTS } ';;' }
+	 * 'esac'
+	 * </pre>
+	 * @param parent
+	 * @return
+	 */
+	protected void parseCaseBlock(AutoconfElement parent, Token open, AutoconfElement block) throws BlockEndCondition {
+		parent.addChild(block);
+		
+		setSourceStart(block, open);
+		
+		// get the case expression, terminating at 'in'
+		Token token;
+		try {
+			token = parseCaseExpression(block);
+		} catch (BlockEndCondition e) {
+			// oops, premature end
+			setSourceEnd(block, e.getToken());
+			throw e;
+		}
+		
+		block.setVar(getTokenSpanTextBetween(open, token));
+		
+		// now get the statements, which are themselves blocks... just read statements
+		// that terminate with ';;' and stuff those into blocks.
+		
+		while (true) {
+			AutoconfCaseConditionElement condition = new AutoconfCaseConditionElement();
+
+			// skip EOLs and get the first "real" token
+			while (true) {
+				token = tokenizer.readToken();
+				setSourceStart(condition, token);
+				if (token.getType() == ITokenConstants.EOF)
+					break;
+				if (token.getType() == ITokenConstants.EOL)
+					continue;
+				break;
+			}
+			
+			if (token.getType() == ITokenConstants.SH_ESAC) {
+				break;
+			}
+			
+			try {
+				Token start = token;
+				token = parseCaseExpression(condition);
+				condition.setName(getTokenSpanTextFromUpTo(start, token));
+				
+				while (true) {
+					parseStatement(condition);
+				}
+			} catch (BlockEndCondition e) {
+				setSourceEnd(condition, e.getToken());
+				
+				if (condition.getSource().length() > 0)
+					block.addChild(condition);
+				
+				if (e.getToken().getType() != ITokenConstants.SH_CASE_CONDITION_END) {
+					token = e.getToken();
+					break;
+				}
+			}
+		}
+		
+		setSourceEnd(block, token);
+		
+		if (token.getType() != ITokenConstants.SH_ESAC) {
+			handleError(parent, token, AutoconfEditorMessages.getFormattedString(UNTERMINATED_CONSTRUCT, block.getName()));
+		}
+	}
+

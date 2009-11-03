@@ -1,0 +1,46 @@
+	/**
+	 * Selects the actual matches from the list of candidates
+	 */
+	private <T> IFile[] extractMatchesForLocation(Node[] candidates, T location, LocationAdapter<T> adapter) {
+		final IWorkspaceRoot root= ResourcesPlugin.getWorkspace().getRoot();
+		final String searchPath= adapter.getCanonicalPath(location);
+		IFile[] result= null;
+		int resultIdx= 0;
+		for (int i = 0; i < candidates.length; i++) {
+			final Node node = candidates[i];
+			if (node.fHasFileLocationName) {
+				final IFile file= root.getFile(createPath(node));
+				final T loc= adapter.getLocation(file);
+				if (loc != null) {
+					if (!loc.equals(location)) {
+						if (searchPath == null) 
+							continue;
+						
+						if (node.fCanonicHash != 0 && node.fCanonicHash != searchPath.hashCode())
+							continue;
+						
+						final String candPath= adapter.getCanonicalPath(loc);
+						if (candPath == null)
+							continue;
+						
+						node.fCanonicHash= candPath.hashCode();
+						if (!candPath.equals(searchPath))
+							continue;
+					}
+					if (result == null) 
+						result= new IFile[candidates.length-i];
+					result[resultIdx++]= root.getFile(createPath(node));
+				}
+			}
+		}
+		if (result==null)
+			return NO_FILES;
+		
+		if (resultIdx < result.length) {
+			IFile[] copy= new IFile[resultIdx];
+			System.arraycopy(result, 0, copy, 0, resultIdx);
+			return copy;
+		}
+		return result;
+	}
+

@@ -1,0 +1,27 @@
+	/**
+	 * Returns the array of supported configurations found in the configurations
+	 * passed to this method
+	 */
+	IConfiguration[] filterSupportedConfigurations(IConfiguration cfgs[]){
+		ArrayList<IConfiguration> supported = new ArrayList<IConfiguration>();
+		String os = Platform.getOS();
+		String arch = Platform.getOSArch();
+
+		for (int i = 0; i < cfgs.length; i++) {
+			// First, filter on supported state
+			if (cfgs[i].isSupported()) {				
+				// Now, apply the OS and ARCH filters to determine if the configuration should be shown
+				// Determine if the configuration's tool-chain supports this OS & Architecture.
+				IToolChain tc = cfgs[i].getToolChain();
+				List<String> osList = Arrays.asList(tc.getOSList());
+				if (osList.contains("all") || osList.contains(os)) {	//$NON-NLS-1$
+					List<String> archList = Arrays.asList(tc.getArchList());
+					if (archList.contains("all") || archList.contains(arch)) { //$NON-NLS-1$
+						supported.add(cfgs[i]);						
+					}
+				}		
+			}
+		}
+		return (IConfiguration[])supported.toArray(new IConfiguration[supported.size()]);
+	}
+

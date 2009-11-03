@@ -1,0 +1,31 @@
+	/**
+	 * Returns an array of files for the given name. Search is limited to the supplied projects.
+	 */
+	public IFile[] findFilesByName(IPath relativeLocation, IProject[] projects, boolean ignoreCase) {
+		final int segCount= relativeLocation.segmentCount();
+		if (segCount < 1)
+			return NO_FILES;
+		
+		final String name= relativeLocation.lastSegment();
+		Node[] candidates;
+
+		initFileExtensions();
+		synchronized (fLock) {
+			initializeProjects(projects);
+			Object obj= fNodeMap.get(hashCode(name.toCharArray()));
+			if (obj == null) {
+				return NO_FILES;
+			}
+			candidates= convert(obj);
+		}	
+		String suffix= relativeLocation.toString();
+		while(suffix.startsWith("../")) { //$NON-NLS-1$
+			suffix= suffix.substring(3);
+		}
+		Set<String> prjset= new HashSet<String>();
+		for (IProject prj : projects) {
+			prjset.add(prj.getName());
+		}
+		return extractMatchesForName(candidates, name, suffix, ignoreCase, prjset);
+	}
+

@@ -1,0 +1,33 @@
+	/**
+	 * Add a resource to the tree.
+	 */
+	private void add(IResource res) {
+		assert Thread.holdsLock(fLock);
+		
+		if (res instanceof IFile) {
+			final String resName = res.getName();
+			String linkedName= null;
+			if (res.isLinked()) {
+				URI uri= res.getLocationURI();
+				if (uri != null) {
+					linkedName= LocationAdapter.URI.extractName(uri);
+					if (linkedName.length() > 0 && fCurrentExtensions.isRelevant(linkedName)) {
+						if (linkedName.equals(resName)) {
+							createFileNode(res.getFullPath(), null);
+						} else {
+							createFileNode(res.getFullPath(), linkedName);
+						}
+					}			
+				}
+			} else if (fCurrentExtensions.isRelevant(resName)) {
+				createFileNode(res.getFullPath(), null);
+			}
+		} else {
+			try {
+				res.accept(this, 0);
+			} catch (CoreException e) {
+				CCorePlugin.log(e);
+			}
+		}
+	}
+

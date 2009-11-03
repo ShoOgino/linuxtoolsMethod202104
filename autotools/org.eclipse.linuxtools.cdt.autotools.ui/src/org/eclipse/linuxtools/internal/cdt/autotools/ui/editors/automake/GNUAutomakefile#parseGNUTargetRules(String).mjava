@@ -1,0 +1,57 @@
+	protected GNUTargetRule[] parseGNUTargetRules(String line) {
+		String[] targetNames;
+		String[] normalReqs;
+		String[] orderReqs;
+		String cmd = null;
+		boolean doubleColon = false;
+		int index = Util.indexOf(line, ':');
+		if (index != -1) {
+			// Break the targets
+			String target = line.substring(0, index);
+			targetNames = PosixMakefileUtil.findTargets(target.trim());
+
+			// Some TargetRule have "::" for separator
+			String req = line.substring(index + 1);
+			doubleColon = req.startsWith(":"); //$NON-NLS-1$
+			if (doubleColon) {
+				// move pass the second ':'
+				req = req.substring(1);
+			}
+
+			// Check for command
+			int semicolon = Util.indexOf(req, ';');
+			if (semicolon != -1) {
+				cmd = req.substring(semicolon + 1);
+				req = req.substring(0, semicolon);
+			}
+
+			// Check for Normal and order prerequisites
+			String normalReq = null;
+			String orderReq = null;
+			int pipe = Util.indexOf(req, '|');
+			if (pipe != -1) {
+				normalReq = req.substring(0, pipe);
+				orderReq = req.substring(pipe + 1);
+			} else {
+				normalReq = req;
+				orderReq = ""; //$NON-NLS-1$
+			}
+
+			normalReqs = PosixMakefileUtil.findPrerequisites(normalReq.trim());
+			orderReqs = PosixMakefileUtil.findPrerequisites(orderReq.trim());
+		} else {
+			targetNames = PosixMakefileUtil.findTargets(line);
+			normalReqs = new String[0];
+			orderReqs = new String[0];
+		}
+
+		GNUTargetRule[] rules = new GNUTargetRule[targetNames.length];
+		for (int i = 0; i < targetNames.length; i++) {
+			rules[i] = new GNUTargetRule(this, new Target(targetNames[i]), doubleColon, normalReqs, orderReqs, new Command[0]);
+			if (cmd != null) {
+				rules[i].addDirective(new Command(this, cmd));
+			}
+		}
+		return rules;
+	}
+

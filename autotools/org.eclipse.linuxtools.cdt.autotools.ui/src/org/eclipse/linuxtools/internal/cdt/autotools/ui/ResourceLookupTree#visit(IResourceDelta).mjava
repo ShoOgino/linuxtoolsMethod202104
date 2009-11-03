@@ -1,0 +1,58 @@
+	/**
+	 * Handles resource change notifications by visiting the delta.
+	 */
+	public boolean visit(IResourceDelta delta) throws CoreException {
+		assert Thread.holdsLock(fLock);
+		
+		final IResource res= delta.getResource();
+		if (res instanceof IWorkspaceRoot)
+			return VISIT_CHILDREN;
+		
+		if (res instanceof IProject) {
+			// project not yet handled
+			final String name = res.getName();
+			final Extensions exts= fFileExtensions.get(name);
+			if (exts == null)
+				return SKIP_CHILDREN;
+			
+			switch (delta.getKind()) {
+			case IResourceDelta.ADDED:	// new projects should not yet be part of the tree
+			case IResourceDelta.REMOVED:
+				fFileExtensions.remove(name);
+				remove(res);
+				return SKIP_CHILDREN;
+				
+			case IResourceDelta.CHANGED:
+				if ((delta.getFlags() & (TRIGGER_RECALC | IResourceDelta.DESCRIPTION)) != 0) {
+					fFileExtensions.remove(name);
+					remove(res);
+					return SKIP_CHILDREN;
+				}
+				break;
+			}
+			fCurrentExtensions= exts;
+			return VISIT_CHILDREN;
+		}
+				
+		// file or folder
+		switch (delta.getKind()) {
+		case IResourceDelta.ADDED:
+			add(res);
+			return SKIP_CHILDREN;
+			
+		case IResourceDelta.CHANGED:
+			if ((delta.getFlags() & TRIGGER_RECALC) != 0) {
+				remove(res);
+				add(res);
+				return SKIP_CHILDREN;
+			}
+			return VISIT_CHILDREN;
+			
+		case IResourceDelta.REMOVED:
+			
+			remove(res);
+			return SKIP_CHILDREN;
+		}
+		return VISIT_CHILDREN;
+	}
+

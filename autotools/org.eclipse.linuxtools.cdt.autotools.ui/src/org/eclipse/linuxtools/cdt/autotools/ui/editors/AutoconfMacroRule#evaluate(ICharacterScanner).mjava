@@ -1,0 +1,29 @@
+	public IToken evaluate(ICharacterScanner scanner) {
+		int c = scanner.read();
+		fBuffer.setLength(0);
+
+		for (int i = 0; i < fStartingSequence.length(); i++) {
+			fBuffer.append((char) c);
+			if (fStartingSequence.charAt(i) != c) {
+				unreadBuffer(scanner);
+				return Token.UNDEFINED;
+			}
+			c = scanner.read();
+		}
+
+		while (c != ICharacterScanner.EOF
+				&& fDetector.isWordPart((char) c)) {
+			fBuffer.append((char) c);
+			c = scanner.read();
+		}
+
+		if (c != ICharacterScanner.EOF && c != '(' && c != ';'
+			&& !fWsDetector.isWhitespace((char)c)) {
+			unreadBuffer(scanner);
+			return Token.UNDEFINED;
+		}
+
+		scanner.unread();
+		return token;
+	}
+

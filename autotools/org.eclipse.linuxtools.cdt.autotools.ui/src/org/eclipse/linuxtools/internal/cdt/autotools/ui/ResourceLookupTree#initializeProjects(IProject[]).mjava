@@ -1,0 +1,39 @@
+	/**
+	 * Initializes nodes for the given projects. Also creates the node map if it was collected.
+	 */
+	private void initializeProjects(IProject[] projects) {
+		assert Thread.holdsLock(fLock);
+		
+		if (fNodeMap == null) {
+			if (fNodeMapRef != null) {
+				fNodeMap= fNodeMapRef.get();
+			}
+
+			if (fNodeMap == null) {
+				fFileExtensions.clear();
+				fNodeMap= new HashMap<Integer, Object>();
+				fNodeMapRef= new SoftReference<Map<Integer, Object>>(fNodeMap);
+			}
+		}
+		fUnrefJob.cancel();
+		fUnrefJob.schedule(UNREF_DELAY); 
+
+		for (IProject project : projects) {
+			if (project.isOpen() && !fFileExtensions.containsKey(project.getName())) {
+				Extensions ext= fDefaultExtensions;
+				try {
+					if (project.hasNature(CProjectNature.C_NATURE_ID)) {
+						ext= fCDTProjectExtensions;
+					}
+				} catch (CoreException e) {
+					CCorePlugin.log(e);
+					// treat as non-cdt project
+				}
+				fCurrentExtensions= ext;
+				add(project);
+				fFileExtensions.put(project.getName(), ext);
+				fCurrentExtensions= null;
+			}
+		}
+	}
+

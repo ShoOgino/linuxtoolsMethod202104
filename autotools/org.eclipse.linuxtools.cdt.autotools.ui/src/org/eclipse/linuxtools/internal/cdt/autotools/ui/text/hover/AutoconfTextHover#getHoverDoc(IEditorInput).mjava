@@ -1,0 +1,37 @@
+	protected static AutotoolsHoverDoc getHoverDoc(IEditorInput input) {
+		String acDocVer = getDefaultAutoconfMacrosVer();
+		String amDocVer = getDefaultAutomakeMacrosVer();
+		if (input instanceof IFileEditorInput) {
+			IFileEditorInput fe = (IFileEditorInput)input;
+			IFile f = fe.getFile();
+			IProject p = f.getProject();
+			try {
+				String acVer = p.getPersistentProperty(AutotoolsPropertyConstants.AUTOCONF_VERSION);
+				if (acVer != null)
+					acDocVer = acVer;
+				else { // look for compat project properties
+					acVer = p.getPersistentProperty(AutotoolsPropertyConstants.AUTOCONF_VERSION_COMPAT);
+					if (acVer != null)
+						acDocVer = acVer;
+				}
+			} catch (CoreException ce1) {
+				// do nothing
+			}
+			try {
+				String amVer = p.getPersistentProperty(AutotoolsPropertyConstants.AUTOMAKE_VERSION);
+				if (amVer != null)
+					amDocVer = amVer;
+				else { // look for compat project properties
+					amVer = p.getPersistentProperty(AutotoolsPropertyConstants.AUTOMAKE_VERSION_COMPAT);
+					if (amVer != null)
+						amDocVer = amVer;
+				}
+			} catch (CoreException ce2) {
+				// do nothing
+			}
+		}
+		Document ac_document = getACDoc(acDocVer);
+		Document am_document = getAMDoc(amDocVer);
+		return new AutoconfTextHover.AutotoolsHoverDoc(ac_document, am_document);
+	}
+
