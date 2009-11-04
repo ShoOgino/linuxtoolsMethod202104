@@ -1,36 +1,23 @@
 	@Override
 	protected IStatus run(IProgressMonitor monitor) {
 		// Generate real-time job
-		if (realTime && viewID != null) {
-			try {
-				if (realTime) {
-					StapUIJob job = new StapUIJob("RealTimeUIJob", this, //$NON-NLS-1$
-							this.viewID);
-					job.schedule();
-					job.join();
-					view = job.getViewer();
-				}
-				
-				if (job == null || job.getResult()==null) {
-					job = new RunTimeJob("RealTimeParser"); //$NON-NLS-1$
-					job.schedule();
-				}
-				
-				
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-			return Status.OK_STATUS;
-		}
-
-		IStatus returnStatus = nonRealTimeParsing();
+		IStatus returnStatus = Status.CANCEL_STATUS;
 		
+		makeView();
+		
+		if (realTime && (job == null || job.getResult()==null)) {
+			job = new RunTimeJob("RealTimeParser"); //$NON-NLS-1$
+			job.schedule();
+		} else {
+			returnStatus = nonRealTimeParsing();
+		}
+				
+	
 		if (!returnStatus.isOK()){
 			return returnStatus;
 		}
 		
 		setData(this);
-		postProcessing();
 		return returnStatus;
 	}
 
