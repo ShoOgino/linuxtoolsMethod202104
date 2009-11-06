@@ -1,43 +1,17 @@
 	@Override
 	public IStatus runInUIThread(IProgressMonitor monitor) {
-
-		IExtensionRegistry reg = Platform.getExtensionRegistry();
-		IConfigurationElement[] extensions = reg.getConfigurationElementsFor(
-				PluginConstants.VIEW_RESOURCE, PluginConstants.VIEW_NAME,
-				viewID);
-
-		if (extensions == null || extensions.length < 1) {
-			SystemTapUIErrorMessages mess = new SystemTapUIErrorMessages(
-					Messages.getString("GraphUIJob.0"), Messages.getString("GraphUIJob.1"), //$NON-NLS-1$ //$NON-NLS-2$
-					Messages.getString("GraphUIJob.1") + ": " + viewID); //$NON-NLS-1$ //$NON-NLS-2$
-			mess.schedule();
+		viewer = ViewFactory.createView(viewID);
+		if (!viewer.setParser(parser))
 			return Status.CANCEL_STATUS;
+		if (viewer.initializeView(this.getDisplay(), monitor) == Status.CANCEL_STATUS)
+			return Status.CANCEL_STATUS;
+		
+		if (!parser.realTime) {
+			viewer.updateMethod();
 		}
-
-		IConfigurationElement element = extensions[0];
-
-		SystemTapView view;
-		try {
-			view = (SystemTapView) element
-					.createExecutableExtension(PluginConstants.ATTR_CLASS);
-			view.forceDisplay();
-			viewer = view.getSingleInstance();
-			if (!viewer.setParser(parser))
-				return Status.CANCEL_STATUS;
-			if (viewer.initializeView(this.getDisplay(), monitor) == Status.CANCEL_STATUS)
-				return Status.CANCEL_STATUS;
-			
-			if (!parser.realTime) {
-				viewer.updateMethod();
-			}
-			viewer.setSourcePath(parser.getFile());
-			viewer.setKillButtonEnabled(true);
-			 
-			return Status.OK_STATUS;
-		} catch (CoreException e) {
-			e.printStackTrace();
-		}
-
-		return Status.CANCEL_STATUS;
+		viewer.setSourcePath(parser.getFile());
+		viewer.setKillButtonEnabled(true);
+		 
+		return Status.OK_STATUS;
 	}
 
