@@ -1,0 +1,49 @@
+	public static void BuildXMLFromTexinfo(String srcdir, String dstdir) {
+		try {
+			macroMap = new HashMap();
+			BufferedWriter os = new BufferedWriter(new FileWriter(dstdir));
+
+			CreateHeader(os);
+//			CreateLicense(os);
+
+			WriteString(os, "<macros>");
+
+			try {
+				String[] dir = new java.io.File(srcdir).list(new OnlyTexi());
+				for (int i = 0; i < dir.length; i++) {
+					String qFile = srcdir.endsWith("/")
+					? srcdir + dir[i]
+					               : srcdir + "/" + dir[i];
+
+					try {
+						BufferedReader is = new BufferedReader(new FileReader(qFile));
+						String il;
+
+						while (null != (il = is.readLine())) {
+							if (il.startsWith("@defmac")) {	// handle @defmac x]
+								HandleDefmacro(os, is, il);
+							}
+						}
+						is.close();
+					}
+					catch (IOException e) {
+						System.out.println("Input File IOException: " + e);
+						return;
+					}
+				}
+			}
+			catch (NullPointerException e) {
+				System.out.println("NullPointerException: " + e);
+				return;
+			}
+
+			CreateTrailer(os);
+
+			os.close();
+		}
+		catch (IOException e) {
+			System.out.println("Output File IOException: " + e);
+			return;
+		}
+	}
+

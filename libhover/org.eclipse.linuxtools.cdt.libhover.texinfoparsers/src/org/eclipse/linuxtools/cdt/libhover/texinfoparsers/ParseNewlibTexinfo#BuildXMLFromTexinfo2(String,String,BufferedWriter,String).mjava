@@ -1,0 +1,45 @@
+	public static void BuildXMLFromTexinfo2(String srcdir, String builddir, BufferedWriter os, String lib) {
+		try {
+			srcdir = srcdir.endsWith("/") ? srcdir + lib : srcdir + "/" + lib;
+			builddir = builddir.endsWith("/") ? builddir + lib : builddir + "/" + lib;
+			String qFile = srcdir + "/" + lib + ".texinfo";
+
+			try {
+				BufferedReader is = new BufferedReader(new FileReader(qFile));
+				String il;
+				boolean ignore = false;
+
+				while (is != null) {
+					while (null != (il = is.readLine())) {
+						if (!ignore && il.startsWith("@findex")) {
+							HandleFunction(os, is, il, builddir);
+						}
+						else if (!ignore && il.startsWith("@include")) {
+							is = HandleInclude(is, builddir, il);
+						}
+						else if (il.startsWith("@ignore")) {
+							ignore = true;
+						}
+						else if (il.startsWith("@end ignore"))
+							ignore = false;
+					}
+					is.close();
+					is = (BufferedReader)readers.pop();
+				}
+			}
+			catch (IOException e) {
+				System.out.println("Input File IOException: " + e);
+				return;
+			}
+			catch (EmptyStackException f) {
+				// ok, we expect to get here
+			}
+		}
+		catch (NullPointerException e) {
+			e.printStackTrace();
+			System.out.println("NullPointerException: " + e);
+			return;
+		}
+
+	}
+

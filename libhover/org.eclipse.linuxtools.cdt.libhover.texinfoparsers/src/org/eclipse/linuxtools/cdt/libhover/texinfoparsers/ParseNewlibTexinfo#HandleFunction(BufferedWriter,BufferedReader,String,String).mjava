@@ -1,0 +1,128 @@
+	private static void HandleFunction(BufferedWriter os, BufferedReader is, String s, String builddir) throws IOException {
+		String il;
+		FunctionDef fd;
+		List FDefs = new ArrayList();
+		String Description = null;
+		boolean synopsisMarker = false;
+		
+		IncludeList.clear();
+        Matcher mmf = FindexPattern.matcher(s);
+		fd = new FunctionDef();
+		if (mmf.matches())
+			fd.FunctionName = mmf.group(1);
+		else
+			return;
+		FDefs.add(fd);
+
+		while (null != (il = is.readLine())) {
+			Matcher syn = SynopsisPattern.matcher(il);
+			if (il.startsWith("@findex")) {
+				synopsisMarker = false;
+				Matcher mm2 = FindexPattern.matcher(il);
+				FunctionDef fd2 = new FunctionDef();
+				if (mm2.matches()) {
+					fd2.FunctionName = mm2.group(1);
+					FDefs.add(fd2);
+				}
+			}
+			else if (il.startsWith("@example") && synopsisMarker) {
+				HandleFunctionDefs(is, FDefs);
+				synopsisMarker = false;
+			}
+			else if (il.startsWith("@include") && fd != null) {
+				is = HandleInclude(is, builddir, il);
+			}
+			else if (syn.matches()) {
+				synopsisMarker = true;
+			}
+			else if (il.startsWith("@strong{Description}")) {
+				synopsisMarker = false;
+				Description = HandleDescription(is);
+				break; // we are done after description has been fetched
+			}
+			// otherwise ignore line
+		}
+		
+		String name = ((FunctionDef)FDefs.get(0)).FunctionName;
+		
+        if (FDefs.size() > 1) {
+			for (int kk = 0; kk < FDefs.size(); kk++) {
+				fd = (FunctionDef)FDefs.get(kk);
+
+				WriteString(os, "  <construct id=\"function-" + fd.FunctionName + "\" type=\"function\">");
+
+				WriteString(os, "    <function returntype=\"" + fd.ReturnType + "\">");
+
+				WriteString(os, "      <prototype>");
+				String[] parms = fd.Parameters;
+				if (parms == null)
+					System.out.println("null parms for findex " + fd.FunctionName);
+				else {
+					for (int i = 0; i < parms.length; i++) {
+						String parm = TexinfoUtils.stripProtoTags(parms[i]);
+						WriteString(os, "        <parameter content=\"" + parm + "\"/>");
+					}
+				}
+				WriteString(os, "      </prototype>");
+
+				if (fd.IncludeList != null) {
+					WriteString(os, "      <headers>");
+					Object[] incs = fd.IncludeList;
+					for (int j = 0; j < incs.length; j++) {
+						String inc = (String)incs[j];
+						WriteString(os, "        <header filename = \"" + inc + "\"/>");
+					}
+					WriteString(os, "      </headers>");
+				}
+
+				if (null != Description)
+					WriteString(os, "      <groupsynopsis id=\"group-" + name + "\"/>");
+
+
+				WriteString(os, "    </function>");
+				WriteString(os, "  </construct>");
+			}
+				
+			if (null != Description) {
+				WriteString(os, "  <construct id=\"group-" + name + "\" type=\"groupsynopsis\">");
+				WriteDescription(os, Description, false);
+				WriteString(os, "  </construct>");
+			}
+		}
+        else {
+        	fd = (FunctionDef)FDefs.get(0);
+
+        	WriteString(os, "  <construct id=\"function-" + fd.FunctionName + "\" type=\"function\">");
+
+        	WriteString(os, "    <function returntype=\"" + fd.ReturnType + "\">");
+
+        	WriteString(os, "      <prototype>");
+        	String[] parms = fd.Parameters;
+        	if (parms == null)
+        		System.out.println("null parms for findex " + fd.FunctionName);
+        	else {
+        		for (int i = 0; i < parms.length; i++) {
+        			String parm = TexinfoUtils.stripProtoTags(parms[i]);
+        			WriteString(os, "        <parameter content=\"" + parm + "\"/>");
+        		}
+        	}
+        	WriteString(os, "      </prototype>");
+
+        	if (fd.IncludeList != null) {
+        		WriteString(os, "      <headers>");
+        		Object[] incs = fd.IncludeList;
+        		for (int j = 0; j < incs.length; j++) {
+        			String inc = (String)incs[j];
+        			WriteString(os, "        <header filename = \"" + inc + "\"/>");
+        		}
+        		WriteString(os, "      </headers>");
+        	}
+
+        	if (null != Description) WriteDescription(os, Description, false);
+
+        	WriteString(os, "    </function>");
+        	WriteString(os, "  </construct>");
+		}
+		FDefs.clear();
+	}
+

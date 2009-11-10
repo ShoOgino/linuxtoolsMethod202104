@@ -1,0 +1,78 @@
+	private static void HandleDeftp(BufferedWriter os, BufferedReader is, String s) throws IOException {
+		TPDef td = new TPDef();
+		String il;
+		String Synopsis = null;
+		boolean ItemsAccumulating = false;
+		TPElement tpe = new TPElement();
+		List ElementList = new ArrayList();
+
+		Matcher m = DeftpPattern.matcher(s);
+		if (m.matches()) {
+			if (null != m.group(TPTypeMIndex)) {
+				String[] ss = m.group(TPTypeMIndex).split("\\s");
+				switch(ss.length) {
+				case 0:
+					td.TPType = "";
+					td.TPName = "type";
+					break;
+				case 1:
+					td.TPType = "type";
+					td.TPName = ss[0];
+					break;
+				case 2:
+					td.TPType = ss[0];
+					td.TPName = ss[1];
+					break;
+				default:
+					td.TPType = "type";
+				td.TPName = ss[ss.length - 1];
+				break;
+				}
+			}
+			else {
+				td.TPType = "dtype";
+				td.TPName = m.group(TPTypeSIndex);
+			}
+
+			while (null != (il = is.readLine())) {
+				if (il.startsWith("@end deftp")) {
+					WriteString(os, "  <construct id=\"" + td.TPType + "-" + td.TPName
+							+ "\" type=\"" + td.TPType + "\">");
+					WriteString(os, "    <structure>");
+					if (null != td.TPSynopsis) WriteSynopsis(os, td.TPSynopsis, false);
+					if (ElementList.size() > 0) {
+						WriteString(os, "      <elements>");
+						for (int ee = 0; ee < ElementList.size(); ee++) {
+							TPElement ttt = (TPElement)ElementList.get(ee);
+							WriteString(os, "        <element content=\"" + ttt.Content + "\">");
+							if (null != ttt.Synopsis) WriteSynopsis(os, ttt.Synopsis, true);
+							WriteString(os, "        </element>");
+						}
+						WriteString(os, "      </elements>");
+					}
+					WriteString(os, "    </structure>");
+					WriteString(os, "  </construct>");
+					return;
+				}
+				else if (il.startsWith("@item")) {
+					if (ItemsAccumulating) {
+						tpe.Synopsis = Synopsis;
+						ElementList.add(tpe);
+					}
+					else {
+						td.TPSynopsis  = Synopsis;
+						ItemsAccumulating = true;
+					}
+					Synopsis = null;
+					tpe = new TPElement();
+					tpe.Content = TexinfoUtils.transformTags(il.replaceFirst("@item ", ""));
+				}
+				else {
+					if (!il.startsWith("@table")) 
+						Synopsis = ((Synopsis == null) ? "" : Synopsis + " " ) + ((il.length() == 0) ? "<br><br>" : 
+							il + "<eol>");
+				}
+			}
+		}
+	}
+

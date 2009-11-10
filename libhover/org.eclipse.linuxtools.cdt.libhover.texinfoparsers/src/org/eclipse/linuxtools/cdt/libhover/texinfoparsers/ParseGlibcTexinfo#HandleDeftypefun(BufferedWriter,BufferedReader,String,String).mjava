@@ -1,0 +1,66 @@
+	private static void HandleDeftypefun(BufferedWriter os, BufferedReader is, String s, String srcdir) throws IOException {
+		String il;
+		FunctionDef fd;
+		List FDefs = new ArrayList();
+		String Synopsis = null;
+
+		if (null != (fd = HandleFunctionDef(is, s))) FDefs.add(fd);
+
+		while (null != (il = is.readLine())) {
+			Matcher mm = IncludePattern.matcher(il);
+			if (il.startsWith("@deftypefunx")) {
+				if (null != (fd = HandleFunctionDef(is, il))) FDefs.add(fd);
+			}
+			else if (mm.matches()) {
+				if (!IncludeList.contains(mm.group(1)))
+					IncludeList.add(mm.group(1));
+			}
+			else if (il.startsWith("@comment") ||
+					il.startsWith("@c ") ||
+					il.startsWith("@pindex")) {	// ignore
+			}
+			else if (il.startsWith("@include") && fd != null) {
+				Synopsis = HandleInclude(srcdir, il, Synopsis);
+			}
+			else if (il.startsWith("@end deftypefun")) {
+				for (int kk = 0; kk < FDefs.size(); kk++) {
+					fd = (FunctionDef)FDefs.get(kk);
+
+					WriteString(os, "  <construct id=\"function-" + fd.FunctionName + "\" type=\"function\">");
+
+					WriteString(os, "    <function returntype=\"" + fd.ReturnType + "\">");
+
+					WriteString(os, "      <prototype>");
+					String[] parms = fd.Parameters;
+					for (int i = 0; i < parms.length; i++) {
+						String parm = TexinfoUtils.stripProtoTags(parms[i]);
+						WriteString(os, "        <parameter content=\"" + parm + "\"/>");
+					}
+					WriteString(os, "      </prototype>");
+
+					if (fd.IncludeList != null) {
+						WriteString(os, "      <headers>");
+						Object[] incs = fd.IncludeList;
+						for (int j = 0; j < incs.length; j++) {
+							String inc = (String)incs[j];
+							WriteString(os, "        <header filename = \"" + inc + "\"/>");
+						}
+						WriteString(os, "      </headers>");
+					}
+
+					if (null != Synopsis) WriteSynopsis(os, Synopsis, false);
+
+					WriteString(os, "    </function>");
+					WriteString(os, "  </construct>");
+				}
+				return;
+			}
+			else {
+				Synopsis = ((Synopsis == null) ? "" : Synopsis + " " ) + ((il.length() == 0) ? "<br><br>" : 
+					il + "<eol>");
+			}
+		}
+		FDefs.clear();
+
+	}
+

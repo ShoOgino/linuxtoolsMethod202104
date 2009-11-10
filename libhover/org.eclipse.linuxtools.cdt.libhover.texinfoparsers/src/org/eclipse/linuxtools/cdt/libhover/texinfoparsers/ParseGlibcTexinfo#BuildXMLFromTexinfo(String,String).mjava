@@ -1,0 +1,60 @@
+	public static void BuildXMLFromTexinfo(String srcdir, String dstdir) {
+		try {
+			BufferedWriter os = new BufferedWriter(new FileWriter(dstdir));
+
+			CreateHeader(os);
+//			CreateLicense(os);
+
+			WriteString(os, "<descriptions>");
+
+			try {
+				String[] dir = new java.io.File(srcdir).list(new OnlyTexi());
+				for (int i = 0; i < dir.length; i++) {
+					String qFile = srcdir.endsWith("/")
+					? srcdir + dir[i]
+					               : srcdir + "/" + dir[i];
+
+					try {
+						BufferedReader is = new BufferedReader(new FileReader(qFile));
+						String il;
+
+						while (null != (il = is.readLine())) {
+							Matcher mm = IncludePattern.matcher(il);
+							if (il.startsWith("@deftypefun")) {	// handle @deftypefun[x]
+								HandleDeftypefun(os, is, il, srcdir);
+							}
+							else if (il.startsWith("@deftp")) {	// handle @deftp
+								HandleDeftp(os, is, il);
+							}
+							else if (mm.matches()) {		// handle @comment <include_file>
+								if (!IncludeList.contains(mm.group(1)))
+									IncludeList.add(mm.group(1));
+							}
+							else if (il.startsWith("@end deftypefn"))
+								// Handle accumulated header file comments that are in
+								// constructs we aren't parsing.
+								IncludeList.clear();
+						}
+						is.close();
+					}
+					catch (IOException e) {
+						System.out.println("Input File IOException: " + e);
+						return;
+					}
+				}
+			}
+			catch (NullPointerException e) {
+				System.out.println("NullPointerException: " + e);
+				return;
+			}
+
+			CreateTrailer(os);
+
+			os.close();
+		}
+		catch (IOException e) {
+			System.out.println("Output File IOException: " + e);
+			return;
+		}
+	}
+

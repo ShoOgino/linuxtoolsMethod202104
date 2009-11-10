@@ -1,0 +1,30 @@
+	private static String HandleInclude (String srcdir, String line, String Synopsis) {
+		Pattern p = Pattern.compile("@include\\s+(.*?)\\.texi");
+		Matcher mm = p.matcher(line);
+		if (mm.find()) {
+			String il;
+			try {
+				String fileName = (srcdir.endsWith("/") ? srcdir : srcdir + "/") + mm.replaceAll("examples/$1");
+				BufferedReader is = new BufferedReader(new FileReader(fileName));
+				while (null != (il = is.readLine())) {
+					// C Help does not ignore "<" or ">" inside a <pre> or <samp> tag
+					// so we have to prepare for two levels of indirection.  The
+					// first is for xml to interpret and the second is for the
+					// C Help processor to interpret.  So, we put &lt; and &gt; which
+					// will be transformed into &amp;lt; by the tag transformer.
+					Pattern p1 = Pattern.compile("<");
+					Pattern p2 = Pattern.compile(">");
+					Matcher mm1 = p1.matcher(il);
+					il = mm1.replaceAll("&lt;");
+					Matcher mm2 = p2.matcher(il);
+					il = mm2.replaceAll("&gt;");
+					Synopsis = ((Synopsis == null) ? "" : Synopsis + " " ) + ((il.length() == 0) ? "<br><br>" : 
+						il + "<eol>");
+				}
+			} catch (IOException e) {
+				System.out.println("IOException reading example file");
+			}
+		}
+		return Synopsis;
+	}
+

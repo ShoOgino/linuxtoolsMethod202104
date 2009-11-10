@@ -1,0 +1,58 @@
+	private static MacroDef HandleMacroDef(BufferedReader is, String s) throws IOException {
+		MacroDef fd = null;
+
+		Matcher m = MacroPattern.matcher(s);
+
+		if (m.matches()) {
+			fd = BuildMacroDef(m);
+		}
+		else {						// assume the line got split and retry
+			is.mark(100);
+			String il = is.readLine();
+			m = MacroPattern.matcher(s + il);
+			if (m.matches()) fd = BuildMacroDef(m);
+			else {
+				is.reset();
+				m = MacroPattern2.matcher(s);
+				if (m.matches()) {
+					fd = new MacroDef();
+					fd.MacroName = m.group(MacroNameIndex);
+					fd.Parameters = new MacroParms(new String[0]);
+				}
+			}
+		}
+		
+		if (fd != null) {
+			// Look for @defmacx which are alternate prototypes for the macro
+			is.mark(100);
+			String il = is.readLine();
+			if (il != null) {
+				Matcher mx = MacroPatternx.matcher(il);
+				Matcher mx2 = MacroPatternx2.matcher(il);
+				MacroParms mp = fd.Parameters;
+				while (mx.matches() || mx2.matches()) {
+					if (mx.matches())
+					mp = AddMacroDefxParms(mp, mx);
+					else {
+						MacroParms mpnew = new MacroParms(new String[0]);
+						mp.nextParms = mpnew;
+						mp = mpnew;
+					}
+					is.mark(100);
+					il = is.readLine();
+					if (il != null) {
+						mx = MacroPatternx.matcher(il);
+						mx2 = MacroPatternx2.matcher(il);
+					}
+				}
+				is.reset();
+			}
+
+			if (macroMap.get(fd.MacroName) != null)
+				return null;
+			macroMap.put(fd.MacroName, fd);
+		}
+
+		return fd;
+	}
+

@@ -1,0 +1,48 @@
+	private static void HandleDefmacro(BufferedWriter os, BufferedReader is, String s) throws IOException {
+		String il;
+		MacroDef md;
+		List FDefs = new ArrayList();
+		String Synopsis = null;
+
+		if (null != (md = HandleMacroDef(is, s))) FDefs.add(md);
+
+		while (null != (il = is.readLine())) {
+			if (il.startsWith("@defmac")) {
+				if (null != (md = HandleMacroDef(is, il))) FDefs.add(md);
+			}
+			else if (il.startsWith("@comment") ||
+					il.startsWith("@c ")) {	// comment -- ignore it
+			}
+			else if (il.startsWith("@end defmac")) {
+				for (int kk = 0; kk < FDefs.size(); kk++) {
+					md = (MacroDef)FDefs.get(kk);
+
+					WriteString(os, "  <macro id=\"" + md.MacroName + "\">");
+
+					MacroParms mp = md.Parameters;
+					do {
+						WriteString(os, "      <prototype>");
+						String[] parms = mp.parms;
+						for (int i = 0; i < parms.length; i++) {
+							WriteString(os, "        <parameter content=\"" + parms[i] + "\"/>");
+						}
+						WriteString(os, "      </prototype>");
+						mp = mp.nextParms;
+					} while (mp != null);
+
+					if (null != Synopsis) WriteSynopsis(os, Synopsis, false);
+					
+					WriteString(os, "  </macro>");
+				}
+				return;
+			}
+			else {
+				Synopsis = ((Synopsis == null) ? "" : Synopsis + " " ) + ((il.length() == 0) ? "<br>" : 
+					il.startsWith("@item") ? il + "<eol>" : il);
+				
+			}
+		}
+		FDefs.clear();
+
+	}
+
