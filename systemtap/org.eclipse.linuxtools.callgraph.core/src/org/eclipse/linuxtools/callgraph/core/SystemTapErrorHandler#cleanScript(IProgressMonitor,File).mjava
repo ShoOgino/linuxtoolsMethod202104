@@ -1,0 +1,46 @@
+	private boolean cleanScript(IProgressMonitor m, File script) {
+		StringBuilder resultFileContent = new StringBuilder();
+		int counter = 0;
+		String line;
+		try {
+			BufferedReader buff = new BufferedReader(new FileReader(script));
+			while ((line = buff.readLine()) != null) {
+				if (m != null && m.isCanceled())
+					return false;
+				boolean skip = false;
+				for (String func : functions) {
+					if (line.contains("function(\"" + func + "\").call")) { //$NON-NLS-1$ //$NON-NLS-2$
+						skip = true;
+						counter++;
+						if (counter == functions.size()) {
+							buff.close();
+							return false;
+						}
+						break;
+					}
+				}
+				
+
+				if (!skip && !line.equals("\n")) { //$NON-NLS-1$
+					//This works only because call and return are on the same line.
+					resultFileContent.append(line);
+					resultFileContent.append("\n"); //$NON-NLS-1$
+				}
+			}
+
+			buff.close();
+
+			BufferedWriter wbuff = new BufferedWriter(new FileWriter(script));
+			wbuff.write(resultFileContent.toString());
+			wbuff.close();
+			
+			return true;
+
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
