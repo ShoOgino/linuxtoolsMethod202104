@@ -1,0 +1,36 @@
+	/**
+	 * This method will create a process in the command line with I/O directed to the Eclipse console.
+	 * It returns a reference to the process. Note that the process runs independently of Eclipse's threads,
+	 * so you will have to poll the process to determine when it has terminated. To grab output from the 
+	 * process, either attach a <code>org.eclipse.debug.core.model.IStreamMonitor</code> to one of the monitors
+	 * in <code>process.getStreamsProxy()</code>, or use the static get methods in 
+	 * <code>ProfileLaunchConfigurationDelegate</code>.
+	 * 
+	 * 
+	 * @param config -- Use the configuration passed as a parameter to the launch method.
+	 * @param cmd -- Command string, as it would appear on the command line.
+	 * @param launch -- use the launch passed as a parameter to the launch method.
+	 * @return
+	 * @throws CoreException
+	 * @throws IOException
+	 */
+
+	protected IProcess createProcess(ILaunchConfiguration config, String cmd, ILaunch launch) throws CoreException, IOException {
+
+		File workDir = getWorkingDirectory(config);
+		if (workDir == null) {
+			workDir = new File(System.getProperty("user.home", ".")); //$NON-NLS-1$ //$NON-NLS-2$
+		}
+		
+		String[] commandArray = prepareCommand(cmd);
+
+		Process subProcess = execute(commandArray, getEnvironment(config),
+				workDir, true);
+		
+		IProcess process = createNewProcess(launch, subProcess,commandArray[0]);
+		// set the command line used
+		process.setAttribute(IProcess.ATTR_CMDLINE,cmd);
+		
+		return process;
+	}
+
