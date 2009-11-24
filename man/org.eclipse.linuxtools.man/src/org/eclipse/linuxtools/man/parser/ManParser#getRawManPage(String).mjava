@@ -1,0 +1,44 @@
+	/**
+	 * Returns the raw representation of the man executable for a given man page
+	 * i.e. `man ls`.
+	 * 
+	 * @param manPage
+	 *            The man page to fetch.
+	 * @return Raw output of the man command.
+	 */
+	public StringBuilder getRawManPage(String manPage) {
+		ProcessBuilder builder = new ProcessBuilder("/usr/bin/man", manPage);
+		builder.redirectErrorStream(true);
+		Process process;
+		StringBuilder sb = new StringBuilder();
+		try {
+			process = builder.start();
+			process.waitFor();
+			InputStream manContent = process.getInputStream();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(
+					manContent));
+
+			String line = null;
+			try {
+				while ((line = reader.readLine()) != null) {
+					sb.append(line + "\n");
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				try {
+					manContent.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		return sb;
+	}
+
