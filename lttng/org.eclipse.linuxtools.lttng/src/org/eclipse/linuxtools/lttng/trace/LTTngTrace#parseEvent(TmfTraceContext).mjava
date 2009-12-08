@@ -1,16 +1,17 @@
     /** 
-     * Parse the next event in the trace.<p>
+     * Return the next event in the trace.<p>
      * 
      * @param context   The actual context of the trace
      * 
-     * @return The parsed event, or null if none available
+     * @return The next event, or null if none available
      * 
-     * @see org.eclipse.linuxtools.lttng.jni.JniTrace
+     * @see org.eclipse.linuxtools.lttng.event.LttngEvent
      */ 
     @Override
-	public TmfEvent parseEvent(TmfTraceContext context) {
+	public LttngEvent parseEvent(TmfTraceContext context) {
 		JniEvent jniEvent;
 		LttngTimestamp timestamp = null;
+		LttngEvent returnedEvent = null;
 		
     	synchronized (currentJniTrace) {
     	    // Seek to the context's location
@@ -18,7 +19,12 @@
     		
     		// Read an event from the JNI and convert it into a LttngEvent
     		jniEvent = currentJniTrace.readNextEvent();
-    		currentLttngEvent = (jniEvent != null) ? convertJniEventToTmf(jniEvent, true) : null;
+    		
+    		//currentLttngEvent = (jniEvent != null) ? convertJniEventToTmf(jniEvent, true) : null;
+    		if ( jniEvent != null ) {
+    		    currentLttngEvent = convertJniEventToTmf(jniEvent);
+    		    returnedEvent = currentLttngEvent;
+    		}
     		
     		// Save timestamp
     		timestamp = (LttngTimestamp) getCurrentLocation();
@@ -26,7 +32,7 @@
    		context.setLocation(timestamp);
    		context.setTimestamp(timestamp);
    		context.incrIndex();
-
-   		return currentLttngEvent;
+   		
+   		return returnedEvent;
     }
 

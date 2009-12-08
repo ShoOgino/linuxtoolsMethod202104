@@ -6,7 +6,7 @@
      * @param   eventToParse    The jni event we want to parse.  
      * @return                  An HashMap of Object that contain the is the JniEvent's payload parsed by the C
      * 
-     * @see org.eclipse.linuxtools.lttng.jni.JniEvent
+     * @see org.eclipse.linuxtools.lttng.jni.eclipse.linuxtools.lttng.jni.JniEvent
      */
     static public HashMap<String, Object> parseAllFields(JniEvent eventToParse) {
         HashMap<String,JniMarkerField> markerFieldData = eventToParse.requestEventMarker().getMarkerFieldsHashMap();
@@ -27,23 +27,17 @@
 		// Or even safer, use HashMap constructor to do so : 
         HashMap<String, Object> parsedDataMap = new HashMap<String, Object>(markerFieldData);
 		 
-		// *** HACK ***
-		// We cannot use "Object" directly as java does not support swapping on primitive value
-		//  We either need to create a new object type or to use a "non-primitive" type that have "Setter()" functions
-		// ***
-        ParsedObjectContent parsedData = new ParsedObjectContent();
-		 
-        String              newKey 	 = null; 
-        JniMarkerField      newValue = null;
-        Iterator<String>    iterator = markerFieldData.keySet().iterator();
- 
+        String              newKey 	        = null; 
+        JniMarkerField      newMarkerField  = null;
+        Iterator<String>    iterator        = markerFieldData.keySet().iterator();
+        
         while ( iterator.hasNext() ) {
             newKey = iterator.next();
-            newValue = markerFieldData.get(newKey);
+            newMarkerField = markerFieldData.get(newKey);
             // Call the C to parse the data
-            ltt_getParsedData(parsedData, eventToParse.getEventPtr().getPointer(), newValue.getMarkerFieldPtr().getPointer() );
+            ltt_getParsedData(parsedData, eventToParse.getEventPtr().getPointer(), newMarkerField.getMarkerFieldPtr().getPointer() );
             // Save the result into the HashMap
-            parsedDataMap.put(newValue.getField(), parsedData.getData() );
+            parsedDataMap.put(newMarkerField.getField(), parsedData.getData() );
         }
  
         return parsedDataMap;

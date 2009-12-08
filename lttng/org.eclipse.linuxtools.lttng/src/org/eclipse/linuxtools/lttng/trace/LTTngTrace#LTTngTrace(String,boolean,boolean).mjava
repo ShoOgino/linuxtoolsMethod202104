@@ -7,18 +7,38 @@
      * 
      * @exception Exception (most likely LTTngTraceException or FileNotFoundException)
      * 
-     * @see org.eclipse.linuxtools.lttng.jni.JniTrace
      */
     public LTTngTrace(String path, boolean waitForCompletion, boolean bypassIndexing) throws Exception {
         super(path, CHECKPOINT_PAGE_SIZE, true);
         try {
-    		currentJniTrace = new JniTrace(path);
+    		currentJniTrace = new JniTrace(path, SHOW_LTT_DEBUG_DEFAULT);
         }
         catch (Exception e) {
             throw new LTTngTraceException(e.getMessage());
         }
-        TmfTimestamp startTime = new LttngTimestamp(currentJniTrace.getStartTimeFromTimestampCurrentCounter().getTime());
+        
+        // Set the start time of the trace
+        LttngTimestamp startTime = new LttngTimestamp(currentJniTrace.getStartTimeFromTimestampCurrentCounter().getTime());
         setTimeRange(new TmfTimeRange(startTime, startTime));
+        
+        // Export all the event types from the JNI side 
+        traceTypes      = new HashMap<String, LttngEventType>();
+        traceTypeNames  = new Vector<String>();
+        initialiseEventTypes(currentJniTrace);
+        
+        // *** VERIFY ***
+        // Verify that all those "default constructor" are safe to use
+        eventTimestamp        = new LttngTimestamp();
+        eventSource           = new LttngEventSource();
+        eventType             = new LttngEventType();
+        eventContent          = new LttngEventContent(currentLttngEvent);
+        eventReference        = new LttngEventReference(this.getName());
+        
+        // Create the skeleton event
+        currentLttngEvent = new LttngEvent(eventTimestamp, eventSource, eventType, eventContent, eventReference, null);
+        
+        // Set the currentEvent to the eventContent
+        eventContent.setEvent(currentLttngEvent);
         
         // Bypass indexing if asked
         if ( bypassIndexing == false ) {

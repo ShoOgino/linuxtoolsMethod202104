@@ -44,17 +44,36 @@
 					item.setText(extractItemFields(cache[index - cacheStartIndex]));
 					return;
 				}
-				TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(index, 0, CACHE_SIZE) {
+				
+				// *** TODO ***
+				// This is broken!
+				// 
+				// This one fails to return any result : 
+				// 		TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(fExperiment.getTimeRange(), index, 1) {
+				// All these will return THE SAME RESULT!
+				//		TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(index, 1) {
+				// 		TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(index+10, 1) {
+				// 		TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(null, 1) {
+				// 		
+				// THIS IS ONLY A TEMPORARY FIX! 
+				
+				TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(index, 1) {
 					@Override
 					public void handleData() {
-						// No need to synchronize because the request is synchronous
-						cache = getData();
-						cacheStartIndex = index;
-						cacheEndIndex = index + cache.length; 
+						TmfEvent[] tmpEvent = getData();
+						if ( (tmpEvent != null) && (tmpEvent.length > 0) ) {
+							cache = tmpEvent;
+						}
+//						cacheStartIndex = index;
+//						cacheEndIndex = index + cache.length; 
 					}
 				};
 				fExperiment.processRequest(request, true);
-				item.setText(extractItemFields(cache[0]));
+				
+				if (cache[0] != null) {
+					item.setText(extractItemFields(cache[0]));
+				}
+				
 			}
         });
 

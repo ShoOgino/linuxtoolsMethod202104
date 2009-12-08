@@ -8,7 +8,7 @@
      * 
      * @return                  An Object that contain the JniEvent payload parsed by the C, or null, if if was impossible to parse (i.e., wrong position)
      * 
-     * @see org.eclipse.linuxtools.lttng.jni.JniEvent
+     * @see org.eclipse.linuxtools.lttng.jni.eclipse.linuxtools.lttng.jni.JniEvent
      */
     static public Object parseField(JniEvent eventToParse, int fieldPosition) {
         
@@ -17,15 +17,10 @@
             return null;
         }
         
-        // *** HACK ***
-        // We cannot use "Object" directly as java does not support swapping primitive value
-        //    We either need to create a new object type or to use a "non-primitive" type that have "Setter()" functions
-        //    Another (ugly) hack would be to pass an array to modify the reference's reference.
-        // ***
-        ParsedObjectContent parsedData = new ParsedObjectContent();
+        JniMarkerField tmpField = eventToParse.requestEventMarker().getMarkerFieldsArrayList().get(fieldPosition);
         
         // Call the parsing function in C. The result will be put in parsedData object
-        ltt_getParsedData(parsedData, eventToParse.getEventPtr().getPointer(), eventToParse.requestEventMarker().getMarkerFieldsArrayList().get(fieldPosition).getMarkerFieldPtr().getPointer() );
+        ltt_getParsedData(parsedData, eventToParse.getEventPtr().getPointer(), tmpField.getMarkerFieldPtr().getPointer() );
         
         return parsedData.getData();
     }

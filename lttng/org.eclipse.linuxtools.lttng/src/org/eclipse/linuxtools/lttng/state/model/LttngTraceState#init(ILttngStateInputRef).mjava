@@ -13,7 +13,7 @@
 		traceId = inputDataRef.getTraceId();
 
 		// max time
-		setMax_time_state_recomputed_in_seek(new TmfTimestamp());
+		max_time_state_recomputed_in_seek = 0L;
 
 		// reset cpu_states
 		cpu_states.clear();
@@ -45,9 +45,65 @@
 
 		// bdev states
 		bdev_states.clear();
+		
+		processes.clear();
 
-		// JniTrace State
-		init_state(numCpus);
+		nb_events = 0;
+		TmfTimeRange timeWin = inputDataRef.getTraceTimeWindow();
+
+		/* Put the per cpu running_process to beginning state : process 0. */
+		for (Long i = 0L; i < numCpus; i++) {
+			LttngProcessState process = new LttngProcessState(timeWin.getStartTime().getValue(), traceId );
+
+			/*
+			 * We are not sure is it's a kernel thread or normal thread, put the
+			 * bottom stack state to unknown
+			 */
+			LttngExecutionState es = process.getFirstElementFromExecutionStack();
+			process.setState(es);
+			es.setExec_mode(ExecutionMode.LTTV_STATE_MODE_UNKNOWN);
+			es.setExec_submode(ExecutionSubMode.LTTV_STATE_SUBMODE_NONE
+					.getInName());
+			es.setProc_status(ProcessStatus.LTTV_STATE_UNNAMED);
+
+			// Reduce from default to only one execution state in the stack
+			process.popFromExecutionStack();
+
+			process.setCpu(i);
+			// no associated user trace yet
+			process.setUserTrace("");
+			// processes.put(i, process);
+			running_process.put(i, process);
+			// reset cpu states
+			LTTngCPUState cpuState = cpu_states.get(i);
+			cpuState.reset();
+			// Add the new process to the list
+			processes.put(new ProcessStateKey(process), process);
+		}
+
+		// reset irq_states
+		for (Long key : irq_states.keySet()) {
+			LttngIRQState irqState = irq_states.get(key);
+			irqState.clearAndSetBaseToIrqStack(IRQMode.LTTV_IRQ_UNKNOWN);
+		}
+
+		// reset soft_irq_states
+		for (Long key : soft_irq_states.keySet()) {
+			LttngSoftIRQState softIrqState = soft_irq_states.get(key);
+			softIrqState.reset();
+		}
+
+		// reset trap_states
+		for (Long key : trap_states.keySet()) {
+			LttngTrapState trapState = trap_states.get(key);
+			trapState.setRunning(0L);
+		}
+
+		// reset bdev_states
+		for (Long key : bdev_states.keySet()) {
+			LttngBdevState bdevState = bdev_states.get(key);
+			bdevState.clearBdevStack();
+		}
 
 	}
 
