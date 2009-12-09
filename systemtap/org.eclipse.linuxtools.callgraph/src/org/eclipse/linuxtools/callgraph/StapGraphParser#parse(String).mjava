@@ -19,6 +19,7 @@
 					// arsg[2] = time of event
 					int id = Integer.parseInt(args[1]);
 					long time = Long.parseLong(args[2]);
+					int tid = Integer.parseInt(args[3]);
 					String name = args[0];
 					
 					//If we haven't encountered a main function yet and the name isn't clean,
@@ -27,6 +28,23 @@
 						skippedDirectives = true;
 						break;
 					}
+					
+					ArrayList<String> nameList = nameMaps.get(tid);
+					if (nameList == null) {
+						nameList = new ArrayList<String>();
+					}
+					
+					ArrayList<Integer> idList = idMaps.get(tid);
+					if (idList == null) {
+						idList = new ArrayList<Integer>();
+					}
+					
+					HashMap<Integer, ArrayList<Integer>> outNeighbours = neighbourMaps.get(tid);
+					if (outNeighbours == null) {
+						outNeighbours = new HashMap<Integer, ArrayList<Integer>>();
+					}
+					
+					
 					if (startTime < 1) {
 						startTime = time;
 					}
@@ -48,6 +66,8 @@
 
 					//IF THERE ARE PREVIOUS FUNCTIONS WITH THE SAME NAME
 					//WE ARE IN ONE OF THEM SO DO NOT ADD TO CUMULATIVE TIME
+
+					
 					if (nameList.indexOf(name) == -1) {
 						long cumulativeTime = aggregateTimeMap.get(name) - time;
 						aggregateTimeMap.put(name, cumulativeTime);
@@ -73,8 +93,13 @@
 						outNeighbours.get(parentID).add(id);
 					}
 					
+					
 					callOrderList.add(id);
-					lastFunctionCalled = id;
+					lastFunctionMap.put(tid,id);
+					
+					neighbourMaps.put(tid, outNeighbours);
+					nameMaps.put(tid, nameList);
+					idMaps.put(tid, idList);
 
 					break;
 				case '>' :
@@ -89,6 +114,17 @@
 					//args[0] = name
 					//args[1] = time of event
 					name = args[0];
+					tid = Integer.parseInt(args[2]);
+					
+					nameList = nameMaps.get(tid);
+					if (nameList == null) {
+						nameList = new ArrayList<String>();
+					}
+					
+					idList = idMaps.get(tid);
+					if (idList == null) {
+						idList = new ArrayList<Integer>();
+					}
 					
 					
 					//If we haven't encountered a main function yet and the name isn't clean,
@@ -97,13 +133,14 @@
 						skippedDirectives = true;							
 						break;
 					}
+					
 					name = cleanFunctionName(name);
 					int lastOccurance = nameList.lastIndexOf(name);
 					if (lastOccurance < 0) {
 						parsingError(Messages.getString("StapGraphParser.12") + name); //$NON-NLS-1$
 						return Status.CANCEL_STATUS;
 					}
-					
+
 					nameList.remove(lastOccurance);
 					id = idList.remove(lastOccurance);
 
@@ -125,6 +162,9 @@
 						long cumulativeTime = aggregateTimeMap.get(name) + Long.parseLong(args[1]);
 						aggregateTimeMap.put(name, cumulativeTime);
 					}
+					
+					nameMaps.put(tid, nameList);
+					idMaps.put(tid, idList);
 					break;
 				default : 
 					/*
