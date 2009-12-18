@@ -1,0 +1,95 @@
+	/**
+	 * Detector using RuleBasedScanner.
+	 */
+	public IHyperlink[] detectHyperlinks(ITextViewer textViewer,
+			IRegion region, boolean canShowMultipleHyperlinks) {
+
+		IDocument thisDoc = textViewer.getDocument();
+
+		GNUElementScanner scanner = new GNUElementScanner();
+
+		scanner.setDefaultReturnToken(new Token("default"));
+
+		ITypedRegion partitionInfo = null;
+
+		try {
+			partitionInfo = thisDoc.getPartition(region.getOffset());
+		} catch (org.eclipse.jface.text.BadLocationException e1) {
+			e1.printStackTrace();
+			return null;
+		}
+
+		scanner.setRange(thisDoc, partitionInfo.getOffset(), partitionInfo.getLength());
+
+		Token tmpToken = (Token) scanner.nextToken();
+
+		String tokenStr = (String) tmpToken.getData();
+
+		if (tokenStr == null) {
+			return null;
+		}
+
+		// try to find non-default token containing region..if none, return null.
+		while (region.getOffset() < scanner.getTokenOffset() ||
+				region.getOffset() > scanner.getOffset() ||
+				tokenStr.equals("default")) {
+			tmpToken = (Token) scanner.nextToken();
+			tokenStr = (String) tmpToken.getData();
+			if (tokenStr == null)
+				return null;
+		}
+
+		Region tokenRegion = new Region(scanner.getTokenOffset(), scanner
+				.getTokenLength());
+
+		String line = "";
+		try {
+			line = thisDoc
+					.get(tokenRegion.getOffset(), tokenRegion.getLength());
+		} catch (org.eclipse.jface.text.BadLocationException e1) {
+			e1.printStackTrace();
+			return null;
+		}
+
+		// process file link
+		if (tokenStr.equals(GNUElementScanner.FILE_NAME)) {
+
+			Region pathRegion = null;
+
+			int lineOffset = 0;
+			
+			// cut "* " if necessary
+			if (line.startsWith("* ")) {
+				lineOffset = 2;
+				line = line.substring(2);
+			}
+//			int trailingWhiteSpace;
+//			if (((trailingWhiteSpace = line.indexOf(":")) > 0)
+//					|| ((trailingWhiteSpace = line.indexOf(" ")) > 0)) {
+//
+//				line = line.substring(0, trailingWhiteSpace);
+//				pathRegion = new Region(tokenRegion.getOffset() + lineOffset,
+//						trailingWhiteSpace);
+//			} else {
+				pathRegion = new Region(tokenRegion.getOffset() + lineOffset, line
+						.length());
+//			}
+			
+			
+			if (documentLocation == null)
+				return null;
+
+			// Replace any escape characters added to name
+			line = line.replaceAll("\\\\(.)", "$1");
+
+			IPath filePath = documentLocation.append(line);
+
+			return new IHyperlink[] { new FileHyperlink(pathRegion,
+					ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(
+							filePath)) };
+
+		}
+
+		return null;
+	}
+

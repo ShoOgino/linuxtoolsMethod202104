@@ -1,0 +1,94 @@
+	/**
+	 * Guesses the function effected/modified by the patch from local file(newer
+	 * file).
+	 * 
+	 * @param patchFileInfo
+	 *            patch file
+	 * @return array of unique function names
+	 */
+	private String[] guessFunctionNames(PatchFile patchFileInfo) {
+
+		
+		// if this file is new file or removed file, do not guess function files
+		// TODO: create an option to include function names on 
+		// new files or not
+		if (patchFileInfo.isNewfile() || patchFileInfo.isRemovedFile()) {
+			return new String[]{""};
+		}
+
+		String[] fnames = new String[0];
+		String editorName = ""; // $NON-NLS-1$
+
+		try {
+			IEditorDescriptor ed = org.eclipse.ui.ide.IDE
+					.getEditorDescriptor(patchFileInfo.getPath().toOSString());
+			editorName = ed.getId().substring(ed.getId().lastIndexOf(".") + 1); // $NON-NLS-1$
+		} catch (PartInitException e1) {
+			ChangelogPlugin.getDefault().getLog().log(
+					new Status(IStatus.ERROR, ChangelogPlugin.PLUGIN_ID, IStatus.ERROR,
+							e1.getMessage(), e1));
+			return new String[0];
+		}
+
+		// check if the file type is supported
+
+		// get editor input for target file
+		FileEditorInput fei = new FileEditorInput(getWorkspaceRoot()
+				.getFileForLocation(
+						getWorkspaceRoot().getLocation().append(
+								patchFileInfo.getPath())));
+
+		MyDocumentProvider mdp = new MyDocumentProvider();
+
+		try {
+			// get document for target file
+			IDocument doc = mdp.createDocument(fei);
+
+			HashMap<String, String> functionNamesMap = new HashMap<String, String>();
+
+			// for all the ranges
+			for (PatchRangeElement tpre: patchFileInfo.getRanges()) {
+
+				// for all the lines in a range
+				for (int j = tpre.ffromLine; j <= tpre.ftoLine; j++) {
+
+					if ((j <= 0) || (j >= doc.getNumberOfLines()))
+						continue; // ignore out of bound lines
+
+					// add func that determines type of file.
+					// right now it assumes it's java file.
+					String functionGuess = parseCurrentFunctionAtOffset(
+							editorName, fei, doc.getLineOffset(j));
+
+					// putting it in hashmap will eliminate duplicate
+					// guesses.
+					functionNamesMap.put(functionGuess, functionGuess);
+
+				}
+			}
+
+			// dump all unique func. guesses
+			fnames = new String[functionNamesMap.size()];
+
+			int i = 0;
+			for (String fnm: functionNamesMap.values()){
+				fnames[i++] = fnm;
+			}
+
+		
+		} catch (CoreException e) {
+			ChangelogPlugin.getDefault().getLog().log(
+					new Status(IStatus.ERROR, ChangelogPlugin.PLUGIN_ID, IStatus.ERROR,
+							e.getMessage(), e));
+		} catch (BadLocationException e) {
+			ChangelogPlugin.getDefault().getLog().log(
+					new Status(IStatus.ERROR, ChangelogPlugin.PLUGIN_ID, IStatus.ERROR,
+							e.getMessage(), e));
+		} catch (Exception e) {
+			ChangelogPlugin.getDefault().getLog().log(
+					new Status(IStatus.ERROR, ChangelogPlugin.PLUGIN_ID, IStatus.ERROR,
+							e.getMessage(), e));
+		}
+		return fnames;
+	}
+

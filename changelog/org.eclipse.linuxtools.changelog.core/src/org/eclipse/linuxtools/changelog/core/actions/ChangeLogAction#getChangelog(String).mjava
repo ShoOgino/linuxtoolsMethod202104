@@ -1,0 +1,38 @@
+	protected IEditorPart getChangelog(String currentEditorloc) {
+		// Scenario 1: The Changelog is in in the current project file
+		IWorkspaceRoot myWorkspaceRoot = getWorkspaceRoot();
+		IResource given_resource = myWorkspaceRoot.findMember(currentEditorloc);
+
+		if (given_resource != null) {
+			IResource parent_dec = given_resource;
+
+			while (parent_dec != null) {
+				String parent_node = parent_dec.getFullPath()
+						.removeLastSegments(1).toOSString();
+				parent_node = parent_node
+						+ System.getProperty("file.separator") + pref_ChangeLogName; //$NON-NLS-1$
+
+				IResource change_log_res = myWorkspaceRoot
+						.findMember(parent_node);
+
+				if (change_log_res != null) {
+					IProject proj_loc = given_resource.getProject();
+					IPath modified_changelog_path = change_log_res
+							.getFullPath().removeFirstSegments(1);
+					IFile change_log_file = proj_loc
+							.getFile(modified_changelog_path);
+
+					return openEditor(change_log_file);
+				}
+
+				parent_dec = parent_dec.getParent();
+
+				if (parent_dec == null) {
+					break;
+				}
+			}
+		}
+
+		return null;
+	}
+

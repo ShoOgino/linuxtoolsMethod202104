@@ -1,0 +1,31 @@
+	/**
+	 * @see IActionDelegate#run(IAction)
+	 */
+	protected void doRun() {
+		IRunnableWithProgress code = new IRunnableWithProgress() {
+
+			public void run(IProgressMonitor monitor)
+					throws InvocationTargetException, InterruptedException {
+				monitor.beginTask(Messages.getString("ChangeLog.PrepareChangeLog"), 1000); // $NON-NLS-1$
+				prepareChangeLog(monitor);
+				monitor.done();
+			}
+		};
+
+		ProgressMonitorDialog pd = new ProgressMonitorDialog(getWorkbench()
+				.getActiveWorkbenchWindow().getShell());
+
+		try {
+			pd.run(false /* fork */, false /* cancelable */, code);
+		} catch (InvocationTargetException e) {
+			ChangelogPlugin.getDefault().getLog().log(
+					new Status(IStatus.ERROR, ChangelogPlugin.PLUGIN_ID, IStatus.ERROR, e
+							.getMessage(), e));
+			return;
+		} catch (InterruptedException e) {
+			ChangelogPlugin.getDefault().getLog().log(
+					new Status(IStatus.ERROR, ChangelogPlugin.PLUGIN_ID, IStatus.ERROR, e
+							.getMessage(), e));
+		}
+	}
+

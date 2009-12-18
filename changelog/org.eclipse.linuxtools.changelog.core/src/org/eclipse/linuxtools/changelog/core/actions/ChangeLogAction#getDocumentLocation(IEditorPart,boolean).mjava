@@ -1,0 +1,63 @@
+	protected String getDocumentLocation(IEditorPart currentEditor,
+			boolean appendRoot) {
+		
+
+		IFile loc = getDocumentIFile(currentEditor);
+		IEditorInput cc = null;
+		String WorkspaceRoot;
+
+		try {
+		IWorkspaceRoot myWorkspaceRoot = getWorkspaceRoot();
+		WorkspaceRoot = myWorkspaceRoot.getLocation().toOSString();
+		
+		if (currentEditor instanceof MultiPageEditorPart) {
+			Object ed = ((MultiPageEditorPart) currentEditor).getSelectedPage();
+			if (ed instanceof IEditorPart) 
+				cc = ((IEditorPart) ed).getEditorInput();
+			if (cc instanceof FileEditorInput)
+				return (appendRoot) ? WorkspaceRoot + ((FileEditorInput) cc).getFile().getFullPath().toOSString() :
+					((FileEditorInput) cc).getFile().getFullPath().toOSString();
+		}
+		
+		
+		cc = currentEditor.getEditorInput();
+		} catch(Exception e) {
+			return "";
+		}
+		
+
+		if (cc == null)
+			return "";
+
+		if ((cc instanceof SyncInfoCompareInput)
+				|| (cc instanceof CompareEditorInput)) {
+
+			CompareEditorInput test = (CompareEditorInput) cc;
+			if (test.getCompareResult() == null) {
+				return "";
+			} else if (test.getCompareResult() instanceof ICompareInput) {
+				ITypedElement leftCompare = ((ICompareInput) test.getCompareResult())
+						.getLeft();
+				if (leftCompare instanceof IResourceProvider){
+					String localPath = ((IResourceProvider)leftCompare).getResource().getFullPath().toString();
+					if (appendRoot) {
+						return WorkspaceRoot + localPath;
+					}
+					return localPath;
+				}
+			} else {
+				if (appendRoot)
+					return WorkspaceRoot + test.getCompareResult().toString();
+				return test.getCompareResult().toString();
+			}
+		}
+
+
+		
+		if (appendRoot) {
+			return WorkspaceRoot + loc.getFullPath().toOSString();
+		} else {
+			return loc.getFullPath().toOSString();
+		}
+	}
+

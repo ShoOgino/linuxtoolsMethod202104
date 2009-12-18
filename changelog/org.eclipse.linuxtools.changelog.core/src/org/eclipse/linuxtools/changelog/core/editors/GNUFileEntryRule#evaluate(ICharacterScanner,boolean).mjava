@@ -1,0 +1,56 @@
+	public IToken evaluate(ICharacterScanner scanner, boolean resume) {
+		int c = scanner.read();
+		fBuffer.setLength(0);
+		if (started == false) {
+			for (int i = 0; i < fStartingSequence.length(); i++) {
+				fBuffer.append((char) c);
+				if (fStartingSequence.charAt(i) != c) {
+					unreadBuffer(scanner);
+					return Token.UNDEFINED;
+				}
+				c = scanner.read();
+			}
+		} else if (c == ',') { // we are continuing after a comma (perhaps we have multiple entries
+			fBuffer.append((char) c);
+			c = scanner.read();
+			while (c != ICharacterScanner.EOF && fWsDetector.isWhitespace((char)c)) {
+				fBuffer.append((char) c);
+				c = scanner.read();
+			}
+			scanner.unread();
+			return ((GNUElementScanner)scanner).getDefaultToken();
+		}
+
+		boolean haveFilePart = false;
+		
+		while (c != ICharacterScanner.EOF) {
+			if (fDetector.isWordPart((char) c)) {
+				fBuffer.append((char) c);
+				haveFilePart = true;
+			}
+			else if (c == '\\') {
+				fBuffer.append((char) c);
+				c = scanner.read();
+				if (c == ICharacterScanner.EOF) {
+					unreadBuffer(scanner);
+					return Token.UNDEFINED;
+				}
+				fBuffer.append((char) c);
+			} else {
+				break;
+			}
+			c = scanner.read();
+		}
+
+		if (!haveFilePart) {
+			unreadBuffer(scanner);
+			return Token.UNDEFINED;
+		}
+
+		if (c == ',')
+			started = true;
+
+		scanner.unread();
+		return fileToken;
+	}
+

@@ -1,0 +1,32 @@
+	IEditorPart getChangelog() {
+
+		IConfigurationElement formatterConfigElement = extensionManager
+				.getFormatterConfigElement();
+		if (formatterConfigElement.getAttribute("inFile").toLowerCase().equals(
+				"true")) {
+			return currentEditor;
+			// this formatter wants to use an external changelog file
+		} else {
+			IEditorPart changelog = null;
+
+			IConfigurationElement nameElement = formatterConfigElement
+					.getChildren()[0];
+			if (nameElement.getAttribute("name") == null) {
+				reportErr("Got non-name child with inFile set to False", null);
+				return null;
+			} else {
+				pref_ChangeLogName = nameElement.getAttribute("name");
+				changelog = getChangelog(getDocumentLocation(currentEditor,
+						false));
+
+				if (changelog == null) {
+					changelog = askChangeLogLocation(getDocumentLocation(
+							currentEditor, false));
+				}
+
+				return changelog;
+			}
+		}
+
+	}
+
