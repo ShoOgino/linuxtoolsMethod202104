@@ -1,0 +1,26 @@
+	public void testMainStackSize() throws Exception {
+		ILaunchConfigurationWorkingCopy wc = initConfig();
+		Version ver = ValgrindLaunchPlugin.getDefault().getValgrindVersion();
+		if (ver.compareTo(ValgrindLaunchPlugin.VER_3_4_0) >= 0) {
+			assertFalse(tab.getMainStackSizeSpinner().isEnabled());
+			tab.getMainStackSizeButton().setSelection(true);
+			tab.getMainStackSizeButton().notifyListeners(SWT.Selection, null);
+			assertTrue(tab.getMainStackSizeSpinner().isEnabled());
+			tab.getMainStackSizeSpinner().setSelection(2048);
+			ILaunch launch = saveAndLaunch(wc, "testMainStackFrame"); //$NON-NLS-1$
+			IProcess[] p = launch.getProcesses();
+			if (p.length > 0) {
+				String cmd = p[0].getAttribute(IProcess.ATTR_CMDLINE);
+				assertEquals(0, p[0].getExitValue());
+				assertTrue(cmd.contains("--main-stacksize=2048")); //$NON-NLS-1$
+			}
+			else {
+				fail();
+			}
+		}
+		else {
+			assertNull(tab.getMainStackSizeButton());
+			assertNull(tab.getMainStackSizeSpinner());
+		}
+	}
+
