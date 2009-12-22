@@ -1,0 +1,26 @@
+	public void testD1Cache() throws Exception {
+		ILaunchConfigurationWorkingCopy wc = initConfig();
+		
+		assertFalse(dynamicTab.getD1SizeSpinner().isEnabled());
+		dynamicTab.getD1Button().setSelection(true);
+		dynamicTab.getD1Button().notifyListeners(SWT.Selection, null);
+		assertTrue(dynamicTab.getD1SizeSpinner().isEnabled());
+		
+		dynamicTab.getD1SizeSpinner().setSelection(16384);
+		dynamicTab.getD1AssocSpinner().setSelection(1);
+		dynamicTab.getD1LineSizeSpinner().setSelection(16);
+		
+		tab.performApply(wc);
+		wc.doSave();
+		
+		ILaunch launch = saveAndLaunch(wc, "testD1Cache"); //$NON-NLS-1$
+		IProcess[] p = launch.getProcesses();
+		if (p.length > 0) {
+			String cmd = p[0].getAttribute(IProcess.ATTR_CMDLINE);
+			assertTrue(cmd.contains("--D1=16384,1,16")); //$NON-NLS-1$
+		}
+		else {
+			fail();
+		}
+	}
+
