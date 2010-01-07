@@ -1,0 +1,62 @@
+	/**
+	 * Returns the position of the first annotation found in the given line range.
+	 *
+	 * @param lineNumbers the line range
+	 * @param ignoreSelectedAnnotation whether to ignore the current selection
+	 * @return the position of the first found annotation
+	 */
+	private Position getAnnotationPosition(int[] lineNumbers, boolean ignoreSelectedAnnotation) {
+		if (lineNumbers[0] == -1)
+			return null;
+
+		Position found= null;
+
+		try {
+			IDocument d= fTextViewer.getDocument();
+			IRegion line= d.getLineInformation(lineNumbers[0]);
+
+			Point currentSelection= fTextViewer.getSelectedRange();
+
+			int start= line.getOffset();
+
+			line= d.getLineInformation(lineNumbers[lineNumbers.length - 1]);
+			int end= line.getOffset() + line.getLength();
+
+			for (int i= fAnnotationsSortedByLayer.size() -1; i >= 0; i--) {
+
+				Object annotationType= fAnnotationsSortedByLayer.get(i);
+
+				FilterIterator e= new FilterIterator(annotationType, FilterIterator.PERSISTENT | FilterIterator.TEMPORARY);
+				while (e.hasNext() && found == null) {
+					Annotation a= e.next();
+					if (a.isMarkedDeleted())
+						continue;
+
+					if (skip(a.getType()))
+						continue;
+
+					Position p= fModel.getPosition(a);
+					if (p == null)
+						continue;
+
+					int posOffset= p.getOffset();
+					int posEnd= posOffset + p.getLength();
+					IRegion region= d.getLineInformationOfOffset(posEnd);
+					// trailing empty lines don't count
+					if (posEnd > posOffset && region.getOffset() == posEnd) {
+						posEnd--;
+						region= d.getLineInformationOfOffset(posEnd);
+					}
+
+					if (posOffset <= end && posEnd >= start) {
+						if (ignoreSelectedAnnotation || currentSelection.x != posOffset || currentSelection.y != p.getLength())
+							found= p;
+					}
+				}
+			}
+		} catch (BadLocationException x) {
+		}
+
+		return found;
+	}
+

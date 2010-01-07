@@ -1,0 +1,39 @@
+	/**
+	 * Double buffer drawing.
+	 *
+	 * @param dest the GC to draw into
+	 */
+	private void doubleBufferPaint(GC dest) {
+
+		Point size= fCanvas.getSize();
+
+		if (size.x <= 0 || size.y <= 0)
+			return;
+
+		if (fBuffer != null) {
+			Rectangle r= fBuffer.getBounds();
+			if (r.width != size.x || r.height != size.y) {
+				fBuffer.dispose();
+				fBuffer= null;
+			}
+		}
+		if (fBuffer == null)
+			fBuffer= new Image(fCanvas.getDisplay(), size.x, size.y);
+
+		GC gc= new GC(fBuffer);
+		try {
+			gc.setBackground(fCanvas.getBackground());
+			gc.fillRectangle(0, 0, size.x, size.y);
+
+			if (fTextViewer instanceof ITextViewerExtension5)
+				doPaint1(gc);
+			else
+				doPaint(gc);
+
+		} finally {
+			gc.dispose();
+		}
+
+		dest.drawImage(fBuffer, 0, 0);
+	}
+

@@ -1,0 +1,112 @@
+	/**
+	 * Draws this overview ruler. Uses <code>ITextViewerExtension5</code> for
+	 * its implementation. Will replace <code>doPaint(GC)</code>.
+	 *
+	 * @param gc the GC to draw into
+	 */
+	private void doPaint1(GC gc) {
+		Rectangle r= new Rectangle(0, 0, 0, 0);
+		int yy, hh= ANNOTATION_HEIGHT;
+
+		ITextViewerExtension5 extension= (ITextViewerExtension5) fTextViewer;
+		IDocument document= fTextViewer.getDocument();
+		StyledText textWidget= fTextViewer.getTextWidget();
+
+		int maxLines= textWidget.getLineCount();
+		Point size= fCanvas.getSize();
+		int writable= JFaceTextUtil.computeLineHeight(textWidget, 0, maxLines, maxLines);
+		if (size.y > writable)
+			size.y= Math.max(writable - fHeader.getSize().y, 0);
+
+		fCachedAnnotations.clear();
+		if (fModel != null) {
+			Iterator<?> iter= fModel.getAnnotationIterator();
+			while (iter.hasNext()) {
+				Annotation annotation= (Annotation) iter.next();
+
+				if (annotation.isMarkedDeleted())
+					continue;
+
+				if (skip(annotation.getType()))
+					continue;
+
+				fCachedAnnotations.add(annotation);
+			}
+		}
+
+		for (Iterator<Object> iterator= fAnnotationsSortedByLayer.iterator(); iterator.hasNext();) {
+			Object annotationType= iterator.next();
+
+			if (skip(annotationType))
+				continue;
+
+			int[] style= new int[] { FilterIterator.PERSISTENT, FilterIterator.TEMPORARY };
+			for (int t=0; t < style.length; t++) {
+
+				FilterIterator e= new FilterIterator(annotationType, style[t], fCachedAnnotations.iterator());
+				Color fill = null;
+				Color stroke = null;
+				if (annotationType.toString().compareTo(getAnnotationTypeColoredLines()) != 0){
+					fill= getFillColor(annotationType, style[t] == FilterIterator.TEMPORARY);
+					stroke= getStrokeColor(annotationType, style[t] == FilterIterator.TEMPORARY);
+				}
+
+				for (int i= 0; e.hasNext(); i++) {
+
+					Annotation a= e.next();
+					
+					
+					Position p= fModel.getPosition(a);
+
+					if (p == null)
+						continue;
+					
+					IRegion widgetRegion= extension.modelRange2WidgetRange(new Region(p.getOffset(), p.getLength()));
+					if (widgetRegion == null)
+						continue;
+					
+					if (a.getType().compareTo(getAnnotationTypeColoredLines()) == 0){
+						fill= getFPFillColor(a, true);
+						stroke= getFPStrokeColor(a, false);
+					}
+
+					try {
+						if (ANNOTATION_HEIGHT_SCALABLE) {
+							int numbersOfLines= document.getNumberOfLines(p.getOffset(), p.getLength());
+							// don't count empty trailing lines
+							IRegion lastLine= document.getLineInformationOfOffset(p.getOffset() + p.getLength());
+							if (lastLine.getOffset() == p.getOffset() + p.getLength()) {
+								numbersOfLines -= 2;
+								hh= (numbersOfLines * size.y) / maxLines + ANNOTATION_HEIGHT;
+								if (hh < ANNOTATION_HEIGHT)
+									hh= ANNOTATION_HEIGHT;
+							} else
+								hh= ANNOTATION_HEIGHT;
+						}
+						fAnnotationHeight= hh;
+
+						int startLine= textWidget.getLineAtOffset(widgetRegion.getOffset());
+						yy= Math.min((startLine * size.y) / maxLines, size.y - hh);
+
+						if (fill != null) {
+							gc.setBackground(fill);
+							gc.fillRectangle(INSET, yy, size.x-(2*INSET), hh);
+						}
+
+						if (stroke != null) {
+							gc.setForeground(stroke);
+							r.x= INSET;
+							r.y= yy;
+							r.width= size.x - (2 * INSET);
+							r.height= hh;
+							gc.setLineWidth(1);
+							gc.drawRectangle(r);
+						}
+					} catch (BadLocationException x) {
+					}
+				}
+			}
+		}
+		fCachedAnnotations.clear();
+	}
+

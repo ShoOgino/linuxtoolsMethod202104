@@ -1,0 +1,39 @@
+	/*
+	 * (non-Javadoc)
+	 * @see org.eclipse.linuxtools.dataviewers.abstractviewers.AbstractSTViewer#handleOpenEvent(org.eclipse.jface.viewers.OpenEvent)
+	 */
+	protected void handleOpenEvent(OpenEvent event) {
+
+		IStructuredSelection selection = (IStructuredSelection) event
+		.getSelection();
+		TreeElement element = (TreeElement) selection.getFirstElement();
+
+		if (element != null) {
+			if (element.getParent() != null) {
+				String sourceLoc = "";
+				long lineNumber = 0;
+
+				if (element.getClass() == CovFileTreeElement.class)
+					sourceLoc = element.getName();
+
+				else if (element.getClass() == CovFunctionTreeElement.class) {
+					sourceLoc = ((CovFunctionTreeElement) element).getSourceFilePath();
+					lineNumber  =((CovFunctionTreeElement)element).getFirstLnNmbr();
+				}
+				CovManager cvm = (CovManager) this.getInput();
+				SourceFile sourceFile = cvm.getSourceFile(sourceLoc);
+				if (sourceFile != null) {
+					IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+					String binaryLoc = cvm.getBinaryPath();
+					IPath binaryPath = new Path(binaryLoc);
+					IFile binary = root.getFileForLocation(binaryPath);
+					IProject project = null;
+					if (binary != null) project = binary.getProject();
+
+					OpenSourceFileAction.sharedInstance.openAnnotatedSourceFile(project, 
+							binary, sourceFile, (int)lineNumber);
+				}
+			}
+		}
+	}
+

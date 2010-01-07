@@ -1,0 +1,48 @@
+		/**
+		 * Scrolls the viewer into the given direction.
+		 *
+		 * @param direction the scroll direction
+		 */
+		private void autoScroll(int direction) {
+
+			if (fAutoScrollDirection == direction)
+				return;
+
+			final int TIMER_INTERVAL= 5;
+			final Display display = fCanvas.getDisplay();
+			Runnable timer= null;
+			switch (direction) {
+				case SWT.UP:
+					timer= new Runnable() {
+						public void run() {
+							if (fAutoScrollDirection == SWT.UP) {
+								int top= getInclusiveTopIndex();
+								if (top > 0) {
+									fCachedTextViewer.setTopIndex(top -1);
+									expandSelection(top -1);
+									display.timerExec(TIMER_INTERVAL, this);
+								}
+							}
+						}
+					};
+					break;
+				case  SWT.DOWN:
+					timer = new Runnable() {
+						public void run() {
+							if (fAutoScrollDirection == SWT.DOWN) {
+								int top= getInclusiveTopIndex();
+								fCachedTextViewer.setTopIndex(top +1);
+								expandSelection(top +1 + fCachedViewportSize);
+								display.timerExec(TIMER_INTERVAL, this);
+							}
+						}
+					};
+					break;
+			}
+
+			if (timer != null) {
+				fAutoScrollDirection= direction;
+				display.timerExec(TIMER_INTERVAL, timer);
+			}
+		}
+

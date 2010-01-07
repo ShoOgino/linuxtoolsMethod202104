@@ -1,0 +1,43 @@
+		protected void initializeColumn(IContributedRulerColumn column) {
+			super.initializeColumn(column);
+			RulerColumnDescriptor descriptor= column.getDescriptor();
+			IVerticalRuler ruler= getVerticalRuler();
+			if (ruler instanceof CompositeRuler) {
+				if (AnnotationColumn.ID.equals(descriptor.getId())) {
+					((AnnotationColumn)column).setDelegate(createAnnotationRulerColumn((CompositeRuler) ruler));
+				} else if (LineNumberColumn.ID.equals(descriptor.getId())) {
+					fLineColumn= ((LineNumberColumn) column);
+					fLineColumn.setForwarder(new LineNumberColumn.ICompatibilityForwarder() {
+						public IVerticalRulerColumn createLineNumberRulerColumn() {
+							return fEditor.createLineNumberRulerColumn();
+						}
+						public boolean isQuickDiffEnabled() {
+							return fEditor.isPrefQuickDiffAlwaysOn();
+						}
+						public boolean isLineNumberRulerVisible() {
+							return fEditor.isLineNumberRulerVisible();
+						}
+					});
+				}
+				if (STContributedRulerColumn.ID.equals(descriptor.getId())){
+					fColumn = ((STContributedRulerColumn) column);
+					//this is a workaround...
+					fColumn.setForwarder(new STContributedRulerColumn.ICompatibilityForwarder() {
+						public IVerticalRulerColumn createSTRulerColumn() {
+							if (fColumns != null && fColumns.size() > 0){
+								IVerticalRulerColumn fDelegate = fEditor.createSTRulerColumn(fColumns.get(fColumns.size()-1));
+								return fDelegate;
+							}
+							return null;
+						}
+						public boolean isQuickDiffEnabled() {
+							return fEditor.isPrefQuickDiffAlwaysOn();
+						}
+						public boolean isSTRulerVisible() {
+							return fEditor.isSTRulerVisible();
+						}
+					});
+				}
+			}
+		}
+

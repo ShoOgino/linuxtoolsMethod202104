@@ -1,0 +1,45 @@
+	/*
+	 * @see org.eclipse.jface.text.source.IVerticalRuler#createControl(org.eclipse.swt.widgets.Composite, org.eclipse.jface.text.ITextViewer)
+	 */
+	public Control createControl(Composite parent, ITextViewer textViewer) {
+
+		fTextViewer= textViewer;
+
+		fHitDetectionCursor= new Cursor(parent.getDisplay(), SWT.CURSOR_HAND);
+
+		fHeader= new Canvas(parent, SWT.NONE);
+
+		fCanvas= new Canvas(parent, SWT.NO_BACKGROUND);
+
+		fCanvas.addPaintListener(new PaintListener() {
+			public void paintControl(PaintEvent event) {
+				if (fTextViewer != null)
+					doubleBufferPaint(event.gc);
+			}
+		});
+
+		fCanvas.addDisposeListener(new DisposeListener() {
+			public void widgetDisposed(DisposeEvent event) {
+				handleDispose();
+				fTextViewer= null;
+			}
+		});
+
+		fCanvas.addMouseListener(new MouseAdapter() {
+			public void mouseDown(MouseEvent event) {
+				handleMouseDown(event);
+			}
+		});
+
+		fCanvas.addMouseMoveListener(new MouseMoveListener() {
+			public void mouseMove(MouseEvent event) {
+				handleMouseMove(event);
+			}
+		});
+
+		if (fTextViewer != null)
+			fTextViewer.addTextListener(fInternalListener);
+
+		return fCanvas;
+	}
+

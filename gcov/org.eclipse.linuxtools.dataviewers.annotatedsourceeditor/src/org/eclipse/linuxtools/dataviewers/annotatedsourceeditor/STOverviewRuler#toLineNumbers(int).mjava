@@ -1,0 +1,49 @@
+	/**
+	 * Translates a given y-coordinate of this ruler into the corresponding
+	 * document lines. The number of lines depends on the concrete scaling
+	 * given as the ration between the height of this ruler and the length
+	 * of the document.
+	 *
+	 * @param y_coordinate the y-coordinate
+	 * @return the corresponding document lines
+	 */
+	private int[] toLineNumbers(int y_coordinate) {
+
+		StyledText textWidget=  fTextViewer.getTextWidget();
+		int maxLines= textWidget.getContent().getLineCount();
+
+		int rulerLength= fCanvas.getSize().y;
+		int writable= JFaceTextUtil.computeLineHeight(textWidget, 0, maxLines, maxLines);
+
+		if (rulerLength > writable)
+			rulerLength= Math.max(writable - fHeader.getSize().y, 0);
+
+		if (y_coordinate >= writable || y_coordinate >= rulerLength)
+			return new int[] {-1, -1};
+
+		int[] lines= new int[2];
+
+		int pixel0= Math.max(y_coordinate - 1, 0);
+		int pixel1= Math.min(rulerLength, y_coordinate + 1);
+		rulerLength= Math.max(rulerLength, 1);
+
+		lines[0]= (pixel0 * maxLines) / rulerLength;
+		lines[1]= (pixel1 * maxLines) / rulerLength;
+
+		if (fTextViewer instanceof ITextViewerExtension5) {
+			ITextViewerExtension5 extension= (ITextViewerExtension5) fTextViewer;
+			lines[0]= extension.widgetLine2ModelLine(lines[0]);
+			lines[1]= extension.widgetLine2ModelLine(lines[1]);
+		} else {
+			try {
+				IRegion visible= fTextViewer.getVisibleRegion();
+				int lineNumber= fTextViewer.getDocument().getLineOfOffset(visible.getOffset());
+				lines[0] += lineNumber;
+				lines[1] += lineNumber;
+			} catch (BadLocationException x) {
+			}
+		}
+
+		return lines;
+	}
+

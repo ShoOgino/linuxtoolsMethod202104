@@ -1,0 +1,56 @@
+	/**
+	 * Create query definition.
+	 * 
+	 * @param odaDataSet
+	 * @param expressions
+	 * @return
+	 * @throws ChartException
+	 */
+	private QueryDefinition createQueryDefinition(
+			OdaDataSetDesign odaDataSet, String[] expressions )
+			throws ChartException
+	{
+
+		QueryDefinition queryDefn = new QueryDefinition( );
+		queryDefn.setDataSetName( odaDataSet.getName( ) );
+
+		try
+		{
+			initDefaultBindings( queryDefn );
+
+			// Add group definitions and aggregation binding.
+			String groupName = "Group_Country"; //$NON-NLS-1$
+			GroupDefinition gd = new GroupDefinition( groupName );
+			gd.setKeyExpression( expressions[0] );
+			gd.setInterval( IGroupDefinition.NO_INTERVAL );
+			gd.setIntervalRange( 0 );
+
+			// Add expression bindings.
+			for ( int i = 0; i < expressions.length; i++ )
+			{
+				String expr = (String) expressions[i];
+				Binding colBinding = new Binding( expr );
+				colBinding.setExpression( new ScriptExpression( expr ) );
+				if ( i == 1 )
+				{
+					colBinding.setExpression( null );
+					colBinding.setAggrFunction( IBuildInAggregation.TOTAL_COUNT_FUNC );
+					colBinding.addAggregateOn( groupName );
+					colBinding.addArgument( new ScriptExpression( expressions[i] ) );
+				}
+
+				queryDefn.addBinding( colBinding );
+			}
+
+			queryDefn.addGroup( gd );
+		}
+		catch ( DataException e )
+		{
+			throw new ChartException( Activator.PLUGIN_ID,
+					ChartException.DATA_BINDING,
+					e );
+		}
+
+		return queryDefn;
+	}
+
