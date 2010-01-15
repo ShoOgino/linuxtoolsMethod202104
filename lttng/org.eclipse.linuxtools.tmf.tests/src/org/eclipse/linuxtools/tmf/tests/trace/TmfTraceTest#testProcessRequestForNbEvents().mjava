@@ -1,11 +1,10 @@
-    @SuppressWarnings("unchecked")
-	public void testProcessRequestForNbEvents() throws Exception {
+    public void testProcessRequestForNbEvents() throws Exception {
         final int BLOCK_SIZE = 100;
         final int NB_EVENTS  = 1000;
         final Vector<TmfEvent> requestedEvents = new Vector<TmfEvent>();
 
         TmfTimeRange range = new TmfTimeRange(TmfTimestamp.BigBang, TmfTimestamp.BigCrunch);
-        final TmfEventRequest<TmfEvent> request = new TmfEventRequest<TmfEvent>(TmfEvent.class, range, NB_EVENTS, BLOCK_SIZE) {
+        final TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(range, NB_EVENTS, BLOCK_SIZE) {
             @Override
             public void handleData() {
             	TmfEvent[] events = getData();
@@ -14,9 +13,7 @@
                 }
             }
         };
-        ITmfDataProvider<TmfEvent>[] providers = (ITmfDataProvider<TmfEvent>[]) TmfProviderManager.getProviders(TmfEvent.class, TmfTraceStub.class);
-        providers[0].sendRequest(request);
-        request.waitForCompletion();
+        fTrace.processRequest(request, true);
 
         assertEquals("nbEvents", NB_EVENTS, requestedEvents.size());
         assertTrue("isCompleted",  request.isCompleted());
