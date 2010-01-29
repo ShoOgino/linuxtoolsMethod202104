@@ -1,0 +1,34 @@
+	public static ScriptConsole2 getInstance(String name,Subscription sub) {
+		ScriptConsole2 console = null;
+		try {
+			IConsole ic[] = ConsolePlugin.getDefault().getConsoleManager().getConsoles();
+	
+			//Prevent running the same script twice
+			if(null != ic) {
+				ScriptConsole2 activeConsole;
+				StopScriptAction ssa = new StopScriptAction();
+				ssa.init(PlatformUI.getWorkbench().getActiveWorkbenchWindow());
+				for(int i=0; i<ic.length; i++) {
+					activeConsole = (ScriptConsole2)ic[i];
+					if(activeConsole.getName().endsWith(name)) {
+						//Stop any script currently running
+						ssa.run(i);
+			
+						//Remove output from last run
+						activeConsole.clearConsole();
+						activeConsole.setName(name);
+						console = activeConsole;
+					}
+				}
+			}
+			
+			if(null == console) {
+				console = new ScriptConsole2(name, null, sub);
+				ConsolePlugin.getDefault().getConsoleManager().addConsoles(new IConsole[] {console});
+			}
+		} catch(NullPointerException npe) {
+			console = null;
+		}
+		return console;
+	}
+

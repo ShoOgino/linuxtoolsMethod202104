@@ -2,11 +2,24 @@
 	 * Stops the running command and the associated listeners.
 	 */
 	public synchronized void stop() {
-		if(isRunning()) {
-			setName(Localization.getString("ScriptConsole.Terminated") + super.getName());
-			subscription.interrupt();
-			subscription.delSubscription();
+		  if(isRunning()) {
+			  String command[] = new String[1];
+				String moduleName = this.getName();
+				moduleName = moduleName.substring(0,moduleName.indexOf('.'));
+				if (moduleName.indexOf('-') != -1)
+					moduleName = moduleName.substring(0, moduleName.indexOf('-'));
+			
+				command[0] = "ps -ef | grep " + moduleName + " | grep stapio | awk '{print $2}' | xargs kill -SIGINT";
+				ScpExec stop = new ScpExec(command, moduleName);
+		        stop.start();
+              cmd.stop();
+              cmd.removeErrorStreamListener(errorDaemon);
+              cmd.removeInputStreamListener(consoleDaemon);
+              setName(Localization.getString("ScriptConsole.Terminated") + super.getName());
 			ConsolePlugin.getDefault().getConsoleManager().removeConsoles(new IConsole[] {this});
+			
+	        
+			
 			
 		}
 	}

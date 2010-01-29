@@ -1,0 +1,47 @@
+    public void updateDataSet() {
+        // Associate with Data Set
+    	try{
+    	   data = adapter.getData();
+    	   int starting = 0;
+           if (data.length > xSeriesTicks ) starting = data.length - xSeriesTicks; 
+           
+    	
+           x= new String[data.length - starting];
+          for (int j=starting,k =0; j < data.length; j++,k++ )
+          	x[k] = data[j][0].toString();
+          // X-Axis
+          TextDataSet categoryValues = TextDataSetImpl.create(x);
+          
+          Axis xAxisPrimary = chart.getPrimaryBaseAxes()[0];
+          SeriesDefinition sdX = (SeriesDefinition) xAxisPrimary
+                  .getSeriesDefinitions().get(0);
+          ((Series) sdX.getSeries().get(0)).setDataSet(categoryValues);
+
+          // Y-Axis
+          Axis yAxisPrimary = chart.getPrimaryOrthogonalAxis(xAxisPrimary);
+       //   chart.getOrthogonalAxes(xAxisPrimary, arg1)
+          
+          
+       NumberDataSet orthoValuesDataSet1[] = new NumberDataSet[adapter.getSeriesCount()];
+       for (int i=1; i<=adapter.getSeriesCount();i++)
+       {
+       y= new Double[data.length - starting];
+       for (int j=starting,k=0; j < data.length; j++,k++ )
+       {
+       	y[k] = NumberType.obj2num(data[j][i]).doubleValue();
+       	if ( max < y[k]) max = y[k];
+       }
+       orthoValuesDataSet1[i-1]= NumberDataSetImpl.create(y);
+       SeriesDefinition sdY = (SeriesDefinition) yAxisPrimary
+       .getSeriesDefinitions().get(i-1);
+       ((Series) sdY.getSeries().get(0)).setDataSet(orthoValuesDataSet1[i-1]);
+
+       }
+               yAxis.getScale().setStep(max/5);
+        yAxis.getScale().setMax(NumberDataElementImpl.create(max));
+    	}catch(Exception e)
+    	{
+    //		e.printStackTrace();
+    	}
+    }
+
