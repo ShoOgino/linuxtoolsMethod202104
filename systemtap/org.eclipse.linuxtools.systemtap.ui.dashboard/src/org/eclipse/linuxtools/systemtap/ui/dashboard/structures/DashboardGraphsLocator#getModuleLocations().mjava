@@ -1,0 +1,38 @@
+	/**
+	 * This method gets all of the dashboard module directories from the user's
+	 * preferences and adds the default directores, then returns the entire list.
+	 * @return String array containing all of the directories with modules.
+	 */
+	public static String[] getModuleLocations() {
+		IPreferenceStore store = DashboardPlugin.getDefault().getPreferenceStore();
+
+		String locations = store.getString(DashboardPreferenceConstants.P_MODULE_FOLDERS);
+		
+		String[] folders = locations.split(File.pathSeparator);
+
+		String[] allFolders;
+		if(locations.length() > 0) {
+			allFolders = new String[folders.length + 2];
+			System.arraycopy(folders, 0, allFolders, 2, folders.length);
+		} else
+			allFolders = new String[2];
+		
+		//This locates all the preexisting modules
+		if(new File(moduleStore).exists()) {
+			File f = new File(moduleLocation);
+			if(!f.exists()) {
+				f.mkdir();
+				JarArchive.unjarFiles(moduleStore, moduleLocation, "modules/");
+			}
+			allFolders[0] = moduleLocation;
+		} else {
+			allFolders[0] = System.getProperty("osgi.splashLocation");
+			allFolders[0] = allFolders[0].substring(0, allFolders[0].indexOf("systemtapgui"));
+			allFolders[0] += "dashboard/modules/";
+		}
+		
+		allFolders[1] = SystemTapGUISettings.settingsFolder.getAbsolutePath();
+
+		return allFolders;
+	}
+
