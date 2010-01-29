@@ -1,0 +1,37 @@
+	/**
+	 * This method handles adding a new module to the list of active modules.
+	 * It will then generate each of the graphs that are a part of the module.
+	 * Adding them as a new graph in the main display and adding them as children
+	 * of the module in the ActiveModuleBrowserView.
+	 * @param display The string used as a title for the module
+	 * @param data The <code>ActiveModuleData</code> representing the item to add.
+	 */
+	public void add(String display, ActiveModuleData data) {
+		 Display disp = PlatformUI.getWorkbench().getDisplay();
+		  Cursor cursor = new Cursor(disp, SWT.CURSOR_WAIT);
+		  PlatformUI.getWorkbench().getDisplay().getActiveShell().setCursor(cursor);
+
+		TreeNode root = (TreeNode)viewer.getInput();
+		ActiveModuleTreeNode child = new ActiveModuleTreeNode(data, display, true);
+		GraphTreeNode graphNode;
+		root.add(child);
+		DashboardGraphData graphData;
+		for(int i=0; i<data.module.graphs.length; i++) {
+			graphData = new DashboardGraphData();
+			graphData.data = data.data;
+			graphData.filters = new IDataSetFilter[data.module.filters[i].size()];
+			data.module.filters[i].toArray(graphData.filters);
+			graphData.graph = data.module.graphs[i];
+			graphData.moduleName = data.module.category;
+			graphData.adapter = null;
+			ActivateGraphAction act = new ActivateGraphAction();
+			graphNode = new GraphTreeNode(graphData, data.module.graphs[i].title, true);
+			act.run(graphNode,data.module.getcategory());
+			child.add(graphNode);
+		}
+		root.sortLevel();
+		viewer.refresh();
+		  PlatformUI.getWorkbench().getDisplay().getActiveShell().setCursor(null);
+		  cursor.dispose();
+	}
+
