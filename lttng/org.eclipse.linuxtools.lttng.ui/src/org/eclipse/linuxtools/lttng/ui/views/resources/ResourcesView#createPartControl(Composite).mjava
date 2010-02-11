@@ -32,28 +32,38 @@
 		hookContextMenu();
 		contributeToActionBars();
 
+		// Register the updater in charge to refresh elements as we update the
+		// time ranges
+		// FlowParamsUpdater listener = FlowModelFactory.getParamsUpdater();
+		// tsfviewer.addWidgetTimeScaleSelectionListner(listener);
+
+		// TODO: re-factor registration / notification process
+		// Register this view to receive updates when the model is updated with
+		// fresh info
+		// ModelListenFactory.getRegister().addFlowModelUpdatesListener(this);
+
+		// Register the event processor factory in charge of event handling
+		EventProcessorProxy.getInstance().addEventProcessorFactory(
+				ResourcesTRangeUpdateFactory.getInstance());
+
+		// set the initial view parameter values
+		// Experiment start and end time
+		// as well as time space width in pixels, used by the time analysis
+		// widget
+		ParamsUpdater paramUpdater = ResourceModelFactory.getParamsUpdater();
+		StateExperimentManager experimentManger = StateManagerFactory
+				.getExperimentManager();
 		// Read relevant values
 		int timeSpaceWidth = tsfviewer.getTimeSpace();
-		if (timeSpaceWidth < 0) {
-			timeSpaceWidth = -timeSpaceWidth;
+		TmfTimeRange timeRange = experimentManger.getExperimentTimeRange();
+		if (timeRange != null) {
+			long time0 = timeRange.getStartTime().getValue();
+			long time1 = timeRange.getEndTime().getValue();
+			paramUpdater.update(time0, time1, timeSpaceWidth);
 		}
 
-		TmfExperiment<?> experiment = TmfExperiment.getCurrentExperiment();
-		if (experiment != null) {
-			TmfTimeRange experimentTRange = experiment.getTimeRange();
-			if (experimentTRange != null) {
-				long time0 = experimentTRange.getStartTime().getValue();
-				long time1 = experimentTRange.getEndTime().getValue();
-				ParamsUpdater paramUpdater = getParamsUpdater();
-				paramUpdater.update(time0, time1, timeSpaceWidth);
-			}
-			// send the initial request and obtained the adjusted time used
-			TmfTimeRange adjustedTimeRange = initialExperimentDataRequest(this, experimentTRange);
-
-			// initialize widget time boundaries and filtering parameters
-			ModelUpdateInit(experimentTRange, adjustedTimeRange, this);
-		} else {
-			TraceDebug.debug("No selected experiment information available");
-		}
+		// Read current data if any available
+		StateManagerFactory.getExperimentManager().readExperiment(
+				"resourceView", this);
 	}
 

@@ -1,0 +1,68 @@
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @seeorg.eclipse.linuxtools.lttng.ui.views.common.LttngTimeUpdateView#
+	 * ModelUpdateComplete(org.eclipse.linuxtools.lttng.state.StateDataRequest)
+	 */
+	@Override
+	public void ModelUpdateComplete(StateDataRequest request) {
+		long experimentStartTime = -1;
+		long experimentEndTime = -1;
+		StateManager smanager = request.getStateManager();
+		TmfTimeRange experimentTimeRange = smanager.getExperimentTimeWindow();
+		if (experimentTimeRange != null) {
+			experimentStartTime = experimentTimeRange.getStartTime().getValue();
+			experimentEndTime = experimentTimeRange.getEndTime().getValue();
+		}
+		// Obtain the current process array
+		TimeRangeEventProcess[] processArr = FlowModelFactory
+				.getProcContainer().readProcesses();
+		// Sort the array by pid
+		Arrays.sort(processArr);
+
+		// Update the view part
+		flowModelUpdates(processArr, experimentStartTime, experimentEndTime,
+				request.isclearDataInd());
+
+		// get back to user selected time if still within range
+		ParamsUpdater paramUpdater = FlowModelFactory.getParamsUpdater();
+		final Long selTime = paramUpdater.getSelectedTime();
+		if (selTime != null) {
+			Display display = tsfviewer.getControl().getDisplay();
+			display.asyncExec(new Runnable() {
+				public void run() {
+					tsfviewer.setSelectedTime(selTime, false, this);
+				}
+			});
+		}
+
+		if (TraceDebug.isDEBUG()) {
+			int eventCount = 0;
+			Long count = smanager.getEventCount();
+			for ( int pos = 0; pos<processArr.length; pos++ ) {
+				eventCount += processArr[pos].getTraceEvents().size();
+			}
+
+			int discarded = FlowModelFactory.getParamsUpdater()
+					.getEventsDiscarded();
+			int discardedOutofOrder = FlowModelFactory.getParamsUpdater()
+					.getEventsDiscardedWrongOrder();
+			TmfTimeRange range = request.getRange();
+			StringBuilder sb = new StringBuilder(
+					"Events handled: "
+							+ count
+							+ " Events loaded in Control Flow view: "
+							+ eventCount
+							+ " Number of events discarded: "
+							+ discarded
+							+ "\n\tNumber of events discarded with start time earlier than next good time: "
+							+ discardedOutofOrder);
+
+			sb.append("\n\t\tRequested Time Range: " + range.getStartTime()
+					+ "-" + range.getEndTime());
+			sb.append("\n\t\tExperiment Time Range: " + experimentStartTime
+					+ "-" + experimentEndTime);
+			TraceDebug.debug(sb.toString());
+		}
+	}
+

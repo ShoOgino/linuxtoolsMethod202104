@@ -2,7 +2,6 @@
      * One of the spinners has been updated. Synchronize the other widgets.
      */
     public void synchTimeFrameWidgets(SpinnerGroup trigger) {
-		boolean trangeUpdated = false;
 
         // Collect the data
         TmfTimestamp startTime   = fStartGroup.getCurrentTime();
@@ -14,7 +13,6 @@
         if (trigger == fStartGroup) {
             if (startTime.compareTo(endTime, false) > 0) {
                 endTime = startTime;
-				trangeUpdated = true;
             }
         }
 
@@ -22,7 +20,6 @@
         if (trigger == fEndGroup) {
             if (endTime.compareTo(startTime, false) < 0) {
                 startTime = endTime;
-				trangeUpdated = true;
             }
         }
 
@@ -35,13 +32,11 @@
                 ts = fTraceEndTime.synchronize(fTraceEndTime.getValue(), startTime.getScale());
             }
             endTime = ts;
-			trangeUpdated = true;
         }
 
         // Compute the new time range
         TmfTimeRange subrange = new TmfTimeRange(startTime, endTime);
-        byte scale = startTime.getScale();
-        TmfTimestamp interval = new TmfTimestamp(startTime.getAdjustment(endTime, scale), scale, 0);
+        TmfTimestamp interval = new TmfTimestamp(startTime.getAdjustment(endTime), startTime.getScale(), 0);
 
         // Update the spinner groups
         fStartGroup.setContent(fTraceTimeRange, startTime);
@@ -50,18 +45,11 @@
         fCurrentGroup.setContent(subrange, currentTime);
 
         updateSlider(subrange, currentTime);
-		// Notify other views, only if the update originated from this view
-		if (fupdateExternalListeners) {
-			if (!fCurrentTime.equals(currentTime)) {
-				fCurrentTime = currentTime;
-				broadcast(new TmfTimeSynchSignal(this, currentTime));
-			}
 
-			// Notify the views if the time range has been impacted
-			if (trangeUpdated) {
-				TmfTimeRange trange = new TmfTimeRange(startTime, endTime);
-				broadcast(new TmfRangeSynchSignal(this, trange, currentTime));
-			}
+        // Notify other views
+        if (!fCurrentTime.equals(currentTime)) {
+            fCurrentTime = currentTime;
+            broadcastSignal(new TmfTimeSynchSignal(this, currentTime));
         }
     }
 

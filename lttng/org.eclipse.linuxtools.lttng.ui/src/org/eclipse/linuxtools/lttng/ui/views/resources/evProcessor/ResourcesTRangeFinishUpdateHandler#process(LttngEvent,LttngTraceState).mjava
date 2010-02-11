@@ -1,0 +1,27 @@
+	public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+		// Draw a last known state to the end of the trace
+		TmfTimestamp endReqTime = traceSt.getInputDataRef()
+				.getTraceTimeWindow().getEndTime();
+
+		TraceDebug.debug("Number of localResources: "
+				+ resContainer.readResources().length);
+
+		// for each existing resource
+		for (TimeRangeEventResource localResource : resContainer
+				.readResources()) {
+
+			// get the start time
+			long stime = localResource.getNext_good_time();
+
+			// Get the resource state mode
+			String stateMode = localResource.getStateMode(traceSt);
+
+			// Insert an instance from previous time to end request time with
+			// the current state
+			makeDraw(traceSt, stime, endReqTime.getValue(),
+					localResource, params, stateMode);
+		}
+
+		return false;
+	}
+
