@@ -6,8 +6,8 @@
      * @see @see org.eclipse.linuxtools.lttng.event.LttngEventField
      */
     @Override
-    public synchronized LttngEventField getField(String name) {
-    	// *** VERIFY ***
+    public LttngEventField getField(String name) {
+        // *** VERIFY ***
         // Should we check if the field exists in LttngType before parsing? 
         // It could avoid calling parse for non-existent fields but would waste some cpu cycle on check?
         LttngEventField returnedField = fFieldsMap.get(name);
@@ -15,16 +15,12 @@
         if ( returnedField == null ) {
             // *** VERIFY ***
             // Should we really make sure we didn't get null before creating/inserting a field?
-        	JniEvent tmpEvent = ((LttngEvent)getEvent()).convertEventTmfToJni();
-        	
-        	if ( tmpEvent != null) {
-	        	Object newValue =  tmpEvent.parseFieldByName(name);
-	            
-	            if ( newValue!= null ) {
-	                returnedField = new LttngEventField(this, name, newValue);
-	                fFieldsMap.put(name, returnedField );
-	            }
-        	}
+        	Object newValue = ((LttngEvent)getEvent()).convertEventTmfToJni().parseFieldByName(name);
+            
+            if ( newValue!= null ) {
+                returnedField = new LttngEventField(this, name, newValue);
+                fFieldsMap.put(name, returnedField );
+            }
         }
         
         return returnedField;

@@ -1,5 +1,5 @@
     public LTTngTextTrace(String path, boolean skipIndexing) throws Exception {
-        super(path, LttngEvent.class, path, 1);
+        super(path, 1, true);
         
         tracepath = path;
         traceTypes      = new HashMap<String, LttngEventType>();
@@ -10,27 +10,27 @@
         eventContent          = new TextLttngEventContent(currentLttngEvent);
         eventReference        = new LttngEventReference(this.getName());
         
-        currentLttngEvent = new TextLttngEvent(this, eventTimestamp, eventSource, eventType, eventContent, eventReference);
+        currentLttngEvent = new TextLttngEvent(eventTimestamp, eventSource, eventType, eventContent, eventReference);
         eventContent.setEvent(currentLttngEvent);
         
         if ( positionToFirstEvent() == false ) {
         	throw new IOException("Fail to position to the beginning of the trace");
         }
         else {
-        	fIndexPageSize = 1000;
+        	fCacheSize = 1000;
         	
         	// Skip indexing if asked
-//        	if ( skipIndexing == true ) {
-        		fCheckpoints.add(new TmfCheckpoint(new LttngTimestamp(0L), new TmfLocation<Long>(0L)));
-//        	}
-//        	else {
-//        		indexTrace(true);
-//        	}
+        	if ( skipIndexing == true ) {
+        		fCheckpoints.add(new TmfTraceCheckpoint(new LttngTimestamp(0L), 0L));
+        	}
+        	else {
+        		indexStream();
+        	}
         	
         	Long endTime = currentLttngEvent.getTimestamp().getValue();
         	positionToFirstEvent();
         	
-        	getNextEvent(new TmfContext(null, 0));
+        	getNextEvent(new TmfTraceContext(null, null, 0));
         	Long starTime = currentLttngEvent.getTimestamp().getValue();
         	positionToFirstEvent();
         	

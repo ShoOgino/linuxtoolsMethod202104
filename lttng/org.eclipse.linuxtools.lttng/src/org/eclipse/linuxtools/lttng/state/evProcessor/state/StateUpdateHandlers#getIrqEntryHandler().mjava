@@ -2,8 +2,10 @@
 	 * 
 	 * @return
 	 */
-	final ILttngEventProcessor getIrqEntryHandler() {
+	final IEventProcessing getIrqEntryHandler() {
 		AbsStateUpdate handler = new AbsStateUpdate() {
+
+			private Events eventType = Events.LTT_EVENT_IRQ_ENTRY;
 
 			// @Override
 			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
@@ -12,10 +14,7 @@
 
 				Long irq = getAFieldLong(trcEvent, traceSt,
 						Fields.LTT_FIELD_IRQ_ID);
-				if (irq == null || traceSt.getIrq_states().get(irq) == null) {
-					if (irq != null) {
-						System.out.println("Invalid irq (" + irq + "), ts = " + trcEvent.getOriginalTimestamp());
-					}
+				if (irq == null) {
 					return true;
 				}
 
@@ -44,6 +43,10 @@
 						IRQMode.LTTV_IRQ_BUSY);
 				return false;
 
+			}
+
+			public Events getEventHandleType() {
+				return eventType;
 			}
 		};
 		return handler;

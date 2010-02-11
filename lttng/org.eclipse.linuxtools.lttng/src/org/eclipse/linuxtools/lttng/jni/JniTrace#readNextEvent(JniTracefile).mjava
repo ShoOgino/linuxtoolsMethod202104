@@ -1,0 +1,45 @@
+    /**
+     * Read the next event on a certain tracefile.<p>
+     * 
+     * By calling this function make sure the "global" readNextEvent() stay synchronised.
+     * Calling  readNextEvent() after this function will consider this tracefile moved and is then consistent.
+     * 
+     * @param targetTracefile 	The tracefile object to read from
+     * 
+     * @return The next event in the tracefile or null if no event is available.
+     * 
+     * @see org.eclipse.linuxtools.lttng.jni.eclipse.linuxtools.lttng.jni.JniTracefile
+     * @see org.eclipse.linuxtools.lttng.jni.eclipse.linuxtools.lttng.jni.JniEvent
+     */
+    public JniEvent readNextEvent(JniTracefile targetTracefile) {
+        JniEvent returnedEvent = null;
+    	
+        // There is 2 special cases where we should read the CURRENT event, not the next one
+        // 1- The currentEvent is null                      --> We never read or we just seeked
+        // 2- The currentEvent is of another type  --> We last read on a DIFFERENT tracefile
+        if ( (currentEvent == null) || 
+              (currentEvent.getParentTracefile().equals(targetTracefile) == false)
+            ) {
+            returnedEvent = targetTracefile.getCurrentEvent();
+            // Save the event we read
+            currentEvent = returnedEvent; 
+        }
+        else {
+        	// Remove from the event related to this tracefile from the event heap, if it exists.
+        	// WARNING : This only safe as long getCurrentEvent() never return "null" in any case.
+        	eventsHeap.remove(targetTracefile.getCurrentEvent() );
+        	
+        	// If status EOK, we can return the event, otherwise something wrong happen (out of range, read error, etc...)
+        	if ( targetTracefile.readNextEvent() == EOK) {
+        	    returnedEvent = targetTracefile.getCurrentEvent();
+        		// Add back to the heap the read event
+        		eventsHeap.add(returnedEvent);
+        	}
+        	// Save the event we read... 
+        	// Note : might be null if the read failed and it's ok
+        	currentEvent = targetTracefile.getCurrentEvent(); 
+        }
+        
+    	return returnedEvent;
+    }
+

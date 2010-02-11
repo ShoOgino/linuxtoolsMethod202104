@@ -1,0 +1,54 @@
+    /* 
+     * This function populates the trace data with data from LTT
+     * 
+     * @throws JniException
+     */
+    private void populateTraceInformation() throws JniException {
+        if (thisTracePtr.getPointer() == NULL) {
+            throw new JniTraceException("Pointer is NULL, trace not opened/already closed? (populateTraceInformation)");
+        }
+
+        // Populate from the LTT library
+        tracepath   = ltt_getTracepath( thisTracePtr.getPointer() );
+        cpuNumber   = ltt_getCpuNumber( thisTracePtr.getPointer() );
+        archType    = ltt_getArchType( thisTracePtr.getPointer() );
+        archVariant = ltt_getArchVariant( thisTracePtr.getPointer() );
+        archSize    = ltt_getArchSize( thisTracePtr.getPointer() );
+        lttMajorVersion = ltt_getLttMajorVersion( thisTracePtr.getPointer() );
+        lttMinorVersion = ltt_getLttMinorVersion( thisTracePtr.getPointer() );
+        flightRecorder  = ltt_getFlightRecorder( thisTracePtr.getPointer() );
+        freqScale   = ltt_getFreqScale( thisTracePtr.getPointer() );
+        startFreq   = ltt_getStartFreq( thisTracePtr.getPointer() );
+        startTimestampCurrentCounter = ltt_getStartTimestampCurrentCounter( thisTracePtr.getPointer() );
+        startMonotonic = ltt_getStartMonotonic( thisTracePtr.getPointer() );
+
+        // Creation of time is a bit different, we need to pass the object reference to C
+        //
+        // *** NOTE : LTTv consider "raw startTime" (time without any frequency adjustement) to be default startTime
+        //			  So "startTimeNoAdjustement" is obtain throught "ltt_feedStartTime()" and
+        //			  "startTime" is obtained from ltt_feedStartTimeFromTimestampCurrentCounter()
+        startTimeNoAdjustement = new JniTime();
+        ltt_feedStartTime( thisTracePtr.getPointer(), startTimeNoAdjustement );
+        
+        startTime = new JniTime();
+        ltt_feedStartTimeFromTimestampCurrentCounter( thisTracePtr.getPointer(), startTime );
+
+        // Call the fill up function for the tracefiles map
+        if ( tracefilesMap== null ) {
+            tracefilesMap = new HashMap<String, JniTracefile>();
+        }
+        ltt_feedAllTracefiles( thisTracePtr.getPointer() );
+        
+        // Now, obtain the trace "endTime"
+        // Note that we discard "startTime" right away, as we already have it
+        endTime = new JniTime();
+        ltt_feedTracefileTimeRange(thisTracePtr.getPointer(), new JniTime(), endTime);
+        
+        if (eventsHeap == null) {
+            eventsHeap = new PriorityQueue<JniEvent>(tracefilesMap.size());
+        }
+        
+        // Populate the heap with events
+        populateEventHeap();
+    }
+

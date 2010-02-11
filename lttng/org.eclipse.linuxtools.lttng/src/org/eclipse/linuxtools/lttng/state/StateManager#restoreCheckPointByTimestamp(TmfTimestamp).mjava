@@ -1,0 +1,65 @@
+	/**
+	 * Restore to the closest checkpoint from TmfTimestamp
+	 * <p>
+	 * Note : it is heavier to restore by timestamp than by event position,
+	 * restore by event position whichever possible.
+	 * 
+	 * @param eventTime
+	 *            The timestamp of the event to restore to
+	 * 
+	 * @return TmfTimestamp indicates the nearest time used to restore the
+	 *         state, null sent if input is invalid
+	 */
+	public TmfTimestamp restoreCheckPointByTimestamp(TmfTimestamp eventTime) {
+		TmfTimeRange logRange = fExperiment.getTimeRange();
+		TmfTimestamp nearestTimeStamp = logRange.getStartTime();
+
+		// The GUI can have time limits higher than this log, since GUI can
+		// handle multiple logs
+		if ((eventTime.getValue() < 0)
+				|| (eventTime.getValue() > logRange.getEndTime().getValue())) {
+			return null;
+		}
+		
+		// The GUI can have time limits lower than this log, since GUI can
+		// handle multiple logs
+		if ((eventTime.getValue() < logRange.getStartTime().getValue())) {
+			eventTime = logRange.getStartTime();
+		}
+		
+		// Sort the checkpoints, required before the binary search
+		Collections.sort(timestampCheckpointsList);
+		// Initiate the compare with a checkpoint containing the target time
+		// stamp to find
+		int index = Collections.binarySearch(timestampCheckpointsList,
+				new TmfTraceCheckpoint(eventTime, 0));
+		// adjust index to round down to earlier checkpoint when exact match not
+		// found
+		index = getPrevIndex(index);
+
+		LttngTraceState traceState;
+		Long location = 0L;
+		if (index == 0) {
+			// No checkpoint restore is needed, start with a brand new
+			// TraceState
+			ILttngStateInputRef inputDataRef = new LttngStateInputRef(fEventLog);
+			traceState = StateModelFactory.getStateEntryInstance(inputDataRef);
+		} else {
+			// Useful CheckPoint found
+			TmfTraceCheckpoint checkpoint = timestampCheckpointsList.get(index);
+			nearestTimeStamp = checkpoint.getTimestamp();
+			// get the location associated with the checkpoint
+			location = (Long) (checkpoint.getLocation());
+			// reference a new copy of the checkpoint template
+			traceState = stateCheckpointsList.get(location).clone();
+		}
+
+		// Make sure eventCount stay consistent!
+		eventCount = new Long(location);
+
+		// Restore the stored traceState
+		stateIn.setTraceStateModel(traceState);
+
+		return nearestTimeStamp;
+	}
+

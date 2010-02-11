@@ -2,8 +2,10 @@
 	 * 
 	 * @return
 	 */
-	final ILttngEventProcessor getSoftIrqExitHandler() {
+	final IEventProcessing getSoftIrqExitHandler() {
 		AbsStateUpdate handler = new AbsStateUpdate() {
+
+			private Events eventType = Events.LTT_EVENT_SOFT_IRQ_EXIT;
 
 			// @Override
 			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
@@ -20,15 +22,18 @@
 				if (softirq != -1) {
 					LttngSoftIRQState softIrqstate = traceSt
 							.getSoft_irq_states().get(softirq);
-					if (softIrqstate != null) {
-						softIrqstate.decrementRunning();
-					}
+					softIrqstate.decrementRunning();
 				}
 
 				/* update cpu status */
 				cpu_pop_mode(cpust);
 
 				return false;
+			}
+
+			// @Override
+			public Events getEventHandleType() {
+				return eventType;
 			}
 		};
 		return handler;

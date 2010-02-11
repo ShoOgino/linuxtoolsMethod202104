@@ -1,0 +1,42 @@
+    @Override
+    public TmfTraceContext seekEvent(long position) {
+    	
+        int checkPointPos = ((int)position / fCacheSize);
+        
+        Object location;
+        location = ( checkPointPos < fCheckpoints.size()) ? fCheckpoints.elementAt(checkPointPos).getLocation() : null;
+        
+        long index = ((position / fCacheSize)*fCacheSize)-1;
+        
+        if ( index < 0) { 
+        	index = 0; 
+        }
+        
+    	if ( showDebug == true ) {
+    		System.out.println("seekEvent(long position)");
+    		System.out.println("\tposition:  " + position);
+    		System.out.println("\tindex:     " + index);
+    		System.out.println("\tlocation:  " + location);
+    		System.out.println();
+    	}
+        TmfTraceContext currentEventContext = seekLocation(location);
+        Long previousCharRead = (Long)currentEventContext.getLocation();
+        Long previousTimestamp = currentEventContext.getTimestamp().getValue();
+        
+        TmfEvent event = null;
+        while (index < position) {
+        	event = getNextEvent(currentEventContext);
+        	previousCharRead = nbCharRead;
+        	previousTimestamp = currentLttngEvent.getTimestamp().getValue();
+        	index++;
+        }
+        
+        if ( event != null ) {
+        	skipToPosition(previousCharRead);
+        	currentEventContext.setLocation(previousCharRead);
+        	currentEventContext.setTimestamp(new LttngTimestamp(previousTimestamp));
+        }
+        
+        return currentEventContext;
+    }
+
