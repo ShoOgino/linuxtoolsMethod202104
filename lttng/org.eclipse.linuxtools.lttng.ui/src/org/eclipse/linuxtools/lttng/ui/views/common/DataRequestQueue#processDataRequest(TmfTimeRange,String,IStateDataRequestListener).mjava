@@ -1,0 +1,59 @@
+	/**
+	 * Evaluates the need to either send a new data request or queue the request
+	 * till next available opportunity. One element queue to keep the latest
+	 * request only.
+	 * 
+	 * @param trange
+	 * @param viewID
+	 * @param listener
+	 * @return
+	 */
+	public synchronized boolean processDataRequest(TmfTimeRange trange,
+			String viewID, IStateDataRequestListener listener) {
+
+		// Validate input
+		if (trange == null) {
+			return false;
+		}
+
+		// initialise return value
+		boolean requested = false;
+		// cancelPendingRequests();
+		// If a request is ongoing queue the new request
+		if (currentRequest != null) {
+			if (currentTRangeEquals(trange)) {
+				// Requesting same data, no need for a new request
+				return requested;
+			}
+
+			// check if the currentRequest is still active
+			boolean reqActive = !(currentRequest.isCancelled()
+					|| currentRequest.isFailed() || currentRequest
+					.isCompleted());
+
+			// Queue the new request and trigger cancel for the current one.
+			if (reqActive) {
+				pushQueued(trange);
+				// make sure the request gets cancelled, request Completed is
+				// expected before processing queue or next request
+				currentRequest.cancel();
+				return requested;
+			}
+		}
+
+		if (TraceDebug.isDEBUG()) {
+			TraceDebug.debug("Requesting data: " + trange.getStartTime() + "-"
+					+ trange.getEndTime());
+		}
+
+		// no request is ongoing, proceed with data read of all events
+		// within the specified time window
+		currentRequest = StateManagerFactory.getExperimentManager()
+				.readExperimentTimeWindow(
+				trange, viewID, listener);
+
+		requested = true;
+
+		return requested;
+	}
+

@@ -1,0 +1,45 @@
+	private synchronized boolean processNextInQueue() {
+		// initialise return value
+		boolean next = false;
+	
+		// If currentRequest is still active, no action is taken as it needs to
+		// be completed first
+		if (currentRequest != null) {
+			boolean reqActive = !(currentRequest.isCancelled()
+					| currentRequest.isCompleted() | currentRequest.isFailed());
+	
+			if (reqActive) {
+				TraceDebug.debug("Exception: current request is still active");
+				return false;
+			} else {
+				currentRequest = null;
+			}
+		}
+	
+		// get next in queue
+		TmfTimeRange trange = popQueued();
+		if (trange != null) {
+			// clean up any possible pending request
+			if (TraceDebug.isDEBUG()) {
+				TmfTimestamp start = trange.getStartTime();
+				TmfTimestamp end = trange.getEndTime();
+				TraceDebug.debug("New request about to start: " + start + "-"
+						+ end);
+			}
+	
+			// Start the new request.
+			// TODO: ViewID and listener don't seem to be needed if all views
+			// participate. this needs to be revisited when the request perform
+			// individual requests for synthetic events and TMF supports request
+			// coalescing
+			currentRequest = StateManagerFactory.getExperimentManager()
+					.readExperimentTimeWindow(trange, new String(""), null);
+			next = true;
+		} else {
+			// All requests cancelled and no more pending requests
+			TraceDebug.debug("No requests pending in the queue");
+		}
+	
+		return next;
+	}
+
