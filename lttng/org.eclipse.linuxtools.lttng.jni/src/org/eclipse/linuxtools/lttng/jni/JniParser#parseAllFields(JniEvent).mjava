@@ -6,7 +6,7 @@
      * @param   eventToParse    The jni event we want to parse.  
      * @return                  An HashMap of Object that contain the is the JniEvent's payload parsed by the C
      * 
-     * @see org.eclipse.linuxtools.lttng.jni.JniEvent
+     * @see org.eclipse.linuxtools.lttng.jni.eclipse.linuxtools.lttng.jni.JniEvent
      */
     static public HashMap<String, Object> parseAllFields(JniEvent eventToParse) {
         HashMap<String,JniMarkerField> markerFieldData = eventToParse.requestEventMarker().getMarkerFieldsHashMap();
@@ -26,14 +26,16 @@
 		//       HashMap<String, Object> parsedDataMap = (HashMap<String, Object>)markerFieldData.clone();
 		// Or even safer, use HashMap constructor to do so : 
         HashMap<String, Object> parsedDataMap = new HashMap<String, Object>(markerFieldData);
-		
+		 
+        String              newKey 	        = null; 
         JniMarkerField      newMarkerField  = null;
         Iterator<String>    iterator        = markerFieldData.keySet().iterator();
         
         while ( iterator.hasNext() ) {
-            newMarkerField = markerFieldData.get(iterator.next());
+            newKey = iterator.next();
+            newMarkerField = markerFieldData.get(newKey);
             // Call the C to parse the data
-            ltt_getParsedData(eventToParse.getEventPtr().getLibraryId(), parsedData, eventToParse.getEventPtr().getPointer(), newMarkerField.getMarkerFieldPtr().getPointer());
+            ltt_getParsedData(parsedData, eventToParse.getEventPtr().getPointer(), newMarkerField.getMarkerFieldPtr().getPointer() );
             // Save the result into the HashMap
             parsedDataMap.put(newMarkerField.getField(), parsedData.getData() );
         }
