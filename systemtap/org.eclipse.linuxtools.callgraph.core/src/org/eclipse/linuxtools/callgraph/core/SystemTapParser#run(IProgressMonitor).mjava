@@ -8,19 +8,40 @@
 		}
 		
 		makeView();
-		if (realTime && (job == null || job.getResult()==null)) {
-			job = new RunTimeJob("RealTimeParser"); //$NON-NLS-1$
-			job.schedule();
+		if (realTime) {
+        	try {
+				setInternalData();
+	            while (!done){
+	            	returnStatus = realTimeParsing();
+	            	if (monitor.isCanceled() || returnStatus == Status.CANCEL_STATUS) {
+	            		done = true;
+	            		return Status.CANCEL_STATUS;
+	            	}
+	            	
+	            	Thread.sleep(500);
+	            }
+	            if (!monitor.isCanceled()) returnStatus = realTimeParsing();
+	            done = true;
+				return returnStatus;
+        	} catch (Exception e) {
+        		SystemTapUIErrorMessages m = new SystemTapUIErrorMessages(
+        				Messages.getString("SystemTapParser.InternalData"), //$NON-NLS-1$ 
+        				Messages.getString("SystemTapParser.FailedToSetData"), //$NON-NLS-1$ 
+        				Messages.getString("SystemTapParser.FailedToSetDataMessage")); //$NON-NLS-1$
+        		m.schedule();
+        		return Status.CANCEL_STATUS;
+        	}
 		} else {
 			returnStatus = nonRealTimeParsing();
-		}
-				
-	
-		if (!returnStatus.isOK()){
+			if (!returnStatus.isOK()){
+				return returnStatus;
+			}
+			
+			setData(this);
 			return returnStatus;
 		}
 		
-		setData(this);
-		return returnStatus;
+				
+	
 	}
 
