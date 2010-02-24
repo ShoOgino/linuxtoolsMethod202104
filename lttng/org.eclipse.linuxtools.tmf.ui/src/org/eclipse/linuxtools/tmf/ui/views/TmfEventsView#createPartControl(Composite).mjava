@@ -1,7 +1,5 @@
-    /* (non-Javadoc)
-     * @see org.eclipse.ui.part.WorkbenchPart#createPartControl(org.eclipse.swt.widgets.Composite)
-     */
-    @Override
+    @SuppressWarnings("unchecked")
+	@Override
 	public void createPartControl(Composite parent) {
     	
     	// Create a virtual table
@@ -11,7 +9,6 @@
 
         // Set the table layout
         GridData layoutData = new GridData(SWT.FILL, SWT.FILL, true, true);
-        layoutData.horizontalSpan= columnData.length;
         fTable.setLayoutData(layoutData);
 
         // Some cosmetic enhancements
@@ -19,59 +16,49 @@
         fTable.setLinesVisible(true);
 
         // Set the columns
-        setColumnHeaders(fTable);
+        createColumnHeaders(fTable);
 
         // Handle the table item requests 
-        fTable.addSelectionListener(new SelectionListener() {
+        fTable.addSelectionListener(new SelectionAdapter() {
 
-			public void widgetDefaultSelected(SelectionEvent e) {
-				// TODO Auto-generated method stub
-			}
-
-			public void widgetSelected(SelectionEvent e) {
-				TmfTimestamp ts = extractTimestamp(fTable.getSelection()[0].getText());
-				broadcastSignal(new TmfTimeSynchSignal(fTable, ts));
+        	public void widgetSelected(SelectionEvent e) {
+				TmfTimestamp ts = (TmfTimestamp) fTable.getSelection()[0].getData();
+				broadcast(new TmfTimeSynchSignal(fTable, ts));
 			}
         });
 
         // Handle the table item requests 
         fTable.addListener(SWT.SetData, new Listener() {
+
 			public void handleEvent(Event event) {
-				TableItem item = (TableItem) event.item;
+
+        		TableItem item = (TableItem) event.item;
 				final int index = fTable.indexOf(item);
+
 				// Note: this works because handleEvent() is called once for each row, in sequence  
 				if ((index >= cacheStartIndex ) && (index < cacheEndIndex)) {
-					item.setText(extractItemFields(cache[index - cacheStartIndex]));
+					int i = index - cacheStartIndex;
+					item.setText(extractItemFields(cache[i]));
+					item.setData(new TmfTimestamp(cache[i].getTimestamp()));
 					return;
 				}
-				
-				// *** TODO ***
-				// This is broken!
-				// 
-				// This one fails to return any result : 
-				// 		TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(fExperiment.getTimeRange(), index, 1) {
-				// All these will return THE SAME RESULT!
-				//		TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(index, 1) {
-				// 		TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(index+10, 1) {
-				// 		TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(null, 1) {
-				// 		
-				// THIS IS ONLY A TEMPORARY FIX! 
-				
-				TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(index, 1) {
+
+				TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(TmfEvent.class, index, fCacheSize) {
 					@Override
 					public void handleData() {
 						TmfEvent[] tmpEvent = getData();
 						if ( (tmpEvent != null) && (tmpEvent.length > 0) ) {
 							cache = tmpEvent;
+							cacheStartIndex = index;
+							cacheEndIndex = index + cache.length;
 						}
-//						cacheStartIndex = index;
-//						cacheEndIndex = index + cache.length; 
 					}
 				};
 				fExperiment.processRequest(request, true);
 				
-				if (cache[0] != null) {
+				if (cache[0] != null && cacheStartIndex == index) {
 					item.setText(extractItemFields(cache[0]));
+					item.setData(new TmfTimestamp(cache[0].getTimestamp()));
 				}
 				
 			}
@@ -81,7 +68,7 @@
     	fTitlePrefix = getTitle();
 
     	// If an experiment is already selected, update the table
-    	fExperiment = TmfExperiment.getCurrentExperiment();
+    	fExperiment = (TmfExperiment<TmfEvent>) TmfExperiment.getCurrentExperiment();
     	if (fExperiment != null) {
     		experimentSelected(new TmfExperimentSelectedSignal(fTable, fExperiment));
     	}

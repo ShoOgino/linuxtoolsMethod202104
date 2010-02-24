@@ -4,37 +4,28 @@
 		@Override
 		protected IStatus run(IProgressMonitor monitor) {
 
-            int nbEvents = 0;
-            TmfTimestamp startTime = new TmfTimestamp();
-            TmfTimestamp lastTime  = new TmfTimestamp();
-
             monitor.beginTask("Indexing " + fName, IProgressMonitor.UNKNOWN);
 
+            int nbEvents = 0;
+            TmfTimestamp startTime = null;
+            TmfTimestamp lastTime  = null;
+
+            fCheckpoints = new Vector<TmfTraceCheckpoint>();
+            
             try {
             	// Position the trace at the beginning
                 TmfTraceContext context = seekLocation(null);
-                if (context.getTimestamp() == null) {
-                	return Status.OK_STATUS;
-                }
-                // FIXME: LTTng hack - start
-//               	fCheckpoints.add(new TmfTraceCheckpoint(context.getTimestamp(), context.getLocation()));	// TMF
-                // FIXME: LTTng hack - end
+                Object location = context.getLocation();
 
-               	TmfEvent event;
-               	startTime = context.getTimestamp();
-               	lastTime  = context.getTimestamp();
-                while ((event = getNextEvent(context)) != null) {
-                	TmfTimestamp timestamp = context.getTimestamp();
-            		if (timestamp != null) {
-            			lastTime = timestamp;
-            		}
-                    // FIXME: LTTng hack - start
-//                    if (((++nbEvents % fCacheSize) == 0) && (timestamp != null)) {	// TMF
-                    if (((nbEvents++ % fCacheSize) == 0) && (timestamp != null)) {	// LTTng
-                        // FIXME: LTTng hack - end
-                   		fCheckpoints.add(new TmfTraceCheckpoint(timestamp, context.getLocation()));
-                   		fNbEvents = nbEvents - 1;
-                   		lastTime = context.getTimestamp();
+               	TmfEvent event = getNextEvent(context);
+                startTime = new TmfTimestamp(event.getTimestamp());
+                lastTime  = new TmfTimestamp(startTime);
+                while (event != null) {
+                	lastTime = event.getTimestamp();
+           			if ((nbEvents++ % fCacheSize) == 0) {
+           				lastTime = new TmfTimestamp(event.getTimestamp());
+                   		fCheckpoints.add(new TmfTraceCheckpoint(lastTime, location));
+                   		fNbEvents = nbEvents;
                    		fTimeRange = new TmfTimeRange(startTime, lastTime);
                    		notifyListeners(new TmfTimeRange(startTime, lastTime));
 
@@ -47,8 +38,12 @@
                         }
                     }
 
-                    // Do whatever
-                    processEvent(event);
+                    // We will need this location at the next iteration
+                    if ((nbEvents % fCacheSize) == 0) {
+                        location = context.getLocation();
+           			}
+
+                    event = getNextEvent(context);
                 }
             }
             finally {
@@ -59,11 +54,10 @@
                 }
                 notifyListeners(new TmfTimeRange(startTime, lastTime));
                 monitor.done();
-
             }
 
 //            createOffsetsFile();
-//            dumpCheckpoints();
+//            dumpTraceCheckpoints();
             
             return Status.OK_STATUS;
 		}

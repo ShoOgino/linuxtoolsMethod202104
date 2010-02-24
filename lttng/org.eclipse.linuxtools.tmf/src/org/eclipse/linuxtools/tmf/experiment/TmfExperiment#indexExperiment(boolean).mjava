@@ -1,0 +1,31 @@
+	/**
+	 * indexExperiment
+	 * 
+	 * Creates the experiment index.
+	 */
+	public void indexExperiment(boolean waitForCompletion) {
+
+		synchronized(fIndexing) {
+			if (fIndexed || fIndexing) {
+				// An indexing job is already running but a new request came
+				// in (probably due to a change in the trace set). The index
+				// being currently built is therefore already invalid.
+				// TODO: Cancel and restart the job
+				// TODO: Add support for dynamically adding/removing traces
+				return;
+			}
+			fIndexing = true;
+		}
+
+		job = new IndexingJob(fExperimentId);
+		job.schedule();
+
+    	if (waitForCompletion) {
+    		try {
+    			job.join();
+    		} catch (InterruptedException e) {
+    			e.printStackTrace();
+    		}
+    	}
+	}
+

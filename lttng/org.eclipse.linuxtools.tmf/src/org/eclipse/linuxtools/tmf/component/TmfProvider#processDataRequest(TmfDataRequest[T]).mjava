@@ -1,0 +1,38 @@
+	protected void processDataRequest(final TmfDataRequest<T> request) {
+
+		// Process the request
+		Thread thread = new Thread() {
+
+			@Override
+			public void run() {
+
+				// Extract the generic information
+				int blockSize   = request.getBlockize();
+				int nbRequested = request.getNbRequested();
+			 
+				// Create the result buffer
+				Vector<T> result = new Vector<T>();
+				int nbRead = 0;
+
+				// Initialize the execution
+				ITmfContext context = setContext(request);
+
+				// Get the ordered events
+				T data = getNext(context);
+				while (data != null && !request.isCancelled() && nbRead < nbRequested && !isCompleted(request, data))
+				{
+					result.add(data);
+					if (++nbRead % blockSize == 0) {
+						pushData(request, result);
+					}
+					// To avoid an unnecessary read passed the last data requested
+					if (nbRead < nbRequested)
+						data = getNext(context);
+				}
+				pushData(request, result);
+				request.done();
+			}
+		};
+		thread.start();
+	}
+

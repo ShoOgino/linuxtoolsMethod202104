@@ -1,0 +1,64 @@
+	// ========================================================================
+	// Methods
+	// =======================================================================
+	/**
+	 * A new Experiment or trace selected
+	 * @param experiment
+	 * @param clearPreviousData
+	 */
+	@SuppressWarnings("unchecked")
+	public void setTraceSelection(TmfExperiment<LttngEvent> experiment,
+			boolean clearPreviousData) {
+		// New log in use, read all events and build state transition stack
+		if (experiment != null) {
+			if (fExperiment != null && fExperiment != experiment) {
+				this.fExperiment.deregister();
+			}
+
+			this.fExperiment = experiment;
+
+			// if (fEventLog != null) {
+			// this.fEventLog.dispose();
+			// }
+			
+			this.fEventLog = (TmfTrace<LttngEvent>) experiment.getTraces()[0];
+			try {
+				stateIn.init(fEventLog);
+			} catch (LttngStateException e) {
+				e.printStackTrace();
+			}
+
+			// Restart count and collections
+			eventCount = 0L;
+			stateCheckpointsList.clear();
+			timestampCheckpointsList.clear();
+
+			// Obtain a dataRequest to pass to the processRequest function
+			TmfTimeRange allTraceWindow = fEventLog.getTimeRange();
+			StateDataRequest request = getDataRequestStateSave(allTraceWindow,
+					null);
+			request.setclearDataInd(clearPreviousData);
+
+			// Wait for completion
+			request.startRequestInd(fExperiment, true, true);
+
+			if (TraceDebug.isDEBUG()) {
+				StringBuilder sb = new StringBuilder(
+						"Total number of processes in the State provider: "
+								+ stateIn.getTraceStateModel().getProcesses().length);
+
+				TmfTimeRange logTimes = fEventLog.getTimeRange();
+				sb.append("\n\tLog file times "
+						+ new LttngTimestamp(logTimes.getStartTime()));
+				sb.append(" - " + new LttngTimestamp(logTimes.getEndTime()));
+
+				sb.append("\n\tCheckPoints available at: ");
+				for (TmfTraceCheckpoint cpoint : timestampCheckpointsList) {
+					sb.append("\n\t" + cpoint.getTimestamp());
+				}
+				TraceDebug.debug(sb.toString());
+			}
+		}
+
+	}
+

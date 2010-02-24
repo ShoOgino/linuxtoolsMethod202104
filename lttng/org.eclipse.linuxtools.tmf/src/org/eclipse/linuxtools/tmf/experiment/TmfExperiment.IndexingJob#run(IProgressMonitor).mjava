@@ -1,0 +1,70 @@
+		/* (non-Javadoc)
+		 * @see org.eclipse.core.runtime.jobs.Job#run(org.eclipse.core.runtime.IProgressMonitor)
+		 */
+		@Override
+		protected IStatus run(IProgressMonitor monitor) {
+
+			// Minimal check
+			if (fTraces.size() == 0) {
+	            fIndexing = false;
+				return Status.OK_STATUS;
+			}
+
+			monitor.beginTask("Indexing " + fExperimentId, IProgressMonitor.UNKNOWN);
+
+            int nbEvents = 0;
+            TmfTimestamp startTime = null;
+            TmfTimestamp lastTime  = null;
+
+            fExperimentIndex = new Vector<TmfExperimentCheckpoint>();
+            
+            try {
+            	// Reset the traces
+        		TmfExperimentContext context = new TmfExperimentContext(fTraces);
+        		positionTraces(0, context);
+        		TmfTraceContext[] traces = context.cloneContexts();
+
+               	TmfTimestamp timestamp = getNextEventTimestamp(context);
+                startTime = new TmfTimestamp(timestamp);
+                lastTime  = new TmfTimestamp(timestamp);
+                TmfEvent event = getNextEvent(context);
+                while (event != null) {
+           			if ((nbEvents++ % fIndexPageSize) == 0) {
+           				fExperimentIndex.add(new TmfExperimentCheckpoint(lastTime, traces));
+                   		fNbEvents = nbEvents;
+                   		fTimeRange = new TmfTimeRange(startTime, lastTime);
+
+                        monitor.worked(1);
+
+                        // Check monitor *after* fCheckpoints has been updated
+                        if (monitor.isCanceled()) {
+                            monitor.done();
+                        	return Status.CANCEL_STATUS;
+                        }
+                    }
+
+                    // We will need the contexts at the next iteration
+                    if ((nbEvents % fIndexPageSize) == 0) {
+               			traces = context.cloneContexts();
+           				lastTime = new TmfTimestamp(event.getTimestamp());
+           			}
+
+           			event = getNextEvent(context);
+                }
+
+            }
+            finally {
+                synchronized(this) {
+                	fNbEvents = nbEvents;
+                	fTimeRange = new TmfTimeRange(startTime, lastTime);
+                	fIndexing = false;
+                	fIndexed = true;
+                }
+                monitor.done();
+            }
+
+//            dumpExperimentCheckpoints();
+
+            return Status.OK_STATUS;
+		}
+

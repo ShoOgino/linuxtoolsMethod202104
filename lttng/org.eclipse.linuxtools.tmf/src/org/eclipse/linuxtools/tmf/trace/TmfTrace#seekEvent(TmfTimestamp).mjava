@@ -19,22 +19,29 @@
 
         // Position the stream at the checkpoint
         Object location;
-        synchronized (fCheckpoints) { //Just in case we are re-indexing
-            location = (index < fCheckpoints.size()) ? fCheckpoints.elementAt(index).getLocation() : null;
+        synchronized (fCheckpoints) {
+        	if (fCheckpoints.size() > 0) {
+        		if (index >= fCheckpoints.size()) {
+        			index = fCheckpoints.size() - 1;
+        		}
+        		location = fCheckpoints.elementAt(index).getLocation();
+        	}
+        	else {
+        		location = null;
+        	}
         }
         TmfTraceContext nextEventContext = seekLocation(location);
-        nextEventContext.setIndex(index * fCacheSize);
+        nextEventContext.setRank(index * fCacheSize);
         TmfTraceContext currentEventContext = new TmfTraceContext(nextEventContext);
 
         // And get the event
         TmfEvent event = getNextEvent(nextEventContext);
         while (event != null && event.getTimestamp().compareTo(timestamp, false) < 0) {
         	currentEventContext.setLocation(nextEventContext.getLocation());
-        	currentEventContext.incrIndex();
+        	currentEventContext.incrRank();
         	event = getNextEvent(nextEventContext);
         }
 
-    	currentEventContext.setTimestamp((event != null) ? event.getTimestamp() : null);
         return currentEventContext;
     }
 
