@@ -17,15 +17,22 @@
 				ArrayList<IAConfiguration> cfgs = configs.get(projectName);
 				p.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>"); //$NON-NLS-1$
 				p.println("<configurations>"); // $NON-NLS-1$
+				Set<String> names = new HashSet<String>();
+				Option[] optionList = AutotoolsConfiguration.getOptionList();
 				for (int i = 0; i < cfgs.size(); ++i) {
 					IAConfiguration cfg = cfgs.get(i);
-					p.println("<configuration name=\"" + cfg.getName() + "\">"); //$NON-NLS-1$ //$NON-NLS-2$
-					Collection<IConfigureOption> values = cfg.getOptions().values(); 
-					for (Iterator<IConfigureOption> j = values.iterator(); j.hasNext();) {
-						IConfigureOption opt = j.next();
-						p.println("<option id=\"" + opt.getName() + "\" value=\"" + opt.getValue() + "\"/>"); //$NON-NLS-1$ //$NON-NLS-2$ // $NON-NLS-3$
+					if (!names.contains(cfg.getName())) {
+						p.println("<configuration name=\"" + cfg.getName() + "\">"); //$NON-NLS-1$ //$NON-NLS-2$ 
+						for (int j = 0; j < optionList.length; ++j) {
+							Option option = optionList[j];
+							IConfigureOption opt = cfg.getOption(option.getName());
+							if (!opt.isCategory())
+								p.println("<option id=\"" + option.getName() + "\" value=\"" + opt.getValue() + "\"/>"); //$NON-NLS-1$ //$NON-NLS-2$ // $NON-NLS-3$
+						}
+						p.println("</configuration>"); //$NON-NLS-1$
+					} else {
+						System.out.println("extra " + cfg.getName());
 					}
-					p.println("</configuration>"); //$NON-NLS-1$
 				}
 				p.println("</configurations>");
 				p.close();
