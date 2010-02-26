@@ -6,6 +6,7 @@
 
 		String currentElementName;
 
+		if (input instanceof IFileEditorInput) {
 		// Get the working copy and connect to input.		
 		IWorkingCopyManager manager = CUIPlugin.getDefault()
 				.getWorkingCopyManager();
@@ -74,5 +75,66 @@
 
 		}
 		return currentElementName;
+		}
+		else if (input instanceof IStorageEditorInput) {
+			// Get the working copy and connect to input.
+			// don't follow inclusions
+			currentElementName = "";
+			IStorageEditorInput sei = (IStorageEditorInput)input;
+			ICodeReaderFactory codeReaderFactory= NullCodeReaderFactory.getInstance();
+			
+			// empty scanner info
+			IScannerInfo scanInfo= new ScannerInfo();
+			IStorage ancestorStorage = sei.getStorage();
+			if (ancestorStorage == null)
+				return "";
+			InputStream stream = ancestorStorage.getContents();
+			byte buffer[] = new byte[100];
+			String data = new String("");
+			int read = 0;
+			try {
+				do {
+					read = stream.read(buffer);
+					if (read > 0) {
+						String tmp = new String(buffer, 0, read);
+						data = data.concat(tmp);
+					}
+				} while (read == 100);
+				stream.close();
+			} catch (IOException e) {
+				// do nothing
+			}
+			
+			CodeReader reader= new CodeReader(data.toCharArray());
+			
+			// determine the language
+			boolean isSource[]= {false};
+			ILanguage language= GPPLanguage.getDefault();
+			
+			try {
+				IASTTranslationUnit ast;
+				int options= isSource[0] ? ILanguage.OPTION_IS_SOURCE_UNIT : 0;
+				ast= language.getASTTranslationUnit(reader, scanInfo, codeReaderFactory, null, options, ParserUtil.getParserLogService());
+				IASTNodeSelector n = ast.getNodeSelector(null);
+				IASTNode node = n.findFirstContainedNode(offset, 100);
+				while (node != null && !(node instanceof IASTTranslationUnit)) {
+					if (node instanceof IASTFunctionDefinition) {
+						IASTFunctionDefinition fd = (IASTFunctionDefinition)node;
+						IASTFunctionDeclarator d = fd.getDeclarator();
+						currentElementName = new String(d.getName().getSimpleID());
+						break;
+					}
+					node = node.getParent();
+				}
+//				System.out.println(currentElementName);
+			} catch (CoreException exc) {
+				currentElementName = "";
+				CUIPlugin.log(exc);
+			}
+
+			return currentElementName;
+		}
+		
+		return "";
 	}
 
