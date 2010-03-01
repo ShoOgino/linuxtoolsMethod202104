@@ -5,12 +5,18 @@
 		if (window == null)
 			return false;
 
-		// Check if we are in the Project View
-		IWorkbenchPart part = window.getActivePage().getActivePart();
-		if (!(part instanceof ProjectView))
-			return false;
-
-		fProjectRoot = ((ProjectView) part).getRoot();
+		// Check if we can find the project model root node
+		ISelection selection = window.getActivePage().getSelection(ProjectView.ID);
+		if (selection instanceof StructuredSelection) {
+			Object element = ((StructuredSelection) selection).getFirstElement();
+			if (element instanceof ILTTngProjectTreeNode) {
+				ILTTngProjectTreeNode node = (ILTTngProjectTreeNode) element;
+				while (node != null && !(node instanceof LTTngProjectRoot)) {
+					node = node.getParent();
+				}
+				fProjectRoot = (node instanceof LTTngProjectRoot) ? (LTTngProjectRoot) node : null;
+			}
+		}
 
 		return (fProjectRoot != null);
 	}

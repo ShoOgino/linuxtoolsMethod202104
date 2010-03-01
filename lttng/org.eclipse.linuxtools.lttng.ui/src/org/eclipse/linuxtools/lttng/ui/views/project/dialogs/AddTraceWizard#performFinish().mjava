@@ -4,34 +4,26 @@
 	@Override
 	public boolean performFinish() {
 
-		Object selection = fSelection.getFirstElement();
-		if (!(selection instanceof LTTngExperimentEntry)) {
-			return true;
-		}
-
 		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		IFolder experimentFolder = fExperiment.getFolder();
 
-		LTTngExperimentEntry experiment = (LTTngExperimentEntry) selection;
-		IFolder experimentFolder = experiment.getFolder();
-
-		LTTngTraceEntry[] traces = fMainPage.getSelection();
-		for (LTTngTraceEntry trace : traces) {
+		LTTngTraceNode[] traces = fMainPage.getSelection();
+		for (LTTngTraceNode trace : traces) {
 			try {
 				IFolder folder = experimentFolder.getFolder(trace.getName());
-				IPath location = trace.getResource().getLocation();
+				IPath location = trace.getFolder().getLocation();
 				if (workspace.validateLinkLocation(folder, location).isOK()) {
 					folder.createLink(location, IResource.REPLACE, null);
-					experiment.addTrace(trace);
+					fExperiment.addTrace(folder);
 				}
 				else {
 					System.out.println("Problem");
 				}
 			} catch (CoreException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
 
 		return true;
-	}
+	}	
 
