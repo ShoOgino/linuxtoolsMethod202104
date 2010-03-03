@@ -1,0 +1,47 @@
+    /**
+     * Seek (move) to a certain location in the trace.<p>
+     * 
+     * WARNING : No event is read by this function, it just seek to a certain time.<br>
+     * Use "parseEvent()" or "getNextEvent()" to get the event we seeked to. 
+     * 
+     * @param location  a TmfTimestamp of a position in the trace
+     * 
+     * @return TmfTraceContext pointing the position in the trace at the seek location 
+     */
+    public TmfContext seekLocation(ITmfLocation location) {
+        
+    	LttngTimestamp timestamp = null;
+
+    	// If location is null, interpret this as a request to get back to the beginning of the trace
+        //      in that case, just change the location, the seek will happen below
+    	if (location == null) {
+    		// *** FIXME ***
+    		// Corrupted StartTime in TMF!!! 
+    		//location = getStartTime();
+    		location = new LttngLocation(new LttngTimestamp(currentJniTrace.getStartTime().getTime()));
+    	}
+
+    	if (location instanceof TmfTimestamp) {
+    		long value = ((TmfTimestamp) location).getValue();
+    		
+    		if (value != currentJniTrace.getCurrentEventTimestamp().getTime()) {
+    			/*
+    			System.out.println("\nLOCATION IS : " + ((TmfTimestamp) location).getValue());
+        		System.out.println("JNI IS : " + currentJniTrace.getCurrentEventTimestamp().getTime());
+    			System.out.println("SEEKING");
+    			*/
+    			
+    			synchronized (currentJniTrace) {
+    				//currentJniTrace.seekToTime(new JniTime(value));
+    				currentJniTrace.seekAndRead(new JniTime(value));
+    				timestamp = (LttngTimestamp) getCurrentLocation();
+    			}
+    		}
+    	}
+    	else {
+    	    System.out.println("ERROR : Location not instance of TmfTimestamp");
+    	}
+
+    	 return new TmfContext(new LttngLocation(timestamp), 0);
+    }
+

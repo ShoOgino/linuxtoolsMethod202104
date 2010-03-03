@@ -1,0 +1,46 @@
+	public TmfExperimentContext seekEvent(TmfTimestamp timestamp) {
+
+		if (timestamp == null) {
+    		timestamp = TmfTimestamp.BigBang;
+    	}
+
+    	// First, find the right checkpoint
+    	int index = Collections.binarySearch(fCheckpoints, new TmfCheckpoint(timestamp, null));
+
+        // In the very likely case that the checkpoint was not found, bsearch
+        // returns its negated would-be location (not an offset...). From that
+        // index, we can then position the stream and get the event.
+        if (index < 0) {
+            index = Math.max(0, -(index + 2));
+        }
+
+        // Position the experiment at the checkpoint
+        ITmfLocation location;
+        synchronized (fCheckpoints) {
+        	if (fCheckpoints.size() > 0) {
+        		if (index >= fCheckpoints.size()) {
+        			index = fCheckpoints.size() - 1;
+        		}
+        		location = fCheckpoints.elementAt(index).getLocation();
+        	}
+        	else {
+        		location = null;
+        	}
+        }
+
+        TmfExperimentContext nextEventContext = seekLocation(location);
+        nextEventContext.setRank(index * fIndexPageSize);
+        TmfExperimentContext currentEventContext = new TmfExperimentContext(nextEventContext);
+
+        // And get the event
+        TmfEvent event = getNextEvent(nextEventContext);
+        while (event != null && event.getTimestamp().compareTo(timestamp, false) < 0) {
+            currentEventContext = new TmfExperimentContext(nextEventContext);
+//        	currentEventContext.setLocation(nextEventContext.getLocation());
+//        	currentEventContext.updateRank(1);
+        	event = getNextEvent(nextEventContext);
+        }
+
+        return currentEventContext;
+	}
+

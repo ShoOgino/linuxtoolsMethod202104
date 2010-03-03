@@ -5,7 +5,7 @@
 		protected IStatus run(IProgressMonitor monitor) {
 
 			// Minimal check
-			if (fTraces.size() == 0) {
+			if (fTraces.length == 0) {
 	            fIndexing = false;
 				return Status.OK_STATUS;
 			}
@@ -16,23 +16,28 @@
             TmfTimestamp startTime = null;
             TmfTimestamp lastTime  = null;
 
-            fExperimentIndex = new Vector<TmfExperimentCheckpoint>();
+            // Reset the index
+            fCheckpoints = new Vector<TmfCheckpoint>();
             
             try {
-            	// Reset the traces
-        		TmfExperimentContext context = new TmfExperimentContext(fTraces);
-        		positionTraces(0, context);
-        		TmfTraceContext[] traces = context.cloneContexts();
+            	// Position the trace at the beginning
+            	TmfExperimentContext context = seekLocation(null);
+            	TmfExperimentLocation location = (TmfExperimentLocation) context.getLocation();
 
-               	TmfTimestamp timestamp = getNextEventTimestamp(context);
-                startTime = new TmfTimestamp(timestamp);
-                lastTime  = new TmfTimestamp(timestamp);
-                TmfEvent event = getNextEvent(context);
-                while (event != null) {
+                // Get the first event
+               	TmfEvent event = getNextEvent(context);
+               	if (event != null) {
+                    startTime = new TmfTimestamp(event.getTimestamp());
+               	}
+
+               	// Index the experiment
+               	while (event != null) {
+                	lastTime = event.getTimestamp();
            			if ((nbEvents++ % fIndexPageSize) == 0) {
-           				fExperimentIndex.add(new TmfExperimentCheckpoint(lastTime, traces));
+           				fCheckpoints.add(new TmfCheckpoint(lastTime, location.clone()));
                    		fNbEvents = nbEvents;
                    		fTimeRange = new TmfTimeRange(startTime, lastTime);
+                   		notifyListeners(new TmfTimeRange(startTime, lastTime));
 
                         monitor.worked(1);
 
@@ -45,8 +50,7 @@
 
                     // We will need the contexts at the next iteration
                     if ((nbEvents % fIndexPageSize) == 0) {
-               			traces = context.cloneContexts();
-           				lastTime = new TmfTimestamp(event.getTimestamp());
+                        location = (TmfExperimentLocation) context.getLocation();
            			}
 
            			event = getNextEvent(context);
@@ -63,7 +67,7 @@
                 monitor.done();
             }
 
-//            dumpExperimentCheckpoints();
+//            dumpCheckpoints();
 
             return Status.OK_STATUS;
 		}

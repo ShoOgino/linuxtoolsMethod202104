@@ -1,0 +1,26 @@
+	// Returns a brand new context based on the location provided
+	// Arms the event queues
+	// NOTE: This is a fine example of pathological coupling...
+	public TmfExperimentContext seekLocation(ITmfLocation location) {
+		if (location instanceof TmfExperimentLocation || location == null) {
+			ITmfLocation[] oldloc = (location != null) ? ((TmfExperimentLocation) location).getLocations() : new TmfExperimentLocation[fTraces.length];
+			ITmfLocation[] newloc = new ITmfLocation[fTraces.length];
+			TmfContext[] contexts = new TmfContext[fTraces.length];
+
+			TmfExperimentContext context = new TmfExperimentContext(fTraces, contexts);
+			TmfEvent[] events = context.getEvents();
+
+			long rank = 0;
+			for (int i = 0; i < fTraces.length; i++) {
+				contexts[i] = fTraces[i].seekLocation(oldloc[i]);
+				newloc[i]   = contexts[i].getLocation();	// No clone here
+				events[i]   = fTraces[i].parseEvent(contexts[i]);
+				rank += contexts[i].getRank();
+			}
+			context.setLocation(new TmfExperimentLocation(newloc));
+			context.setRank(rank);
+			return context;
+		}
+		return null;
+	}
+

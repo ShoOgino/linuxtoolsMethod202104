@@ -1,14 +1,14 @@
     /* (non-Javadoc)
      * @see org.eclipse.linuxtools.tmf.trace.ITmfTrace#seekEvent(org.eclipse.linuxtools.tmf.event.TmfTimestamp)
      */
-    public TmfTraceContext seekEvent(TmfTimestamp timestamp) {
+    public TmfContext seekEvent(TmfTimestamp timestamp) {
 
     	if (timestamp == null) {
     		timestamp = TmfTimestamp.BigBang;
     	}
 
     	// First, find the right checkpoint
-    	int index = Collections.binarySearch(fCheckpoints, new TmfTraceCheckpoint(timestamp, 0));
+    	int index = Collections.binarySearch(fCheckpoints, new TmfCheckpoint(timestamp, null));
 
         // In the very likely case that the checkpoint was not found, bsearch
         // returns its negated would-be location (not an offset...). From that
@@ -18,7 +18,7 @@
         }
 
         // Position the stream at the checkpoint
-        Object location;
+        ITmfLocation location;
         synchronized (fCheckpoints) {
         	if (fCheckpoints.size() > 0) {
         		if (index >= fCheckpoints.size()) {
@@ -30,15 +30,15 @@
         		location = null;
         	}
         }
-        TmfTraceContext nextEventContext = seekLocation(location);
-        nextEventContext.setRank(index * fCacheSize);
-        TmfTraceContext currentEventContext = new TmfTraceContext(nextEventContext);
+        TmfContext nextEventContext = seekLocation(location);
+        nextEventContext.setRank(index * fIndexPageSize);
+        TmfContext currentEventContext = new TmfContext(nextEventContext);
 
         // And get the event
         TmfEvent event = getNextEvent(nextEventContext);
         while (event != null && event.getTimestamp().compareTo(timestamp, false) < 0) {
         	currentEventContext.setLocation(nextEventContext.getLocation());
-        	currentEventContext.incrRank();
+        	currentEventContext.updateRank(1);
         	event = getNextEvent(nextEventContext);
         }
 

@@ -11,19 +11,15 @@
 	 * 
 	 * @return boolean True if a checkpoint was saved, false otherwise
 	 */
-	private boolean saveCheckPointIfNeeded(Long eventCounter,
-			TmfTimestamp eventTime) {
+	private boolean saveCheckPointIfNeeded(Long eventCounter, TmfTimestamp eventTime) {
 		boolean saveHappened = false;
-		// Crate new location to store checkpoint reference
-		Long location = new Long(eventCounter.longValue());
 		// Save a checkpoint every LTTNG_STATE_SAVE_INTERVAL event
-		if ((location % LTTNG_STATE_SAVE_INTERVAL) == 0) {
+		if ((eventCounter.longValue() % LTTNG_STATE_SAVE_INTERVAL) == 0) {
 			// Save the checkpoint
-			stateCheckpointsList.put(location, stateIn.traceStateModel.clone());
+			stateCheckpointsList.put(eventCounter, stateIn.traceStateModel.clone());
 			// Save correlation between timestamp and checkpoint index
 
-			timestampCheckpointsList.add(new TmfTraceCheckpoint(eventTime,
-					location));
+			timestampCheckpointsList.add(new TmfCheckpoint(eventTime, new TmfLocation<Long>(eventCounter)));
 
 			saveHappened = true;
 		}

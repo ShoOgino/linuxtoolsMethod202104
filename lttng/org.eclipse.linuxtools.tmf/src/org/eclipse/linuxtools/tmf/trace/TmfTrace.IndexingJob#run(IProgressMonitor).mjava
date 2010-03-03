@@ -1,6 +1,7 @@
 		/* (non-Javadoc)
 		 * @see org.eclipse.core.runtime.jobs.Job#run(org.eclipse.core.runtime.IProgressMonitor)
 		 */
+		@SuppressWarnings("rawtypes")
 		@Override
 		protected IStatus run(IProgressMonitor monitor) {
 
@@ -10,21 +11,26 @@
             TmfTimestamp startTime = null;
             TmfTimestamp lastTime  = null;
 
-            fCheckpoints = new Vector<TmfTraceCheckpoint>();
+            // Reset the index
+            fCheckpoints = new Vector<TmfCheckpoint>();
             
             try {
             	// Position the trace at the beginning
-                TmfTraceContext context = seekLocation(null);
-                Object location = context.getLocation();
+                TmfContext context = seekLocation(null);
+                TmfLocation location = (TmfLocation) context.getLocation();
 
+                // Get the first event
                	TmfEvent event = getNextEvent(context);
-                startTime = new TmfTimestamp(event.getTimestamp());
-                lastTime  = new TmfTimestamp(startTime);
-                while (event != null) {
+               	if (event != null) {
+                    startTime = new TmfTimestamp(event.getTimestamp());
+               	}
+
+               	// Index the trace
+               	while (event != null) {
                 	lastTime = event.getTimestamp();
-           			if ((nbEvents++ % fCacheSize) == 0) {
+           			if ((nbEvents++ % fIndexPageSize) == 0) {
            				lastTime = new TmfTimestamp(event.getTimestamp());
-                   		fCheckpoints.add(new TmfTraceCheckpoint(lastTime, location));
+                   		fCheckpoints.add(new TmfCheckpoint(lastTime, location.clone()));
                    		fNbEvents = nbEvents;
                    		fTimeRange = new TmfTimeRange(startTime, lastTime);
                    		notifyListeners(new TmfTimeRange(startTime, lastTime));
@@ -39,8 +45,8 @@
                     }
 
                     // We will need this location at the next iteration
-                    if ((nbEvents % fCacheSize) == 0) {
-                        location = context.getLocation();
+                    if ((nbEvents % fIndexPageSize) == 0) {
+                        location = (TmfLocation) context.getLocation();
            			}
 
                     event = getNextEvent(context);
@@ -51,13 +57,14 @@
                 	fNbEvents = nbEvents;
                 	fTimeRange = new TmfTimeRange(startTime, lastTime);
             		fIndexing = false;
+            		fIndexed = true;
                 }
                 notifyListeners(new TmfTimeRange(startTime, lastTime));
                 monitor.done();
             }
 
-//            createOffsetsFile();
-//            dumpTraceCheckpoints();
+//          createOffsetsFile();
+//            dumpCheckpoints();
             
             return Status.OK_STATUS;
 		}

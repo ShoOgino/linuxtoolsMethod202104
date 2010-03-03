@@ -1,0 +1,27 @@
+	public TmfExperimentContext seekEvent(long rank) {
+
+		TmfExperimentContext context;
+		int page = 0;		// The checkpoint page
+		int current = 0;	// The current event index (rank)
+		
+		// If there is no checkpoint created yet, start from the beginning
+		if (fCheckpoints.size() == 0) {
+			context = seekLocation(null);
+		}
+		else {
+			page = (int) rank / fIndexPageSize;
+			if (page >= fCheckpoints.size()) {
+				page = fCheckpoints.size() - 1;
+			}
+			context = seekLocation(fCheckpoints.elementAt(page).getLocation());
+			current = page * fIndexPageSize;
+		}
+
+		// Position the traces at the requested index
+		while (current++ < rank) {
+			getNextEvent(context);
+		}
+
+		return context;
+	}
+
