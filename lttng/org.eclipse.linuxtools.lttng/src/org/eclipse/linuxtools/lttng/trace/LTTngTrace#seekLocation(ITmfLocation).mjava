@@ -1,47 +1,22 @@
-    /**
-     * Seek (move) to a certain location in the trace.<p>
-     * 
-     * WARNING : No event is read by this function, it just seek to a certain time.<br>
-     * Use "parseEvent()" or "getNextEvent()" to get the event we seeked to. 
-     * 
-     * @param location  a TmfTimestamp of a position in the trace
-     * 
-     * @return TmfTraceContext pointing the position in the trace at the seek location 
-     */
-    public TmfContext seekLocation(ITmfLocation location) {
-        
-    	LttngTimestamp timestamp = null;
-
-    	// If location is null, interpret this as a request to get back to the beginning of the trace
-        //      in that case, just change the location, the seek will happen below
-    	if (location == null) {
-    		// *** FIXME ***
-    		// Corrupted StartTime in TMF!!! 
-    		//location = getStartTime();
-    		location = new LttngLocation(new LttngTimestamp(currentJniTrace.getStartTime().getTime()));
+    @Override
+    public synchronized TmfContext seekLocation(ITmfLocation location) {
+    	
+    	if ( joie == true ) {
+    		System.out.println("seekLocation(location) location -> " + location);
     	}
-
-    	if (location instanceof TmfTimestamp) {
-    		long value = ((TmfTimestamp) location).getValue();
-    		
-    		if (value != currentJniTrace.getCurrentEventTimestamp().getTime()) {
-    			/*
-    			System.out.println("\nLOCATION IS : " + ((TmfTimestamp) location).getValue());
-        		System.out.println("JNI IS : " + currentJniTrace.getCurrentEventTimestamp().getTime());
-    			System.out.println("SEEKING");
-    			*/
-    			
-    			synchronized (currentJniTrace) {
-    				//currentJniTrace.seekToTime(new JniTime(value));
-    				currentJniTrace.seekAndRead(new JniTime(value));
-    				timestamp = (LttngTimestamp) getCurrentLocation();
-    			}
-    		}
+    	
+    	LttngTimestamp tmpTime = null;
+    	
+    	if ( location == null ) {
+    		tmpTime = (LttngTimestamp)getStartTime();
     	}
     	else {
-    	    System.out.println("ERROR : Location not instance of TmfTimestamp");
+    		// *** FIXME ***
+    		// NEED TO AVOID TIMESTAMP CREATION
+    		tmpTime = new LttngTimestamp( ((LttngLocation)location).getCurrentTime() );
     	}
-
-    	 return new TmfContext(new LttngLocation(timestamp), 0);
+    	
+    	// The only seek valid in LTTng is with the time, we call seekEvent(timestamp)
+    	return seekEvent( tmpTime );
     }
 

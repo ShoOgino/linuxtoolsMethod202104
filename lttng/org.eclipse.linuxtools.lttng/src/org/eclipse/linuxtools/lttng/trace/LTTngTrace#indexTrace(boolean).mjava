@@ -1,0 +1,48 @@
+    @Override
+    public synchronized void indexTrace(boolean useless) {
+    	
+        // Position the trace at the beginning
+        TmfContext context = seekEvent( new LttngTimestamp(0L) );
+        
+        long nbEvents=0L;
+//        joie = false;
+        
+        LttngTimestamp startTime = null;
+        LttngTimestamp lastTime  = new LttngTimestamp();
+        
+        LttngEvent tmpEvent = (LttngEvent)getNextEvent(context);
+        LttngLocation tmpLocation = (LttngLocation)context.getLocation();
+        
+    	
+        while ( tmpEvent != null) {
+        		tmpLocation = (LttngLocation)context.getLocation();
+
+                if ( startTime == null ) {
+                        startTime = new LttngTimestamp( tmpLocation.getCurrentTime() );
+                }
+                
+                lastTime.setValue(tmpEvent.getTimestamp().getValue());
+                
+                if ((nbEvents % getCacheSize()) == 0) {
+                        LttngTimestamp tmpTimestamp = new LttngTimestamp( tmpLocation.getCurrentTime() );
+                        LttngLocation  newLocation  = new LttngLocation(  tmpLocation.getCurrentTime() );
+                        
+                        fCheckpoints.add(new TmfCheckpoint(tmpTimestamp, newLocation ) );
+                }
+
+                nbEvents++;
+
+                tmpEvent = (LttngEvent)getNextEvent(context);
+        }
+
+        if (startTime != null) {
+            setTimeRange( new TmfTimeRange(startTime, lastTime) );
+            notifyListeners(getTimeRange() );
+        }
+        
+        fNbEvents = nbEvents;
+        //bidon_function();
+//        joie = true;
+        
+    }
+

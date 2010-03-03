@@ -1,0 +1,35 @@
+    @Override
+    public synchronized TmfContext seekEvent(long position) {
+    	
+    	if ( joie == true ) {
+    		System.out.println("seekEvent(position) position -> " + position);
+    	}
+    	
+    	TmfTimestamp timestamp = null;
+        long index = position / getCacheSize();
+        
+        if (fCheckpoints.size() > 0) {
+                if (index >= fCheckpoints.size()) {
+                        index = fCheckpoints.size() - 1;
+                }
+                timestamp = (TmfTimestamp)fCheckpoints.elementAt((int)index).getTimestamp();
+        }
+        else {
+            timestamp = getStartTime();
+        }
+        
+        TmfContext 		tmpContext  = seekEvent(timestamp);
+        LttngLocation 	tmpLocation = (LttngLocation)tmpContext.getLocation();
+        
+        Long currentPosition = index * getCacheSize();
+        
+        JniEvent tmpJniEvent = currentJniTrace.findNextEvent();
+        while ( (tmpJniEvent != null) && ( currentPosition < position ) ) {
+                tmpJniEvent = currentJniTrace.readNextEvent();
+                currentPosition++;
+                tmpLocation.setCurrentTime( tmpJniEvent.getEventTime().getTime() );
+        }
+        
+        return tmpContext;
+    }
+
