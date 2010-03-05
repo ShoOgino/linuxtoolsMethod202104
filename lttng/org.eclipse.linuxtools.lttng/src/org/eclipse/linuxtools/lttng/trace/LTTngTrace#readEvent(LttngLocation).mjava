@@ -1,7 +1,18 @@
+    /*
+     * Read the next event from the JNI and convert it as Lttng Event<p>
+     * 
+     * @param location 	Current LttngLocation that to be updated with the event timestamp
+     * 
+     * @return The LttngEvent we read of null if no event are available
+     * 
+     * @see org.eclipse.linuxtools.lttng.event.LttngLocation
+     * @see org.eclipse.linuxtools.org.eclipse.linuxtools.lttng.jni.JniTrace
+     */
     private synchronized LttngEvent readEvent(LttngLocation location) {
     	LttngEvent 	returnedEvent = null;
     	JniEvent tmpEvent = null;
     	
+    	// Read the next event from JNI. THIS WILL INVALIDATE THE CURRENT LTTNG EVENT.
     	tmpEvent = currentJniTrace.readNextEvent();
 		
 		if ( tmpEvent != null ) {
@@ -9,26 +20,13 @@
 			// Convert will update the currentLttngEvent
             returnedEvent = convertJniEventToTmf(tmpEvent);
             
-            // *** NOTE 
-            // Set Last and Current time from the event read, as it could be different from the time requested 
-            location.setLastReadTime(returnedEvent.getTimestamp().getValue() );
-            location.setCurrentTime( returnedEvent.getTimestamp().getValue() );
+            location.setOperationTime( (LttngTimestamp)returnedEvent.getTimestamp() );
         }
 		// *** NOTE
 		// If the read failed (likely the last event in the trace), set the LastReadTime to the JNI time
 		// That way, even if we try to read again, we will step over the bogus seek and read
 		else {
-//			location.setLastReadTime( currentJniTrace.getEndTime().getTime() + 1 );
-//			location.setCurrentTime(  currentJniTrace.getEndTime().getTime() + 1 );
-			location.setLastReadTime( getEndTime().getValue() + 1 );
-			location.setCurrentTime(  getEndTime().getValue() + 1 );
-//			location.setLastReadTime( Long.MAX_VALUE );
-//			location.setCurrentTime(  Long.MAX_VALUE );
-//			location.setLastReadTime( currentJniTrace.getEndTime().getNanoSeconds() + 1 );
-//			location.setCurrentTime(  currentJniTrace.getEndTime().getNanoSeconds() + 1 );
-//			System.out.println("TMF End time " + getEndTime().getValue() );
-//			System.out.println("JNI End time " + currentJniTrace.getEndTime().getTime() );
-//			System.out.println("JNI Partial time " + currentJniTrace.getEndTime().getNanoSeconds() );
+			location.setOperationTime(  getEndTime().getValue() + 1 );
 		}
 		
 		return returnedEvent;

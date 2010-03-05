@@ -1,22 +1,35 @@
-    @Override
-	public synchronized TmfContext seekLocation(ITmfLocation<?> location) {
+    /**
+     * Position the trace to the event at the given location.<p>
+     * NOTE : Seeking by location is very fast compare to seeking by position 
+     * 	but is still slower than "ReadNext", avoid using it for small interval.
+     * 
+     * @param location		Location of the event in the trace.
+     * 						If no event available at this exact location, we will position ourself to the next one.
+     * 
+     * @return The TmfContext that point to this event
+     * 
+     * @see org.eclipse.linuxtools.lttng.event.LttngLocation
+     * @see org.eclipse.linuxtools.tmf.trace.TmfContext
+     */
+    public synchronized TmfContext seekLocation(ITmfLocation<?> location) {
     	
-    	if ( joie == true ) {
+    	if ( printDebug == true ) {
     		System.out.println("seekLocation(location) location -> " + location);
     	}
     	
-    	LttngTimestamp tmpTime = null;
-    	
+    	// If the location in context is null, create a new one
+    	LttngLocation curLocation = null;
     	if ( location == null ) {
-    		tmpTime = (LttngTimestamp)getStartTime();
+    		curLocation = new LttngLocation();
     	}
     	else {
-    		// *** FIXME ***
-    		// NEED TO AVOID TIMESTAMP CREATION
-    		tmpTime = new LttngTimestamp( ((LttngLocation)location).getCurrentTime() );
+    		curLocation = (LttngLocation)location;
     	}
     	
+    	// *** NOTE : 
+    	// Update to location should (and will) be done in SeekEvent.
+    	
     	// The only seek valid in LTTng is with the time, we call seekEvent(timestamp)
-    	return seekEvent( tmpTime );
+    	return seekEvent( curLocation.getOperationTime() );
     }
 

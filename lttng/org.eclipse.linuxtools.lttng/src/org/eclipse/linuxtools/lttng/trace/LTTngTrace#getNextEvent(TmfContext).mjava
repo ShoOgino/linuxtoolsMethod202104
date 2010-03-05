@@ -1,31 +1,79 @@
+    /**
+     * Return the event in the trace according to the given context. Read it if necessary.<p>
+     * Similar (same?) as ParseEvent except that calling GetNext twice read the next one the second time.
+     * 
+     * @param context 	Current TmfContext where to get the event
+     * 
+     * @return The LttngEvent we read of null if no event are available
+     * 
+     * @see org.eclipse.linuxtools.lttng.event.LttngLocation
+     * @see org.eclipse.linuxtools.tmf.trace.TmfContext
+     */
     @Override
     public synchronized LttngEvent getNextEvent(TmfContext context) {
     	
-    	if ( joie == true ) {
+    	if ( printDebug == true ) {
     		System.out.println("getNextEvent(context) context.getLocation() -> " + context.getLocation());
     	}
     	
     	LttngEvent 	returnedEvent = null;
-    	LttngLocation tmpLocation = null;
+    	LttngLocation curLocation = null;
     	
+    	// If the location in context is null, create a new one
     	if ( context.getLocation() == null ) {
-    		tmpLocation = new LttngLocation();
-    		context.setLocation(tmpLocation);
+    		curLocation = new LttngLocation();
+    		context.setLocation(curLocation);
     	}
     	else {
-    		tmpLocation = (LttngLocation)context.getLocation();
+    		// Otherwise, we use the one in context; it should be a valid LttngLocation
+    		curLocation = (LttngLocation)context.getLocation();
     	}
     	
-    	if ( tmpLocation.getCurrentTime() != currentJniTrace.getCurrentEventTimestamp().getTime() ) {
-    		seekLocation( tmpLocation );
+    	// *** HACK ***
+    	// TMF assumes it is possible to read (GetNextEvent) to the next Event once ParseEvent() is called
+    	// In LTTNG, there is not difference between "Parsing" and "Reading" an event.
+    	//  	Since parsing/reading invalidate the previous event, 
+    	//		we need to make sure the sequenceParseEvent() -> GetNextEvent() will not actually move to the next event.
+    	// To do so, we avoid moving for call to "GetNextEvent()" that follow call to a call to "ParseEvent()".
+    	// However, calling ParseEvent() -> GetNextEvent() -> GetNextEvent() will only move next by one.
+    	
+    	// *** Positionning trick :
+    	// GetNextEvent only read the trace if : 
+    	// 1- The last operation was NOT a ParseEvent --> A read is required
+    	// 	OR
+    	// 2- The time of the previous location is different from the current  one --> A seek + a read is required
+    	if ( (curLocation.isLastOperationParse() != true) ||
+    		 (previousLocation.getOperationTimeValue() != curLocation.getOperationTimeValue() ) ) 
+    	{
+			if ( previousLocation.getOperationTimeValue() != curLocation.getOperationTimeValue() ) {
+				if ( printDebug == true ) {
+					System.out.println("\t\tSeeking in getNextEvent. [ LastTime : " + previousLocation.getOperationTimeValue() + " CurrentTime" + curLocation.getOperationTimeValue() + " ]");
+				}
+				seekEvent( curLocation.getOperationTime() );
+			}
+			// Read the next event from the trace. The last one will NO LONGER BE VALID.
+	    	returnedEvent = readEvent(curLocation);
+	    	
+	    	// Set the operation marker as read to both location, to be able to detect we did "read" this event
+	    	previousLocation.setLastOperationReadNext();
+	    	curLocation.setLastOperationReadNext();
+    	}
+    	else {
+    		// No event was read, just return the one currently loaded (the last one we read)
+    		returnedEvent = currentLttngEvent;
+    		
+    		// *** IMPORTANT!
+    		// Reset (erase) the operation marker to both location, to be able to detect we did NOT "read" this event
+        	previousLocation.resetLocationState();
+        	curLocation.resetLocationState();
     	}
     	
-    	returnedEvent = readEvent(tmpLocation);
-    	
-    	// No matter what happens, save the location
-    	currentLocation = tmpLocation;
+    	// If we read an event, set it's time to the locations (both previous and current)
+    	if ( returnedEvent != null ) {
+    		previousLocation.setOperationTime((LttngTimestamp)returnedEvent.getTimestamp());
+    		curLocation.setOperationTime((LttngTimestamp)returnedEvent.getTimestamp());
+    	}
     	
     	return returnedEvent;
-    	
     }
 
