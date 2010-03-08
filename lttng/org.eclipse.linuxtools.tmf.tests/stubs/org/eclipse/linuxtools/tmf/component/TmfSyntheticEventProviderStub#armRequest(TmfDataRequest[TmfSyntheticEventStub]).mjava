@@ -1,0 +1,36 @@
+	@SuppressWarnings("unchecked")
+	@Override
+	public ITmfContext armRequest(final TmfDataRequest<TmfSyntheticEventStub> request) {
+
+		// Get the TmfSyntheticEventStub provider
+		TmfDataProvider<TmfEvent>[] eventProviders = (TmfDataProvider<TmfEvent>[]) TmfProviderManager.getProviders(TmfEvent.class, TmfEventProviderStub.class);
+		TmfDataProvider<TmfEvent> provider = eventProviders[0];
+
+		// make sure we have the right type of request
+		if (!(request instanceof TmfEventRequest<?>)) {
+			request.cancel();
+			return null;
+		}
+
+		TmfEventRequest<TmfSyntheticEventStub> eventRequest = (TmfEventRequest<TmfSyntheticEventStub>) request;
+        TmfTimeRange range = eventRequest.getRange();
+        final TmfEventRequest<TmfEvent> subRequest =
+        	new TmfEventRequest<TmfEvent>(TmfEvent.class, range, NB_EVENTS, BLOCK_SIZE) {
+            	@Override
+            	public void handleData() {
+            		TmfEvent[] events = getData();
+            		if (events.length > 0) {
+            			for (TmfEvent e : events) {
+            				handleIncomingData(e);
+            			}
+            		} else {
+            			request.done();
+            		}
+            	}
+        	};
+        provider.processRequest(subRequest, false);
+
+        // Return a dummy context
+        return new TmfContext();
+	}
+

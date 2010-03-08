@@ -1,44 +1,8 @@
-	/**
-	 * Invokes the handling methods that listens to signals of a given type.
-	 * 
-	 * The list of handlers is built on-the-fly to allow for the dynamic
-	 * creation/deletion of signal handlers. Since the number of signal
-	 * handlers shouldn't be too high, this is not a big performance issue
-	 * to pay for the flexibility.
-	 * 
-	 * @param signal
-	 */
 	static public synchronized void dispatchSignal(TmfSignal signal) {
-
-		// Build the list of listener methods that are registered for this signal
-		Class<?> signalClass = signal.getClass();
-		Map<Object, List<Method>> listeners = new HashMap<Object, List<Method>>();
-		listeners.clear();
-		for (Map.Entry<Object, Method[]> entry : fListeners.entrySet()) {
-			List<Method> matchingMethods = new ArrayList<Method>();
-			for (Method method : entry.getValue()) {
-				if (method.getParameterTypes()[0].isAssignableFrom(signalClass)) {
-					matchingMethods.add(method);
-				}
-			}
-			if (!matchingMethods.isEmpty()) {
-				listeners.put(entry.getKey(), matchingMethods);
-			}
-		}
-
-		// Call the signal handlers 
-		for (Map.Entry<Object, List<Method>> entry : listeners.entrySet()) {
-			for (Method method : entry.getValue()) {
-				try {
-					method.invoke(entry.getKey(), new Object[] { signal });
-				} catch (IllegalArgumentException e) {
-					// TODO Auto-generated catch block
-				} catch (IllegalAccessException e) {
-					// TODO Auto-generated catch block
-				} catch (InvocationTargetException e) {
-					// TODO Auto-generated catch block
-				}
-			}
-		}
+		fSynchId++;
+		sendSignal(new TmfStartSynchSignal(fSynchId));
+		signal.setReference(fSynchId);
+		sendSignal(signal);
+		sendSignal(new TmfEndSynchSignal(fSynchId));
 	}
 
