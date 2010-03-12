@@ -1,5 +1,25 @@
 	public TmfEvent parseEvent(TmfContext context) {
-		// TODO Auto-generated method stub
-		return null;
+		if (context instanceof TmfExperimentContext) {
+			TmfExperimentContext expContext = (TmfExperimentContext) context;
+			int trace = -1;
+			TmfTimestamp timestamp = TmfTimestamp.BigCrunch;
+			for (int i = 0; i < expContext.getTraces().length; i++) {
+				if (expContext.getEvents()[i] != null) {
+					if (expContext.getEvents()[i].getTimestamp() != null) {
+						TmfTimestamp otherTS = expContext.getEvents()[i].getTimestamp();
+						if (otherTS.compareTo(timestamp, true) < 0) {
+							trace = i;
+							timestamp = otherTS;
+						}
+					}
+				}
+			}
+			if (trace >= 0) {
+				TmfContext trcloc = expContext.getContexts()[trace];
+				expContext.getEvents()[trace] = expContext.getTraces()[trace].parseEvent(trcloc);
+				return expContext.getEvents()[trace];
+			}
+		}
+    	return null;
 	}
 
