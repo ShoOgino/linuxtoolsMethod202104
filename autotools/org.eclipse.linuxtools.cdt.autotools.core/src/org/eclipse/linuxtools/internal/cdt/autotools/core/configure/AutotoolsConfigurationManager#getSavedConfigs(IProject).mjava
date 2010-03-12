@@ -1,0 +1,69 @@
+	private Map<String, IAConfiguration> getSavedConfigs(IProject project) {
+		String projectName = project.getName();
+		Map<String, IAConfiguration> list = configs.get(projectName);
+		if (list == null) {
+			try {
+				IPath fileLocation = project.getLocation().append(CFG_FILE_NAME);
+				File dirFile = fileLocation.toFile();
+				Map<String, IAConfiguration> cfgList = new HashMap<String, IAConfiguration>();
+				DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+				DocumentBuilder db = dbf.newDocumentBuilder();
+				if (dirFile.exists()) {
+					Document d = db.parse(dirFile);
+					Element e = d.getDocumentElement();
+					// Get the stored configuration data
+					NodeList cfgs = e.getElementsByTagName("configuration"); // $NON-NLS-1$
+					for (int x = 0; x < cfgs.getLength(); ++x) {
+						Node n = cfgs.item(x);
+						NamedNodeMap attrs = n.getAttributes();
+						// Originally we used the configuration name, but now we use
+						// the ConfigurationDescription id which is unique.  Check for
+						// id first, but fall back to name for older .autotools files.
+						Node nameNode = attrs.getNamedItem("name"); // $NON-NLS-1$
+						Node cfgIdNode = attrs.getNamedItem("id"); // $NON-NLS-1$
+						String cfgId = null;
+						if (cfgIdNode != null)
+							cfgId = cfgIdNode.getNodeValue();
+						else if (nameNode != null) {
+							String cfgName = nameNode.getNodeValue();
+							ICConfigurationDescription cfgd = 
+								CoreModel.getDefault().getProjectDescription(project).getConfigurationByName(cfgName);
+							if (cfgd != null)
+								cfgId = cfgd.getId();
+							else
+								continue; // have to punt, this doesn't map to real cfg
+						}
+						IAConfiguration cfg = new AutotoolsConfiguration(cfgId);
+						NodeList l = n.getChildNodes();
+						for (int y = 0; y < l.getLength(); ++y) {
+							Node child = l.item(y);
+							if (child.getNodeName().equals("option")) { // $NON-NLS-1$
+								NamedNodeMap optionAttrs = child.getAttributes();
+								Node id = optionAttrs.getNamedItem("id"); // $NON-NLS-1$
+								Node value = optionAttrs.getNamedItem("value"); // $NON-NLS-1$
+								if (id != null && value != null)
+									cfg.setOption(id.getNodeValue(), value.getNodeValue());
+							}
+						}
+						cfg.setDirty(false);
+						cfgList.put(cfg.getId(), cfg);
+					}
+					if (cfgList.size() > 0) {
+						configs.put(projectName, cfgList);
+						list = cfgList;
+					}
+				}
+			} catch (ParserConfigurationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (SAXException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return list;
+	}
+
