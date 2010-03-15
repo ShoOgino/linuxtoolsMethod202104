@@ -10,31 +10,42 @@
      * @see org.eclipse.linuxtools.lttng.event.LttngEvent
      */
     public LttngEvent convertJniEventToTmf(JniEvent jniEvent, boolean isParsingNeeded) {
-        // *** HACK *** 
-        // To save time here, we only set value instead of allocating new object
-        // This give an HUGE performance improvement
-        // all allocation done in the LttngTrace constructor
-        
-        eventTimestamp.setValue(jniEvent.getEventTime().getTime());
-        eventSource.setSourceId(jniEvent.requestEventSource());
-        
-        eventType = traceTypes.get( EventTypeKey.getEventTypeKey(jniEvent) );
-        
-        eventReference.setValue(jniEvent.getParentTracefile().getTracefilePath());
-        eventReference.setTracepath(this.getName());
-        
-        eventContent.emptyContent();
-        
-        currentLttngEvent.setType(eventType);
-        // Save the jni reference
-        currentLttngEvent.updateJniEventReference(jniEvent);
-        
-        // Parse now if was asked
-        // Warning : THIS IS SLOW
-        if (isParsingNeeded == true ) {
-            eventContent.getFields();
-        }
-        
-        return currentLttngEvent;
+    	
+    	if ( uniqueEvent == true ) {
+	    	
+	        // *** 
+	        //   UNHACKED : 	We can no longer do that because TCF need to maintain several events at once.
+	        //					This is very slow to do so in LTTng, this has to be temporary.
+	        // 		*** HACK *** 
+	        // 		To save time here, we only set value instead of allocating new object
+	        // 		This give an HUGE performance improvement
+	        // 		all allocation done in the LttngTrace constructor
+	        // ***
+	        eventTimestamp.setValue(jniEvent.getEventTime().getTime());
+	        eventSource.setSourceId(jniEvent.requestEventSource());
+	        
+	        eventType = traceTypes.get( EventTypeKey.getEventTypeKey(jniEvent) );
+	        
+	        eventReference.setValue(jniEvent.getParentTracefile().getTracefilePath());
+	        eventReference.setTracepath(this.getName());
+	        
+	        eventContent.emptyContent();
+	        
+	        currentLttngEvent.setType(eventType);
+	        // Save the jni reference
+	        currentLttngEvent.updateJniEventReference(jniEvent);
+	        
+	        // Parse now if was asked
+	        // Warning : THIS IS SLOW
+	        if (isParsingNeeded == true ) {
+	           eventContent.getFields();
+	        }
+	    	
+	    	return currentLttngEvent;
+    	}
+    	else {
+    		return convertJniEventToTmfMultipleEventEvilFix(jniEvent);
+    	}
+    	
     }
 
