@@ -9,15 +9,22 @@
      */
     @Override
     public synchronized LttngEventField[] getFields() {
-        LttngEventField tmpField = null;
         
-        LttngEventType tmpType = (LttngEventType)fParentEvent.getType();
         
-        for ( int pos=0; pos<tmpType.getNbFields(); pos++ ) {
-            String name = tmpType.getLabel(pos);
-            Object newValue = ((LttngEvent)getEvent()).convertEventTmfToJni().parseFieldByName(name);
-            tmpField = new LttngEventField(this, name, newValue );
-            fFieldsMap.put(name, tmpField);
+        if ( fFieldsMap.size() < fParentEvent.getType().getNbFields() ) {
+        	LttngEventField tmpField = null;
+        	LttngEventType tmpType = (LttngEventType)fParentEvent.getType();
+        	
+	        for ( int pos=0; pos<tmpType.getNbFields(); pos++ ) {
+	            String name = tmpType.getLabel(pos);
+	            JniEvent tmpEvent = ((LttngEvent)getEvent()).convertEventTmfToJni();
+	            
+	            if ( tmpEvent != null ) {
+		            Object newValue = tmpEvent.parseFieldByName(name);
+		            tmpField = new LttngEventField(this, name, newValue );
+		            fFieldsMap.put(name, tmpField);
+	            }
+	        }
         }
         return fFieldsMap.values().toArray(new LttngEventField[fFieldsMap.size()]);
     }
