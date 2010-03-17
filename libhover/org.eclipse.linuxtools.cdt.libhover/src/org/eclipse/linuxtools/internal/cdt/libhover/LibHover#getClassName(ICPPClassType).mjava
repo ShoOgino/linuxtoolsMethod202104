@@ -1,0 +1,50 @@
+	// Get the class name for a type, including any instance template parameters
+	// e.g. std::basic_string<char>
+	private String getClassName(ICPPClassType c) {
+		String className = null;
+		try {
+			String[] qualified = c.getQualifiedName();
+			className = qualified[0];
+			for (int k = 1; k < qualified.length; ++k) {
+				className += "::" + qualified[k];
+			}
+
+			// Check if we have an instance of a template class.	
+			if (c instanceof ICPPTemplateInstance) {
+				ICPPTemplateInstance ti = (ICPPTemplateInstance)c;
+				// Get a map which tells us the values of the template
+				// arguments (e.g. _CharT maps to char in the instance).
+				ICPPTemplateParameterMap tiMap = ti.getTemplateParameterMap();
+				ICPPTemplateDefinition td = ti.getTemplateDefinition();
+				ICPPTemplateParameter[] templateArgs = td.getTemplateParameters();
+				className += "<";
+				String separator = "";
+				for (int x = 0; x < templateArgs.length; ++x) {
+					ICPPTemplateParameter tp = templateArgs[x];
+					ICPPTemplateArgument ta = tiMap.getArgument(tp);
+					IType type = null;
+					// The template may have a type specified or a value.
+					// In the case of a value, figure out its type and use
+					// that when we do a lookup.
+					if (ta.isTypeValue())
+						type = ta.getTypeValue();
+					else
+						type = ta.getTypeOfNonTypeValue();
+					if (tp.getTemplateNestingLevel() == 0) {
+						// if the parameter is a class type, use recursion to
+						// get its class name including template parameters
+						if (type instanceof ICPPClassType)
+							className += separator + getClassName((ICPPClassType)type);
+						else
+							className += separator + type.toString();
+						separator = ",";
+					}
+				}
+				className += ">";
+			}
+		} catch(DOMException e) {
+			return null;
+		}
+		return className;
+	}
+
