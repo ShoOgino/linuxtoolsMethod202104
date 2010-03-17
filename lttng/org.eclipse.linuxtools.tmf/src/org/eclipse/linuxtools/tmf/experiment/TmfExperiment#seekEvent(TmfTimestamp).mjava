@@ -1,3 +1,6 @@
+	/* (non-Javadoc)
+	 * @see org.eclipse.linuxtools.tmf.trace.ITmfTrace#seekEvent(org.eclipse.linuxtools.tmf.event.TmfTimestamp)
+	 */
 	public TmfExperimentContext seekEvent(TmfTimestamp timestamp) {
 
 		if (timestamp == null) {
@@ -31,11 +34,13 @@
         TmfExperimentContext context = seekLocation(location);
         context.setRank(index * fIndexPageSize);
 
-        // And get the event
-        TmfEvent event = parseEvent(context);
+        // And locate the event
+        TmfExperimentContext nextEventContext = new TmfExperimentContext(context);
+        TmfEvent event = getNextEvent(nextEventContext);
         while (event != null && event.getTimestamp().compareTo(timestamp, false) < 0) {
-        	event = getNextEvent(context);
-//        	event = parseEvent(context);
+        	event = getNextEvent(nextEventContext);
+        	context = new TmfExperimentContext(nextEventContext);
+        	if (event != null) context.updateRank(-1);
         }
     	context.setLastTrace(-1);
 

@@ -6,6 +6,7 @@
 	 * @return
 	 */
 	public synchronized TmfEvent getNextEvent(TmfContext context) {
+
 		if (context instanceof TmfExperimentContext) {
 			TmfExperimentContext expContext = (TmfExperimentContext) context;
 			int lastTrace = expContext.getLastTrace();
@@ -15,8 +16,8 @@
 				expContext.getEvents()[lastTrace] = expContext.getTraces()[lastTrace].parseEvent(traceContext);
 				TmfExperimentLocation expLocation = (TmfExperimentLocation) expContext.getLocation();
 				expLocation.getLocation()[lastTrace] = traceContext.getLocation().clone();
-				expContext.updateRank(1);
 			}
+
 			int trace = -1;
 			TmfTimestamp timestamp = TmfTimestamp.BigCrunch;
 			for (int i = 0; i < expContext.getTraces().length; i++) {
@@ -30,19 +31,15 @@
 					}
 				}
 			}
-
 			if (trace >= 0) {
+				TmfContext traceContext = expContext.getContexts()[trace];
+				expContext.getEvents()[trace] = expContext.getTraces()[trace].parseEvent(traceContext);
 				expContext.setLastTrace(trace);
-//				TmfContext traceContext = expContext.getContexts()[trace];
-				TmfEvent event = expContext.getEvents()[trace];
-//				TmfEvent event = expContext.getTraces()[trace].getNextEvent(trcloc);
-//				TmfEvent event = expContext.getTraces()[trace].parseEvent(traceContext);
-//				TmfExperimentLocation exploc = (TmfExperimentLocation) expContext.getLocation();
-//				exploc.getLocation()[trace] = trcloc.getLocation().clone();
-//				expContext.getEvents()[trace] = expContext.getTraces()[trace].parseEvent(trcloc);
-				return event;
+				expContext.updateRank(1);
+				return expContext.getEvents()[trace];
 			}
 		}
-    	return null;
+			
+		return null;
 	}
 

@@ -1,6 +1,20 @@
+	/* (non-Javadoc)
+	 * @see org.eclipse.linuxtools.tmf.trace.ITmfTrace#parseEvent(org.eclipse.linuxtools.tmf.trace.TmfContext)
+	 */
 	public TmfEvent parseEvent(TmfContext context) {
+		
 		if (context instanceof TmfExperimentContext) {
 			TmfExperimentContext expContext = (TmfExperimentContext) context;
+			int lastTrace = expContext.getLastTrace();
+			if (lastTrace != -1) {
+				TmfContext traceContext = expContext.getContexts()[lastTrace];
+				expContext.getTraces()[lastTrace].getNextEvent(traceContext);
+				expContext.getEvents()[lastTrace] = expContext.getTraces()[lastTrace].parseEvent(traceContext);
+				expContext.updateRank(1);
+				TmfExperimentLocation expLocation = (TmfExperimentLocation) expContext.getLocation();
+				expLocation.getLocation()[lastTrace] = traceContext.getLocation().clone();
+			}
+
 			int trace = -1;
 			TmfTimestamp timestamp = TmfTimestamp.BigCrunch;
 			for (int i = 0; i < expContext.getTraces().length; i++) {
@@ -15,11 +29,13 @@
 				}
 			}
 			if (trace >= 0) {
-				TmfContext trcloc = expContext.getContexts()[trace];
-				expContext.getEvents()[trace] = expContext.getTraces()[trace].parseEvent(trcloc);
+				TmfContext traceLocation = expContext.getContexts()[trace];
+				expContext.getEvents()[trace] = expContext.getTraces()[trace].parseEvent(traceLocation);
+				expContext.setLastTrace(-1);
 				return expContext.getEvents()[trace];
 			}
 		}
-    	return null;
+
+		return null;
 	}
 
