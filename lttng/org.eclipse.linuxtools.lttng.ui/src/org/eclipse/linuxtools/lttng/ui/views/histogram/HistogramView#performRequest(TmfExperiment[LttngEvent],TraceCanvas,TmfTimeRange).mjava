@@ -1,0 +1,28 @@
+    // *** VERIFY ***
+    // this function is synchronized, is it a good idea?
+    public synchronized HistogramRequest performRequest(TmfExperiment<LttngEvent> experiment, TraceCanvas targetCanvas, TmfTimeRange newRange) {
+    	
+    	HistogramRequest returnedRequest = null;
+    	
+        // The content holder we will use
+        HistogramContent content = targetCanvas.getHistogramContent();
+        
+	    // We use integer.MAX_VALUE because we want to make sure we get every events
+        returnedRequest = new HistogramRequest(LttngEvent.class, newRange, Integer.MAX_VALUE, content, targetCanvas );
+        
+        content.setStartTime( experiment.getStartTime().getValue() );
+        content.setEndTime( experiment.getEndTime().getValue() );
+        
+        // Set a (dynamic) time interval
+        content.setIntervalTime( (content.getEndTime() - content.getStartTime()) / content.getNbElement() );
+        
+        // *** VERIFY ***
+        // This would enable "fixed interval" instead of dynamic one.
+        //
+        //content.setIntervalTime((long)(0.001 * (double)1000000000));
+        
+        experiment.sendRequest(returnedRequest);
+        
+        return returnedRequest;
+    }
+
