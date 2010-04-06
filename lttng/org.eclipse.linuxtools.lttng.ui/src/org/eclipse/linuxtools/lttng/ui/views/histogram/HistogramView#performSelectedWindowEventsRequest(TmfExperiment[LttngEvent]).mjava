@@ -1,0 +1,29 @@
+    public void performSelectedWindowEventsRequest(TmfExperiment<LttngEvent> experiment) {
+    	
+    	HistogramSelectedWindow curSelectedWindow = fullTraceCanvas.getCurrentWindow();
+    	
+    	if ( curSelectedWindow == null ) {
+    		curSelectedWindow = fullTraceCanvas.createNewSelectedWindow( getTimeWindowSize() );
+    	}
+    	
+		LttngTimestamp ts1 = new LttngTimestamp( curSelectedWindow.getTimestampLeft() );
+		LttngTimestamp ts2 = new LttngTimestamp( curSelectedWindow.getTimestampRight() );
+		
+        if ( ts2.getValue() > experiment.getEndTime().getValue() ) {
+        	ts2 = new LttngTimestamp( experiment.getEndTime().getValue() );
+        } 
+        
+        TmfTimeRange tmpRange = new TmfTimeRange(ts1, ts2);
+        
+        // Set a (dynamic) time interval
+        long intervalTime = ( (ts2.getValue() - ts1.getValue()) / selectedWindowCanvas.getHistogramContent().getNbElement() );
+        
+        // *** VERIFY ***
+        // This would enable "fixed interval" instead of dynamic one.
+        // ... we don't need it, do we?
+        //
+        // long intervalTime = ((long)(0.001 * (double)1000000000));
+        selectedWindowRequest = performRequest(experiment, selectedWindowCanvas, tmpRange, intervalTime);
+        selectedWindowCanvas.redraw();
+    }
+
