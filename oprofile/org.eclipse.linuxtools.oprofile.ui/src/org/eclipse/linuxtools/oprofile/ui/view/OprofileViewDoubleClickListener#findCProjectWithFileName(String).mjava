@@ -1,0 +1,25 @@
+	private static ICProject findCProjectWithFileName(final String symbolString) throws CoreException{
+		final ArrayList<ICProject> ret = new ArrayList<ICProject>();
+		
+		// visitor object to check for the matching path string
+		ICElementVisitor vis = new ICElementVisitor() {
+			public boolean visit(ICElement element) throws CoreException {
+				if (element.getElementType() == ICElement.C_CCONTAINER
+						|| element.getElementType() == ICElement.C_PROJECT){
+					return true;
+				}else if (symbolString.endsWith((element.getPath().toFile().getAbsolutePath()))){
+					ret.add(element.getCProject());
+				}
+				return false;
+		}};
+		
+			ICProject[] cProjects = CCorePlugin.getDefault().getCoreModel().getCModel().getCProjects();
+			for (ICProject proj : cProjects){
+					// visit every project
+					proj.accept(vis);
+			}
+		
+		// is it possible to find more than one matching project ?
+		return ret.size() == 0 ? null : ret.get(0);
+	}
+

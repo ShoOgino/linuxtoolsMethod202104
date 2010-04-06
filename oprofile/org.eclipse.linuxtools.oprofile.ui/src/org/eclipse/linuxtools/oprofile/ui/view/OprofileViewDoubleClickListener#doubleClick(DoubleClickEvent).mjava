@@ -1,5 +1,7 @@
 	public void doubleClick(DoubleClickEvent event) {
-		IUiModelElement element = (IUiModelElement)((TreeSelection)((TreeViewer)event.getSource()).getSelection()).getFirstElement();;
+		TreeViewer tv = (TreeViewer) event.getSource();
+		TreeSelection tsl = (TreeSelection) tv.getSelection();
+		IUiModelElement element = (IUiModelElement) tsl.getFirstElement();
 		
 		if (element instanceof UiModelEvent) {
 //			UiModelEvent event = (UiModelEvent)element;
@@ -10,22 +12,57 @@
 //			UiModelImage image = (UiModelImage)element;
 	
 		} else if (element instanceof UiModelSymbol) {
-			/* disable this.. for binary section such as .plt, 
-			 * this will open the binary in an editor = bad */ 
-
-			//jump to 1st line in the file
-//			UiModelSymbol symbol = (UiModelSymbol)element;
-//			String fileName = symbol.getFileName();
-//			
-//			if (fileName.length() > 0) {
-//				try {
-//					ProfileUIUtils.openEditorAndSelect(fileName, 1);
-//				} catch (PartInitException e) {
-//					e.printStackTrace();
-//				} catch (BadLocationException e) {
-//					e.printStackTrace();
-//				}
-//			}
+			UiModelSymbol symbol = (UiModelSymbol)element;
+			String symbolString = symbol.getParent().getLabelText();
+			String fileName = symbol.getFileName();
+			String functionName = symbol.getFunctionName();
+			HashMap<String,int[]> map;
+			
+			ICProject project;
+			try {
+				project = findCProjectWithFileName(symbolString);
+				if (project == null){
+					return;
+				}
+			} catch (CoreException e1) {
+				e1.printStackTrace();
+				return;
+			}
+			
+			if (fileName.length() > 0 && functionName.length() > 0){
+				// try and go to the function in the file
+				map = findFunctionsInProject(project, functionName, fileName);
+				
+				for (String loc : map.keySet()){
+					try {
+						ProfileUIUtils.openEditorAndSelect(loc, map.get(loc)[0], map.get(loc)[1]);
+					} catch (PartInitException e) {
+						e.printStackTrace();
+					}
+				}
+				
+			}else if (functionName.length() > 0){
+				// try to find the file name that has this function
+				map = findFunctionsInProject(project, functionName, null);
+				
+				for (String loc : map.keySet()){
+					try {
+						ProfileUIUtils.openEditorAndSelect(loc, map.get(loc)[0], map.get(loc)[1]);
+					} catch (PartInitException e) {
+						e.printStackTrace();
+					}
+				}
+			}else if (fileName.length() > 0) {
+				// can this ever happen ?
+				// jump to 1st line in the file
+				try {
+					ProfileUIUtils.openEditorAndSelect(fileName, 1);
+				} catch (PartInitException e) {
+					e.printStackTrace();
+				} catch (BadLocationException e) {
+					e.printStackTrace();
+				}
+			}
 		} else if (element instanceof UiModelSample) {
 			//jump to line number in the appropriate file
 			UiModelSample sample = (UiModelSample)element;
