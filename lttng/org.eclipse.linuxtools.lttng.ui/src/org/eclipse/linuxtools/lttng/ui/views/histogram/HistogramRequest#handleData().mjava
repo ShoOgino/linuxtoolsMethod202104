@@ -1,3 +1,7 @@
+	/**
+	 * HandleData function : will be called by TMF each time a new event is receive for the request.<p>
+	 * Calculation for the content is done here.
+	 */
 	@Override
     public void handleData() {
         TmfEvent[] result = getData();
@@ -16,43 +20,52 @@
         	
         	// This check is linked to the evil fix mentionned above
         	if ( tmpEvent.getTimestamp().getValue() <= histogramContent.getEndTime() ) {
-        	
+        		
+        		// Distance (in time) between this event and the last one we read
 	        	long distance = ( tmpEvent.getTimestamp().getValue() - lastRangeTime );
 				
+	        	// Check if we changed of interval (the distance is higher than the interval time)
 				if  ( distance > histogramContent.getIntervalTime() ) {
 					
-					histogramContent.getElementByIndex(lastPos).intervalNbEvents = nbEventsInRange;
+					histogramContent.getElementByIndex(lastInterval).intervalNbEvents = nbEventsInInterval;
 					lastRangeTime = tmpEvent.getTimestamp().getValue();
 					
-					lastPos = (int)((lastRangeTime - histogramContent.getStartTime()) / histogramContent.getIntervalTime() );
+					// * NOTE *
+					// We can skip several interval at once, so we need to find what was our interval now
+					lastInterval = (int)((lastRangeTime - histogramContent.getStartTime()) / histogramContent.getIntervalTime() );
 					
 					// *** HACK ***
 					// Because of the threads, weird phenomenons seem to happen here, like a position after the 
 					//	 element range because another request was issued.
 					// This enforce the position but may result in slightly inconsistent result (i.e. a weird misplaced bar sometime).
-					if ( lastPos < 0 ) {
-						lastPos = 0;
+					if ( lastInterval < 0 ) {
+						lastInterval = 0;
 					}
-					else if ( lastPos >= histogramContent.getNbElement() ) {
-						lastPos = (histogramContent.getNbElement()-1);
+					else if ( lastInterval >= histogramContent.getNbElement() ) {
+						lastInterval = (histogramContent.getNbElement()-1);
 					}
 					
-					histogramContent.getElementByIndex(lastPos).firstIntervalTimestamp = lastRangeTime;
-					histogramContent.setReadyUpToPosition(lastPos);
+					// * NOTE * 
+					// We save the time we have. This mean only the FIRST time read in an interval will be saved. 
+					histogramContent.getElementByIndex(lastInterval).firstIntervalTimestamp = lastRangeTime;
+					histogramContent.setReadyUpToPosition(lastInterval);
 					
-					nbPosNotEmpty++;
-					nbEventsInRange = 1;
+					nbIntervalNotEmpty++;
+					nbEventsInInterval = 1;
 				}
+				// We are still in the same interval, just keep counting
 				else {
-					nbEventsInRange++;
-					if ( nbEventsInRange > histogramContent.getHeighestEventCount() ) {
-						histogramContent.setHeighestEventCount(nbEventsInRange);
+					nbEventsInInterval++;
+					if ( nbEventsInInterval > histogramContent.getHeighestEventCount() ) {
+						histogramContent.setHeighestEventCount(nbEventsInInterval);
 					}
 				}
 				
 				nbEventRead++;
 				
-				if ( nbEventRead % REDRAW_EVERY_NB_EVENTS == 0 ) {
+				// Call an asynchronous redraw every REDRAW_EVERY_NB_EVENTS events
+				// That way we don't need to wait until to end to have something on the screen
+				if ( nbEventRead % HistogramConstant.REDRAW_EVERY_NB_EVENTS == 0 ) {
 					redrawAsyncronously();
 				}
         	}
