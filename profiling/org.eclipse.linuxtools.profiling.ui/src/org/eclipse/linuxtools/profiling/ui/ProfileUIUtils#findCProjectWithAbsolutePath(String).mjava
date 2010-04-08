@@ -1,0 +1,33 @@
+	/**
+	 * Find an ICProject that contains the specified absolute path.
+	 * 
+	 * @param absPath An absolute path (usually to some file/folder in a project)
+	 * @return an ICProject corresponding to the project that contains the absolute path
+	 * @throws CoreException
+	 */
+	public static ICProject findCProjectWithAbsolutePath(final String absPath) throws CoreException{
+		final String workspaceLoc = ResourcesPlugin.getWorkspace().getRoot().getLocation().toOSString();
+		final ArrayList<ICProject> ret = new ArrayList<ICProject>();
+		
+		// visitor object to check for the matching path string
+		ICElementVisitor vis = new ICElementVisitor() {
+			public boolean visit(ICElement element) throws CoreException {
+				if (element.getElementType() == ICElement.C_CCONTAINER
+						|| element.getElementType() == ICElement.C_PROJECT){
+					return true;
+				}else if (absPath.equals(workspaceLoc+element.getPath().toFile().getAbsolutePath())){
+					ret.add(element.getCProject());
+				}
+				return false;
+		}};
+		
+			ICProject[] cProjects = CCorePlugin.getDefault().getCoreModel().getCModel().getCProjects();
+			for (ICProject proj : cProjects){
+					// visit every project
+					proj.accept(vis);
+			}
+		
+		// is it possible to find more than one matching project ?
+		return ret.size() == 0 ? null : ret.get(0);
+	}
+
