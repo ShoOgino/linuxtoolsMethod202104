@@ -13,14 +13,17 @@
 	
 		} else if (element instanceof UiModelSymbol) {
 			UiModelSymbol symbol = (UiModelSymbol)element;
-			String symbolString = symbol.getParent().getLabelText();
+			String symbolLabel = symbol.getParent().getLabelText();
 			String fileName = symbol.getFileName();
 			String functionName = symbol.getFunctionName();
+			int numOfArgs = -1;
 			HashMap<String,int[]> map;
 			
 			ICProject project;
 			try {
-				project = findCProjectWithFileName(symbolString);
+				// hard coded to match "XY.PQ% in /some/arbitrary/path/to/binary"
+				String absPath = symbolLabel.substring(symbolLabel.indexOf(" in ") + 4);
+				project = ProfileUIUtils.findCProjectWithAbsolutePath(absPath);
 				if (project == null){
 					return;
 				}
@@ -29,9 +32,21 @@
 				return;
 			}
 			
+			// detect function with arguments and narrow search accordingly
+			if (functionName.matches(".*\\(.*\\)")) {
+				int start = functionName.indexOf('(');
+				if (functionName.contains(",")) {
+					int end = functionName.indexOf(')');
+					numOfArgs = functionName.substring(start, end).split(",").length;
+				} else {
+					numOfArgs = 1;
+				}
+				functionName = functionName.substring(0, start);
+			}
+			
 			if (fileName.length() > 0 && functionName.length() > 0){
 				// try and go to the function in the file
-				map = findFunctionsInProject(project, functionName, fileName);
+				map = ProfileUIUtils.findFunctionsInProject(project, functionName, numOfArgs, fileName);
 				
 				for (String loc : map.keySet()){
 					try {
@@ -43,7 +58,7 @@
 				
 			}else if (functionName.length() > 0){
 				// try to find the file name that has this function
-				map = findFunctionsInProject(project, functionName, null);
+				map = ProfileUIUtils.findFunctionsInProject(project, functionName, numOfArgs, null);
 				
 				for (String loc : map.keySet()){
 					try {
