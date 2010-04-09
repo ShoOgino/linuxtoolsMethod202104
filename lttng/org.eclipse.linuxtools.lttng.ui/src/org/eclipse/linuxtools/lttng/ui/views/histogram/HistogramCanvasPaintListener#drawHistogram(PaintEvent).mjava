@@ -1,21 +1,30 @@
 	// *** VERIFY ***
 	// Is it good to put this synchronized?
 	//
-	public synchronized void drawHistogram(PaintEvent e) {
-	    e.gc.setForeground(e.display.getSystemColor(HistogramConstant.EMPTY_BACKGROUND_COLOR));
-		Rectangle allSection = new Rectangle(0, 0, histogramContent.getReadyUpToPosition()*columnWidth, e.height);
-		e.gc.fillRectangle(allSection);
-		e.gc.drawRectangle(allSection);
+	/**
+	 * Draw the histogram bars in the canvas.<p>
+	 * Use existing elements in HistogramContent to draw bars on the cancas; 
+	 * 	the element table in content need to be populated and have consistent value.  
+	 * 
+	 * @param event The generated paint event when redraw is called.
+	 */
+	public synchronized void drawHistogram(PaintEvent event) {
+		// This will be the color for all the bars that wil be draw below.
+		event.gc.setBackground(event.display.getSystemColor(HistogramConstant.HISTOGRAM_BARS_COLOR));
 		
-	    e.gc.setBackground(e.display.getSystemColor(HistogramConstant.HISTOGRAM_BARS_COLOR));
+		// *** NOTE *** 
+		// Y Position in a canvas is REVERSED, so "0" is on top of the screen and "MAX" is on bottom.
+		// Not very instinctive, isn't it?
+		
+		// Draw a bar from the left (pos X=0) until the pos=(NbBars*barWidth). If space is left, it will be blanked after.
 	    for ( int x=0; x<histogramContent.getReadyUpToPosition(); x++) {
-	    	Rectangle rect = new Rectangle(columnWidth*x, columnHeight - histogramContent.getElementByIndex(x).intervalHeight, columnWidth, histogramContent.getElementByIndex(x).intervalHeight);
-			
-	    	e.gc.fillRectangle(rect);
+	    	Rectangle rect = new Rectangle(barsWidth*x, event.height - histogramContent.getElementByIndex(x).intervalHeight, barsWidth, histogramContent.getElementByIndex(x).intervalHeight);
+	    	event.gc.fillRectangle(rect);
 	    }
 	    
-	    e.gc.setBackground(e.display.getSystemColor(HistogramConstant.EMPTY_BACKGROUND_COLOR));
-	    Rectangle rect = new Rectangle(columnWidth*histogramContent.getNbElement(), 0, e.width, columnHeight);
-		e.gc.fillRectangle(rect);
+	    // Clear the remaining space in the canvas (if any) so it appears clean.
+	    event.gc.setBackground(event.display.getSystemColor(HistogramConstant.EMPTY_BACKGROUND_COLOR));
+	    Rectangle rect = new Rectangle(barsWidth*histogramContent.getNbElement(), 0, event.width, event.height);
+	    event.gc.fillRectangle(rect);
 	}
 
