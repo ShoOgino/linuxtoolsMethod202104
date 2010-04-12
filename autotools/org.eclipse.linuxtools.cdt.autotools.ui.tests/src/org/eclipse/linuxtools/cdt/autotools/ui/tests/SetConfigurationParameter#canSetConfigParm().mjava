@@ -1,0 +1,55 @@
+	@Test
+	// Verify we can set a configuration parameter and that it is recorded in
+	// the .autotools file for the project
+	public void canSetConfigParm() throws Exception {
+		SWTBotView view = bot.viewByTitle("Project Explorer");
+		view.bot().tree().select("GnuProject0");
+		bot.menu("Project", 1).menu("Properties").click();
+		SWTBotShell shell = bot.shell("Properties for GnuProject0");
+		shell.activate();
+		bot.tree().expandNode("Autotools").select("Configure Settings");
+		bot.treeWithLabel("Configure Settings").expandNode("configure").select("Advanced");
+		// Set the configure parameters to be --enable-jeff via user-defined options
+		SWTBotText text = bot.textWithLabel("Additional command-line options");
+		text.typeText("--enable-jeff");
+		bot.button("OK").click();
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		assertTrue(workspace != null);
+		IWorkspaceRoot root = workspace.getRoot();
+		assertTrue(root != null);
+		IProject project = root.getProject("GnuProject0");
+		assertTrue(project != null);
+		IPath path = project.getLocation();
+		path = path.append(".autotools");
+		File f = new File(path.toOSString());
+		assertTrue(f.exists());
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		DocumentBuilder db = dbf.newDocumentBuilder();
+		Document d = db.parse(f);
+		Element e = d.getDocumentElement();
+		// Get the stored configuration data
+		NodeList cfgs = e.getElementsByTagName("configuration"); // $NON-NLS-1$
+		assertEquals(1, cfgs.getLength());
+		Node n = cfgs.item(0);
+		NodeList l = n.getChildNodes();
+		// Verify user field in .autotools file is set to --enable-jeff
+		boolean foundUser = false;
+		for (int y = 0; y < l.getLength(); ++y) {
+			Node child = l.item(y);
+			if (child.getNodeName().equals("option")) { // $NON-NLS-1$
+				NamedNodeMap optionAttrs = child.getAttributes();
+				Node idNode = optionAttrs.getNamedItem("id"); // $NON-NLS-1$
+				Node valueNode = optionAttrs.getNamedItem("value"); // $NON-NLS-1$
+				assertTrue(idNode != null);
+				assertTrue(valueNode != null);
+				String id = idNode.getNodeValue();
+				String value = valueNode.getNodeValue();
+				if (id.equals("user")) {
+					foundUser = true;
+					assertEquals(value, "--enable-jeff");
+				}
+			}
+		}
+		assertTrue(foundUser);
+	}
+

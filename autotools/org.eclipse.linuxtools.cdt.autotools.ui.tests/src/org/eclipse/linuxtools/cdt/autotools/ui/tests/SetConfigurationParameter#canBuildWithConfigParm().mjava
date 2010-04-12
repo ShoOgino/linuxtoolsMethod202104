@@ -1,0 +1,50 @@
+	@Test
+	// Verify we can build the project with a configuration parameter and that
+	// the configuration parameter can be found in the config.status file.
+	public void canBuildWithConfigParm() throws Exception {
+		SWTBotView view = bot.viewByTitle("Project Explorer");
+		view.bot().tree().select("GnuProject0");
+		bot.menu("Project", 1).menu("Build Project").click();
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		assertTrue(workspace != null);
+		IWorkspaceRoot root = workspace.getRoot();
+		assertTrue(root != null);
+		IProject project = root.getProject("GnuProject0");
+		assertTrue(project != null);
+		IPath path = project.getLocation();
+		path = path.append("config.status");
+		// We need to wait until the config.status file is created so
+		// sleep a bit and look for it...give up after 20 seconds
+		for (int i = 0; i < 10; ++i) {
+			bot.sleep(2000);
+			File f = new File(path.toOSString());
+			if (f.exists())
+				break;
+		}
+		File f = new File(path.toOSString());
+		assertTrue(f.exists());
+		BufferedReader r = new BufferedReader(new FileReader(f));
+		int ch;
+		boolean optionFound = false;
+		// Read config.status and look for the string --enable-jeff
+		// which is a simple verification that the option was used in the 
+		// configure step.
+		while ((ch = r.read()) != -1) {
+			if (ch == '-') {
+				char[] buf = new char[12];
+				r.mark(100);
+				int count = r.read(buf);
+				if (count < 12)
+					break;
+				String s = new String(buf);
+				if (s.equals("-enable-jeff")) {
+					optionFound = true;
+					break;
+				} else {
+					r.reset();
+				}
+			}
+		}
+		assertTrue(optionFound);
+	}
+
