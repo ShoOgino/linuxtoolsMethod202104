@@ -1,74 +1,187 @@
 	@Override
 	public void createPartControl(Composite parent) {
 		
+		// Default font
 		Font font = parent.getFont();
-		Composite folderGroup = new Composite(parent, SWT.BORDER);
-		
-		GridLayout gridLayout = new GridLayout();
-		gridLayout.numColumns = 3;
-		gridLayout.verticalSpacing = 2;
-		gridLayout.marginHeight = 0;
-		gridLayout.marginWidth = 0;
-		folderGroup.setLayout(gridLayout);
-		folderGroup.setSize(parent.getDisplay().getBounds().width, parent.getDisplay().getBounds().height);
-		
-		GridData gridData1 = new GridData(SWT.FILL, SWT.TOP, true, false, 3, 2);
-		gridData1.heightHint = FULL_TRACE_CANVAS_HEIGHT;
-		gridData1.minimumHeight = FULL_TRACE_CANVAS_HEIGHT;
-		fullTraceCanvas = new ParentHistogramCanvas(this, folderGroup, SWT.BORDER);
-		fullTraceCanvas.setLayoutData(gridData1);
-		fullTraceCanvas.redraw();
-		
-		GridData gridData2 = new GridData(SWT.LEFT, SWT.TOP, true, false, 2, 2);
-		gridData2.minimumWidth = 200;
-		gridData2.grabExcessHorizontalSpace = true;
-		lblStartTime = new Label(folderGroup, SWT.LEFT | SWT.TOP);
-		lblStartTime.setFont(font);
-		lblStartTime.setText("");
-		lblStartTime.setAlignment(SWT.LEFT);
-		lblStartTime.setLayoutData(gridData2);
-		
-		GridData gridData3 = new GridData(SWT.RIGHT, SWT.TOP, true, false, 1, 2);
-		gridData3.minimumWidth = 200;
-		gridData3.grabExcessHorizontalSpace = true;
-		lblStopTime = new Label(folderGroup, SWT.RIGHT | SWT.TOP);
-		lblStopTime.setFont(font);
-		lblStopTime.setAlignment(SWT.RIGHT);
-		lblStopTime.setText("");
-		lblStopTime.setLayoutData(gridData3);
-		
-		GridData gridDataSpace = new GridData(SWT.FILL, SWT.TOP, true, false, 3, 2);
-		gridDataSpace.minimumHeight = 20;
-		gridDataSpace.heightHint = 20;
-		Label lblSpace = new Label(folderGroup, SWT.TOP);
-		lblSpace.setFont(font);
-		lblSpace.setText("");
-		lblSpace.setLayoutData(gridDataSpace);
-		
-		GridData gridData4 = new GridData(SWT.FILL, SWT.TOP, false, false, 1, 2);
-		gridData4.heightHint = SELECTED_WINDOW_CANVAS_HEIGHT;
-		gridData4.minimumHeight = SELECTED_WINDOW_CANVAS_HEIGHT;
-		gridData4.widthHint = SELECTED_WINDOW_CANVAS_WIDTH;
-		gridData4.minimumWidth = SELECTED_WINDOW_CANVAS_WIDTH;
-		selectedWindowCanvas = new ChildrenHistogramCanvas(this, folderGroup, SWT.BORDER);
-		selectedWindowCanvas.setLayoutData(gridData4);
-		selectedWindowCanvas.redraw();
+		FontData tmpFontData = font.getFontData()[0];
+		// Slightly smaller font for time
+		Font smallFont = new Font(font.getDevice(), tmpFontData.getName(), tmpFontData.getHeight() - SMALL_FONT_MODIFIER, tmpFontData.getStyle());
 		
 		
-		GridData gridData5 = new GridData(SWT.LEFT, SWT.TOP, true, false, 2, 1);
-		gridData5.minimumWidth = 150;
-		gridData5.grabExcessHorizontalSpace = true;
-		lblTopEvent = new Label(folderGroup, SWT.LEFT | SWT.TOP);
-		lblTopEvent.setFont(font);
-		lblTopEvent.setText("");
-		lblTopEvent.setLayoutData(gridData5);
+		// Layout for the whole view, other elements will be in a child composite of this one 
+		// Contains :
+		// 		Composite layoutSelectionWindow
+		//		Composite layoutTimesSpinner
+		//		Composite layoutExperimentHistogram
+		Composite layoutFullView = new Composite(parent, SWT.NONE);
+		GridLayout gridFullView = new GridLayout();
+		gridFullView.numColumns = 2;
+		gridFullView.marginHeight = 0;
+		gridFullView.marginWidth = 0;
+		layoutFullView.setLayout(gridFullView);
+		//layoutFullView.setSize(parent.getDisplay().getBounds().width, parent.getDisplay().getBounds().height);
 		
-		GridData gridData6 = new GridData(SWT.LEFT, SWT.BOTTOM, true, false, 2, 1);
-		gridData6.minimumWidth = 150;
-		gridData6.grabExcessHorizontalSpace = true;
-		lblBottomEvent = new Label(folderGroup, SWT.LEFT | SWT.BOTTOM);
-		lblBottomEvent.setFont(font);
-		lblBottomEvent.setText("");
-		lblBottomEvent.setLayoutData(gridData6);
+		
+		// Layout that contain the SelectionWindow
+		// Contains : 
+		// 		Label lblWindowStartTime
+		// 		Label lblWindowStopTime
+		// 		Label lblWindowMaxNbEvents
+		// 		Label lblWindowMinNbEvents
+		// 		ChildrenHistogramCanvas selectedWindowCanvas
+		Composite layoutSelectionWindow = new Composite(layoutFullView, SWT.NONE);
+		GridLayout gridSelectionWindow = new GridLayout();
+		gridSelectionWindow.numColumns = 3;
+		gridSelectionWindow.marginHeight = 0;
+		gridSelectionWindow.marginWidth = 0;
+		layoutSelectionWindow.setLayout(gridSelectionWindow);
+		GridData gridDataSelectionWindow = new GridData(SWT.FILL, SWT.TOP, false, false, 1, 1);
+		layoutSelectionWindow.setLayoutData(gridDataSelectionWindow);
+		
+		
+		// Layout that contain the time spinner
+		// Contains : 
+		// 		NanosecTextGroup  spTimeRangeWindow
+		// 		NanosecTextGroup  spCurrentWindowTime
+		// 		NanosecTextGroup  spCurrentEventTime
+		Composite layoutTimesSpinner = new Composite(layoutFullView, SWT.NONE);
+		GridLayout gridTimesSpinner = new GridLayout();
+		
+		if ( TEST_UI ) {
+			gridTimesSpinner.numColumns = 3;
+		}
+		else {
+			gridTimesSpinner.numColumns = 2;
+		}
+		gridTimesSpinner.marginHeight = 0;
+		gridTimesSpinner.marginWidth = 0;
+		layoutTimesSpinner.setLayout(gridTimesSpinner);
+		GridData gridDataTimesSpinner = new GridData(SWT.FILL, SWT.CENTER, false, false, 1, 1);
+		layoutTimesSpinner.setLayoutData(gridDataTimesSpinner);
+		
+		
+		// Layout that contain the complete experiment histogram and related controls.
+		// Contains : 
+		//		Label lblExperimentStartTime
+		//		Label lblExperimentStopTime
+		// 		ParentHistogramCanvas fullTraceCanvas
+		Composite layoutExperimentHistogram = new Composite(layoutFullView, SWT.NONE);
+		GridLayout gridExperimentHistogram = new GridLayout();
+		gridExperimentHistogram.numColumns = 2;
+		gridExperimentHistogram.marginHeight = 0;
+		gridExperimentHistogram.marginWidth = 0;
+		layoutExperimentHistogram.setLayout(gridExperimentHistogram);
+		GridData gridDataExperimentHistogram = new GridData(SWT.FILL, SWT.TOP, true, false, 2, 1);
+		layoutExperimentHistogram.setLayoutData(gridDataExperimentHistogram);
+		
+		
+		
+		// *** Everything related to the selection window is below
+		GridData gridDataSelectionWindowCanvas = new GridData(SWT.FILL, SWT.TOP, true, false, 2, 2);
+		gridDataSelectionWindowCanvas.heightHint = SELECTED_WINDOW_CANVAS_HEIGHT;
+		gridDataSelectionWindowCanvas.minimumHeight = SELECTED_WINDOW_CANVAS_HEIGHT;
+		
+		int size = 0;
+		if ( TEST_UI ) {
+			size = SELECTED_WINDOW_CANVAS_WIDTH/2;
+		}
+		else {
+			size = SELECTED_WINDOW_CANVAS_WIDTH;
+		}
+		
+		gridDataSelectionWindowCanvas.widthHint = size;
+		gridDataSelectionWindowCanvas.minimumWidth = size;
+		
+		
+		selectedWindowCanvas = new ChildrenHistogramCanvas(this, layoutSelectionWindow, SWT.BORDER);
+		selectedWindowCanvas.setLayoutData(gridDataSelectionWindowCanvas);
+		
+		GridData gridDataWindowMaxEvents = new GridData(SWT.LEFT, SWT.TOP, true, false, 1, 1);
+		// Force a width, to avoid the control to enlarge if the number of events change
+		gridDataWindowMaxEvents.minimumWidth = NB_EVENTS_FIXED_WIDTH;
+		gridDataWindowMaxEvents.widthHint = NB_EVENTS_FIXED_WIDTH;
+		lblWindowMaxNbEvents = new Label(layoutSelectionWindow, SWT.NONE);
+		lblWindowMaxNbEvents.setFont(smallFont);
+		lblWindowMaxNbEvents.setText("");
+		lblWindowMaxNbEvents.setLayoutData(gridDataWindowMaxEvents);
+		
+		GridData gridDataWindowMinEvents = new GridData(SWT.LEFT, SWT.BOTTOM, true, false, 1, 1);
+		// Force a width, to avoid the control to enlarge if the number of events change
+		gridDataWindowMinEvents.minimumWidth = NB_EVENTS_FIXED_WIDTH;
+		gridDataWindowMinEvents.widthHint = NB_EVENTS_FIXED_WIDTH;
+		lblWindowMinNbEvents = new Label(layoutSelectionWindow, SWT.NONE);
+		lblWindowMinNbEvents.setFont(smallFont);
+		lblWindowMinNbEvents.setText("");
+		lblWindowMinNbEvents.setLayoutData(gridDataWindowMinEvents);
+		
+		GridData gridDataWindowStart = new GridData(SWT.LEFT, SWT.TOP, false, false, 1, 1);
+		txtWindowStartTime = new Text(layoutSelectionWindow, SWT.READ_ONLY);
+		txtWindowStartTime.setFont(smallFont);
+		txtWindowStartTime.setBackground(parent.getDisplay().getSystemColor(SWT.COLOR_TITLE_INACTIVE_BACKGROUND));
+		txtWindowStartTime.setEditable(false);
+		txtWindowStartTime.setText("");
+		txtWindowStartTime.setLayoutData(gridDataWindowStart);
+		
+		GridData gridDataWindowStop = new GridData(SWT.RIGHT, SWT.TOP, false, false, 1, 1);
+		txtWindowStopTime = new Text(layoutSelectionWindow, SWT.READ_ONLY);
+		txtWindowStopTime.setFont(smallFont);
+		txtWindowStopTime.setBackground(parent.getDisplay().getSystemColor(SWT.COLOR_TITLE_INACTIVE_BACKGROUND));
+		txtWindowStopTime.setEditable(false);
+		txtWindowStopTime.setText("");
+		txtWindowStopTime.setLayoutData(gridDataWindowStop);
+		
+		
+		
+		// *** Everything related to the spinner is below
+		if ( TEST_UI ) {
+			GridData gridDataCurrentWindow = new GridData(SWT.CENTER, SWT.CENTER, true, true, 1, 2);
+			ntgCurrentWindowTime = new NanosecTextGroup(layoutTimesSpinner, SWT.BORDER, SWT.BORDER, WINDOW_CURRENT_TIME_LABEL_TEXT, HistogramConstant.formatNanoSecondsTime( 0L ));
+			ntgCurrentWindowTime.setLayoutData(gridDataCurrentWindow);
+			
+			GridData gridDataTimeRange = new GridData(SWT.CENTER, SWT.CENTER, true, true, 1, 2);
+			ntgTimeRangeWindow = new NanosecTextGroup(layoutTimesSpinner, SWT.BORDER, SWT.BORDER, WINDOW_TIMERANGE_LABEL_TEXT, HistogramConstant.formatNanoSecondsTime( 0L ));
+			ntgTimeRangeWindow.setLayoutData(gridDataTimeRange);
+			
+			GridData gridDataCurrentEvent = new GridData(SWT.CENTER, SWT.CENTER, true, true, 1, 2);
+			ntgCurrentEventTime = new NanosecTextGroup(layoutTimesSpinner, SWT.BORDER, SWT.BORDER, EVENT_CURRENT_TIME_LABEL_TEXT, HistogramConstant.formatNanoSecondsTime( 0L ));
+			ntgCurrentEventTime.setLayoutData(gridDataCurrentEvent);
+		}
+		else {
+			GridData gridDataTimeRange = new GridData(SWT.CENTER, SWT.CENTER, true, false, 1, 1);
+			ntgTimeRangeWindow = new NanosecTextGroup(layoutTimesSpinner, SWT.BORDER, SWT.BORDER, WINDOW_TIMERANGE_LABEL_TEXT, HistogramConstant.formatNanoSecondsTime( 0L ));
+			ntgTimeRangeWindow.setLayoutData(gridDataTimeRange);
+			
+			GridData gridDataCurrentEvent = new GridData(SWT.CENTER, SWT.CENTER, true, false, 1, 2);
+			ntgCurrentEventTime = new NanosecTextGroup(layoutTimesSpinner, SWT.BORDER, SWT.BORDER, EVENT_CURRENT_TIME_LABEL_TEXT, HistogramConstant.formatNanoSecondsTime( 0L ));
+			ntgCurrentEventTime.setLayoutData(gridDataCurrentEvent);
+			
+			GridData gridDataCurrentWindow = new GridData(SWT.CENTER, SWT.BOTTOM, true, false, 1, 1);
+			ntgCurrentWindowTime = new NanosecTextGroup(layoutTimesSpinner, SWT.BORDER, SWT.BORDER, WINDOW_CURRENT_TIME_LABEL_TEXT, HistogramConstant.formatNanoSecondsTime( 0L ));
+			ntgCurrentWindowTime.setLayoutData(gridDataCurrentWindow);
+		}
+		
+		
+		// Everything related to the experiment canvas is below
+		GridData gridDataExperimentCanvas = new GridData(SWT.FILL, SWT.TOP, true, false, 2, 1);
+		gridDataExperimentCanvas.heightHint = FULL_TRACE_CANVAS_HEIGHT;
+		gridDataExperimentCanvas.minimumHeight = FULL_TRACE_CANVAS_HEIGHT;
+		fullTraceCanvas = new ParentHistogramCanvas(this, layoutExperimentHistogram, SWT.BORDER);
+		fullTraceCanvas.setLayoutData(gridDataExperimentCanvas);
+		
+		GridData gridDataExperimentStart = new GridData(SWT.LEFT, SWT.TOP, false, false, 1, 1);
+		txtExperimentStartTime = new Text(layoutExperimentHistogram, SWT.READ_ONLY);
+		txtExperimentStartTime.setFont(smallFont);
+		txtExperimentStartTime.setText("");
+		txtExperimentStartTime.setBackground(parent.getDisplay().getSystemColor(SWT.COLOR_TITLE_INACTIVE_BACKGROUND));
+		txtExperimentStartTime.setEditable(false);
+		txtExperimentStartTime.setLayoutData(gridDataExperimentStart);
+		
+		GridData gridDataExperimentStop = new GridData(SWT.RIGHT, SWT.TOP, false, false, 1, 1);
+		txtExperimentStopTime = new Text(layoutExperimentHistogram, SWT.READ_ONLY);
+		txtExperimentStopTime.setFont(smallFont);
+		txtExperimentStopTime.setText("");
+		txtExperimentStopTime.setBackground(parent.getDisplay().getSystemColor(SWT.COLOR_TITLE_INACTIVE_BACKGROUND));
+		txtExperimentStopTime.setEditable(false);
+		txtExperimentStopTime.setLayoutData(gridDataExperimentStop);
 	}
 

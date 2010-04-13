@@ -19,7 +19,9 @@
         	LttngEvent tmpEvent = (LttngEvent)evt[0];
         	
         	// This check is linked to the evil fix mentionned above
-        	if ( tmpEvent.getTimestamp().getValue() <= histogramContent.getEndTime() ) {
+        	if ( ( tmpEvent.getTimestamp().getValue() >= histogramContent.getStartTime() ) &&
+        		 ( tmpEvent.getTimestamp().getValue() <= histogramContent.getEndTime() ) )
+        	{
         		
         		// Distance (in time) between this event and the last one we read
 	        	long distance = ( tmpEvent.getTimestamp().getValue() - lastRangeTime );
@@ -70,17 +72,16 @@
 				}
         	}
         	else {
+        		//System.out.println("Requested Timerange is : " + histogramContent.getStartTime() + " / " + histogramContent.getEndTime());
+        		//System.out.println("Time is : " + tmpEvent.getTimestamp().getValue());
         		// *** FIXME ***
             	// *** EVIL FIX ***
                 // Because of the other evil bug (see above), we have to ignore extra useless events we will get
         		// However, we might be far away from the end so we better start a redraw now
-        		redrawAsyncronously();
-        		requestCompleted = true;
-        		
-        		// Althought it won't do anything, try to call control functions to stop the request
-        		done();
-        		cancel();
-        		fail();
+        		if (tmpEvent.getTimestamp().getValue() >= histogramContent.getEndTime()) {
+	        		redrawAsyncronously();
+	        		requestCompleted = true;
+        		}
         	}
 		}
     }

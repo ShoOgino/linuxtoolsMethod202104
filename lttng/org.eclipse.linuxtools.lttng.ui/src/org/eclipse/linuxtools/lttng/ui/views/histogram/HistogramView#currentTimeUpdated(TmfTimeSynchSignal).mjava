@@ -1,9 +1,16 @@
     @TmfSignalHandler
     public void currentTimeUpdated(TmfTimeSynchSignal signal) {
-    	System.out.println("currentTimeUpdated");
-    	
-    	// *** TODO ***
-    	// Update the histogram if the time changed
-    	//
+    	if (signal.getSource() != this) {
+            TmfTimestamp currentTime = signal.getCurrentTime();
+            ntgCurrentEventTime.setValue(currentTime.getValue());
+            
+            if ( (currentTime.getValue() < fullTraceCanvas.getCurrentWindow().getTimestampLeft() ) ||
+            	 (currentTime.getValue() > fullTraceCanvas.getCurrentWindow().getTimestampRight() ) )
+            {
+            	fullTraceCanvas.centerWindow( fullTraceCanvas.getHistogramContent().getClosestXPositionFromTimestamp(currentTime.getValue()) );
+            	windowChangedNotification();
+            }
+            
+    	}
     }
 
