@@ -1,21 +1,34 @@
-    public void createCanvasAndRequests(TmfExperiment<LttngEvent> newExperiment) {
+    /*
+     * Create the canvas needed and issue the requests
+     * 
+     * @param newExperiment	Experiment we will use for the request
+     */
+    private void createCanvasAndRequests(TmfExperiment<LttngEvent> newExperiment) {
     	lastUsedExperiment = newExperiment;
     	
-		fullTraceCanvas.createNewHistogramContent( DEFAULT_WINDOW_SIZE, FULL_TRACE_BAR_WIDTH, FULL_TRACE_CANVAS_HEIGHT, FULL_TRACE_DIFFERENCE_TO_AVERAGE);
-		selectedWindowCanvas.createNewHistogramContent(0, SELECTED_WINDOW_BAR_WIDTH, SELECTED_WINDOW_CANVAS_HEIGHT, SELECTED_WINDOW_DIFFERENCE_TO_AVERAGE);
+		fullExperimentCanvas.createNewHistogramContent( DEFAULT_WINDOW_SIZE, FULL_TRACE_BAR_WIDTH, FULL_TRACE_CANVAS_HEIGHT, FULL_TRACE_DIFFERENCE_TO_AVERAGE);
+		selectedWindowCanvas.createNewHistogramContent(0L, SELECTED_WINDOW_BAR_WIDTH, SELECTED_WINDOW_CANVAS_HEIGHT, SELECTED_WINDOW_DIFFERENCE_TO_AVERAGE);
 		
 		// Make sure the UI object are sane
-		resetLabelContent();
+		resetControlsContent();
 		
 		// Redraw the canvas right away to have something "clean" as soon as we can
     	if ( dataBackgroundFullRequest != null ) {
-    		fullTraceCanvas.redraw();
+    		fullExperimentCanvas.redraw();
     		selectedWindowCanvas.redraw();
     	}
+    	// Nullify the (possible) old request to be sure we start we something clean
+    	// Note : this is very important for the order of the request below, 
+    	//	see "TODO" in performSelectedWindowEventsRequest
+    	dataBackgroundFullRequest = null;
+    	selectedWindowRequest = null;
 		
-		fullTraceCanvas.getCurrentWindow().setSelectedWindowVisible(true);
+    	// Set the window of the fullTrace canvas visible.
+		fullExperimentCanvas.getCurrentWindow().setSelectedWindowVisible(true);
 		
-		performAllTraceEventsRequest(newExperiment);
+		// Perform both request. 
+		// Order is important here, the small/synchronous request for the selection window should go first
 		performSelectedWindowEventsRequest(newExperiment);
+		performAllTraceEventsRequest(newExperiment);
     }
 
