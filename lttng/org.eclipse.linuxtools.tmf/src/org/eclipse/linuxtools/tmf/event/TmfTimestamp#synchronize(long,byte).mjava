@@ -1,5 +1,28 @@
+    /**
+     * Return a shifted and scaled timestamp.
+     * 
+     * Limitation: The scaling is limited to MAX_SCALING orders of magnitude.
+     * The main reason is that the 64 bits value starts to lose any significance
+     * meaning beyond that scale difference and it's not even worth the trouble
+     * to switch to BigDecimal arithmetics.
+     * 
+     * @param offset the shift value (in the same scale as newScale)
+     * @param newScale the new timestamp scale
+     * @return the synchronized timestamp in the new scale
+     * @throws ArithmeticException
+     */
     public TmfTimestamp synchronize(long offset, byte newScale) throws ArithmeticException {
-        long newValue = fValue;
+
+        /*
+         * A java <code>long</code> has a maximum of 19 significant digits.
+         * (-9,223,372,036,854,775,808 .. +9,223,372,036,854,775,807)
+         * 
+         * It is therefore useless to try to synchronize 2 timestamps whose
+         * difference in scale exceeds that value.
+         */
+        int MAX_SCALING = 19;
+
+    	long newValue = fValue;
         long newPrecision = fPrecision;
 
         // Determine the scaling factor
