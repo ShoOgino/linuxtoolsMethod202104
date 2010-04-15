@@ -1,28 +1,39 @@
 	// Returns a brand new context based on the location provided
-	// Arms the event queues
-	// NOTE: This is a fine example of pathological coupling...
+	// and initializes the event queues
 	public TmfExperimentContext seekLocation(ITmfLocation<?> location) {
-		
-		if (location instanceof TmfExperimentLocation || location == null) {
-			ITmfLocation<?>[] prvloc = (location != null) ? ((TmfExperimentLocation) location).getLocation() : new TmfExperimentLocation[fTraces.length];
-			ITmfLocation<?>[] newloc = new ITmfLocation[fTraces.length];
-			TmfContext[] contexts = new TmfContext[fTraces.length];
 
-			TmfExperimentContext context = new TmfExperimentContext(fTraces, contexts);
-			TmfEvent[] events = context.getEvents();
-
-			long rank = 0;
-			for (int i = 0; i < fTraces.length; i++) {
-				contexts[i] = fTraces[i].seekLocation(prvloc[i]);
-				newloc[i]   = contexts[i].getLocation();	// No clone here
-				events[i]   = fTraces[i].parseEvent(contexts[i]);
-				rank += contexts[i].getRank();
-			}
-			context.setLocation(new TmfExperimentLocation(newloc));
-			context.setRank(rank);
-			context.setLastTrace(-1);
-			return context;
+		// Validate the location
+		if (location != null && !(location instanceof TmfExperimentLocation)) {
+			return null;	// Throw an exception?
 		}
-		return null;
+
+		// Instantiate the location
+		TmfExperimentLocation expLocation = (location == null)
+		    ? new TmfExperimentLocation(new ITmfLocation<?>[fTraces.length], new long[fTraces.length])
+            : (TmfExperimentLocation) location.clone();
+
+		// Create and populate the context's traces contexts
+		TmfExperimentContext context = new TmfExperimentContext(fTraces, new TmfContext[fTraces.length]);
+		long rank = 0;
+		for (int i = 0; i < fTraces.length; i++) {
+			// Get the relevant trace attributes
+			ITmfLocation<?> traceLocation = expLocation.getLocation()[i];
+			long traceRank = expLocation.getRanks()[i];
+
+			// Set the corresponding sub-context
+			context.getContexts()[i] = fTraces[i].seekLocation(traceLocation);
+			context.getContexts()[i].setRank(traceRank);
+			rank += traceRank;
+
+			// Set the trace location and read the corresponding event
+			expLocation.getLocation()[i] = context.getContexts()[i].getLocation();
+			context.getEvents()[i] = fTraces[i].getNextEvent(context.getContexts()[i]);
+		}
+
+		// Finalize context
+		context.setLocation(expLocation);
+		context.setRank(rank);
+		context.setLastTrace(TmfExperimentContext.NO_TRACE);
+		return context;
 	}
 
