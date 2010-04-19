@@ -17,23 +17,27 @@
             closeTrace();
         }
         
-        if ( initializeLibrary() == true ) {
+        // Initialization of the library is made here
+        // It is very important that the id is kept!
+        int newLibraryId = initializeLibrary();
+        if ( newLibraryId != -1 ) {
 	        // Call the LTT to open the trace
-	        long newPtr = ltt_openTrace(tracepath, printLttDebug);
+        	// Note that the libraryId is not yet and the pointer
+	        long newPtr = ltt_openTrace(newLibraryId, tracepath, printLttDebug);
 	        
 	        if (newPtr == NULL) {
-	        	thisTracePtr = new Jni_C_Pointer(NULL);
+	        	thisTracePtr = new Jni_C_Pointer_And_Library_Id();
 	            throw new JniOpenTraceFailedException("Error while opening trace. Is the tracepath correct? (openTrace)");
 	        }
 	        
 	        // This is OUR pointer
-	        thisTracePtr = new Jni_C_Pointer(newPtr);
+	        thisTracePtr = new Jni_C_Pointer_And_Library_Id(newLibraryId, newPtr);
 	
 	        // Populate the trace with LTT information
 	        populateTraceInformation();
         }
         else {
-        	thisTracePtr = new Jni_C_Pointer(NULL);
+        	thisTracePtr = new Jni_C_Pointer_And_Library_Id();
         	throw new JniTraceException("Failed to initialize library! Is the trace version supported?\n" +
         			                    "Make sure you have the correct LTTv library compiled. (openTrace)");
         }
