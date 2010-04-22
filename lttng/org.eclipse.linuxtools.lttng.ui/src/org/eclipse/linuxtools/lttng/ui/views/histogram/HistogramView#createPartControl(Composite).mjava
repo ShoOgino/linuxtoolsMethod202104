@@ -4,14 +4,50 @@
 	 * @param  parent	The composite parent of this view
 	 */
 	@Override
-	public void createPartControl(Composite parent) {
+	public void createPartControl(Composite newParent) {
+		// Save the parent
+		parent = newParent;
 		
 		// Default font
 		Font font = parent.getFont();
 		FontData tmpFontData = font.getFontData()[0];
-		// Slightly smaller font for time
-		Font smallFont = new Font(font.getDevice(), tmpFontData.getName(), tmpFontData.getHeight() - SMALL_FONT_MODIFIER, tmpFontData.getStyle());
 		
+		
+		Font smallFont = null;
+		int  nbEventWidth = -1; 
+		boolean doesTimeTextGroupNeedAdjustment = false;
+		
+		// Calculate if we need "small screen" fixes
+		if ( parent.getDisplay().getBounds().width < SCREEN_SMALL_IF_SMALLER_THAN ) {
+			// A lot smaller font for timstampe
+			smallFont = new Font(font.getDevice(), tmpFontData.getName(), tmpFontData.getHeight() - VERY_SMALL_FONT_MODIFIER, tmpFontData.getStyle());
+			
+			// Smaller event number text field
+			nbEventWidth = NB_EVENTS_FIXED_WIDTH/2;
+			
+			// Tell the text group to ajust
+			doesTimeTextGroupNeedAdjustment = true;
+			
+			// *** BUG ***
+			// This might NOT be respected because of the way SWT draw its control, as startTime and endTime 
+			//		might take more space than the control. 
+			// However, SWT is too DUMB to have a way to fix a Text size so there is no way I can know the size 
+			//	it will take. The only ways to avoid this bug is to :
+			// 1- Put a size to the canvas that we know to be bigger than the Texts. This is dumb as we try to SAVE space
+			// 2- Avoid to use "SWT.FILL" on the Canvas. On that case, we WILL have a gap between the canvas and the next text field.
+			//
+			// Neither solution is good but 2 is slightly better. Way to go SWT!
+			selectedCanvasWidth = SELECTED_WINDOW_CANVAS_WIDTH - (SELECTED_WINDOW_CANVAS_WIDTH/3);
+		}
+		else {
+			// Slightly smaller font for timestamp
+			smallFont = new Font(font.getDevice(), tmpFontData.getName(), tmpFontData.getHeight() - SMALL_FONT_MODIFIER, tmpFontData.getStyle());
+			// Usual size for selected window and event number text field
+			nbEventWidth = NB_EVENTS_FIXED_WIDTH;
+			selectedCanvasWidth = SELECTED_WINDOW_CANVAS_WIDTH;
+			// No ajustement needed by the text group
+			doesTimeTextGroupNeedAdjustment = false;
+		}
 		
 		// Layout for the whole view, other elements will be in a child composite of this one 
 		// Contains :
@@ -26,7 +62,6 @@
 		gridFullView.marginHeight = 0;
 		gridFullView.marginWidth = 0;
 		layoutFullView.setLayout(gridFullView);
-		//layoutFullView.setSize(parent.getDisplay().getBounds().width, parent.getDisplay().getBounds().height);
 		
 		
 		// Layout that contain the SelectionWindow
@@ -84,32 +119,33 @@
 		
 		
 		// *** Everything related to the selection window is below
-		GridData gridDataSelectionWindowCanvas = new GridData(SWT.FILL, SWT.TOP, true, false, 2, 2);
+		GridData gridDataSelectionWindowCanvas = new GridData(SWT.LEFT, SWT.TOP, true, false, 2, 2);
 		gridDataSelectionWindowCanvas.heightHint = SELECTED_WINDOW_CANVAS_HEIGHT;
 		gridDataSelectionWindowCanvas.minimumHeight = SELECTED_WINDOW_CANVAS_HEIGHT;
-		gridDataSelectionWindowCanvas.widthHint = SELECTED_WINDOW_CANVAS_WIDTH;
-		gridDataSelectionWindowCanvas.minimumWidth = SELECTED_WINDOW_CANVAS_WIDTH;
-		
+		gridDataSelectionWindowCanvas.widthHint = selectedCanvasWidth;
+		gridDataSelectionWindowCanvas.minimumWidth = selectedCanvasWidth;
 		selectedWindowCanvas = new ChildrenHistogramCanvas(this, layoutSelectionWindow, SWT.BORDER);
 		selectedWindowCanvas.setLayoutData(gridDataSelectionWindowCanvas);
 		
-		GridData gridDataWindowMaxEvents = new GridData(SWT.LEFT, SWT.TOP, true, false, 1, 1);
+		GridData gridDataWindowMaxEvents = new GridData(SWT.FILL, SWT.TOP, true, false, 1, 1);
 		// Force a width, to avoid the control to enlarge if the number of events change
-		gridDataWindowMaxEvents.minimumWidth = NB_EVENTS_FIXED_WIDTH;
-		gridDataWindowMaxEvents.widthHint = NB_EVENTS_FIXED_WIDTH;
-		lblWindowMaxNbEvents = new Label(layoutSelectionWindow, SWT.NONE);
-		lblWindowMaxNbEvents.setFont(smallFont);
-		lblWindowMaxNbEvents.setText("");
-		lblWindowMaxNbEvents.setLayoutData(gridDataWindowMaxEvents);
+		gridDataWindowMaxEvents.minimumWidth = nbEventWidth;
+		txtWindowMaxNbEvents = new Text(layoutSelectionWindow, SWT.READ_ONLY);
+		txtWindowMaxNbEvents.setFont(smallFont);
+		txtWindowMaxNbEvents.setBackground(parent.getDisplay().getSystemColor(SWT.COLOR_TITLE_INACTIVE_BACKGROUND));
+		txtWindowMaxNbEvents.setEditable(false);
+		txtWindowMaxNbEvents.setText("");
+		txtWindowMaxNbEvents.setLayoutData(gridDataWindowMaxEvents);
 		
 		GridData gridDataWindowMinEvents = new GridData(SWT.LEFT, SWT.BOTTOM, true, false, 1, 1);
 		// Force a width, to avoid the control to enlarge if the number of events change
-		gridDataWindowMinEvents.minimumWidth = NB_EVENTS_FIXED_WIDTH;
-		gridDataWindowMinEvents.widthHint = NB_EVENTS_FIXED_WIDTH;
-		lblWindowMinNbEvents = new Label(layoutSelectionWindow, SWT.NONE);
-		lblWindowMinNbEvents.setFont(smallFont);
-		lblWindowMinNbEvents.setText("");
-		lblWindowMinNbEvents.setLayoutData(gridDataWindowMinEvents);
+		gridDataWindowMinEvents.minimumWidth = nbEventWidth;
+		txtWindowMinNbEvents = new Text(layoutSelectionWindow, SWT.READ_ONLY);
+		txtWindowMinNbEvents.setFont(smallFont);
+		txtWindowMinNbEvents.setBackground(parent.getDisplay().getSystemColor(SWT.COLOR_TITLE_INACTIVE_BACKGROUND));
+		txtWindowMinNbEvents.setEditable(false);
+		txtWindowMinNbEvents.setText("");
+		txtWindowMinNbEvents.setLayoutData(gridDataWindowMinEvents);
 		
 		GridData gridDataWindowStart = new GridData(SWT.LEFT, SWT.TOP, false, false, 1, 1);
 		txtWindowStartTime = new Text(layoutSelectionWindow, SWT.READ_ONLY);
@@ -131,15 +167,15 @@
 		
 		// *** Everything related to the spinner is below
 		GridData gridDataCurrentEvent = new GridData(SWT.CENTER, SWT.CENTER, true, true, 1, 2);
-		ntgCurrentEventTime = new TimeTextGroup(this, layoutTimesSpinner, SWT.BORDER, SWT.BORDER, EVENT_CURRENT_TIME_LABEL_TEXT, HistogramConstant.formatNanoSecondsTime( 0L ));
+		ntgCurrentEventTime = new TimeTextGroup(this, layoutTimesSpinner, SWT.BORDER, SWT.BORDER, EVENT_CURRENT_TIME_LABEL_TEXT, HistogramConstant.formatNanoSecondsTime( 0L ), doesTimeTextGroupNeedAdjustment);
 		ntgCurrentEventTime.setLayoutData(gridDataCurrentEvent);
 		
 		GridData gridDataTimeRange = new GridData(SWT.CENTER, SWT.CENTER, true, true, 1, 2);
-		ntgTimeRangeWindow = new TimeTextGroup(this, layoutTimesSpinner, SWT.BORDER, SWT.BORDER, WINDOW_TIMERANGE_LABEL_TEXT, HistogramConstant.formatNanoSecondsTime( 0L ));
+		ntgTimeRangeWindow = new TimeTextGroup(this, layoutTimesSpinner, SWT.BORDER, SWT.BORDER, WINDOW_TIMERANGE_LABEL_TEXT, HistogramConstant.formatNanoSecondsTime( 0L ), doesTimeTextGroupNeedAdjustment);
 		ntgTimeRangeWindow.setLayoutData(gridDataTimeRange);
 		
 		GridData gridDataCurrentWindow = new GridData(SWT.CENTER, SWT.CENTER, true, true, 1, 2);
-		ntgCurrentWindowTime = new TimeTextGroup(this, layoutTimesSpinner, SWT.BORDER, SWT.BORDER, WINDOW_CURRENT_TIME_LABEL_TEXT, HistogramConstant.formatNanoSecondsTime( 0L ));
+		ntgCurrentWindowTime = new TimeTextGroup(this, layoutTimesSpinner, SWT.BORDER, SWT.BORDER, WINDOW_CURRENT_TIME_LABEL_TEXT, HistogramConstant.formatNanoSecondsTime( 0L ), doesTimeTextGroupNeedAdjustment);
 		ntgCurrentWindowTime.setLayoutData(gridDataCurrentWindow);
 		
 		
