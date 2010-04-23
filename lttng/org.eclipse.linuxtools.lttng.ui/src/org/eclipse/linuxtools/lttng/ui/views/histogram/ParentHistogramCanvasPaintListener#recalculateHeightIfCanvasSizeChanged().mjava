@@ -1,0 +1,27 @@
+	/*
+	 * The function will make sure that the "max difference average" factor is still the same as before;
+	 * 		if not, the heigth of the events will be recalculated.<p>
+	 * 
+	 * The factor might change if the canvas is resized by a big factor.<p>
+	 */
+	protected void recalculateHeightIfCanvasSizeChanged() {
+		HistogramContent tmpContent = parentCanvas.getHistogramContent();
+		// We need to ajust the "maxDifferenceToAverageFactor" as the bars we draw might be slitghly larger than the value asked
+		// Each "interval" are concatenated when draw so the worst case should be : 
+		// contentSize / (closest power of 2 to canvasMaxSize)
+		// Ex : if canvasSize is 1500 -> (2048 / 1024) == 2  so maxDiff should be twice larger
+		//
+		// His is set in the create content of the canvas, but we need to recalculate it 
+		//	here because the window might have been resized!
+		int exp = (int)Math.floor( Math.log( (double)tmpContent.getCanvasWindowSize() ) / Math.log(2.0) );
+		int contentSize = (int)Math.pow(2, exp);
+		Double maxBarsDiffFactor = ((double)tmpContent.getNbElement() / (double)contentSize );
+		
+		if ( maxBarsDiffFactor != tmpContent.getMaxDifferenceToAverageFactor() ) {
+			// The factor changed! That's unfortunate because it will take a while to recalculate.
+			tmpContent.setMaxDifferenceToAverageFactor(maxBarsDiffFactor);
+			tmpContent.recalculateHeightFactor();
+			tmpContent.recalculateEventHeight();
+		}
+	}
+
