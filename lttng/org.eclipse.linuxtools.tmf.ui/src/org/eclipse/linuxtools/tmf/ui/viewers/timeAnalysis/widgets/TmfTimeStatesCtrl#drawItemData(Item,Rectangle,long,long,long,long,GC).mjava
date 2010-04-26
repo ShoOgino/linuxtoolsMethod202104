@@ -10,7 +10,8 @@
 
 		Utils.init(_rect1, rect);
 		boolean selected = item._selected;
-		double K = (double) rect.width / (time1 - time0);
+		double pixelsPerNanoSec = (rect.width <= 2) ? 0
+				: (double) (rect.width - 2) / (time1 - time0); // 2 pixels less to make sure end time is visible
 		boolean group = item instanceof GroupItem;
 
 		if (group) {
@@ -29,8 +30,8 @@
 				ITimeEvent nextEvent = null;
 				long currEventTime = currEvent.getTime();
 				long nextEventTime = currEventTime;
-				x0 = rect.x + (int) ((currEventTime - time0) * K);
-				int xEnd = rect.x + (int) ((time1 - time0) * K);
+				x0 = rect.x + (int) ((currEventTime - time0) * pixelsPerNanoSec);
+				int xEnd = rect.x + (int) ((time1 - time0) * pixelsPerNanoSec);
 				int x1 = -1;
 				int idx = 1;
 
@@ -54,7 +55,7 @@
 						nextEvent = null;
 						nextEventTime = endTime;
 					}
-					x1 = rect.x + (int) ((nextEventTime - time0) * K);
+					x1 = rect.x + (int) ((nextEventTime - time0) * pixelsPerNanoSec);
 					if (x1 >= rect.x) {
 						_rect1.x = x0 >= rect.x ? x0 : rect.x;
 						_rect1.width = (x1 <= xEnd ? x1 : xEnd) - _rect1.x;
@@ -110,7 +111,7 @@
 		}
 
 		// draw selected time
-		int x = rect.x + (int) ((selectedTime - time0) * K);
+		int x = rect.x + (int) ((selectedTime - time0) * pixelsPerNanoSec);
 		if (x >= rect.x && x < rect.x + rect.width) {
 			gc.setForeground(_colors.getColor(TraceColorScheme.SELECTED_TIME));
 			if (group)

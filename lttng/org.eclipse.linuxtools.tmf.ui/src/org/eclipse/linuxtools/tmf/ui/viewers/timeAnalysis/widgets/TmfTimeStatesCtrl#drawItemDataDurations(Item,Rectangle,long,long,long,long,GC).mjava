@@ -28,7 +28,8 @@
 		Utils.init(_rect1, rect);
 		boolean selected = item._selected;
 		// K pixels per second
-		double K = (double) rect.width / (time1 - time0);
+		double pixelsPerNanoSec = (rect.width <= 2) ? 0
+				: (double) (rect.width - 2) / (time1 - time0); // 2 pixels lesser to make sure end time is visible
 		// Trace.debug("Value of K: " + K + " width:" + rect.width + " time0: "
 		// + time0 + " time1:" + time1 + " endTime: " + endTime);
 
@@ -37,9 +38,6 @@
 		if (group) {
 			// gc.setBackground(_colors.getBkColorGroup(selected, _isInFocus));
 			// gc.fillRectangle(rect);
-			// if (Trace.isDEBUG()) {
-			// Trace.debug("\n\t\t\tGroup: " + ((GroupItem) item)._name);
-			// }
 		} else if (item instanceof TraceItem) {
 			ITmfTimeAnalysisEntry trace = ((TraceItem) item)._trace;
 
@@ -47,12 +45,19 @@
 			List<TimeEvent> list = trace.getTraceEvents();
 			// Iterator it = list.iterator();
 			int count = list.size();
-			ITimeEvent lastEvent = null;
+			// ITimeEvent lastEvent = null;
 			// if (Trace.isDEBUG()) {
 			// Trace.debug("\n\t\t\tTrace: " + trace.getName()
 			// + utilImpl.getTraceClassName(trace));
 			// }
 			// Trace.debug("count is: " + count);
+			// Drawing rectangle is smaller than reserved space
+			_rect1.y += 3;
+			_rect1.height -= 6;
+
+			// Clean up to empty line to draw on top
+			int xEnd = rect.x + rect.width;
+			fillSpace(rect, gc, selected, _rect1.x, xEnd, xEnd);
 			if (count > 0) {
 				ITimeEvent currEvent = list.get(0);
 				ITimeEvent nextEvent = null;
@@ -61,22 +66,15 @@
 				// initial value
 				long nextEventTime = currEventTime;
 				// x0 - Points to the beginning of the event being drawn
-				double step = (double) ((currEventTime - time0) * K);
+				double step = (double) ((currEventTime - time0) * pixelsPerNanoSec);
 				x0 = rect.x + step;
 				// xEnd - Points to the end of the events rectangle
-				double xEnd = rect.x + (double) ((time1 - time0) * K);
 				double x1 = -1;
 				int idx = 1;
 				double xNext = 0;
 
-				// Drawing rectangle is smaller than reserved space
-				_rect1.y += 3;
-				_rect1.height -= 6;
-
-				// Clean up to empty line to draw on top
-				fillSpace(rect, gc, selected, _rect1.x, xEnd, xEnd);
 				// draw event states
-				while (x0 <= xEnd && null != currEvent) {
+				while (/* x0 <= xEnd &&*/ null != currEvent) {
 					boolean stopped = false;// currEvent instanceof
 					// refresh current event duration as the loop moves
 					currEventDuration = currEvent.getDuration();
@@ -97,14 +95,15 @@
 					}
 
 					// Calculate position to next event
-					xNext = rect.x + (double) ((nextEventTime - time0) * K);
+					xNext = rect.x + (double) ((nextEventTime - time0) * pixelsPerNanoSec);
 
 					// Calculate end position of current event
 					if (currEventDuration < 0) {
-						x1 = rect.x + (double) ((nextEventTime - time0) * K);
+						x1 = rect.x + (double) ((nextEventTime - time0) * pixelsPerNanoSec);
+					} else if (currEventDuration == 0) {
+						x1 = x0;
 					} else {
-						x1 = currEventDuration == 0 ? (x0 + 2)
-								: (x0 + (double) ((currEventDuration) * K));
+						x1 = x0 + (double) ((currEventDuration) * pixelsPerNanoSec);
 					}
 
 					// If event end position x1 further away than start position
@@ -113,12 +112,17 @@
 					// Trace.debug("Next Event Pos: " + xNext
 					// + " End Of Current at: " + x1 + " Event Duration: "
 					// + currEventDuration);
-					x1 = x1 > xNext ? xNext : x1;
+					if (currEventDuration != 0) {
+						x1 = x1 > xNext ? xNext : x1;
+					}
 					// if event end boundary is within time range
 					if (x1 >= rect.x && x0 <= xEnd) {
-						// Fill with space until x0
-						x0 = (double) (x0 >= rect.x ? x0 : rect.x);
-						_rect1.width = (int) ((x1 <= xEnd ? x1 : xEnd) - x0);
+						if (currEventDuration != 0) {
+							x0 = (double) (x0 >= rect.x ? x0 : rect.x);
+						} else {
+							x1 = x0 + 2; // make punctual events 2 pixels wide
+						}
+						_rect1.width = (int) Math.round((x1 <= xEnd ? x1 : xEnd) - x0);
 						_rect1.x = (int) x0;
 						boolean timeSelected = currEventTime <= selectedTime
 								&& selectedTime < nextEventTime;
@@ -135,38 +139,18 @@
 					}
 
 					// Fill space till next event
-					fillSpace(rect, gc, selected, x0, xNext, xEnd);
+					// fillSpace(rect, gc, selected, x0, xNext, xEnd);
 
-					lastEvent = currEvent;
+					// lastEvent = currEvent;
 					currEvent = nextEvent;
 					currEventTime = nextEventTime;
 					// Move x0 to the beginning of next event
-					x0 = rect.x + (double) ((nextEventTime - time0) * K);
+					x0 = rect.x + (double) ((nextEventTime - time0) * pixelsPerNanoSec);
 					// Trace.debug("rect.x: " + rect.x + " + " +
 					// "(nextEvenTime: "
 					// + nextEventTime + "- time0: " + time0 + ") * K: "
 					// + K + " = " + x0);
 				}
-			}
-
-			// fill space after last event
-			int xEnd = rect.x + rect.width;
-			if (x0 < xEnd) {
-				// Trace.debug("Space after last event, x0: " + x0 + ", xEnd: "
-				// + xEnd);
-				_rect1.x = (int) (x0 >= rect.x ? x0 : rect.x);
-				_rect1.width = xEnd - _rect1.x;
-				gc.setBackground(_colors
-						.getBkColor(selected, _isInFocus, false));
-				gc.fillRectangle(_rect1);
-				// draw middle line
-				gc.setForeground(_colors.getColor(utilImpl
-						.getEventColorVal(lastEvent)));
-				int midy = _rect1.y + _rect1.height / 2;
-				int lw = gc.getLineWidth();
-				gc.setLineWidth(2);
-				gc.drawLine(_rect1.x, midy, _rect1.x + _rect1.width, midy);
-				gc.setLineWidth(lw);
 			}
 
 			// draw focus area
@@ -187,7 +171,7 @@
 		}
 
 		// draw selected time
-		int x = rect.x + (int) ((selectedTime - time0) * K);
+		int x = rect.x + (int) ((double) (selectedTime - time0) * pixelsPerNanoSec);
 		if (x >= rect.x && x < rect.x + rect.width) {
 			gc.setForeground(_colors.getColor(TraceColorScheme.SELECTED_TIME));
 			if (group)

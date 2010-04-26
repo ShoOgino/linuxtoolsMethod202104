@@ -1,29 +1,31 @@
 	public void mouseUp(MouseEvent e) {
-		if (1 == _dragState) {
+		if (e.button == 1 && _dragState == 1) {
 			setCapture(false);
 			_dragState = 0;
-		}
-
-		if (3 == e.button && null != _timeProvider) {
-			if (_dragX0 < 0) {
+		} else if (e.button == 3 && _dragState == 3 && null != _timeProvider) {
+		    _dragState = 0;
+			if (_dragX0 == _dragX) {
 				return;
 			}
-			Point size = getSize();
-
+			int timeSpace = _timeProvider.getTimeSpace();
 			int leftSpace = _timeProvider.getNameSpace();
 			int x = e.x - leftSpace;
-			if (x > 0 && size.x > leftSpace && _dragX != x) {
+			if (timeSpace > 0) {
 				_dragX = x;
-				long time0 = _time0bak + ((_time1bak - _time0bak) * _dragX0)
-						/ (size.x - leftSpace);
-				long time1 = _time0bak + ((_time1bak - _time0bak) * _dragX)
-						/ (size.x - leftSpace);
+				if (_dragX0 > _dragX) { // drag right to left
+				    _dragX = _dragX0;
+				    _dragX0 = x;
+				}
+				long time0 = _time0bak + (long) ((_time1bak - _time0bak) * ((double) _dragX0 / timeSpace));
+				long time1 = _time0bak + (long) ((_time1bak - _time0bak) * ((double) _dragX / timeSpace));
 
 				_timeProvider.setStartFinishTime(time0, time1);
+	            _time0bak = _timeProvider.getTime0();
+	            _time1bak = _timeProvider.getTime1();
 			}
 		}
 
 		// Notify time provider to check the need for listener notification
-		_timeProvider.mouseUp();
+		_timeProvider.setStartFinishTimeNotify(_timeProvider.getTime0(), _timeProvider.getTime1());
 	}
 

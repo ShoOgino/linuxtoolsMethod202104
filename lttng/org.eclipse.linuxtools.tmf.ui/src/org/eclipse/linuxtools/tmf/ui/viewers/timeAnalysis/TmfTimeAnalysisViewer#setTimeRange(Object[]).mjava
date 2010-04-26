@@ -1,28 +1,30 @@
-	/** Tries to set most convinient time range for display. */
+	/** Tries to set most convenient time range for display. */
 	void setTimeRange(Object traces[]) {
 		_endTime = 0;
 		_beginTime = -1;
 		ITimeEvent event;
 		for (int i = 0; i < traces.length; i++) {
-			ITmfTimeAnalysisEntry thread = (ITmfTimeAnalysisEntry) traces[i];
-			long lastEventTime = thread.getStopTime();
-			if (lastEventTime > thread.getStartTime()) {
-				if (lastEventTime > _endTime)
-					_endTime = lastEventTime;
+			ITmfTimeAnalysisEntry entry = (ITmfTimeAnalysisEntry) traces[i];
+			if (entry.getStopTime() >= entry.getStartTime() && entry.getStopTime() > 0) {
+			    if (_beginTime < 0 || entry.getStartTime() < _beginTime) {
+			        _beginTime = entry.getStartTime();
+			    }
+			    if (entry.getStopTime() > _endTime) {
+			        _endTime = entry.getStopTime();
+			    }
 			}
-			List<TimeEvent> list = thread.getTraceEvents();
+			List<TimeEvent> list = entry.getTraceEvents();
 			int len = list.size();
 			if (len > 0) {
+                event = (ITimeEvent) list.get(0);
+                if (_beginTime < 0 || event.getTime() < _beginTime) {
+                    _beginTime = event.getTime();
+                }
 				event = (ITimeEvent) list.get(list.size() - 1);
-				lastEventTime = event.getTime();
-				if (lastEventTime > _endTime) {
-					_endTime = lastEventTime;
-					long duration = event.getDuration();
-					_endTime += duration > 0 ? duration : 1000000;
+				long eventEndTime = event.getTime() + (event.getDuration() > 0 ? event.getDuration() : 0);
+				if (eventEndTime > _endTime) {
+					_endTime = eventEndTime;
 				}
-				event = (ITimeEvent) list.get(0);
-				if (_beginTime < 0 || _beginTime > event.getTime())
-					_beginTime = event.getTime();
 			}
 		}
 

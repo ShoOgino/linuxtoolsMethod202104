@@ -1,25 +1,40 @@
-	private void calcTimeDelta(int width, double K) {
-		long D[] = { 1, 2, 5, };
-		long pow = 1;
-		double powD = 1;
-		long td = pow;
-		double tdD = powD;
-		double dx = tdD * K;
-		int i = 0;
-		while (dx < width) {
-			td = D[i] * pow;
-			tdD = D[i] * powD;
-			dx = tdD * K;
-			i++;
-			if (i == 3) {
-				i = 0;
-				pow *= 10;
-				powD *= 10;
-			}
-		}
-		_timeDeltaD = tdD;
-		_timeDelta = td;
-//		Trace.debug("Width: " + width + " K: " + K + " Time Delta: "
-//				+ _timeDelta);
-	}
+    private void calcTimeDelta(int width, double pixelsPerNanoSec) {
+        double minDelta = (double) ((pixelsPerNanoSec ==0) ? YEAR_IN_NS : width / pixelsPerNanoSec);
+        long unit = 1;
+        if (_timeProvider != null && _timeProvider.isCalendarFormat()) {
+            if (minDelta > 6 * MONTH_IN_NS) {
+                unit = YEAR_IN_NS;
+            } else if (minDelta > 3 * MONTH_IN_NS) {
+                unit = 6 * MONTH_IN_NS;
+            } else if (minDelta > 10 * DAY_IN_NS) {
+                unit = MONTH_IN_NS;
+            } else if (minDelta > 12 * HOUR_IN_NS) {
+                unit = DAY_IN_NS;
+            } else if (minDelta > 3 * HOUR_IN_NS) {
+                unit = 6 * HOUR_IN_NS;
+            } else if (minDelta > 30 * MIN_IN_NS) {
+                unit = HOUR_IN_NS;
+            } else if (minDelta > 10 * MIN_IN_NS) {
+                unit = 15 * MIN_IN_NS;
+            } else if (minDelta > 30 * SEC_IN_NS) {
+                unit = MIN_IN_NS;
+            } else if (minDelta > 20 * SEC_IN_NS) {
+                unit = 30 * SEC_IN_NS;
+            }
+        }
+        double log = Math.log10((double) minDelta / unit);
+        long pow10 = (long) log;
+        double remainder = log - pow10;
+        if (remainder < LOG10_1) {
+            _timeDelta = (long) Math.pow(10, pow10) * unit;
+        } else if (remainder < LOG10_2) {
+            _timeDelta = 2 * (long) Math.pow(10, pow10) * unit;
+        } else if (remainder < LOG10_3 && unit >= HOUR_IN_NS && unit < YEAR_IN_NS) {
+            _timeDelta = 3 * (long) Math.pow(10, pow10) * unit;
+        } else if (remainder < LOG10_5) {
+            _timeDelta = 5 * (long) Math.pow(10, pow10) * unit;
+        } else {
+            _timeDelta = 10 * (long) Math.pow(10, pow10) * unit;
+        }
+    }
 

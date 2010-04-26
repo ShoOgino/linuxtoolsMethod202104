@@ -7,9 +7,9 @@
 			int x = e.x - nameWidth;
 			if (x > 0 && size.x > nameWidth && _dragX != x) {
 				_dragX = x;
-				double K = (double) (size.x - nameWidth)
-						/ (_time1bak - _time0bak);
-				long timeDelta = (long) ((_dragX - _dragX0) / K);
+				double pixelsPerNanoSec = (size.x - nameWidth <= 2) ? 0
+						: (double) (size.x - nameWidth - 2) / (_time1bak - _time0bak); // 2 pixels less to make sure end time is visible
+				long timeDelta = (long) ((pixelsPerNanoSec == 0) ? 0 : ((_dragX - _dragX0) / pixelsPerNanoSec));
 				long time1 = _time1bak - timeDelta;
 				long maxTime = _timeProvider.getMaxTime();
 				if (time1 > maxTime)
@@ -29,6 +29,10 @@
 			if (_mouseHover != mouseHover)
 				redraw();
 			_mouseHover = mouseHover;
+			// Make sure any time changes are notified to the application e.g.
+			// getting back from the horizontal scroll bar or zoomed using the
+			// mouse wheel
+			_timeProvider.setStartFinishTimeNotify(_timeProvider.getTime0(), _timeProvider.getTime1());
 		}
 		updateCursor(e.x, e.y);
 	}

@@ -26,7 +26,8 @@
 		Utils.init(_rect1, rect);
 		boolean selected = item._selected;
 		// K pixels per second
-		double K = (double) rect.width / (time1 - time0);
+		double pixelsPerNanoSec = (rect.width <= 2) ? 0
+				: (double) (rect.width - 2) / (time1 - time0); // 2 pixels less to make sure end time is visible
 		// Trace.debug("Value of K: " + K + " width:" + rect.width + " time0: "
 		// + time0 + " time1:" + time1 + " endTime: " + endTime);
 
@@ -53,10 +54,10 @@
 				long currEventTime = currEvent.getTime();
 				long nextEventTime = currEventTime;
 				// x0 - Points to the beginning of the event being drawn
-				double step = (double) ((currEventTime - time0) * K);
+				double step = (double) ((currEventTime - time0) * pixelsPerNanoSec);
 				x0 = rect.x + step;
 				// xEnd - Points to the end of the events rectangle
-				double xEnd = rect.x + (double) ((time1 - time0) * K);
+				double xEnd = rect.x + (double) ((time1 - time0) * pixelsPerNanoSec);
 				double x1 = -1;
 				int idx = 1;
 				double xNext = 0;
@@ -104,7 +105,7 @@
 						// with space until next event
 						_rect1.x += _rect1.width;
 						x0 = x1;
-						xNext = rect.x + (double) ((nextEventTime - time0) * K);
+						xNext = rect.x + (double) ((nextEventTime - time0) * pixelsPerNanoSec);
 					}
 					// Fill space till next event
 					fillSpace(rect, gc, selected, x0, xNext, xEnd);
@@ -113,7 +114,7 @@
 					currEvent = nextEvent;
 					currEventTime = nextEventTime;
 					// Move x0 to the beginning of next event
-					x0 = rect.x + (double) ((nextEventTime - time0) * K);
+					x0 = rect.x + (double) ((nextEventTime - time0) * pixelsPerNanoSec);
 					// Trace.debug("rect.x: " + rect.x + " + " +
 					// "(nextEvenTime: "
 					// + nextEventTime + "- time0: " + time0 + ") * K: "
@@ -159,7 +160,7 @@
 		}
 
 		// draw selected time
-		int x = rect.x + (int) ((selectedTime - time0) * K);
+		int x = rect.x + (int) ((selectedTime - time0) * pixelsPerNanoSec);
 		if (x >= rect.x && x < rect.x + rect.width) {
 			gc.setForeground(_colors.getColor(TraceColorScheme.SELECTED_TIME));
 			if (group)
