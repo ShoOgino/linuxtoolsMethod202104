@@ -5,20 +5,24 @@
     public void timeTextGroupChangeNotification() {
     	
     	// Get all the time text group value
-    	Long newCurrentTime = ntgCurrentEventTime.getValue();
-    	Long newSelectedWindowTime = ntgCurrentWindowTime.getValue();
-    	Long newSelectedWindowTimeRange = ntgTimeRangeWindow.getValue();
+    	long newCurrentTime = ntgCurrentEventTime.getValue();
+    	long newSelectedWindowTime = ntgCurrentWindowTime.getValue();
+    	long newSelectedWindowTimeRange = ntgTimeRangeWindow.getValue();
     	
     	// If the user changed the current event time, call the notification
     	if ( newCurrentTime != currentEventTime ) {
     		currentEventChangeNotification( newCurrentTime );
+    		// Send a broadcast to the framework about the window change
+    		sendTmfTimeSynchSignalBroadcast();
     	}
     	
     	// If the user changed the selected window time, recenter the window and call the notification
     	if ( newSelectedWindowTime != selectedWindowTime ) {
     		selectedWindowTime = newSelectedWindowTime;
-    		fullExperimentCanvas.centerWindow( fullExperimentCanvas.getHistogramContent().getClosestXPositionFromTimestamp(selectedWindowTime) );
+    		fullExperimentCanvas.setWindowCenterPosition( fullExperimentCanvas.getHistogramContent().getClosestXPositionFromTimestamp(selectedWindowTime) );
     		windowChangedNotification();
+    		// Send a broadcast to the framework about the window change
+    		sendTmfRangeSynchSignalBroadcast();
     	}
     	
     	// If the user changed the selected window size, resize the window and call the notification
@@ -26,6 +30,8 @@
     		selectedWindowTimerange = newSelectedWindowTimeRange;
     		fullExperimentCanvas.resizeWindowByAbsoluteTime(selectedWindowTimerange);
     		windowChangedNotification();
+    		// Send a broadcast to the framework about the window change
+    		sendTmfRangeSynchSignalBroadcast();
     	}
     	
     }

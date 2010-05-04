@@ -1,0 +1,30 @@
+    @TmfSignalHandler
+	public void synchToTimeRange(TmfRangeSynchSignal signal) {
+		if ( (signal != null) && (signal.getSource() != this) ) {
+			if ( lastUsedExperiment != null ) {
+				long currentTime 		= signal.getCurrentTime().getValue();
+				long windowStart 		= signal.getCurrentRange().getStartTime().getValue();
+				long windowEnd 			= signal.getCurrentRange().getEndTime().getValue();
+				long windowTimeWidth 	= (windowEnd - windowStart); 
+				
+				// Recenter the window
+				fullExperimentCanvas.setWindowCenterPosition( fullExperimentCanvas.getHistogramContent().getClosestXPositionFromTimestamp(windowStart + (windowTimeWidth/2)) );
+				fullExperimentCanvas.setSelectedWindowSize(windowTimeWidth);
+				
+				// *** HACK ***
+				// Views could send us incorrect current event value (event outside the current window)
+				// Here we make sure the value is sane, otherwise, we force it as the left border of the window
+				if ( isGivenTimestampInSelectedWindow( currentTime ) == false ) {
+					currentTime = windowStart;
+				}
+				currentEventTime = currentTime;
+				
+				// Notify control that the window changed
+            	windowChangedNotification();
+            	
+            	fullExperimentCanvas.redraw();
+            	selectedWindowCanvas.redraw();
+			}
+		}
+	}
+
