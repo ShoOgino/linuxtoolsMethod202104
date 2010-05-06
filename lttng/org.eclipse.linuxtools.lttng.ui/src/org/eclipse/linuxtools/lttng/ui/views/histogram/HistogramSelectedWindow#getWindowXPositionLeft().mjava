@@ -5,13 +5,17 @@
 	 * @return The left position of the window, or 0 if it cannot compute it. 
 	 */
 	public int getWindowXPositionLeft() {
-		int tmpLeftPosition = histogramContent.getXPositionByPositionAndTimeInterval(windowCenterPosition, -(windowTimeWidth / 2) );
-		if ( (tmpLeftPosition == windowCenterPosition ) && (tmpLeftPosition>0) ) {
-			tmpLeftPosition = tmpLeftPosition-1;
+		
+		// If the timewidth is too small, we would pick the same position as the center one.
+		// To avoid this, we take a "full interval" when the window size is too small
+		if ( windowTimeWidth < histogramContent.getElementsTimeInterval() ) {
+			// Use intervalTime and not intervalTime/2 to make sure we step into the next interval
+			// Otherwise, if we are in the beginning of an interval, adding IntervalTime/2 could lead us into the same one
+			// The rounding operation will then return a correct position
+			return histogramContent.getXPositionByPositionAndTimeInterval(windowCenterPosition, -(histogramContent.getElementsTimeInterval() ) );
 		}
-		
-		return tmpLeftPosition;
-		
-		//return histogramContent.getXPositionByPositionAndTimeInterval(windowCenterPosition, -(windowTimeWidth / 2) );
+		else {
+			return histogramContent.getXPositionByPositionAndTimeInterval(windowCenterPosition, -(windowTimeWidth / 2) );
+		}
 	}
 
