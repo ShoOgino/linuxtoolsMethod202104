@@ -6,7 +6,7 @@
      * @param jniEvent	The current JNI Event
      * @return Current 	Lttng Event fully parsed
      */
-    private synchronized LttngEvent convertJniEventToTmfMultipleEventEvilFix(JniEvent jniEvent) {
+    private synchronized LttngEvent convertJniEventToTmfMultipleEventEvilFix(JniEvent jniEvent, boolean isParsingNeeded) {
     	// *** HACK ***
     	// Below : the "fix" with all the new and the full-parse
     	// 		Allocating new memory is slow.
@@ -22,8 +22,13 @@
         currentLttngEvent.updateJniEventReference(jniEvent);
         // Ensure that the content is correctly set
         eventContent.setEvent(currentLttngEvent);
-        // FORCE the full parse of every event :
-        eventContent.getFields();
+        
+        // Parse the event if it was needed
+        // *** WARNING ***
+        // ONLY for testing, NOT parsing events with non-unique events WILL result in segfault in the JVM
+        if ( isParsingNeeded == true ) {
+        	eventContent.getFields();
+        }
     	
         return currentLttngEvent;
     }
