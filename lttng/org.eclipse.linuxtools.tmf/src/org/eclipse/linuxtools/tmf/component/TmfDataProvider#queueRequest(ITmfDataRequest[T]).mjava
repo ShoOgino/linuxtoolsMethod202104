@@ -1,5 +1,7 @@
 	protected void queueRequest(final ITmfDataRequest<T> request) {
 
+		final String provider = getName();
+		
 		// Process the request
 		Thread thread = new Thread() {
 
@@ -22,8 +24,9 @@
 				}
 
 				// Get the ordered events
-//				Tracer.trace("Thread #" + Thread.currentThread().getId() + ", request #" + request.getRequestId() + " starting");
+				Tracer.trace("Request #" + request.getRequestId() + " is serviced by " + provider);
 				T data = getNext(context);
+				Tracer.trace("Request #" + request.getRequestId() + " read first event");
 				while (data != null && !isCompleted(request, data, nbRead))
 				{
 					result.add(data);
@@ -33,9 +36,9 @@
 					// To avoid an unnecessary read passed the last data requested
 					if (nbRead < nbRequested) {
 						data = getNext(context);
-//						if (data != null && data.isNull()) {
-//							Tracer.trace("Thread #" + Thread.currentThread().getId() + ", request #" + request.getRequestId() + " end of data");
-//						}
+						if (data == null || data.isNullRef()) {
+							Tracer.trace("Request #" + request.getRequestId() + " end of data");
+						}
 					}
 				}
 				pushData(request, result);

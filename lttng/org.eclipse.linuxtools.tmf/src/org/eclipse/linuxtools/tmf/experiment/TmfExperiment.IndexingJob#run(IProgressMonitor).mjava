@@ -5,19 +5,19 @@
 		protected IStatus run(IProgressMonitor monitor) {
 
 			// Minimal check
-			if (fTraces.length == 0) {
+			if (traces.length == 0) {
 	            fIndexing = false;
 				return Status.OK_STATUS;
 			}
 
-			monitor.beginTask("Indexing " + fExperimentId, IProgressMonitor.UNKNOWN);
+			monitor.beginTask("Indexing " + experimentId, IProgressMonitor.UNKNOWN);
 
             int nbEvents = 0;
             TmfTimestamp startTime = null;
             TmfTimestamp lastTime  = null;
 
             // Reset the index
-            fCheckpoints = new Vector<TmfCheckpoint>();
+            checkpoints = new Vector<TmfCheckpoint>();
             
             try {
             	// Position the trace at the beginning
@@ -34,7 +34,7 @@
                	while (event != null) {
                 	lastTime = event.getTimestamp();
            			if ((nbEvents++ % fIndexPageSize) == 0) {
-           				fCheckpoints.add(new TmfCheckpoint(lastTime, location));
+           				checkpoints.add(new TmfCheckpoint(lastTime, location));
 
                         monitor.worked(1);
 
@@ -56,10 +56,11 @@
             }
             finally {
                 synchronized(this) {
-                	fNbEvents = nbEvents;
-                	fTimeRange = new TmfTimeRange(startTime, lastTime);
-                	fIndexing = false;
-                	fIndexed = true;
+                	fCheckpoints = checkpoints;
+                	fNbEvents    = nbEvents;
+                	fTimeRange   = new TmfTimeRange(startTime, lastTime);
+                	fIndexing    = false;
+                	fIndexed     = true;
                 }
        		    notifyListeners(fTimeRange);
                 monitor.done();
