@@ -25,23 +25,17 @@
         // then compare. If the scaling difference is too large, revert to
         // some heuristics. Hopefully, nobody will try to compare galactic and
         // quantic clock events...
+        if (Math.abs(fScale - other.fScale) > MAX_SCALING) {
+            return simpleCompare(other);
+        }
+
         byte newScale = (fScale < other.fScale) ? fScale : other.fScale;
         try {
             TmfTimestamp ts1 = this.synchronize(0, newScale);
             TmfTimestamp ts2 = other.synchronize(0, newScale);
             return ts1.compareTo(ts2, withinPrecision);
         } catch (ArithmeticException e) {
-            if ((fValue == 0) || (other.fValue == 0)) {
-                return (fValue == other.fValue) ? 0
-                        : (fValue < other.fValue) ? -1 : 1;
-            }
-            if ((fValue > 0) && (other.fValue > 0)) {
-                return (fScale < other.fScale) ? -1 : 1;
-            }
-            if ((fValue < 0) && (other.fValue < 0)) {
-                return (fScale > other.fScale) ? -1 : 1;
-            }
-            return (fValue < 0) ? -1 : 1;
+            return simpleCompare(other);
         }
     }
 
