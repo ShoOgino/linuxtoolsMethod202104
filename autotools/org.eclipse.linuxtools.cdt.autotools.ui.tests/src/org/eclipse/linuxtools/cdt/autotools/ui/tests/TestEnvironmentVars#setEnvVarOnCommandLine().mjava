@@ -1,0 +1,49 @@
+	@Test
+	// Verify we can set an environment variable prior to the configuration command and
+	// it will be seen by the configure script
+	public void setEnvVarOnCommandLine() throws Exception {
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		assertTrue(workspace != null);
+		IWorkspaceRoot root = workspace.getRoot();
+		assertTrue(root != null);
+		IProject project = root.getProject("GnuProject2");
+		assertTrue(project != null);
+		IPath path = project.getLocation();
+		// Create a fake configure script which prints out the values of
+		// envvars some_var1, some_var2, and some_var3
+		File f = new File(path.append("fake_configure").toOSString());
+		BufferedWriter w = new BufferedWriter(new FileWriter(f));
+		w.append("echo VAR1 is ${some_var1}");
+		w.newLine();
+		w.append("echo VAR2 is ${some_var2}");
+		w.newLine();
+		w.append("echo VAR3 is ${some_var3}");
+		w.newLine();
+		w.close();
+		// Now change the configure script command to be the fake configure script
+		// and set the three envvars on the command itself
+		SWTBotView view = bot.viewByTitle("Project Explorer");
+		view.bot().tree().select("GnuProject2");
+		bot.menu("Project", 1).menu("Properties").click();
+		SWTBotShell shell = bot.shell("Properties for GnuProject2");
+		shell.activate();
+		bot.tree().expandNode("Autotools").select("Configure Settings");
+		bot.treeWithLabel("Configure Settings").select("configure");
+		bot.textWithLabel("Command").setText("");
+		// Choose three different forms, some using quotes to allow blanks in them
+		bot.textWithLabel("Command").typeText("some_var1=\"a boat\" some_var2='a train' some_var3=car fake_configure");
+		bot.button("OK").click();
+		// Reconfigure the project and make sure the env variables are seen in the script
+		view = bot.viewByTitle("Project Explorer");
+		view.bot().tree().select("GnuProject2");
+		bot.menu("Project", 1).menu("Reconfigure Project").click();
+		bot.sleep(3000);
+		SWTBotView consoleView = bot.viewByTitle("Console");
+		consoleView.setFocus();
+		String output = consoleView.bot().styledText().getText();
+		Pattern p = Pattern.compile(".*VAR1 is a boat.*VAR2 is a train.*VAR3 is car.*", Pattern.DOTALL);
+		Matcher m = p.matcher(output);
+		assertTrue(m.matches());
+		bot.sleep(10000);
+	}
+
