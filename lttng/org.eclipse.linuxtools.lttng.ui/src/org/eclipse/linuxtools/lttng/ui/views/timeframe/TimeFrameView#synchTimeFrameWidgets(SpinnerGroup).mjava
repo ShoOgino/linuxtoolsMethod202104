@@ -2,6 +2,7 @@
      * One of the spinners has been updated. Synchronize the other widgets.
      */
     public void synchTimeFrameWidgets(SpinnerGroup trigger) {
+		boolean trangeUpdated = false;
 
         // Collect the data
         TmfTimestamp startTime   = fStartGroup.getCurrentTime();
@@ -13,6 +14,7 @@
         if (trigger == fStartGroup) {
             if (startTime.compareTo(endTime, false) > 0) {
                 endTime = startTime;
+				trangeUpdated = true;
             }
         }
 
@@ -20,6 +22,7 @@
         if (trigger == fEndGroup) {
             if (endTime.compareTo(startTime, false) < 0) {
                 startTime = endTime;
+				trangeUpdated = true;
             }
         }
 
@@ -32,6 +35,7 @@
                 ts = fTraceEndTime.synchronize(fTraceEndTime.getValue(), startTime.getScale());
             }
             endTime = ts;
+			trangeUpdated = true;
         }
 
         // Compute the new time range
@@ -46,11 +50,18 @@
         fCurrentGroup.setContent(subrange, currentTime);
 
         updateSlider(subrange, currentTime);
+		// Notify other views, only if the update originated from this view
+		if (fupdateExternalListeners) {
+			if (!fCurrentTime.equals(currentTime)) {
+				fCurrentTime = currentTime;
+				broadcast(new TmfTimeSynchSignal(this, currentTime));
+			}
 
-        // Notify other views
-        if (!fCurrentTime.equals(currentTime)) {
-            fCurrentTime = currentTime;
-            broadcast(new TmfTimeSynchSignal(this, currentTime));
+			// Notify the views if the time range has been impacted
+			if (trangeUpdated) {
+				TmfTimeRange trange = new TmfTimeRange(startTime, endTime);
+				broadcast(new TmfRangeSynchSignal(this, trange, currentTime));
+			}
         }
     }
 

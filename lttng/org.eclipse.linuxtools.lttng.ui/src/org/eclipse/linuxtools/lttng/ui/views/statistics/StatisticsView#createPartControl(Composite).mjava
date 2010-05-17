@@ -7,11 +7,6 @@
 	 */
 	@Override
 	public void createPartControl(Composite parent) {
-		EventProcessorProxy.getInstance().addEventProcessorFactory(
-				StatsTimeCountHandlerFactory.getInstance());
-		EventProcessorProxy.getInstance().addEventProcessorFactory(
-				StatsEventCountHandlerFactory.getInstance());
-
 		parent.setLayout(new FillLayout());
 
 		treeViewer = new TreeViewer(parent, SWT.BORDER | SWT.H_SCROLL
@@ -114,13 +109,12 @@
 		treeViewer.getTree().setSortColumn(treeViewer.getTree().getColumn(0));
 		treeViewer.getTree().setSortDirection(SWT.DOWN);
 
-		treeViewer.setInput(StatisticsTreeFactory
-				.getStatisticsTree("Experiment"));
-
 		// Read current data if any available
-		StateExperimentManager experimentManger = StateManagerFactory
-				.getExperimentManager();
-		experimentManger.readExperiment("statisticsView", this);
-
+		TmfExperiment<?> experiment = TmfExperiment.getCurrentExperiment();
+		if (experiment != null) {
+			requestData(experiment);
+		} else {
+			TraceDebug.debug("No selected experiment information available");
+		}
 	}
 

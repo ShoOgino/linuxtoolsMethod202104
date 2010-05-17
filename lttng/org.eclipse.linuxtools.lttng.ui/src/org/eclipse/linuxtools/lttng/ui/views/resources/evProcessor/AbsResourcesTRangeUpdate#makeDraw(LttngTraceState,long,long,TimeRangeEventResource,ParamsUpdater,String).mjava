@@ -7,27 +7,28 @@
 	 * @param stateMode
 	 * @return
 	 */
-	protected boolean makeDraw(LttngTraceState traceSt, long startTime,
-			long endTime, TimeRangeEventResource localResource,
+	protected boolean makeDraw(LttngTraceState traceSt, long stime, long etime,
+			TimeRangeEventResource localResource,
 			ParamsUpdater params, String stateMode) {
 
+		// Check if the event is out of range
+		if (!withinViewRange(stime, etime)) {
+			params.incrementEventsDiscarded();
+			return false;
+		}
+
 		// Check if the time range is consistent.
-		if (endTime < startTime) {
+		if (etime < stime) {
 			params.incrementEventsDiscardedWrongOrder();
 			return false;
 		}
 
-		// Determine start and end times to establish duration
-		long stime = startTime;
-		long windowEndTime = params.getEndTime();
-		long etime = endTime < windowEndTime ? endTime : windowEndTime;
-
-		if (etime < stime || !withinViewRange(stime, etime)) {
-			// No use to process the event since it's outside
-			// the visible time range of the window
-			params.incrementEventsDiscarded();
-			return false;
-		}
+		// Store the next good time to start drawing the next event
+		// this is done this early to display an accurate start time of the
+		// first event
+		// within the display window
+		// Moved at the end since it produces space gaps among events
+		// localResource.setNext_good_time(etime);
 
 		// Determine if the time range event will fit it the current
 		// pixel map
@@ -35,10 +36,6 @@
 		double k = getPixelsPerNs(traceSt, params);
 		double pixels = duration * k;
 
-		// ***VERIFY***
-		// Is all this equivalent to this call in C??
-		// if(ltt_time_compare(hashed_process_data->next_good_time,evtime) > 0)
-		// ***
 		// Visibility check
 		// Display a "more information" indication by allowing non visible event
 		// as long as its previous event is visible.
@@ -53,12 +50,6 @@
 				TimeRangeComponent prevEvent = inMemEvents.get(inMemEvents
 						.size() - 1);
 				prevEventVisibility = prevEvent.isVisible();
-
-				// ***VERIFY***
-				// This replace all C Call like this one ?
-				// #ifdef EXTRA_CHECK if(ltt_time_compare(evtime,
-				// time_window.start_time) == -1 || ltt_time_compare(evtime,
-				// time_window.end_time) == 1)
 
 				// if previous event visibility is false and the time span
 				// between events less than two pixels, there is no need to
@@ -83,19 +74,10 @@
 			TimeRangeEvent time_window = new TimeRangeEvent(stime, etime,
 					localResource, eventType, stateMode);
 
-			// *** VERIFY ***
-			// This is added to replace the multiple draw and gtk/glib command
-			// but
-			// I'm not sure about it
 			time_window.setVisible(visible);
 			localResource.addChildren(time_window);
-			// Store the next good time to start drawing the event.
+
 			localResource.setNext_good_time(etime);
-			// *** VERIFY ***
-			// Missing checks like this one?
-			// #ifdef EXTRA_CHECK if(ltt_time_compare(evtime,
-			// time_window.start_time) == -1 || ltt_time_compare(evtime,
-			// time_window.end_time) == 1)
 		}
 
 		return false;

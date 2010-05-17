@@ -1,0 +1,68 @@
+	/**
+	 * Actions taken by the view to refresh its widget(s) with the updated data
+	 * model
+	 * 
+	 * @param request
+	 * @param complete
+	 *            true: yes, false: partial update
+	 */
+	protected void modelInputChanged(ILttngSyntEventRequest request, boolean complete) {
+		long experimentStartTime = -1;
+		long experimentEndTime = -1;
+		TmfTimeRange experimentTimeRange = request.getExperimentTimeRange();
+		if (experimentTimeRange != null) {
+			experimentStartTime = experimentTimeRange.getStartTime().getValue();
+			experimentEndTime = experimentTimeRange.getEndTime().getValue();
+		}
+
+		// Obtain the current resource list
+		ITmfTimeAnalysisEntry[] itemArr = getItemContainer().readItems();
+
+		if (itemArr != null) {
+			// Sort the array by pid
+			Arrays.sort(itemArr);
+
+			// Update the view part
+			displayModel(itemArr, experimentStartTime, experimentEndTime, false, request.getRange().getStartTime()
+					.getValue(), request.getRange().getEndTime().getValue(), request.getSource());
+		}
+
+		if (complete) {
+			// reselect to original time
+			ParamsUpdater paramUpdater = ResourceModelFactory.getParamsUpdater();
+			if (paramUpdater != null && tsfviewer != null) {
+				final Long selTime = paramUpdater.getSelectedTime();
+				if (selTime != null) {
+					TraceDebug.debug("View: " + getName() + "\n\t\tRestoring the selected time to: " + selTime);
+					Display display = tsfviewer.getControl().getDisplay();
+					display.asyncExec(new Runnable() {
+						public void run() {
+							tsfviewer.setSelectedTime(selTime, false, this);
+						}
+					});
+				}
+
+				if (TraceDebug.isDEBUG()) {
+					int eventCount = 0;
+					Long count = request.getSynEventCount();
+					for (int pos = 0; pos < itemArr.length; pos++) {
+						eventCount += itemArr[pos].getTraceEvents().size();
+					}
+
+					int discarded = getParamsUpdater().getEventsDiscarded();
+					int discardedOutofOrder = paramUpdater.getEventsDiscardedWrongOrder();
+					TmfTimeRange range = request.getRange();
+					StringBuilder sb = new StringBuilder("View: " + getName() + ", Events handled: " + count
+							+ ", Events loaded in view: " + eventCount + ", Number of events discarded: " + discarded
+							+ "\n\tNumber of events discarded with start time earlier than next good time: "
+							+ discardedOutofOrder);
+
+					sb.append("\n\t\tRequested Time Range: " + range.getStartTime() + "-" + range.getEndTime());
+					sb.append("\n\t\tExperiment Time Range: " + experimentStartTime + "-" + experimentEndTime);
+					TraceDebug.debug(sb.toString());
+				}
+			}
+
+		}
+	}
+

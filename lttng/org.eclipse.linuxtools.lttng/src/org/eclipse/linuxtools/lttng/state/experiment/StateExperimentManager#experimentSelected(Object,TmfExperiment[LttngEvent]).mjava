@@ -1,0 +1,31 @@
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.eclipse.linuxtools.lttng.signal.ILttExperimentSelectedListener#
+	 * experimentSelected(java.lang.Object,
+	 * org.eclipse.linuxtools.tmf.experiment.TmfExperiment)
+	 */
+	public void experimentSelected(Object source,
+			TmfExperiment<LttngEvent> experiment) {
+		// validate
+		if (experiment == null) {
+			return;
+		}
+
+		LTTngTreeNode experimentNode = getChildByName(experiment.getName());
+		if (experimentNode != null) {
+			// get the trace manager nodes
+			LTTngTreeNode[] traceNodes = experimentNode.getChildren();
+			for (LTTngTreeNode traceStateManagerNode : traceNodes) {
+				// The trace node needs to perform its first data request
+				// for this experiment with the main goal of building its
+				// checkpoints
+				if (traceStateManagerNode instanceof ILttExperimentSelectedListener) {
+					// no need to provide the trace to the trace manager
+					((ILttExperimentSelectedListener) traceStateManagerNode).experimentUpdated(
+							new TmfExperimentUpdatedSignal(source, experiment, null), fwaitForCompletion);
+				}
+			}
+		}
+	}
+

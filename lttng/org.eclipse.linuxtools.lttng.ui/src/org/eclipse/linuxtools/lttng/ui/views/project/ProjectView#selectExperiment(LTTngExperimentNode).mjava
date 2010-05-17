@@ -1,3 +1,6 @@
+	/**
+	 * @param experiment
+	 */
 	public void selectExperiment(LTTngExperimentNode experiment) {
     	String expId = experiment.getName();
         if (fSelectedExperiment != null)
@@ -14,6 +17,11 @@
         	}
             fSelectedExperiment = new TmfExperiment<LttngEvent>(LttngEvent.class, expId, traces);
             fSelectedExperiment.indexExperiment(waitForCompletion);
+			// Make sure the lttng-core, experiment selection context is ready
+			// for an event request from any view
+			StateManagerFactory.getExperimentManager().experimentSelected_prep(
+					(TmfExperiment<LttngEvent>) fSelectedExperiment);
+
             broadcast(new TmfExperimentSelectedSignal<LttngEvent>(this, fSelectedExperiment));
         } catch (FileNotFoundException e) {
             return;
