@@ -1,0 +1,47 @@
+	protected boolean selectComment(int caretPos) {
+		IDocument doc = fText.getDocument();
+		int startPos, endPos;
+		try {
+			int pos = caretPos;
+			char c = ' ';
+
+			while (pos >= 0) {
+				c = doc.getChar(pos);
+				if (c == '\\') {
+					pos -= 2;
+					continue;
+				}
+				if ( c == lTerminator || c == '\"')
+					break;
+				--pos;
+			}
+			if (c != '\"')
+				return false;
+
+			startPos = pos;
+
+			pos = caretPos;
+			int length = doc.getLength();
+			c = ' ';
+
+			while (pos < length) {
+				c = doc.getChar(pos);
+				if ( c == lTerminator || c == '\"' )
+					break;
+				++pos;
+			}
+			if (c != '\"')
+				return false;
+
+			endPos = pos;
+
+			int offset = startPos + 1;
+			int len = endPos - offset;
+			fText.setSelectedRange(offset, len);
+			return true;
+		} catch (BadLocationException x) {
+		}
+
+		return false;
+	}
+

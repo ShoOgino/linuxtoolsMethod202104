@@ -1,0 +1,32 @@
+	private int findNextBreakOffset(int currOffset) {
+		int currWidth= 0;
+		int nextOffset= fLineBreakIterator.following(currOffset);
+		while (nextOffset != BreakIterator.DONE) {
+			String word= fLine.substring(currOffset, nextOffset);
+			int wordWidth= fGC.textExtent(word).x;
+			int nextWidth= wordWidth + currWidth;
+			if (nextWidth > fMaxWidth) {
+				if (currWidth > 0)
+					return currOffset;
+
+				if (!fBreakWords)
+					return nextOffset;
+
+				// need to fit into fMaxWidth
+				int length= word.length();
+				while (length >= 0) {
+					length--;
+					word= word.substring(0, length);
+					wordWidth= fGC.textExtent(word).x;
+					if (wordWidth + currWidth < fMaxWidth)
+						return currOffset + length;
+				}
+				return nextOffset;
+			}
+			currWidth= nextWidth;
+			currOffset= nextOffset;
+			nextOffset= fLineBreakIterator.next();
+		}
+		return nextOffset;
+	}
+

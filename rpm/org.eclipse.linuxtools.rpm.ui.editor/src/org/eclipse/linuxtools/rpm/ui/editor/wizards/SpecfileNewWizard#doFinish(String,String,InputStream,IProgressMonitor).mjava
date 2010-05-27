@@ -1,0 +1,42 @@
+	/**
+	 * The worker method. It will find the container, create the file if missing
+	 * or just replace its contents, and open the editor on the newly created
+	 * file.
+	 */
+	private void doFinish(String projectName, String fileName,
+			InputStream contentInputStream, IProgressMonitor monitor)
+			throws CoreException {
+		monitor.beginTask(Messages.SpecfileNewWizard_1 + fileName, 2);
+		IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+		IResource resource = root.findMember(new Path(projectName));
+		if (!resource.exists() || !(resource instanceof IContainer)) {
+			throwCoreException(Messages.SpecfileNewWizard_2 + projectName
+					+ Messages.SpecfileNewWizard_3);
+		}
+		IContainer container = (IContainer) resource;
+		final IFile file = container.getFile(new Path(fileName));
+		try {
+			InputStream stream = contentInputStream;
+			if (file.exists()) {
+				file.setContents(stream, true, true, monitor);
+			} else {
+				file.create(stream, true, monitor);
+			}
+			stream.close();
+		} catch (IOException e) {
+		}
+		monitor.worked(1);
+		monitor.setTaskName(Messages.SpecfileNewWizard_4);
+		getShell().getDisplay().asyncExec(new Runnable() {
+			public void run() {
+				IWorkbenchPage page = PlatformUI.getWorkbench()
+						.getActiveWorkbenchWindow().getActivePage();
+				try {
+					IDE.openEditor(page, file, true);
+				} catch (PartInitException e) {
+				}
+			}
+		});
+		monitor.worked(1);
+	}
+
