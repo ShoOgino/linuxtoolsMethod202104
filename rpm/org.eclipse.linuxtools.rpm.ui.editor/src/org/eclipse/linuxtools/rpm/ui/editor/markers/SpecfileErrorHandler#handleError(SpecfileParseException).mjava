@@ -1,44 +1,30 @@
-	/* (non-Javadoc)
-	 * @see org.eclipse.linuxtools.cdt.autotools.ui.editors.IAutoconfErrorHandler#handleError(org.eclipse.linuxtools.cdt.autotools.core.ui.editors.parser.ParseException)
-	 */
 	public void handleError(SpecfileParseException e) {
-		
 		int lineNumber = e.getLineNumber();
-		int lineOffset = 0;
-		try {
-			lineOffset = document.getLineOffset(lineNumber);
-		} catch (BadLocationException e2) {
-			// do nothing
-		}
+		
+		if (file == null) {	return;	}
 		
 		Map<String, Object> map = new HashMap<String, Object>();
 		MarkerUtilities.setLineNumber(map, lineNumber);
 		MarkerUtilities.setMessage(map, e.getMessage());
 		map.put(IMarker.MESSAGE, e.getMessage());
-		map.put(IMarker.LOCATION, Integer.valueOf(lineNumber));
+		map.put(IMarker.LOCATION, file.getFullPath().toString());
 
-		Integer charStart = new Integer(lineOffset + e.getStartColumn());
+		Integer charStart = getCharOffset(lineNumber, e.getStartColumn());
 		if (charStart != null) {
 			map.put(IMarker.CHAR_START, charStart);
 		}
-		Integer charEnd = new Integer(lineOffset + e.getEndColumn());
+		Integer charEnd = getCharOffset(lineNumber, e.getEndColumn());
 		if (charEnd != null) {
 			map.put(IMarker.CHAR_END, charEnd);
 		}
 		
 		// FIXME:  add severity level
-		map.put(IMarker.SEVERITY, new Integer(e.getSeverity()));
+		map.put(IMarker.SEVERITY, Integer.valueOf(e.getSeverity()));
 		
 		try {
-			IMarker marker = createMarker(map, SPECFILE_ERROR_MARKER_ID);
-
-			MarkerAnnotation annotation = new MarkerAnnotation(marker);
-			Position p = new Position(charStart.intValue(),charEnd.intValue() - charStart.intValue());
-			fAnnotationModel.addAnnotation(annotation, p);
-			annotations.put(p, annotation);
-		} catch (CoreException ce) {
-			// do nothing
+			MarkerUtilities.createMarker(file, map, SPECFILE_ERROR_MARKER_ID);
+		} catch (CoreException ee) {
+			SpecfileLog.logError(ee);
 		}
-		return;
 	}
 
