@@ -15,13 +15,27 @@
 						ISourceLocator locator = frame.getLaunch().getSourceLocator();					
 						ISourceLookupResult result = DebugUITools.lookupSource(frame.getFile(), locator);
 						Object sourceElement = result.getSourceElement();
+						
+						if (sourceElement != null) {
+							// Resolve IResource in case we get a LocalFileStorage object
+							if (sourceElement instanceof LocalFileStorage) {
+								IPath filePath = ((LocalFileStorage) sourceElement).getFullPath();
+								URI fileURI = URIUtil.toURI(filePath);
+								IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+								IFile[] files = root.findFilesForLocationURI(fileURI);
+								if (files.length > 0) {
+									// Take the first match
+									sourceElement = files[0];
+								}
+							}
 
-						if (sourceElement != null && sourceElement instanceof IResource) {
-							IResource resource = (IResource) sourceElement;
-							marker = resource.createMarker(ValgrindLaunchPlugin.MARKER_TYPE);
-							marker.setAttribute(IMarker.MESSAGE, message.getText());
-							marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
-							marker.setAttribute(IMarker.LINE_NUMBER, frame.getLine());
+							if (sourceElement instanceof IResource) {
+								IResource resource = (IResource) sourceElement;
+								marker = resource.createMarker(ValgrindLaunchPlugin.MARKER_TYPE);
+								marker.setAttribute(IMarker.MESSAGE, message.getText());
+								marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
+								marker.setAttribute(IMarker.LINE_NUMBER, frame.getLine());
+							}
 						}
 					}
 				}
