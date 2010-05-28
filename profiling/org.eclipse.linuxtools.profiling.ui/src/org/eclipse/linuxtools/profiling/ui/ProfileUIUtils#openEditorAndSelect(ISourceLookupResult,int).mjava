@@ -14,7 +14,19 @@
 		if (input == null || editorID == null) {
 			// Consult the CDT DebugModelPresentation
 			Object sourceElement = result.getSourceElement();
-			if (sourceElement != null) {				
+			if (sourceElement != null) {
+				// Resolve IResource in case we get a LocalFileStorage object
+				if (sourceElement instanceof LocalFileStorage) {
+					IPath filePath = ((LocalFileStorage) sourceElement).getFullPath();
+					URI fileURI = URIUtil.toURI(filePath);
+					IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+					IFile[] files = root.findFilesForLocationURI(fileURI);
+					if (files.length > 0) {
+						// Take the first match
+						sourceElement = files[0];
+					}
+				}
+				
 				IDebugModelPresentation pres = DebugUITools.newDebugModelPresentation(CDebugCorePlugin.getUniqueIdentifier());
 				input = pres.getEditorInput(sourceElement);
 				editorID = pres.getEditorId(input, sourceElement);
