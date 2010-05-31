@@ -1,0 +1,28 @@
+	/**
+	 * Common implementation of ITmfTimeScaleSelectionListener, not used by all
+	 * the views extending this abstract class
+	 * 
+	 * @param event
+	 */
+	protected synchronized void tsfTmProcessTimeScaleEvent(TmfTimeScaleSelectionEvent event) {
+		// source needed to keep track of source values
+		Object source = event.getSource();
+
+		if (source != null) {
+			// Update the parameter updater before carrying out a read request
+			ParamsUpdater paramUpdater = getParamsUpdater();
+			boolean newParams = paramUpdater.processTimeScaleEvent(event);
+
+			if (newParams) {
+				// Read the updated time window
+				TmfTimeRange trange = paramUpdater.getTrange();
+				if (trange != null) {
+
+					// Notify listener views. to perform data requests
+					// upon this notification
+					synchTimeRangeNotification(trange, paramUpdater.getSelectedTime(), source);
+				}
+			}
+		}
+	}
+

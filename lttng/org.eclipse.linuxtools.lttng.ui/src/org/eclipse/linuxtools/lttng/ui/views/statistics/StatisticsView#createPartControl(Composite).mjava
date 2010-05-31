@@ -1,0 +1,120 @@
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.eclipse.ui.part.WorkbenchPart#createPartControl(org.eclipse.swt.widgets
+	 * .Composite)
+	 */
+	@Override
+	public void createPartControl(Composite parent) {
+		parent.setLayout(new FillLayout());
+
+		treeViewer = new TreeViewer(parent, SWT.BORDER | SWT.H_SCROLL
+				| SWT.V_SCROLL);
+		treeViewer.setContentProvider(new TreeContentProvider());
+		treeViewer.getTree().setHeaderVisible(true);
+		treeViewer.setUseHashlookup(true);
+
+		for (final ColumnData columnData : columnDataList) {
+			final TreeViewerColumn treeColumn = new TreeViewerColumn(
+					treeViewer, columnData.alignment);
+			treeColumn.getColumn().setText(columnData.header);
+			treeColumn.getColumn().setWidth(columnData.width);
+			treeColumn.getColumn().setToolTipText(columnData.tooltip);
+			if (columnData.comparator != null) {
+				treeColumn.getColumn().addSelectionListener(
+						new SelectionAdapter() {
+							@Override
+							public void widgetSelected(SelectionEvent e) {
+								if (treeViewer.getTree().getSortDirection() == SWT.UP
+										|| treeViewer.getTree().getSortColumn() != treeColumn
+												.getColumn()) {
+									treeViewer
+											.setComparator(columnData.comparator);
+									treeViewer.getTree().setSortDirection(
+											SWT.DOWN);
+								} else {
+									treeViewer
+											.setComparator(new ViewerComparator() {
+												@Override
+												public int compare(
+														Viewer viewer,
+														Object e1, Object e2) {
+													return -1
+															* columnData.comparator
+																	.compare(
+																			viewer,
+																			e1,
+																			e2);
+												}
+											});
+									treeViewer.getTree().setSortDirection(
+											SWT.UP);
+								}
+								treeViewer.getTree().setSortColumn(
+										treeColumn.getColumn());
+							}
+						});
+			}
+			treeColumn.setLabelProvider(columnData.labelProvider);
+		}
+
+		// Handler that will draw the bar charts.
+		treeViewer.getTree().addListener(SWT.EraseItem, new Listener() {
+			// @Override
+			public void handleEvent(Event event) {
+				if (columnDataList[event.index].percentageProvider != null) {
+					StatisticsTreeNode node = (StatisticsTreeNode) event.item
+							.getData();
+
+					double percentage = columnDataList[event.index].percentageProvider
+							.getPercentage(node);
+					if (percentage == 0) {
+						return;
+					}
+
+					if ((event.detail & SWT.SELECTED) > 0) {
+						Color oldForeground = event.gc.getForeground();
+						event.gc.setForeground(event.item.getDisplay()
+								.getSystemColor(SWT.COLOR_LIST_SELECTION));
+						event.gc.fillRectangle(event.x, event.y, event.width,
+								event.height);
+						event.gc.setForeground(oldForeground);
+						event.detail &= ~SWT.SELECTED;
+					}
+
+					int barWidth = (int) ((treeViewer.getTree().getColumn(1)
+							.getWidth() - 8) * percentage);
+					int oldAlpha = event.gc.getAlpha();
+					Color oldForeground = event.gc.getForeground();
+					Color oldBackground = event.gc.getBackground();
+					event.gc.setAlpha(64);
+					event.gc.setForeground(event.item.getDisplay()
+							.getSystemColor(SWT.COLOR_BLUE));
+					event.gc.setBackground(event.item.getDisplay()
+							.getSystemColor(SWT.COLOR_LIST_BACKGROUND));
+					event.gc.fillGradientRectangle(event.x, event.y, barWidth,
+							event.height, true);
+					event.gc.drawRectangle(event.x, event.y, barWidth,
+							event.height);
+					event.gc.setForeground(oldForeground);
+					event.gc.setBackground(oldBackground);
+					event.gc.setAlpha(oldAlpha);
+					event.detail &= ~SWT.BACKGROUND;
+				}
+			}
+		});
+
+		treeViewer.setComparator(columnDataList[0].comparator);
+		treeViewer.getTree().setSortColumn(treeViewer.getTree().getColumn(0));
+		treeViewer.getTree().setSortDirection(SWT.DOWN);
+
+		// Read current data if any available
+		TmfExperiment<?> experiment = TmfExperiment.getCurrentExperiment();
+		if (experiment != null) {
+			requestData(experiment);
+		} else {
+			TraceDebug.debug("No selected experiment information available");
+		}
+	}
+

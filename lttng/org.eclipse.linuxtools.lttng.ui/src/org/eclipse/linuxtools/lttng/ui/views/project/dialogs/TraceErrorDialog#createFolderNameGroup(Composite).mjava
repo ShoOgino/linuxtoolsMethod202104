@@ -1,0 +1,55 @@
+	private void createFolderNameGroup(Composite parent) {
+		Font font = parent.getFont();
+		Composite folderGroup = new Composite(parent, SWT.NONE);
+		
+		GridLayout layout = new GridLayout();
+		layout.numColumns = 1;
+		layout.verticalSpacing = 3;
+		folderGroup.setLayout(layout);
+		folderGroup.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+		
+		
+		// Position grid for the messages
+		GridData positionningData = new GridData(GridData.FILL_VERTICAL);
+		
+		// New message label
+		Label lblMessage = new Label(folderGroup, SWT.NONE);
+		lblMessage.setFont(font);
+		lblMessage.setText("Error while opening the trace! Error message was : ");
+		lblMessage.setLayoutData(positionningData);
+		
+		// The actual messages
+		GC graphicContext = new GC(parent);
+		String longuestLine = "";
+		int msgSize = 0;
+		
+		// *** Font and FontData are nowhere near elegant to use.
+		Font errorFont = new Font(graphicContext.getDevice(), font.getFontData()[0].getName(), font.getFontData()[0].getHeight(), SWT.ITALIC);
+		
+		Label[] lblErrorMessages = new Label[messages.length];
+		for(int x=0; x<messages.length; x++) {
+			lblErrorMessages[x] = new Label(folderGroup, SWT.NONE);
+			lblErrorMessages[x].setFont(errorFont);
+			
+			lblErrorMessages[x].setForeground(new Color(lblErrorMessages[x].getForeground().getDevice(), 255, 0, 0));
+			lblErrorMessages[x].setText(messages[x]);
+			lblErrorMessages[x].setLayoutData(positionningData);
+			
+			if ( messages[x].length() > longuestLine.length() ) {
+				longuestLine = messages[x];
+			}
+		}
+		
+		for ( int pos=0; pos<longuestLine.length(); pos++ ) {
+			msgSize += graphicContext.getAdvanceWidth( longuestLine.charAt(pos) );
+		}
+		// Seems we need to count the final \n of the line otherwise we miss some space
+		msgSize += graphicContext.getAdvanceWidth( '\n' );
+		
+		positionningData.widthHint = msgSize;
+		positionningData.grabExcessHorizontalSpace = true;
+		
+		graphicContext.dispose();
+		
+	}
+

@@ -1,0 +1,65 @@
+    /**
+     * <b><u>Constructor</u></b>
+     * <p>
+     * <li>Creates the display group and formats it for the grid cell
+     * <li>Sets the initial values for Start/End/Current time
+     * </li>
+     * <p>
+     * @param parent    - the parent Composite
+     * @param groupName - the group name
+     * @param range     - the valid time range (start/end time)
+     * @param current   - the current time
+     */
+    public SpinnerGroup(TimeFrameView owner, Composite parent, String groupName, TmfTimeRange range, TmfTimestamp current) {
+
+    	fOwner = owner;
+
+        // Create the group
+        group = new Group(parent, SWT.BORDER);
+        group.setText(groupName);
+
+        // Make it use the whole grid cell
+        GridData gridData = new GridData(SWT.LEFT, SWT.TOP, true, false);
+        gridData.horizontalAlignment = SWT.FILL;
+        group.setLayoutData(gridData);
+
+        // Create and position the widgets
+        seconds = new Spinner(group, SWT.BORDER);
+        seconds.addModifyListener(new ModifyListener() {
+            public void modifyText(ModifyEvent e) {
+                currentSeconds = seconds.getSelection();
+                refreshCurrentTime();
+            }
+        });
+        seconds.setBounds(5, 25, 110, 25);
+
+        Label label = new Label(group, SWT.LEFT);
+        label.setText(SECONDS_LABEL);
+        label.setBounds(120, 28, 25, 22);
+
+        nanosec = new Spinner(group, SWT.BORDER);
+        nanosec.addModifyListener(new ModifyListener() {
+            public void modifyText(ModifyEvent e) {
+                currentNanosec = nanosec.getSelection();
+                // Correct for nanosec underflow
+                if (currentNanosec < 0) {
+                    currentSeconds--;
+                    currentNanosec = NS_PER_SECOND - 1;
+                }
+                // Correct for nanosec overflow
+                if (currentNanosec >= NS_PER_SECOND) {
+                    currentSeconds++;
+                    currentNanosec = 0;
+                }
+                refreshCurrentTime();
+            }
+        });
+        nanosec.setBounds(150, 25, 110, 25);
+
+        label = new Label(group, SWT.LEFT);
+        label.setText(NANOSEC_LABEL);
+        label.setBounds(265, 28, 25, 22);
+
+        setContent(range, current);
+    }
+

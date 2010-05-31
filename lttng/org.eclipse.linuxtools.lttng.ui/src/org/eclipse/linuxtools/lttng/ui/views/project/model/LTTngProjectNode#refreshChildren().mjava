@@ -1,0 +1,38 @@
+	@Override
+	public void refreshChildren() {
+
+		if (!(fIsOpen && fIsLTTngProject))
+			return;
+
+		try {
+			IResource[] resources = fProject.members();
+			for (IResource resource : resources) {
+				if (resource.getType() == IResource.FOLDER) {
+					String name = resource.getName();
+					if (name.equals(TRACE_FOLDER_NAME) && !isIncluded(true, name, fChildren)) {
+						fTracesFolder = new LTTngTraceFolderNode(this, (IFolder) resource);
+						fChildren.add(fTracesFolder);
+					} else
+					if (name.equals(EXPER_FOLDER_NAME) && !isIncluded(false, name, fChildren)) {
+						fExperimentsFolder = new LTTngExperimentFolderNode(this, (IFolder) resource);
+						fChildren.add(fExperimentsFolder);
+					}
+				}
+			}
+        	List<ILTTngProjectTreeNode> toRemove = new ArrayList<ILTTngProjectTreeNode>();
+	        for (ILTTngProjectTreeNode node : fChildren) {
+	        	if (exists(node.getName(), resources)) {
+	        		node.refreshChildren();
+	        	}
+	        	else {
+	        		toRemove.add(node);
+	        	}
+	        }
+    		for (ILTTngProjectTreeNode node : toRemove) {
+    			fChildren.remove(node);
+    		}
+	        
+		} catch (CoreException e) {
+		}
+	}
+

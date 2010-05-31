@@ -1,0 +1,35 @@
+	/**
+	 * View preparation to override the current local information
+	 * 
+	 * @param timeRange
+	 *            - new total time range e.g. Experiment level
+	 * @param clearAllData
+	 */
+	protected void ModelUpdatePrep(TmfTimeRange timeRange, boolean clearAllData) {
+		ItemContainer<?> itemContainer = getItemContainer();
+		if (clearAllData) {
+			// start fresh e.g. new experiment selected
+			itemContainer.clearItems();
+		} else {
+			// clear children but keep processes
+			itemContainer.clearChildren();
+		}
+
+		// Obtain the current resource array
+		ITmfTimeAnalysisEntry[] itemArr = itemContainer.readItems();
+
+		// clean up data and boundaries
+		displayModel(itemArr, -1, -1, false, -1, -1, null);
+
+		ParamsUpdater updater = getParamsUpdater();
+		if (updater != null) {
+			// Start over
+			updater.setEventsDiscarded(0);
+
+			// Update new visible time range if available
+			if (timeRange != null) {
+				updater.update(timeRange.getStartTime().getValue(), timeRange.getEndTime().getValue());
+			}
+		}
+	}
+

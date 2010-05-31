@@ -1,0 +1,29 @@
+	/* (non-Javadoc)
+	 * @see org.eclipse.jface.wizard.Wizard#performFinish()
+	 */
+	@Override
+	public boolean performFinish() {
+
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		IFolder experimentFolder = fExperiment.getFolder();
+
+		LTTngTraceNode[] traces = fMainPage.getSelection();
+		for (LTTngTraceNode trace : traces) {
+			try {
+				IFolder folder = experimentFolder.getFolder(trace.getName());
+				IPath location = trace.getFolder().getLocation();
+				if (workspace.validateLinkLocation(folder, location).isOK()) {
+					folder.createLink(location, IResource.REPLACE, null);
+					fExperiment.addTrace(folder);
+				}
+				else {
+					System.out.println("Problem");
+				}
+			} catch (CoreException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return true;
+	}	
+

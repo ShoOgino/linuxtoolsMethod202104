@@ -1,0 +1,51 @@
+	/**
+	 * <p>
+	 * LTT_EVENT_THREAD_BRAND
+	 * </p>
+	 * Replace C function "after_user_generic_thread_brand_hook" in eventhooks.c
+	 * 
+	 * @return
+	 */
+	final ILttngEventProcessor GetThreadBrandHandler() {
+	    AbsFlowTRangeUpdate handler = new AbsFlowTRangeUpdate() {
+
+			// @Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+			    
+			    LttngProcessState process = traceSt.getRunning_process().get(trcEvent.getCpuId());
+
+                if ( process != null ) {
+                    
+					// Similar to above comments, implement a faster way to find
+					// the local process
+                    //   if(likely(process_list->current_hash_data[trace_num][cpu] != NULL) ){
+                    //        hashed_process_data = process_list->current_hash_data[trace_num][cpu];
+                    //   }
+                    TimeRangeEventProcess localProcess = procContainer.findProcess(process.getPid(), process.getCpu(), traceSt.getTraceId(), process.getCreation_time());
+                    
+                    if ( localProcess == null ) {
+                        if ( (process.getPid() == 0) || (process.getPid() != process.getPpid()) ) {                         
+                            TmfTimeRange timeRange = traceSt.getContext().getTraceTimeWindow();
+                            localProcess = addLocalProcess(process, timeRange.getStartTime().getValue(), timeRange.getEndTime().getValue(), traceSt.getTraceId());
+                        }
+                        else {
+                            TraceDebug.debug("process pid is not 0 or pid equals ppid! (GetThreadBrandHandler)");
+                        }
+                    }
+                    else {
+						// If we found the process, the brand might be missing
+						// on it, add it.
+                        localProcess.setBrand(process.getBrand());
+                    }
+                }
+                else {
+                    TraceDebug.debug("process is null! (GetThreadBrandHandler)");
+                }
+                
+                return false;
+			    
+			}
+		};
+		return handler;
+	}
+

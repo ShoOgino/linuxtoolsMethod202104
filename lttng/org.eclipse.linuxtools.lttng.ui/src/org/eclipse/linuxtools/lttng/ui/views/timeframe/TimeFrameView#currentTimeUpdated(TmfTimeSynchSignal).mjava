@@ -1,0 +1,23 @@
+    /**
+     * @param signal
+     */
+    @TmfSignalHandler
+    public void currentTimeUpdated(TmfTimeSynchSignal signal) {
+    	if (signal.getSource() != this) {
+			// prevent loop to external notifications
+			fupdateExternalListeners = false;
+            fCurrentTime = signal.getCurrentTime().synchronize(0, fStartGroup.getCurrentTime().getScale());
+            if (fStartGroup.getCurrentTime().compareTo(fCurrentTime, false) > 0) {
+            	fStartGroup.setContent(new TmfTimeRange(fCurrentTime, fEndGroup.getCurrentTime()), fCurrentTime);
+            }
+            if (fEndGroup.getCurrentTime().compareTo(fCurrentTime, false) < 0) {
+            	fEndGroup.setContent(new TmfTimeRange(fStartGroup.getCurrentTime(), fCurrentTime), fCurrentTime);
+            }
+            fCurrentGroup.setContent(null, fCurrentTime);
+            updateSlider(fCurrentGroup.getTimeRange(), fCurrentTime);
+
+			// Enable external notifications
+			fupdateExternalListeners = true;
+    	}
+    }
+

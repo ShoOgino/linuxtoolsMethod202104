@@ -1,0 +1,31 @@
+    /**
+     * Perform a new request for the Selection window.<p>
+     * This assume the full experiment canvas has correct information about the selected window; 
+     * 		we need the fullExperimentCanvas' HistogramContent to be created and a selection window to be set.
+     * 
+     * @param experiment	The experiment we will select from
+     */
+    public void performSelectedWindowEventsRequest(TmfExperiment<LttngEvent> experiment) {
+    	
+    	HistogramSelectedWindow curSelectedWindow = fullExperimentCanvas.getCurrentWindow();
+    	
+    	// If no selection window exists, we will try to cerate one; 
+    	//	however this will most likely fail as the content is probably not created either
+    	if ( curSelectedWindow == null ) {
+    		fullExperimentCanvas.createNewSelectedWindow( DEFAULT_WINDOW_SIZE );
+    		curSelectedWindow = fullExperimentCanvas.getCurrentWindow();
+    	}
+    	
+    	// The request will go from the Left timestamp of the window to the Right timestamp
+    	// This assume that out-of-bound value are handled by the SelectionWindow itself
+		LttngTimestamp ts1 = new LttngTimestamp( curSelectedWindow.getTimestampOfLeftPosition() );
+		LttngTimestamp ts2 = new LttngTimestamp( curSelectedWindow.getTimestampOfRightPosition() );
+        TmfTimeRange tmpRange = new TmfTimeRange(ts1, ts2);
+        
+        // Set a (dynamic) time interval
+        long intervalTime = ( (ts2.getValue() - ts1.getValue()) / selectedWindowCanvas.getHistogramContent().getNbElement() );
+        
+        selectedWindowRequest = performRequest(experiment, selectedWindowCanvas, tmpRange, intervalTime);
+        selectedWindowCanvas.redrawAsynchronously();
+    }
+

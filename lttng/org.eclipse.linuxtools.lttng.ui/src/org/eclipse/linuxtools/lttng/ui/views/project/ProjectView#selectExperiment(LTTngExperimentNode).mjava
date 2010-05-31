@@ -1,0 +1,32 @@
+	/**
+	 * @param experiment
+	 */
+	public void selectExperiment(LTTngExperimentNode experiment) {
+    	String expId = experiment.getName();
+        if (fSelectedExperiment != null)
+        	fSelectedExperiment.dispose();
+        try {
+        	LTTngTraceNode[] traceEntries = experiment.getTraces();
+        	int nbTraces = traceEntries.length;
+        	ITmfTrace[] traces = new ITmfTrace[nbTraces];
+        	for (int i = 0; i < nbTraces; i++) {
+        		IResource res = traceEntries[i].getFolder();
+        		String location = res.getLocation().toOSString();
+        		ITmfTrace trace = new LTTngTrace(location, waitForCompletion);
+                traces[i] = trace;
+        	}
+            fSelectedExperiment = new TmfExperiment<LttngEvent>(LttngEvent.class, expId, traces);
+            fSelectedExperiment.indexExperiment(waitForCompletion);
+			// Make sure the lttng-core, experiment selection context is ready
+			// for an event request from any view
+			StateManagerFactory.getExperimentManager().experimentSelected_prep(
+					(TmfExperiment<LttngEvent>) fSelectedExperiment);
+
+            broadcast(new TmfExperimentSelectedSignal<LttngEvent>(this, fSelectedExperiment));
+        } catch (FileNotFoundException e) {
+            return;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+

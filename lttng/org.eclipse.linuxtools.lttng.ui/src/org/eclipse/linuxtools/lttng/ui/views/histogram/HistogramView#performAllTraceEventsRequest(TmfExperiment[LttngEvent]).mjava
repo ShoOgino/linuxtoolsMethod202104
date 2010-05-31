@@ -1,0 +1,30 @@
+    /**
+     * Perform a new request for the full experiment.<p>
+     * NOTE : this is very long, we need to implement a way to run this in parallel (see TODO)
+     * 
+     * @param experiment	The experiment we will select from
+     */
+    public void performAllTraceEventsRequest(TmfExperiment<LttngEvent> experiment) {
+    	// Create a new time range from "start" to "end"
+        //	That way, we will get "everything" in the trace
+        LttngTimestamp ts1 = new LttngTimestamp( experiment.getStartTime() );
+        LttngTimestamp ts2 = new LttngTimestamp( experiment.getEndTime() );
+        TmfTimeRange tmpRange = new TmfTimeRange(ts1, ts2);
+        
+        // Set a (dynamic) time interval
+        long intervalTime = ( (ts2.getValue() - ts1.getValue()) / fullExperimentCanvas.getHistogramContent().getNbElement() );
+        
+        // *** VERIFY ***
+        // This would enable "fixed interval" instead of dynamic one.
+        // ... we don't need it, do we?
+        //
+        // long intervalTime = ((long)(0.001 * (double)1000000000));
+        
+        // *** TODO ***
+        // It would be interesting if there was a way to tell the framework to run the request "in parallel" here.
+        // Mean a completetly independant copy of the Expereiment would be done and we would proceed on that.
+        //
+        dataBackgroundFullRequest = performRequest(experiment, fullExperimentCanvas, tmpRange, intervalTime);
+        fullExperimentCanvas.redrawAsynchronously();
+    }
+

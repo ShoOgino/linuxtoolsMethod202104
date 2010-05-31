@@ -1,0 +1,48 @@
+	/**
+	 * <p>
+	 * Handles: LTT_EVENT_PROCESS_FORK
+	 * </p>
+	 * Replace C function "after_process_fork_hook" in eventhooks.c
+	 * <p>
+	 * Fields: LTT_FIELD_CHILD_PID
+	 * </p>
+	 * 
+	 * @return
+	 */
+	final ILttngEventProcessor getProcessForkHandler() {
+	    AbsFlowTRangeUpdate handler = new AbsFlowTRangeUpdate() {
+
+			// @Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {  
+			    
+                Long child_pid = getAFieldLong(trcEvent, traceSt, Fields.LTT_FIELD_CHILD_PID);
+                LttngProcessState process_child = lttv_state_find_process(traceSt, trcEvent.getCpuId(), child_pid );
+			    
+			    if ( process_child != null ) {
+			        TimeRangeEventProcess localProcess = procContainer.findProcess(process_child.getPid(), process_child.getCpu(), traceSt.getTraceId(), process_child.getCreation_time() );
+			        
+			        if ( localProcess == null ) {
+			            if ( (child_pid == 0) || (child_pid != process_child.getPpid()) ) {            
+			                TmfTimeRange timeRange = traceSt.getContext().getTraceTimeWindow();
+                            localProcess = addLocalProcess(process_child, timeRange.getStartTime().getValue(), timeRange.getEndTime().getValue(), traceSt.getTraceId());
+			            }
+			            else {
+			                TraceDebug.debug("localProcess is null with child_pid not 0 or child_pid equals PPID (getProcessForkHandler)");
+			            }
+					} else {
+						// If we found the process, the Ppid and the Tgid might
+						// be missing, let's add them
+						localProcess.setPpid(process_child.getPpid());
+						localProcess.setTgid(process_child.getTgid());
+			        }
+			    }
+			    else {
+			        TraceDebug.debug("process_child is null! (getProcessForkHandler)");
+			    }
+	              
+				return false;
+			}
+		};
+		return handler;
+	}
+

@@ -1,0 +1,55 @@
+	/**
+	 * <p>
+	 * Handles: LTT_EVENT_REQUEST_ISSUE, LTT_EVENT_REQUEST_COMPLETE
+	 * </p>
+	 * Replace C function named "before_bdev_event_hook" in eventhooks.c
+	 * <p>
+	 * Fields: LTT_FIELD_MAJOR, LTT_FIELD_MINOR, LTT_FIELD_OPERATION (?)
+	 * </p>
+	 * 
+	 * @return
+	 */
+	final ILttngEventProcessor getBeforeBdevEvent() {
+		AbsResourcesTRangeUpdate handler = new AbsResourcesTRangeUpdate() {
+
+			// @Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+				Long major = getAFieldLong(trcEvent, traceSt,
+						Fields.LTT_FIELD_MAJOR);
+				Long minor = getAFieldLong(trcEvent, traceSt,
+						Fields.LTT_FIELD_MINOR);
+				// This is useless even in LTTv!
+				// Long oper = getAFieldLong(trcEvent, traceSt,
+				// Fields.LTT_FIELD_OPERATION);
+
+				Long bdevId = getMkdevId(major, minor);
+
+				// According to Lttv, bdevId (obtain from MKDEV macro) is
+				// the id here
+				TimeRangeEventResource localResource = resourcelist_obtain_bdev(
+						traceSt, bdevId);
+
+				if (localResource == null) {
+					TmfTimeRange timeRange = traceSt.getContext()
+							.getTraceTimeWindow();
+					localResource = addLocalResource(timeRange.getStartTime()
+							.getValue(), timeRange.getEndTime().getValue(),
+							traceSt.getTraceId(), ResourceTypes.BDEV, bdevId,
+							trcEvent.getTimestamp().getValue());
+				}
+
+				// get the start time
+				long stime = localResource.getNext_good_time();
+				// Get the resource state mode
+				String bdevStateMode = localResource.getStateMode(traceSt);
+				// Call the makeDraw function
+				makeDraw(traceSt, stime, trcEvent.getTimestamp().getValue(),
+						localResource, params, bdevStateMode);
+
+				return false;
+			}
+		};
+
+		return handler;
+	}
+
