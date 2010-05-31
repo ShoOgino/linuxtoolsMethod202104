@@ -1,0 +1,39 @@
+	/**
+	 * Provide a stateManager instance per trace
+	 * 
+	 * @return
+	 */
+	public static IStateTraceManager getManager(ITmfTrace trace) {
+		String traceUniqueId = trace.getName();
+
+		if (traceUniqueId == null) {
+			return null;
+		}
+
+		if (instanceBook.containsKey(traceUniqueId)) {
+			return instanceBook.get(traceUniqueId);
+		}
+
+		LttngTraceState traceModel = StateModelFactory.getStateEntryInstance();
+		IStateTraceManager manager = null;
+
+		if (feventProvider == null) {
+			feventProvider = LttngCoreProviderFactory.getEventProvider();
+		}
+
+		// catch construction problems
+		Long id = 0L;
+		LTTngTreeNode parent = null;
+
+		try {
+			manager = new StateTraceManager(id, parent, traceUniqueId, trace,
+					traceModel,
+					feventProvider);
+		} catch (LttngStateException e) {
+			e.printStackTrace();
+		}
+
+		instanceBook.put(traceUniqueId, manager);
+		return manager;
+	}
+

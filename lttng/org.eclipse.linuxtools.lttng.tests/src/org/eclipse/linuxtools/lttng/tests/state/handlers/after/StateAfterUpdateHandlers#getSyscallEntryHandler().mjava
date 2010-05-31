@@ -1,0 +1,51 @@
+	final ILttngEventProcessor getSyscallEntryHandler() {
+		AbsStateUpdate handler = new AbsStateUpdate() {
+
+			// @Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+				// TraceDebug.debug("After event called");
+
+				Long cpu = trcEvent.getCpuId();
+
+				// No syscall_entry update for initialization process
+				LttngProcessState process = traceSt.getRunning_process().get(
+						cpu);
+
+				if (pid != process.getPid()) {
+					TraceDebug
+							.debug("pid values don't match from before and after verification check");
+				}
+
+				if (process.getPid() == 0L) {
+					return true;
+				}
+
+				// Make sure the top of the stack and the state of the stack are
+				// set to the
+				// same object.
+				LttngExecutionState stackState = process.peekFromExecutionStack();
+				if (stackState != process.getState()) {
+					TraceDebug
+							.debug("The top of the stack does not match to the process state");
+				}
+
+				if (stackState.getExec_mode().getInName() != ExecutionMode.LTTV_STATE_SYSCALL
+						.getInName()) {
+					TraceDebug.debug("Unexpected ExecutionMode: "
+							+ stackState.getExec_mode().getInName()
+							+ " Expected: "
+							+ ExecutionMode.LTTV_STATE_SYSCALL.getInName());
+				}
+
+				if (stackState.getEntry_LttTime() != trcEvent.getTimestamp().getValue()) {
+					TraceDebug.debug("Unexpected Entry time: "
+							+ trcEvent.getTimestamp() + " Expected: "
+							+ stackState.getEntry_LttTime());
+				}
+
+				return false;
+			}
+		};
+		return handler;
+	}
+

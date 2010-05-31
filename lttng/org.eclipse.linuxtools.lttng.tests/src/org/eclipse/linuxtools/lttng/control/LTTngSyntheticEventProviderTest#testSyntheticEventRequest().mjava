@@ -1,0 +1,42 @@
+	/**
+	 * 
+	 */
+	public void testSyntheticEventRequest() {
+		init();
+		// Create a new Experiment manager context
+		IStateExperimentManager expManager = prepareExperimentContext(false);
+
+		// make sure a TmfExperiment instance is registered as provider and
+		// selected as current
+		TmfExperiment<LttngEvent> experiment = prepareExperimentToTest();
+
+		// experiment selected, build experiment selection context and trigger
+		// check point creation
+		expManager.experimentSelected_prep(experiment);
+		// Action trigger
+		expManager.experimentSelected(this, experiment);
+
+		// Obtain the singleton event provider
+		LttngSyntheticEventProvider synProvider = LttngCoreProviderFactory
+				.getEventProvider();
+
+		// prepare synthetic event requests
+		TmfEventRequest<LttngSyntheticEvent> request1 = prepareEventRequest(
+				LttngSyntheticEvent.class, 5, 9); /* 2001 events*/
+		TmfEventRequest<LttngSyntheticEvent> request2 = prepareEventRequest(
+				LttngSyntheticEvent.class, 11, 13); /* 1001 events */
+
+		// execute
+		synProvider.sendRequest(request1);
+		synProvider.sendRequest(request2);
+		try {
+			request2.waitForCompletion();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
+
+		// finish
+		assertEquals("Unexpected eventCount", 3002, feventCount);
+	}
+

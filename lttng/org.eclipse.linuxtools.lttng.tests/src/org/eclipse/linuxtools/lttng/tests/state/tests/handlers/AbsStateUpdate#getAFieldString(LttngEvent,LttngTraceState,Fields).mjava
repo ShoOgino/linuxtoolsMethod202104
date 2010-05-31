@@ -1,0 +1,52 @@
+	/**
+	 * protected method used when a Field is requested among several available
+	 * fields and the expected type is String
+	 * 
+	 * @param trcEvent
+	 * @param traceSt
+	 * @param expectedNumFields
+	 * @return
+	 */
+	protected String getAFieldString(LttngEvent trcEvent,
+			LttngTraceState traceSt, Fields expectedField) {
+		String fieldVal = null;
+		TmfEventField[] fields = trcEvent.getContent().getFields();
+
+		// Only one field expected
+		if (fields.length == 0) {
+			TraceDebug.debug("Unexpected number of fields received: "
+					+ fields.length);
+			return null;
+		}
+
+		LttngEventField field;
+		String fieldname;
+		String expectedFieldName = expectedField.getInName();
+		for (int i = 0; i < fields.length; i++) {
+			field = (LttngEventField) fields[i];
+			fieldname = field.getId();
+			if (fieldname.equals(expectedFieldName)) {
+				Object fieldObj = field.getValue();
+				if (fieldObj instanceof String) {
+					// Expected value found
+					fieldVal = (String) field.getValue();
+					break;
+				} else {
+					if (TraceDebug.isDEBUG()) {
+						TraceDebug
+								.debug("Unexpected field Type. Expected: String, Received: "
+										+ fieldObj.getClass().getSimpleName());
+					}
+					return null;
+				}
+			}
+		}
+
+		if (fieldVal == null) {
+			if (TraceDebug.isDEBUG()) {
+				sendNoFieldFoundMsg(fields, expectedFieldName);
+			}
+		}
+		return fieldVal;
+	}
+
