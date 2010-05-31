@@ -1,14 +1,3 @@
-    /**
-     * Return the event in the trace according to the given context. Read it if necessary.<p>
-     * Similar (same?) as ParseEvent except that calling GetNext twice read the next one the second time.
-     * 
-     * @param context 	Current TmfContext where to get the event
-     * 
-     * @return The LttngEvent we read of null if no event are available
-     * 
-     * @see org.eclipse.linuxtools.lttng.event.LttngLocation
-     * @see org.eclipse.linuxtools.tmf.trace.TmfContext
-     */
     @Override
     public synchronized LttngEvent getNextEvent(TmfContext context) {
     	
@@ -37,7 +26,7 @@
     	// To do so, we avoid moving for call to "GetNextEvent()" that follow call to a call to "ParseEvent()".
     	// However, calling ParseEvent() -> GetNextEvent() -> GetNextEvent() will only move next by one.
     	
-    	// *** Positionning trick :
+    	// *** Positioning trick :
     	// GetNextEvent only read the trace if : 
     	// 1- The last operation was NOT a ParseEvent --> A read is required
     	// 	OR
@@ -53,6 +42,7 @@
 			}
 			// Read the next event from the trace. The last one will NO LONGER BE VALID.
 	    	returnedEvent = readEvent(curLocation);
+    		nbEventsRead++;
 	    	
 	    	// Set the operation marker as read to both location, to be able to detect we did "read" this event
 	    	previousLocation.setLastOperationReadNext();
@@ -72,6 +62,9 @@
     	if ( returnedEvent != null ) {
     		previousLocation.setOperationTime((LttngTimestamp)returnedEvent.getTimestamp());
     		curLocation.setOperationTime((LttngTimestamp)returnedEvent.getTimestamp());
+    		
+    		updateIndex(context, context.getRank(), returnedEvent.getTimestamp());
+    		context.updateRank(1);
     	}
     	
     	return returnedEvent;

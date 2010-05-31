@@ -1,6 +1,3 @@
-	// ========================================================================
-	// Methods
-	// ========================================================================
 	@SuppressWarnings("unchecked")
 	@Override
 	public ITmfContext armRequest(
@@ -23,7 +20,7 @@
 		reset(fExperiment);
 
 		// At least one base provider shall be available
-		if (feventProviderRequests.size() < 1) {
+		if (fEventProviderRequests.size() < 1) {
 			request.cancel();
 			TraceDebug.debug("No Base event providers available");
 			return null;
@@ -37,27 +34,31 @@
 		TraceDebug.debug("Main Synthethic event request started on thread:  " + Thread.currentThread().getName());
 
 		// loop for every traceManager in current experiment
-		for (IStateTraceManager traceManager : feventProviderRequests
-				.keySet()) {
+		boolean subRequestQueued = false;
+		for (IStateTraceManager traceManager : fEventProviderRequests.keySet()) {
 
 			// restore trace state system to nearest check point
 			TmfTimestamp checkPoint = traceManager
 					.restoreCheckPointByTimestamp(reqWindow.getStartTime());
+
+			// adjust start time bound to check point
+
 			// validate so checkpoint restore is within requested bounds
 			TmfTimeRange traceRange = traceManager.getTrace().getTimeRange();
-			if (!(checkPoint.getValue() >= traceRange.getStartTime().getValue()
-					&& checkPoint.getValue() <= traceRange.getEndTime()
-							.getValue() && checkPoint.getValue() < reqWindow
-					.getEndTime().getValue())) {
+			if ((checkPoint != null) && !(
+					checkPoint.getValue() >= traceRange.getStartTime().getValue() &&
+					checkPoint.getValue() <= traceRange.getEndTime().getValue() && 
+					checkPoint.getValue() < reqWindow.getEndTime().getValue())
+					) {
 				// checkpoint is out of trace bounds
 				continue;
 			}
+			TmfTimeRange adjustedRange = reqWindow;
+			if (checkPoint != null) {
+				adjustedRange = new TmfTimeRange(checkPoint, reqWindow.getEndTime());
+			}
 
-			// adjust start time bound to check point
-			TmfTimeRange adjustedRange = new TmfTimeRange(checkPoint, reqWindow
-					.getEndTime());
-
-			LttngTraceState traceModel = traceManager.getStateModel();
+			LttngTraceState traceModel = traceManager.getStateModel(checkPoint);
 			// create sub-request for one trace within experiment
 			final LttngBaseEventRequest subRequest = new LttngBaseEventRequest(
 					adjustedRange, reqWindow.getStartTime(), 0,
@@ -118,36 +119,37 @@
 					// queue the new event data and an ACK
 					updateSynEvent(e);
 
-
-
 					// If time at or above requested time, update application
-					if (eventTime >= fDispatchTime) {
-						// Before update
-						syntheticEvent.setSequenceInd(SequenceInd.BEFORE);
-						queueResult(syntheticEvent);
-						queueResult(syntheticAckIndicator);
+					try {
+						if (eventTime >= fDispatchTime) {
+							// Before update
+							syntheticEvent.setSequenceInd(SequenceInd.BEFORE);
+							queueResult(syntheticEvent);
+							queueResult(syntheticAckIndicator);
 
-						// Update state locally
-						syntheticEvent.setSequenceInd(SequenceInd.UPDATE);
-						fstateUpdateProcessor.process(syntheticEvent,
+							// Update state locally
+							syntheticEvent.setSequenceInd(SequenceInd.UPDATE);
+							fstateUpdateProcessor.process(syntheticEvent,
 								fTraceModel);
 
-						// After Update
-						syntheticEvent.setSequenceInd(SequenceInd.AFTER);
-						queueResult(syntheticEvent);
-						queueResult(syntheticAckIndicator);
+							// After Update
+							syntheticEvent.setSequenceInd(SequenceInd.AFTER);
+							queueResult(syntheticEvent);
+							queueResult(syntheticAckIndicator);
 
-						// increment once per dispatch
-						incrementSynEvenCount();
-						subEventCount++;
-					} else {
-						// event time is between checkpoint adjusted time and
-						// requested time i.e. application does not expect the
-						// event, however the state system needs to be re-built
-						// to the dispatch point
-						syntheticEvent.setSequenceInd(SequenceInd.UPDATE);
-						fstateUpdateProcessor.process(syntheticEvent,
-								fTraceModel);
+							// increment once per dispatch
+							incrementSynEvenCount();
+							subEventCount++;
+						} else {
+							// event time is between checkpoint adjusted time and
+							// requested time i.e. application does not expect the
+							// event, however the state system needs to be re-built
+							// to the dispatch point
+							syntheticEvent.setSequenceInd(SequenceInd.UPDATE);
+							fstateUpdateProcessor.process(syntheticEvent, fTraceModel);
+						}
+					} catch (InterruptedException e1) {
+						e1.printStackTrace();
 					}
 				}
 
@@ -182,18 +184,19 @@
 					return syntheticEvent;
 				}
 			};
-			
+						
 			// preserve the associated sub request to control it e.g.
 			// cancellation
-			feventProviderRequests.put(traceManager, subRequest);
+			fEventProviderRequests.put(traceManager, subRequest);
 
 			// start request
 			TmfTrace<LttngEvent> provider = (TmfTrace<LttngEvent>) traceManager
 					.getTrace();
-			provider.sendRequest(subRequest);
+			provider.sendRequest(subRequest, ExecutionType.LONG);
+			subRequestQueued = true;
 		}
 
 		// Return a dummy context, not used for relay provider
-		return new TmfContext();
+		return (subRequestQueued) ? new TmfContext() : null;
 	}
 

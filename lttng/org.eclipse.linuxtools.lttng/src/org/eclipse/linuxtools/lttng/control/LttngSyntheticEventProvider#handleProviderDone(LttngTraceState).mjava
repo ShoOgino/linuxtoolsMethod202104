@@ -10,7 +10,7 @@
 		// handle completion and cancellations properly
 
 		// Close the main request when all sub-requests are marked completed
-		for (LttngBaseEventRequest subRequest : feventProviderRequests.values()) {
+		for (LttngBaseEventRequest subRequest : fEventProviderRequests.values()) {
 			if (subRequest != null) {
 				if (!subRequest.isCompleted()) {
 					// Not ready to complete main request
@@ -25,9 +25,14 @@
 		LttngSyntheticEvent finishEvent = new LttngSyntheticEvent(fStatusEvent);
 		finishEvent.setSequenceInd(SequenceInd.ENDREQ);
 		finishEvent.setTraceModel(traceModel);
-		queueResult(finishEvent);
-		queueResult(fStatusEventAck);
-		// End the loop in the main request
-		queueResult(LttngSyntheticEvent.NullEvent);
+
+		try {
+			queueResult(finishEvent);
+			queueResult(fStatusEventAck);
+			// End the loop in the main request
+			queueResult(LttngSyntheticEvent.NullEvent);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 

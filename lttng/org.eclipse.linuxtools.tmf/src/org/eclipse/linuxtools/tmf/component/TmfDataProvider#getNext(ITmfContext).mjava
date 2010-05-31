@@ -1,17 +1,9 @@
-	/**
-	 * Return the next piece of data based on the context supplied. The context
-	 * would typically be updated for the subsequent read.
-	 * 
-	 * @param context
-	 * @return
-	 */
-	public T getNext(ITmfContext context) {
-		try {
-			T event = fDataQueue.take();
-			return event;
-		} catch (InterruptedException e) {
-			e.printStackTrace();
+	public T getNext(ITmfContext context) throws InterruptedException {
+		T event = fDataQueue.poll(TIMEOUT, TimeUnit.MILLISECONDS);
+		if (event == null) {
+			if (Tracer.isErrorTraced()) Tracer.traceError("Request timeout on read");
+			throw new InterruptedException();
 		}
-		return null;
+		return event;
 	}
 
