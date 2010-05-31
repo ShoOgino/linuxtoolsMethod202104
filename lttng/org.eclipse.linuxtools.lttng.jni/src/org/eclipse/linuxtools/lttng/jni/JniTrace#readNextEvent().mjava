@@ -1,0 +1,44 @@
+    /**
+     * Return the next event in the events stack, determined by timestamp, in the trace (all the tracefiles).<p>
+     * 
+     * @return The next event in the trace or null if no event is available.
+     * 
+     * @see org.eclipse.linuxtools.lttng.jni.JniEvent
+     */
+    public JniEvent readNextEvent() {
+        // Get the "next" event on the top of the heap but DO NOT remove it
+        JniEvent tmpEvent = eventsHeap.peek();
+        
+        // If the event is null, it was the last one in the trace we can leave the function
+        if (tmpEvent == null) {
+            return null;
+        }
+        
+        // Otherwise, we need to make sure the timestamp of the event we got is not the same as the last "NextEvent" we requested 
+        // NOTE : JniEvent.compareTo() compare by timestamp AND type, as 2 events of different type could have the same timestamp.
+        if ( tmpEvent.compareTo(currentEvent) == 0 ) {
+            // Remove the event on top as it is the same currentEventTimestamp
+            eventsHeap.poll();
+            
+            // Read the next event for this particular event type
+            tmpEvent.readNextEvent();
+            
+            // If the event state is sane (not Out of Range), put it back in the heap
+            if ( tmpEvent.getEventState() == EOK ) {
+                eventsHeap.add(tmpEvent);
+            }
+            
+            // Pick the top event again
+            tmpEvent = eventsHeap.peek();
+            
+            // Save the event we just read as the "current event"
+            currentEvent = tmpEvent;
+        }
+        // If the event on top has different timestamp than the currentTimestamp, just save this timestamp as current
+        else {
+            currentEvent = tmpEvent;
+        }
+        
+        return tmpEvent;
+    }
+
