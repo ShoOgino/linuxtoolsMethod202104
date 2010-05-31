@@ -1,0 +1,45 @@
+	@Override
+	protected Control createDialogArea(Composite parent) {
+		Composite composite = (Composite) super.createDialogArea(parent);
+
+		viewer = CheckboxTableViewer.newCheckList(composite, SWT.BORDER
+				| SWT.V_SCROLL);
+
+		Table table = viewer.getTable();
+		table.setLayoutData(new GridData(GridData.FILL_BOTH));
+		table.setBackground(parent.getBackground());
+		createColumns(table);
+
+		//Assign providers to the viewer.
+		viewer.setContentProvider(viewContentProvider);
+		viewer.setComparator(viewTraceComparator);
+		viewer.setLabelProvider(viewViewLabelProvider);
+		
+		viewer.setInput(new Object());
+
+		viewer.addCheckStateListener(new ICheckStateListener() {
+			public void checkStateChanged(CheckStateChangedEvent event) {
+				Object o = event.getElement();
+				for (int i = threads.length - 1; i >= 0; i--) {
+					if (threads[i].equals(o))
+						filter[i] = event.getChecked();
+				}
+			}
+		});
+
+		if (filter != null) {
+			for (int i = 0; i < filter.length; i++)
+				viewer.setChecked(threads[i], filter[i]);
+		}
+
+		setMessage(Messages._TRACE_FILTER_DESC);
+		setTitle(Messages._TRACE_FILTER);
+		setDialogHelpAvailable(false);
+		setHelpAvailable(false);
+
+//		setTitleImage(org.eclipse.hyades.trace.internal.ui.PDPluginImages.DESC_IMG_UI_WZ_EDITPROFSET
+//				.createImage());
+
+		return composite;
+	}
+

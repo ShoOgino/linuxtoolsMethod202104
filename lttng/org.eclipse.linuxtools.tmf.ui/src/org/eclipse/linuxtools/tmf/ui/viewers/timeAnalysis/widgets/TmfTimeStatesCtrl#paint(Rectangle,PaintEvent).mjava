@@ -1,0 +1,52 @@
+	@Override
+	void paint(Rectangle bound, PaintEvent e) {
+		GC gc = e.gc;
+		gc.setBackground(_colors.getColor(TraceColorScheme.BACKGROUND));
+		drawBackground(gc, bound.x, bound.y, bound.width, bound.height);
+
+		if (bound.width < 2 || bound.height < 2 || null == _timeProvider)
+			return;
+
+		_idealNameWidth = 0;
+		int nameWidth = _timeProvider.getNameSpace();
+		long time0 = _timeProvider.getTime0();
+		long time1 = _timeProvider.getTime1();
+		long endTime = _timeProvider.getEndTime();
+		long selectedTime = _timeProvider.getSelectedTime();
+		// draw trace states
+		Object[] items = _data._items;
+		for (int i = _topItem; i < items.length; i++) {
+			Item item = (Item) items[i];
+			
+			getNameRect(_rect0, bound, i, nameWidth);
+			if (_rect0.y >= bound.y + bound.height)
+				break;
+
+			if (item instanceof GroupItem) {
+				getStatesRect(_rect1, bound, i, nameWidth);
+				_rect0.width += _rect1.width;
+				drawName(item, _rect0, gc);
+			} else {
+				drawName(item, _rect0, gc);
+			}
+			getStatesRect(_rect0, bound, i, nameWidth);
+			drawItemDataDurations(item, _rect0, time0, time1, endTime,
+					selectedTime, gc);
+		}
+
+		if (drawTracesInteraction)
+			drawTraceInteractions(bound, e.gc);
+
+		// draw drag line, no line if name space is 0.
+		if (3 == _dragState) {
+			gc.setForeground(_colors.getColor(TraceColorScheme.BLACK));
+			gc.drawLine(bound.x + nameWidth, bound.y, bound.x + nameWidth,
+					bound.y + bound.height - 1);
+		} else if (0 == _dragState && _mouseHover
+				&& _timeProvider.getNameSpace() > 0) {
+			gc.setForeground(_colors.getColor(TraceColorScheme.RED));
+			gc.drawLine(bound.x + nameWidth, bound.y, bound.x + nameWidth,
+					bound.y + bound.height - 1);
+		}
+	}
+

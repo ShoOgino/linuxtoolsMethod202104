@@ -1,0 +1,24 @@
+	public void selectEvent(int n) {
+		if (null == _timeProvider)
+			return;
+		ITmfTimeAnalysisEntry trace = getSelectedTrace();
+		if (trace == _timeProvider || trace == null)
+			return;
+		long selectedTime = _timeProvider.getSelectedTime();
+		long endTime = _timeProvider.getEndTime();
+		ITimeEvent nextEvent;
+		if (-1 == n && selectedTime > endTime)
+			nextEvent = Utils.findEvent(trace, selectedTime, 0);
+		else
+			nextEvent = Utils.findEvent(trace, selectedTime, n);
+		if (null == nextEvent && -1 == n)
+			nextEvent = Utils.getFirstEvent(trace);
+		if (null != nextEvent) {
+			_timeProvider.setSelectedTimeInt(nextEvent.getTime(), true);
+			fireSelectionChanged();
+		} else if (1 == n) {
+			_timeProvider.setSelectedTimeInt(endTime, true);
+			fireSelectionChanged();
+		}
+	}
+
