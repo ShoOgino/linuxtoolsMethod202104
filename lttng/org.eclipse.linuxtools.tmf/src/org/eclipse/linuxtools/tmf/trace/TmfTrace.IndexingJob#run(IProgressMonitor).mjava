@@ -1,0 +1,64 @@
+		/* (non-Javadoc)
+		 * @see org.eclipse.core.runtime.jobs.Job#run(org.eclipse.core.runtime.IProgressMonitor)
+		 */
+		@Override
+		protected IStatus run(IProgressMonitor monitor) {
+
+            monitor.beginTask("Indexing " + getName(), IProgressMonitor.UNKNOWN);
+
+            int nbEvents = 0;
+            TmfTimestamp startTime = null;
+            TmfTimestamp lastTime  = null;
+
+            // Reset the index
+            fCheckpoints = new Vector<TmfCheckpoint>();
+            
+            try {
+            	// Position the trace at the beginning
+                TmfContext context = seekLocation(null);
+                ITmfLocation<?> location = context.getLocation().clone();
+
+                // Get the first event
+               	TmfEvent event = getNextEvent(context);
+               	if (event != null) {
+                    startTime = new TmfTimestamp(event.getTimestamp());
+               	}
+
+               	// Index the trace
+               	while (event != null) {
+                	lastTime = event.getTimestamp();
+           			if ((nbEvents++ % fIndexPageSize) == 0) {
+           				lastTime = new TmfTimestamp(event.getTimestamp());
+                   		fCheckpoints.add(new TmfCheckpoint(lastTime, location));
+
+                        monitor.worked(1);
+
+                        // Check monitor *after* fCheckpoints has been updated
+                        if (monitor.isCanceled()) {
+                            monitor.done();
+                        	return Status.CANCEL_STATUS;
+                        }
+                    }
+
+                    // We will need this location at the next iteration
+                    if ((nbEvents % fIndexPageSize) == 0) {
+                        location = context.getLocation().clone();
+           			}
+
+                    event = getNextEvent(context);
+                }
+            }
+            finally {
+                synchronized(this) {
+                	fNbEvents = nbEvents;
+                	fTimeRange = new TmfTimeRange(startTime, lastTime);
+            		fIndexing = false;
+            		fIndexed = true;
+                }
+                notifyListeners(fTimeRange);
+                monitor.done();
+            }
+
+            return Status.OK_STATUS;
+		}
+

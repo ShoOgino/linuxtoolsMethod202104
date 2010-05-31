@@ -1,0 +1,34 @@
+    /* (non-Javadoc)
+     * @see org.eclipse.linuxtools.tmf.trace.ITmfTrace#seekEvent(int)
+     */
+    public TmfContext seekEvent(long rank) {
+
+        // Position the stream at the previous checkpoint
+        int index = (int) rank / fIndexPageSize;
+        ITmfLocation<?> location;
+        synchronized (fCheckpoints) {
+        	if (fCheckpoints.size() == 0) {
+        		location = null;
+        	}
+        	else {
+        		if (index >= fCheckpoints.size()) {
+        			index  = fCheckpoints.size() - 1;
+        		}
+        		location = fCheckpoints.elementAt(index).getLocation();
+        	}
+        }
+
+        TmfContext context = seekLocation(location);
+        long pos = index * fIndexPageSize;
+        context.setRank(pos);
+
+        if (pos < rank) {
+            TmfEvent event = getNextEvent(context);
+            while (event != null && ++pos < rank) {
+            	event = getNextEvent(context);
+            }
+        }
+
+        return context;
+    }
+
