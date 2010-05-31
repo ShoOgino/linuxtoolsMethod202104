@@ -1,0 +1,33 @@
+	/**
+	 * Notify listeners, no more events for the current request will be
+	 * distributed e.g. update view.
+	 */
+	public synchronized void handleProviderDone(LttngTraceState traceModel) {
+		// TODO: The use of a thread per main request and thread per sub-request
+		// requires
+		// to make sure the proper main request is marked completed. So a
+		// relationship of sub-requests to parent needs to be established to
+		// handle completion and cancellations properly
+
+		// Close the main request when all sub-requests are marked completed
+		for (LttngBaseEventRequest subRequest : feventProviderRequests.values()) {
+			if (subRequest != null) {
+				if (!subRequest.isCompleted()) {
+					// Not ready to complete main request
+					return;
+				}
+			}
+		}
+
+		// All sub-requests are marked completed so the main request can be
+		// completed as well
+		// Notify application,
+		LttngSyntheticEvent finishEvent = new LttngSyntheticEvent(fStatusEvent);
+		finishEvent.setSequenceInd(SequenceInd.ENDREQ);
+		finishEvent.setTraceModel(traceModel);
+		queueResult(finishEvent);
+		queueResult(fStatusEventAck);
+		// End the loop in the main request
+		queueResult(LttngSyntheticEvent.NullEvent);
+	}
+

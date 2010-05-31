@@ -1,0 +1,75 @@
+    /**
+     * Return the event in the trace according to the given context. Read it if necessary.<p>
+     * Similar (same?) as GetNextEvent except that calling ParseEvent twice will return the same event
+     * 
+     * @param context 	Current TmfContext where to get the event
+     * 
+     * @return The LttngEvent we read of null if no event are available
+     * 
+     * @see org.eclipse.linuxtools.lttng.event.LttngLocation
+     * @see org.eclipse.linuxtools.tmf.trace.TmfContext
+     */
+    @Override
+	public synchronized LttngEvent parseEvent(TmfContext context) {
+    	
+    	if ( printDebug == true ) {
+    		System.out.println("parseEvent(context) context.getLocation() -> " + context.getLocation());
+    	}
+    	
+    	LttngEvent 	returnedEvent = null;
+    	LttngLocation curLocation = null;
+    	
+    	// If the location in context is null, create a new one
+    	if ( context.getLocation() == null ) {
+    		curLocation = new LttngLocation();
+    		context.setLocation(curLocation);
+    	}
+    	// Otherwise, we use the one in context; it should be a valid LttngLocation
+    	else {
+    		curLocation = (LttngLocation)context.getLocation();
+    	}
+    	
+    	// *** HACK ***
+    	// TMF assumes it is possible to read (GetNextEvent) to the next Event once ParseEvent() is called
+    	// In LTTNG, there is not difference between "Parsing" and "Reading" an event.
+    	// 		So, before "Parsing" an event, we have to make sure we didn't "Read" it alreafy.
+    	// Also, "Reading" invalidate the previous Event in LTTNG and seek back is very costly,
+    	//		so calling twice "Parse" will return the same event, giving a way to get the "Currently loaded" event
+    	
+    	// *** Positionning trick :
+    	// ParseEvent only read the trace if : 
+    	// 1- The last operation was NOT a ParseEvent or a GetNextEvent --> A read is required
+    	// 	OR
+    	// 2- The time of the previous location is different from the current  one --> A seek + a read is required
+    	if ( ( (curLocation.isLastOperationParse() != true) && ((curLocation.isLastOperationReadNext() != true)) )  ||
+    		 (previousLocation.getOperationTimeValue() != curLocation.getOperationTimeValue() ) ) 
+    	{
+    		// Previous time != Current time : We need to reposition to the current time
+			if (previousLocation.getOperationTimeValue() != curLocation.getOperationTimeValue() ) {
+				if ( printDebug == true ) {
+					System.out.println("\t\tSeeking in getNextEvent. [ LastTime : " + previousLocation.getOperationTimeValue() + " CurrentTime" + curLocation.getOperationTimeValue() + " ]");
+				}
+				seekEvent( curLocation.getOperationTime() );
+			}
+	    	
+			// Read the next event from the trace. The last one will NO LONGER BE VALID.
+	    	returnedEvent = readEvent(curLocation);
+    	}
+    	else {
+    		// No event was read, just return the one currently loaded (the last one we read)
+    		returnedEvent = currentLttngEvent;
+    	}
+    	
+    	// If we read an event, set it's time to the locations (both previous and current)
+    	if ( returnedEvent != null ) {
+    		previousLocation.setOperationTime((LttngTimestamp)returnedEvent.getTimestamp());
+    		curLocation.setOperationTime((LttngTimestamp)returnedEvent.getTimestamp());
+    	}
+    	
+    	// Set the operation marker as parse to both location, to be able to detect we already "read" this event
+    	previousLocation.setLastOperationParse();
+    	curLocation.setLastOperationParse();
+    	
+    	return returnedEvent;
+    }
+

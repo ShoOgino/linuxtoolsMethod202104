@@ -1,0 +1,103 @@
+	/**
+	 * @return
+	 */
+	final ILttngEventProcessor getStateDumpEndHandler() {
+		AbsStateUpdate handler = new AbsStateUpdate() {
+
+			// @Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+
+				/* For all processes */
+				/*
+				 * if kernel thread, if stack[0] is unknown, set to syscall
+				 * mode, wait
+				 */
+				/* else, if stack[0] is unknown, set to user mode, running */
+				LttngProcessState[] processes = traceSt.getProcesses();
+				TmfTimestamp time = trcEvent.getTimestamp();
+				
+				for (int pos = 0; pos < processes.length; pos++) {
+					fix_process(processes[pos], time);
+				}
+				
+				return false;
+
+			}
+
+			/**
+			 * Private method used to establish the first execution state in the
+			 * stack for a given process
+			 * 
+			 * @param process
+			 * @param timestamp
+			 */
+			private void fix_process(LttngProcessState process,
+					TmfTimestamp timestamp) {
+
+				LttngExecutionState es;
+
+				if (process.getType() == ProcessType.LTTV_STATE_KERNEL_THREAD) {
+					es = process.getFirstElementFromExecutionStack();
+
+					if (es.getExec_mode() == ExecutionMode.LTTV_STATE_MODE_UNKNOWN) {
+						es.setExec_mode(ExecutionMode.LTTV_STATE_SYSCALL);
+						es
+								.setExec_submode(ExecutionSubMode.LTTV_STATE_SUBMODE_NONE
+										.getInName());
+						es.setEntry_Time(timestamp.getValue());
+						es.setChange_Time(timestamp.getValue());
+						es.setCum_cpu_time(0L);
+						if (es.getProc_status() == ProcessStatus.LTTV_STATE_UNNAMED) {
+							es.setProc_status(ProcessStatus.LTTV_STATE_WAIT);
+						}
+					}
+				} else {
+					es = process.getFirstElementFromExecutionStack();
+					if (es.getExec_mode() == ExecutionMode.LTTV_STATE_MODE_UNKNOWN) {
+						es.setExec_mode(ExecutionMode.LTTV_STATE_USER_MODE);
+						es
+								.setExec_submode(ExecutionSubMode.LTTV_STATE_SUBMODE_NONE
+										.getInName());
+						es.setEntry_Time(timestamp.getValue());
+						es.setChange_Time(timestamp.getValue());
+						es.setCum_cpu_time(0L);
+						if (es.getProc_status() == ProcessStatus.LTTV_STATE_UNNAMED) {
+							es.setProc_status(ProcessStatus.LTTV_STATE_RUN);
+						}
+
+						// If the first element is also the one on top... mean
+						// we have ONE element on the stack
+						if (process.getFirstElementFromExecutionStack() == process
+								.peekFromExecutionStack()) {
+							/*
+							 * Still in bottom unknown mode, means never did a
+							 * system call May be either in user mode, syscall
+							 * mode, running or waiting.
+							 */
+							/*
+							 * FIXME : we may be tagging syscall mode when being
+							 * user mode
+							 */
+							// Get a new execution State
+							es = new LttngExecutionState();
+
+							// initialize values
+							es.setExec_mode(ExecutionMode.LTTV_STATE_SYSCALL);
+							es
+									.setExec_submode(ExecutionSubMode.LTTV_STATE_SUBMODE_NONE
+											.getInName());
+							es.setEntry_Time(timestamp.getValue());
+							es.setChange_Time(timestamp.getValue());
+							es.setCum_cpu_time(0L);
+							es.setProc_status(ProcessStatus.LTTV_STATE_WAIT);
+
+							// Push the new state to the stack
+							process.pushToExecutionStack(es);
+						}
+					}
+				}
+			}
+		};
+		return handler;
+	}
+

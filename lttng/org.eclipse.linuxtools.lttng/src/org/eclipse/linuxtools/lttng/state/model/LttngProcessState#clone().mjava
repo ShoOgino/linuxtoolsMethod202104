@@ -1,0 +1,63 @@
+	@Override
+	@SuppressWarnings("unchecked")
+    public LttngProcessState clone() {
+	    LttngProcessState newState = null;
+        
+        try {
+            newState = (LttngProcessState)super.clone();
+            
+            // *** IMPORTANT ***
+            // Basic type in java are immutable! 
+			// Thus, using assignment ("=") on basic type is CORRECT,
+            //  but we should ALWAYS use "new" or "clone()" on "non basic" type
+            newState.cpu = this.cpu;
+            newState.pid = this.pid;
+            newState.tgid = this.tgid;
+            newState.name = this.name;
+            newState.brand = this.brand;
+            newState.type = this.type;
+            newState.current_function = this.current_function;
+            newState.ppid = this.ppid;
+            newState.pid_time= this.pid_time;
+            newState.free_events = this.free_events;
+            newState.userTrace = this.userTrace;
+            newState.target_pid = this.target_pid;
+            newState.trace_id = this.trace_id;
+            newState.creation_time = this.creation_time;
+            newState.insertion_time = this.insertion_time;
+            
+            // Call clone on our own object is safe as Long it implements Clonable
+            newState.state = (LttngExecutionState)this.state.clone();
+            
+            // Clone should work correctly for all stack object that contain basic java object (String, Long, etc...)
+            newState.user_stack = (Stack<Long>)this.user_stack.clone();
+            
+            
+            // This is worst case : Stack that contain user defined object. We have to unstack it and clone every object in a new stack!
+            // Why does java does not call clone() for every object in the stack it clone? It would probably be too useful...
+            newState.execution_stack = new Stack<LttngExecutionState>();
+            
+            // Work stack we will use to "pop" item
+            Stack<LttngExecutionState> tmpStack = new Stack<LttngExecutionState>();
+            
+            // First, we pop every ExecutionState, and insert a CLONED copy into our new cloned stack
+            while ( this.execution_stack.empty() == false ) {
+                // Save a copy of the original reference
+                tmpStack.push(this.execution_stack.peek());
+                // Push a CLONED copy into the new stack while poping it from the original stack
+                newState.execution_stack.push( this.execution_stack.pop().clone() );
+            }
+            
+            // Second, we reinsert back our content into the original stack
+            while ( tmpStack.empty() == false ) {
+                // Pop the cloned copy and push it back into the original stack
+                this.execution_stack.push( tmpStack.pop() );
+            }
+        }
+        catch ( CloneNotSupportedException e ) {
+            System.out.println("Cloning failed with : " + e.getMessage() );
+        }
+        
+        return newState;
+    }
+

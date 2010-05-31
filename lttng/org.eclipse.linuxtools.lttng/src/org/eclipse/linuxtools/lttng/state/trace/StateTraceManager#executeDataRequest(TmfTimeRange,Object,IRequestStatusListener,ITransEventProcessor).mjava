@@ -1,0 +1,42 @@
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.eclipse.linuxtools.lttng.state.trace.IStateTraceManager#
+	 * executeDataRequest(org.eclipse.linuxtools.tmf.event.TmfTimeRange,
+	 * java.lang.Object,
+	 * org.eclipse.linuxtools.lttng.request.IRequestStatusListener,
+	 * org.eclipse.linuxtools.lttng.state.evProcessor.ITransEventProcessor)
+	 */
+	public ILttngSyntEventRequest executeDataRequest(TmfTimeRange trange,
+			Object source,
+			IRequestStatusListener listener, ITransEventProcessor processor) {
+		TmfTimestamp restoredStartTime = restoreCheckPointByTimestamp(trange
+				.getStartTime());
+		// Adjust the time range to consider rewinding to the start time
+		trange = new TmfTimeRange(restoredStartTime, trange.getEndTime());
+		// Get a data request for the time range we want (nearest checkpoint
+		// to timestamp wanted)
+
+		// Process request to that point
+		ILttngSyntEventRequest request = getDataRequestByTimeRange(trange,
+				listener, processor);
+		request.setSource(source);
+
+		// don't wait for completion i.e. allow cancellations
+		request.startRequestInd(fSynEventProvider);
+		// fSynEventProvider
+		// .sendRequest((TmfDataRequest<LttngSyntheticEvent>) request);
+
+		if (TraceDebug.isDEBUG()) {
+			TraceDebug
+					.debug(" Time Window requested, (start adjusted to checkpoint): "
+							+ trange.getStartTime()
+							+ "-"
+							+ trange.getEndTime()
+							+ " Total number of processes in the State provider: "
+							+ fStateModel.getProcesses().length + " Completed");
+		}
+
+		return request;
+	}
+

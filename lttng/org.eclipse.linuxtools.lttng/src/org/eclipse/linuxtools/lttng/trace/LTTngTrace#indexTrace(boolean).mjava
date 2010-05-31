@@ -1,0 +1,60 @@
+    /**
+     * Index the current trace.
+     * 
+     * @param useless  This boolean is only to comply to the interface and will be ignored.
+     */
+    @Override
+    public synchronized void indexTrace(boolean useless) {
+    	
+    	long nbEvents=0L;
+    	
+    	// Start time need to be null to detect none have been set 
+        // LastTime need to exist so we can ajust it as we go
+        LttngTimestamp startTime = null;
+        LttngTimestamp lastTime  = new LttngTimestamp();
+    	
+        // Position the trace at the beginning
+        TmfContext context = seekEvent( new LttngTimestamp(0L) );
+        
+        // Read the first event and extract the location
+        LttngEvent tmpEvent = (LttngEvent)getNextEvent(context);
+        
+        // If we read the first event, define the start time.
+        if ( tmpEvent != null ) {
+        	startTime = new LttngTimestamp( tmpEvent.getTimestamp() );
+        	lastTime.setValue(tmpEvent.getTimestamp().getValue());
+        }
+        
+        // Now, we read each event until we hit the end of the trace
+        // We will create a new checkpoint every "getCacheSize()" event
+        while ( tmpEvent != null) {
+    		// Update the last time each time we read a new event
+            lastTime.setValue(tmpEvent.getTimestamp().getValue());
+            
+            // Save a check point if needed
+            if ((nbEvents++ % getCacheSize()) == 0) {
+            	// *** IMPORTANT
+            	// We need to NEW each stuff we put in checkpoint
+            	//	Otherwise everything will be the same!
+                LttngTimestamp tmpTimestamp = new LttngTimestamp( (LttngTimestamp)tmpEvent.getTimestamp() );
+                LttngLocation  newLocation  = new LttngLocation(  (LttngTimestamp)tmpEvent.getTimestamp() );
+                
+                fCheckpoints.add(new TmfCheckpoint(tmpTimestamp, newLocation ) );
+            }
+            // Read the next event
+            tmpEvent = (LttngEvent)getNextEvent(context);
+        }
+        
+        // If we have a start time, we should have an end time as well
+        // Issue the new range
+        if (startTime != null) {
+            setTimeRange( new TmfTimeRange(startTime, lastTime) );
+            notifyListeners(getTimeRange() );
+        }
+        
+        // Ajust the total number of event in the trace
+        fNbEvents = nbEvents;
+        //printCheckpointsVector();
+        //printDebug = true;
+    }
+

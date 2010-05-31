@@ -1,0 +1,105 @@
+	// =======================================================================
+	// Methods
+	// =======================================================================
+	@Override
+	public LttngTraceState clone() {
+		LttngTraceState newState = null;
+
+		try {
+			newState = (LttngTraceState) super.clone();
+
+			// *** IMPORTANT ***
+			// Basic type in java are immutable!
+			// Thus, using assignment ("=") on basic type is CORRECT,
+			// but we should ALWAYS use "new" or "clone()" on "non basic" type
+			newState.save_interval = this.save_interval;
+			newState.traceId = this.traceId;
+
+			// Basic value only need to be assigned while cloning
+			newState.has_precomputed_states = this.has_precomputed_states;
+			newState.nb_events = this.nb_events;
+			newState.max_time_state_recomputed_in_seek = this.max_time_state_recomputed_in_seek;
+
+			// Clone should work correctly for all stack object that contain
+			// basic java object (String, Long, etc...)
+			newState.syscall_names = this.syscall_names;
+			newState.kprobe_table = this.kprobe_table;
+			newState.soft_irq_names = this.soft_irq_names;
+			newState.trap_names = this.trap_names;
+			newState.irq_names = this.irq_names;
+
+			// This reference should never need to be updated, should it?
+			newState.fContext = this.fContext;
+
+			// *** We need loop on each ArrayList and HashMap, as java implement
+			// nothing that's remotely near deep copying.
+			// *** TODO ***
+			// In the future, implement something better here... serialization
+			// perhaps? Or copy the array chunk of memory in C?
+			
+			Iterator<Long> iteratorL = null;
+			Iterator<ProcessStateKey> iteratorP = null;
+			Long mapKey = null;
+			ProcessStateKey processKey = null;
+			
+			newState.processes = new HashMap<ProcessStateKey, LttngProcessState>();
+			iteratorP = this.processes.keySet().iterator();
+			while (iteratorP.hasNext()) {
+				processKey = iteratorP.next();
+				newState.processes.put(processKey, this.processes.get(processKey).clone());
+			}
+
+			newState.running_process = new HashMap<Long, LttngProcessState>();
+			iteratorL = this.running_process.keySet().iterator();
+			while (iteratorL.hasNext()) {
+				mapKey = iteratorL.next();
+				newState.running_process.put(mapKey, this.running_process.get(mapKey).clone());
+			}
+
+			newState.cpu_states = new HashMap<Long, LTTngCPUState>();
+			iteratorL = this.cpu_states.keySet().iterator();
+			while (iteratorL.hasNext()) {
+				mapKey = iteratorL.next();
+				newState.cpu_states.put(mapKey, this.cpu_states.get(mapKey)
+						.clone());
+			}
+
+			newState.irq_states = new HashMap<Long, LttngIRQState>();
+			iteratorL = this.irq_states.keySet().iterator();
+			while (iteratorL.hasNext()) {
+				mapKey = iteratorL.next();
+				newState.irq_states.put(mapKey, this.irq_states.get(mapKey)
+						.clone());
+			}
+
+			newState.soft_irq_states = new HashMap<Long, LttngSoftIRQState>();
+			iteratorL = this.soft_irq_states.keySet().iterator();
+			while (iteratorL.hasNext()) {
+				mapKey = iteratorL.next();
+				newState.soft_irq_states.put(mapKey, this.soft_irq_states.get(
+						mapKey).clone());
+			}
+
+			newState.trap_states = new HashMap<Long, LttngTrapState>();
+			iteratorL = this.trap_states.keySet().iterator();
+			while (iteratorL.hasNext()) {
+				mapKey = iteratorL.next();
+				newState.trap_states.put(mapKey, this.trap_states.get(mapKey)
+						.clone());
+			}
+
+			newState.bdev_states = new HashMap<Long, LttngBdevState>();
+			iteratorL = this.bdev_states.keySet().iterator();
+			while (iteratorL.hasNext()) {
+				mapKey = iteratorL.next();
+				newState.bdev_states.put(mapKey, this.bdev_states.get(mapKey)
+						.clone());
+			}
+
+		} catch (CloneNotSupportedException e) {
+			System.out.println("Cloning failed with : " + e.getMessage());
+		}
+
+		return newState;
+	}
+

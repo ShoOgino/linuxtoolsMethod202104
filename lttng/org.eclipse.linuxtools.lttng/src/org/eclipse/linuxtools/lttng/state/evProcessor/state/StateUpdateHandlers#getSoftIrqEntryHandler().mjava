@@ -1,0 +1,58 @@
+	/**
+	 * 
+	 * @return
+	 */
+	final ILttngEventProcessor getSoftIrqEntryHandler() {
+		AbsStateUpdate handler = new AbsStateUpdate() {
+
+			// @Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+
+				// obtrain cpu
+				Long cpu = trcEvent.getCpuId();
+
+				// get event field
+				Long softirq = getAFieldLong(trcEvent, traceSt,
+						Fields.LTT_FIELD_SOFT_IRQ_ID);
+
+				if (softirq == null) {
+					TraceDebug.debug("Soft IRQ ID not found, eventTime: "
+							+ trcEvent.getTimestamp());
+					return true;
+				}
+
+				// obtain submode
+				Map<Long, String> softIrqNames = traceSt.getSoft_irq_names();
+				String submode = softIrqNames.get(softirq);
+				if (submode == null) {
+					submode = "softirq " + softirq;
+					softIrqNames.put(softirq, submode);
+				}
+
+				/* update softirq status */
+				LttngSoftIRQState irqState = traceSt.getSoft_irq_states().get(
+						softirq);
+				if (irqState != null) {
+					irqState.decrementPending();
+					irqState.incrementRunning();
+				} else {
+					TraceDebug
+							.debug("unexpected soft irq id value: " + softirq);
+				}
+
+				/* update cpu state */
+				LTTngCPUState cpu_state = traceSt.getCpu_states().get(cpu);
+				cpu_state.pushToSoftIrqStack(softirq);
+				cpu_push_mode(cpu_state, CpuMode.LTTV_CPU_SOFT_IRQ);
+
+				/* update process execution mode state stack */
+				push_state(cpu, ExecutionMode.LTTV_STATE_SOFT_IRQ, submode,
+						trcEvent.getTimestamp(), traceSt);
+
+				return false;
+
+			}
+		};
+		return handler;
+	}
+

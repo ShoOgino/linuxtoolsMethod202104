@@ -1,0 +1,34 @@
+		// =======================================================================
+		// Methods
+		// =======================================================================
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see
+		 * org.eclipse.linuxtools.lttng.request.LttngSyntEventRequest#handleData
+		 * ()
+		 */
+		@Override
+		public void handleData() {
+			TmfEvent[] result = getData();
+
+			evt[0] = (result.length > 0) ? result[0] : null;
+			if (evt[0] != null) {
+				synEvent = (LttngSyntheticEvent) evt[0];
+				if (synEvent.getSynType() == SequenceInd.AFTER) {
+					// Note : We call this function before incrementing
+					// eventCount to save a default check point at the "0th"
+					// event
+					saveCheckPoint(fCount, synEvent.getTimestamp());
+					fCount++;
+
+					if (TraceDebug.isDEBUG()) {
+						if (fCount % 1000 == 0) {
+							TraceDebug.debug("handled: " + fCount
+									+ " sequence: " + synEvent.getSynType());
+						}
+					}
+				}
+			}
+		}
+

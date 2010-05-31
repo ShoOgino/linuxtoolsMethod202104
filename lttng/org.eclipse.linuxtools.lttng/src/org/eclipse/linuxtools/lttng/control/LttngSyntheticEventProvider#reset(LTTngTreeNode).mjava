@@ -1,0 +1,34 @@
+	/**
+	 * Reset provider to a state ready to begin thread execution
+	 * 
+	 * @param experimentNode
+	 */
+	public /* synchronized */ void reset(LTTngTreeNode experimentNode) {
+
+		fmainRequest = null;
+
+		// Make sure previous request are terminated
+		for (LttngBaseEventRequest tmpRequest : feventProviderRequests.values()) {
+			if (tmpRequest != null && !tmpRequest.isCompleted()) {
+				tmpRequest.cancel();
+			}
+		}
+
+		feventProviderRequests.clear();
+		fmainReqEventCount = 0;
+		startIndSent = false;
+
+		// set of base event providers
+		if (fExperiment != null) {
+			LTTngTreeNode[] traces = fExperiment.getChildren();
+			for (LTTngTreeNode trace : traces) {
+				IStateTraceManager traceBaseEventProvider = (IStateTraceManager) trace;
+				feventProviderRequests.put(traceBaseEventProvider, null);
+			}
+		}
+
+		if (fExperiment != experimentNode) {
+			updateExperimentNode(experimentNode);
+		}
+	}
+

@@ -1,0 +1,144 @@
+	/**
+	 * <p>
+	 * Handles: LTT_EVENT_SCHED_SCHEDULE
+	 * </p>
+	 * <p>
+	 * Fields: LTT_FIELD_PREV_PID, LTT_FIELD_NEXT_PID, LTT_FIELD_PREV_STATE
+	 * </p>
+	 * 
+	 * @return
+	 */
+	final ILttngEventProcessor getSchedChangeHandler() {
+		AbsStateUpdate handler = new AbsStateUpdate() {
+
+			// @Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+
+				Long cpu = trcEvent.getCpuId();
+				TmfTimestamp eventTime = trcEvent.getTimestamp();
+
+				LttngProcessState process = traceSt.getRunning_process().get(
+						cpu);
+
+				Long pid_out = getAFieldLong(trcEvent, traceSt,
+						Fields.LTT_FIELD_PREV_PID);
+				Long pid_in = getAFieldLong(trcEvent, traceSt,
+						Fields.LTT_FIELD_NEXT_PID);
+				Long state_out = getAFieldLong(trcEvent, traceSt,
+						Fields.LTT_FIELD_PREV_STATE);
+
+				if (process != null) {
+
+					/*
+					 * We could not know but it was not the idle process
+					 * executing. This should only happen at the beginning,
+					 * before the first schedule event, and when the initial
+					 * information (current process for each CPU) is missing. It
+					 * is not obvious how we could, after the fact, compensate
+					 * the wrongly attributed statistics.
+					 */
+
+					// This test only makes sense once the state is known and if
+					// there
+					// is no
+					// missing events. We need to silently ignore schedchange
+					// coming
+					// after a
+					// process_free, or it causes glitches. (FIXME)
+					// if(unlikely(process->pid != pid_out)) {
+					// g_assert(process->pid == 0);
+					// }
+					if ((process.getPid().longValue() == 0L)
+							&& (process.getState().getExec_mode() == ExecutionMode.LTTV_STATE_MODE_UNKNOWN)) {
+						if ((pid_out != null) && (pid_out.longValue() == 0L)) {
+							/*
+							 * Scheduling out of pid 0 at beginning of the trace
+							 * : we know for sure it is in syscall mode at this
+							 * point.
+							 */
+
+							process.getState().setExec_mode(
+									ExecutionMode.LTTV_STATE_SYSCALL);
+							process.getState().setProc_status(
+									ProcessStatus.LTTV_STATE_WAIT);
+							process.getState().setChange_Time(
+									trcEvent.getTimestamp().getValue());
+							process.getState().setEntry_Time(
+									trcEvent.getTimestamp().getValue());
+						}
+					} else {
+						if (process.getState().getProc_status() == ProcessStatus.LTTV_STATE_EXIT) {
+							process.getState().setProc_status(
+									ProcessStatus.LTTV_STATE_ZOMBIE);
+							process.getState().setChange_Time(
+									trcEvent.getTimestamp().getValue());
+						} else {
+							if ((state_out != null)
+									&& (state_out.longValue() == 0L)) {
+								process.getState().setProc_status(
+										ProcessStatus.LTTV_STATE_WAIT_CPU);
+							} else {
+								process.getState().setProc_status(
+										ProcessStatus.LTTV_STATE_WAIT);
+							}
+
+							process.getState().setChange_Time(
+									trcEvent.getTimestamp().getValue());
+						}
+
+						if ((state_out != null)
+								&& (state_out == 32L || state_out == 64L)) { /*
+																			 * EXIT_DEAD
+																			 * ||
+																			 * TASK_DEAD
+																			 */
+							/* see sched.h for states */
+							if (!exit_process(traceSt, process)) {
+								process.getState().setProc_status(
+										ProcessStatus.LTTV_STATE_DEAD);
+								process.getState().setChange_Time(
+										trcEvent.getTimestamp().getValue());
+							}
+						}
+					}
+				}
+				process = lttv_state_find_process_or_create(traceSt, cpu,
+						pid_in, eventTime);
+
+				traceSt.getRunning_process().put(cpu, process);
+
+				process.getState().setProc_status(ProcessStatus.LTTV_STATE_RUN);
+				process.getState().setChange_Time(eventTime.getValue());
+				process.setCpu(cpu);
+				// process->state->s = LTTV_STATE_RUN;
+				// if(process->usertrace)
+				// process->usertrace->cpu = cpu;
+				// process->last_cpu_index =
+				// ltt_tracefile_num(((LttvTracefileContext*)s)->tf);
+
+				// process->state->change = s->parent.timestamp;
+
+				LTTngCPUState cpu_state = traceSt.getCpu_states().get(cpu);
+				/* update cpu status */
+				if ((pid_in != null) && (pid_in.longValue() == 0L)) {
+
+					/* going to idle task */
+					cpu_set_base_mode(cpu_state, CpuMode.LTTV_CPU_IDLE);
+				} else {
+					/*
+					 * scheduling a real task. we must be careful here: if we
+					 * just schedule()'ed to a process that is in a trap, we
+					 * must put the cpu in trap mode
+					 */
+					cpu_set_base_mode(cpu_state, CpuMode.LTTV_CPU_BUSY);
+					if (process.getState().getExec_mode() == ExecutionMode.LTTV_STATE_TRAP) {
+						cpu_push_mode(cpu_state, CpuMode.LTTV_CPU_TRAP);
+					}
+				}
+				return false;
+
+			}
+		};
+		return handler;
+	}
+

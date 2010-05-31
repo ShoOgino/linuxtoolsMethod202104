@@ -1,0 +1,57 @@
+    /**
+     * Default constructor, with control over the indexing and possibility to bypass indexation
+     * <p>
+     * @param path 					Path to a <b>directory</b> that contain an LTTng trace.
+     * @param waitForCompletion  	Should we wait for indexign to complete before moving on.
+     * @param bypassIndexing        Should we bypass indexing completly? This is should only be useful for unit testing.
+     * 
+     * @exception Exception (most likely LTTngTraceException or FileNotFoundException)
+     * 
+     */
+    public LTTngTrace(String path, boolean waitForCompletion, boolean bypassIndexing) throws Exception {
+        super(path, LttngEvent.class, path, CHECKPOINT_PAGE_SIZE);
+        try {
+    		currentJniTrace = JniTraceFactory.getJniTrace(path, SHOW_LTT_DEBUG_DEFAULT);
+        }
+        catch (Exception e) {
+            throw new LTTngTraceException(e.getMessage());
+        }
+        
+        // Export all the event types from the JNI side 
+        traceTypes      = new HashMap<String, LttngEventType>();
+        traceTypeNames  = new Vector<String>();
+        initialiseEventTypes(currentJniTrace);
+        
+        // *** VERIFY ***
+        // Verify that all those "default constructor" are safe to use
+        eventTimestamp        = new LttngTimestamp();
+        eventSource           = new LttngEventSource();
+        eventType             = new LttngEventType();
+        eventContent          = new LttngEventContent(currentLttngEvent);
+        eventReference        = new LttngEventReference(this.getName());
+        
+        // Create the skeleton event
+        currentLttngEvent = new LttngEvent(this, eventTimestamp, eventSource, eventType, eventContent, eventReference, null);
+        
+        // Create a new current location
+        previousLocation = new LttngLocation();
+        
+        
+        // Set the currentEvent to the eventContent
+        eventContent.setEvent(currentLttngEvent);
+        
+        // Bypass indexing if asked
+        if ( bypassIndexing == false ) {
+            indexTrace(true);
+        }
+        else {
+        	// Even if we don't have any index, set ONE checkpoint
+        	fCheckpoints.add(new TmfCheckpoint(new LttngTimestamp(0L) , new LttngLocation() ) );
+        	
+        	// Set the start time of the trace
+        	setTimeRange( new TmfTimeRange( new LttngTimestamp(currentJniTrace.getStartTime().getTime()), 
+        			  				    	new LttngTimestamp(currentJniTrace.getEndTime().getTime())
+                                      	  ) );
+        }
+    }
+

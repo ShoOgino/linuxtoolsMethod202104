@@ -1,0 +1,25 @@
+	/*
+	 * FIXME : this function should be called when we receive an event telling
+	 * that release_task has been called in the kernel. In happens generally
+	 * when the parent waits for its child termination, but may also happen in
+	 * special cases in the child's exit : when the parent ignores its children
+	 * SIGCCHLD or has the flag SA_NOCLDWAIT. It can also happen when the child
+	 * is part of a killed thread group, but isn't the leader.
+	 */
+	protected boolean exit_process(LttngTraceState ts, LttngProcessState process) {
+		/*
+		 * Wait for both schedule with exit dead and process free to happen.
+		 * They can happen in any order.
+		 */
+		process.incrementFree_events();
+		if (process.getFree_events() < 2) {
+			return false;
+		}
+
+		process.clearExecutionStack();
+		process.clearUserStack();
+		ts.removeProcessState(process);
+
+		return true;
+	}
+

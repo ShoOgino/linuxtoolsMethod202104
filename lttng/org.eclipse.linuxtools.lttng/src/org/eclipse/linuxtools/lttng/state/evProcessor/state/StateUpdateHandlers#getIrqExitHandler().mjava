@@ -1,0 +1,35 @@
+	/**
+	 * 
+	 * @return
+	 */
+	final ILttngEventProcessor getIrqExitHandler() {
+		AbsStateUpdate handler = new AbsStateUpdate() {
+
+			// @Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+
+				Long cpu = trcEvent.getCpuId();
+
+				/* update process state */
+				pop_state(cpu, ExecutionMode.LTTV_STATE_IRQ, traceSt, trcEvent
+						.getTimestamp());
+
+				/* update cpu status */
+				LTTngCPUState cpust = traceSt.getCpu_states().get(cpu);
+				cpu_pop_mode(cpust);
+
+				/* update irq status */
+				Long last_irq = cpust.popFromIrqStack();
+				if (last_irq != -1L) {
+					LttngIRQState irq_state = traceSt.getIrq_states().get(
+							last_irq);
+					irq_pop_mode(irq_state);
+				}
+
+				return false;
+
+			}
+		};
+		return handler;
+	}
+

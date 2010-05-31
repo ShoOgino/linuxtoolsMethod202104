@@ -1,0 +1,35 @@
+    /**
+     * This method is a temporary fix to support multiple events at once in TMF
+     *		This is expected to be slow and should be fixed in another way.
+     * See comment in convertJniEventToTmf();
+     * 
+     * @param jniEvent	The current JNI Event
+     * @return Current 	Lttng Event fully parsed
+     */
+    private synchronized LttngEvent convertJniEventToTmfMultipleEventEvilFix(JniEvent jniEvent, boolean isParsingNeeded) {
+    	// *** HACK ***
+    	// Below : the "fix" with all the new and the full-parse
+    	// 		Allocating new memory is slow.
+    	//		Parsing every events is very slow.
+    	eventTimestamp        = new LttngTimestamp(jniEvent.getEventTime().getTime());
+        eventSource           = new LttngEventSource(jniEvent.requestEventSource());
+        eventReference        = new LttngEventReference(jniEvent.getParentTracefile().getTracefilePath(), this.getName());
+        eventType             = new LttngEventType(traceTypes.get( EventTypeKey.getEventTypeKey(jniEvent) ));
+        eventContent          = new LttngEventContent(currentLttngEvent);
+        currentLttngEvent = new LttngEvent(this, eventTimestamp, eventSource, eventType, eventContent, eventReference, null);
+        
+        // The jni reference is no longer reliable but we will keep it anyhow
+        currentLttngEvent.updateJniEventReference(jniEvent);
+        // Ensure that the content is correctly set
+        eventContent.setEvent(currentLttngEvent);
+        
+        // Parse the event if it was needed
+        // *** WARNING ***
+        // ONLY for testing, NOT parsing events with non-unique events WILL result in segfault in the JVM
+        if ( isParsingNeeded == true ) {
+        	eventContent.getFields();
+        }
+    	
+        return currentLttngEvent;
+    }
+
