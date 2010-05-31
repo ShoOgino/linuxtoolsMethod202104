@@ -1,0 +1,25 @@
+    @SuppressWarnings("unchecked")
+	public void testCancel() throws Exception {
+        final Vector<TmfEvent> requestedEvents = new Vector<TmfEvent>();
+
+        TmfTimeRange range = new TmfTimeRange(TmfTimestamp.BigBang, TmfTimestamp.BigCrunch);
+        final TmfEventRequest<TmfEvent> request = new TmfEventRequest<TmfEvent>(TmfEvent.class, range, NB_EVENTS, NB_EVENTS) {
+            @Override
+            public void handleData() {
+            	TmfEvent[] events = getData();
+                for (TmfEvent e : events) {
+                    requestedEvents.add(e);
+                }
+                // Cancel request after the first chunk is received
+                cancel();
+            }
+        };
+        ITmfDataProvider<TmfEvent>[] providers = (ITmfDataProvider<TmfEvent>[]) TmfProviderManager.getProviders(TmfEvent.class, TmfTraceStub.class);
+        providers[0].sendRequest(request);
+        request.waitForCompletion();
+
+        assertEquals("nbEvents",  NB_EVENTS, requestedEvents.size());
+        assertTrue("isCompleted", request.isCompleted());
+        assertTrue("isCancelled", request.isCancelled());
+    }
+

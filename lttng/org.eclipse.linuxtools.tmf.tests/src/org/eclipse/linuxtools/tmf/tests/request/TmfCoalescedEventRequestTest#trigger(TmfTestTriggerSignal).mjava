@@ -1,0 +1,53 @@
+    @SuppressWarnings("unchecked")
+	@TmfSignalHandler
+    public void trigger(final TmfTestTriggerSignal signal) {
+
+        TmfTimeRange range = new TmfTimeRange(TmfTimestamp.BigBang, TmfTimestamp.BigCrunch);
+
+        requestedEvents1 = new Vector<TmfEvent>();
+        request1 = new TmfEventRequest<TmfEvent>(TmfEvent.class, range, NB_EVENTS, BLOCK_SIZE) {
+            @Override
+            public void handleData() {
+            	if (!isCompleted()) {
+            		TmfEvent[] events = getData();
+            		for (TmfEvent e : events) {
+            			requestedEvents1.add(e);
+            		}
+            		if (signal.forceCancel)
+            			cancel();
+            	}
+            }
+        };
+
+        requestedEvents2 = new Vector<TmfEvent>();
+        request2 = new TmfEventRequest<TmfEvent>(TmfEvent.class, range, NB_EVENTS, BLOCK_SIZE) {
+            @Override
+            public void handleData() {
+            	if (!isCompleted()) {
+            		TmfEvent[] events = getData();
+            		for (TmfEvent e : events) {
+            			requestedEvents2.add(e);
+            		}
+            	}
+            }
+        };
+
+        requestedEvents3 = new Vector<TmfEvent>();
+        request3 = new TmfEventRequest<TmfEvent>(TmfEvent.class, range, NB_EVENTS, BLOCK_SIZE) {
+            @Override
+            public void handleData() {
+            	if (!isCompleted()) {
+            		TmfEvent[] events = getData();
+            		for (TmfEvent e : events) {
+            			requestedEvents3.add(e);
+            		}
+            	}
+            }
+        };
+
+        providers = (ITmfDataProvider<TmfEvent>[]) TmfProviderManager.getProviders(TmfEvent.class, TmfTraceStub.class);
+        providers[0].sendRequest(request1);
+        providers[0].sendRequest(request2);
+        providers[0].sendRequest(request3);
+    }
+

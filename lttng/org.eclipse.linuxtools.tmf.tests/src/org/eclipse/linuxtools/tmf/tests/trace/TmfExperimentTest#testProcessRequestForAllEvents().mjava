@@ -1,0 +1,30 @@
+    public void testProcessRequestForAllEvents() throws Exception {
+        final int nbEvents  = TmfEventRequest.ALL_DATA;
+        final int blockSize =  1;
+        final Vector<TmfEvent> requestedEvents = new Vector<TmfEvent>();
+        long nbExpectedEvents = fExperiment.getNbEvents();
+
+        TmfTimeRange range = new TmfTimeRange(TmfTimestamp.BigBang, TmfTimestamp.BigCrunch);
+        final TmfEventRequest<TmfEvent> request = new TmfEventRequest<TmfEvent>(TmfEvent.class, range, nbEvents, blockSize) {
+            @Override
+            public void handleData() {
+            	TmfEvent[] events = getData();
+                for (TmfEvent e : events) {
+                    requestedEvents.add(e);
+                }
+            }
+        };
+        fExperiment.sendRequest(request);
+        request.waitForCompletion();
+
+        assertEquals("nbEvents", nbExpectedEvents, requestedEvents.size());
+        assertTrue("isCompleted",  request.isCompleted());
+        assertFalse("isCancelled", request.isCancelled());
+
+        // Ensure that we have distinct events.
+        // Don't go overboard: we are not validating the stub! 
+        for (int i = 0; i < nbExpectedEvents; i++) {
+            assertEquals("Distinct events", i+1, requestedEvents.get(i).getTimestamp().getValue());
+        }
+    }
+
