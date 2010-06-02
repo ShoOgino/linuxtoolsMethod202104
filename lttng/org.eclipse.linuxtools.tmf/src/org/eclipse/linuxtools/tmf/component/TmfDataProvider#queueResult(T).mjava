@@ -3,11 +3,12 @@
 	 * 
 	 * @param data
 	 */
-	public void queueResult(T data) {
-		try {
-			fDataQueue.put(data);
-		} catch (InterruptedException e1) {
-			e1.printStackTrace();
+	public void queueResult(T data) throws InterruptedException {
+		boolean ok = fDataQueue.offer(data, TIMEOUT, TimeUnit.MILLISECONDS);
+		if (!ok) {
+			if (Tracer.isErrorTraced()) Tracer.traceError("Request timeout on write");
+			System.out.println(getName() + ": Request timeout on write");
+			throw new InterruptedException();
 		}
 	}
 

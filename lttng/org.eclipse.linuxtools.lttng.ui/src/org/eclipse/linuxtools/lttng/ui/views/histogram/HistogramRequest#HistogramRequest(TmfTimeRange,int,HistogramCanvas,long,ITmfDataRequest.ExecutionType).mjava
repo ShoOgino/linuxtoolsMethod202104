@@ -1,0 +1,32 @@
+	/**
+	 * Constructor for HistogramRequest.<p>
+	 * Prepare the request in TMF and reset the histogram content.
+	 * 
+	 * @param range				Range of the request.
+	 * @param nbRequested		Nb events requested. Can be "Infinity" for all.
+	 * @param newParentCanvas	HistogramCanvas related to the request.
+	 * @param timeInterval		Time interval to consider (i.e. : 1 interval is 1 bar in the histogram)
+	 * 
+	 * @see org.eclipse.linuxtools.tmf.request.TmfEventRequest
+	 */
+	public HistogramRequest(TmfTimeRange range, int nbRequested, HistogramCanvas newParentCanvas, long timeInterval, ITmfDataRequest.ExecutionType execType) {
+        super((Class<LttngEvent>)LttngEvent.class, range, nbRequested, HistogramConstant.MAX_EVENTS_PER_READ, execType);
+        
+        // *** FIXME ***
+        // This does not work! The request won't be processed or the number of events returned is wrong!
+        // We cannot use this !
+		//super((Class<LttngEvent>)dataType, range);
+        
+        parentCanvas = newParentCanvas;
+        histogramContent = parentCanvas.getHistogramContent();
+        
+        // Reset the content of the HistogramContent... the given data better be valid or this will fail.
+        histogramContent.clearContentData();
+        histogramContent.resetTable(range.getStartTime().getValue(), range.getEndTime().getValue(), timeInterval);
+        
+        lastRangeTime = range.getStartTime().getValue();
+        
+        // Notify the UI even before the request started, so we set the timestamp already.
+        parentCanvas.notifyParentUpdatedInformationAsynchronously();
+    }
+

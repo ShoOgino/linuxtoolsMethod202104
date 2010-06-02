@@ -3,7 +3,14 @@
 		if (request instanceof ITmfEventRequest<?>) {
 			boolean ok = getNbRequested() == request.getNbRequested();
 			ok &= getBlockize() == request.getBlockize();
-			ok &= fRange.equals(((ITmfEventRequest<T>) request).getRange());
+			if (ok) {
+				TmfTimestamp startTime = ((ITmfEventRequest<T>) request).getRange().getStartTime();
+				TmfTimestamp endTime   = ((ITmfEventRequest<T>) request).getRange().getEndTime();
+				if (!fRange.contains(startTime))
+					fRange = new TmfTimeRange(startTime, fRange.getEndTime());
+				if (!fRange.contains(endTime))
+					fRange = new TmfTimeRange(fRange.getStartTime(), endTime);
+			}
 			return ok;
 		}
 		return false;

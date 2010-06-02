@@ -1,12 +1,15 @@
-	public synchronized void sendRequest(final ITmfDataRequest<T> request) {
-
-		if (fCoalescingLevel > 0) {
-			// We are in coalescing mode: client should NEVER wait
-			// (otherwise we will have deadlock...)
-			coalesceDataRequest(request);
-		} else {
-			// Process the request immediately 
-			queueRequest(request);
+	public void sendRequest(final ITmfDataRequest<T> request) {
+		synchronized(this) {
+			if (fClone == null || request.getExecType() == SHORT) {
+				if (fSignalDepth > 0) {
+					coalesceDataRequest(request);
+				} else {
+					queueRequest(request);
+				}
+			}
+			else {
+				fClone.sendRequest(request);
+			}
 		}
 	}
 
