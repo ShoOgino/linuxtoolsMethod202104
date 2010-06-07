@@ -5,13 +5,31 @@
     	fExperiment = (TmfExperiment<TmfEvent>) signal.getExperiment();
     	setPartName(fTitlePrefix + " - " + fExperiment.getName());
 
-        // Perform the updates on the UI thread
-        fTable.getDisplay().asyncExec(new Runnable() {
-        	public void run() {
-       			fTable.setSelection(0);
-            	fTable.removeAll();
-				cacheStartIndex = cacheEndIndex = 0;	// Clear the cache
-        	}
-        });
+    	ProgressMonitorDialog dialog = new ProgressMonitorDialog(fShell);
+    	try {
+			dialog.run(false, false, new IRunnableWithProgress() {
+			    public void run(final IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
+			        monitor.beginTask("Cleaning up, please wait", 0);
+
+			        // Perform the updates on the UI thread
+			        fTable.getDisplay().syncExec(new Runnable() {
+			        	public void run() {
+							fTable.setSelection(0);
+							fTable.removeAll();
+							cacheStartIndex = cacheEndIndex = 0; // Clear the cache
+
+							if (!fTable.isDisposed() && fExperiment != null) {
+								int nbEvents = (int) fExperiment.getNbEvents();
+								fTable.setItemCount((nbEvents > 100) ? nbEvents : 100);
+							}
+			        	}
+			        });
+
+			        monitor.done();
+			    }
+			  });
+		} catch (InvocationTargetException e) {
+		} catch (InterruptedException e) {
+		}
     }
 
