@@ -1,8 +1,9 @@
 	@SuppressWarnings("unchecked")
 	private void indexExperiment(boolean waitForCompletion) {
 
-//		final TmfExperiment<?> experiment = getCurrentExperiment();
 		fCheckpoints.clear();
+		
+//		fEventLog = openLogFile("TraceEvent.log");
 
 		ITmfEventRequest<TmfEvent> request = new TmfEventRequest<TmfEvent>(TmfEvent.class, TmfTimeRange.Eternity, TmfDataRequest.ALL_DATA, 1, ITmfDataRequest.ExecutionType.LONG) {
 
@@ -10,13 +11,22 @@
 			
 			TmfTimestamp startTime =  null;
 			TmfTimestamp lastTime  =  null;
-//			int nbEvents = 0;
 
 			@Override
 			public void handleData() {
 				TmfEvent[] events = getData();
 				if (events.length > 0) {
-//					nbEvents++;
+
+//					try {
+//						if (fEventLog != null) {
+//							fEventLog.write(events[0].getTimestamp().toString());
+//							fEventLog.newLine();
+//							fEventLog.flush();
+//						}
+//					} catch (IOException e) {
+//						e.printStackTrace();
+//					}
+					
 					TmfTimestamp ts = events[0].getTimestamp();
 					if (startTime == null)
 						startTime = new TmfTimestamp(ts);
@@ -30,12 +40,22 @@
 
 			@Override
 			public void handleSuccess() {
-//				 long indexingEnd = System.nanoTime();
 
-				 updateExperiment();
+//				try {
+//					fEventLog.close();
+//					fEventLog = null;
+//				} catch (IOException e) {
+//					e.printStackTrace();
+//				}
 
-//				 System.out.println(getName() + ": start=" + startTime + ", end=" + lastTime + ", elapsed=" + (indexingEnd*1.0 - indexingStart) / 1000000000);
-//				 System.out.println(getName() + ": nbEvents=" + fNbEvents + "(" + ((indexingEnd-indexingStart)/nbEvents)+ " ns/evt)");
+//				long indexingEnd = System.nanoTime();
+
+				updateExperiment();
+//				System.out.println(System.currentTimeMillis() + ": Experiment indexing completed");
+
+//				long average = (indexingEnd - indexingStart) / fNbEvents;
+//				System.out.println(getName() + ": start=" + startTime + ", end=" + lastTime + ", elapsed=" + (indexingEnd * 1.0 - indexingStart) / 1000000000);
+//				System.out.println(getName() + ": nbEvents=" + fNbEvents + " (" + (average / 1000) + "." + (average % 1000) + " us/evt)");
 
 //				 for (int i = 0; i < fCheckpoints.size(); i++) {
 //					 TmfCheckpoint checkpoint = fCheckpoints.get(i);
@@ -44,16 +64,8 @@
 			}
 
 			private void updateExperiment() {
-//				if (experiment == fCurrentExperiment) {
-//					experiment.fTimeRange   = new TmfTimeRange(startTime, new TmfTimestamp(lastTime));
-//					experiment.fNbEvents    = nbEvents;
-//					experiment.fCheckpoints = ((TmfExperiment<T>) fClone).fCheckpoints;
-//					notifyListeners();
-//				}
-
-				fTimeRange   = new TmfTimeRange(startTime, new TmfTimestamp(lastTime));
-				fNbEvents    = fNbRead;
-				fCheckpoints = ((TmfExperiment<T>) fClone).fCheckpoints;
+				fTimeRange = new TmfTimeRange(startTime, new TmfTimestamp(lastTime));
+				fNbEvents  = fNbRead;
 				notifyListeners();
 			}
 		};

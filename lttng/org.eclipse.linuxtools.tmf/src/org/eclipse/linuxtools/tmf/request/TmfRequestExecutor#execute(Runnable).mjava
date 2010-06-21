@@ -1,11 +1,13 @@
 	/* (non-Javadoc)
 	 * @see java.util.concurrent.Executor#execute(java.lang.Runnable)
 	 */
-	public synchronized void execute(final Runnable request) {
-		fRequestQueue.offer(new Runnable() {
+	public synchronized void execute(final Runnable requestThread) {
+		fRequestQueue.offer(new TmfThread(((TmfThread) requestThread).getExecType()) {
+			@Override
 			public void run() {
 				try {
-					request.run();
+					requestThread.run();
+				    if (Tracer.isRequestTraced()) Tracer.trace("[REQ] Request finished");
 				} finally {
 					scheduleNext();
 				}

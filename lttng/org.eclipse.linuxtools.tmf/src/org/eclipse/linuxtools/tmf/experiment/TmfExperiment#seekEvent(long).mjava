@@ -1,7 +1,9 @@
 	/* (non-Javadoc)
 	 * @see org.eclipse.linuxtools.tmf.trace.ITmfTrace#seekEvent(long)
 	 */
-	public TmfExperimentContext seekEvent(long rank) {
+	public synchronized TmfExperimentContext seekEvent(long rank) {
+
+//		Tracer.trace("Ctx: seekEvent(rank) - start");
 
         // Position the stream at the previous checkpoint
         int index = (int) rank / fIndexPageSize;
@@ -19,19 +21,51 @@
         }
 
         TmfExperimentContext context = seekLocation(location);
-        long pos = (long) index * fIndexPageSize;
-        context.setRank(pos);
+        context.setRank((long) index * fIndexPageSize);
 
-        // And locate the event
+		// And locate the event
         TmfExperimentContext nextEventContext = new TmfExperimentContext(context);
-        TmfEvent event = getNextEvent(nextEventContext);
-        while (event != null && pos++ < rank) {
+        TmfEvent event = parseEvent(nextEventContext);
+        long pos = context.getRank();
+        while (event != null && pos++ <= rank) {
+            context = new TmfExperimentContext(nextEventContext);
         	event = getNextEvent(nextEventContext);
-        	context = new TmfExperimentContext(nextEventContext);
-        	if (event != null) context.updateRank(-1);
         }
-    	context.setLastTrace(TmfExperimentContext.NO_TRACE);
 
-        return context;
+        if (event != null) {
+			if (nextEventContext.getLastTrace() != TmfExperimentContext.NO_TRACE) {
+				nextEventContext.setLastTrace(TmfExperimentContext.NO_TRACE);
+				nextEventContext.updateRank(-1);
+			}
+			fSavedContext = new TmfExperimentContext(nextEventContext);
+        }
+        else {
+        	nextEventContext.setLocation(null);
+        	nextEventContext.setRank(ITmfContext.UNKNOWN_RANK);
+        }
+		return nextEventContext;
+
+//		// And locate the event
+//        TmfExperimentContext nextEventContext = new TmfExperimentContext(context);
+//        TmfEvent event = parseEvent(nextEventContext);
+//        long pos = context.getRank();
+//        while (event != null && pos < rank) {
+//        	event = getNextEvent(nextEventContext);
+//        	context = new TmfExperimentContext(nextEventContext);
+//        	pos++;
+//        }
+//
+//        if (event != null) {
+//			if (context.getLastTrace() != TmfExperimentContext.NO_TRACE) {
+//				context.setLastTrace(TmfExperimentContext.NO_TRACE);
+//				context.updateRank(-1);
+//			}
+//			fSavedContext = new TmfExperimentContext(context);
+//        }
+//        else {
+//        	context.setLocation(null);
+//        	context.setRank(ITmfContext.UNKNOWN_RANK);
+//        }
+//		return context;
 	}
 

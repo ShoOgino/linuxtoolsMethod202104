@@ -1,6 +1,6 @@
 	// Returns a brand new context based on the location provided
 	// and initializes the event queues
-	public TmfExperimentContext seekLocation(ITmfLocation<?> location) {
+	public synchronized TmfExperimentContext seekLocation(ITmfLocation<?> location) {
 
 		// Validate the location
 		if (location != null && !(location instanceof TmfExperimentLocation)) {
@@ -14,6 +14,8 @@
 
 		// Create and populate the context's traces contexts
 		TmfExperimentContext context = new TmfExperimentContext(fTraces, new TmfContext[fTraces.length]);
+//		Tracer.trace("Ctx: SeekLocation - start");
+
 		long rank = 0;
 		for (int i = 0; i < fTraces.length; i++) {
 			// Get the relevant trace attributes
@@ -27,13 +29,18 @@
 
 			// Set the trace location and read the corresponding event
 			expLocation.getLocation()[i] = context.getContexts()[i].getLocation();
-			context.getEvents()[i] = fTraces[i].getNextEvent(context.getContexts()[i]);
+			context.getEvents()[i] = fTraces[i].parseEvent(context.getContexts()[i]);
 		}
+
+//		Tracer.trace("Ctx: SeekLocation - done");
 
 		// Finalize context
 		context.setLocation(expLocation);
-		context.setRank(rank);
 		context.setLastTrace(TmfExperimentContext.NO_TRACE);
+		context.setRank(rank);
+
+		fSavedContext = new TmfExperimentContext(context);
+
 		return context;
 	}
 

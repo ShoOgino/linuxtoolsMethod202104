@@ -1,7 +1,9 @@
 	/* (non-Javadoc)
 	 * @see org.eclipse.linuxtools.tmf.trace.ITmfTrace#seekEvent(org.eclipse.linuxtools.tmf.event.TmfTimestamp)
 	 */
-	public TmfExperimentContext seekEvent(TmfTimestamp timestamp) {
+	public synchronized TmfExperimentContext seekEvent(TmfTimestamp timestamp) {
+
+//		Tracer.trace("Ctx: seekEvent(TS) - start");
 
 		if (timestamp == null) {
     		timestamp = TmfTimestamp.BigBang;
@@ -34,15 +36,25 @@
         TmfExperimentContext context = seekLocation(location);
         context.setRank((long) index * fIndexPageSize);
 
-        // And locate the event
+		// And locate the event
         TmfExperimentContext nextEventContext = new TmfExperimentContext(context);
-        TmfEvent event = getNextEvent(nextEventContext);
+        TmfEvent event = parseEvent(nextEventContext);
         while (event != null && event.getTimestamp().compareTo(timestamp, false) < 0) {
             context = new TmfExperimentContext(nextEventContext);
         	event = getNextEvent(nextEventContext);
         }
-    	context.setLastTrace(TmfExperimentContext.NO_TRACE);
 
-        return context;
+        if (event != null) {
+			if (nextEventContext.getLastTrace() != TmfExperimentContext.NO_TRACE) {
+				nextEventContext.setLastTrace(TmfExperimentContext.NO_TRACE);
+				nextEventContext.updateRank(-1);
+			}
+			fSavedContext = new TmfExperimentContext(nextEventContext);
+        }
+        else {
+        	nextEventContext.setLocation(null);
+        	nextEventContext.setRank(ITmfContext.UNKNOWN_RANK);
+        }
+		return nextEventContext;
 	}
 

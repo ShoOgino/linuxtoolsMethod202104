@@ -1,13 +1,28 @@
 	protected void queueRequest(final ITmfDataRequest<T> request) {
 
-		final ITmfDataProvider<T> provider = this;
-		final ITmfComponent component = this;
+//		final ITmfDataProvider<T> provider = this;
+//		final ITmfComponent component = this;
 
 		// Process the request
-		Thread thread = new Thread() {
+		TmfThread thread = new TmfThread(request.getExecType()) {
 
 			@Override
 			public void run() {
+
+//				/////
+//				String message = (System.currentTimeMillis() + ": Req=" + request.getRequestId() + 
+//						(request.getExecType() == ITmfDataRequest.ExecutionType.LONG ? "(long)" : "(short)") +
+//						", Type=" + request.getClass().getName() + 
+//						", DataType=" + request.getDataType().getSimpleName() + " " + "started");
+//		        System.out.println(message);
+//				////
+
+//		        if (request.getExecType() == ExecutionType.LONG) {
+//					setPriority(Thread.MIN_PRIORITY);
+//				} else {
+//					setPriority(Thread.MAX_PRIORITY);
+//				}
+//				yield();
 
 				// Extract the generic information
 				request.start();
@@ -27,12 +42,12 @@
 
 				try {
 					// Get the ordered events
-					if (Tracer.isRequestTraced()) Tracer.trace("Request #" + request.getRequestId() + " is being serviced by " + component.getName());
+//					if (Tracer.isRequestTraced()) Tracer.trace("Request #" + request.getRequestId() + " is being serviced by " + component.getName());
 					T data = getNext(context);
-					if (Tracer.isRequestTraced()) Tracer.trace("Request #" + request.getRequestId() + " read first event");
+//					if (Tracer.isRequestTraced()) Tracer.trace("Request #" + request.getRequestId() + " read first event");
 					while (data != null && !isCompleted(request, data, nbRead))
 					{
-						if (fLogData) Tracer.traceEvent(provider, request, data);
+//						if (fLogData) Tracer.traceEvent(provider, request, data);
 						result.add(data);
 						if (++nbRead % blockSize == 0) {
 							pushData(request, result);
@@ -40,23 +55,41 @@
 						// To avoid an unnecessary read passed the last data requested
 						if (nbRead < nbRequested) {
 							data = getNext(context);
-							if (data == null || data.isNullRef()) {
-								if (Tracer.isRequestTraced()) Tracer.trace("Request #" + request.getRequestId() + " end of data");
-							}
+//							if (data == null || data.isNullRef()) {
+//								if (Tracer.isRequestTraced()) Tracer.trace("Request #" + request.getRequestId() + " end of data");
+//							}
 						}
 					}
 					if (result.size() > 0) {
 						pushData(request, result);
 					}
 					request.done();
+
+//					////
+//					message = (System.currentTimeMillis() + ": Req=" + request.getRequestId() + 
+//							(request.getExecType() == ITmfDataRequest.ExecutionType.LONG ? "(long)" : "(short)") +
+//							", Type=" + request.getClass().getName() + 
+//							", DataType=" + request.getDataType().getSimpleName() + " " + "completed");
+//			        System.out.println(message);
+//					////
 				}
 				catch (Exception e) {
+			        if (Tracer.isRequestTraced()) Tracer.traceRequest(request, "exception (failed)");
 					request.fail();
+					return;
 //					e.printStackTrace();
 				}
 			}
 		};
+//		/////
+//		String message = (System.currentTimeMillis() + ": Req=" + request.getRequestId() + 
+//				(request.getExecType() == ITmfDataRequest.ExecutionType.LONG ? "(long)" : "(short)") +
+//				", Type=" + request.getClass().getName() + 
+//				", DataType=" + request.getDataType().getSimpleName() + " " + "queued");
+//        System.out.println(message);
+//		////
 		fExecutor.execute(thread);
+		
         if (Tracer.isRequestTraced()) Tracer.traceRequest(request, "queued");
 	}
 
