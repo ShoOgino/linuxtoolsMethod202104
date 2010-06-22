@@ -1,0 +1,63 @@
+	@Test
+	// Verify we can access the autoconf tool
+	public void canAccessAutoconf2() throws Exception {
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		assertTrue(workspace != null);
+		IWorkspaceRoot root = workspace.getRoot();
+		assertTrue(root != null);
+		IProject project = root.getProject("GnuProject1");
+		assertTrue(project != null);
+		IPath path = project.getLocation();
+		// Verify configure does not exist initially
+		path = path.append("configure");
+		File f = new File(path.toOSString());
+		f.delete();
+		SWTBotView view = bot.viewByTitle("Project Explorer");
+		view.bot().tree().select("GnuProject1");
+		bot.menu("Project", 1).menu("Invoke Autotools").menu("Invoke Autoconf").click();
+		bot.sleep(1000);
+		SWTBotView consoleView = bot.viewByTitle("Console");
+		consoleView.setFocus();
+		String output = consoleView.bot().styledText().getText();
+		// Verify we got some help output to the console
+		Pattern p = Pattern.compile(".*Invoking autoconf in.*GnuProject1.*autoconf.*", Pattern.DOTALL);
+		Matcher m = p.matcher(output);
+		assertTrue(m.matches());
+		// We need to wait until the configure file is created so
+		// sleep a bit and look for it...give up after 20 seconds
+		for (int i = 0; i < 40; ++i) {
+			bot.sleep(500);
+			f = new File(path.toOSString());
+			if (f.exists())
+				break;
+		}
+		// Verify we now have a configure script
+		f = new File(path.toOSString());
+		assertTrue(f.exists());
+		// Now lets delete the configure file and run autoconf from the project explorer
+		// menu directly from the configure.ac file.
+		assertTrue(f.delete());
+		view = bot.viewByTitle("Project Explorer");
+		SWTBotTreeItem node = view.bot().tree().expandNode("GnuProject1").getNode("configure.ac");
+		node.setFocus();
+		node.select().contextMenu("Invoke Autoconf").click();
+		bot.sleep(1000);
+		consoleView = bot.viewByTitle("Console");
+		consoleView.setFocus();
+		output = consoleView.bot().styledText().getText();
+		p = Pattern.compile(".*Invoking autoconf in.*GnuProject1.*autoconf.*", Pattern.DOTALL);
+		m = p.matcher(output);
+		assertTrue(m.matches());
+		// We need to wait until the configure file is created so
+		// sleep a bit and look for it...give up after 20 seconds
+		for (int i = 0; i < 40; ++i) {
+			bot.sleep(500);
+			f = new File(path.toOSString());
+			if (f.exists())
+				break;
+		}
+		// Verify we now have a configure script again
+		f = new File(path.toOSString());
+		assertTrue(f.exists());
+	}
+
