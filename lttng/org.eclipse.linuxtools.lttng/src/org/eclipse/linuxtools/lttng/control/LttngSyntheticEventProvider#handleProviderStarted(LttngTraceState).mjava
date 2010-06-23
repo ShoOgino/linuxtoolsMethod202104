@@ -2,18 +2,25 @@
 	 * Notify listeners to prepare to receive data e.g. clean previous data etc.
 	 */
 	public void handleProviderStarted(LttngTraceState traceModel) {
-		LttngSyntheticEvent startIndEvent = new LttngSyntheticEvent(
-				fStatusEvent);
+		LttngSyntheticEvent startIndEvent = new LttngSyntheticEvent(fStatusEvent);
 		startIndEvent.setSequenceInd(SequenceInd.STARTREQ);
 
 		// Notify application
-		try {
-			queueResult(startIndEvent);
-			queueResult(fStatusEventAck);
-		} catch (InterruptedException e) {
-			// TODO: cancel this request
+		LttngSyntheticEvent[] result = new LttngSyntheticEvent[1];
+		result[0] = startIndEvent;
+		fmainRequest.setData(result);
+		fmainRequest.handleData();
+		result[0] = fStatusEventAck;
+		fmainRequest.setData(result);
+		fmainRequest.handleData();
+
+//		try {
+//			queueResult(startIndEvent);
+//			queueResult(fStatusEventAck);
+//		} catch (InterruptedException e) {
+//			// TODO: cancel this request
 //			e.printStackTrace();
-		}
+//		}
 
 		// Notify state event processor
 		fstateUpdateProcessor.process(startIndEvent, null);

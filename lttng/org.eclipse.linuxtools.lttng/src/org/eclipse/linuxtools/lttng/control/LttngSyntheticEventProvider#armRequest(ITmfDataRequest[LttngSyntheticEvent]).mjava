@@ -135,37 +135,47 @@
 					updateSynEvent(e);
 
 					// If time at or above requested time, update application
-					try {
-						if (eventTime >= fDispatchTime) {
-							// Before update
-							syntheticEvent.setSequenceInd(SequenceInd.BEFORE);
-							queueResult(syntheticEvent);
-							queueResult(syntheticAckIndicator);
+					if (eventTime >= fDispatchTime) {
+						// Before update
+						syntheticEvent.setSequenceInd(SequenceInd.BEFORE);
+//						queueResult(syntheticEvent);
+//						queueResult(syntheticAckIndicator);
 
-							// Update state locally
-							syntheticEvent.setSequenceInd(SequenceInd.UPDATE);
-							fstateUpdateProcessor.process(syntheticEvent, fTraceModel);
+						LttngSyntheticEvent[] result = new LttngSyntheticEvent[1];
+						result[0] = syntheticEvent;
+						fmainRequest.setData(result);
+						fmainRequest.handleData();
+						result[0] = syntheticAckIndicator;
+						fmainRequest.setData(result);
+						fmainRequest.handleData();
 
-							// After Update
-							syntheticEvent.setSequenceInd(SequenceInd.AFTER);
-							queueResult(syntheticEvent);
-							queueResult(syntheticAckIndicator);
+						// Update state locally
+						syntheticEvent.setSequenceInd(SequenceInd.UPDATE);
+						fstateUpdateProcessor.process(syntheticEvent, fTraceModel);
 
-							// increment once per dispatch
-							incrementSynEvenCount();
-							subEventCount++;
-						} else {
-							// event time is between checkpoint adjusted time and
-							// requested time i.e. application does not expect the
-							// event, however the state system needs to be re-built
-							// to the dispatch point
-							syntheticEvent.setSequenceInd(SequenceInd.UPDATE);
-							fstateUpdateProcessor.process(syntheticEvent, fTraceModel);
-						}
-					} catch (InterruptedException e1) {
-						// TODO: Cancel this request
-						request.cancel();
-//						e1.printStackTrace();
+						// After Update
+						syntheticEvent.setSequenceInd(SequenceInd.AFTER);
+//						queueResult(syntheticEvent);
+//						queueResult(syntheticAckIndicator);
+
+						result = new LttngSyntheticEvent[1];
+						result[0] = syntheticEvent;
+						fmainRequest.setData(result);
+						fmainRequest.handleData();
+						result[0] = syntheticAckIndicator;
+						fmainRequest.setData(result);
+						fmainRequest.handleData();
+
+						// increment once per dispatch
+						incrementSynEvenCount();
+						subEventCount++;
+					} else {
+						// event time is between checkpoint adjusted time and
+						// requested time i.e. application does not expect the
+						// event, however the state system needs to be re-built
+						// to the dispatch point
+						syntheticEvent.setSequenceInd(SequenceInd.UPDATE);
+						fstateUpdateProcessor.process(syntheticEvent, fTraceModel);
 					}
 				}
 
