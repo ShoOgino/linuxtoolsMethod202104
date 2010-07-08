@@ -1,0 +1,48 @@
+	@SuppressWarnings({ "unchecked", "unused" })
+	private void indexTrace(boolean waitForCompletion) {
+
+		fCheckpoints.clear();
+		
+		ITmfEventRequest<TmfEvent> request = new TmfEventRequest<TmfEvent>(TmfEvent.class, TmfTimeRange.Eternity, TmfDataRequest.ALL_DATA, 1, ITmfDataRequest.ExecutionType.LONG) {
+
+			TmfTimestamp startTime =  null;
+			TmfTimestamp lastTime  =  null;
+
+			@Override
+			public void handleData() {
+				TmfEvent[] events = getData();
+				if (events.length > 0) {
+					TmfTimestamp ts = events[0].getTimestamp();
+					if (startTime == null) {
+						startTime = new TmfTimestamp(ts);
+						fStartTime = startTime;
+					}
+					lastTime = new TmfTimestamp(ts);
+
+					if ((fNbRead % DEFAULT_INDEX_PAGE_SIZE) == 0) {
+						updateTraceData();
+					}
+				}
+			}
+
+			@Override
+			public void handleSuccess() {
+				updateTraceData();
+			}
+
+			private void updateTraceData() {
+				fEndTime  = new TmfTimestamp(lastTime);
+				fNbEvents = fNbRead;
+				notifyListeners();
+			}
+		};
+
+		sendRequest((ITmfDataRequest<T>) request);
+		if (waitForCompletion)
+			try {
+				request.waitForCompletion();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+	}
+
