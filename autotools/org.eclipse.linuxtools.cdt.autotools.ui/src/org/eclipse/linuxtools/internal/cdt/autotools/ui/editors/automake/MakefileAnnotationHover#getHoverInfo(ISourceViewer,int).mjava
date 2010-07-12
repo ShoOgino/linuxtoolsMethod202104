@@ -1,33 +1,38 @@
 	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.eclipse.jface.text.source.IAnnotationHover#getHoverInfo(org.eclipse.jface.text.source.ISourceViewer,
-	 *      int)
+	 * @see IVerticalRulerHover#getHoverInfo(ISourceViewer, int)
 	 */
 	public String getHoverInfo(ISourceViewer sourceViewer, int lineNumber) {
-		IDocument document = sourceViewer.getDocument();
-		try {
-			IRegion info = document.getLineInformation(lineNumber);
-			String line = document.get(info.getOffset(), info.getLength());
-			int numberOfLines = document.getNumberOfLines();
-			while (line != null && line.endsWith("\\")) { //$NON-NLS-1$
-				line = line.substring(0, line.length() - 1);
-				lineNumber++;
-				if (lineNumber < numberOfLines) {
-					info = document.getLineInformation(lineNumber);
-					String l = document.get(info.getOffset(), info.getLength());
-					line += "\n" + l; //$NON-NLS-1$
+		List<Annotation> annotations = getAnnotationsForLine(sourceViewer, lineNumber);
+		if (annotations != null && annotations.size() > 0) {
+			
+			if (annotations.size() == 1) {
+				
+				// optimization
+				Annotation annotation = (Annotation) annotations.get(0);
+				String message= annotation.getText();
+				if (message != null && message.trim().length() > 0)
+					return formatSingleMessage(message);
+					
+			} else {
+					
+				List<String> messages= new ArrayList<String>();
+				
+				Iterator<Annotation> e= annotations.iterator();
+				while (e.hasNext()) {
+					Annotation annotation = (Annotation) e.next();
+					String message= annotation.getText();
+					if (message != null && message.trim().length() > 0)
+						messages.add(message.trim());
 				}
+				
+				if (messages.size() == 1)
+					return formatSingleMessage((String) messages.get(0));
+					
+				if (messages.size() > 1)
+					return formatMultipleMessages(messages);
 			}
-			if (line != null && line.indexOf('$') != -1 && line.length() > 1) {
-				IWorkingCopyManager fManager = AutomakeEditorFactory.getDefault().getWorkingCopyManager();
-				IMakefile makefile = fManager.getWorkingCopy(fEditor.getEditorInput());
-				line = makefile.expandString(line);
-				return line;
-			}
-			return line;
-		} catch (BadLocationException x) {
 		}
+		
 		return null;
 	}
 
