@@ -1,0 +1,68 @@
+    public static void delete(String definitionName) {
+        try {
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            DocumentBuilder db = dbf.newDocumentBuilder();
+
+            // The following allows xml parsing without access to the dtd
+            EntityResolver resolver = new EntityResolver () {
+                public InputSource resolveEntity (String publicId, String systemId) {
+                    String empty = "";
+                    ByteArrayInputStream bais = new ByteArrayInputStream(empty.getBytes());
+                    return new InputSource(bais);
+                }
+            };
+            db.setEntityResolver(resolver);
+
+            // The following catches xml parsing exceptions
+            db.setErrorHandler(new ErrorHandler(){
+                public void error(SAXParseException saxparseexception) throws SAXException {}
+                public void warning(SAXParseException saxparseexception) throws SAXException {}
+                public void fatalError(SAXParseException saxparseexception) throws SAXException {
+                    throw saxparseexception;
+                }});
+
+            File file = new File(CUSTOM_XML_TRACE_DEFINITIONS_PATH_NAME);
+            Document doc = db.parse(file);
+
+            Element root = doc.getDocumentElement();
+            if (! root.getNodeName().equals(CUSTOM_XML_TRACE_DEFINITION_ROOT_ELEMENT)) {
+                return;
+            }
+
+            NodeList nodeList = root.getChildNodes();
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                Node node = nodeList.item(i);
+                if (node instanceof Element &&
+                        node.getNodeName().equals(DEFINITION_ELEMENT) &&
+                        definitionName.equals(((Element) node).getAttribute(NAME_ATTRIBUTE))) {
+                    root.removeChild(node);
+                }
+            }
+            
+            Transformer transformer = TransformerFactory.newInstance().newTransformer();
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+
+            //initialize StreamResult with File object to save to file
+            StreamResult result = new StreamResult(new StringWriter());
+            DOMSource source = new DOMSource(doc);
+            transformer.transform(source, result);
+            String xmlString = result.getWriter().toString();
+            
+            FileWriter writer = new FileWriter(file);
+            writer.write(xmlString);
+            writer.close();
+        } catch (ParserConfigurationException e) {
+            e.printStackTrace();
+        } catch (SAXException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (TransformerConfigurationException e) {
+            e.printStackTrace();
+        } catch (TransformerFactoryConfigurationError e) {
+            e.printStackTrace();
+        } catch (TransformerException e) {
+            e.printStackTrace();
+        }
+    }
+

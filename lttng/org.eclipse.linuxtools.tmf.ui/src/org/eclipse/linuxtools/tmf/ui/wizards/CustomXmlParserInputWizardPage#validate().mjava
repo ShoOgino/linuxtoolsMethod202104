@@ -1,0 +1,74 @@
+    private void validate() {
+        definition.definitionName = logtypeText.getText().trim();
+        definition.timeStampOutputFormat = timeStampOutputFormatText.getText().trim();
+        
+        if (selectedElement != null) {
+            selectedElement.extractInputs();
+            treeViewer.refresh();
+        }
+        
+        StringBuffer errors = new StringBuffer();
+
+        if (definition.definitionName.length() == 0) {
+            errors.append("Enter a name for the new log type. ");
+            logtypeText.setBackground(COLOR_LIGHT_RED);
+        } else {
+            logtypeText.setBackground(COLOR_TEXT_BACKGROUND);
+            for (CustomXmlTraceDefinition def : CustomXmlTraceDefinition.loadAll()) {
+                if (definition.definitionName.equals(def.definitionName)) {
+                    if (editDefinitionName == null || ! editDefinitionName.equals(definition.definitionName)) {
+                        errors.append("The log type name already exists. ");
+                        logtypeText.setBackground(COLOR_LIGHT_RED);
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (definition.rootInputElement == null) {
+            errors.append("Add a document element. ");
+        }
+        
+        if (definition.rootInputElement != null) {
+            logEntryFound = false;
+            logEntryNestedCount = 0;
+            timeStampFound = false;
+            
+            errors.append(validateElement(definition.rootInputElement));
+
+            if ((definition.rootInputElement.attributes != null && definition.rootInputElement.attributes.size() != 0) ||
+                    (definition.rootInputElement.childElements != null && definition.rootInputElement.childElements.size() != 0) || errors.length() == 0) {
+                if (!logEntryFound) {
+                    errors.append("Identify a Log Entry element. ");
+                }
+
+                if (timeStampFound) {
+                    if (timeStampOutputFormatText.getText().trim().length() == 0) {
+                        errors.append("Enter the output format for the Time Stamp field. ");
+                        timeStampOutputFormatText.setBackground(COLOR_LIGHT_RED);
+                    } else {
+                        try {
+                            new SimpleDateFormat(timeStampOutputFormatText.getText().trim());
+                            timeStampOutputFormatText.setBackground(COLOR_TEXT_BACKGROUND);
+                        } catch (IllegalArgumentException e) {
+                            errors.append("Enter a valid output format for the Time Stamp field. ");
+                            timeStampOutputFormatText.setBackground(COLOR_LIGHT_RED);
+                        }
+                    }
+                } else {
+                    timeStampPreviewText.setText("*no time stamp element or attribute*");
+                }
+            }
+        } else {
+            timeStampPreviewText.setText("*no time stamp element or attribute*");
+        }
+    
+        if (errors.length() == 0) {
+            setDescription(defaultDescription);
+            setPageComplete(true);
+        } else {
+            setDescription(errors.toString());
+            setPageComplete(false);
+        }
+    }
+

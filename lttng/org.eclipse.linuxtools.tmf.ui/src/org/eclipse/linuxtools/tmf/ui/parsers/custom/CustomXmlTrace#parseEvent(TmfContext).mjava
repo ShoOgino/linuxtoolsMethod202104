@@ -1,0 +1,44 @@
+    @Override
+    public TmfEvent parseEvent(TmfContext tmfContext) {
+        //System.out.println(Thread.currentThread().getName() + ":: " + getName() + " parseEvent(" + tmfContext.getRank() + " @ " + (tmfContext.getLocation().getLocation() == null ? "null" : tmfContext.getLocation()));
+        if (!(tmfContext instanceof CustomXmlTraceContext)) {
+            return null;
+        }
+        
+        CustomXmlTraceContext context = (CustomXmlTraceContext) tmfContext;
+        if (!(context.getLocation().getLocation() instanceof Long)) {
+            return null;
+        }
+
+        synchronized (context.raFile) {
+            CustomXmlEvent event = null;
+            try {
+                if (context.raFile.getFilePointer() != (Long)context.getLocation().getLocation() + 1) {
+                    context.raFile.seek((Long)context.getLocation().getLocation() + 1); // +1 is for the <
+                }
+                StringBuffer elementBuffer = new StringBuffer("<");
+                readElement(elementBuffer, context.raFile);
+                Element element = parseElementBuffer(elementBuffer);
+                
+                event = extractEvent(element, fRecordInputElement);
+                
+                String line;
+                String recordElementStart = "<" + fRecordInputElement.elementName;
+                long rawPos = context.raFile.getFilePointer();
+                
+                while ((line = context.raFile.readLine()) != null) {
+                    int idx = line.indexOf(recordElementStart); 
+                    if (idx != -1) {
+                        context.setLocation(new TmfLocation<Long>(rawPos + idx));
+                        return event;
+                    }
+                    rawPos = context.raFile.getFilePointer();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            context.setLocation(new TmfLocation<Long>((Long)null));
+            return event;
+        }
+    }
+

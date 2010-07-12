@@ -1,0 +1,35 @@
+    private void readElement(StringBuffer buffer, RandomAccessFile raFile) {
+        try {
+            int numRead = 0;
+            boolean startTagClosed = false;
+            int i;
+            while ((i = raFile.read()) != -1) {
+                numRead++;
+                char c = (char)i;
+                buffer.append(c);
+                if (c == '"') {
+                    readQuote(buffer, raFile, '"');
+                } else if (c == '\'') {
+                    readQuote(buffer, raFile, '\'');
+                } else if (c == '<') {
+                    readElement(buffer, raFile);
+                } else if (c == '/' && numRead == 1) {
+                    break; // found "</"
+                } else if (c == '-' && numRead == 3 && buffer.substring(buffer.length() - 3, buffer.length() - 1).equals("!-")) {
+                    readComment(buffer, raFile); // found "<!--"
+                } else if (i == '>') {
+                    if (buffer.charAt(buffer.length() - 2) == '/') {
+                        break; // found "/>"
+                    } else if (startTagClosed) {
+                        break; // found "<...>...</...>"
+                    } else {
+                        startTagClosed = true; // found "<...>"
+                    }
+                }
+            }
+            return;
+        } catch (IOException e) {
+            return;
+        }
+    }
+

@@ -1,0 +1,28 @@
+    public static CustomTxtTraceDefinition extractDefinition(Element definitionElement) {
+        CustomTxtTraceDefinition def = new CustomTxtTraceDefinition();
+        
+        def.definitionName = definitionElement.getAttribute(NAME_ATTRIBUTE);
+        if (def.definitionName == null) return null;
+        
+        NodeList nodeList = definitionElement.getChildNodes();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            String nodeName = node.getNodeName();
+            if (nodeName.equals(TIME_STAMP_OUTPUT_FORMAT_ELEMENT)) {
+                Element formatElement = (Element) node;
+                def.timeStampOutputFormat = formatElement.getTextContent();
+            } else if (nodeName.equals(INPUT_LINE_ELEMENT)) {
+                InputLine inputLine = extractInputLine((Element) node);
+                if (inputLine != null) {
+                    def.inputs.add(inputLine);
+                }
+            } else if (nodeName.equals(OUTPUT_COLUMN_ELEMENT)) {
+                Element outputColumnElement = (Element) node;
+                OutputColumn outputColumn = new OutputColumn();
+                outputColumn.name = outputColumnElement.getAttribute(NAME_ATTRIBUTE);
+                def.outputs.add(outputColumn);
+            }
+        }
+        return def;
+    }
+

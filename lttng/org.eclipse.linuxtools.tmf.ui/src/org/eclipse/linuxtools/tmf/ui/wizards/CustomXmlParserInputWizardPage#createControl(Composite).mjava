@@ -1,0 +1,141 @@
+    public void createControl(Composite parent) {
+        container = new Composite(parent, SWT.NULL);
+        container.setLayout(new GridLayout());
+
+        updateListener = new UpdateListener();
+        
+        Composite headerComposite = new Composite(container, SWT.FILL);
+        GridLayout headerLayout = new GridLayout(5, false);
+        headerLayout.marginHeight = 0;
+        headerLayout.marginWidth = 0;
+        headerComposite.setLayout(headerLayout);
+        headerComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+        
+        Label logtypeLabel = new Label(headerComposite, SWT.NULL);
+        logtypeLabel.setText("Log type:");
+        
+        logtypeText = new Text(headerComposite, SWT.BORDER | SWT.SINGLE);
+        logtypeText.setLayoutData(new GridData(120, SWT.DEFAULT));
+        logtypeText.addModifyListener(updateListener);
+        
+        Label timeStampFormatLabel = new Label(headerComposite, SWT.NULL);
+        timeStampFormatLabel.setText("Time Stamp format:");
+        
+        timeStampOutputFormatText = new Text(headerComposite, SWT.BORDER | SWT.SINGLE);
+        timeStampOutputFormatText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+        timeStampOutputFormatText.setText(DEFAULT_TIMESTAMP_FORMAT);
+        timeStampOutputFormatText.addModifyListener(updateListener);
+
+        Button dateFormatHelpButton = new Button(headerComposite, SWT.PUSH);
+        dateFormatHelpButton.setImage(helpImage);
+        dateFormatHelpButton.setToolTipText("Date Format Help");
+        dateFormatHelpButton.addSelectionListener(new SelectionAdapter() {
+            public void widgetSelected(SelectionEvent e) {
+                openHelpShell(SIMPLE_DATE_FORMAT_URL);
+            }
+        });
+        
+        Label timeStampPreviewLabel = new Label(headerComposite, SWT.NULL);
+        timeStampPreviewLabel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 3, 1));
+        timeStampPreviewLabel.setText("Preview:");
+        
+        timeStampPreviewText = new Text(headerComposite, SWT.BORDER | SWT.SINGLE | SWT.READ_ONLY);
+        timeStampPreviewText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1));
+        timeStampPreviewText.setText("*no time stamp element or attribute*");
+
+        createButtonBar();
+        
+        SashForm vSash = new SashForm(container, SWT.VERTICAL);
+        vSash.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+        vSash.setBackground(vSash.getDisplay().getSystemColor(SWT.COLOR_GRAY));
+
+        SashForm hSash = new SashForm(vSash, SWT.HORIZONTAL);
+        hSash.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+
+        treeScrolledComposite = new ScrolledComposite(hSash, SWT.V_SCROLL | SWT.H_SCROLL);
+        treeScrolledComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+        treeContainer = new Composite(treeScrolledComposite, SWT.NONE);
+        treeContainer.setLayout(new FillLayout());
+        treeScrolledComposite.setContent(treeContainer);
+        treeScrolledComposite.setExpandHorizontal(true);
+        treeScrolledComposite.setExpandVertical(true);
+        
+        treeViewer = new TreeViewer(treeContainer, SWT.SINGLE | SWT.BORDER);
+        treeViewer.setContentProvider(new InputElementTreeNodeContentProvider());
+        treeViewer.setLabelProvider(new InputElementTreeLabelProvider());
+        treeViewer.addSelectionChangedListener(new InputElementTreeSelectionChangedListener());
+        treeContainer.layout();
+        
+        treeScrolledComposite.setMinSize(treeContainer.computeSize(SWT.DEFAULT, SWT.DEFAULT).x, treeContainer.computeSize(SWT.DEFAULT, SWT.DEFAULT).y);
+        
+        elementScrolledComposite = new ScrolledComposite(hSash, SWT.V_SCROLL);
+        elementScrolledComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+        elementContainer = new Composite(elementScrolledComposite, SWT.NONE);
+        GridLayout gl = new GridLayout();
+        gl.marginHeight = 1;
+        gl.marginWidth = 0;
+        elementContainer.setLayout(gl);
+        elementScrolledComposite.setContent(elementContainer);
+        elementScrolledComposite.setExpandHorizontal(true);
+        elementScrolledComposite.setExpandVertical(true);
+
+        if (definition == null) {
+            definition = new CustomXmlTraceDefinition();
+        }
+        loadDefinition(definition);
+        treeViewer.expandAll();
+        elementContainer.layout();
+        
+        elementScrolledComposite.setMinSize(elementContainer.computeSize(SWT.DEFAULT, SWT.DEFAULT).x, elementContainer.computeSize(SWT.DEFAULT, SWT.DEFAULT).y-1);
+        
+        hSash.setWeights(new int[] {1, 2});
+        
+        if (definition.rootInputElement == null) {
+            removeButton.setEnabled(false);
+            addChildButton.setToolTipText("Add document element");
+            addNextButton.setEnabled(false);
+            moveUpButton.setEnabled(false);
+            moveDownButton.setEnabled(false);
+        } else { // root is selected
+            addNextButton.setEnabled(false);
+        }
+        
+        Composite sashBottom = new Composite(vSash, SWT.NONE);
+        GridLayout sashBottomLayout = new GridLayout(2, false);
+        sashBottomLayout.marginHeight = 0;
+        sashBottomLayout.marginWidth = 0;
+        sashBottom.setLayout(sashBottomLayout);
+
+        Label previewLabel = new Label(sashBottom, SWT.NULL);
+        previewLabel.setText("Preview input");
+
+        errorText = new Text(sashBottom, SWT.SINGLE | SWT.READ_ONLY);
+        errorText.setBackground(COLOR_WIDGET_BACKGROUND);
+        errorText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+        errorText.setVisible(false);
+        
+        inputText = new StyledText(sashBottom, SWT.MULTI | SWT.V_SCROLL | SWT.H_SCROLL);
+        if (fixedFont == null) {
+            if (System.getProperty("os.name").contains("Windows")) {
+                fixedFont = new Font(Display.getCurrent(), new FontData("Courier New", 10, SWT.NORMAL));
+            } else {
+                fixedFont = new Font(Display.getCurrent(), new FontData("Monospace", 10, SWT.NORMAL));
+            }
+        }
+        inputText.setFont(fixedFont);
+        GridData gd = new GridData(SWT.FILL, SWT.FILL, true, true, 2, 1);
+        gd.heightHint = inputText.computeSize(SWT.DEFAULT, inputText.getLineHeight() * 4).y;
+        gd.widthHint = 800;
+        inputText.setLayoutData(gd);
+        inputText.setText(getSelectionText());
+        inputText.addModifyListener(new ModifyListener(){
+            public void modifyText(ModifyEvent e) {
+                parseXmlInput(inputText.getText());
+            }});
+        inputText.addModifyListener(updateListener);
+
+        vSash.setWeights(new int[] {hSash.computeSize(SWT.DEFAULT, SWT.DEFAULT).y, sashBottom.computeSize(SWT.DEFAULT, SWT.DEFAULT).y});
+        
+        setControl(container);
+    }
+

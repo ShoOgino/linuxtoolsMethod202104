@@ -1,0 +1,97 @@
+        public InputGroup(Composite parent, Line line, int inputNumber) {
+            this.line = line;
+            this.inputNumber = inputNumber;
+            
+            labelComposite = new Composite(parent, SWT.FILL);
+            GridLayout labelLayout = new GridLayout(2, false);
+            labelLayout.marginWidth = 0;
+            labelLayout.marginHeight = 0;
+            labelComposite.setLayout(labelLayout);
+            labelComposite.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
+            
+            Button deleteButton = new Button(labelComposite, SWT.PUSH);
+            deleteButton.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
+            deleteButton.setImage(deleteImage);
+            deleteButton.setToolTipText("Remove group");
+            deleteButton.addSelectionListener(new SelectionAdapter() {
+                public void widgetSelected(SelectionEvent e) {
+                    InputGroup.this.line.removeInput(InputGroup.this.inputNumber);
+                    validate();
+                    updatePreviews();
+                }
+            });
+            
+            inputLabel = new Label(labelComposite, SWT.NULL);
+            inputLabel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
+            inputLabel.setText("Group " + inputNumber + ":");
+
+            tagComposite = new Composite(parent, SWT.FILL);
+            GridLayout tagLayout = new GridLayout(4, false);
+            tagLayout.marginWidth = 0;
+            tagLayout.marginHeight = 0;
+            tagComposite.setLayout(tagLayout);
+            tagComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+            
+            tagCombo = new Combo(tagComposite, SWT.DROP_DOWN | SWT.READ_ONLY);
+            tagCombo.setItems(new String[] {CustomTxtTraceDefinition.TAG_TIMESTAMP,
+                                            CustomTxtTraceDefinition.TAG_MESSAGE,
+                                            CustomTxtTraceDefinition.TAG_OTHER});
+            tagCombo.select(1);
+            tagCombo.addSelectionListener(new SelectionListener(){
+                public void widgetDefaultSelected(SelectionEvent e) {}
+                public void widgetSelected(SelectionEvent e) {
+                    tagText.removeModifyListener(updateListener);
+                    switch (tagCombo.getSelectionIndex()) {
+                    case 0: //Time Stamp
+                        tagLabel.setText("format:");
+                        tagLabel.setVisible(true);
+                        tagText.setVisible(true);
+                        tagText.addModifyListener(updateListener);
+                        break;
+                    case 1: //Message
+                        tagLabel.setVisible(false);
+                        tagText.setVisible(false);
+                        break;
+                    case 2: //Other
+                        tagLabel.setText("name:");
+                        tagLabel.setVisible(true);
+                        tagText.setVisible(true);
+                        tagText.addModifyListener(updateListener);
+                        break;
+                    case 3: //Continue
+                        tagLabel.setVisible(false);
+                        tagText.setVisible(false);
+                        break;
+                    }
+                    tagComposite.layout();
+                    validate();
+                    updatePreviews();
+                }});
+            
+            tagLabel = new Label(tagComposite, SWT.NULL);
+            tagLabel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
+            tagLabel.setVisible(false);
+            
+            tagText = new Text(tagComposite, SWT.BORDER | SWT.SINGLE);
+            GridData gd = new GridData(SWT.FILL, SWT.CENTER, true, false);
+            gd.widthHint = 0;
+            tagText.setLayoutData(gd);
+            tagText.setVisible(false);
+            
+            actionCombo = new Combo(tagComposite, SWT.DROP_DOWN | SWT.READ_ONLY);
+            actionCombo.setItems(new String[] {"Set", "Append", "Append with |"});
+            actionCombo.select(0);
+            actionCombo.addSelectionListener(updateListener);
+            
+            previewLabel = new Label(parent, SWT.NULL);
+            previewLabel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
+            previewLabel.setText("Preview:");
+            
+            previewText = new Text(parent, SWT.BORDER | SWT.SINGLE | SWT.READ_ONLY);
+            gd = new GridData(SWT.FILL, SWT.CENTER, true, false);
+            gd.widthHint = 0;
+            previewText.setLayoutData(gd);
+            previewText.setText("*no match*");
+            previewText.setBackground(COLOR_WIDGET_BACKGROUND);
+        }
+

@@ -1,0 +1,43 @@
+    private void parseXmlInput(final String string) {
+        try {
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            DocumentBuilder db = dbf.newDocumentBuilder();
+
+            // The following allows xml parsing without access to the dtd
+            EntityResolver resolver = new EntityResolver () {
+                public InputSource resolveEntity (String publicId, String systemId) {
+                    String empty = "";
+                    ByteArrayInputStream bais = new ByteArrayInputStream(empty.getBytes());
+                    return new InputSource(bais);
+                }
+            };
+            db.setEntityResolver(resolver);
+
+            // The following catches xml parsing exceptions
+            db.setErrorHandler(new ErrorHandler(){
+                public void error(SAXParseException saxparseexception) throws SAXException {}
+                public void warning(SAXParseException saxparseexception) throws SAXException {}
+                public void fatalError(SAXParseException saxparseexception) throws SAXException {
+                    if (string.trim().length() != 0) {
+                        errorText.setText(saxparseexception.getMessage());
+                        errorText.setBackground(COLOR_LIGHT_RED);
+                        errorText.setVisible(true);
+                    }
+                    throw saxparseexception;
+                }});
+            
+            errorText.setVisible(false);
+            Document doc = null;
+            doc = db.parse(new ByteArrayInputStream(string.getBytes()));
+            documentElement = doc.getDocumentElement();
+        } catch (ParserConfigurationException e) {
+            e.printStackTrace();
+            documentElement = null;
+        } catch (SAXException e) {
+            documentElement = null;
+        } catch (IOException e) {
+            e.printStackTrace();
+            documentElement = null;
+        }
+    }
+

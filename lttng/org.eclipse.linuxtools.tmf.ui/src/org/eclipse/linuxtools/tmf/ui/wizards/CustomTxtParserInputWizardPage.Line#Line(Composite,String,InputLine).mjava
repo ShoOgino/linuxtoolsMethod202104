@@ -1,0 +1,190 @@
+        public Line(Composite parent, String name, InputLine inputLine) {
+            this.name = name;
+            this.inputLine = inputLine;
+            
+            group = new Group(parent, SWT.NONE);
+            group.setText(name);
+            group.setLayout(new GridLayout(2, false));
+            group.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+            
+            labelComposite = new Composite(group, SWT.FILL);
+            GridLayout labelLayout = new GridLayout(1, false);
+            labelLayout.marginWidth = 0;
+            labelLayout.marginHeight = 0;
+            labelComposite.setLayout(labelLayout);
+            labelComposite.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
+            
+            Label label = new Label(labelComposite, SWT.NULL);
+            label.setText("Regular expression:");
+            
+            Composite regexContainer = new Composite(group, SWT.NONE);
+            GridLayout regexLayout = new GridLayout(2, false);
+            regexLayout.marginHeight = 0;
+            regexLayout.marginWidth = 0;
+            regexContainer.setLayout(regexLayout);
+            regexContainer.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+            
+            regexText = new Text(regexContainer, SWT.BORDER | SWT.SINGLE);
+            GridData gd = new GridData(SWT.FILL, SWT.CENTER, true, false);
+            gd.widthHint = 0;
+            regexText.setLayoutData(gd);
+            regexText.setText(inputLine.getRegex());
+            regexText.addModifyListener(updateListener);
+            
+            Button regexHelpButton = new Button(regexContainer, SWT.PUSH);
+            regexHelpButton.setImage(helpImage);
+            regexHelpButton.setToolTipText("Regular Expression Help");
+            regexHelpButton.addSelectionListener(new SelectionAdapter() {
+                public void widgetSelected(SelectionEvent e) {
+                    openHelpShell(PATTERN_URL);
+                }
+            });
+            
+            label = new Label(group, SWT.NONE);
+            label.setText("Cardinality:");
+            label.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
+            
+            cardinalityContainer = new Composite(group, SWT.NONE);
+            GridLayout cardinalityLayout = new GridLayout(6, false);
+            cardinalityLayout.marginHeight = 0;
+            cardinalityLayout.marginWidth = 0;
+            cardinalityContainer.setLayout(cardinalityLayout);
+            cardinalityContainer.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+
+            cardinalityCombo = new Combo(cardinalityContainer, SWT.DROP_DOWN | SWT.READ_ONLY);
+            cardinalityCombo.setItems(new String[] {
+                    Cardinality.ZERO_OR_MORE.toString(),
+                    Cardinality.ONE_OR_MORE.toString(),
+                    Cardinality.ZERO_OR_ONE.toString(),
+                    Cardinality.ONE.toString(),
+                    "(?,?)"});
+            cardinalityCombo.addSelectionListener(new SelectionListener(){
+                public void widgetDefaultSelected(SelectionEvent e) {}
+                public void widgetSelected(SelectionEvent e) {
+                    switch (cardinalityCombo.getSelectionIndex()) {
+                    case 4: //(?,?)
+                        cardinalityMinLabel.setVisible(true);
+                        cardinalityMinText.setVisible(true);
+                        cardinalityMaxLabel.setVisible(true);
+                        cardinalityMaxText.setVisible(true);
+                        infiniteButton.setVisible(true);
+                        break;
+                    default:
+                        cardinalityMinLabel.setVisible(false);
+                        cardinalityMinText.setVisible(false);
+                        cardinalityMaxLabel.setVisible(false);
+                        cardinalityMaxText.setVisible(false);
+                        infiniteButton.setVisible(false);
+                        break;
+                    }
+                    cardinalityContainer.layout();
+                    validate();
+                    updatePreviews();
+                }});
+            
+            cardinalityMinLabel = new Label(cardinalityContainer, SWT.NONE);
+            cardinalityMinLabel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
+            cardinalityMinLabel.setText("min:");
+            cardinalityMinLabel.setVisible(false);
+            
+            cardinalityMinText = new Text(cardinalityContainer, SWT.BORDER | SWT.SINGLE);
+            gd = new GridData(SWT.CENTER, SWT.CENTER, false, false);
+            gd.widthHint = 20;
+            cardinalityMinText.setLayoutData(gd);
+            cardinalityMinText.setVisible(false);
+            
+            cardinalityMaxLabel = new Label(cardinalityContainer, SWT.NONE);
+            cardinalityMaxLabel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false));
+            cardinalityMaxLabel.setText("max:");
+            cardinalityMaxLabel.setVisible(false);
+            
+            cardinalityMaxText = new Text(cardinalityContainer, SWT.BORDER | SWT.SINGLE);
+            gd = new GridData(SWT.CENTER, SWT.CENTER, false, false);
+            gd.widthHint = 20;
+            cardinalityMaxText.setLayoutData(gd);
+            cardinalityMaxText.setVisible(false);
+
+            infiniteButton = new Button(cardinalityContainer, SWT.PUSH);
+            infiniteButton.setText(INFINITY_STRING);
+            infiniteButton.setVisible(false);
+            infiniteButton.addSelectionListener(new SelectionAdapter(){
+                @Override
+                public void widgetSelected(SelectionEvent e) {
+                    cardinalityMaxText.setText(INFINITY_STRING);
+                }});
+
+            if (inputLine.cardinality.equals(Cardinality.ZERO_OR_MORE)) {
+                cardinalityCombo.select(0);
+            } else if (inputLine.cardinality.equals(Cardinality.ONE_OR_MORE)) {
+                cardinalityCombo.select(1);
+            } else if (inputLine.cardinality.equals(Cardinality.ZERO_OR_ONE)) {
+                cardinalityCombo.select(2);
+            } else if (inputLine.cardinality.equals(Cardinality.ONE)) {
+                cardinalityCombo.select(3);
+            } else {
+                cardinalityCombo.select(4);
+                cardinalityMinLabel.setVisible(true);
+                cardinalityMinText.setVisible(true);
+                if (inputLine.getMinCount() >= 0) {
+                    cardinalityMinText.setText(Integer.toString(inputLine.getMinCount()));
+                }
+                cardinalityMaxLabel.setVisible(true);
+                cardinalityMaxText.setVisible(true);
+                if (inputLine.getMaxCount() == Cardinality.INF) {
+                    cardinalityMaxText.setText(INFINITY_STRING);
+                } else if (inputLine.getMaxCount() >= 0) {
+                    cardinalityMaxText.setText(Integer.toString(inputLine.getMaxCount()));
+                }
+                infiniteButton.setVisible(true);
+            }
+            
+            VerifyListener digitsListener = new VerifyListener() {
+                public void verifyText(VerifyEvent e) {
+                    if (e.text.equals(INFINITY_STRING)) {
+                        e.doit = e.widget == cardinalityMaxText && e.start == 0 && e.end == ((Text) e.widget).getText().length();
+                    } else {
+                        if (((Text) e.widget).getText().equals(INFINITY_STRING)) {
+                            e.doit = e.start == 0 && e.end == ((Text) e.widget).getText().length();
+                        }
+                        for (int i = 0; i < e.text.length(); i++) {
+                            if (!Character.isDigit(e.text.charAt(i))) {
+                                e.doit = false;
+                                break;
+                            }
+                        }
+                    }
+                }};
+                
+            cardinalityMinText.addModifyListener(updateListener);
+            cardinalityMaxText.addModifyListener(updateListener);
+            cardinalityMinText.addVerifyListener(digitsListener);
+            cardinalityMaxText.addVerifyListener(digitsListener);
+
+            if (inputLine.columns != null) {
+                for (InputData inputData : inputLine.columns) {
+                    InputGroup inputGroup = new InputGroup(group, this, inputs.size()+1);
+                    if (inputData.name.equals(CustomTxtTraceDefinition.TAG_TIMESTAMP)) {
+                        inputGroup.tagCombo.select(0);
+                        inputGroup.tagText.setText(inputData.format);
+                        inputGroup.tagLabel.setText("format:");
+                        inputGroup.tagLabel.setVisible(true);
+                        inputGroup.tagText.setVisible(true);
+                        inputGroup.tagText.addModifyListener(updateListener);
+                    } else if (inputData.name.equals(CustomTxtTraceDefinition.TAG_MESSAGE)) {
+                        inputGroup.tagCombo.select(1);
+                    } else {
+                        inputGroup.tagCombo.select(2);
+                        inputGroup.tagText.setText(inputData.name);
+                        inputGroup.tagLabel.setText("name:");
+                        inputGroup.tagLabel.setVisible(true);
+                        inputGroup.tagText.setVisible(true);
+                        inputGroup.tagText.addModifyListener(updateListener);
+                    }
+                    inputGroup.actionCombo.select(inputData.action);
+                    inputs.add(inputGroup);
+                }
+            }
+            
+            createAddGroupButton();
+        }
+

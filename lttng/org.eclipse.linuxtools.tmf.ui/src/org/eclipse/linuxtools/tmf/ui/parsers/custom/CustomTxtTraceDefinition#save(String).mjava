@@ -1,0 +1,96 @@
+    public void save(String path) {
+        try {
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            DocumentBuilder db = dbf.newDocumentBuilder();
+            
+            // The following allows xml parsing without access to the dtd
+            EntityResolver resolver = new EntityResolver () {
+                public InputSource resolveEntity (String publicId, String systemId) {
+                    String empty = "";
+                    ByteArrayInputStream bais = new ByteArrayInputStream(empty.getBytes());
+                    return new InputSource(bais);
+                }
+            };
+            db.setEntityResolver(resolver);
+
+            // The following catches xml parsing exceptions
+            db.setErrorHandler(new ErrorHandler(){
+                public void error(SAXParseException saxparseexception) throws SAXException {}
+                public void warning(SAXParseException saxparseexception) throws SAXException {}
+                public void fatalError(SAXParseException saxparseexception) throws SAXException {
+                    throw saxparseexception;
+                }});
+            
+            Document doc = null;
+            File file = new File(path);
+            if (file.canRead()) {
+                doc = db.parse(file);
+                if (! doc.getDocumentElement().getNodeName().equals(CUSTOM_TXT_TRACE_DEFINITION_ROOT_ELEMENT)) {
+                    return;
+                }
+            } else {
+                doc = db.newDocument();
+                Node node = doc.createElement(CUSTOM_TXT_TRACE_DEFINITION_ROOT_ELEMENT);
+                doc.appendChild(node);
+            }
+
+            Element root = doc.getDocumentElement();
+            
+            NodeList nodeList = root.getChildNodes();
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                Node node = nodeList.item(i);
+                if (node instanceof Element &&
+                        node.getNodeName().equals(DEFINITION_ELEMENT) &&
+                        definitionName.equals(((Element) node).getAttribute(NAME_ATTRIBUTE))) {
+                    root.removeChild(node);
+                }
+            }
+            Element definitionElement = doc.createElement(DEFINITION_ELEMENT);
+            root.appendChild(definitionElement);
+            definitionElement.setAttribute(NAME_ATTRIBUTE, definitionName);
+            
+            Element formatElement = doc.createElement(TIME_STAMP_OUTPUT_FORMAT_ELEMENT);
+            definitionElement.appendChild(formatElement);
+            formatElement.appendChild(doc.createTextNode(timeStampOutputFormat));
+
+            if (inputs != null) {
+                for (InputLine inputLine : inputs) {
+                    definitionElement.appendChild(createInputLineElement(inputLine, doc));
+                }
+            }
+
+            if (outputs != null) {
+                for (OutputColumn output : outputs) {
+                    Element outputColumnElement = doc.createElement(OUTPUT_COLUMN_ELEMENT);
+                    definitionElement.appendChild(outputColumnElement);
+                    outputColumnElement.setAttribute(NAME_ATTRIBUTE, output.name);
+                }
+            }
+            
+            Transformer transformer = TransformerFactory.newInstance().newTransformer();
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+
+            //initialize StreamResult with File object to save to file
+            StreamResult result = new StreamResult(new StringWriter());
+            DOMSource source = new DOMSource(doc);
+            transformer.transform(source, result);
+            String xmlString = result.getWriter().toString();
+            
+            FileWriter writer = new FileWriter(file);
+            writer.write(xmlString);
+            writer.close();
+        } catch (ParserConfigurationException e) {
+            e.printStackTrace();
+        } catch (TransformerConfigurationException e) {
+            e.printStackTrace();
+        } catch (TransformerFactoryConfigurationError e) {
+            e.printStackTrace();
+        } catch (TransformerException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (SAXException e) {
+            e.printStackTrace();
+        }
+    }
+

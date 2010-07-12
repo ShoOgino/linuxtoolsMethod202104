@@ -1,0 +1,83 @@
+        private void updatePreview() {
+            Element element = getPreviewElement(inputElement);
+            if (inputElement.parentElement != null) { // no preview text for document element
+                previewText.setText("*no matching element*");
+                if (element != null) {
+                    previewText.setText(CustomXmlTrace.parseElement(element, new StringBuffer()).toString());
+                    if (logEntryButton.getSelection()) {
+                        if (logEntryFound == false) {
+                            logEntryFound = true;
+                            logEntriesCount++;
+                        } else {
+                            logEntryButton.setSelection(false); // remove nested log entry
+                        }
+                    }
+                    if (tagCombo.getText().equals(CustomXmlTraceDefinition.TAG_TIMESTAMP) && logEntriesCount <= 1) {
+                        String value = previewText.getText().trim();
+                        if (value.length() != 0) {
+                            if (actionCombo.getSelectionIndex() == CustomXmlTraceDefinition.ACTION_SET) {
+                                timeStampValue = value;
+                                timeStampFormat = tagText.getText().trim();
+                            } else if (actionCombo.getSelectionIndex() == CustomXmlTraceDefinition.ACTION_APPEND) {
+                                if (timeStampValue != null) {
+                                    timeStampValue += value;
+                                    timeStampFormat += tagText.getText().trim();
+                                } else {
+                                    timeStampValue = value;
+                                    timeStampFormat = tagText.getText().trim();
+                                }
+                            } else if (actionCombo.getSelectionIndex() == CustomXmlTraceDefinition.ACTION_APPEND_WITH_SEPARATOR) {
+                                if (timeStampValue != null) {
+                                    timeStampValue += " | " + value;
+                                    timeStampFormat += " | " + tagText.getText().trim();
+                                } else {
+                                    timeStampValue = value;
+                                    timeStampFormat = tagText.getText().trim();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            for (Attribute attribute : attributes) {
+                if (element != null) {
+                    String value = element.getAttribute(attribute.attributeNameText.getText().trim());
+                    if (value.length() != 0) {
+                        attribute.previewText.setText(value);
+                        if (attribute.tagCombo.getText().equals(CustomXmlTraceDefinition.TAG_TIMESTAMP) && logEntriesCount <= 1) {
+                            if (attribute.actionCombo.getSelectionIndex() == CustomXmlTraceDefinition.ACTION_SET) {
+                                timeStampValue = value;
+                                timeStampFormat = attribute.tagText.getText().trim();
+                            } else if (attribute.actionCombo.getSelectionIndex() == CustomXmlTraceDefinition.ACTION_APPEND) {
+                                if (timeStampValue != null) {
+                                    timeStampValue += value;
+                                    timeStampFormat += attribute.tagText.getText().trim();
+                                } else {
+                                    timeStampValue = value;
+                                    timeStampFormat = attribute.tagText.getText().trim();
+                                }
+                            } else if (attribute.actionCombo.getSelectionIndex() == CustomXmlTraceDefinition.ACTION_APPEND_WITH_SEPARATOR) {
+                                if (timeStampValue != null) {
+                                    timeStampValue += " | " + value;
+                                    timeStampFormat += " | " + attribute.tagText.getText().trim();
+                                } else {
+                                    timeStampValue = value;
+                                    timeStampFormat = attribute.tagText.getText().trim();
+                                }
+                            }
+                        }
+                    } else {
+                        attribute.previewText.setText("*no matching attribute*");
+                    }
+                } else {
+                    attribute.previewText.setText("*no matching element*");
+                }
+            }
+            for (ElementNode child : childElements) {
+                child.updatePreview();
+            }
+            if (logEntryButton != null && logEntryButton.getSelection()) {
+                logEntryFound = false;
+            }
+        }
+

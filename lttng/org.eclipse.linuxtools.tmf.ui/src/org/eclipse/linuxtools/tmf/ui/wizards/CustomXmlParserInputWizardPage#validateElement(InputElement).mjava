@@ -1,0 +1,124 @@
+    public StringBuffer validateElement(InputElement inputElement) {
+        StringBuffer errors = new StringBuffer();
+        ElementNode elementNode = null;
+        if (selectedElement != null && selectedElement.inputElement.equals(inputElement)) elementNode = selectedElement;
+        if (inputElement == definition.rootInputElement) {
+            if (inputElement.elementName.length() == 0) {
+                errors.append("Enter a name for the document element. ");
+                if (elementNode != null) elementNode.elementNameText.setBackground(COLOR_LIGHT_RED);
+            } else {
+                if (elementNode != null) elementNode.elementNameText.setBackground(COLOR_TEXT_BACKGROUND);
+            }
+        }
+        if (inputElement != definition.rootInputElement) {
+            if (inputElement.logEntry) {
+                logEntryFound = true;
+                logEntryNestedCount++;
+            }
+            if (inputElement.inputName.equals(CustomXmlTraceDefinition.TAG_TIMESTAMP)) {
+                timeStampFound = true;
+                if (inputElement.inputFormat.length() == 0) {
+                    errors.append("Enter the input format for the Time Stamp (Element " + getName(inputElement) + "). ");
+                    if (elementNode != null) elementNode.tagText.setBackground(COLOR_LIGHT_RED);
+                } else {
+                    try {
+                        new SimpleDateFormat(inputElement.inputFormat);
+                        if (elementNode != null) elementNode.tagText.setBackground(COLOR_TEXT_BACKGROUND);
+                    } catch (IllegalArgumentException e) {
+                        errors.append("Enter a valid input format for the Time Stamp (Element " + getName(inputElement) + "). ");
+                        if (elementNode != null) elementNode.tagText.setBackground(COLOR_LIGHT_RED);
+                    }
+                }
+            } else if (inputElement.inputName.length() == 0) {
+                errors.append("Enter a name for the input . ");
+                if (elementNode != null) elementNode.tagText.setBackground(COLOR_LIGHT_RED);
+            } else {
+                if (elementNode != null) elementNode.tagText.setBackground(COLOR_TEXT_BACKGROUND);
+            }
+        }
+        if (inputElement.attributes != null) {
+            if (elementNode != null) {
+                for (Attribute attribute : elementNode.attributes) {
+                    attribute.attributeNameText.setBackground(COLOR_TEXT_BACKGROUND);
+                }
+            }
+            for (int i = 0; i < inputElement.attributes.size(); i++) {
+                InputAttribute attribute = inputElement.attributes.get(i);
+                boolean duplicate = false;
+                for (int j = i + 1; j < inputElement.attributes.size(); j++) {
+                    InputAttribute otherAttribute = inputElement.attributes.get(j);
+                    if (otherAttribute.attributeName.equals(attribute.attributeName)) {
+                        duplicate = true;
+                        if (elementNode != null) {
+                            elementNode.attributes.get(j).attributeNameText.setBackground(COLOR_LIGHT_RED);
+                        }
+                    }
+                }
+                if (attribute.attributeName.length() == 0) {
+                    errors.append("Enter a name for the attribute (Attribute " + getName(inputElement) + ": ?). ");
+                    if (elementNode != null) elementNode.attributes.get(i).attributeNameText.setBackground(COLOR_LIGHT_RED);
+                } else if (duplicate) {
+                    errors.append("Duplicate attribute names (Attribute " + getName(attribute, inputElement) +"). ");
+                    if (elementNode != null) elementNode.attributes.get(i).attributeNameText.setBackground(COLOR_LIGHT_RED);
+                }
+                if (attribute.inputName.equals(CustomXmlTraceDefinition.TAG_TIMESTAMP)) {
+                    timeStampFound = true;
+                    if (attribute.inputFormat.length() == 0) {
+                        errors.append("Enter the input format for the Time Stamp (Attribute " + getName(attribute, inputElement) +"). ");
+                        if (elementNode != null) elementNode.attributes.get(i).tagText.setBackground(COLOR_LIGHT_RED);
+                    } else {
+                        try {
+                            new SimpleDateFormat(attribute.inputFormat);
+                            if (elementNode != null) elementNode.attributes.get(i).tagText.setBackground(COLOR_TEXT_BACKGROUND);
+                        } catch (IllegalArgumentException e) {
+                            errors.append("Enter a valid input format for the Time Stamp (Attribute " + getName(attribute, inputElement) +"). ");
+                            if (elementNode != null) elementNode.attributes.get(i).tagText.setBackground(COLOR_LIGHT_RED);
+                        }
+                    }
+                } else if (attribute.inputName.length() == 0) {
+                    errors.append("Enter a name for the data group (Attribute " + getName(attribute, inputElement) +"). ");
+                    if (elementNode != null) elementNode.attributes.get(i).tagText.setBackground(COLOR_LIGHT_RED);
+                } else {
+                    if (elementNode != null) elementNode.attributes.get(i).tagText.setBackground(COLOR_TEXT_BACKGROUND);
+                }
+            }
+        }
+        if (inputElement.childElements != null) {
+            for (InputElement child : inputElement.childElements) {
+                ElementNode childElementNode = null;
+                if (selectedElement != null && selectedElement.inputElement.equals(child)) childElementNode = selectedElement;
+                if (childElementNode != null) childElementNode.elementNameText.setBackground(COLOR_TEXT_BACKGROUND);
+            }
+            for (int i = 0; i < inputElement.childElements.size(); i++) {
+                InputElement child = inputElement.childElements.get(i);
+                ElementNode childElementNode = null;
+                if (selectedElement != null && selectedElement.inputElement.equals(child)) childElementNode = selectedElement;
+                if (child.elementName.length() == 0) {
+                    errors.append("Enter a name for the element (Element " + getName(child) + "). ");
+                    if (childElementNode != null) childElementNode.elementNameText.setBackground(COLOR_LIGHT_RED);
+                } else {
+                    boolean duplicate = false;
+                    for (int j = i + 1; j < inputElement.childElements.size(); j++) {
+                        InputElement otherChild = inputElement.childElements.get(j);
+                        if (otherChild.elementName.equals(child.elementName)) {
+                            duplicate = true;
+                            ElementNode otherChildElementNode = null;
+                            if (selectedElement != null && selectedElement.inputElement.equals(otherChild)) otherChildElementNode = selectedElement;
+                            if (otherChildElementNode != null) otherChildElementNode.elementNameText.setBackground(COLOR_LIGHT_RED);
+                        }
+                    }
+                    if (duplicate) {
+                        errors.append("Duplicate element names (Element " + getName(child) + "). ");
+                        if (childElementNode != null) childElementNode.elementNameText.setBackground(COLOR_LIGHT_RED);
+                    }
+                }
+                
+                errors.append(validateElement(child));
+            }
+        }
+        if (inputElement.logEntry) {
+            logEntryNestedCount--;
+        }
+        return errors;
+    }
+
