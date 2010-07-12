@@ -1,0 +1,75 @@
+	@Override
+	public void createPartControl(Composite parent) {
+
+		fViewer = new TreeViewer(parent, SWT.SINGLE);
+        fViewer.setContentProvider(new TmfProjectContentProvider());
+        fViewer.setSorter(new ViewerSorter());
+        fViewer.setLabelProvider(new TmfProjectLabelProvider());
+        fViewer.setInput(fProjectRoot);
+
+        int ops = DND.DROP_COPY | DND.DROP_MOVE | DND.DROP_LINK;
+        Transfer[] transfers = new Transfer[] { ResourceTransfer.getInstance(), FileTransfer.getInstance() };
+        fViewer.addDropSupport(ops, transfers, new ViewerDropAdapter(fViewer) {
+            @Override
+            public boolean validateDrop(Object target, int operation, TransferData transferType) {
+                if (! (target instanceof ITmfProjectTreeNode)) {
+                    return false;
+                }
+                overrideOperation(DND.DROP_LINK);
+                return true;
+            }
+            @Override
+            public boolean performDrop(Object data) {
+                Object target = getCurrentTarget();
+                ITmfProjectTreeNode node = (TmfProjectTreeNode) target;
+                while (node != null && !(node instanceof TmfProjectNode)) {
+                    node = node.getParent();
+                }
+                IFolder targetFolder = ((TmfProjectNode) node).getTracesFolder().getFolder();
+                if (data instanceof String[]) {
+                    // FileTransfer
+                    System.out.println("Drop:" + ((String[])data)[0]);
+                    System.out.println("Folder:" + targetFolder);
+                    for (String path : (String[]) data) {
+                        File sourceFile = new File(path);
+                        if (sourceFile.isFile()) {
+                            IFile file = targetFolder.getFile(path.substring(path.lastIndexOf(File.separator)));
+                            try {
+                                file.createLink(sourceFile.toURI(), IResource.NONE, null);
+                                ITmfTrace trace = ParserProviderManager.getTrace(file);
+                                if (trace != null) {
+                                    trace.dispose();
+                                }
+                            } catch (CoreException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                } else if (data instanceof IResource[]) {
+                    // ResourceTransfer
+                    System.out.println("Drop:" + ((IResource[])data)[0].getName());
+                    System.out.println("Folder:" + targetFolder);
+                    for (IResource resource : (IResource[]) data) {
+                        if (resource instanceof IFile) {
+                            IFile file = targetFolder.getFile(resource.getName());
+                            try {
+                                file.createLink(resource.getLocation(), IResource.NONE, null);
+                                String parser = resource.getPersistentProperty(ParserProviderManager.PARSER_PROPERTY);
+                                file.setPersistentProperty(ParserProviderManager.PARSER_PROPERTY, parser);
+                            } catch (CoreException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                        
+                    }
+                }
+                return true;
+            }
+        });
+
+        getSite().setSelectionProvider(fViewer);
+        hookMouse();
+
+        createContextMenu();
+	}
+

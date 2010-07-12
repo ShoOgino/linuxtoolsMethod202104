@@ -1,0 +1,43 @@
+    /**
+     * @param projectName
+     * @param projectLocation
+     * @param monitor
+     * @return
+     */
+    private IProject createProject(String projectName, URI projectLocation, IProgressMonitor monitor) {
+
+        IWorkspace workspace = ResourcesPlugin.getWorkspace();
+        IWorkspaceRoot root = workspace.getRoot();
+        IProject project = root.getProject(projectName);
+
+        try {
+            if (!project.exists()) {
+                IProjectDescription description = workspace.newProjectDescription(project.getName());
+                if (projectLocation != null)
+                    description.setLocationURI(projectLocation);
+                project.create(description, monitor);
+            }
+
+            if (!project.isOpen())
+                project.open(monitor);
+
+            IProjectDescription description = project.getDescription();
+            description.setNatureIds(new String[] { TmfProjectNature.ID } );
+            project.setDescription(description, null);
+
+            IFolder folder = project.getFolder(TmfProjectNode.TRACE_FOLDER_NAME);
+            if (!folder.exists())
+                folder.create(true, true, null);
+
+            folder = project.getFolder(TmfProjectNode.EXPER_FOLDER_NAME);
+            if (!folder.exists())
+                folder.create(true, true, null);
+
+            return project;
+        }
+        catch (CoreException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+

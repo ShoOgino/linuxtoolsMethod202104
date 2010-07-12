@@ -1,0 +1,28 @@
+	@Override
+	public void refreshChildren() {
+        IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+        IProject[] projects = root.getProjects();
+        for (IProject project : projects) {
+            if (!project.isOpen() || isTmfProject(project)) {
+            	TmfProjectNode node = find(project.getName());
+            	if (node == null) {
+            		node = new TmfProjectNode(this, project);
+            		fChildren.add(node);
+            	} else {
+            		node.updateState();
+            	}
+            }
+        }
+      	List<ITmfProjectTreeNode> toRemove = new ArrayList<ITmfProjectTreeNode>();
+       	for (ITmfProjectTreeNode node : fChildren) {
+       		if (exists(node.getName(), projects)) {
+       			node.refreshChildren();
+       		} else {
+        		toRemove.add(node);
+       		}
+        }
+		for (ITmfProjectTreeNode node : toRemove) {
+			fChildren.remove(node);
+		}
+	}
+

@@ -1,0 +1,17 @@
+    @TmfSignalHandler
+    public void traceParserUpdated(TmfTraceParserUpdatedSignal signal) {
+        if (signal.getTraceResource().equals(fResource)) {
+            broadcast(new TmfTraceClosedSignal(this, fTrace));
+            fTrace = ParserProviderManager.getTrace(fResource);
+            fEventsTable.dispose();
+            if (fTrace != null) {
+                fEventsTable = createEventsTable(fParent, fTrace.getCacheSize());
+                fEventsTable.setTrace(fTrace);
+                broadcast(new TmfTraceOpenedSignal(this, fTrace));
+            } else {
+                fEventsTable = new TmfEventsTable(fParent, 0);
+            }
+            fParent.layout();
+        }
+    }
+

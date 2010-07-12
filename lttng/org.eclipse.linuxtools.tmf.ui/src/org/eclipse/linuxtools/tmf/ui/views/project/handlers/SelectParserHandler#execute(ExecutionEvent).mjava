@@ -1,0 +1,31 @@
+    @SuppressWarnings("unchecked")
+	public Object execute(ExecutionEvent event) throws ExecutionException {
+        IResource resource = fTrace.getResource();
+        if (fTrace.getParent() instanceof TmfExperimentNode) {
+            resource = fTrace.getProject().getTracesFolder().getTraceForLocation(resource.getLocation()).getResource();
+        }
+        String parser = event.getParameter("org.eclipse.linuxtools.tmf.ui.commandparameter.project.trace.selectparser.parser");
+        try {
+            resource.setPersistentProperty(ParserProviderManager.PARSER_PROPERTY, parser);
+            fProjectView.broadcast(new TmfTraceParserUpdatedSignal(fProjectView, resource));
+            fTrace.getProject().refresh();
+            
+            TmfExperiment<TmfEvent> currentExperiment = (TmfExperiment<TmfEvent>) TmfExperiment.getCurrentExperiment();
+            if (currentExperiment != null) {
+                for (int i = 0; i < currentExperiment.getTraces().length; i++) {
+                    ITmfTrace trace = currentExperiment.getTraces()[i];
+                    if (resource.getLocation().toOSString().equals(trace.getPath())) {
+                        ITmfTrace newTrace = ParserProviderManager.getTrace(resource);
+                        if (newTrace != null) {
+                            currentExperiment.getTraces()[i] = newTrace;
+                            fProjectView.broadcast(new TmfExperimentSelectedSignal<TmfEvent>(new Object(), currentExperiment));
+                        }
+                    }
+                }
+            }
+        } catch (CoreException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
