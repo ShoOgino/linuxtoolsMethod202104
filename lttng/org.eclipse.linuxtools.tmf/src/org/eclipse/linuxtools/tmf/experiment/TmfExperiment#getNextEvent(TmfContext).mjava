@@ -44,12 +44,7 @@
 		if (lastTrace != TmfExperimentContext.NO_TRACE) {
 		    TmfContext traceContext = expContext.getContexts()[lastTrace];
 			expContext.getEvents()[lastTrace] = expContext.getTraces()[lastTrace].getNextEvent(traceContext);
-			expContext.getEvents()[lastTrace] = expContext.getTraces()[lastTrace].parseEvent(traceContext);
-
-			TmfExperimentLocation expLocation = (TmfExperimentLocation) expContext.getLocation();
-            traceContext = expContext.getContexts()[lastTrace];
-			expLocation.getLocation()[lastTrace] = traceContext.getLocation().clone();
-			expLocation.getRanks()[lastTrace] = traceContext.getRank();
+			expContext.setLastTrace(TmfExperimentContext.NO_TRACE);
 		}
 
 		// Scan the candidate events and identify the "next" trace to read from 
@@ -68,8 +63,12 @@
 
 		// Update the experiment context and set the "next" event
 		TmfEvent event = null;
-		if (trace >= 0) {
-			updateIndex(expContext, timestamp);
+		if (trace != TmfExperimentContext.NO_TRACE) {
+	        updateIndex(expContext, timestamp);
+	        TmfContext traceContext = expContext.getContexts()[trace];
+	        TmfExperimentLocation expLocation = (TmfExperimentLocation) expContext.getLocation();
+	        expLocation.getLocation()[trace] = traceContext.getLocation().clone();
+	        expLocation.getRanks()[trace] = traceContext.getRank();
 			expContext.setLastTrace(trace);
 			expContext.updateRank(1);
 			event = expContext.getEvents()[trace];
