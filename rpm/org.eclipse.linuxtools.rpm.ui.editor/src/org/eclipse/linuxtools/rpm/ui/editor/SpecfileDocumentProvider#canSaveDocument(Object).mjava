@@ -1,0 +1,40 @@
+	/*
+	 * @see org.eclipse.ui.texteditor.IDocumentProvider#canSaveDocument(java.lang.Object)
+	 */
+	@Override
+	public boolean canSaveDocument(Object element) {
+		if (element instanceof FileStoreEditorInput) {
+			FileStoreEditorInput fei = (FileStoreEditorInput)element;
+			IDocument doc = getDocument(element);
+			if (!super.canSaveDocument(element))
+				return false;
+			if (doc.getLength() != originalLength)
+				return true;
+			URI uri = fei.getURI();
+			File f = URIUtil.toFile(uri);
+			try {
+				if (originalLength != 0) {
+					BufferedReader input = new BufferedReader(new FileReader(f));
+					boolean finished = false;
+					char[] buffer = new char[100];
+					int curoffset = 0;
+					while (!finished) {
+						int len = input.read(buffer);
+						if (len <= 0)
+							break;
+						String origbytes = new String(buffer, 0, len);
+						String curbytes = doc.get(curoffset, len);
+						if (!curbytes.equals(origbytes))
+							return true;
+						curoffset += len;
+					}
+				}
+				resetDocument(element);
+				return false;
+			} catch (Exception e) {
+				return true;
+			}
+		}
+		return super.canSaveDocument(element);
+	}
+
