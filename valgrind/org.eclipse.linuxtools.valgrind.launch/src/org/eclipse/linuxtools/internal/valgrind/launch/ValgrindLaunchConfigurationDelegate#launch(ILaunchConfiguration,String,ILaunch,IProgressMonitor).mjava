@@ -27,7 +27,7 @@
 			getPlugin().getValgrindVersion();
 
 			monitor.worked(1);
-			IPath exePath = verifyProgramPath(config);
+			IPath exePath = CDebugUtils.verifyProgramPath(config);
 			String[] arguments = getProgramArgumentsArray(config);
 			File workDir = getWorkingDirectory(config);
 			if (workDir == null) {
@@ -35,7 +35,8 @@
 			}
 
 			// set output directory in config
-			setOutputPath(config);
+			IValgrindOutputDirectoryProvider provider = getPlugin().getOutputDirectoryProvider();
+			setOutputPath(config, provider.getOutputPath());
 			outputPath = verifyOutputPath(config);
 			// create/empty output directory
 			createDirectory(outputPath);
@@ -63,7 +64,7 @@
 				return;
 			}
 			// call Valgrind
-			command.execute(commandArray, getEnvironment(config), workDir, usePty);
+			command.execute(commandArray, getEnvironment(config), workDir, valgrindLocation.toOSString(), usePty);
 			monitor.worked(3);
 			process = createNewProcess(launch, command.getProcess() ,commandArray[0]);
 			// set the command line used
@@ -89,7 +90,7 @@
 			monitor.worked(1);
 
 			// pass off control to extender
-			dynamicDelegate.handleLaunch(config, launch, monitor.newChild(3));
+			dynamicDelegate.handleLaunch(config, launch, outputPath, monitor.newChild(3));
 
 			// refresh view
 			ValgrindUIPlugin.getDefault().refreshView();

@@ -1,0 +1,283 @@
+	public void launch(final ILaunchConfiguration config, String mode,
+			final ILaunch launch, IProgressMonitor m) throws CoreException {
+		if (m == null) {
+			m = new NullProgressMonitor();
+		}
+		launchSteps = new LinkedList<RemoteLaunchStep>();
+
+		monitor = SubMonitor
+		.convert(
+				m,
+				Messages.ValgrindRemoteLaunchDelegate_task_name, 10);
+		// check for cancellation
+		if (monitor.isCanceled()) {
+			return;
+		}
+
+		this.config = config;
+		this.launch = launch;
+		try {			
+			// remove any output from previous run
+			ValgrindUIPlugin.getDefault().resetView();
+			// reset stored launch data
+			getPlugin().setCurrentLaunchConfiguration(null);
+			getPlugin().setCurrentLaunch(null);
+
+			// FIXME find Valgrind binary if not already done
+			final IPath valgrindLocation = getPlugin().getValgrindLocation();
+			// also ensure Valgrind version is usable
+			getPlugin().getValgrindVersion();
+
+			monitor.worked(1);
+
+			// Open TCF Channel
+			Map<String, IPeer> peers = Protocol.getLocator().getPeers();
+			// XXX Use 127.0.0.1 to test
+			IPeer peer = null;
+			for (String id : peers.keySet()) {
+				if (id.contains("127.0.0.1")) {
+					peer = peers.get(id);
+				}
+			}
+			if (peer == null) {
+				abort(Messages.ValgrindRemoteLaunchDelegate_error_no_peers, null, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
+			}
+			else {
+				channel = peer.openChannel();
+				channel.addChannelListener(new IChannel.IChannelListener() {
+
+					public void onChannelOpened() {
+						try {
+							IStreams streamService = channel.getRemoteService(IStreams.class);
+							if (streamService == null) {
+								abort(Messages.ValgrindRemoteLaunchDelegate_error_no_streams, null, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
+							}
+
+							fsService = channel.getRemoteService(IFileSystem.class);
+							if (fsService == null) {
+								abort(Messages.ValgrindRemoteLaunchDelegate_error_no_fs, null, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
+							}
+
+							procService = channel.getRemoteService(IProcesses.class);
+							if (procService == null) {
+								abort(Messages.ValgrindRemoteLaunchDelegate_error_no_proc, null, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
+							}
+
+							command = new ValgrindRemoteCommand(channel, launchSteps);
+
+							// Copy binary using FileSystem service
+							final IPath exePath = CDebugUtils.verifyProgramPath(config);
+							final IPath remoteDir = Path.fromOSString("/tmp");
+							final IPath remoteFile = remoteDir.append(exePath.lastSegment());
+							final IPath remoteLogDir = Path.fromOSString("/tmp").append("eclipse-valgrind-" + System.currentTimeMillis());
+
+							try {
+								new RemoteLaunchStep(launchSteps, channel) {
+									@Override
+									public void start() throws Exception {
+										writeFileToRemote(exePath, remoteFile, this);					
+									}
+								};
+								
+								new RemoteLaunchStep(launchSteps, channel) {
+									@Override
+									public void start() throws Exception {
+										fsService.mkdir(remoteLogDir.toOSString(), new FileAttrs(0, 0, 0, 0, 0, 0, 0, null), new DoneMkDir() {
+											public void doneMkDir(IToken token,
+													FileSystemException error) {
+												if (error != null) {
+													disconnect(error);
+												}
+												else {
+													done();
+												}
+											}
+										});
+									}
+								};
+
+								
+								String[] arguments = getProgramArgumentsArray(config);
+
+								// Start process using Processes service
+								startRemoteProcess(config, launch,
+										valgrindLocation, remoteFile,
+										arguments, remoteDir.toFile(), remoteLogDir);
+								
+								// Copy log files from remote
+								new RemoteLaunchStep(launchSteps, channel) {
+									@Override
+									public void start() throws Exception {
+										fsService.opendir(outputPath.toOSString(), new IFileSystem.DoneOpen() {
+											
+											public void doneOpen(IToken token, FileSystemException error,
+													IFileHandle handle) {
+												if (error != null) {
+													disconnect(error);
+												}
+												
+												readDir(handle);
+											}
+
+											private void readDir(final IFileHandle handle) {
+												fsService.readdir(handle, new IFileSystem.DoneReadDir() {
+													
+													public void doneReadDir(IToken token, FileSystemException error,
+															DirEntry[] entries, boolean eof) {
+														if (error != null) {
+															disconnect(error);
+														}
+														else {
+															for (DirEntry entry : entries) {
+																final IPath remotePath = outputPath.append(entry.filename);
+																final IPath localPath = localOutputDir.append(entry.filename);
+																
+																// Copy each log file
+																new RemoteLaunchStep(launchSteps, channel) {
+																	@Override
+																	public void start() throws Exception {
+																		writeFileToLocal(remotePath, localPath, this);
+																	}
+																};
+																
+																// Delete log file on remote
+																new RemoteLaunchStep(launchSteps, channel) {
+																	@Override
+																	public void start() throws Exception {
+																		fsService.remove(remotePath.toOSString(), new IFileSystem.DoneRemove() {
+																			public void doneRemove(IToken token, FileSystemException error) {
+																				if (error != null) {
+																					disconnect(error);
+																				}
+																				else {
+																					done();
+																				}
+																			}
+																		});
+																	}
+																};
+															}
+															
+															if (!eof) {
+																readDir(handle);
+															}
+															else {
+																// Close the log directory
+																new RemoteLaunchStep(launchSteps, channel) {
+																	@Override
+																	public void start() throws Exception {
+																		fsService.close(handle, new IFileSystem.DoneClose() {
+																			public void doneClose(IToken token, FileSystemException error) {
+																				if (error != null) {
+																					disconnect(error);
+																				}
+																				else {
+																					done();
+																				}
+																			}
+																		});
+																	}
+																};
+																
+																// Delete the remote log directory
+																new RemoteLaunchStep(launchSteps, channel) {
+																	@Override
+																	public void start() throws Exception {
+																		fsService.rmdir(outputPath.toOSString(), new IFileSystem.DoneRemove() {
+																			public void doneRemove(IToken token, FileSystemException error) {
+																				if (error != null) {
+																					disconnect(error);
+																				}
+																				else {
+																					done();
+																				}
+																			}
+																		});
+																	}
+																};
+																
+																// Close the channel
+																new RemoteLaunchStep(launchSteps, channel) {
+																	@Override
+																	public void start() throws Exception {
+																		disconnect(null);
+																		done();
+																	}
+																};
+																
+																done();
+															}
+														}
+													}
+												});
+											}
+										});
+									}
+								};
+								
+								// Begin executing launch steps
+								launchSteps.removeFirst().start();
+							} catch (Throwable e) {
+								disconnect(e);
+							}
+						} catch (CoreException e) {
+							disconnect(e);
+						}
+					}
+
+					public void onChannelClosed(Throwable error) {
+						channel.removeChannelListener(this);
+						if (error != null) {
+							ex = error;
+						}
+					}
+
+					public void congestionLevel(int level) {
+					}
+				});
+			}
+
+			// Wait for TCF connection to close
+			while (channel.getState() != IChannel.STATE_CLOSED) {
+				Thread.sleep(100);
+			}
+
+			if (ex != null) {
+				abort(Messages.ValgrindRemoteLaunchDelegate_error_launch_failed, ex, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
+			}
+			
+			// store these for use by other classes
+			getPlugin().setCurrentLaunchConfiguration(config);
+			getPlugin().setCurrentLaunch(launch);
+
+			// parse Valgrind logs
+			IValgrindMessage[] messages = parseLogs(localOutputDir);
+
+			// create launch summary string to distinguish this launch
+			launchStr = createLaunchStr();
+
+			// create view
+			ValgrindUIPlugin.getDefault().createView(launchStr, toolID);
+			// set log messages
+			ValgrindUIPlugin.getDefault().getView().setMessages(messages);
+			monitor.worked(1);
+
+			// pass off control to extender
+			dynamicDelegate.handleLaunch(config, launch, localOutputDir, monitor.newChild(3));
+
+			// refresh view
+			ValgrindUIPlugin.getDefault().refreshView();
+
+			// show view
+			ValgrindUIPlugin.getDefault().showView();
+			monitor.worked(1);
+		} catch (IOException e) {
+			abort("Error starting process", e, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR); //$NON-NLS-1$
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} finally {
+			m.done();
+		}
+	}
+

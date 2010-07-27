@@ -1,0 +1,74 @@
+	private void writeFileToRemote(IPath localFile, IPath remoteFile, final RemoteLaunchStep step) throws CoreException, FileNotFoundException {
+		final InputStream inp = new FileInputStream(localFile.toOSString());
+		int flags = IFileSystem.TCF_O_WRITE | IFileSystem.TCF_O_CREAT | IFileSystem.TCF_O_TRUNC;
+		fsService.open(remoteFile.toOSString(), flags, new FileAttrs(IFileSystem.ATTR_PERMISSIONS, 0, 0, 0, 
+				IFileSystem.S_IRUSR | IFileSystem.S_IWUSR | IFileSystem.S_IXUSR, 0, 0, null), new IFileSystem.DoneOpen() {
+
+			IFileHandle handle;
+			long offset = 0;
+			final Set<IToken> cmds = new HashSet<IToken>();
+			final byte[] buf = new byte[0x1000];
+
+			public void doneOpen(IToken token, FileSystemException error, IFileHandle handle) {
+				this.handle = handle;
+				if (error != null) {
+					disconnect(error);
+				}
+				else {
+					writeNext();
+				}
+			}
+
+			private void writeNext() {
+				try {
+					while (cmds.size() < 8) {
+						int rd = inp.read(buf);
+						if (rd < 0) {
+							close();
+							break;
+						}
+						cmds.add(fsService.write(handle, offset, buf, 0, rd, new IFileSystem.DoneWrite() {
+
+							public void doneWrite(IToken token, FileSystemException error) {
+								cmds.remove(token);
+								if (error != null) {
+									disconnect(error);
+								}
+								else {
+									writeNext();
+								}
+							}
+						}));
+						offset += rd;
+					}
+				}
+				catch (Throwable x) {
+					disconnect(x);
+				}
+			}
+
+			private void close() {
+				if (cmds.size() > 0) {
+					return;
+				}
+				try {
+					inp.close();
+					fsService.close(handle, new IFileSystem.DoneClose() {
+
+						public void doneClose(IToken token, FileSystemException error) {
+							if (error != null) {
+								disconnect(error);
+							}
+							else {
+								step.done();
+							}
+						}
+					});
+				}
+				catch (Throwable x) {
+					disconnect(x);
+				}
+			}
+		});
+	}
+
