@@ -1,0 +1,77 @@
+    public TmfEventsTable(Composite parent, int cacheSize, ColumnData[] columnData) {
+        super("TmfEventsTable");
+        
+        fCacheSize = cacheSize;
+        fCache = new TmfEvent[fCacheSize];
+        
+        // Create a virtual table
+        final int style = SWT.SINGLE | SWT.FULL_SELECTION | SWT.BORDER;
+        fTable = new TmfVirtualTable(parent, style);
+
+        // Set the table layout
+        GridData layoutData = new GridData(SWT.FILL, SWT.FILL, true, true);
+        fTable.setLayoutData(layoutData);
+
+        // Some cosmetic enhancements
+        fTable.setHeaderVisible(true);
+        fTable.setLinesVisible(true);
+
+        // Set the columns
+        setColumnHeaders(columnData);
+
+        // Handle the table item requests 
+        fTable.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                TmfTimestamp ts = (TmfTimestamp) fTable.getSelection()[0].getData();
+                broadcast(new TmfTimeSynchSignal(fTable, ts));
+            }
+        });
+
+        // Handle the table item requests 
+        fTable.addListener(SWT.SetData, new Listener() {
+
+            @SuppressWarnings("unchecked")
+			public void handleEvent(Event event) {
+
+                final TableItem item = (TableItem) event.item;
+                final int index = fTable.indexOf(item);
+
+                // Note: this works because handleEvent() is called once for each row, in sequence  
+                if ((index >= fCacheStartIndex) && (index < fCacheEndIndex)) {
+                    int i = index - fCacheStartIndex;
+                    item.setText(extractItemFields(fCache[i]));
+                    item.setData(new TmfTimestamp(fCache[i].getTimestamp()));
+                    return;
+                }
+
+                TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(TmfEvent.class, index, fCacheSize) {
+                    @Override
+                    public void handleData() {
+                        TmfEvent[] tmpEvent = getData();
+                        if ((tmpEvent != null) && (tmpEvent.length > 0)) {
+                            fCache = tmpEvent;
+                            fCacheStartIndex = index;
+                            fCacheEndIndex = index + tmpEvent.length;
+                        }
+                    }
+                };
+                ((ITmfDataProvider<TmfEvent>) fTrace).sendRequest(request);
+                try {
+                    request.waitForCompletion();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                
+                if (fCache[0] != null && fCacheStartIndex == index) {
+                    item.setText(extractItemFields(fCache[0]));
+                    item.setData(new TmfTimestamp(fCache[0].getTimestamp()));
+                    packColumns();
+                }
+                
+            }
+        });
+
+        fTable.setItemCount(0);
+    }
+

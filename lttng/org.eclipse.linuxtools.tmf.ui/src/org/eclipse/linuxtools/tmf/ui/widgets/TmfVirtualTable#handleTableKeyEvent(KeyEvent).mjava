@@ -1,0 +1,110 @@
+	/**
+	 * Handle key-based navigation in table.
+	 * 
+	 * The key variables are:
+	 * - fFirstRowOffset: the absolute index (in the data set) of the first row displayed
+	 * - fTableRow: the index of the selected event in the table window
+	 * - fEffectiveRow: the absolute index of the selected event (in the data set)
+	 * 
+	 * At all times, the following relation should hold true:
+	 * 		fEffectiveRow = fFirstRowOffset + fTableRow
+	 * 
+	 * @param event
+	 */
+	private void handleTableKeyEvent(KeyEvent event) {
+
+		boolean needsUpdate    = false;
+		final int lastTableRow = fTableItemCount - 1;
+		int lastRowDisplayed = ((fTableItemCount < fRowsDisplayed) ?  fTableItemCount : fRowsDisplayed) - 1;
+
+		// We are handling things
+		event.doit = false;
+
+		switch (event.keyCode) {
+
+			case SWT.ARROW_DOWN: {
+				if (fEffectiveRow < lastTableRow) {
+					fEffectiveRow++;
+					if (fTableRow < lastRowDisplayed) {
+						fTableRow++;
+					} else if (fTableRow < fEffectiveRow) {
+						fFirstRowOffset++;
+						needsUpdate = true;
+					}
+				}
+				break;
+			}
+
+			case SWT.PAGE_DOWN: {
+				if (fEffectiveRow < lastTableRow) {
+					if ((lastTableRow - fEffectiveRow) >= fRowsDisplayed) {
+						fEffectiveRow   += fRowsDisplayed;
+						fFirstRowOffset += fRowsDisplayed;
+					} else {
+						fEffectiveRow = lastTableRow;
+						fTableRow = lastRowDisplayed;
+					}
+					needsUpdate = true;
+				}
+				break;
+			}
+
+			case SWT.END: {
+				fEffectiveRow = lastTableRow;
+				fTableRow = lastRowDisplayed;
+				if (lastTableRow > lastRowDisplayed) {
+					fFirstRowOffset = fTableItemCount - fRowsDisplayed;
+				}
+				needsUpdate = true;
+				break;
+			}
+
+			case SWT.ARROW_UP: {
+				if (fEffectiveRow > 0) {
+					fEffectiveRow--;
+					if (fTableRow > 0) {
+						fTableRow--;
+					} else {
+						fFirstRowOffset--;
+						needsUpdate = true;
+					}
+				}
+				break;
+			}
+
+			case SWT.PAGE_UP: {
+				if (fEffectiveRow > 0) {
+					if (fEffectiveRow > fRowsDisplayed - 1) {
+						fEffectiveRow   -= fRowsDisplayed;
+						fFirstRowOffset -= fRowsDisplayed;
+					} else {
+						fEffectiveRow = 0;
+						fTableRow = 0;
+					}
+					needsUpdate = true;
+				}
+				break;
+			}
+
+			case SWT.HOME: {
+				fEffectiveRow   = 0;
+				fTableRow       = 0;
+				fFirstRowOffset = 0;
+				needsUpdate     = true;
+				break;
+			}
+		}
+	
+		if (needsUpdate) {
+			for (int i = 0; i < fTableItems.length; i++) {
+				setDataItem(fTableItems[i]);
+			}
+		}
+
+		fTable.setSelection(fTableRow);
+		fSlider.setSelection(fEffectiveRow);
+
+//		System.out.println("1st: " + fFirstRowOffset + ", TR: " + fTableRow + ", ER: " + fEffectiveRow +
+//				", Valid: " + ((fFirstRowOffset >= 0) && (fEffectiveRow == (fFirstRowOffset + fTableRow))));
+	}
+

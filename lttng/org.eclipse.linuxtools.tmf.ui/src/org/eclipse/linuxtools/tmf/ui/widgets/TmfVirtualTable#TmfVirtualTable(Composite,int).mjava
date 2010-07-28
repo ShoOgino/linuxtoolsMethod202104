@@ -1,0 +1,51 @@
+	/**
+	 * @param parent
+	 * @param style
+	 */
+	public TmfVirtualTable(Composite parent, int style) {
+		super(parent, style | SWT.BORDER & (~SWT.H_SCROLL) & (~SWT.V_SCROLL));
+
+		// Create the controls
+		createTable();
+		createSlider();
+
+		// Set the layout
+		GridLayout gridLayout = new GridLayout();
+		gridLayout.numColumns = 2;
+		gridLayout.horizontalSpacing = 0;
+		gridLayout.verticalSpacing = 0;
+		gridLayout.marginWidth = 0;
+		setLayout(gridLayout);
+		
+		GridData tableGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
+		fTable.setLayoutData(tableGridData);
+
+		GridData sliderGridData = new GridData(SWT.FILL, SWT.FILL, false, true);
+		fSlider.setLayoutData(sliderGridData);
+
+		// Add the listeners
+		addMouseWheelListener(new MouseWheelListener() {
+			public void mouseScrolled(MouseEvent event) {
+				fFirstRowOffset -= event.count;
+				int lastFirstRowOffset = fTableItemCount - fRowsDisplayed - 1;
+				if (fFirstRowOffset > lastFirstRowOffset) {
+					fFirstRowOffset = lastFirstRowOffset;
+				} else if (fFirstRowOffset < 0) {
+					fFirstRowOffset = 0;
+				}
+				fSlider.setSelection(fFirstRowOffset);
+				setSelection();
+			}
+		});
+
+		addControlListener(new ControlAdapter() {
+			@Override
+			public void controlResized(ControlEvent event) {
+				resize();
+			}
+		});		
+
+		// And display
+		refresh();
+	}
+
