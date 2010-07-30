@@ -1,0 +1,74 @@
+	/**
+	 * Function that is called when the selection window is re-centered.<p>
+	 * Note: Given position should be timestamp in the experiment timerange<p>
+	 * 
+	 * Recenter the window and notify the HistogramView that the window changed. 
+	 * 
+	 * @param timestampOfCenterPosition	New timestamp of center position.
+	 */
+	public void setWindowCenterPosition(long timestampOfCenterPosition) {
+		
+		// We will check if the coordinate the same
+		if ( timestampOfCenterPosition != currentWindow.getTimestampOfCenterPosition() ) {
+
+			long timestampOfLeft = timestampOfCenterPosition - currentWindow.getWindowTimeWidth() / 2;
+			long timestampOfCenter = 0;
+			long timestampOfRight = 0;
+
+			int windowXPositionLeft = histogramContent.getClosestXPositionFromTimestamp(timestampOfLeft);
+			int windowXPositionCenter = 0;
+			int windowXPositionRight = 0;
+			
+			// Let's do the border verifications
+			if ( timestampOfLeft < histogramContent.getStartTime() ) {
+				
+				timestampOfLeft = histogramContent.getStartTime();
+				timestampOfCenter = timestampOfLeft + currentWindow.getWindowTimeWidth() / 2;
+				timestampOfRight = timestampOfLeft + currentWindow.getWindowTimeWidth();
+
+				windowXPositionLeft = histogramContent.getClosestXPositionFromTimestamp(timestampOfLeft);
+				windowXPositionCenter = histogramContent.getClosestXPositionFromTimestamp(timestampOfCenter); 
+				windowXPositionRight = histogramContent.getClosestXPositionFromTimestamp(timestampOfRight);
+
+			} else {
+			
+				timestampOfRight = timestampOfCenterPosition + currentWindow.getWindowTimeWidth() / 2;
+				windowXPositionRight = histogramContent.getClosestXPositionFromTimestamp(timestampOfRight);
+				
+				if ( windowXPositionRight > histogramContent.getEndTime() ) {
+
+					timestampOfRight = histogramContent.getEndTime();
+					timestampOfCenter = timestampOfRight - currentWindow.getWindowTimeWidth() / 2;
+					timestampOfLeft = timestampOfRight - currentWindow.getWindowTimeWidth();
+					
+					windowXPositionLeft = histogramContent.getClosestXPositionFromTimestamp(timestampOfLeft);
+					windowXPositionCenter = histogramContent.getClosestXPositionFromTimestamp(timestampOfCenter); 
+					windowXPositionRight = histogramContent.getClosestXPositionFromTimestamp(timestampOfRight);
+					
+				} else {
+					
+					timestampOfCenter = timestampOfCenterPosition;
+					windowXPositionCenter = histogramContent.getClosestXPositionFromTimestamp(timestampOfCenter);
+					
+				}
+				
+			}
+
+			// Firstly we will setup new left, right and center timestamps
+			currentWindow.setTimestampOfLeftPosition( timestampOfLeft );
+			currentWindow.setTimestampOfCenterPosition( timestampOfCenter );
+			currentWindow.setTimestampOfRightPosition( timestampOfRight );
+			
+			// We will do the update in case of different center timestamp
+			if( windowXPositionCenter != currentWindow.getWindowXPositionCenter() ) {
+
+				// After we will update coordonates using timestamps already recalculated
+				currentWindow.setWindowXPositionLeft(windowXPositionLeft);
+				currentWindow.setWindowXPositionCenter(windowXPositionCenter);
+				currentWindow.setWindowXPositionRight(windowXPositionRight);
+				
+				redrawAsynchronously();
+			}
+		}
+	}
+

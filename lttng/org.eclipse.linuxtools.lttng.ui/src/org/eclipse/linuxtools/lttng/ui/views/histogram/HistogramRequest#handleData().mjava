@@ -20,22 +20,22 @@
 //			Tracer.trace("Hst: " + event.getTimestamp());
         	
         	// This check is linked to the evil fix mentionned above
-        	if ( ( tmpEvent.getTimestamp().getValue() >= histogramContent.getStartTime() ) &&
-        		 ( tmpEvent.getTimestamp().getValue() <= histogramContent.getEndTime() ) )
+        	if ( ( tmpEvent.getTimestamp().getValue() >= parentCanvas.getHistogramContent().getStartTime() ) &&
+        		 ( tmpEvent.getTimestamp().getValue() <= parentCanvas.getHistogramContent().getEndTime() ) )
         	{
         		
         		// Distance (in time) between this event and the last one we read
 	        	long distance = ( tmpEvent.getTimestamp().getValue() - lastRangeTime );
 				
 	        	// Check if we changed of interval (the distance is higher than the interval time)
-				if  ( distance > histogramContent.getElementsTimeInterval() ) {
+				if  ( distance > parentCanvas.getHistogramContent().getElementsTimeInterval() ) {
 					
-					histogramContent.getElementByIndex(lastInterval).intervalNbEvents = nbEventsInInterval;
+					parentCanvas.getHistogramContent().getElementByIndex(lastInterval).intervalNbEvents = nbEventsInInterval;
 					lastRangeTime = tmpEvent.getTimestamp().getValue();
 					
 					// * NOTE *
 					// We can skip several interval at once, so we need to find what was our interval now
-					lastInterval = (int)((lastRangeTime - histogramContent.getStartTime()) / histogramContent.getElementsTimeInterval() );
+					lastInterval = (int)((lastRangeTime - parentCanvas.getHistogramContent().getStartTime()) / parentCanvas.getHistogramContent().getElementsTimeInterval() );
 					
 					// *** HACK ***
 					// Because of the threads, weird phenomenons seem to happen here, like a position after the 
@@ -44,14 +44,14 @@
 					if ( lastInterval < 0 ) {
 						lastInterval = 0;
 					}
-					else if ( lastInterval >= histogramContent.getNbElement() ) {
-						lastInterval = (histogramContent.getNbElement()-1);
+					else if ( lastInterval >= parentCanvas.getHistogramContent().getNbElement() ) {
+						lastInterval = (parentCanvas.getHistogramContent().getNbElement()-1);
 					}
 					
 					// * NOTE * 
 					// We save the time we have here. This mean only the FIRST time read in an interval will be saved. 
-					histogramContent.getElementByIndex(lastInterval).firstIntervalTimestamp = lastRangeTime;
-					histogramContent.setReadyUpToPosition(lastInterval);
+					parentCanvas.getHistogramContent().getElementByIndex(lastInterval).firstIntervalTimestamp = lastRangeTime;
+					parentCanvas.getHistogramContent().setReadyUpToPosition(lastInterval);
 					
 					nbIntervalNotEmpty++;
 					nbEventsInInterval = 1L;
@@ -61,8 +61,8 @@
 					nbEventsInInterval++;
 				}
 				
-				if ( nbEventsInInterval > histogramContent.getHeighestEventCount() ) {
-					histogramContent.setHeighestEventCount(nbEventsInInterval);
+				if ( nbEventsInInterval > parentCanvas.getHistogramContent().getHeighestEventCount() ) {
+					parentCanvas.getHistogramContent().setHeighestEventCount(nbEventsInInterval);
 				}
 				nbEventRead++;
 				
@@ -77,9 +77,9 @@
         // Save the last interval we had, so we won't miss the very last events at the end. 
         else {
         	// Save the last events
-        	histogramContent.getElementByIndex(lastInterval).intervalNbEvents = nbEventsInInterval;
+        	parentCanvas.getHistogramContent().getElementByIndex(lastInterval).intervalNbEvents = nbEventsInInterval;
         	// We reached the end of the request, so assume we fill up the content as well
-			histogramContent.setReadyUpToPosition(histogramContent.getNbElement());
+        	parentCanvas.getHistogramContent().setReadyUpToPosition(parentCanvas.getHistogramContent().getNbElement());
 			
 			// If the interval wasn't null, count this as a "non empty" interval
 			if (nbEventsInInterval > 0) {

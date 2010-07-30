@@ -1,0 +1,53 @@
+	/**
+	 * Function called when the canvas need to redraw.<p>
+	 * 
+	 * @param event  The generated paint event when redraw is called.
+	 */
+	@Override
+	public void paintControl(PaintEvent event) {
+		
+		if (parentCanvas.getSize().x > 0 && parentCanvas.getSize().y > 0) {
+			Image image = (Image) parentCanvas.getData("double-buffer-image");
+			
+			// Creates new image only absolutely necessary.
+			if (image == null
+					|| image.getBounds().width != parentCanvas.getBounds().width
+					|| image.getBounds().height != parentCanvas.getBounds().height) {
+
+				image =	new Image(
+						event.display,
+						parentCanvas.getBounds().width,
+						parentCanvas.getBounds().height
+						);
+
+				parentCanvas.setData("double-buffer-image", image);
+			}
+			
+			// Initializes the graphics context of the image. 
+	        GC imageGC = new GC(image);
+	        
+			// First clear the whole canvas to have a clean section where to draw
+			clearDrawingSection(imageGC, image, parentCanvas);
+	        
+			// If the content is null or has rady to draw we quit the function here
+			if ( (parentCanvas.getHistogramContent() != null) && (parentCanvas.getHistogramContent().getReadyUpToPosition() != 0) ) {
+				// Call the function that draw the bars
+				drawHistogram(imageGC, image);
+				
+				// If we have a selected window set to visible, call the function to draw it
+				if ( (parentCanvas.getCurrentWindow() != null) && (parentCanvas.getCurrentWindow().getSelectedWindowVisible()) ) {
+					drawSelectedWindow(
+							imageGC,
+							image
+							);
+				}
+
+				// Draws the buffer image onto the canvas. 
+				event.gc.drawImage(image, 0, 0);
+			}
+
+			imageGC.dispose();
+		}
+		
+	}
+
