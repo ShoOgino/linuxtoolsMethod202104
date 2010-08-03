@@ -3,7 +3,7 @@
 		if (m == null) {
 			m = new NullProgressMonitor();
 		}
-		launchSteps = new LinkedList<RemoteLaunchStep>();
+		launchSteps = new ConcurrentLinkedQueue<RemoteLaunchStep>();
 
 		monitor = SubMonitor
 		.convert(
@@ -23,24 +23,13 @@
 			getPlugin().setCurrentLaunchConfiguration(null);
 			getPlugin().setCurrentLaunch(null);
 
-			// FIXME find Valgrind binary if not already done
-			final IPath valgrindLocation = getPlugin().getValgrindLocation();
-			// also ensure Valgrind version is usable
-			getPlugin().getValgrindVersion();
-
-			monitor.worked(1);
-
 			// Open TCF Channel
 			Map<String, IPeer> peers = Protocol.getLocator().getPeers();
-			// XXX Use 127.0.0.1 to test
-			IPeer peer = null;
-			for (String id : peers.keySet()) {
-				if (id.contains("127.0.0.1")) {
-					peer = peers.get(id);
-				}
-			}
+			String peerID = config.getAttribute(RemoteLaunchConstants.ATTR_REMOTE_PEERID, RemoteLaunchConstants.DEFAULT_REMOTE_PEERID);
+			peer = peers.get(peerID);
+			
 			if (peer == null) {
-				abort(Messages.ValgrindRemoteLaunchDelegate_error_no_peers, null, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
+				abort(NLS.bind(Messages.ValgrindRemoteLaunchDelegate_error_no_peers, peerID), null, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
 			}
 			else {
 				channel = peer.openChannel();
@@ -64,25 +53,32 @@
 							}
 
 							command = new ValgrindRemoteCommand(channel, launchSteps);
+							
+							// Retrieve user-defined Valgrind binary location
+							final IPath valgrindLocation = Path.fromOSString(config.getAttribute(RemoteLaunchConstants.ATTR_REMOTE_VALGRINDLOC, RemoteLaunchConstants.DEFAULT_REMOTE_VALGRINDLOC));
+
+							monitor.worked(1);
 
 							// Copy binary using FileSystem service
 							final IPath exePath = CDebugUtils.verifyProgramPath(config);
-							final IPath remoteDir = Path.fromOSString("/tmp");
-							final IPath remoteFile = remoteDir.append(exePath.lastSegment());
-							final IPath remoteLogDir = Path.fromOSString("/tmp").append("eclipse-valgrind-" + System.currentTimeMillis());
+							final IPath remoteDir = Path.fromOSString(config.getAttribute(RemoteLaunchConstants.ATTR_REMOTE_DESTDIR, RemoteLaunchConstants.DEFAULT_REMOTE_DESTDIR));
+							remoteBinFile = remoteDir.append(exePath.lastSegment());
+							
+							IPath remoteLogDir = Path.fromOSString(config.getAttribute(RemoteLaunchConstants.ATTR_REMOTE_OUTPUTDIR, RemoteLaunchConstants.DEFAULT_REMOTE_OUTPUTDIR));
+							outputPath = remoteLogDir.append("eclipse-valgrind-" + System.currentTimeMillis());
 
 							try {
-								new RemoteLaunchStep(launchSteps, channel) {
+								new RemoteLaunchStep(launchSteps, channel, "FileSystem Write Binary") { //$NON-NLS-1$
 									@Override
 									public void start() throws Exception {
-										writeFileToRemote(exePath, remoteFile, this);					
+										writeFileToRemote(exePath, remoteBinFile, this);					
 									}
 								};
 								
-								new RemoteLaunchStep(launchSteps, channel) {
+								new RemoteLaunchStep(launchSteps, channel, "FileSystem Log Mkdir") { //$NON-NLS-1$
 									@Override
 									public void start() throws Exception {
-										fsService.mkdir(remoteLogDir.toOSString(), new FileAttrs(0, 0, 0, 0, 0, 0, 0, null), new DoneMkDir() {
+										fsService.mkdir(outputPath.toOSString(), new FileAttrs(0, 0, 0, 0, 0, 0, 0, null), new DoneMkDir() {
 											public void doneMkDir(IToken token,
 													FileSystemException error) {
 												if (error != null) {
@@ -101,122 +97,11 @@
 
 								// Start process using Processes service
 								startRemoteProcess(config, launch,
-										valgrindLocation, remoteFile,
+										valgrindLocation, remoteBinFile,
 										arguments, remoteDir.toFile(), remoteLogDir);
 								
-								// Copy log files from remote
-								new RemoteLaunchStep(launchSteps, channel) {
-									@Override
-									public void start() throws Exception {
-										fsService.opendir(outputPath.toOSString(), new IFileSystem.DoneOpen() {
-											
-											public void doneOpen(IToken token, FileSystemException error,
-													IFileHandle handle) {
-												if (error != null) {
-													disconnect(error);
-												}
-												
-												readDir(handle);
-											}
-
-											private void readDir(final IFileHandle handle) {
-												fsService.readdir(handle, new IFileSystem.DoneReadDir() {
-													
-													public void doneReadDir(IToken token, FileSystemException error,
-															DirEntry[] entries, boolean eof) {
-														if (error != null) {
-															disconnect(error);
-														}
-														else {
-															for (DirEntry entry : entries) {
-																final IPath remotePath = outputPath.append(entry.filename);
-																final IPath localPath = localOutputDir.append(entry.filename);
-																
-																// Copy each log file
-																new RemoteLaunchStep(launchSteps, channel) {
-																	@Override
-																	public void start() throws Exception {
-																		writeFileToLocal(remotePath, localPath, this);
-																	}
-																};
-																
-																// Delete log file on remote
-																new RemoteLaunchStep(launchSteps, channel) {
-																	@Override
-																	public void start() throws Exception {
-																		fsService.remove(remotePath.toOSString(), new IFileSystem.DoneRemove() {
-																			public void doneRemove(IToken token, FileSystemException error) {
-																				if (error != null) {
-																					disconnect(error);
-																				}
-																				else {
-																					done();
-																				}
-																			}
-																		});
-																	}
-																};
-															}
-															
-															if (!eof) {
-																readDir(handle);
-															}
-															else {
-																// Close the log directory
-																new RemoteLaunchStep(launchSteps, channel) {
-																	@Override
-																	public void start() throws Exception {
-																		fsService.close(handle, new IFileSystem.DoneClose() {
-																			public void doneClose(IToken token, FileSystemException error) {
-																				if (error != null) {
-																					disconnect(error);
-																				}
-																				else {
-																					done();
-																				}
-																			}
-																		});
-																	}
-																};
-																
-																// Delete the remote log directory
-																new RemoteLaunchStep(launchSteps, channel) {
-																	@Override
-																	public void start() throws Exception {
-																		fsService.rmdir(outputPath.toOSString(), new IFileSystem.DoneRemove() {
-																			public void doneRemove(IToken token, FileSystemException error) {
-																				if (error != null) {
-																					disconnect(error);
-																				}
-																				else {
-																					done();
-																				}
-																			}
-																		});
-																	}
-																};
-																
-																// Close the channel
-																new RemoteLaunchStep(launchSteps, channel) {
-																	@Override
-																	public void start() throws Exception {
-																		disconnect(null);
-																		done();
-																	}
-																};
-																
-																done();
-															}
-														}
-													}
-												});
-											}
-										});
-									}
-								};
-								
 								// Begin executing launch steps
-								launchSteps.removeFirst().start();
+								launchSteps.remove().start();
 							} catch (Throwable e) {
 								disconnect(e);
 							}
@@ -237,6 +122,19 @@
 				});
 			}
 
+			while (process == null || !process.isTerminated()) {
+				Thread.sleep(100);
+			}
+			
+			cleanup(null);
+			
+			// Begin executing launch steps
+			try {
+				launchSteps.remove().start();
+			} catch (Exception e) {
+				disconnect(e);
+			}
+			
 			// Wait for TCF connection to close
 			while (channel.getState() != IChannel.STATE_CLOSED) {
 				Thread.sleep(100);
@@ -259,11 +157,15 @@
 			// create view
 			ValgrindUIPlugin.getDefault().createView(launchStr, toolID);
 			// set log messages
-			ValgrindUIPlugin.getDefault().getView().setMessages(messages);
+			ValgrindViewPart view = ValgrindUIPlugin.getDefault().getView();
+			view.setMessages(messages);
 			monitor.worked(1);
 
 			// pass off control to extender
-			dynamicDelegate.handleLaunch(config, launch, localOutputDir, monitor.newChild(3));
+			dynamicDelegate.handleLaunch(config, launch, localOutputDir, monitor.newChild(2));
+			
+			// initialize tool-specific part of view
+			dynamicDelegate.initializeView(view.getDynamicView(), launchStr, monitor.newChild(1));
 
 			// refresh view
 			ValgrindUIPlugin.getDefault().refreshView();

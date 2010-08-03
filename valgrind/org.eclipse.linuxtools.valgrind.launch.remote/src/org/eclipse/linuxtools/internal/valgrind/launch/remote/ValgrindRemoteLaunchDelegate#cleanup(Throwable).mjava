@@ -1,0 +1,107 @@
+	private void cleanup(final Throwable t) {
+		// Delete binary
+		new RemoteLaunchStep(launchSteps, channel, "FileSystem Remove Binary") { //$NON-NLS-1$
+			@Override
+			public void start() throws Exception {
+				fsService.remove(remoteBinFile.toOSString(), new IFileSystem.DoneRemove() {
+					
+					public void doneRemove(IToken token, FileSystemException error) {
+						done();
+					}
+				});
+			}
+		};
+		
+		// Copy log files from remote
+		new RemoteLaunchStep(launchSteps, channel, "FileSystem Open Log Dir") { //$NON-NLS-1$
+			@Override
+			public void start() throws Exception {
+				fsService.opendir(outputPath.toOSString(), new IFileSystem.DoneOpen() {
+					
+					public void doneOpen(IToken token, FileSystemException error,
+							IFileHandle handle) {
+						if (error != null) {
+							closeChannel();
+						}
+						else {
+							readDir(handle);
+						}
+					}
+
+					private void readDir(final IFileHandle handle) {
+						fsService.readdir(handle, new IFileSystem.DoneReadDir() {
+							
+							public void doneReadDir(IToken token, FileSystemException error,
+									DirEntry[] entries, boolean eof) {
+								if (error != null) {
+									closeChannel();
+								}
+								else {
+									for (DirEntry entry : entries) {
+										final IPath remotePath = outputPath.append(entry.filename);
+										final IPath localPath = localOutputDir.append(entry.filename);
+										
+										if (t == null) { // We aren't just cleaning up after an error
+											// Copy each log file
+											new RemoteLaunchStep(launchSteps, channel, "FileSystem Write Log") { //$NON-NLS-1$
+												@Override
+												public void start() throws Exception {
+													writeFileToLocal(remotePath, localPath, this);
+												}
+											};
+										}
+										
+										// Delete log file on remote
+										new RemoteLaunchStep(launchSteps, channel, "FileSystem Delete Log") { //$NON-NLS-1$
+											@Override
+											public void start() throws Exception {
+												fsService.remove(remotePath.toOSString(), new IFileSystem.DoneRemove() {
+													public void doneRemove(IToken token, FileSystemException error) {
+														done();
+													}
+												});
+											}
+										};
+									}
+									
+									if (!eof) {
+										readDir(handle);
+									}
+									else {									
+										// Close the log directory
+										new RemoteLaunchStep(launchSteps, channel, "FileSystem Close Log Dir") { //$NON-NLS-1$
+											@Override
+											public void start() throws Exception {
+												fsService.close(handle, new IFileSystem.DoneClose() {
+													public void doneClose(IToken token, FileSystemException error) {
+														done();
+													}
+												});
+											}
+										};
+										
+										// Delete the remote log directory
+										new RemoteLaunchStep(launchSteps, channel, "FileSystem Rmdir Log Dir") { //$NON-NLS-1$
+											@Override
+											public void start() throws Exception {
+												fsService.rmdir(outputPath.toOSString(), new IFileSystem.DoneRemove() {
+													public void doneRemove(IToken token, FileSystemException error) {
+														done();
+													}
+												});
+											}
+										};
+										
+										closeChannel();
+										
+										done();
+									}
+								}
+							}
+						});
+					}
+				});
+			}
+		};
+	}
+
