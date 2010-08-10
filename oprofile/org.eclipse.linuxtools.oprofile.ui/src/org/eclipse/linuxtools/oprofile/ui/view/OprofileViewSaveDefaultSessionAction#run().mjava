@@ -1,0 +1,47 @@
+	@Override
+	public void run() {
+		boolean defaultSessionExists = false;
+		UiModelRoot modelRoot = UiModelRoot.getDefault();
+		
+		if (modelRoot.hasChildren()) {
+			IUiModelElement[] events = modelRoot.getChildren();
+			for (IUiModelElement e : events) {
+				if (e instanceof UiModelError)
+					break;
+				
+				IUiModelElement[] sessions = e.getChildren();
+				for (IUiModelElement s : sessions) {
+					if (((UiModelSession)s).isDefaultSession()) {
+						defaultSessionExists = true;
+						break;
+					}
+				}
+				if (defaultSessionExists)
+					break;
+			}
+		}
+		
+		if (defaultSessionExists) {
+			//the following code was originially written by Keith Seitz
+			InputDialog dialog = new InputDialog(OprofileUiPlugin.getActiveWorkbenchShell(),
+					OprofileUiMessages.getString("savedialog.title"),    //$NON-NLS-1$
+					OprofileUiMessages.getString("savedialog.message"),    //$NON-NLS-1$
+					OprofileUiMessages.getString("savedialog.initial"),   //$NON-NLS-1$
+					new SaveSessionValidator());
+			
+			int result = dialog.open();
+			if (result == Window.OK) {
+				try {
+					OprofileCorePlugin.getDefault().getOpcontrolProvider().saveSession(dialog.getValue());
+					OprofileUiPlugin.getDefault().getOprofileView().refreshView();
+				} catch (OpcontrolException oe) {
+					OprofileCorePlugin.showErrorDialog("opcontrolProvider", oe); //$NON-NLS-1$
+				}
+			}
+		} else {
+			MessageDialog.openError(OprofileUiPlugin.getActiveWorkbenchShell(),
+					OprofileUiMessages.getString("defaultsessiondialog.nodefaultsession.title"),  //$NON-NLS-1$
+					OprofileUiMessages.getString("defaultsessiondialog.nodefaultsession.message")); //$NON-NLS-1$
+		}
+	}
+

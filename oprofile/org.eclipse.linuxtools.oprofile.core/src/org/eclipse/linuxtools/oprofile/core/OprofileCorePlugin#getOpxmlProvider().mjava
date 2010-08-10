@@ -1,0 +1,36 @@
+	/**
+	 * Returns the OpxmlProvider registered with the plugin or throws an exception
+	 * @return the OpxmlProvider
+	 * @throws OpxmlException
+	 */
+	public IOpxmlProvider getOpxmlProvider() throws OpxmlException {
+		Exception except = null;
+		
+		if (_opxmlProvider == null) {
+			IExtensionRegistry registry = Platform.getExtensionRegistry();
+			IExtensionPoint extension = registry.getExtensionPoint(PLUGIN_ID, OPXMLPROVIDER_XPT_NAME);
+			if (extension != null) {
+				IExtension[] extensions = extension.getExtensions();
+				for (IExtension e : extensions) {
+					IConfigurationElement[] configElements = e.getConfigurationElements();
+					if (configElements.length != 0) {
+						try {
+							_opxmlProvider = (IOpxmlProvider) configElements[0].createExecutableExtension("class"); //$NON-NLS-1$
+							if (_opxmlProvider != null)
+								break;
+						} catch (CoreException ce) {
+							except = ce;
+						}
+					}
+				}
+			}
+		}
+		
+		// If there was a problem finding opxml, throw an exception
+		if (_opxmlProvider == null) {
+			throw new OpxmlException(createErrorStatus("opxmlProvider", except)); //$NON-NLS-1$
+		} else {
+			return _opxmlProvider;
+		}
+	}
+

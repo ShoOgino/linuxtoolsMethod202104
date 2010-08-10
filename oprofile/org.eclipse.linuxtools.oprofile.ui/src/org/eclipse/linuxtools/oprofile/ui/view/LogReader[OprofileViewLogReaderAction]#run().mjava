@@ -1,0 +1,26 @@
+	public void run() {
+		File logFile = new File(Oprofile.getLogFile());
+		long modified = logFile.lastModified();
+		
+		//only reread it if it has been modified since the last run
+		if (modified != _lastModified) {
+			_lastModified = modified;
+			_contents = new String();
+			
+			try {
+				BufferedReader reader = new BufferedReader(new FileReader(logFile));
+				String line;
+				while ((line = reader.readLine()) != null) {
+					_contents += line + "\n"; //$NON-NLS-1$
+				}
+			} catch (FileNotFoundException e) {
+				// The file doesn't exist or was erased. Try again next time.
+				_contents = OprofileUiMessages.getString("oprofiled.logreader.error.fileNotFound"); //$NON-NLS-1$
+			} catch (IOException e) {
+				// Error reading log. Try again next time.
+				_lastModified = 0;
+				_contents = OprofileUiMessages.getString("oprofiled.logreader.error.io"); //$NON-NLS-1$
+			}
+		}
+	}
+

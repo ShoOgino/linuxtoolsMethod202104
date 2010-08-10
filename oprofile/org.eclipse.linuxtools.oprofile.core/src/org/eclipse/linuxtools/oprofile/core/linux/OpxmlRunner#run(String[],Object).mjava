@@ -1,0 +1,55 @@
+	/**
+	 * Runs opxml with the given arguments.
+	 * @param args the arguments to pass to opxml
+	 * @param callData any callData to pass to the processor
+	 * @return boolean indicating the success/failure of opxml
+	 * @throws OpxmlException 
+	 */
+	public boolean run(String[] args, Object callData) {
+		XMLReader reader = null;
+		_handler = OprofileSAXHandler.getInstance(callData);
+		
+		// Create XMLReader
+        SAXParserFactory factory = SAXParserFactory.newInstance();
+        try {
+			reader = factory.newSAXParser().getXMLReader();
+		} catch (Exception e) {
+			e.printStackTrace();
+			return false;
+		}
+		
+		// Set content/error handlers
+		reader.setContentHandler(_handler);
+		reader.setErrorHandler(_handler);
+		
+		// Setup args
+		String[] cmdArray = new String[args.length + 1];
+		cmdArray[0] = _pathToOpxml;
+		System.arraycopy(args, 0, cmdArray, 1, args.length);
+		
+		// Run opxml
+		try {
+			Process p = Runtime.getRuntime().exec(cmdArray);
+			BufferedReader bi = new BufferedReader(new InputStreamReader(p.getInputStream()));
+			reader.parse(new InputSource(bi));	
+			int ret = p.waitFor();
+			if (ret != 0) {
+				//System.out.println("error running opxml");
+				return false;
+			}
+			
+			return true;
+		} catch (SAXException e) {
+			e.printStackTrace();
+			OprofileCorePlugin.showErrorDialog("opxmlSAXParseException", null); //$NON-NLS-1$
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+//			System.out.println("IOException: " + e.getMessage());
+			e.printStackTrace();
+			OprofileCorePlugin.showErrorDialog("opxmlIOException", null); //$NON-NLS-1$
+		}
+		
+		return false;
+	}
+
