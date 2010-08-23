@@ -1,0 +1,44 @@
+	/**
+	 * Check if the unit mask being used is acceptable for this event
+	 * @return true if the unit mask is recognized by the event and false
+	 * otherwise.
+	 */
+	private boolean isValidUnitMask() {
+		TreeSet<Integer> bitMaskSet = new TreeSet<Integer> ();
+		Element unitMasksTag = (Element) event.getElementsByTagName(UNIT_MASKS).item(0);
+		
+		if (unitMasksTag == null){
+			return true;
+		}
+		
+		NodeList unitMasksList = unitMasksTag.getElementsByTagName(UNIT_MASK);
+		
+		// type:exclusive unit mask support
+		for (int i = 0; i < unitMasksList.getLength(); i++){
+			Element unitMaskElem = (Element) unitMasksList.item(i);
+			String val = unitMaskElem.getAttribute(MASK);
+			if (val.equals(unitMask)){
+				return true;
+			}
+			bitMaskSet.add(Integer.parseInt(val));
+		}
+		
+		// type:bitmask unit mask support
+		String eventName = EventIdCache.getInstance().getEventNameWithID(eventId);
+		String unitMaskType = EventIdCache.getInstance().getUnitMaskType(eventName);
+		if (unitMaskType.equals("bitmask")){ //$NON-NLS-1$
+			int tmp_val = Integer.parseInt(unitMask);
+			int count = 0;
+			while (tmp_val != 0){
+				if (tmp_val % 2 != 0 && ! bitMaskSet.contains((int)Math.pow(2, count))){
+					return false;
+				}
+				tmp_val = tmp_val / 2;
+				count ++;
+			}
+			return true;
+		}
+		
+		return false;
+	}
+

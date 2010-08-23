@@ -22,34 +22,65 @@
 		reader.setContentHandler(_handler);
 		reader.setErrorHandler(_handler);
 		
-		// Setup args
-		String[] cmdArray = new String[args.length + 1];
-		cmdArray[0] = _pathToOpxml;
-		System.arraycopy(args, 0, cmdArray, 1, args.length);
-		
 		// Run opxml
 		try {
-			Process p = Runtime.getRuntime().exec(cmdArray);
-			BufferedReader bi = new BufferedReader(new InputStreamReader(p.getInputStream()));
-			reader.parse(new InputSource(bi));	
-			int ret = p.waitFor();
-			if (ret != 0) {
-				//System.out.println("error running opxml");
-				return false;
+			File file = constructFile(args);
+			
+			//handle the opxml_session file
+			if (args[0].equals(SessionManager.SESSIONS)){
+				if (! file.exists()){
+					file.createNewFile();
+				}
+				SessionManager sessManNew = new SessionManager(SessionManager.SESSION_LOCATION);
+				populateWithCurrentSession(sessManNew);
+				sessManNew.write();
+				FileReader fr = new FileReader(file);
+				reader.parse(new InputSource(fr));
+			// file has not been saved
+			} else if (! file.exists()){
+				AbstractDataAdapter aea;
+				if (args[0].equals(CheckEventAdapter.CHECK_EVENTS)){
+					aea = new CheckEventAdapter(args[1], args[2], args[3]);
+					aea.process();
+					BufferedReader bi = new BufferedReader(new InputStreamReader(aea.getInputStream()));
+					reader.parse(new InputSource(bi));
+				}else if (args[0].equals(InfoAdapter.INFO)){
+					aea = new InfoAdapter();
+					aea.process();
+					BufferedReader bi = new BufferedReader(new InputStreamReader(aea.getInputStream()));
+					reader.parse(new InputSource(bi));
+				}else if (args[0].equals(ModelDataAdapter.MODEL_DATA)){
+					// this should only happen initially when the current session
+					// has not been generated
+					if (! handleModelData(args)){
+						return false;
+					}
+					FileReader fr = new FileReader(file);
+					reader.parse(new InputSource(fr));
+				}else{
+					throw new RuntimeException("Unrecognized argument encountered");
+				}
+			}else{
+				// always regenerate the 'current' session file
+				if (args.length == 3
+						&& args[0].equals(SessionManager.MODEL_DATA)
+						&& args[2].equals(SessionManager.CURRENT)){
+					if (! handleModelData(args)){
+						return false;
+					}
+				}
+				FileReader fr = new FileReader(file);
+				reader.parse(new InputSource(fr));
 			}
 			
 			return true;
 		} catch (SAXException e) {
 			e.printStackTrace();
 			OprofileCorePlugin.showErrorDialog("opxmlSAXParseException", null); //$NON-NLS-1$
-		} catch (InterruptedException e) {
-			e.printStackTrace();
 		} catch (IOException e) {
-//			System.out.println("IOException: " + e.getMessage());
 			e.printStackTrace();
-			OprofileCorePlugin.showErrorDialog("opxmlIOException", null); //$NON-NLS-1$
+			OprofileCorePlugin.showErrorDialog("opxmlParse", null); //$NON-NLS-1$
 		}
-		
 		return false;
 	}
 
