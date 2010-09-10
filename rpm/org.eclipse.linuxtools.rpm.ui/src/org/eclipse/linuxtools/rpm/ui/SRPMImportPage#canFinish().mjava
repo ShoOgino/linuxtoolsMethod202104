@@ -1,32 +1,53 @@
 	/**
 	 * canFinish()
 	 * 
-	 * Hot validation. Called to determine whether Finish
-	 * button can be set to true
+	 * Hot validation. Called to determine whether Finish button can be set to
+	 * true
+	 * 
 	 * @return boolean. true if finish can be activated
 	 */
 	public boolean canFinish() {
-		// Make sure project has been selected or the user 
+		// Make sure project has been selected or the user
 		// has decided to configure a new one instead
+
 		if (getSelectedProjectName() == null && !intoConfigured.getSelection()) {
 			return false;
 		}
 
 		// Make sure an srpm name has been provided
-		if (sourceSRPM.getText().equals("")) { //$NON-NLS-1$
-			return false;
-		}
-		File srpm = new File(sourceSRPM.getText());
-		if (!srpm.isFile()){
-			setErrorMessage(Messages.getString("SRPMImportPage.Source_not_Valid")); //$NON-NLS-1$
-			return false;
-		}
+		String sourceSRPMName = sourceSRPM.getText();
 		if (sourceSRPM.getText().lastIndexOf(".src.rpm") == -1) //$NON-NLS-1$
 		{
 			setErrorMessage(Messages.getString("SRPMImportPage.No_src_rpm_ext")); //$NON-NLS-1$
 			return false;
 		}
-  
+		if (sourceSRPMName.startsWith("http://")) {
+			try {
+				URL url = new URL(sourceSRPMName);
+				if (HttpURLConnection.HTTP_NOT_FOUND == ((HttpURLConnection) url
+						.openConnection()).getResponseCode()) {
+					setErrorMessage("HTTP not found!!!");
+					return false;
+				}
+			} catch (MalformedURLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} else {
+			if (sourceSRPMName.equals("")) { //$NON-NLS-1$
+				return false;
+			}
+			File srpm = new File(sourceSRPMName);
+			if (!srpm.isFile()) {
+				setErrorMessage(Messages
+						.getString("SRPMImportPage.Source_not_Valid")); //$NON-NLS-1$
+				return false;
+			}
+		}
+		setErrorMessage(null);
 		return true;
 	}
 
