@@ -6,15 +6,16 @@
 		super(parent, style | SWT.BORDER & (~SWT.H_SCROLL) & (~SWT.V_SCROLL));
 
 		// Create the controls
-		createTable();
+		createTable(style);
 		createSlider();
 
 		// Set the layout
 		GridLayout gridLayout = new GridLayout();
 		gridLayout.numColumns = 2;
 		gridLayout.horizontalSpacing = 0;
-		gridLayout.verticalSpacing = 0;
-		gridLayout.marginWidth = 0;
+		gridLayout.verticalSpacing   = 0;
+		gridLayout.marginWidth  = 0;
+		gridLayout.marginHeight = 0;
 		setLayout(gridLayout);
 		
 		GridData tableGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
@@ -24,17 +25,19 @@
 		fSlider.setLayoutData(sliderGridData);
 
 		// Add the listeners
-		addMouseWheelListener(new MouseWheelListener() {
+		fTable.addMouseWheelListener(new MouseWheelListener() {
 			public void mouseScrolled(MouseEvent event) {
-				fFirstRowOffset -= event.count;
-				int previousFirstRowOffset = fTableItemCount - fRowsDisplayed - 1;
-				if (fFirstRowOffset > previousFirstRowOffset) {
-					fFirstRowOffset = previousFirstRowOffset;
-				} else if (fFirstRowOffset < 0) {
-					fFirstRowOffset = 0;
+				fTableTopEventRank -= event.count;
+				if (fTableTopEventRank < 0) {
+					fTableTopEventRank = 0;
 				}
-				fSlider.setSelection(fFirstRowOffset);
-				setSelection();
+				int latestFirstRowOffset = fTableItemCount - fTableRows;
+				if (fTableTopEventRank > latestFirstRowOffset) {
+					fTableTopEventRank = latestFirstRowOffset;
+				}
+
+				fSlider.setSelection(fTableTopEventRank);
+				refreshTable();
 			}
 		});
 

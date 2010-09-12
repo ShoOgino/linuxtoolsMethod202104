@@ -1,23 +1,32 @@
 	private void resize() {
 
 		// Compute the numbers of rows that fit the new area
-		int tableHeight = fTable.getBounds().height - fTable.getHeaderHeight();
-		int itemHeight = fTable.getItemHeight();
-		fRowsDisplayed = tableHeight / itemHeight + 1;	// For partial rows
-		if (fTableItemCount == 0) {
-			fRowsDisplayed = 0;
+		int tableHeight = fTable.getClientArea().height - fTable.getHeaderHeight();
+
+		if (tableHeight < 0) tableHeight = 0;
+		int itemHeight  = fTable.getItemHeight();
+		fTableRows  = tableHeight / itemHeight;
+		fPartialRowVisible = false;
+		if (fTableRows * itemHeight < tableHeight) {
+			fTableRows++;	// For partial rows
+			fPartialRowVisible = true;
+		}
+		if (fTableRows > fTableItemCount) {
+			fTableRows = fTableItemCount;
 		}
 		
 		// If we are at the end, get elements before to populate
-		if(fFirstRowOffset + fRowsDisplayed >= fTableItemCount) {
-			fFirstRowOffset = fTableItemCount - fRowsDisplayed;
+		if (fTableTopEventRank + fTableRows >= fTableItemCount) {
+			fTableTopEventRank = fTableItemCount - fTableRows;
 		}
 		
 		// Set the slider thumb size
-		fSlider.setThumb(fRowsDisplayed);
+		if (fTableItemCount > 0) {
+			fSlider.setThumb(fTableRows);
+		}
 		
 		// Re-size and re-create the virtual table if needed
-		int delta = fTable.getItemCount() - fRowsDisplayed;
+		int delta = fTable.getItemCount() - fTableRows;
 		if (delta != 0) {
 			fTable.removeAll();
 			if (fTableItems != null) {
@@ -28,7 +37,7 @@
 					fTableItems[i] = null;
 				}
 			}
-			fTableItems = new TableItem[fRowsDisplayed];
+			fTableItems = new TableItem[fTableRows];
 			for (int i = 0; i < fTableItems.length; i++) {
 				fTableItems[i] = new TableItem(fTable, i);
 			}

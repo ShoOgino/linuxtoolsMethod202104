@@ -1,110 +1,122 @@
 	/**
 	 * Handle key-based navigation in table.
 	 * 
-	 * The key variables are:
-	 * - fFirstRowOffset: the absolute index (in the data set) of the first row displayed
-	 * - fTableRow: the index of the selected event in the table window
-	 * - fEffectiveRow: the absolute index of the selected event (in the data set)
-	 * 
-	 * At all times, the following relation should hold true:
-	 * 		fEffectiveRow = fFirstRowOffset + fTableRow
-	 * 
 	 * @param event
 	 */
 	private void handleTableKeyEvent(KeyEvent event) {
 
-		boolean needsUpdate    = false;
-		final int lastTableRow = fTableItemCount - 1;
-		int lastRowDisplayed = ((fTableItemCount < fRowsDisplayed) ?  fTableItemCount : fRowsDisplayed) - 1;
+		int lastEventRank        = fTableItemCount - 1;
+		int lastPageTopEntryRank = fTableItemCount - fTableRows;
 
-		// We are handling things
+		int lastRowIndex = ((fTableItemCount < fTableRows) ? fTableItemCount : fTableRows) - 1;
+		int numberOfFullyVisibleRows = fTableRows - ((fPartialRowVisible) ? 1 : 0);
+
+		boolean needsRefresh = false;
+
+		// We are handling things...
 		event.doit = false;
 
+		// In all case, perform the following steps:
+		// - Update the selected entry rank (within valid range)
+		// - Update the selected row
+		// - Update the page's top entry if necessary (which also adjusts the selected row)
+		// - If the top displayed entry was changed, table refresh is needed
 		switch (event.keyCode) {
 
 			case SWT.ARROW_DOWN: {
-				if (fEffectiveRow < lastTableRow) {
-					fEffectiveRow++;
-					if (fTableRow < lastRowDisplayed) {
-						fTableRow++;
-					} else if (fTableRow < fEffectiveRow) {
-						fFirstRowOffset++;
-						needsUpdate = true;
+				if (fSelectedEventRank < lastEventRank) {
+					fSelectedEventRank++;
+					fSelectedRow = fSelectedEventRank - fTableTopEventRank;
+					if (fSelectedRow > lastRowIndex) {
+						fTableTopEventRank++;
+						fSelectedRow = lastRowIndex;
+						needsRefresh = true;
 					}
 				}
 				break;
 			}
 
-			case SWT.PAGE_DOWN: {
-				if (fEffectiveRow < lastTableRow) {
-					if ((lastTableRow - fEffectiveRow) >= fRowsDisplayed) {
-						fEffectiveRow   += fRowsDisplayed;
-						fFirstRowOffset += fRowsDisplayed;
-					} else {
-						fEffectiveRow = lastTableRow;
-						fTableRow = lastRowDisplayed;
+			case SWT.ARROW_UP: {
+				if (fSelectedEventRank > 0) {
+					fSelectedEventRank--;
+					fSelectedRow = fSelectedEventRank - fTableTopEventRank;
+					if (fSelectedRow < 0) {
+						fTableTopEventRank--;
+						fSelectedRow = 0;
+						needsRefresh = true;
 					}
-					needsUpdate = true;
 				}
 				break;
 			}
 
 			case SWT.END: {
-				fEffectiveRow = lastTableRow;
-				fTableRow = lastRowDisplayed;
-				if (lastTableRow > lastRowDisplayed) {
-					fFirstRowOffset = fTableItemCount - fRowsDisplayed;
-				}
-				needsUpdate = true;
+				fTableTopEventRank = lastPageTopEntryRank;
+				fSelectedEventRank = lastEventRank;
+				fSelectedRow = lastRowIndex;
+				needsRefresh = true;
 				break;
 			}
 
-			case SWT.ARROW_UP: {
-				if (fEffectiveRow > 0) {
-					fEffectiveRow--;
-					if (fTableRow > 0) {
-						fTableRow--;
-					} else {
-						fFirstRowOffset--;
-						needsUpdate = true;
+			case SWT.HOME: {
+				fSelectedEventRank = 0;
+				fSelectedRow       = 0;
+				fTableTopEventRank = 0;
+				needsRefresh       = true;
+				break;
+			}
+
+			case SWT.PAGE_DOWN: {
+				if (fSelectedEventRank < lastEventRank) {
+					fSelectedEventRank += numberOfFullyVisibleRows;
+					if (fSelectedEventRank > lastEventRank) {
+						fSelectedEventRank = lastEventRank;
+					}
+					fSelectedRow = fSelectedEventRank - fTableTopEventRank;
+					if (fSelectedRow > numberOfFullyVisibleRows - 1) {
+						fTableTopEventRank += numberOfFullyVisibleRows;
+						if (fTableTopEventRank > lastPageTopEntryRank) {
+							fTableTopEventRank = lastPageTopEntryRank;
+						}
+						fSelectedRow = fSelectedEventRank - fTableTopEventRank;
+						needsRefresh = true;
 					}
 				}
 				break;
 			}
 
 			case SWT.PAGE_UP: {
-				if (fEffectiveRow > 0) {
-					if (fEffectiveRow > fRowsDisplayed - 1) {
-						fEffectiveRow   -= fRowsDisplayed;
-						fFirstRowOffset -= fRowsDisplayed;
-					} else {
-						fEffectiveRow = 0;
-						fTableRow = 0;
+				if (fSelectedEventRank > 0) {
+					fSelectedEventRank -= numberOfFullyVisibleRows;
+					if (fSelectedEventRank < 0) {
+						fSelectedEventRank = 0;
 					}
-					needsUpdate = true;
+					fSelectedRow = fSelectedEventRank - fTableTopEventRank;
+					if (fSelectedRow < 0) {
+						fSelectedRow = 0;
+						fTableTopEventRank -= numberOfFullyVisibleRows;
+						if (fTableTopEventRank < 0) {
+							fTableTopEventRank = 0;
+						}
+						fSelectedRow = fSelectedEventRank - fTableTopEventRank;
+						needsRefresh = true;
+					}
 				}
-				break;
-			}
-
-			case SWT.HOME: {
-				fEffectiveRow   = 0;
-				fTableRow       = 0;
-				fFirstRowOffset = 0;
-				needsUpdate     = true;
 				break;
 			}
 		}
 	
-		if (needsUpdate) {
+		if (needsRefresh) {
 			for (int i = 0; i < fTableItems.length; i++) {
-				setDataItem(fTableItems[i]);
+				setDataItem(i, fTableItems[i]);
 			}
 		}
 
-		fTable.setSelection(fTableRow);
-		fSlider.setSelection(fEffectiveRow);
+		fSlider.setSelection(fSelectedEventRank);
+		fTable.setSelection(fSelectedRow);
+		fTable.showSelection();
+		fSelectedItems[0] = fTable.getSelection()[0];
 
-//		System.out.println("1st: " + fFirstRowOffset + ", TR: " + fTableRow + ", ER: " + fEffectiveRow +
-//				", Valid: " + ((fFirstRowOffset >= 0) && (fEffectiveRow == (fFirstRowOffset + fTableRow))));
+        TmfTimestamp ts = (TmfTimestamp) fSelectedItems[0].getData();
+        TmfSignalManager.dispatchSignal(new TmfTimeSynchSignal(this, ts));
 	}
 
