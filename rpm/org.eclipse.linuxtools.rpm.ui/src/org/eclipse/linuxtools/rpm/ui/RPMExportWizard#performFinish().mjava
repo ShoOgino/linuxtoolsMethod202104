@@ -3,26 +3,22 @@
 		// Create a new instance of the RPMExportOperation runnable
 		final RPMExportOperation rpmExport = new RPMExportOperation(mainPage
 				.getSelectedRPMProject(), mainPage.getExportType());
-
 		// Run the export
-		Job job = new Job(Messages.getString("RPMExportWizard.0")) { //$NON-NLS-1$
+		rpmExport.addJobChangeListener(new JobChangeAdapter() {
 			@Override
-			protected IStatus run(IProgressMonitor monitor) {
-				setProperty(IProgressConstants.KEEP_PROPERTY, Boolean.TRUE);
-				try {
-					rpmExport.run(monitor);
-				} catch (InvocationTargetException e) {
-					return Status.CANCEL_STATUS;
+			public void done(IJobChangeEvent event) {
+				if (event.getResult().equals(Status.OK_STATUS)) {
+				event.getResult();
+				System.out.println(mainPage.getSelectedRPMProject()
+						.getMissingDependencies());
 				}
-				return rpmExport.getStatus();
 			}
-		};
-		job.setUser(true);
-		job.schedule();
-
-		// Need to return some meaninful status. Should only return true if the
-		// wizard completed
-		// successfully.
+		});
+		rpmExport.setUser(true);
+		rpmExport.schedule();
+		
+		// Need to return some meaningful status. Should only return true if the
+		// wizard completed successfully.
 		return true;
 	}
 
