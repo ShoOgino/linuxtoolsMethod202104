@@ -6,7 +6,8 @@
 //		fEventLog = openLogFile("TraceEvent.log");
 //		System.out.println(System.currentTimeMillis() + ": Experiment indexing started");
 
-		ITmfEventRequest<TmfEvent> request = new TmfEventRequest<TmfEvent>(TmfEvent.class, TmfTimeRange.Eternity, TmfDataRequest.ALL_DATA, 1, ITmfDataRequest.ExecutionType.BACKGROUND) {
+		ITmfEventRequest<TmfEvent> request = new TmfEventRequest<TmfEvent>(TmfEvent.class, TmfTimeRange.Eternity,
+				TmfDataRequest.ALL_DATA, 1, ITmfDataRequest.ExecutionType.BACKGROUND) {
 
 //			long indexingStart = System.nanoTime();
 			
@@ -14,26 +15,15 @@
 			TmfTimestamp lastTime  =  null;
 
 			@Override
-			public void handleData() {
-				TmfEvent[] events = getData();
-				if (events.length > 0) {
-
-//					try {
-//						if (fEventLog != null) {
-//							fEventLog.write(events[0].getTimestamp().toString());
-//							fEventLog.newLine();
-//							fEventLog.flush();
-//						}
-//					} catch (IOException e) {
-//						e.printStackTrace();
-//					}
-					
-					TmfTimestamp ts = events[0].getTimestamp();
+			public void handleData(TmfEvent event) {
+        		super.handleData(event);
+				if (event != null) {
+					TmfTimestamp ts = event.getTimestamp();
 					if (startTime == null)
 						startTime = new TmfTimestamp(ts);
 					lastTime = new TmfTimestamp(ts);
 
-					if ((fNbRead % DEFAULT_INDEX_PAGE_SIZE) == 0) {
+					if ((getNbRead() % DEFAULT_INDEX_PAGE_SIZE) == 0) {
 						updateExperiment();
 					}
 				}
@@ -41,33 +31,21 @@
 
 			@Override
 			public void handleSuccess() {
-
-//				try {
-//					fEventLog.close();
-//					fEventLog = null;
-//				} catch (IOException e) {
-//					e.printStackTrace();
-//				}
-
 //				long indexingEnd = System.nanoTime();
 
 				updateExperiment();
 //				System.out.println(System.currentTimeMillis() + ": Experiment indexing completed");
-//
+
 //				long average = (indexingEnd - indexingStart) / fNbEvents;
 //				System.out.println(getName() + ": start=" + startTime + ", end=" + lastTime + ", elapsed=" + (indexingEnd * 1.0 - indexingStart) / 1000000000);
 //				System.out.println(getName() + ": nbEvents=" + fNbEvents + " (" + (average / 1000) + "." + (average % 1000) + " us/evt)");
-
-//				 for (int i = 0; i < fCheckpoints.size(); i++) {
-//					 TmfCheckpoint checkpoint = fCheckpoints.get(i);
-//					 System.out.println("fCheckpoints[" + i + "] " + checkpoint.getTimestamp() + ", " + checkpoint.getLocation().toString());
-//				 }
 			}
 
 			private void updateExperiment() {
-				if (fNbRead != 0) {
+				int nbRead = getNbRead();
+				if (nbRead != 0) {
 					fTimeRange = new TmfTimeRange(startTime, new TmfTimestamp(lastTime));
-					fNbEvents  = fNbRead;
+					fNbEvents  = nbRead;
 					notifyListeners();
 				}
 			}

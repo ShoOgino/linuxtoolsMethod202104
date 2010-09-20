@@ -1,6 +1,7 @@
 	@SuppressWarnings("unchecked")
 	@Override
-	public ITmfContext armRequest(final ITmfDataRequest<LttngSyntheticEvent> request) {
+	public ITmfContext armRequest(
+			final ITmfDataRequest<LttngSyntheticEvent> request) {
 		// validate
 		// make sure we have the right type of request
 		if (!(request instanceof ITmfEventRequest<?>)) {
@@ -39,7 +40,8 @@
 		for (IStateTraceManager traceManager : fEventProviderRequests.keySet()) {
 
 			// restore trace state system to nearest check point
-			TmfTimestamp checkPoint = traceManager.restoreCheckPointByTimestamp(reqWindow.getStartTime());
+			TmfTimestamp checkPoint = traceManager
+					.restoreCheckPointByTimestamp(reqWindow.getStartTime());
 
 			// adjust start time bound to check point
 
@@ -72,28 +74,21 @@
 
 				private final long fDispatchTime = getDispatchTime().getValue();
 				private final LttngTraceState fTraceModel = getTraceModel();
-				private LttngSyntheticEvent[] fresult = new LttngSyntheticEvent[1];
 
 				/*
 				 * (non-Javadoc)
 				 * 
-				 * @see org.eclipse.linuxtools.lttng.control.LttngEventRequest#handleData ()
+				 * @see org.eclipse.linuxtools.lttng.control.LttngEventRequest#handleData()
 				 */
 				@Override
-				public void handleData() {
-					LttngEvent[] events = getData();
-
-					// Tracer.trace("Sep: " + events[0].getTimestamp());
-
-					if (events.length > 0) {
-						handleIncomingData(events[0]);
+				public void handleData(LttngEvent event) {
+					super.handleData(event);
+					if (event != null) {
+						handleIncomingData(event);
 					} else {
 						TraceDebug.debug("handle data received with no data");
-						// handleProviderDone(getTraceModel());
-						// done();
 					}
 				}
-
 				/*
 				 * (non-Javadoc)
 				 * 
@@ -103,10 +98,9 @@
 				public void done() {
 					// mark this sub-request as completed
 					super.done();
-					handleProviderDone();
-					// super.done();
+					handleProviderDone(getTraceModel());
 				}
-
+				
 				/**
 				 * Trigger the Analysis and sequential control of the events.
 				 * 
@@ -115,43 +109,29 @@
 				private void handleIncomingData(LttngEvent e) {
 					long eventTime = e.getTimestamp().getValue();
 
-					TmfTrace<LttngEvent> inTrace = e.getParentTrace();
+					TmfTrace<LttngEvent> inTrace =  e.getParentTrace();
 					if (!(inTrace == getTrace())) {
-						// System.out.println("Event from a different trace discarded");
 						return;
 					}
-
+					
 					// queue the new event data and an ACK
 					updateSynEvent(e);
 
 					// If time at or above requested time, update application
 					if (eventTime >= fDispatchTime) {
-						// Load synthetic event as the result data
-						fresult[0] = syntheticEvent;
-
-						// BEFORE UPDATE : update to the before state-update handlers
+						// Before update
 						syntheticEvent.setSequenceInd(SequenceInd.BEFORE);
-						// queueResult(syntheticEvent);
-						// queueResult(syntheticAckIndicator);
-						fmainRequest.setData(fresult);
-						fmainRequest.handleData();
-						// result[0] = syntheticAckIndicator;
-						// fmainRequest.setData(result);
-						// fmainRequest.handleData();
+						fmainRequest.handleData(syntheticEvent);
+						fmainRequest.handleData(syntheticAckIndicator);
 
-						// STATE UPDATE: local handlers
+						// Update state locally
 						syntheticEvent.setSequenceInd(SequenceInd.UPDATE);
 						fstateUpdateProcessor.process(syntheticEvent, fTraceModel);
 
-						// AFTER UPDATE: update to the after state-update handlers
+						// After Update
 						syntheticEvent.setSequenceInd(SequenceInd.AFTER);
-						// queueResult(syntheticEvent);
-						// queueResult(syntheticAckIndicator);
-						fmainRequest.setData(fresult);
-						fmainRequest.handleData();
-						// result[0] = syntheticAckIndicator;
-						// fmainRequest.setData(result);
-						// fmainRequest.handleData();
+						fmainRequest.handleData(syntheticEvent);
+						fmainRequest.handleData(syntheticAckIndicator);
 
 						// increment once per dispatch
 						incrementSynEvenCount();
@@ -167,16 +147,18 @@
 				}
 
 				/**
-				 * Create a synthetic event from the received new reference, if the reference is the same there is no
-				 * need for a new instance
+				 * Create a synthetic event from the received new reference, if
+				 * the reference is the same there is no need for a new instance
 				 * 
-				 * if this is the first event for this request, call start handler
+				 * if this is the first event for this request, call start
+				 * handler
 				 * 
 				 * @param e
 				 * @return
 				 */
 				private LttngSyntheticEvent updateSynEvent(LttngEvent e) {
-					if (syntheticEvent == null || syntheticEvent.getBaseEvent() != e) {
+					if (syntheticEvent == null
+							|| syntheticEvent.getBaseEvent() != e) {
 						syntheticEvent = new LttngSyntheticEvent(e);
 						syntheticAckIndicator = new LttngSyntheticEvent(e);
 						syntheticAckIndicator.setSequenceInd(SequenceInd.ACK);
@@ -195,7 +177,7 @@
 					return syntheticEvent;
 				}
 			};
-
+						
 			// preserve the associated sub request to control it e.g.
 			// cancellation
 			fEventProviderRequests.put(traceManager, subRequest);

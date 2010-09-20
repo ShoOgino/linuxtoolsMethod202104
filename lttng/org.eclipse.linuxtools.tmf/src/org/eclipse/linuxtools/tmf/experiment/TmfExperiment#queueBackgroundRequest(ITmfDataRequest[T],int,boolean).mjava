@@ -30,35 +30,28 @@
 				while (!isFinished[0]) {
 
 //					TmfEventRequest<T> subRequest = new TmfEventRequest<T>(eventRequest.getDataType(), new TmfTimeRange(timestamp[0], endTS), CHUNK_SIZE[0], eventRequest.getBlockize(), ExecutionType.BACKGROUND)
-					TmfDataRequest<T> subRequest = new TmfDataRequest<T>(eventRequest.getDataType(), nbRead[0], CHUNK_SIZE[0], eventRequest.getBlockize(), ExecutionType.BACKGROUND)
+//					TmfDataRequest<T> subRequest = new TmfDataRequest<T>(eventRequest.getDataType(), nbRead[0], CHUNK_SIZE[0], eventRequest.getBlockize(), ExecutionType.BACKGROUND)
+					TmfDataRequest<T> subRequest = new TmfDataRequest<T>(eventRequest.getDataType(), nbRead[0], CHUNK_SIZE[0], ExecutionType.BACKGROUND)
 					{
-//						int count = 0;
 						@Override
-						public void handleData() {
-							T[] data = getData();
-//							timestamp[0] = data[data.length-1].getTimestamp();
-//							if (count == 0) {
-//								System.out.println("First event of the block: " + data[0].getTimestamp());
-//							}
-//							count++;
-//							Tracer.trace("Ndx: " + ((TmfEvent) data[0]).getTimestamp());
-							eventRequest.setData(data);
-							eventRequest.handleData();
-							if (fNbRead == CHUNK_SIZE[0]) {
-								nbRead[0] += fNbRead;
-//								System.out.println("fNbRead=" + fNbRead + ", count=" + count +", total=" + nbRead[0] + ", TS=" + data[0].getTimestamp());
+						public void handleData(T data) {
+							super.handleData(data);
+							eventRequest.handleData(data);
+							if (getNbRead() == CHUNK_SIZE[0]) {
+								nbRead[0] += getNbRead();
 							}
-							if (fNbRead > CHUNK_SIZE[0]) {
+							if (getNbRead() > CHUNK_SIZE[0]) {
 								System.out.println("ERROR - Read too many events");
 							}
 						}
+
 						@Override
 						public void handleCompleted() {
 //							System.out.println("Request completed at: " + timestamp[0]);
-							if (fNbRead < CHUNK_SIZE[0]) {
+							if (getNbRead() < CHUNK_SIZE[0]) {
 								eventRequest.done();
 								isFinished[0] = Boolean.TRUE;
-								nbRead[0] += fNbRead;
+								nbRead[0] += getNbRead();
 //								System.out.println("fNbRead=" + fNbRead + ", count=" + count +", total=" + nbRead[0]);
 							}
 							super.handleCompleted();

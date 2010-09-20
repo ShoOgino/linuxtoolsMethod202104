@@ -5,7 +5,7 @@
 	        return;
 	    }
 	    
-//		final TmfDataProvider<T> provider = this;
+		final TmfDataProvider<T> provider = this;
 
 		// Process the request
 		TmfThread thread = new TmfThread(request.getExecType()) {
@@ -13,15 +13,11 @@
 			@Override
 			public void run() {
 
-//				if (Tracer.isRequestTraced()) Tracer.traceRequest(request, "started");
+				if (Tracer.isRequestTraced()) Tracer.traceRequest(request, "started");
 
 				// Extract the generic information
 				request.start();
-				int blockSize   = request.getBlockize();
 				int nbRequested = request.getNbRequested();
-			 
-				// Create the result buffer
-				Vector<T> result = new Vector<T>();
 				int nbRead = 0;
 
 				// Initialize the execution
@@ -33,26 +29,21 @@
 
 				try {
 					// Get the ordered events
-//					if (Tracer.isRequestTraced()) Tracer.trace("Request #" + request.getRequestId() + " is being serviced by " + provider.getName());
+					if (Tracer.isRequestTraced()) Tracer.trace("Request #" + request.getRequestId() + " is being serviced by " + provider.getName());
 					T data = getNext(context);
-//					if (Tracer.isRequestTraced()) Tracer.trace("Request #" + request.getRequestId() + " read first event");
+					if (Tracer.isRequestTraced()) Tracer.trace("Request #" + request.getRequestId() + " read first event");
 					while (data != null && !isCompleted(request, data, nbRead))
 					{
-//						if (fLogData) Tracer.traceEvent(provider, request, data);
-						result.add(data);
-						if (++nbRead % blockSize == 0) {
-							pushData(request, result);
-						}
+						if (fLogData) Tracer.traceEvent(provider, request, data);
+						request.handleData(data);
+
 						// To avoid an unnecessary read passed the last data requested
-						if (nbRead < nbRequested) {
+						if (++nbRead < nbRequested) {
 							data = getNext(context);
 							if (Tracer.isRequestTraced() && (data == null || data.isNullRef())) {
 								Tracer.trace("Request #" + request.getRequestId() + " end of data");
 							}
 						}
-					}
-					if (result.size() > 0) {
-						pushData(request, result);
 					}
 					request.done();
 
@@ -61,7 +52,6 @@
 				catch (Exception e) {
 			        if (Tracer.isRequestTraced()) Tracer.traceRequest(request, "exception (failed)");
 					request.fail();
-//					e.printStackTrace();
 				}
 			}
 		};
