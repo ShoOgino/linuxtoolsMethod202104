@@ -13,21 +13,22 @@
      */
     public TmfTimestamp synchronize(long offset, byte newScale) throws ArithmeticException {
 
-    	long newValue = fValue;
+        long newValue = fValue;
         long newPrecision = fPrecision;
 
+        // Handle the easy case
+        if (fScale == newScale && offset == 0)
+        	return this;
+        
         // Determine the scaling factor
         if (fScale != newScale) {
             int scaleDiff = Math.abs(fScale - newScale);
             // Let's try to be realistic...
-            if (scaleDiff > MAX_SCALING) {
+            if (scaleDiff >= scalingFactors.length) {
                 throw new ArithmeticException("Scaling exception");
             }
-            // Not pretty...
-            long scalingFactor = 1;
-            for (int i = 0; i < scaleDiff; i++) {
-                scalingFactor *= 10;
-            }
+            // Adjust the timestamp
+            long scalingFactor = scalingFactors[scaleDiff];
             if (newScale < fScale) {
                 newValue *= scalingFactor;
                 newPrecision *= scalingFactor;
@@ -37,6 +38,12 @@
             }
         }
 
-        return new TmfTimestamp(newValue + offset, newScale, newPrecision);
+        if (offset < 0) {
+        	newValue = (newValue < Long.MIN_VALUE - offset) ? Long.MIN_VALUE : newValue + offset;
+        } else {
+        	newValue = (newValue > Long.MAX_VALUE - offset) ? Long.MAX_VALUE : newValue + offset;
+        }
+
+        return new TmfTimestamp(newValue, newScale, newPrecision);
     }
 
