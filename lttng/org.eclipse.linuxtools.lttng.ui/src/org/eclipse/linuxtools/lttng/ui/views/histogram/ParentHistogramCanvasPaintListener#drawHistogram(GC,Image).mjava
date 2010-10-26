@@ -15,10 +15,11 @@
 		final HistogramContent tmpContent = parentCanvas.getHistogramContent();
 		final int tmpBarWidth = tmpContent.getBarsWidth();
 		
-		imageGC.setBackground(parentCanvas.getDisplay().getSystemColor(HistogramConstant.HISTOGRAM_BARS_COLOR));
-		
 		// Calculate the closest power of 2 just smaller than the canvas size
 		final int closestPowerToCanvas = (int)Math.pow(2, Math.floor( Math.log( image.getBounds().width ) / Math.log(2.0) ));
+
+		// First clear the whole canvas to have a clean section where to draw
+		clearDrawingSection(imageGC, image, parentCanvas);
 		
 		// Make sure the canvas didn't change size, it which case we need to recalculate our heights
 		recalculateHeightIfCanvasSizeChanged();
@@ -34,6 +35,9 @@
 		int posInPower = 0;
 		int widthFilled = 0;
 		
+		// This will be the color for all the bars that wil be draw below.
+		imageGC.setBackground( new Color( imageGC.getDevice(), 74, 112, 139) );
+
 		// Read from 0 up to the currently ready position
 		// We advance by "intervalDifference" as the bars migth not represent 1 interval only
 		int itemWidth = 0;
@@ -49,9 +53,8 @@
 			// Ex : if power == 1024 and content == 2048, every (2048/1024)*bars_width will be concatenated 
 	    	thisElementHeight = 0;
 	    	for ( int concatPos=0; concatPos<intervalDifference; concatPos++) {
-	    		final int updatedPos = contentPos + concatPos;
 	    		// Make sure we don't cross the last element available.
-	    		if ( updatedPos < tmpContent.getReadyUpToPosition() ) {
+	    		if ( contentPos + concatPos < tmpContent.getReadyUpToPosition() ) {
 	    			thisElementHeight += tmpContent.getElementByIndex(contentPos + concatPos).intervalHeight;
 	    		}
 	    	}
@@ -59,11 +62,10 @@
 	    	// *** NOTE *** 
 			// Y Position in a canvas is REVERSED, so "0" is on top of the screen and "MAX" is on bottom.
 			// Not very instinctive, isn't it?
-	    	
-	    	// Draw our rectangle 
+			// Draw our rectangle
     		imageGC.fillRectangle(
     				widthFilled,
-    				image.getBounds().height - thisElementHeight,
+    				(thisElementHeight > image.getBounds().height ? 0 : image.getBounds().height - thisElementHeight),
     				itemWidth,
     				thisElementHeight
     				);
