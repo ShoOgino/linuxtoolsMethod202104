@@ -15,9 +15,8 @@
 		LTTngTreeNode[] traceNodes = experimentNode.getChildren();
 		synchronized (this) {
 			ftraceToManagerMap.clear();
-			ftraceEventsReadMap.clear();
 		}
-		
+
 		ITmfTrace trace;
 		for (LTTngTreeNode traceStateManagerNode : traceNodes) {
 			IStateTraceManager traceManager;
@@ -35,11 +34,10 @@
 			// build the trace to manager mapping for event dispatching
 			trace = traceManager.getTrace();
 			synchronized (this) {
-				ftraceToManagerMap.put(trace, traceManager);
-				ftraceEventsReadMap.put(trace, new Long(0));
+				ftraceToManagerMap.put(trace, new StateTraceHelper(traceManager));
 			}
 		}
-		
+
 		// if no trace mapping
 		if (ftraceToManagerMap.size() < 1) {
 			TraceDebug.debug("No traces associated to experiment " + experiment.getName());
@@ -66,22 +64,24 @@
 //					Tracer.trace("Chk: " + event.getTimestamp());
 					nbEventsHandled++;
 					ITmfTrace trace = event.getParentTrace();
-					IStateTraceManager traceManager = ftraceToManagerMap.get(trace);
-					long nbEvents = ftraceEventsReadMap.get(trace) + 1;
-					ftraceEventsReadMap.put(trace, nbEvents);
-					if (traceManager != null) {
+
+					StateTraceHelper helper = ftraceToManagerMap.get(trace);
+
+					if (helper != null) {
+						helper.incrementNumberRead();
+
 						// obtain synthetic event
-						LttngSyntheticEvent synEvent = updateSynEvent(event, traceManager);
+						LttngSyntheticEvent synEvent = updateSynEvent(event, helper.getTraceModel());
+
 						// update state system, and save check points as needed
-						traceManager.handleEvent(synEvent, nbEvents);
+						helper.getStateManager().handleEvent(synEvent, helper.getNumberRead());
 					} else {
-						TraceDebug
-								.debug("StateTraceManager not found for trace"
-										+ trace.getName());
+						TraceDebug.debug("StateTraceManager not found for trace"
+								+ trace.getName());
 					}
 				}
 			}
-		
+
 			/*
 			 * (non-Javadoc)
 			 * 
@@ -92,7 +92,7 @@
 			public void handleFailure() {
 				printCompletedMessage();
 			}
-			
+
 			/*
 			 * (non-Javadoc)
 			 * 
@@ -103,7 +103,7 @@
 			public void handleCancel() {
 				printCompletedMessage();
 			}
-		
+
 			/*
 			 * (non-Javadoc)
 			 * 
@@ -114,21 +114,20 @@
 			public void handleSuccess() {
 				printCompletedMessage();
 			}
-		
+
 			/**
 			 * @param header
 			 */
 			private void printCompletedMessage() {
 				if (TraceDebug.isDEBUG()) {
-					TraceDebug.debug("Trace check point building completed, number of events handled: " + nbEventsHandled
-							+ "\n\t\t");
-					for (IStateTraceManager traceMgr : ftraceToManagerMap.values()) {
-						TraceDebug.debug(traceMgr.toString() + "\n\t\t");
+					TraceDebug.debug("Trace check point building completed, number of events handled: " + nbEventsHandled + "\n\t\t");
+					for (StateTraceHelper helper : ftraceToManagerMap.values()) {
+						TraceDebug.debug(helper.getStateManager().toString() + "\n\t\t");
 					}
 				}
 			}
 		};
-		
+
 		// Execute event data request
 		experiment.sendRequest(request);
 

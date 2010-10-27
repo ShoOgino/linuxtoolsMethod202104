@@ -4,25 +4,41 @@
 	 * 
 	 * @param event
 	 */
-	protected synchronized void tsfTmProcessTimeScaleEvent(TmfTimeScaleSelectionEvent event) {
-		// source needed to keep track of source values
-		Object source = event.getSource();
+	protected void tsfTmProcessTimeScaleEvent(TmfTimeScaleSelectionEvent event) {
+        // source needed to keep track of source values
+        Object source = event.getSource();
 
-		if (source != null) {
-			// Update the parameter updater before carrying out a read request
-			ParamsUpdater paramUpdater = getParamsUpdater();
-			boolean newParams = paramUpdater.processTimeScaleEvent(event);
+        boolean newParams = false;
+        TmfTimeRange trange = null;
+        Long selectedTime = null;
 
-			if (newParams) {
-				// Read the updated time window
-				TmfTimeRange trange = paramUpdater.getTrange();
-				if (trange != null) {
+        // update all information and get relevant data
+	    synchronized (this) {
+	        if (source != null) {
+	            // Update the parameter updater before carrying out a read request
+	            ParamsUpdater paramUpdater = getParamsUpdater();
+	            newParams = paramUpdater.processTimeScaleEvent(event);
 
-					// Notify listener views. to perform data requests
-					// upon this notification
-					synchTimeRangeNotification(trange, paramUpdater.getSelectedTime(), source);
-				}
-			}
+	            if (newParams) {
+	                // Read the updated time window
+	                trange = paramUpdater.getTrange();
+	                if (trange != null) {
+	                    selectedTime = paramUpdater.getSelectedTime();
+	                }
+	            }
+	        }
+	    }
+
+	    // Check for selectedTime is sufficient since it is only set if
+	    // newParams is true and trange is not null
+		if (selectedTime != null) {
+		    // Notify listener views. to perform data requests
+            // upon this notification
+
+		    // Note that this has to be done outside the synchronized statement
+		    // because otherwise we could end-up in a deadlock if a ongoing 
+		    // request needs to be canceled.
+            synchTimeRangeNotification(trange, selectedTime, source);		    
 		}
 	}
 

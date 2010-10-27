@@ -1,0 +1,28 @@
+	/**
+	 * Notify listeners, no more events for the current request will be
+	 * distributed e.g. update view.
+	 */
+	public synchronized void handleProviderDone(boolean isSuccess) {
+		// Notify application. One notification per trace so the last state of each trace can be
+		// drawn
+	    for (LttngTraceState traceModel : traceToTraceStateModel.values()) {
+	        // Take the trace model from traceToTraceStateModel list since it has a copy
+	        // of the state
+	        LttngSyntheticEvent finishEvent = new LttngSyntheticEvent(fStatusEvent);
+            finishEvent.setSequenceInd(SequenceInd.ENDREQ);
+            finishEvent.setTraceModel(traceModel);
+
+            fmainRequest.handleData(finishEvent);
+	    }
+	    
+        if(isSuccess) {
+            // Finish main request
+            fmainRequest.done();
+        }
+        else {
+            // Cancel main request
+            fmainRequest.cancel();
+            
+        }
+	}
+
