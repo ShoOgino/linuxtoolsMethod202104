@@ -1,0 +1,49 @@
+	/**
+	 * Parses the input and tries to generate error or warning markers
+	 */
+	private void processLine(String line) {
+		String lineTrimmed = line.trim();
+		lineCounter++;
+
+		ProblemMarkerInfo marker=null;
+
+		for (ErrorParser parser : fErrorParsers.values()) {
+			ErrorParser curr = parser;
+			int types = IErrorParser2.NONE;
+			if (curr instanceof IErrorParser2) {
+				types = ((IErrorParser2) curr).getProcessLineBehaviour();
+			}
+			if ((types & IErrorParser2.KEEP_LONGLINES) == 0) {
+				// long lines are not given to parsers, unless it wants it
+				if (lineTrimmed.length() > 1000)
+					continue;
+			}
+			// standard behavior (pre 5.1) is to trim the line
+			String lineToParse = lineTrimmed;
+			if ((types & IErrorParser2.KEEP_UNTRIMMED) !=0 ) {
+				// untrimmed lines
+				lineToParse = line;
+			}
+
+			boolean consume = false;
+			// Protect against rough parsers who may accidentally
+			// throw an exception on a line they can't handle.
+			// It should not stop parsing of the rest of output.
+			try {
+				consume = curr.processLine(lineToParse, this);
+			} catch (Exception e){
+				AutotoolsPlugin.log(e);
+			} finally {
+				if (fErrors.size() > 0) {
+					if (marker==null)
+						marker = fErrors.get(0);
+					fErrors.clear();
+				}
+			}
+
+			if (consume)
+				break;
+			}
+		outputLine(line, marker);
+	}
+

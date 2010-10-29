@@ -69,14 +69,14 @@
 			env = (String[]) envList.toArray(new String[envList.size()]);
 		}
 
-		// // Hook up an error parser manager
-		// String[] errorParsers =
-		// info.getDefaultConfiguration().getErrorParserList();
-		// ErrorParserManager epm = new ErrorParserManager(project, topBuildDir,
-		// this, errorParsers);
-		// epm.setOutputStream(consoleOutStream);
-		OutputStream stdout = consoleOutStream;
-		OutputStream stderr = consoleOutStream;
+		// Hook up an error parser manager
+		URI uri = URIUtil.toURI(runPath);
+		ErrorParserManager epm = new ErrorParserManager(project, uri, this, new String[] {ErrorParser.ID});
+		epm.setOutputStream(consoleOutStream);
+		epm.addErrorParser(ErrorParser.ID, new ErrorParser());
+	
+		OutputStream stdout = epm.getOutputStream();
+		OutputStream stderr = stdout;
 
 		launcher.showCommand(true);
 		Process proc = launcher.execute(commandPath, configTargets, env,
@@ -155,10 +155,8 @@
 		// epm.reportProblems();
 		consoleOutStream.close();
 		
-		// TODO: For now, add a marker with our generated error message.
-		// In the future, we might add an error parser to do this properly
-		// and give the actual error line, etc..
-		if (rc == IStatus.ERROR) {
+		// If we have an error and no specific error markers, use the default error marker.
+		if (rc == IStatus.ERROR && !hasMarkers(project)) {
 			addMarker(project, -1, errMsg, SEVERITY_ERROR_BUILD, null);
 		}
 		

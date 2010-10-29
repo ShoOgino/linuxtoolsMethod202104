@@ -1,13 +1,16 @@
 	/*
 	 * callback from Output Parser
 	 */
-	public void addMarker(ProblemMarkerInfo problemMarkerInfo) {
+	public void addMarker(AutotoolsProblemMarkerInfo info) {
+		ProblemMarkerInfo problemMarkerInfo = info.getProblemMarkerInfo();
+//		ProblemMarkerInfo problemMarkerInfo = info;
 		try {
 			IResource markerResource = problemMarkerInfo.file ;
 			if (markerResource==null)  {
 				markerResource = getProject();
 			}
-			IMarker[] cur = markerResource.findMarkers(ICModelMarker.C_MODEL_PROBLEM_MARKER, true, IResource.DEPTH_ONE);
+			IMarker[] cur = markerResource.findMarkers(IAutotoolsMarker.AUTOTOOLS_PROBLEM_MARKER, true, IResource.DEPTH_ONE);
+//			IMarker[] cur = markerResource.findMarkers(ICModelMarker.C_MODEL_PROBLEM_MARKER, true, IResource.DEPTH_ONE);
 			/*
 			 * Try to find matching markers and don't put in duplicates
 			 */
@@ -22,7 +25,8 @@
 				}
 			}
 
-			IMarker marker = markerResource.createMarker(ICModelMarker.C_MODEL_PROBLEM_MARKER);
+			IMarker marker = markerResource.createMarker(IAutotoolsMarker.AUTOTOOLS_PROBLEM_MARKER);
+//			IMarker marker = markerResource.createMarker(ICModelMarker.C_MODEL_PROBLEM_MARKER);
 			marker.setAttribute(IMarker.LOCATION, problemMarkerInfo.lineNumber);
 			marker.setAttribute(IMarker.MESSAGE, problemMarkerInfo.description);
 			marker.setAttribute(IMarker.SEVERITY, mapMarkerSeverity(problemMarkerInfo.severity));
@@ -30,10 +34,13 @@
 			marker.setAttribute(IMarker.CHAR_START, -1);
 			marker.setAttribute(IMarker.CHAR_END, -1);
 			if (problemMarkerInfo.variableName != null) {
-				marker.setAttribute(ICModelMarker.C_MODEL_MARKER_VARIABLE, problemMarkerInfo.variableName);
+				marker.setAttribute(IAutotoolsMarker.MARKER_VARIABLE, problemMarkerInfo.variableName);
 			}
 			if (problemMarkerInfo.externalPath != null) {
-				marker.setAttribute(ICModelMarker.C_MODEL_MARKER_EXTERNAL_LOCATION, problemMarkerInfo.externalPath.toOSString());
+				marker.setAttribute(IAutotoolsMarker.MARKER_EXTERNAL_LOCATION, problemMarkerInfo.externalPath.toOSString());
+			}
+			if (info.libraryInfo != null) {
+				marker.setAttribute(IAutotoolsMarker.MARKER_LIBRARY_INFO, info.libraryInfo);
 			}
 		}
 		catch (CoreException e) {
