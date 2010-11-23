@@ -20,21 +20,25 @@
 						Fields.LTT_FIELD_SYSCALL_ID);
 
 				String submode = null;
+				int submodeId = 0;
 				if (syscall == null) {
 					TraceDebug
 							.debug("Syscall Field not found, traceVent time: " //$NON-NLS-1$
 									+ trcEvent.getTimestamp());
 				} else {
 					submode = traceSt.getSyscall_names().get(syscall);
+					// Note: For statistics performance improvement only the integer value of syscall is used 
+					// as well as a bit mask is applied! 
+					submodeId = syscall.intValue() | LttngConstants.STATS_SYS_CALL_NAME_ID;
 				}
 
 				if (submode == null) {
-					submode = ExecutionSubMode.LTTV_STATE_SUBMODE_UNKNOWN
-							.getInName();
+					submode = ExecutionSubMode.LTTV_STATE_SUBMODE_UNKNOWN.getInName();
+					submodeId = ExecutionSubMode.LTTV_STATE_SUBMODE_UNKNOWN.ordinal() | LttngConstants.STATS_NONE_ID; 
 				}
 
 				push_state(cpu, StateStrings.ExecutionMode.LTTV_STATE_SYSCALL,
-						submode, trcEvent.getTimestamp(), traceSt);
+						submode, submodeId, trcEvent.getTimestamp(), traceSt);
 				return false;
 			}
 		};
