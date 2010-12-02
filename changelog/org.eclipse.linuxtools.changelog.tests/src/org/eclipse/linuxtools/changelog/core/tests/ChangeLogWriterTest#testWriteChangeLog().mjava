@@ -1,0 +1,93 @@
+	/**
+	 * Note that there can be several Changelogs inside a directory tree.
+	 * The {@link ChangeLogWriter#writeChangeLog()} code assumes that the full path to 
+	 * the ChangeLog file and the full path to the file for which to generate a ChangeLog
+	 * entry have the same ancestor (with some potential overlap).
+	 * 
+	 * Consider the following example:
+	 * 
+	 * 1. The ChangeLog file is <project-root>/src/ChangeLog
+	 * 2. The currently open editor contains code of <project-root>/src/org/eclipse/example/Test.java
+	 * 
+	 * In the above case entries in <project-root>/src/ChangeLog *should* be of the form:
+	 * 
+	 * <code>
+	 * 
+	 * YYYY-MM-DD  Author Name  <email@example.com>
+	 * 
+	 *    * org/eclipse/example/Test.java: new File
+	 * 
+	 * </code>
+	 * 
+	 * Similarly, if the ChangeLog file is in <project-root>/ChangeLog and the currently open
+	 * file is <project-root>/src/org/eclipse/example/Sun.java, generated entries in 
+	 * <project-root>/ChangeLog would look like (note the "src" path is added in this case):
+	 * 
+	 * <code>
+	 * 
+	 * YYYY-MM-DD  Author Name  <email@example.com>
+	 * 
+	 *    * src/org/eclipse/example/Sun.java: new File
+	 * 
+	 * </code>
+	 * 
+	 * Test for method {@link org.eclipse.linuxtools.changelog.core.ChangeLogWriter#writeChangeLog()}
+	 */
+	@Test
+	public void testWriteChangeLog() throws Exception {
+		// We want paths up to the ChangeLog file to overlap
+		String changedFilePath = "/";
+		for (String segment: CHANGELOG_FILE_PATH_SEGMENTS) {
+			changedFilePath += segment + "/";
+		}
+		final String pathRelativeToChangeLog = "eclipse/example/test/NewCoffeeMaker.java";
+		clogWriter.setEntryFilePath( changedFilePath + pathRelativeToChangeLog );
+
+		// Will show up surrounded by "(" and ")" in ChangeLog
+		String guessedFunctionName = "bazinga";
+		clogWriter.setGuessedFName(guessedFunctionName);
+
+		// set GNU formatter
+		clogWriter.setFormatter(new GNUFormat());
+
+		// Open a document and get the IEditorPart
+		IEditorPart editorContent = EditorHelper.openEditor(changelogFile);
+		clogWriter.setChangelog(editorContent);
+
+		// set date/author line
+		String authorName = "Test Author";
+		String email = "test@example.com";
+		clogWriter.setDateLine(clogWriter.getFormatter().formatDateLine(
+				authorName, email));
+
+		// full absolute path to ChangeLog file (relative to project root)
+		clogWriter.setChangelogLocation(changelogFilePath);
+
+		// Write changelog to buffer - need to save for persistence
+		clogWriter.writeChangeLog();
+		
+		// above written content is not persistent yet; save it to make it persistent
+		clogWriter.getChangelog().doSave(null);
+		
+		// Today's date in ISO format
+		Calendar c = new GregorianCalendar();
+		String isoDate = String.format("%1$tY-%1$tm-%1$td", c);
+
+		// Construct the changelog entry by hand and match it with what has been written
+		String expectedChangeLogEntry = isoDate + "  " + authorName + "  <" + email + ">\n\n";
+		expectedChangeLogEntry += "\t* " + pathRelativeToChangeLog + " (" + guessedFunctionName + "): \n\n";
+		
+		String expectedContent = expectedChangeLogEntry + changeLogContent;
+		
+		// Read in content written to file
+		StringBuffer actualContent = new StringBuffer();
+		BufferedReader br = new BufferedReader(new InputStreamReader(
+				new FileInputStream(changelogFile.getLocation().toFile())));
+		String line;
+		while ( (line = br.readLine()) != null ) {
+			actualContent.append(line + "\n");
+		}
+		// Assert proper content has been added
+		assertEquals(expectedContent, actualContent.toString());
+	}
+
