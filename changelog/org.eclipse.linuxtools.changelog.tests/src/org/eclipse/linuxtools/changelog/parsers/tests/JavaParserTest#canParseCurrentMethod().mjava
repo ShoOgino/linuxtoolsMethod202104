@@ -1,0 +1,49 @@
+	/**
+	 * Given an IEditorPart we should be able to retrieve the current function
+	 * we are in.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void canParseCurrentMethod() throws Exception {
+		final String expectedMethodName = "doSomething";
+		final String javaSourceCode = "public class JavaParserExampleClass {\n"
+				+ "private void " + expectedMethodName + "(String param) {\n"
+					+ "// "	+ OFFSET_MARKER + "\n"
+					+ "}\n"
+				+ "}\n";
+
+		assertNull(project.getTestProject().findMember( new Path(
+								"/src/org/eclipse/changelog/tests/JavaParserExampleClass.java")));
+
+		// Add JavaParserExampleClass.java to project
+		InputStream newFileInputStream = new ByteArrayInputStream(
+				javaSourceCode.getBytes());
+		IFile javaSourceFile = project.addFileToProject(
+				"/src/org/eclipse/changelog/tests",
+				"JavaParserExampleClass.java", newFileInputStream);
+
+		assertNotNull(project.getTestProject().findMember( new Path(
+								"/src/org/eclipse/changelog/tests/JavaParserExampleClass.java")));
+		
+		// Open a source file and get the IEditorPart
+		javaSourceEditorPart = openEditor(javaSourceFile);
+		// make sure changelog editor content is right before merging
+		assertEquals(javaSourceCode, getContent(javaSourceEditorPart));
+		
+		// make sure we have the proper editor type
+		assertTrue( javaSourceEditorPart instanceof AbstractDecoratedTextEditor );
+
+		// Select the snippet we want
+		int selectionStart = javaSourceCode.indexOf(OFFSET_MARKER);
+		assertTrue(selectionStart >= 0);
+		int selectionLength = OFFSET_MARKER.length();
+		AbstractDecoratedTextEditor javaEditor = (AbstractDecoratedTextEditor) javaSourceEditorPart;		
+		javaEditor.getSelectionProvider().setSelection(
+				new TextSelection(selectionStart, selectionLength));
+		
+		final String actualMethodName = javaParser.parseCurrentFunction(javaSourceEditorPart);
+		
+		assertEquals(expectedMethodName, actualMethodName);
+	}
+

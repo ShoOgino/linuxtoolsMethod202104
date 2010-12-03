@@ -1,0 +1,50 @@
+	/**
+	 * Given an IEditorPart we should be able to retrieve the currently selected
+	 * field.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void canParseSelectedField() throws Exception {
+		final String expectedFieldName = "testVar";
+		final String javaSourceCode = "public class JavaParserExampleClass {\n"
+			 	+ "private String " + expectedFieldName + " = null;\n"
+				+ "private void someMethod(String param) {\n"
+					+ "// empty \n"
+					+ "}\n"
+				+ "}\n";
+
+		assertNull(project.getTestProject().findMember( new Path(
+								"/src/org/eclipse/changelog/tests/JavaParserExampleClass.java")));
+
+		// Add JavaParserExampleClass.java to project
+		InputStream newFileInputStream = new ByteArrayInputStream(
+				javaSourceCode.getBytes());
+		IFile javaSourceFile = project.addFileToProject(
+				"/src/org/eclipse/changelog/tests",
+				"JavaParserExampleClass.java", newFileInputStream);
+
+		assertNotNull(project.getTestProject().findMember( new Path(
+								"/src/org/eclipse/changelog/tests/JavaParserExampleClass.java")));
+		
+		// Open a source file and get the IEditorPart
+		javaSourceEditorPart = openEditor(javaSourceFile);
+		// make sure changelog editor content is right before merging
+		assertEquals(javaSourceCode, getContent(javaSourceEditorPart));
+		
+		// make sure we have the proper editor type
+		assertTrue( javaSourceEditorPart instanceof AbstractDecoratedTextEditor );
+
+		// Select the snippet we want
+		int selectionStart = javaSourceCode.indexOf(expectedFieldName);
+		assertTrue(selectionStart >= 0);
+		int selectionLength = expectedFieldName.length() - 3; // Shouldn't need to select the entire field
+		AbstractDecoratedTextEditor javaEditor = (AbstractDecoratedTextEditor) javaSourceEditorPart;		
+		javaEditor.getSelectionProvider().setSelection(
+				new TextSelection(selectionStart, selectionLength));
+		
+		final String actualFieldName = javaParser.parseCurrentFunction(javaSourceEditorPart);
+		
+		assertEquals(expectedFieldName, actualFieldName);
+	}
+
