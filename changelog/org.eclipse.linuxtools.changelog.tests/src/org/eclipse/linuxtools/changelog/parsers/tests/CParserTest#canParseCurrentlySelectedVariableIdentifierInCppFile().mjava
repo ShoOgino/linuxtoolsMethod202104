@@ -1,0 +1,57 @@
+	/**
+	 * Given an IEditorPart we should be able to retrieve the currently selected
+	 * variable identifier inside a C++ file.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void canParseCurrentlySelectedVariableIdentifierInCppFile() throws Exception {
+		// make test project a C++ project
+		project.addCCNature();
+		
+		final String expectedIdentifier = "myIdentifier";
+		final String className = "shape";
+		final String cppSourceCode = "class " + className + " {\n"
+				+ "int x;\n"
+				+ "int y;\n"
+			+ "private:\n"
+				+ "int color;\n"
+				+ "float " + expectedIdentifier + ";\n"
+				+ "void set_color(int color);\n"
+			+"}\n";
+
+		assertNull(project.getTestProject().findMember( new Path(
+								"/src/shape.h")));
+
+		// Add shape.h to project
+		InputStream newFileInputStream = new ByteArrayInputStream(
+				cppSourceCode.getBytes());
+		IFile cppSourceFile = project.addFileToProject(
+				"/src",
+				"shape.h", newFileInputStream);
+
+		assertNotNull(project.getTestProject().findMember( new Path(
+								"/src/shape.h")));
+		
+		// Open a source file and get the IEditorPart
+		cppSourceEditorPart = openEditor(cppSourceFile);
+		// make sure editor content is correct
+		assertEquals(cppSourceCode, getContent(cppSourceEditorPart));
+		
+		// make sure we have the proper editor type
+		assertTrue( cppSourceEditorPart instanceof AbstractTextEditor );
+
+		// Select the snippet we want
+		int selectionStart = cppSourceCode.indexOf(expectedIdentifier);
+		assertTrue(selectionStart >= 0);
+		// shouldn't need to mark whole length of identifier.
+		int selectionLength = expectedIdentifier.length() - 3;
+		AbstractTextEditor cppEditor = (AbstractTextEditor) cppSourceEditorPart;		
+		cppEditor.getSelectionProvider().setSelection(
+				new TextSelection(selectionStart, selectionLength));
+		
+		final String actualIdentifier = cParser.parseCurrentFunction(cppSourceEditorPart);
+		
+		assertEquals(className + "." + expectedIdentifier, actualIdentifier);
+	}
+

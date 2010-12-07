@@ -1,0 +1,55 @@
+	/**
+	 * Given an IEditorPart and not selected any variable identifier in a class, we should
+	 * get the class name as selected function name only.  
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void canParseClassNameIfNoVariableIdentifierSelectedInCppFile() throws Exception {
+		// make test project a C++ project
+		project.addCCNature();
+		
+		final String className = "shape";
+		final String cppSourceCode = "class " + className + " {\n"
+				+ "int x;\n"
+				+ "int y;\n"
+				+ "// " + OFFSET_MARKER + "\n"
+			+ "private:\n"
+				+ "int color;\n"
+				+ "void set_color(int color);\n"
+			+"}\n";
+
+		assertNull(project.getTestProject().findMember( new Path(
+								"/src/shape.h")));
+
+		// Add shape.h to project
+		InputStream newFileInputStream = new ByteArrayInputStream(
+				cppSourceCode.getBytes());
+		IFile cppSourceFile = project.addFileToProject(
+				"/src",
+				"shape.h", newFileInputStream);
+
+		assertNotNull(project.getTestProject().findMember( new Path(
+								"/src/shape.h")));
+		
+		// Open a source file and get the IEditorPart
+		cppSourceEditorPart = openEditor(cppSourceFile);
+		// make sure editor content is correct
+		assertEquals(cppSourceCode, getContent(cppSourceEditorPart));
+		
+		// make sure we have the proper editor type
+		assertTrue( cppSourceEditorPart instanceof AbstractTextEditor );
+
+		// Select the snippet we want
+		int selectionStart = cppSourceCode.indexOf(OFFSET_MARKER);
+		assertTrue(selectionStart >= 0);
+		int selectionLength = OFFSET_MARKER.length();
+		AbstractTextEditor cppEditor = (AbstractTextEditor) cppSourceEditorPart;		
+		cppEditor.getSelectionProvider().setSelection(
+				new TextSelection(selectionStart, selectionLength));
+		
+		final String actualFunction = cParser.parseCurrentFunction(cppSourceEditorPart);
+		
+		assertEquals(className, actualFunction);
+	}
+

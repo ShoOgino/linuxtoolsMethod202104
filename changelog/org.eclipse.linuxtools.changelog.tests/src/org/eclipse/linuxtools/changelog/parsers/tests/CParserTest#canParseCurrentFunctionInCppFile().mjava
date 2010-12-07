@@ -1,0 +1,57 @@
+	/**
+	 * Given an IEditorPart and current selection is inside a method,
+	 * CParser should be able to figure that out.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void canParseCurrentFunctionInCppFile() throws Exception {
+		// make test project a C++ project
+		project.addCCNature();
+		
+		final String expectedFunction = "main";
+		final String cppSourceCode = "#include \"circle.h\"\n"
+			+ "#include <math.h>\n"
+			+ "float circle::area() {\n"
+				+ "return this->radius * this-> radius * M_PI\n"
+			+ "}\n"
+			+ "int " + expectedFunction + "() {\n"
+				+ "int some_var = 0;\n"
+				+ "// " + OFFSET_MARKER + "\n"
+				+ "return 0;\n"
+			+ "}\n";
+
+		assertNull(project.getTestProject().findMember( new Path(
+								"/src/circle.cpp")));
+
+		// Add shape.h to project
+		InputStream newFileInputStream = new ByteArrayInputStream(
+				cppSourceCode.getBytes());
+		IFile cppSourceFile = project.addFileToProject(
+				"/src",
+				"circle.cpp", newFileInputStream);
+
+		assertNotNull(project.getTestProject().findMember( new Path(
+								"/src/circle.cpp")));
+		
+		// Open a source file and get the IEditorPart
+		cppSourceEditorPart = openEditor(cppSourceFile);
+		// make sure editor content is correct
+		assertEquals(cppSourceCode, getContent(cppSourceEditorPart));
+		
+		// make sure we have the proper editor type
+		assertTrue( cppSourceEditorPart instanceof AbstractTextEditor );
+
+		// Select the snippet we want
+		int selectionStart = cppSourceCode.indexOf(OFFSET_MARKER);
+		assertTrue(selectionStart >= 0);
+		int selectionLength = OFFSET_MARKER.length();
+		AbstractTextEditor cppEditor = (AbstractTextEditor) cppSourceEditorPart;		
+		cppEditor.getSelectionProvider().setSelection(
+				new TextSelection(selectionStart, selectionLength));
+		
+		final String actualFunction = cParser.parseCurrentFunction(cppSourceEditorPart);
+		
+		assertEquals(expectedFunction, actualFunction);
+	}
+

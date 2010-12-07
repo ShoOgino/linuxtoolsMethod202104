@@ -1,0 +1,29 @@
+	/**
+	 * Given an IStorageEditorInput we should be able to retrieve the currently
+	 * active C function.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void canParseCurrentFunctionFromCStringInIStorageEditorInput() throws Exception {
+		final String expectedFunctionName = "doSomething";
+		final String cSourceCode = "static int " + expectedFunctionName + "(char *test)\n"
+				+ "{\n"
+					+ "int index = 0;\n"
+					+ "// " + OFFSET_MARKER + "\n"
+					+ "return 0;\n"
+				+ "}\n";
+		
+		// prepare IStorageEditorInput
+		IStorage cStringStorage = new CStringStorage(cSourceCode);
+		IStorageEditorInput cStringStorageEditorInput = new CStringStorageInput(cStringStorage);
+
+		// Figure out the desired offset
+		int selectOffset = cSourceCode.indexOf(OFFSET_MARKER);
+		assertTrue(selectOffset >= 0);
+		
+		final String actualFunctionName = cParser.parseCurrentFunction(cStringStorageEditorInput, selectOffset);
+		
+		assertEquals(expectedFunctionName, actualFunctionName);
+	}
+
