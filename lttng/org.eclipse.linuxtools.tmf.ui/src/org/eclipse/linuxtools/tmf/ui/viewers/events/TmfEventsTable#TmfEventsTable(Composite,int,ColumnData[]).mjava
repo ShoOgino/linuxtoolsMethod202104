@@ -32,13 +32,12 @@
         fTable.addListener(SWT.SetData, new Listener() {
 
             @Override
-			@SuppressWarnings("unchecked")
 			public void handleEvent(Event event) {
 
                 final TableItem item = (TableItem) event.item;
                 final int index = fTable.indexOf(item);
 
-                // Note: this works because handleEvent() is called once for each row, in sequence  
+                // If available, return the cached data  
                 if ((index >= fCacheStartIndex) && (index < fCacheEndIndex)) {
                     int i = index - fCacheStartIndex;
                     item.setText(extractItemFields(fCache[i]));
@@ -46,36 +45,8 @@
                     return;
                 }
 
-                fCacheStartIndex = index;
-                fCacheEndIndex = index;
-
-                TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(TmfEvent.class, index, fCacheSize) {
-                	private int count = 0;
-
-                	@Override
-                    public void handleData(TmfEvent event) {
-                		super.handleData(event);
-                        if (event != null) {
-                            fCache[count++] = event.clone();
-                            fCacheEndIndex++;
-                        }
-                    }
-
-                };
-
-                ((ITmfDataProvider<TmfEvent>) fTrace).sendRequest(request);
-                try {
-                    request.waitForCompletion();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                
-                if (fCache[0] != null && fCacheStartIndex == index) {
-                    item.setText(extractItemFields(fCache[0]));
-                    item.setData(new TmfTimestamp(fCache[0].getTimestamp()));
-                    packColumns();
-                }
-                
+                // Else, fill the cache asynchronously (and off the UI thread)
+                populateCache(index);
             }
         });
 
