@@ -1,0 +1,26 @@
+	private static void getCachedLibraries(IFileStore dir, String type) {
+		try {
+			boolean isCPP = type.equals("C++"); //$NON-NLS-1$
+			IFileStore[] files = dir.childStores(EFS.NONE, null);
+			for (int i = 0; i < files.length; ++i) {
+				IFileStore file = files[i];
+				String fileName = file.fetchInfo().getName();
+				if (fileName.endsWith(".libhover")) { //$NON-NLS-1$
+					File f = file.toLocalFile(EFS.NONE, null);
+					if (f != null) {
+						String name = getCleanName(fileName.substring(0,fileName.length()-9));
+						HelpBook h = new HelpBook(name, type); //$NON-NLS-1$
+						helpBooks.add(h);
+						helpBooksMap.put(name, h);
+						String location = file.toURI().toString();
+						LibHoverLibrary l = new LibHoverLibrary(name, location, null, null, isCPP); 
+						libraries.put(h, l);
+					}
+				}
+			}
+		} catch (CoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+

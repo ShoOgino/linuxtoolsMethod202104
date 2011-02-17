@@ -4,6 +4,23 @@
 //		System.out.println("getlibhoverdocs");
 		libraries.clear();
 		helpBooks.clear();
+		helpBooksMap.clear();
+		// Check if caching of library info is enabled and if so, get any
+		// cached library hover info.
+		IPreferenceStore ps = LibhoverPlugin.getDefault().getPreferenceStore();
+		if (ps.getBoolean(PreferenceConstants.CACHE_EXT_LIBHOVER)) {
+			// Look for cached libhover files in the plugin state location
+			IPath stateLocation = LibhoverPlugin.getDefault().getStateLocation();
+			IFileSystem fs = EFS.getLocalFileSystem();
+			IPath CLibraryLocation = stateLocation.append("C"); //$NON-NLS-1$
+			IPath CPPLibraryLocation = stateLocation.append("CPP"); //$NON-NLS-1$
+			IFileStore cDir = fs.getStore(CLibraryLocation);
+			if (cDir.fetchInfo().exists())
+				getCachedLibraries(cDir, "C"); //$NON-NLS-1$
+			IFileStore cppDir = fs.getStore(CPPLibraryLocation);
+			if (cppDir.fetchInfo().exists())
+				getCachedLibraries(cppDir, "C++"); //$NON-NLS-1$
+		}
 		IExtensionRegistry x = RegistryFactory.getRegistry();
 		IConfigurationElement[] ces = x.getConfigurationElementsFor(LIBHOVER_DOC_EXTENSION);
 		for (int i = 0; i < ces.length; ++i) {
@@ -18,11 +35,21 @@
 				String name = ce.getAttribute("name"); //$NON-NLS-1$
 				String helpdocs = ce.getAttribute("docs"); //$NON-NLS-1$
 				String type = ce.getAttribute("type"); //$NON-NLS-1$
-				HelpBook h = new HelpBook(name, type);
-				helpBooks.add(h);
-				LibHoverLibrary l = new LibHoverLibrary(name, location, helpdocs, 
-						true);
-				libraries.put(h, l);
+				String nameSpace = ce.getContributor().getName();
+				// If library not already cached, create it
+				ICHelpBook book = helpBooksMap.get(name);
+				if (book == null) {
+					HelpBook h = new HelpBook(name, type);
+					helpBooks.add(h);
+					helpBooksMap.put(name, h);
+					LibHoverLibrary l = new LibHoverLibrary(name, location, helpdocs, nameSpace, 
+							"C++".equals(type)); //$NON-NLS-1$
+					libraries.put(h, l);
+				} else {
+					LibHoverLibrary l = libraries.get(book);
+					if (l != null)
+						l.setDocs(helpdocs);
+				}
 				docsFetched = true;
 			}
 		}

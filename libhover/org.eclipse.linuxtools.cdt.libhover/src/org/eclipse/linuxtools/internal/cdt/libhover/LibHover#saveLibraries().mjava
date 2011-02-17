@@ -1,0 +1,34 @@
+    public static void saveLibraries() {
+    	// If user preference is to cache libhover data, then save any un-saved
+    	// library hover data.
+    	IPreferenceStore ps = LibhoverPlugin.getDefault().getPreferenceStore();
+    	if (ps.getBoolean(PreferenceConstants.CACHE_EXT_LIBHOVER)) {
+    		IPath locationBase = LibhoverPlugin.getDefault().getStateLocation();
+    		for (Iterator<LibHoverLibrary> i = libraries.values().iterator(); i.hasNext();) {
+    			LibHoverLibrary l = i.next();
+    			try {
+    				// Now, output the LibHoverInfo for caching later
+    				IPath locationDir = locationBase;
+    				if (l.isCPP())
+    					locationDir = locationBase.append("CPP"); //$NON-NLS-1$
+    				else
+    					locationDir = locationBase.append("C"); //$NON-NLS-1$
+    				File lDir = new File(locationDir.toOSString());
+    				lDir.mkdir();
+    				IPath location = locationDir.append(getTransformedName(l.getName()) + ".libhover"); //$NON-NLS-1$
+    				File target = new File(location.toOSString()); //$NON-NLS-1$
+    				if (!target.exists()) {
+    					FileOutputStream f = new FileOutputStream(locationDir.append("tmpFile").toOSString()); //$NON-NLS-1$
+    					ObjectOutputStream out = new ObjectOutputStream(f);
+    					out.writeObject(l.getHoverInfo());
+    					out.close();
+    					File tmp = new File(locationDir.append("tmpFile").toOSString()); //$NON-NLS-1$
+    					tmp.renameTo(target);
+    				}
+    			} catch(Exception e) {
+    				e.printStackTrace();
+    			}
+    		}
+    	}
+    }
+

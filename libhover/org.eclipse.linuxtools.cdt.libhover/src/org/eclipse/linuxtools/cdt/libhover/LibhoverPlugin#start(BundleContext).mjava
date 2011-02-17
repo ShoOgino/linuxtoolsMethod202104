@@ -5,5 +5,19 @@
 	public void start(BundleContext context) throws Exception {
 		super.start(context);
 		plugin = this;
+		ResourcesPlugin.getWorkspace().addSaveParticipant(PLUGIN_ID,
+				new ISaveParticipant() {
+					public void saving(ISaveContext saveContext) throws CoreException {
+						LibhoverPlugin.getDefault().save(saveContext);
+					}				
+					public void rollback(ISaveContext saveContext) {}
+					public void prepareToSave(ISaveContext saveContext) throws CoreException {}
+					public void doneSaving(ISaveContext saveContext) {}
+				});
+		IPreferenceStore ps = getPreferenceStore();
+		if (ps == null || !ps.getBoolean(PreferenceConstants.LAZY_LOAD)) {
+			Job k = new LibHoverLoadJob(LibHoverMessages.getString(LOAD_JOB_TXT));
+			k.schedule();
+		}
 	}
 
