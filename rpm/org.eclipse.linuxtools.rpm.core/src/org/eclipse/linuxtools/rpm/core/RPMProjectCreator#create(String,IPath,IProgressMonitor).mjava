@@ -1,0 +1,28 @@
+	/**
+	 * Creates a project with the given name in the given location.
+	 * @param projectName The name of the project.
+	 * @param projectPath The parent location of the project.
+	 * @param monitor Progress monitor to report back status.
+	 */
+	public void create(String projectName, IPath projectPath,
+			IProgressMonitor monitor) {
+		try {
+			IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+			IProject project = root.getProject(projectName);
+			IProjectDescription description = ResourcesPlugin.getWorkspace()
+					.newProjectDescription(project.getName());
+			if (!Platform.getLocation().equals(projectPath))
+				description.setLocation(projectPath);
+			description
+					.setNatureIds(new String[] { RPMProjectNature.RPM_NATURE_ID });
+			project.create(description, monitor);
+			monitor.worked(10);
+			project.open(monitor);
+			if (layout.equals(RPMProjectLayout.RPMBUILD)) {
+				createDirs(monitor, project);
+			}
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+	}
+
