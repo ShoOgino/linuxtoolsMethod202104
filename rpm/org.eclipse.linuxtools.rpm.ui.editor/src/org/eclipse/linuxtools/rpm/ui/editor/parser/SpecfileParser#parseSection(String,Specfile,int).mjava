@@ -1,0 +1,111 @@
+	private SpecfileSection parseSection(String lineText, Specfile specfile,
+			int lineNumber) {
+		List<String> tokens = Arrays.asList(lineText.split("\\s+")); //$NON-NLS-1$
+		SpecfileSection toReturn = null;
+		boolean isSimpleSection = false;
+		for (Iterator<String> iter = tokens.iterator(); iter.hasNext();) {
+			String token = iter.next();
+
+			// Sections
+			// Simple Section Headers
+			for (String simpleSection : simpleSections) {
+				if (token.equals(simpleSection)) {
+					toReturn = new SpecfileSection(token.substring(1), specfile);
+					specfile.addSection(toReturn);
+					isSimpleSection = true;
+				}
+
+			}
+
+			// Complex Section Headers
+			for (String complexSection : complexSections) {
+				if (token.equals(complexSection)) {
+					String name = token.substring(1);
+					if (!name.equals("package")) { //$NON-NLS-1$
+						toReturn = new SpecfileSection(name, specfile);
+						specfile.addComplexSection(toReturn);
+					}
+					while (iter.hasNext()) {
+						String nextToken = iter.next();
+						if (nextToken.equals("-n")) { //$NON-NLS-1$
+							if (!iter.hasNext()) {
+								errorHandler
+										.handleError(new SpecfileParseException(
+												Messages
+														.getString("SpecfileParser.1") //$NON-NLS-1$
+														+ name
+														+ Messages
+																.getString("SpecfileParser.2"), //$NON-NLS-1$
+												lineNumber, 0, lineText
+														.length(),
+												IMarker.SEVERITY_ERROR));
+								continue;
+							}
+
+							nextToken = iter.next();
+							if (nextToken.startsWith("-")) { //$NON-NLS-1$
+								errorHandler
+										.handleError(new SpecfileParseException(
+												Messages
+														.getString("SpecfileParser.3") //$NON-NLS-1$
+														+ nextToken
+														+ Messages
+																.getString("SpecfileParser.4"), //$NON-NLS-1$
+												lineNumber, 0, lineText
+														.length(),
+												IMarker.SEVERITY_ERROR));
+							}
+
+						} else if (nextToken.equals("-p")) { //$NON-NLS-1$
+							// FIXME: rest of line is the actual section
+							break;
+						} else if (nextToken.equals("-f")) { //$NON-NLS-1$
+							break;
+						}
+
+						// this is a package
+						if (toReturn == null) {
+							toReturn = specfile.getPackage(nextToken);
+
+							if (toReturn == null) {
+								toReturn = new SpecfilePackage(nextToken,
+										specfile);
+								specfile.addPackage((SpecfilePackage) toReturn);
+							}
+							return toReturn;
+						}
+
+						// this is another section
+						SpecfilePackage enclosingPackage = specfile
+								.getPackage(nextToken);
+						if (enclosingPackage == null) {
+							enclosingPackage = new SpecfilePackage(nextToken,
+									specfile);
+							specfile.addPackage(enclosingPackage);
+						}
+						toReturn.setPackage(enclosingPackage);
+						enclosingPackage.addSection(toReturn);
+					}
+				}
+			}
+		}
+
+		// if this package is part of the top level package, add it to
+		// it
+		if (toReturn != null && toReturn.getPackage() == null) {
+			SpecfilePackage topPackage = specfile
+					.getPackage(specfile.getName());
+			if (topPackage == null) {
+				topPackage = new SpecfilePackage(specfile.getName(), specfile);
+				specfile.addPackage(topPackage);
+			}
+			if (!isSimpleSection) {
+				topPackage.addSection(toReturn);
+			}
+		}
+		if (lastSection != null) {
+			lastSection.setSectionEndLine(lineNumber);
+		}
+		return toReturn;
+	}
+

@@ -1,0 +1,46 @@
+	/**
+	 * Updates the tool tip text of the header of this ruler.
+	 *
+	 * @since 3.0
+	 */
+	private void updateHeaderToolTipText() {
+
+		if (fHeader == null || fHeader.isDisposed())
+			return;
+
+		fHeader.setToolTipText(null);
+
+		if (!(fAnnotationAccess instanceof IAnnotationAccessExtension))
+			return;
+
+		String overview= ""; //$NON-NLS-1$
+
+		for (int i= fAnnotationsSortedByLayer.size() -1; i >= 0; i--) {
+
+			Object annotationType= fAnnotationsSortedByLayer.get(i);
+
+			if (skipInHeader(annotationType) || skip(annotationType))
+				continue;
+
+			int count= 0;
+			String annotationTypeLabel= null;
+
+			for (FilterIterator e= new FilterIterator(annotationType, FilterIterator.PERSISTENT | FilterIterator.TEMPORARY | FilterIterator.IGNORE_BAGS); e.hasNext();) {
+				Annotation annotation= e.next();
+				if (annotation != null) {
+					if (annotationTypeLabel == null)
+						annotationTypeLabel= ((IAnnotationAccessExtension)fAnnotationAccess).getTypeLabel(annotation);
+					count++;
+				}
+			}
+
+			if (annotationTypeLabel != null) {
+				if (overview.length() > 0)
+					overview += "\n"; //$NON-NLS-1$
+				overview += STJFaceTextMessages.getFormattedString("OverviewRulerHeader.toolTipTextEntry", new Object[] {annotationTypeLabel, new Integer(count)}); //$NON-NLS-1$
+			}
+		}
+		if (overview.length() > 0)
+			fHeader.setToolTipText(overview);
+	}
+

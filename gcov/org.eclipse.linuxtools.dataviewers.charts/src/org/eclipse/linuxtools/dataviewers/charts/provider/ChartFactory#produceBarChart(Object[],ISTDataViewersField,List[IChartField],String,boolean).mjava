@@ -1,0 +1,98 @@
+	/** 
+	 * Produces a 2D bar chart from the input objects.
+	 * 
+	 * @param objects the input data
+	 * @param nameField the field used to get the labels of the objects (the labels of the series groups).
+	 * @param valFields the fields providing the values for the different bars in a series group.
+	 * @param horizontal if true the bars are displayed horizontally, else vertically.
+	 * @return a new 2D bar chart
+	 */
+	
+	public static final Chart produceBarChart( Object[] objects, final ISTDataViewersField nameField, List<IChartField> valFields, String title,boolean horizontal)
+	{
+		ChartWithAxes cwaBar = ChartWithAxesImpl.create( );
+
+		// Plot
+		cwaBar.getBlock( ).setBackground( ColorDefinitionImpl.WHITE( ) );
+		Plot p = cwaBar.getPlot( );
+		p.getClientArea( )
+				.setBackground( GradientImpl.create( ColorDefinitionImpl.create( 225,
+						225,
+						255 ),
+						ColorDefinitionImpl.create( 255, 255, 225 ),
+						-35,
+						false ) );
+		p.getOutline( ).setVisible( true );
+
+		// Title
+		cwaBar.getTitle( ).getLabel( ).getCaption( ).setValue(title);
+		cwaBar.getTitle( ).getOutline( ).setVisible( true );
+		
+		//Orientation
+		if (horizontal) cwaBar.setTransposed(true);
+
+		// Legend
+		Legend lg = cwaBar.getLegend( );
+		lg.getText( ).getFont( ).setSize( 16 );
+
+		// X-Axis
+		Axis xAxisPrimary = cwaBar.getPrimaryBaseAxes( )[0];
+		xAxisPrimary.getTitle( ).setVisible( true );
+		xAxisPrimary.setTitlePosition( Position.BELOW_LITERAL );
+		xAxisPrimary.setType( AxisType.TEXT_LITERAL );
+		xAxisPrimary.getMajorGrid( ).setTickStyle( TickStyle.BELOW_LITERAL );
+		xAxisPrimary.getOrigin( ).setType( IntersectionType.VALUE_LITERAL );
+		xAxisPrimary.setLabelPosition( Position.BELOW_LITERAL );
+		xAxisPrimary.getTitle().getCaption( ).setValue(nameField.getColumnHeaderText());
+
+		// Y-Axis
+		Axis yAxisPrimary = cwaBar.getPrimaryOrthogonalAxis( xAxisPrimary );
+		yAxisPrimary.getMajorGrid( ).setTickStyle( TickStyle.LEFT_LITERAL );
+
+
+		double max = -1D;
+		List<String> textLabels = new ArrayList<String>();
+		for (Object obj : objects) {
+			String label = nameField.getValue(obj);
+			textLabels.add(label);
+		}
+		TextDataSet categoryValues = TextDataSetImpl.create(textLabels );
+		SeriesDefinition sdY = SeriesDefinitionImpl.create( );
+		sdY.getSeriesPalette( ).shift( -1 );
+
+		yAxisPrimary.getSeriesDefinitions( ).add( sdY );
+	
+		// Data Set
+		for (IChartField field : valFields) {
+			List<Double> doubleValues = new ArrayList<Double>();
+			for (Object obj : objects) {
+
+				Number num = field.getNumber(obj);
+				double longVal = num.doubleValue();
+				max = longVal > max ? longVal : max;
+				doubleValues.add(longVal);
+			}
+			
+			NumberDataSet orthoValues = NumberDataSetImpl.create(doubleValues);
+			// Y-Series
+			BarSeries bs = (BarSeries) BarSeriesImpl.create( );
+			bs.setSeriesIdentifier( field.getColumnHeaderText() );
+			bs.setDataSet( orthoValues );
+			bs.setRiserOutline( null );
+
+			//Mouse over the Serie to Show Tooltips
+			setTriggering(bs);
+			
+			sdY.getSeries( ).add( bs );
+		}
+
+		// X-Series
+		Series seCategory = SeriesImpl.create( );
+		seCategory.setDataSet( categoryValues );
+		SeriesDefinition sdX = SeriesDefinitionImpl.create( );
+		xAxisPrimary.getSeriesDefinitions( ).add( sdX );
+		sdX.getSeries( ).add( seCategory );
+
+		return cwaBar;
+	}
+

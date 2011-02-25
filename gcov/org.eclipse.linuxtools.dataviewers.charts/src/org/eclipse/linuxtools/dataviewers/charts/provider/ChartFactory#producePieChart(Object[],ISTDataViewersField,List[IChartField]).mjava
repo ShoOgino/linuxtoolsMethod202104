@@ -1,0 +1,79 @@
+	/** 
+	 * Produces a 3D pie chart from the input objects.
+	 * 
+	 * @param objects the input data
+	 * @param nameField the field used to get the labels of the objects (colored parts in the pie).
+	 * @param valField the field providing the values for the pie parts.
+	 * @return a new 3D pie chart
+	 */
+	public static final Chart producePieChart(Object[] objects, ISTDataViewersField nameField, List<IChartField> valFields)
+	{
+		ChartWithoutAxes cwoaPie = ChartWithoutAxesImpl.create( );
+		cwoaPie.setSeriesThickness( 20 );
+		cwoaPie.setGridColumnCount( valFields.size());
+		cwoaPie.getBlock( ).setBackground( ColorDefinitionImpl.WHITE( ) );
+		
+		//2D dimensional with DEPTH (birt DOESN'T SUPPORT 3D for Pie Chart)
+		cwoaPie.setDimension(ChartDimension.TWO_DIMENSIONAL_WITH_DEPTH_LITERAL);
+		
+		// Plot
+		Plot p = cwoaPie.getPlot( );
+		p.getClientArea( ).setBackground( null );
+		p.getClientArea( ).getOutline( ).setVisible( true );
+		p.getOutline( ).setVisible( true );
+
+		// Legend
+		Legend lg = cwoaPie.getLegend( );
+		lg.getText( ).getFont( ).setSize( 16 );
+		lg.setBackground( null );
+		lg.getOutline( ).setVisible( true );
+
+		// Title
+		cwoaPie.getTitle( ).getLabel( ).getCaption( ).setValue( nameField.getColumnHeaderText());
+		cwoaPie.getTitle( ).getOutline( ).setVisible( true );
+		
+		//Base Data Set
+		List<String> textLabels = new ArrayList<String>();
+		for (Object obj : objects) {
+			String label = nameField.getValue(obj);
+			textLabels.add(label);
+		}
+		TextDataSet categoryValues = TextDataSetImpl.create(textLabels );
+
+		// Base Series
+		Series seCategory = SeriesImpl.create( );
+		seCategory.setDataSet( categoryValues );
+		
+		SeriesDefinition sdBase = SeriesDefinitionImpl.create( );
+		cwoaPie.getSeriesDefinitions( ).add( sdBase );
+		sdBase.getSeriesPalette( ).shift( -1 );
+		sdBase.getSeries( ).add( seCategory );
+		
+		SeriesDefinition sdValue = SeriesDefinitionImpl.create( );
+		sdBase.getSeriesDefinitions( ).add( sdValue );
+
+
+		for (IChartField field : valFields) {
+			List<Double> doubleValues = new ArrayList<Double>();
+			for (Object obj : objects) {
+				doubleValues.add(field.getNumber(obj).doubleValue());
+			}
+			
+			NumberDataSet Values = NumberDataSetImpl.create(doubleValues);
+			
+			// Pie Series
+			PieSeries sePie = (PieSeries) PieSeriesImpl.create( );
+			sePie.setSeriesIdentifier( field.getColumnHeaderText());
+			sePie.setExplosion(3);
+			sePie.setDataSet( Values );
+			
+			//Mouse over the Serie to Show Tooltips
+			setTriggering(sePie);
+			
+			sdValue.getSeries( ).add( sePie);
+		}
+	
+	
+		return cwoaPie;
+	}
+

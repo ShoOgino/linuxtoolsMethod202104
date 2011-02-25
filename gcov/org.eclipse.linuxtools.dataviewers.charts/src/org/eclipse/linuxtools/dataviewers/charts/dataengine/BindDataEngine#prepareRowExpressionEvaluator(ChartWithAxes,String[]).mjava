@@ -1,0 +1,31 @@
+	/**
+	 * Uses BIRT data engine to do query and wraps data with
+	 * <code>IDataRowExpressionEvaluator</code> for chart doing data binding.
+	 * 
+	 * @return
+	 * @throws BirtException
+	 */
+	private IDataRowExpressionEvaluator prepareRowExpressionEvaluator(
+			ChartWithAxes chart, String[] expressions ) throws BirtException
+	{
+
+		// Initialize data source and data set.
+		OdaDataSourceDesign odaDataSource = newDataSource( );
+		OdaDataSetDesign odaDataSet = newDataSet( odaDataSource );
+
+		// Create query definition.
+		QueryDefinition query = createQueryDefinition( odaDataSet, expressions );
+
+		// Create data engine and execute query.
+		DataEngine dataEngine = newDataEngine( );
+		dataEngine.defineDataSource( odaDataSource );
+		dataEngine.defineDataSet( odaDataSet );
+		IPreparedQuery preparedQuery = dataEngine.prepare( query );
+
+		IQueryResults queryResults = preparedQuery.execute( null );
+
+		// Create row expression evaluator.
+		return new GroupedRowExpressionsEvaluator( queryResults.getResultIterator( ),
+				true );
+	}
+

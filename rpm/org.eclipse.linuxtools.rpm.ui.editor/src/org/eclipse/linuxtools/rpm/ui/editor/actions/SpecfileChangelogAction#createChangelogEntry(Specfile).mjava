@@ -1,0 +1,39 @@
+	protected String createChangelogEntry(Specfile specfile) {
+		if (specfile == null)
+			return EMPTY_STRING;
+		// FIXME:  this is hack-tastic
+//		ChangelogPlugin changelogPlugin = new ChangelogPlugin();
+		IPreferenceStore store = new ScopedPreferenceStore(new InstanceScope(),
+				"com.redhat.eclipse.changelog.core"); //$NON-NLS-1$
+//		IPreferenceStore store = changelogPlugin.getPreferenceStore();
+
+		String name = store.getString("IChangeLogConstants.AUTHOR_NAME"); //$NON-NLS-1$
+		String email = store.getString("IChangeLogConstants.AUTHOR_EMAIL"); //$NON-NLS-1$
+
+		Calendar cal = new GregorianCalendar();
+		cal.setTime(new Date());
+		System.err.println(cal.get(Calendar.DAY_OF_WEEK));
+		String date = (new SimpleDateFormat(Messages.SpecfileChangelogAction_5)).format(new Date());
+		
+		SpecfileElement resolveElement = new SpecfileElement();
+		resolveElement.setSpecfile(specfile);
+		String epoch = specfile.getEpoch() == -1 ? EMPTY_STRING: (specfile.getEpoch() + ":"); //$NON-NLS-1$
+		String version = specfile.getVersion() == null ? EMPTY_STRING: resolveElement.resolve(specfile.getVersion());
+		String release = specfile.getRelease() == null ? EMPTY_STRING: resolveElement.resolve(specfile.getRelease());
+		
+		
+		StringBuilder changelogEntry = new StringBuilder();
+		changelogEntry.append("* "); //$NON-NLS-1$
+		changelogEntry.append(date);
+		changelogEntry.append(" "); //$NON-NLS-1$
+		changelogEntry.append(name);
+		changelogEntry.append("  <"); //$NON-NLS-1$
+		changelogEntry.append(email);
+		changelogEntry.append("> "); //$NON-NLS-1$
+		changelogEntry.append(epoch);
+		changelogEntry.append(version);
+		changelogEntry.append("-"); //$NON-NLS-1$
+		changelogEntry.append(release);
+		return changelogEntry.toString();
+	}
+

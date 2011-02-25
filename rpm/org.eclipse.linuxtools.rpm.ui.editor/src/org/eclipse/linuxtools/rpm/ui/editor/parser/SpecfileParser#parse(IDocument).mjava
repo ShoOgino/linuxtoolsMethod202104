@@ -1,0 +1,67 @@
+	public Specfile parse(IDocument specfileDocument) {
+
+		// remove all existing markers, if a SpecfileErrorHandler is
+		// instantiated.
+		if (errorHandler != null)
+			errorHandler.removeExistingMarkers();
+		if (taskHandler != null) {
+			taskHandler.removeExistingMarkers();
+		}
+		LineNumberReader reader = new LineNumberReader(new StringReader(
+				specfileDocument.get()));
+		String line = ""; //$NON-NLS-1$
+		int lineStartPosition = 0;
+		Specfile specfile = new Specfile();
+		specfile.setDocument(specfileDocument);
+		try {
+			while ((line = reader.readLine()) != null) {
+				if (taskHandler != null) {
+					generateTaskMarker(reader.getLineNumber() - 1, line);
+				}
+				// IDocument.getLine(#) is 0-indexed whereas
+				// reader.getLineNumber appears to be 1-indexed
+				SpecfileElement element = parseLine(line, specfile, reader
+						.getLineNumber() - 1);
+				if (element != null) {
+					element.setLineNumber(reader.getLineNumber() - 1);
+					element.setLineStartPosition(lineStartPosition);
+					element.setLineEndPosition(lineStartPosition
+							+ line.length());
+					if (element.getClass() == SpecfileTag.class) {
+						SpecfileTag tag = (SpecfileTag) element;
+						specfile.addDefine(tag);
+					} else if ((element.getClass() == SpecfilePatchMacro.class)) {
+						SpecfilePatchMacro thisPatchMacro = (SpecfilePatchMacro) element;
+						if (thisPatchMacro != null) {
+							thisPatchMacro.setSpecfile(specfile);
+						}
+						SpecfileSource thisPatch = specfile
+								.getPatch(thisPatchMacro.getPatchNumber());
+						if (thisPatch != null) {
+							thisPatch.addLineUsed(reader.getLineNumber() - 1);
+							thisPatch.setSpecfile(specfile);
+						}
+					} else if ((element.getClass() == SpecfileDefine.class)) {
+						specfile.addDefine((SpecfileDefine) element);
+					} else if ((element.getClass() == SpecfileSource.class)) {
+						SpecfileSource source = (SpecfileSource) element;
+
+						source.setLineNumber(reader.getLineNumber() - 1);
+						if (source.getSourceType() == SpecfileSource.SourceType.SOURCE) {
+							specfile.addSource(source);
+						} else {
+							specfile.addPatch(source);
+						}
+					}
+				}
+				// The +1 is for the line delimiter. FIXME: will we end up off
+				// by one on the last line?
+				lineStartPosition += line.length() + 1;
+			}
+		} catch (IOException e) {
+			// FIXME
+			SpecfileLog.logError(e);
+		}
+		return specfile;
+	}
+

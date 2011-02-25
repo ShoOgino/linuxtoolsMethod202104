@@ -1,0 +1,66 @@
+	/**
+	 * Ensures that quick diff information is displayed and the quick diff provider is the one with
+	 * the specified id. If a different quick diff provider is in use, the user may be asked whether
+	 * he wants to switch.
+	 * 
+	 * @param diffProviderId the quick diff provider id to use
+	 * @return <code>true</code> if quick diff could be enabled for the given id,
+	 *         <code>false</code> otherwise
+	 */
+	private boolean ensureQuickDiffProvider(String diffProviderId) {
+		if (!isShowingChangeInformation())
+			installChangeRulerModel(fDelegate); // FIXME pass provider id
+		
+		IAnnotationModel annotationModel= fViewer.getAnnotationModel();
+		IAnnotationModel oldDiffer= getDiffer();
+		if (oldDiffer == null && annotationModel != null)
+			return false; // quick diff is enabled, but no differ? not working for whatever reason
+
+		if (annotationModel == null)
+			annotationModel= new AnnotationModel();
+		if (!(annotationModel instanceof IAnnotationModelExtension))
+			return false;
+
+		QuickDiff util= new QuickDiff();
+		Object oldDifferId= util.getConfiguredQuickDiffProvider(oldDiffer);
+		if (oldDifferId.equals(diffProviderId)) {
+			if (oldDiffer instanceof ILineDifferExtension)
+				((ILineDifferExtension) oldDiffer).resume();
+			return true;
+		}
+
+		// Check whether the desired provider is available at all
+		IAnnotationModel newDiffer= util.createQuickDiffAnnotationModel(getEditor(), diffProviderId);
+		if (util.getConfiguredQuickDiffProvider(newDiffer).equals(oldDifferId)) {
+			if (oldDiffer instanceof ILineDifferExtension)
+				((ILineDifferExtension) oldDiffer).resume();
+				return true;
+		}
+		
+		// quick diff is showing with the wrong provider - ask the user whether he wants to switch
+		IPreferenceStore store= EditorsUI.getPreferenceStore();
+		if (oldDiffer != null && !store.getString(REVISION_ASK_BEFORE_QUICKDIFF_SWITCH_KEY).equals(MessageDialogWithToggle.ALWAYS)) {
+			MessageDialogWithToggle toggleDialog= MessageDialogWithToggle.openOkCancelConfirm(
+					fViewer.getTextWidget().getShell(),
+					STRulerMessages.AbstractDecoratedTextEditor_revision_quickdiff_switch_title,
+					STRulerMessages.AbstractDecoratedTextEditor_revision_quickdiff_switch_message, 
+					STRulerMessages.AbstractDecoratedTextEditor_revision_quickdiff_switch_rememberquestion,
+					true,
+					store,
+					REVISION_ASK_BEFORE_QUICKDIFF_SWITCH_KEY);
+			if (toggleDialog.getReturnCode() != Window.OK)
+				return false;
+		}
+		
+		IAnnotationModelExtension modelExtension=(IAnnotationModelExtension) annotationModel;
+		modelExtension.removeAnnotationModel(IChangeRulerColumn.QUICK_DIFF_MODEL_ID);
+		
+
+		modelExtension.addAnnotationModel(IChangeRulerColumn.QUICK_DIFF_MODEL_ID, newDiffer);
+		
+		if (fDelegate instanceof IChangeRulerColumn)
+			((IChangeRulerColumn) fDelegate).setModel(annotationModel); // picks up the new model attachment
+		
+		return true;
+	}
+

@@ -1,0 +1,30 @@
+	/**
+	 * Returns whether quick diff info should be visible upon opening an editor
+	 * according to the preference store settings.
+	 *
+	 * @return <code>true</code> if the line numbers should be visible
+	 */
+	private boolean getQuickDiffPreference() {
+		if (fForwarder != null)
+			return fForwarder.isQuickDiffEnabled();
+		IPreferenceStore store= getPreferenceStore();
+		boolean setting= store != null ? store.getBoolean(AbstractDecoratedTextEditorPreferenceConstants.QUICK_DIFF_ALWAYS_ON) : false;
+		if (!setting)
+			return false;
+		
+		boolean modifiable;
+		ITextEditor editor= getEditor();
+		if (editor instanceof ITextEditorExtension2) {
+			ITextEditorExtension2 ext= (ITextEditorExtension2) editor;
+			modifiable= ext.isEditorInputModifiable();
+		} else if (editor instanceof ITextEditorExtension) {
+			ITextEditorExtension ext= (ITextEditorExtension) editor;
+			modifiable= ext.isEditorInputReadOnly();
+		} else if (editor != null) {
+			modifiable= editor.isEditable();
+		} else {
+			modifiable= true;
+		}
+		return modifiable;
+	}
+

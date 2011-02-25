@@ -1,0 +1,42 @@
+	/**
+	 * Returns the annotation model that contains the quick diff annotation model.
+	 * <p>
+	 * Extracts the line differ from the displayed document's annotation model. If none can be found,
+	 * a new differ is created and attached to the annotation model.</p>
+	 *
+	 * @return the annotation model that contains the line differ, or <code>null</code> if none could be found or created
+	 * @see IChangeRulerColumn#QUICK_DIFF_MODEL_ID
+	 */
+	private IAnnotationModel getAnnotationModelWithDiffer() {
+		ISourceViewer viewer= fViewer;
+		if (viewer == null)
+			return null;
+		
+		IAnnotationModel m= viewer.getAnnotationModel();
+		IAnnotationModelExtension model= null;
+		if (m instanceof IAnnotationModelExtension)
+			model= (IAnnotationModelExtension) m;
+		
+		IAnnotationModel differ= getDiffer();
+		// create diff model if it doesn't
+		if (differ == null) {
+			IPreferenceStore store= getPreferenceStore();
+			if (store != null) {
+				String defaultId= store.getString(AbstractDecoratedTextEditorPreferenceConstants.QUICK_DIFF_DEFAULT_PROVIDER);
+				differ= new QuickDiff().createQuickDiffAnnotationModel(getEditor(), defaultId);
+				if (differ != null) {
+					if (model == null)
+						model= new AnnotationModel();
+					model.addAnnotationModel(IChangeRulerColumn.QUICK_DIFF_MODEL_ID, differ);
+				}
+			}
+		} else if (differ instanceof ILineDifferExtension2) {
+			if (((ILineDifferExtension2) differ).isSuspended())
+				((ILineDifferExtension) differ).resume();
+		} else if (differ instanceof ILineDifferExtension) {
+			((ILineDifferExtension) differ).resume();
+		}
+		
+		return (IAnnotationModel)model;
+	}
+

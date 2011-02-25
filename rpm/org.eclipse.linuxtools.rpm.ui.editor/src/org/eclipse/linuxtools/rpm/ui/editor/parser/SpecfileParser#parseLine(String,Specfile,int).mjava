@@ -1,0 +1,34 @@
+	public SpecfileElement parseLine(String lineText, Specfile specfile,
+			int lineNumber) {
+
+		if (lineText.startsWith("%")) //$NON-NLS-1$
+			return parseMacro(lineText, specfile, lineNumber);
+
+		for (String simpleDefinition : simpleDefinitions) {
+			if (lineText.startsWith(simpleDefinition + ":")) { //$NON-NLS-1$
+				if (simpleDefinition.equals("License")) { //$NON-NLS-1$
+					return parseSimpleDefinition(lineText, specfile,
+							lineNumber, true);
+				} else
+					return parseSimpleDefinition(lineText, specfile,
+							lineNumber, false);
+			}
+		}
+		for (String directValuesDefinition : directValuesDefinitions) {
+			if (lineText.startsWith(directValuesDefinition + ":")) { //$NON-NLS-1$
+				return parseDirectDefinition(lineText, specfile, lineNumber);
+			}
+		}
+
+		// FIXME: Handle package-level definitions
+		if (lineText.startsWith(complexDefinitions[0])) {
+			return parseComplexDefinition(lineText, lineNumber,
+					SourceType.SOURCE);
+		} else if (lineText.startsWith(complexDefinitions[1])) {
+			return parseComplexDefinition(lineText, lineNumber,
+					SourceType.PATCH);
+		}
+
+		return null;
+	}
+

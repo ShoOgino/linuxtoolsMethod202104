@@ -1,0 +1,51 @@
+	/*
+	 * @see IVerticalRulerColumn#createControl(CompositeRuler, Composite)
+	 */
+	public Control createControl(CompositeRuler parentRuler, Composite parentControl) {
+
+		fParentRuler= parentRuler;
+		fCachedTextViewer= parentRuler.getTextViewer();
+		fCachedTextWidget= fCachedTextViewer.getTextWidget();
+
+		fCanvas= new Canvas(parentControl, SWT.BORDER);
+		fCanvas.setBackground(getBackground(fCanvas.getDisplay()));
+		fCanvas.setForeground(fForeground);
+		
+		fCanvas.addPaintListener(new PaintListener() {
+			public void paintControl(PaintEvent event) {
+				if (fCachedTextViewer != null)
+					doubleBufferPaint(event.gc);
+			}
+		});
+
+		fCanvas.addDisposeListener(new DisposeListener() {
+			public void widgetDisposed(DisposeEvent e) {
+				handleDispose();
+				fCachedTextViewer= null;
+				fCachedTextWidget= null;
+			}
+		});
+
+		fMouseHandler= new MouseHandler();
+		fCanvas.addMouseListener(fMouseHandler);
+		fCanvas.addMouseMoveListener(fMouseHandler);
+
+		if (fCachedTextViewer != null) {
+
+			fCachedTextViewer.addViewportListener(fInternalListener);
+			fCachedTextViewer.addTextListener(fInternalListener);
+
+			if (fFont == null) {
+				if (fCachedTextWidget != null && !fCachedTextWidget.isDisposed())
+					fFont= fCachedTextWidget.getFont();
+			}
+		}
+
+		if (fFont != null)
+			fCanvas.setFont(fFont);
+
+		updateNumberOfDigits();
+		computeIndentations();
+		return fCanvas;
+	}
+
