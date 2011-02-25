@@ -1,0 +1,30 @@
+	/**
+	 * This method will be executed in a separated thread and will produce
+	 * an event to be sent to the registered listeners. 
+	 */
+	public void connect(String host, int port) throws IOException {
+		final String hostAux = host;
+		final int portAux = port;
+		final TCFWrapper connectionWrapperAux = connectionWrapper;
+
+		/*TODO: Enhance this. It would be great if all these executed-in-other threads
+				were located under a synchronized block */ 
+		
+		connectThread = new Thread() {
+			public void run() {
+				try {
+					connectionWrapperAux.connect(hostAux, portAux);
+					TCFProvider.this.notifyListeners(
+							EventCode.EVT_PROVIDER_CONNECT_FINISHED,
+							OperationCode.SUCCESS);
+				} catch (IOException ie) {
+					TCFProvider.this.notifyListeners(
+							EventCode.EVT_PROVIDER_CONNECT_ERROR,
+							OperationCode.UNEXPECTED_RESULT);					
+				}
+				
+			}
+		};
+		connectThread.start();
+	}
+

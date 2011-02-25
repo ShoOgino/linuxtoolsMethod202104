@@ -1,0 +1,52 @@
+	/* (non-Javadoc)
+	 * @see org.eclipse.linuxtools.sequoyah.device.network.IListener#notify(org.eclipse.linuxtools.sequoyah.device.network.INotifier, org.eclipse.linuxtools.sequoyah.device.network.IConstants.EventCode, java.lang.Object)
+	 */
+	public void notify(INotifier notifier, EventCode event, Object result) {
+		if (notifier == tool) {
+			final Object finalResult = result;
+			final EventCode finalEvent = event;
+			final ViewPart finalView = this;
+			final ITool finalTool = this.tool;
+			
+			this.getViewSite().getShell().getDisplay().asyncExec(new Runnable() {
+				public void run() {
+					switch(finalEvent) {
+						case EVT_TOOL_REFRESH_VIEW:
+							viewer.setInput(finalResult);
+							refreshAction.setEnabled(true);
+		        			refresh();
+		        			resize();
+						break;
+						case EVT_TOOL_CONNECT_FINISHED:
+						case EVT_TOOL_LOGIN_FINISHED:
+							switch ((OperationCode)finalResult) {
+								case SUCCESS: 
+									setConnectEnabled(false);
+									refreshAction.setEnabled(true);
+								break;
+								case LOGIN_REQUIRED: {
+									final DialogLogin dialog = new DialogLogin(
+											finalView.getViewSite().getShell(),
+											finalTool, false);
+									dialog.open();
+								}
+								break;
+								case LOGIN_FAILED: {
+									final DialogLogin dialog = new DialogLogin(
+											finalView.getViewSite().getShell(),
+											finalTool, true);
+									dialog.open();
+								}
+								break;
+							}
+						break;
+						case EVT_TOOL_DISCONNECT_FINISHED:
+							setConnectEnabled(true);
+							refreshAction.setEnabled(false);
+						break;
+					}
+				}
+			});
+		}
+	}
+

@@ -1,0 +1,51 @@
+	/**
+	 * @param currentDataStr
+	 * @return
+	 */
+	private Object[][] calculateTimes(String[][] currentDataStr) {
+		String[][] resultStr = null;
+		
+		if (null == currentDataStr) {
+			currentDataStr = new String[][] {{"0"}};
+		}
+		if (null == previousData) {
+			previousData = new int[][] {{0}};
+			previousTotal = new long[] {1};
+		}
+		if (previousData.length != currentDataStr.length ||
+			previousData[0].length != currentDataStr[0].length) {
+			previousData = String2int(currentDataStr);
+			previousTotal = new long[previousData.length];
+			
+			for (int j = 0; j < previousData.length; j++) {
+				long total = 0;
+				for (int i = 0; i < previousData[0].length; i++) {
+					total += previousData[j][i];
+				}
+				previousTotal[j] = total;
+			}
+		}
+		final int[][] currentDataInt = String2int(currentDataStr);
+		float[][] resultFloat = new float[currentDataStr.length][currentDataStr[0].length];
+
+		for (int j = 0; j < currentDataInt.length; j++) {
+			long total = 0;
+			for (int i = 0; i < currentDataInt[0].length; i++) {
+				total += currentDataInt[j][i];
+			}
+			float deltaTotal = total - previousTotal[j];
+			previousTotal[j] = total;
+			for (int i = 0; i < currentDataInt[0].length; i++) {
+				float deltaData = currentDataInt[j][i] - previousData[j][i];
+				if (0 == deltaTotal) {
+					resultFloat[j][i] = 0;
+				} else {
+					resultFloat[j][i] = 100* deltaData / deltaTotal;
+				}
+			}
+		}
+		previousData = currentDataInt;
+		resultStr = float2StringFormated(resultFloat, DATA_FORMAT);
+		return resultStr;
+	}
+
