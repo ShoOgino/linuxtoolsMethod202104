@@ -1,0 +1,69 @@
+	/**
+	 * This method will create a new XML Memento used to store all of the meta data
+	 * for the module.  This data is all based on what the user selected from the
+	 * dialog box.
+	 * @param disp The string to display that represents this module.
+	 * @param cat The category string representing where this module will be placed
+	 * @param desc The description string for this module
+	 * @param dataSet The IDataSet that holds the data for this module
+	 * @param parser The parer that can obtain the information from the raw output
+	 * @param gd GraphData Array specifying all of the information needed to create the selected graphs
+	 * @param filters TreeNode containing all of the selected filters for each graph.
+	 */
+	private File saveMetaData(String disp, String cat, String desc, IDataSet dataSet, IDataSetParser parser, GraphData[] gd, TreeNode filters, String location) {
+		File meta = null;
+		XMLMemento data = XMLMemento.createWriteRoot(DashboardMetaData.XMLDashboardItem);
+
+		try {
+			IMemento child, child2, child3;
+
+			data.putString(DashboardMetaData.XMLdDisplay, disp);
+			data.putString(DashboardMetaData.XMLdCategory, cat);
+			data.putString(DashboardMetaData.XMLdDescription, desc);
+			data.putString(DashboardMetaData.XMLdDataset, dataSet.getID());
+			data.putString(DashboardMetaData.XMLdScript, script);
+			data.putString(DashboardMetaData.XMLdLocation, location);
+			data.putString(DashboardMetaData.XMLdScriptFileName, script);
+				
+			
+			child = data.createChild(DashboardMetaData.XMLParsingExpressions);
+			String[] cols = dataSet.getTitles();
+			for(int i=0; i<cols.length; i++) {
+				child2 = child.createChild(DashboardMetaData.XMLpColumn);
+				child2.putString(DashboardMetaData.XMLpName, cols[i]);
+			}
+			parser.saveXML(child.createChild(DashboardMetaData.XMLpParser));
+
+			child = data.createChild(DashboardMetaData.XMLGraphDisplays);
+			for(int j,i=0; i<gd.length; i++) {
+				child2 = child.createChild(DashboardMetaData.XMLgGraph);
+				child2.putString(DashboardMetaData.XMLgId, gd[i].graphID);
+				child2.putString(DashboardMetaData.XMLgTitle, gd[i].title);
+
+				TreeNode treeChild = filters.getChildAt(i);
+				for(j=0; j<treeChild.getChildCount(); j++) {
+					((IDataSetFilter)(treeChild.getChildAt(j).getData())).writeXML(child2);
+				}
+				
+				child3 = child2.createChild(DashboardMetaData.XMLgSeries);
+				child3.putString(DashboardMetaData.XMLgAxis, DashboardMetaData.XMLgAxisX);
+				child3.putInteger(DashboardMetaData.XMLgColumn, gd[i].xSeries);
+				for(j=0; j<gd[i].ySeries.length; j++) {
+					child3 = child2.createChild(DashboardMetaData.XMLgSeries);
+					child3.putString(DashboardMetaData.XMLgAxis, DashboardMetaData.XMLgAxisY);
+					child3.putInteger(DashboardMetaData.XMLgColumn, gd[i].ySeries[j]);
+				}
+			}
+			
+			meta = new File(getSaveDirectory() + DashboardModule.metaFileName);
+			FileWriter writer = new FileWriter(meta);
+			data.save(writer);
+			writer.close();
+		} catch(FileNotFoundException fnfe) {
+			return meta;
+		} catch(Exception e) {
+			return meta;
+		}
+		return meta;
+	}
+

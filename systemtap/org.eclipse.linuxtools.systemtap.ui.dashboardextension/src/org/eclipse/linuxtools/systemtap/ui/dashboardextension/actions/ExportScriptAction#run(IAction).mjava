@@ -1,0 +1,42 @@
+	public void run(IAction action) {
+		String script = getFilePath();
+		if(null == script || script.length() <= 0) {
+			String msg = MessageFormat.format(Localization.getString("ExportScriptAction.NoFileToExport"), (Object[])null);
+			MessageDialog.openWarning(fWindow.getShell(), Localization.getString("ExportScriptAction.Error"), msg);
+		} else {
+			DataSetWizard wizard = new DataSetWizard(GraphingConstants.DataSetMetaData, script);
+			IWorkbench workbench = PlatformUI.getWorkbench();
+			wizard.init(workbench, null);
+			WizardDialog dialog = new WizardDialog(workbench.getActiveWorkbenchWindow().getShell(), wizard);
+			dialog.create();
+			dialog.open();
+
+			IDataSetParser parser = wizard.getParser();
+			IDataSet dataSet = wizard.getDataSet();
+
+			wizard.dispose();
+			
+			if(null == parser || null == dataSet)
+				return;
+			
+			ExportScriptDialog exportDialog = new ExportScriptDialog(fWindow.getShell(), dataSet);
+			exportDialog.open();
+			
+			exportDialog.dispose();
+			if(!exportDialog.isCanceled()) {
+				String category = exportDialog.getCategory();
+				String display = exportDialog.getDisplay();
+				String description = exportDialog.getDescription();
+				GraphData[] gd = exportDialog.getGraphs();
+				TreeNode filters = exportDialog.getGraphFilters();
+
+				validateDirectory();
+				File meta = saveMetaData(display, category, description, dataSet, parser, gd, filters,"local");
+				String archiveName = getSaveDirectory() + "/" + category.replace(' ', '_') + "." + display.replace(' ', '_');
+				buildArchive(archiveName, new File(script), meta);
+				cleanupFiles(new String[] {archiveName, meta.getAbsolutePath()});
+				updateDashboard();
+			}
+		}
+	}
+

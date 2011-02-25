@@ -13,8 +13,6 @@
 		if (monitor.isCanceled()) {
 			return;
 		}
-			
-		
 		
 		/*
 		 * Set variables
@@ -69,32 +67,29 @@
 				e1.printStackTrace();
 			}
 		}
+		
+		stap = config.getAttribute(LaunchConfigurationConstants.COMMAND,
+				PluginConstants.STAP_PATH);
 
 		/**
 		 * Generate partial command
 		 */
-		String partialCommand = ConfigurationOptionsSetter.setOptions(config);  
+		partialCommand = ConfigurationOptionsSetter.setOptions(config);  
 
 		outputPath = config.getAttribute(
 				LaunchConfigurationConstants.OUTPUT_PATH,
 				PluginConstants.getDefaultOutput());
 		partialCommand += "-o " + outputPath; //$NON-NLS-1$
-		
-		try {
-			//Make sure the output file exists
-			File tempFile = new File(outputPath);
-			tempFile.delete();
-			tempFile.createNewFile();
-		} catch (IOException e1) {
-			e1.printStackTrace();
-		}
-
 
 		// check for cancellation
-		if (monitor.isCanceled()) {
+		if ( !testOutput(outputPath) || monitor.isCanceled() ) {
+			SystemTapUIErrorMessages mess = new SystemTapUIErrorMessages(Messages.getString("SystemTapLaunchConfigurationDelegate.0"),  //$NON-NLS-1$
+					Messages.getString("SystemTapLaunchConfigurationDelegate.1"), Messages.getString("SystemTapLaunchConfigurationDelegate.2") + outputPath +  //$NON-NLS-1$ //$NON-NLS-2$
+					Messages.getString("SystemTapLaunchConfigurationDelegate.3")); //$NON-NLS-1$
+			mess.schedule();
 			return;
 		}
 
-		finishLaunch(launch, config, partialCommand, m, true);
+		finishLaunch(launch, config, m, true);
 	}
 

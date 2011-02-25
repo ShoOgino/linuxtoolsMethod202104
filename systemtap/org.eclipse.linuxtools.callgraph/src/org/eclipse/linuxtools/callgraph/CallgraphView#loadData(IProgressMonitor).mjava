@@ -17,9 +17,10 @@
 		/*
 		 *                Load graph data
 		 */
-		boolean marked = false;
-		String msg = ""; //$NON-NLS-1$
 	    for (int id_parent : parser.serialMap.keySet()) {
+	    	if (id_parent < 0) continue;
+	    	boolean marked = false;
+	    	String msg = ""; //$NON-NLS-1$
 	    	if (g.getNodeData(id_parent) == null) {
 				if (parser.markedMap.get(id_parent) != null) {
 					marked = true;
@@ -29,32 +30,46 @@
 	    				1, 0, marked, msg);
 	    	}
 	    	
-			for (int id_child : parser.outNeighbours.get(id_parent)) {
-				if (g.getNodeData(id_child) != null)
-					continue;
-				if (monitor.isCanceled()) {
-					return Status.CANCEL_STATUS;
-				}
-				
-				marked = false;
-				msg = ""; //$NON-NLS-1$
-				if (parser.markedMap.get(id_child) != null) {
-					marked = true;
-					msg = parser.markedMap.remove(id_child);
-				}
-				if (id_child != -1) {
-					if (parser.timeMap.get(id_child) == null){						
-						g.loadData(SWT.NONE, id_child, parser.serialMap
-								.get(id_child), parser.timeMap.get(0),
-								1, id_parent, marked,msg);
-					}else{
-						g.loadData(SWT.NONE, id_child, parser.serialMap
-								.get(id_child), parser.timeMap.get(id_child),
-								1, id_parent, marked,msg);
+	    	for (int key :parser.neighbourMaps.keySet()) { 
+		    	HashMap<Integer, ArrayList<Integer>> outNeighbours = parser.neighbourMaps.get(key);
+		    	if (outNeighbours == null || outNeighbours.get(id_parent) == null)
+		    		continue;
+				for (int id_child : outNeighbours.get(id_parent)) {
+					if (g.getNodeData(id_child) != null && id_child < 0) {
+						//Assume this is an additional call of the same node
+						//Should only happen in dot-files!!
+						g.addCalled(id_child);
+						continue;
+					} else if (g.getNodeData(id_child) != null) {
+						continue;
+					}
+					if (monitor.isCanceled()) {
+						return Status.CANCEL_STATUS;
+					}
+					
+					marked = false;
+					msg = ""; //$NON-NLS-1$
+					if (parser.markedMap.get(id_child) != null) {
+						marked = true;
+						msg = parser.markedMap.remove(id_child);
+					}
+					if (id_child != -1) {
+						if (parser.timeMap.get(id_child) == null){						
+							g.loadData(SWT.NONE, id_child, parser.serialMap
+									.get(id_child), parser.timeMap.get(0),
+									1, id_parent, marked,msg);
+						}else{
+							g.loadData(SWT.NONE, id_child, parser.serialMap
+									.get(id_child), parser.timeMap.get(id_child),
+									1, id_parent, marked,msg);
+						}
 					}
 				}
-			}
+	    	}
 			
+	    	if (parser.neighbourMaps.size() > 1) {
+	    		g.setThreaded();
+	    	}
 		}
 	    
 	    monitor.worked(1);
@@ -76,7 +91,8 @@
 	    
 	    g.aggregateCount.putAll(parser.countMap);
 	    g.aggregateTime.putAll(parser.aggregateTimeMap);
-	    g.setLastFunctionCalled(parser.lastFunctionCalled);
+	    //TODO: Do not set to 0.
+	    g.setLastFunctionCalled(0);
 
 	    
 	    //Finish off by collapsing nodes, initializing the tree and setting options

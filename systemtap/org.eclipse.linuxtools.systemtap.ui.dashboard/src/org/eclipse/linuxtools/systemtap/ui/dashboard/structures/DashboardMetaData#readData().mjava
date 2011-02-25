@@ -1,0 +1,105 @@
+	/**
+	 * This is the main method for this class. It reads the contents of the meta file
+	 * and populates the DashboardModule structure from it.
+	 * @return boolean representing whether or not the meta data was succesfuly read
+	 */
+	@SuppressWarnings("unchecked")
+	private boolean readData() {
+		if(null == metaFile)
+			return false;
+
+		try {
+			module = new DashboardModule();
+			FileReader reader = new FileReader(metaFile);
+			if(!reader.ready())
+				return false;
+
+			XMLMemento data = XMLMemento.createReadRoot(reader, XMLDashboardItem);
+
+			//Get main module information
+			module.display = data.getString(XMLdDisplay);
+			module.category = data.getString(XMLdCategory);
+			module.description = data.getString(XMLdDescription);
+			module.dataSetID = data.getString(XMLdDataset);
+			module.location = data.getString(XMLdLocation);
+			module.scriptFileName = data.getString(XMLdScriptFileName);
+			File temp = null;
+			//Get the script
+			if ((module.location ==null) || (module.location.equalsIgnoreCase("local")))
+			{
+			if(!tempScriptFolder.exists())
+				tempScriptFolder.mkdirs();
+			temp = new File(metaFile.getParentFile() + data.getString(XMLdScript));
+			module.script = new File(tempScriptFolder.getAbsolutePath() + "/" + module.hashCode() + ".stp");
+			temp.renameTo(module.script);
+			}
+			else
+				module.script = new File(module.location + "/" + module.scriptFileName);
+			//Get the column names
+			IMemento[] children = data.getChild(XMLParsingExpressions).getChildren(XMLpColumn);
+			module.labels = new String[children.length];
+			int i;
+			for(i=0; i<children.length; i++)
+				module.labels[i] = children[i].getString(XMLpName);
+			
+			//Get the parser
+			module.parser = DataSetFactory.createParserXML(module.dataSetID, data.getChild(XMLParsingExpressions).getChild(XMLpParser));
+
+			//Get all graph information
+			IMemento[] children2;
+			children = data.getChild(XMLGraphDisplays).getChildren(XMLgGraph);
+			module.graphs = new GraphData[children.length];
+			module.filters = new ArrayList[children.length];
+			int j, ys;
+			for(i=0; i<children.length; i++) {
+				module.graphs[i] = new GraphData();
+				module.graphs[i].graphID = children[i].getString(XMLgId);
+				module.graphs[i].title = children[i].getString(XMLgTitle);
+				
+				//Get all filters for the graph
+				children2 = children[i].getChildren(XMLgFilter);
+				module.filters[i] = new ArrayList();
+				for(j=0; j<children2.length; j++) {
+					module.filters[i].add(AvailableFilterTypes.getDataSetFilter(children2[j]));
+				}
+				
+				//Get all x & y series for the graph
+				children2 = children[i].getChildren(XMLgSeries);
+				module.graphs[i].ySeries = new int[children2.length-1];
+
+				for(j=0, ys=0; j<children2.length; j++) {
+					if(XMLgAxisX.equals(children2[j].getString(XMLgAxis)))
+						module.graphs[i].xSeries = children2[j].getInteger(XMLgColumn).intValue();
+					else if(XMLgAxisY.equals(children2[j].getString(XMLgAxis))) {
+						module.graphs[i].ySeries[ys] = children2[j].getInteger(XMLgColumn).intValue();
+						ys++;
+					}
+				}
+			}
+			
+			//Retreive any kernel module data.
+			children = data.getChildren(XMLKernelModule);
+			module.kernelVersions = new String[children.length];
+			module.kernelModules = new File[children.length];
+			if(!tempModuleFolder.exists())
+				tempModuleFolder.mkdirs();
+			for(i=0; i<children.length; i++) {
+				module.kernelVersions[i] = children[i].getString(XMLkVersion);
+
+				temp = new File(metaFile.getParentFile() + children[i].getString(XMLkModule));
+				module.kernelModules[i] = new File(tempModuleFolder.getAbsolutePath() + module.hashCode() + temp.getName());
+				temp.renameTo(module.kernelModules[i]);
+			}
+
+			reader.close();
+		} catch(FileNotFoundException fnfe) {
+			return false;
+		} catch(WorkbenchException we) {
+			return false;
+		} catch(Exception e) {
+			return false;
+		}
+
+		return true;
+	}
+

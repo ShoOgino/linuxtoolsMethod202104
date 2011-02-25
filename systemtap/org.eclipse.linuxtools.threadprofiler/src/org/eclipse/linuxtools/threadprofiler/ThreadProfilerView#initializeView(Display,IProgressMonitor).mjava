@@ -1,0 +1,63 @@
+	@Override
+	public IStatus initializeView(Display targetDisplay,
+			IProgressMonitor monitor) {
+		if (graphs == null)
+			graphs = new ArrayList<GraphModel>();
+		if (threads == null)
+			threads = new ArrayList<ThreadGraph>();
+		graphs.clear();
+		threads.clear();
+		segments = 0;
+
+		IViewReference ref = getSite().getPage().
+			findViewReference("org.eclipse.linuxtools.threadprofiler.threadprofilerview");
+		((WorkbenchPage)getSite().getPage()).getActivePerspective().
+			getPresentation().detachPart(ref);
+		currentView.getViewSite().getShell().setSize(START_WIDTH, START_HEIGHT);
+		currentView.getViewSite().getShell().setData(SHELL_ID_PROPERTY, SHELL_ID_VALUE);
+		
+		
+		//Create dataSet for CPU
+		createNewDataSet("CPU", GraphModel.CONSTANT_Y, "%");
+		((MultiGraph) graphs.get(0)).addBuffer("Total");
+		((MultiGraph) graphs.get(0)).addBuffer("IO Block");
+		
+		//Create dataSet for memory
+		createNewDataSet("Memory", GraphModel.FLEXIBLE_Y, "bytes");
+		((MultiGraph) graphs.get(1)).addBuffer("Total");
+		((MultiGraph) graphs.get(1)).addBuffer("Data");
+		
+		//Create dataSet for disk usage
+		createNewDataSet("Disk", GraphModel.FLEXIBLE_Y, "bytes");
+		((MultiGraph) graphs.get(2)).addBuffer("Total");
+		((MultiGraph) graphs.get(2)).addBuffer("Read", MultiGraph.GRAPH_STYLE_LINE);
+		((MultiGraph) graphs.get(2)).addBuffer("Write", MultiGraph.GRAPH_STYLE_LINE);
+		
+		if (dropMenu.getItems().length < graphs.size() + 1) {
+			//the +1 is for the 'hide' item
+			int counter = 0;
+			for (GraphModel g : graphs) {
+				final int count = counter;
+				counter++;
+				dropMenu.add(new Action(g.getTitle()) {
+					public void run(){
+						selector = count;
+						if (graphCanvas != null)
+							graphCanvas.redraw();
+					}
+				});
+			}
+			final int count = counter;
+			dropMenu.add(new Action("Threads") {
+				public void run() {
+					selector = count;
+					if (graphCanvas != null)
+						graphCanvas.redraw();
+				}
+			});
+		}
+		
+
+		return Status.OK_STATUS;
+	}
+

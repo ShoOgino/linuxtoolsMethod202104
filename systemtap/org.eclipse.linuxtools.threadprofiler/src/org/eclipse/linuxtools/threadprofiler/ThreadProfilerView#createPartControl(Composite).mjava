@@ -1,0 +1,144 @@
+	@Override
+	public void createPartControl(Composite parent) {
+		if (masterComposite != null)
+			masterComposite.dispose();
+		masterComposite = parent;
+		
+		FillLayout gl = new FillLayout(SWT.NONE);
+		parent.setLayout(gl);
+		
+		addMenus(parent);
+    	
+    	Canvas graphComp =new Canvas(parent, SWT.BORDER | SWT.V_SCROLL);
+    	graphComp.setBackground(Display.getCurrent().getSystemColor(SWT.COLOR_WHITE));
+    	
+    	final ScrollBar vBar = graphComp.getVerticalBar ();
+    	vBar.setIncrement(VBAR_INCREMENT);
+    	vBar.addListener (SWT.Selection, new Listener () {
+			@Override
+			public void handleEvent(Event event) {
+//				int size = vBar.getMaximum();
+//				int sel = vBar.getSelection() - vBar.getMinimum();
+//				System.out.println("Sel: " + sel);
+//				System.out.println("Size: " + size);
+//				firstThread = (int) (sel/size * threads.size() + 0.5);
+				firstThread = (vBar.getSelection() - vBar.getMinimum())/VBAR_INCREMENT;
+			}
+    	});
+    	
+		graphCanvas = graphComp;
+//    	graphCanvas.setBackground(Display.getDefault().getSystemColor(SWT.COLOR_WHITE));
+//    	gd = new GridData(GridData.FILL_BOTH);
+//    	gd.grabExcessHorizontalSpace = true;
+//    	graphCanvas.setLayoutData(gd);
+    	graphGC = new GC(graphCanvas);
+
+		graphCanvas.addMouseListener(new MouseListener() {
+
+			@Override
+			public void mouseDoubleClick(MouseEvent e) {
+				updateMethod();
+			}
+
+			@Override
+			public void mouseDown(MouseEvent e) {
+				System.out.println("LOCATION: " + e.x + "," + e.y);
+			}
+
+			@Override
+			public void mouseUp(MouseEvent e) {
+			}
+		
+		});
+		
+	    graphCanvas.addPaintListener(new PaintListener() {
+	        public void paintControl(PaintEvent e) {
+	        	long diff = System.currentTimeMillis() - lastRefresh;
+	        	if (pause || (diff < MAX_REFRESH_RATE && diff > 0))
+					try {
+						Thread.sleep(diff);
+					} catch (InterruptedException e1) {
+						return;
+					}
+					
+					
+					Rectangle rect = graphCanvas.getBounds();
+					Image buf = new Image(Display.getDefault(), graphCanvas.getBounds());
+					GC gc = new GC(buf);
+					gc.setClipping(rect);
+	        	if (graphs != null && selector < graphs.size()) {
+		        	//Double buffer!
+		        	gc.setLineWidth(2);
+	        		GraphModel graph = graphs.get(selector);
+	        		graph.setHeight(rect.height - GraphModel.MAX_MARGIN - GraphModel.MAX_MARGIN/2);
+	        		graph.setXOffset(rect.width/20);
+	        		graph.setYOffset(rect.height - GraphModel.MAX_MARGIN);
+	        		graph.draw(gc);
+		        	graphGC.drawImage(buf, 0, 0);
+		        	buf.dispose();
+	        	} else if (threads != null) {
+	        		if (threads == null)
+						return;
+	        		vBar.setMaximum(VBAR_INCREMENT*(threads.size() - 1));
+		        	gc.setForeground(Display.getDefault().getSystemColor(SWT.COLOR_BLUE));
+	
+	        		ArrayList<ThreadGraph> toRemove = new ArrayList<ThreadGraph>();
+	        		int maxThreads = (int) (rect.height/GRAPH_SEPARATION + 0.5);
+	        		
+//	        		int counter = 0;
+//					for (ThreadGraph tg : threads) {
+//						counter++;
+	        		if (firstThread >= threads.size() ) {
+	        			firstThread = threads.size() - maxThreads;
+	        		}
+	        		
+	        		if (firstThread < 0) {
+	        			firstThread = 0;
+	        		}
+	        		
+	        		for (int i = 0; i < maxThreads; i++) {
+	        			if (i + firstThread >= threads.size())
+	        				break;
+	        			ThreadGraph tg = threads.get(i + firstThread);
+	        			tg.setHeight(rect.height);
+						tg.setYOffset(i*GRAPH_SEPARATION);
+						gc.setLineWidth(2);
+						tg.draw(gc);
+						gc.setLineWidth(0);
+						gc.drawText(tg.getTitle(), START_X_POS, i*GRAPH_SEPARATION + 10, true);
+						if (tg.isEmpty())
+							toRemove.add(tg);
+	        		}
+//					}
+					//TODO: removeAll is an O(N^2) operation
+					threads.removeAll(toRemove);
+					graphGC.drawImage(buf, 0, 0);
+					buf.dispose();
+					System.out.println("-----------");
+	        	}
+	        }
+	    }); 
+    	
+//    	ScrolledComposite threadComp =new ScrolledComposite(parent, SWT.BORDER | SWT.V_SCROLL);
+//    	threadComp.setLayout (new GridLayout(1, true));
+//    	threadComp.setBackground(white);
+//    	GridData gd = new GridData(GridData.FILL_BOTH);
+//    	gd.grabExcessHorizontalSpace = true;
+//    	threadComp.setLayoutData(gd);
+    	
+//    	threadCanvas = new Canvas(parent, SWT.BORDER );
+//    	threadCanvas.setBackground(white);
+//    	gd = new GridData(GridData.FILL_BOTH);
+//    	gd.grabExcessHorizontalSpace = true;
+//    	threadCanvas.setLayoutData(gd);
+//    	threadGC = new GC(threadCanvas);
+//
+//	    threadCanvas.addPaintListener(new PaintListener() {
+//			@Override
+//			public void paintControl(PaintEvent e) {
+//				
+//			}
+//	    });
+	    
+	}
+
