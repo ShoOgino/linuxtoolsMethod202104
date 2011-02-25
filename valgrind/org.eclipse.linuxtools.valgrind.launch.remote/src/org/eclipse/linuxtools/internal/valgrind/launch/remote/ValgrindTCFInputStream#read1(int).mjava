@@ -1,0 +1,43 @@
+	private void read1(final int size) throws IOException {		
+		done = false;
+		ex = null;
+		buf = null;
+
+		streamsService.read(streamId, size, new DoneRead() {
+
+			public void doneRead(IToken token, Exception error, int lost_size,
+					byte[] data, boolean eos) {
+				if (error != null) {
+					ex = error;
+				}
+				else {
+					buf = data;
+					if (eos) { // FIXME We are getting EOS too soon, and losing data
+						ValgrindTCFInputStream.this.eos = true;
+						streamsService.disconnect(streamId, new IStreams.DoneDisconnect() {
+							public void doneDisconnect(IToken token, Exception error) {
+								if (error != null) {
+									ex = error;
+								}
+							}
+						});
+					}
+				}
+				done = true;
+			}
+		});
+		
+		try {
+			while (!done) {
+				Thread.sleep(100);
+			}
+		} catch (InterruptedException e) {
+		}
+		
+		if (ex != null) {
+			IOException ioe = new IOException("Read failed");
+			ioe.initCause(ex);
+			throw ioe;
+		}
+	}
+

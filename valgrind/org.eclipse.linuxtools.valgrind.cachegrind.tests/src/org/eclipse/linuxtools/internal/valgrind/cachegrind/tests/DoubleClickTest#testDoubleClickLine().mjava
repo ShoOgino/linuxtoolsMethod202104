@@ -1,0 +1,26 @@
+	public void testDoubleClickLine() throws Exception {
+		ILaunchConfiguration config = createConfiguration(proj.getProject());
+		doLaunch(config, "testDoubleClickFunction"); //$NON-NLS-1$
+
+		CachegrindViewPart view = (CachegrindViewPart) ValgrindUIPlugin.getDefault().getView().getDynamicView();
+		CachegrindOutput output = view.getOutputs()[0];
+		CachegrindFile file = getFileByName(output, "cpptest.cpp"); //$NON-NLS-1$
+		CachegrindFunction func = getFunctionByName(file, "main"); //$NON-NLS-1$
+		CachegrindLine line = func.getLines()[0];
+		TreePath path = new TreePath(new Object[] { output, file, func });
+
+		doDoubleClick(path);
+
+		// check file in editor
+		IEditorPart editor = checkFile(file);
+		
+		// check line number
+		ITextEditor textEditor = (ITextEditor) editor;
+			
+		ISelection selection = textEditor.getSelectionProvider().getSelection();
+		TextSelection textSelection = (TextSelection) selection;
+		int actualLine = textSelection.getStartLine() + 1; // zero-indexed
+				
+		assertEquals(line.getLine(), actualLine);
+	}
+

@@ -1,0 +1,77 @@
+	private void writeFileToLocal(IPath remoteFile, IPath localFile, final RemoteLaunchStep step) throws CoreException, FileNotFoundException {
+		final OutputStream out = new FileOutputStream(localFile.toOSString());
+		int flags = IFileSystem.TCF_O_READ;
+		fsService.open(remoteFile.toOSString(), flags, null, new IFileSystem.DoneOpen() {
+
+			IFileHandle handle;
+			long offset = 0;
+			Set<IToken> cmds = new HashSet<IToken>();
+			static final int BUF_LENGTH = 0x1000;
+
+			public void doneOpen(IToken token, FileSystemException error, IFileHandle handle) {
+				this.handle = handle;
+				if (error != null) {
+					disconnect(error);
+				}
+				else {
+					readNext();
+				}
+			}
+
+			private void readNext() {
+				try {
+					cmds.add(fsService.read(handle, offset, BUF_LENGTH, new IFileSystem.DoneRead() {
+
+						public void doneRead(IToken token, FileSystemException error, byte[] data,
+								boolean eof) {
+							cmds.remove(token);
+							if (error != null) {
+								disconnect(error);
+							}
+							else {
+								try {
+									out.write(data);
+									offset += data.length;
+									if (eof) {
+										close();
+									}
+									else {
+										readNext();
+									}
+								} catch (IOException e) {
+									disconnect(e);
+								}
+							}
+						}
+					}));
+				}
+				catch (Throwable x) {
+					disconnect(x);
+				}
+			}
+
+			private void close() {
+				if (cmds.size() > 0) {
+					return;
+				}
+				try {
+					out.close();
+					fsService.close(handle, new IFileSystem.DoneClose() {
+
+						public void doneClose(IToken token, FileSystemException error) {
+							if (error != null) {
+								disconnect(error);
+							}
+							else {
+								step.done();
+							}
+						}
+					});
+				}
+				catch (Throwable x) {
+					disconnect(x);
+				}
+			}
+		});
+	}
+

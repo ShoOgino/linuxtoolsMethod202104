@@ -1,0 +1,188 @@
+	public void launch(final ILaunchConfiguration config, String mode,
+			final ILaunch launch, IProgressMonitor m) throws CoreException {
+		if (m == null) {
+			m = new NullProgressMonitor();
+		}
+		launchSteps = new ConcurrentLinkedQueue<RemoteLaunchStep>();
+		
+		// Clear process as we wait on it to be instantiated
+		process = null;
+
+		monitor = SubMonitor
+		.convert(
+				m,
+				Messages.ValgrindRemoteLaunchDelegate_task_name, 10);
+		// check for cancellation
+		if (monitor.isCanceled()) {
+			return;
+		}
+
+		this.config = config;
+		this.launch = launch;
+		try {			
+			// remove any output from previous run
+			ValgrindUIPlugin.getDefault().resetView();
+			// reset stored launch data
+			getPlugin().setCurrentLaunchConfiguration(null);
+			getPlugin().setCurrentLaunch(null);
+
+			// Open TCF Channel
+			Map<String, IPeer> peers = Protocol.getLocator().getPeers();
+			String peerID = config.getAttribute(RemoteLaunchConstants.ATTR_REMOTE_PEERID, RemoteLaunchConstants.DEFAULT_REMOTE_PEERID);
+			peer = peers.get(peerID);
+			
+			if (peer == null) {
+				abort(NLS.bind(Messages.ValgrindRemoteLaunchDelegate_error_no_peers, peerID), null, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
+			}
+			else {
+				channel = peer.openChannel();
+				channel.addChannelListener(new IChannel.IChannelListener() {
+
+					public void onChannelOpened() {
+						try {
+							IStreams streamService = channel.getRemoteService(IStreams.class);
+							if (streamService == null) {
+								abort(Messages.ValgrindRemoteLaunchDelegate_error_no_streams, null, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
+							}
+
+							fsService = channel.getRemoteService(IFileSystem.class);
+							if (fsService == null) {
+								abort(Messages.ValgrindRemoteLaunchDelegate_error_no_fs, null, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
+							}
+
+							procService = channel.getRemoteService(IProcesses.class);
+							if (procService == null) {
+								abort(Messages.ValgrindRemoteLaunchDelegate_error_no_proc, null, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
+							}
+
+							command = new ValgrindRemoteCommand(channel, launchSteps);
+							
+							// Retrieve user-defined Valgrind binary location
+							final IPath valgrindLocation = Path.fromOSString(config.getAttribute(RemoteLaunchConstants.ATTR_REMOTE_VALGRINDLOC, RemoteLaunchConstants.DEFAULT_REMOTE_VALGRINDLOC));
+
+							monitor.worked(1);
+
+							// Copy binary using FileSystem service
+							final IPath exePath = CDebugUtils.verifyProgramPath(config);
+							final IPath remoteDir = Path.fromOSString(config.getAttribute(RemoteLaunchConstants.ATTR_REMOTE_DESTDIR, RemoteLaunchConstants.DEFAULT_REMOTE_DESTDIR));
+							remoteBinFile = remoteDir.append(exePath.lastSegment());
+							
+							IPath remoteLogDir = Path.fromOSString(config.getAttribute(RemoteLaunchConstants.ATTR_REMOTE_OUTPUTDIR, RemoteLaunchConstants.DEFAULT_REMOTE_OUTPUTDIR));
+							outputPath = remoteLogDir.append("eclipse-valgrind-" + System.currentTimeMillis());
+
+							try {
+								new RemoteLaunchStep(launchSteps, channel, "FileSystem Write Binary") { //$NON-NLS-1$
+									@Override
+									public void start() throws Exception {
+										writeFileToRemote(exePath, remoteBinFile, this);					
+									}
+								};
+								
+								new RemoteLaunchStep(launchSteps, channel, "FileSystem Log Mkdir") { //$NON-NLS-1$
+									@Override
+									public void start() throws Exception {
+										fsService.mkdir(outputPath.toOSString(), new FileAttrs(0, 0, 0, 0, 0, 0, 0, null), new DoneMkDir() {
+											public void doneMkDir(IToken token,
+													FileSystemException error) {
+												if (error != null) {
+													disconnect(error);
+												}
+												else {
+													done();
+												}
+											}
+										});
+									}
+								};
+
+								
+								String[] arguments = getProgramArgumentsArray(config);
+
+								// Start process using Processes service
+								startRemoteProcess(config, launch,
+										valgrindLocation, remoteBinFile,
+										arguments, remoteDir.toFile(), remoteLogDir);
+								
+								// Begin executing launch steps
+								launchSteps.remove().start();
+							} catch (Throwable e) {
+								disconnect(e);
+							}
+						} catch (CoreException e) {
+							disconnect(e);
+						}
+					}
+
+					public void onChannelClosed(Throwable error) {
+						channel.removeChannelListener(this);
+						if (error != null) {
+							ex = error;
+						}
+					}
+
+					public void congestionLevel(int level) {
+					}
+				});
+			}
+
+			while (process == null || !process.isTerminated()) {
+				Thread.sleep(100);
+			}
+			
+			cleanup(null);
+			
+			// Begin executing launch steps
+			try {
+				launchSteps.remove().start();
+			} catch (Exception e) {
+				disconnect(e);
+			}
+			
+			// Wait for TCF connection to close
+			while (channel.getState() != IChannel.STATE_CLOSED) {
+				Thread.sleep(100);
+			}
+
+			if (ex != null) {
+				abort(Messages.ValgrindRemoteLaunchDelegate_error_launch_failed, ex, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
+			}
+			
+			// store these for use by other classes
+			getPlugin().setCurrentLaunchConfiguration(config);
+			getPlugin().setCurrentLaunch(launch);
+
+			// parse Valgrind logs
+			IValgrindMessage[] messages = parseLogs(localOutputDir);
+
+			// create launch summary string to distinguish this launch
+			launchStr = createLaunchStr();
+
+			// create view
+			ValgrindUIPlugin.getDefault().createView(launchStr, toolID);
+			// set log messages
+			ValgrindViewPart view = ValgrindUIPlugin.getDefault().getView();
+			view.setMessages(messages);
+			monitor.worked(1);
+
+			// pass off control to extender
+			dynamicDelegate.handleLaunch(config, launch, localOutputDir, monitor.newChild(2));
+			
+			// initialize tool-specific part of view
+			dynamicDelegate.initializeView(view.getDynamicView(), launchStr, monitor.newChild(1));
+
+			// refresh view
+			ValgrindUIPlugin.getDefault().refreshView();
+
+			// show view
+			ValgrindUIPlugin.getDefault().showView();
+			monitor.worked(1);
+		} catch (IOException e) {
+			abort("Error starting process", e, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR); //$NON-NLS-1$
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		} finally {
+			m.done();
+		}
+	}
+

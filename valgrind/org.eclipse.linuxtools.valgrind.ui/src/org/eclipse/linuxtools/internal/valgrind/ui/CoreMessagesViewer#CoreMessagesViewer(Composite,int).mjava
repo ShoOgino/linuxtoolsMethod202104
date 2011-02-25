@@ -1,0 +1,134 @@
+	public CoreMessagesViewer(Composite parent, int style) {
+		viewer = new TreeViewer(parent, SWT.SINGLE | SWT.H_SCROLL | SWT.V_SCROLL | style);
+		viewer.getControl().setLayoutData(new GridData(GridData.FILL_BOTH));
+		contentProvider = new ITreeContentProvider() {
+
+			public Object[] getChildren(Object parentElement) {
+				if (parentElement instanceof Object[]) {
+					return (Object[]) parentElement;
+				}
+				return ((IValgrindMessage) parentElement).getChildren();
+			}
+
+			public Object getParent(Object element) {
+				return ((IValgrindMessage) element).getParent();
+			}
+
+			public boolean hasChildren(Object element) {
+				return getChildren(element).length > 0;
+			}
+
+			public Object[] getElements(Object inputElement) {
+				return getChildren(inputElement);
+			}
+
+			public void dispose() {}
+
+			public void inputChanged(Viewer viewer, Object oldInput,
+					Object newInput) {}
+
+		};
+		viewer.setContentProvider(contentProvider);
+
+		viewer.setLabelProvider(new LabelProvider() {
+			@Override
+			public String getText(Object element) {
+				return ((IValgrindMessage) element).getText();
+			}
+
+			@Override
+			public Image getImage(Object element) {
+				Image image;
+				if (element instanceof ValgrindStackFrame) {
+					image = DebugUITools.getImage(IDebugUIConstants.IMG_OBJS_STACKFRAME);
+				}
+				else {
+					image = PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJS_ERROR_TSK);
+				}
+				return image;
+			}
+
+		});
+
+		doubleClickListener = new IDoubleClickListener() {
+
+			public void doubleClick(DoubleClickEvent event) {
+				Object element = ((TreeSelection) event.getSelection()).getFirstElement();
+				if (element instanceof ValgrindStackFrame) {
+					ValgrindStackFrame frame = (ValgrindStackFrame) element;
+					ILaunch launch = frame.getLaunch();
+					ISourceLocator locator = launch.getSourceLocator();		
+					if (locator instanceof AbstractSourceLookupDirector) {
+						AbstractSourceLookupDirector director = (AbstractSourceLookupDirector) locator;
+						ISourceLookupParticipant[] participants = director.getParticipants();
+						if (participants.length == 0) {
+							// source locator likely disposed, try recreating it
+							IPersistableSourceLocator sourceLocator;
+							ILaunchConfiguration config = launch.getLaunchConfiguration();
+							if (config != null) {
+								try {
+									String id = config.getAttribute(ILaunchConfiguration.ATTR_SOURCE_LOCATOR_ID, (String) null);
+									if (id == null) {
+										sourceLocator = CDebugUIPlugin.createDefaultSourceLocator();
+										sourceLocator.initializeDefaults(config);
+									} else {
+										sourceLocator = DebugPlugin.getDefault().getLaunchManager().newSourceLocator(id);
+										String memento = config.getAttribute(ILaunchConfiguration.ATTR_SOURCE_LOCATOR_MEMENTO, (String) null);
+										if (memento == null) {
+											sourceLocator.initializeDefaults(config);
+										} else {
+											sourceLocator.initializeFromMemento(memento);
+										}
+									}
+									
+									// replace old source locator
+									locator = sourceLocator;
+									launch.setSourceLocator(sourceLocator);
+								} catch (CoreException e) {
+									e.printStackTrace();
+								}
+							}
+						}
+					}
+					ISourceLookupResult result = DebugUITools.lookupSource(frame.getFile(), locator);				
+
+					try {
+						ProfileUIUtils.openEditorAndSelect(result, frame.getLine());
+					} catch (PartInitException e) {
+						e.printStackTrace();
+					} catch (BadLocationException e) {
+						e.printStackTrace();
+					}
+				}
+				else {
+					if (viewer.getExpandedState(element)) {
+						viewer.collapseToLevel(element, TreeViewer.ALL_LEVELS);
+					}
+					else {
+						viewer.expandToLevel(element, 1);
+					}
+				}
+			}
+		};
+		viewer.addDoubleClickListener(doubleClickListener);
+
+		expandAction = new ExpandAction(viewer);
+		collapseAction = new CollapseAction(viewer);
+
+		MenuManager manager = new MenuManager();
+		manager.addMenuListener(new IMenuListener() {
+			public void menuAboutToShow(IMenuManager manager) {
+				ITreeSelection selection = (ITreeSelection) viewer.getSelection();
+				Object element = selection.getFirstElement();
+				if (contentProvider.hasChildren(element)) {
+					manager.add(expandAction);
+					manager.add(collapseAction);
+				}
+			}			
+		});
+
+		manager.setRemoveAllWhenShown(true);	
+		Menu contextMenu = manager.createContextMenu(viewer.getTree());
+		viewer.getControl().setMenu(contextMenu);
+	}
+

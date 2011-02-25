@@ -1,0 +1,19 @@
+	private void disconnectStream(String id) {
+        streamIds.remove(id);
+        if (channel.getState() != IChannel.STATE_OPEN) {
+        	return;
+        }
+        
+        IStreams streams = channel.getRemoteService(IStreams.class);
+        streams.disconnect(id, new IStreams.DoneDisconnect() {
+            public void doneDisconnect(IToken token, Exception error) {
+                if (channel.getState() != IChannel.STATE_OPEN) {
+                	return;
+                }
+                if (error != null) {
+                	channel.terminate(error);
+                }
+            }
+        });
+    }
+
