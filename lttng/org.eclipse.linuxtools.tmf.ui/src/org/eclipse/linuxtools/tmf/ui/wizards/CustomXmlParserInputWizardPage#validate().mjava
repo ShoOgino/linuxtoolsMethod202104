@@ -1,0 +1,74 @@
+    private void validate() {
+        definition.definitionName = logtypeText.getText().trim();
+        definition.timeStampOutputFormat = timeStampOutputFormatText.getText().trim();
+        
+        if (selectedElement != null) {
+            selectedElement.extractInputs();
+            treeViewer.refresh();
+        }
+        
+        StringBuffer errors = new StringBuffer();
+
+        if (definition.definitionName.length() == 0) {
+            errors.append(Messages.CustomXmlParserInputWizardPage_emptyLogTypeError);
+            logtypeText.setBackground(COLOR_LIGHT_RED);
+        } else {
+            logtypeText.setBackground(COLOR_TEXT_BACKGROUND);
+            for (CustomXmlTraceDefinition def : CustomXmlTraceDefinition.loadAll()) {
+                if (definition.definitionName.equals(def.definitionName)) {
+                    if (editDefinitionName == null || ! editDefinitionName.equals(definition.definitionName)) {
+                        errors.append(Messages.CustomXmlParserInputWizardPage_duplicatelogTypeError);
+                        logtypeText.setBackground(COLOR_LIGHT_RED);
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (definition.rootInputElement == null) {
+            errors.append(Messages.CustomXmlParserInputWizardPage_noDocumentError);
+        }
+        
+        if (definition.rootInputElement != null) {
+            logEntryFound = false;
+            logEntryNestedCount = 0;
+            timeStampFound = false;
+            
+            errors.append(validateElement(definition.rootInputElement));
+
+            if ((definition.rootInputElement.attributes != null && definition.rootInputElement.attributes.size() != 0) ||
+                    (definition.rootInputElement.childElements != null && definition.rootInputElement.childElements.size() != 0) || errors.length() == 0) {
+                if (!logEntryFound) {
+                    errors.append(Messages.CustomXmlParserInputWizardPage_missingLogEntryError);
+                }
+
+                if (timeStampFound) {
+                    if (timeStampOutputFormatText.getText().trim().length() == 0) {
+                        errors.append(Messages.CustomXmlParserInputWizardPage_missingTimestampFmtError);
+                        timeStampOutputFormatText.setBackground(COLOR_LIGHT_RED);
+                    } else {
+                        try {
+                            new SimpleDateFormat(timeStampOutputFormatText.getText().trim());
+                            timeStampOutputFormatText.setBackground(COLOR_TEXT_BACKGROUND);
+                        } catch (IllegalArgumentException e) {
+                            errors.append(Messages.CustomXmlParserInputWizardPage_invalidTimestampFmtError);
+                            timeStampOutputFormatText.setBackground(COLOR_LIGHT_RED);
+                        }
+                    }
+                } else {
+                    timeStampPreviewText.setText(Messages.CustomXmlParserInputWizardPage_notimestamporAttributeError);
+                }
+            }
+        } else {
+            timeStampPreviewText.setText(Messages.CustomXmlParserInputWizardPage_notimestamporAttributeError);
+        }
+    
+        if (errors.length() == 0) {
+            setDescription(defaultDescription);
+            setPageComplete(true);
+        } else {
+            setDescription(errors.toString());
+            setPageComplete(false);
+        }
+    }
+

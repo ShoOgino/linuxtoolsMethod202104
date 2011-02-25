@@ -1,0 +1,43 @@
+	/**
+	 * Runs the given command and parameters.
+	 * 
+	 * @param outStream
+	 *            The stream to write the output to.
+	 * 
+	 * @param command
+	 *            The command with all parameters.
+	 * @throws IOException If an IOException occurs.
+	 */
+	public static void runCommand(final OutputStream outStream,
+			String... command) throws IOException {
+		ProcessBuilder pBuilder = new ProcessBuilder(command);
+		pBuilder = pBuilder.redirectErrorStream(true);
+		Process child = pBuilder.start();
+		final BufferedInputStream in = new BufferedInputStream(child
+				.getInputStream());
+		Job readinJob = new Job("") { //$NON-NLS-1$
+
+			@Override
+			protected IStatus run(IProgressMonitor monitor) {
+				try {
+					int i;
+					while ((i = in.read()) != -1) {
+						outStream.write(i);
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+					return Status.CANCEL_STATUS;
+				}
+				return Status.OK_STATUS;
+			}
+
+		};
+		readinJob.schedule();
+		try {
+			child.waitFor();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+

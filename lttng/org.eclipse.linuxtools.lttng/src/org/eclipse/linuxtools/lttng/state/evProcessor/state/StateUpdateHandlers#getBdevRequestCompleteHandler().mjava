@@ -1,0 +1,56 @@
+	/**
+	 * <p>
+	 * Handling event: LTT_EVENT_REQUEST_COMPLETE
+	 * </p>
+	 * <p>
+	 * FIELDS(LTT_FIELD_MAJOR, LTT_FIELD_MINOR, LTT_FIELD_OPERATION
+	 * </p>
+	 * 
+	 * @return
+	 */
+	final ILttngEventProcessor getBdevRequestCompleteHandler() {
+		AbsStateUpdate handler = new AbsStateUpdate() {
+
+			// @Override
+			@Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+
+				// Get Fields
+				Long major = getAFieldLong(trcEvent, traceSt,
+						Fields.LTT_FIELD_MAJOR);
+				Long minor = getAFieldLong(trcEvent, traceSt,
+						Fields.LTT_FIELD_MINOR);
+				Long operation = getAFieldLong(trcEvent, traceSt,
+						Fields.LTT_FIELD_OPERATION);
+
+				// calculate bdevcode
+				Long devcode = mkdev(major, minor);
+
+				if (devcode == null) {
+					TraceDebug
+							.debug("incorrect calcualtion of bdevcode input( major: " //$NON-NLS-1$
+									+ major
+									+ " minor: " //$NON-NLS-1$
+									+ minor
+									+ " operation: " + operation); //$NON-NLS-1$
+					return true;
+				}
+
+				Map<Long, LttngBdevState> bdev_states = traceSt
+						.getBdev_states();
+				// Get the instance
+				LttngBdevState bdevState = bdev_states.get(devcode);
+				if (bdevState == null) {
+					bdevState = new LttngBdevState();
+				}
+
+				/* update block device */
+				bdev_pop_mode(bdevState);
+
+				return false;
+
+			}
+		};
+		return handler;
+	}
+

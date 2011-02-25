@@ -1,0 +1,48 @@
+    @SuppressWarnings("unchecked")
+	@TmfSignalHandler
+    public void trigger(final TmfTestTriggerSignal signal) {
+
+        TmfTimeRange range = new TmfTimeRange(TmfTimestamp.BigBang, TmfTimestamp.BigCrunch);
+
+        requestedEvents1 = new Vector<TmfEvent>();
+        request1 = new TmfEventRequest<TmfEvent>(TmfEvent.class, range, NB_EVENTS, BLOCK_SIZE) {
+        	int nbRead = 0;
+            @Override
+            public void handleData(TmfEvent event) {
+        		super.handleData(event);
+            	if (!isCompleted()) {
+          			requestedEvents1.add(event);
+            		if (++nbRead >= BLOCK_SIZE && signal.forceCancel)
+            			cancel();
+            	}
+            }
+        };
+
+        requestedEvents2 = new Vector<TmfEvent>();
+        request2 = new TmfEventRequest<TmfEvent>(TmfEvent.class, range, NB_EVENTS, BLOCK_SIZE) {
+            @Override
+            public void handleData(TmfEvent event) {
+        		super.handleData(event);
+            	if (!isCompleted()) {
+            		requestedEvents2.add(event);
+            	}
+            }
+        };
+
+        requestedEvents3 = new Vector<TmfEvent>();
+        request3 = new TmfEventRequest<TmfEvent>(TmfEvent.class, range, NB_EVENTS, BLOCK_SIZE) {
+            @Override
+            public void handleData(TmfEvent event) {
+        		super.handleData(event);
+            	if (!isCompleted()) {
+            		requestedEvents3.add(event);
+            	}
+            }
+        };
+
+        providers = (ITmfDataProvider<TmfEvent>[]) TmfProviderManager.getProviders(TmfEvent.class, TmfTraceStub.class);
+        providers[0].sendRequest(request1);
+        providers[0].sendRequest(request2);
+        providers[0].sendRequest(request3);
+    }
+

@@ -1,0 +1,70 @@
+    @TmfSignalHandler
+    public void currentTimeUpdated(final TmfTimeSynchSignal signal) {
+    	if ((signal.getSource() != fTable) && (fTrace != null) && (!fTable.isDisposed())) {
+
+    		// Create a request for one event that will be queued after other ongoing requests. When this request is completed 
+    		// do the work to select the actual event with the timestamp specified in the signal. This procedure prevents 
+    		// the method fTrace.getRank() from interfering and delaying ongoing requests.
+    		final TmfDataRequest<TmfEvent> subRequest = new TmfDataRequest<TmfEvent>(TmfEvent.class, 0, 1, ExecutionType.FOREGROUND) {
+
+    			@Override
+    			public void handleData(TmfEvent event) {
+    				super.handleData(event);
+    			}
+
+    			@Override
+    			public void handleCompleted() {
+
+    				// Verify if event is within the trace range
+    				final TmfTimestamp timestamp[] = new TmfTimestamp[1];
+    				timestamp[0] = signal.getCurrentTime();
+    				if (timestamp[0].compareTo(fTrace.getStartTime(), true) == -1) {
+    					timestamp[0] = fTrace.getStartTime();
+    				}
+    				if (timestamp[0].compareTo(fTrace.getEndTime(), true) == 1) {
+    					timestamp[0] = fTrace.getEndTime();
+    				}
+
+    				// Get the rank for the event selection in the table
+    				final int index = (int) fTrace.getRank(timestamp[0]);
+
+    				fTable.getDisplay().asyncExec(new Runnable() {
+    					@Override
+                        public void run() {
+    						// Return if table is disposed
+    						if (fTable.isDisposed()) return;
+
+    						fTable.setSelection(index);
+
+    						// If index is in cache, then notify about updated selection. 
+    						// Otherwise it's done after fetching the relevant events from the trace
+    						if ((index >= fCacheStartIndex) && (index < fCacheEndIndex)) {
+    							// Use the timestamp in signal to broadcast to avoid moving the selection
+    							// at the source of the signal
+    							fTable.notifyUpdatedSelection(timestamp[0]);
+    						}
+
+    						// The timestamp might not correspond to an actual event
+    						// and the selection will point to the next experiment event.
+    						// But we would like to display both the event before and
+    						// after the selected timestamp.
+    						// This works fine by default except when the selected event
+    						// is the top displayed event. The following ensures that we
+    						// always see both events.
+    						if ((index > 0) && (index == fTable.getTopIndex())) {
+    							fTable.setTopIndex(index - 1);
+    						}
+    					}
+    				});
+    				super.handleCompleted();
+    			}
+    		};
+
+    		@SuppressWarnings("unchecked")
+            TmfExperiment<TmfEvent> experiment = (TmfExperiment<TmfEvent>)TmfExperiment.getCurrentExperiment();
+    		if (experiment != null) {
+    			experiment.sendRequest(subRequest);
+    		}
+    	}
+	}
+

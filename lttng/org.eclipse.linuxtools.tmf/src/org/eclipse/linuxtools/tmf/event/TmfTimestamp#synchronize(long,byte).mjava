@@ -1,0 +1,49 @@
+    /**
+     * Return a shifted and scaled timestamp.
+     * 
+     * Limitation: The scaling is limited to MAX_SCALING orders of magnitude.
+     * The main reason is that the 64 bits value starts to lose any significance
+     * meaning beyond that scale difference and it's not even worth the trouble
+     * to switch to BigDecimal arithmetics.
+     * 
+     * @param offset the shift value (in the same scale as newScale)
+     * @param newScale the new timestamp scale
+     * @return the synchronized timestamp in the new scale
+     * @throws ArithmeticException
+     */
+    public TmfTimestamp synchronize(long offset, byte newScale) throws ArithmeticException {
+
+        long newValue = fValue;
+        long newPrecision = fPrecision;
+
+        // Handle the easy case
+        if (fScale == newScale && offset == 0)
+        	return this;
+        
+        // Determine the scaling factor
+        if (fScale != newScale) {
+            int scaleDiff = Math.abs(fScale - newScale);
+            // Let's try to be realistic...
+            if (scaleDiff >= scalingFactors.length) {
+                throw new ArithmeticException("Scaling exception"); //$NON-NLS-1$
+            }
+            // Adjust the timestamp
+            long scalingFactor = scalingFactors[scaleDiff];
+            if (newScale < fScale) {
+                newValue *= scalingFactor;
+                newPrecision *= scalingFactor;
+            } else {
+                newValue /= scalingFactor;
+                newPrecision /= scalingFactor;
+            }
+        }
+
+        if (offset < 0) {
+        	newValue = (newValue < Long.MIN_VALUE - offset) ? Long.MIN_VALUE : newValue + offset;
+        } else {
+        	newValue = (newValue > Long.MAX_VALUE - offset) ? Long.MAX_VALUE : newValue + offset;
+        }
+
+        return new TmfTimestamp(newValue, newScale, newPrecision);
+    }
+

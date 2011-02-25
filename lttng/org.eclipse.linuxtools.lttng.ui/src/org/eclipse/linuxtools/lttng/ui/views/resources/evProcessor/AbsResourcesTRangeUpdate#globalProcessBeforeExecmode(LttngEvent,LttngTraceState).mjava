@@ -1,0 +1,32 @@
+	protected boolean globalProcessBeforeExecmode(LttngEvent trcEvent,
+			LttngTraceState traceSt) {
+
+		// TODO: Implement the tracking of current resource in order ot speed up
+		// searching for the relevant resource similar to current_hash_data in
+		// the C implementation
+		// e.g.
+		// hashed_process_data =
+		// process_list->current_hash_data[trace_num][cpu];
+
+		TimeRangeEventResource localResource = resourcelist_obtain_cpu(traceSt,
+				trcEvent.getCpuId());
+		Long cpu = trcEvent.getCpuId();
+		if (localResource == null) {
+			TmfTimeRange timeRange = traceSt.getContext().getTraceTimeWindow();
+			localResource = addLocalResource(timeRange.getStartTime()
+					.getValue(), timeRange.getEndTime().getValue(),
+					traceSt.getTraceId(), ResourceTypes.CPU, cpu, trcEvent
+					.getTimestamp().getValue());
+		}
+
+		// get the start time
+		long stime = localResource.getNext_good_time();
+		// Get the resource state mode
+		String cpuStateMode = localResource.getStateMode(traceSt);
+		// Call the makeDraw function
+		makeDraw(traceSt, stime, trcEvent.getTimestamp().getValue(),
+				localResource, params, cpuStateMode);
+
+		return false;
+	}
+

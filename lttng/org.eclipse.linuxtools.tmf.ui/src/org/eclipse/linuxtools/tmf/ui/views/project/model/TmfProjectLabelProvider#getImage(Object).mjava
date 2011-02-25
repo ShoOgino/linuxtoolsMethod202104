@@ -1,0 +1,55 @@
+	/* (non-Javadoc)
+	 * @see org.eclipse.jface.viewers.ILabelProvider#getImage(java.lang.Object)
+	 */
+	@Override
+	public Image getImage(Object element) {
+
+		if (element instanceof TmfProjectNode) {
+			TmfProjectNode project = (TmfProjectNode) element;
+			if (project.isOpen()) {
+		        IEclipsePreferences node = new InstanceScope().getNode(TmfUiPlugin.PLUGIN_ID);
+		        if (node.get(TmfUiPreferenceInitializer.ACTIVE_PROJECT_PREFERENCE, TmfUiPreferenceInitializer.ACTIVE_PROJECT_DEFAULT)
+		                .equals(project.getName())) {
+		            return fTraceIcon; //PATA placeholder image should be a highlighted open project
+		        } else {
+		            return fOpenedProjectIcon;
+		        }
+			} else {
+			    return fClosedProjectIcon;
+			}
+		}
+
+		if (element instanceof TmfTraceFolderNode) {
+			return fFolderIcon;
+		}
+
+		if (element instanceof TmfTraceNode) {
+		    try {
+		        TmfTraceNode trace = (TmfTraceNode) element;
+		        IResource resource = trace.getResource();
+		        if (trace.getParent() instanceof TmfExperimentNode) {
+		            TmfExperimentNode experiment = (TmfExperimentNode)trace.getParent();
+		            TmfTraceFolderNode traceFolder = experiment.getProject().getTracesFolder();
+		            resource = traceFolder.getFolder().findMember(resource.getName());
+		        }
+
+                if (resource != null && resource.getPersistentProperty(ParserProviderManager.PARSER_PROPERTY) != null) {
+                    return fTraceIcon;
+                }
+            } catch (CoreException e) {
+                e.printStackTrace();
+            }
+            return fUnknownTraceIcon;
+		}
+
+		if (element instanceof TmfExperimentFolderNode) {
+			return fFolderIcon;
+		}
+
+		if (element instanceof TmfExperimentNode) {
+			return fExperimentIcon;
+		}
+
+		return null;
+	}
+

@@ -1,0 +1,57 @@
+	/**
+	 * Only positive attributes are expected
+	 * 
+	 * @param time0
+	 * @param time1
+	 * @param dwidth
+	 * @return
+	 */
+	public boolean update(long time0, long time1, int dwidth) {
+		boolean updated = false;
+
+		if (time0 == startTime && time1 == endTime && dwidth == width) {
+			// No updated needed
+			return updated;
+		}
+
+		// Negatives are invalid
+		time0 = time0 > 0 ? time0 : 0;
+		time1 = time1 > 0 ? time1 : 0;
+		dwidth = dwidth > 0 ? dwidth : 0;
+
+		if (time1 > time0) {
+			// Store the new values as long as they are within range
+			startTime = time0;
+			endTime = time1;
+			width = dwidth;
+
+			pixelsPerNs = (double) width / (double) (endTime - startTime);
+
+			TmfTimestamp fTimeStart = new LttngTimestamp(startTime);
+			TmfTimestamp fTimeEnd = new LttngTimestamp(endTime);
+			trange = new TmfTimeRange(fTimeStart, fTimeEnd);
+
+			// make sure the selected time is within the new range or else set
+			// mark it as invalid
+			if (selectedTime != null) {
+				setSelectedTime(selectedTime);
+			}
+
+			// update succeeded
+			updated = true;
+
+			TraceDebug.debug("Configuration updated to: StartTime: " /* */ //$NON-NLS-1$
+					+ fTimeStart /* */
+					+ "-" /* */ //$NON-NLS-1$
+					+ fTimeEnd /* */
+					+ " width: " /* */ //$NON-NLS-1$
+					+ width + " k: " + pixelsPerNs); /* */ //$NON-NLS-1$
+		} else {
+			TraceDebug
+					.debug("End time is not greater than start time, start time: " //$NON-NLS-1$
+							+ time0 + " end time: " + time1); //$NON-NLS-1$
+		}
+
+		return updated;
+	}
+

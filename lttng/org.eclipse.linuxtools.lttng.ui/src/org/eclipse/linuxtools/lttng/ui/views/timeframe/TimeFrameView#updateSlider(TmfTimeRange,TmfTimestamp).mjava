@@ -1,0 +1,30 @@
+    /**
+     * @param range
+     * @param timestamp
+     */
+    private void updateSlider(TmfTimeRange range, TmfTimestamp timestamp) {
+
+	// Ignore update if disposed
+	if (fSlider.isDisposed())
+	    return;
+
+	// Determine the new relative position
+	byte scale = range.getEndTime().getScale();
+	long total = range.getStartTime().getAdjustment(range.getEndTime(), scale);
+	long relative = range.getStartTime().getAdjustment(timestamp, scale);
+
+	// Set the slider value
+	final long position = (total > 0) ? (relative * SLIDER_RANGE / total) : 0;
+
+	// Update the slider on the UI thread
+	long current = fSlider.getSelection();
+	if (position != current) {
+	    fSlider.getDisplay().asyncExec(new Runnable() {
+		@Override
+		public void run() {
+		    fSlider.setSelection((int) position);
+		}
+	    });
+	}
+    }
+

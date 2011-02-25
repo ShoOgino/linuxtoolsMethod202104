@@ -1,0 +1,52 @@
+	/**
+	 * 
+	 * @return
+	 */
+	final ILttngEventProcessor getSoftIrqRaiseHandler() {
+		AbsStateUpdate handler = new AbsStateUpdate() {
+
+			private Events eventType = Events.LTT_EVENT_SOFT_IRQ_RAISE;
+
+			// @Override
+			@Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+
+				// Long cpu = trcEvent.getCpuId();
+
+				// get event field
+				Long softirq = getAFieldLong(trcEvent, traceSt,
+						Fields.LTT_FIELD_SOFT_IRQ_ID);
+
+				if (softirq == null) {
+					TraceDebug.debug("Soft_irq_id not found in " //$NON-NLS-1$
+							+ eventType.getInName() + " time: " //$NON-NLS-1$
+							+ trcEvent.getTimestamp());
+					return true;
+				}
+
+				// String submode;
+				// String[] softIrqNames = traceSt.getSoft_irq_names();
+				// if (softirq < softIrqNames.length) {
+				// submode = softIrqNames[softirq];
+				// } else {
+				// submode = "softirq " + softirq;
+				// }
+
+				/* update softirq status */
+				/* a soft irq raises are not cumulative */
+				LttngSoftIRQState irqState = traceSt.getSoft_irq_states().get(
+						softirq);
+				if (irqState != null) {
+					irqState.setPending(1L);
+				} else {
+					TraceDebug
+							.debug("unexpected soft irq id value: " + softirq); //$NON-NLS-1$
+				}
+
+				return false;
+
+			}
+		};
+		return handler;
+	}
+

@@ -1,0 +1,49 @@
+	/* (non-Javadoc)
+	 * @see org.eclipse.linuxtools.tmf.trace.ITmfTrace#parseEvent(org.eclipse.linuxtools.tmf.trace.TmfContext)
+	 */
+	@Override
+	public TmfEvent parseEvent(TmfContext context) {
+		
+		// Validate the context
+		if (!(context instanceof TmfExperimentContext)) {
+			return null;	// Throw an exception?
+		}
+
+		if (!context.equals(fExperimentContext)) {
+//    		Tracer.trace("Ctx: Restoring context");
+			seekLocation(context.getLocation());
+		}
+		
+		TmfExperimentContext expContext = (TmfExperimentContext) context;
+
+		// If an event was consumed previously, get the next one from that trace
+		int lastTrace = expContext.getLastTrace();
+		if (lastTrace != TmfExperimentContext.NO_TRACE) {
+		    TmfContext traceContext = expContext.getContexts()[lastTrace];
+			expContext.getEvents()[lastTrace] = expContext.getTraces()[lastTrace].getNextEvent(traceContext);
+			expContext.setLastTrace(TmfExperimentContext.NO_TRACE);
+	        fExperimentContext = (TmfExperimentContext) context;
+		}
+
+		// Scan the candidate events and identify the "next" trace to read from 
+		int trace = TmfExperimentContext.NO_TRACE;
+		TmfTimestamp timestamp = TmfTimestamp.BigCrunch;
+		for (int i = 0; i < expContext.getTraces().length; i++) {
+			TmfEvent event = expContext.getEvents()[i];
+			if (event != null && event.getTimestamp() != null) {
+				TmfTimestamp otherTS = event.getTimestamp();
+				if (otherTS.compareTo(timestamp, true) < 0) {
+					trace = i;
+					timestamp = otherTS;
+				}
+			}
+		}
+
+		TmfEvent event = null;
+		if (trace != TmfExperimentContext.NO_TRACE) {
+			event = expContext.getEvents()[trace];
+		}
+
+		return event;
+	}
+

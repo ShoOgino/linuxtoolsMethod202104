@@ -1,0 +1,29 @@
+    // *** VERIFY ***
+    // This function is synchronized, is it a good idea?
+    // Tis is done to make sure requests arrive somewhat in order, 
+    //	this is especially important when request are issued from different thread.
+    /**
+     * Create a new request from the given data and send it to the framework.<p>
+     * The request will be queued and processed later.
+     * 
+     * @param experiment 		The experiment we will process the request on
+     * @param targetCanvas		The canvas that will received the result
+     * @param newRange			The range of the request
+     * @param newInterval		The interval of time we use to store the result into the HistogramContent
+     */
+    private synchronized HistogramRequest performRequest(TmfExperiment<LttngEvent> experiment, HistogramCanvas targetCanvas, TmfTimeRange newRange, long newInterval, ITmfDataRequest.ExecutionType execType) {
+    	HistogramRequest returnedRequest = null;
+    	
+        // *** FIXME ***
+        // EVIL BUG!
+	    // We use int.MAX_VALUE because we want every events BUT we don't know the number inside the range.
+        // HOWEVER, this would cause the request to run forever (or until it reach the end of trace).
+        // Seeting an EndTime does not seems to stop the request
+        returnedRequest = new HistogramRequest(newRange, Integer.MAX_VALUE, targetCanvas, newInterval, execType );
+        
+        // Send the request to the framework : it will be queued and processed later
+        experiment.sendRequest(returnedRequest);
+        
+        return returnedRequest;
+    }
+

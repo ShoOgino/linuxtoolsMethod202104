@@ -1,0 +1,78 @@
+	/**
+	 * Position the trace to the event at the given position (rank).
+	 * <p>
+	 * NOTE : Seeking by position is very slow in LTTng, consider seeking by
+	 * timestamp.
+	 * 
+	 * @param position
+	 *            Position (or rank) of the event in the trace, starting at 0.
+	 * 
+	 * @return The TmfContext that point to this event
+	 * 
+	 * @see org.eclipse.linuxtools.lttng.event.LttngLocation
+	 * @see org.eclipse.linuxtools.tmf.trace.TmfContext
+	 */
+	@Override
+	public synchronized TmfContext seekEvent(long position) {
+
+		if (PrintDebug) {
+			System.out.println("seekEvent(position) position -> " + position); //$NON-NLS-1$
+		}
+
+		TmfTimestamp timestamp = null;
+		long index = position / getCacheSize();
+
+		// Get the timestamp of the closest check point to the given position
+		if (fCheckpoints.size() > 0) {
+			if (index >= fCheckpoints.size()) {
+				index = fCheckpoints.size() - 1;
+			}
+			timestamp = fCheckpoints.elementAt((int) index)
+					.getTimestamp();
+		}
+		// If none, take the start time of the trace
+		else {
+			timestamp = getStartTime();
+		}
+
+		// Seek to the found time
+		TmfContext tmpContext = seekEvent(timestamp);
+		tmpContext.setRank((index + 1) * fIndexPageSize);
+		previousLocation = (LttngLocation) tmpContext.getLocation();
+
+		// Ajust the index of the event we found at this check point position
+		Long currentPosition = index * getCacheSize();
+
+		Long lastTimeValueRead = 0L;
+
+		// Get the event at current position. This won't move to the next one
+		JniEvent tmpJniEvent = currentJniTrace.findNextEvent();
+		// Now that we are positionned at the checkpoint,
+		// we need to "readNext" (Position - CheckpointPosition) times or until
+		// trace "run out"
+		while ((tmpJniEvent != null) && (currentPosition < position)) {
+			tmpJniEvent = currentJniTrace.readNextEvent();
+			currentPosition++;
+		}
+
+		// If we found our event, save its timestamp
+		if (tmpJniEvent != null) {
+			lastTimeValueRead = tmpJniEvent.getEventTime().getTime();
+		}
+
+		// Set the operation marker as seek, to be able to detect we did "seek"
+		// this event
+		previousLocation.setLastOperationSeek();
+		// Save read event time
+		previousLocation.setOperationTime(lastTimeValueRead);
+
+		// *** VERIFY ***
+		// Is that too paranoid?
+		//
+		// We don't trust what upper level could do with our internal location
+		// so we create a new one to return instead
+		LttngLocation curLocation = new LttngLocation(previousLocation);
+
+		return new TmfContext(curLocation);
+	}
+

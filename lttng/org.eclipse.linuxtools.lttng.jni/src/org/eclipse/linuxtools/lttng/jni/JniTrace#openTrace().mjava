@@ -1,0 +1,45 @@
+    /**
+     * Open an existing trace.<p>
+     * 
+     * The tracepath should have been set already,
+     * 
+     * @exception JniOpenTraceFailedException  Thrown if the open failed
+     */
+    public void openTrace() throws JniException {
+    	
+        // Raise an exception if the tracepath is empty, otherwise open the trace
+        if (tracepath == "") { //$NON-NLS-1$
+            throw new JniTraceException("Tracepath is not set. (openTrace)"); //$NON-NLS-1$
+        }
+        
+        // If the file is already opened, close it first
+        if (thisTracePtr.getPointer() != NULL) {
+            closeTrace();
+        }
+        
+        // Initialization of the library is made here
+        // It is very important that the id is kept!
+        int newLibraryId = initializeLibrary();
+        if ( newLibraryId != -1 ) {
+	        // Call the LTT to open the trace
+        	// Note that the libraryId is not yet and the pointer
+	        long newPtr = ltt_openTrace(newLibraryId, tracepath, printLttDebug);
+	        
+	        if (newPtr == NULL) {
+	        	thisTracePtr = new Jni_C_Pointer_And_Library_Id();
+	            throw new JniOpenTraceFailedException("Error while opening trace. Is the tracepath correct? (openTrace)"); //$NON-NLS-1$
+	        }
+	        
+	        // This is OUR pointer
+	        thisTracePtr = new Jni_C_Pointer_And_Library_Id(newLibraryId, newPtr);
+	
+	        // Populate the trace with LTT information
+	        populateTraceInformation();
+        }
+        else {
+        	thisTracePtr = new Jni_C_Pointer_And_Library_Id();
+        	throw new JniTraceException("Failed to initialize library! Is the trace version supported?\n" + //$NON-NLS-1$
+        			                    "Make sure you have the correct LTTv library compiled. (openTrace)"); //$NON-NLS-1$
+        }
+    }
+

@@ -1,0 +1,77 @@
+	/**
+	 * <p>
+	 * LTT_EVENT_PROCESS_STATE
+	 * </p>
+	 * Replace C function "after_event_enum_process_hook" in eventhooks.c
+	 * <p>
+	 * <p>
+	 * Creates the processlist entry for the child process. Put the last
+	 * position in x at the current time value.
+	 * </p>
+	 * 
+	 * <p>
+	 * Fields: LTT_FIELD_PID
+	 * </p>
+	 * 
+	 * @return
+	 */
+	final ILttngEventProcessor getEnumProcessStateHandler() {
+	    AbsFlowTRangeUpdate handler = new AbsFlowTRangeUpdate() {
+
+			// @Override
+			@Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+			    
+				int first_cpu;
+				int nb_cpus;
+			    
+				Long pid_in = getAFieldLong(trcEvent, traceSt,
+						Fields.LTT_FIELD_PID);
+			    
+			    if ( pid_in != null  ) {
+    			    if(pid_in == 0L) {
+						first_cpu = 0;
+						nb_cpus = traceSt.getNumberOfCPUs();
+    			    } 
+    			    else {
+						first_cpu = ANY_CPU.intValue();
+						nb_cpus = ANY_CPU.intValue() + 1;
+    			    }
+    			    
+					for (int cpu = first_cpu; cpu < nb_cpus; cpu++) {
+						LttngProcessState process_in = lttv_state_find_process(traceSt, Long.valueOf(cpu), pid_in);
+    			        
+    			        if ( process_in != null ) {
+    			            TimeRangeEventProcess localProcess = procContainer.findProcess(process_in.getPid(), process_in.getCpu(), traceSt.getTraceId(), process_in.getCreation_time());
+    	                    
+    			            if (localProcess == null) {
+        			            if ( (process_in.getPid() == 0) || (process_in.getPid() != process_in.getPpid()) ) {
+                                    TmfTimeRange timeRange = traceSt.getContext().getTraceTimeWindow();
+                                    localProcess = addLocalProcess(process_in, timeRange.getStartTime().getValue(), timeRange.getEndTime().getValue(), traceSt.getTraceId());
+                                }
+                                else {
+                                    TraceDebug.debug("process pid is not 0 or pid equals ppid! (getEnumProcessStateHandler)"); //$NON-NLS-1$
+                                }
+    			            }
+
+							// If the process was found, it might be missing
+							// informations, add it here
+							localProcess.setName(process_in.getName());
+							localProcess.setPpid(process_in.getPpid());
+							localProcess.setTgid(process_in.getTgid());
+    			        }
+    			        else {
+    			            TraceDebug.debug("process_in is null! This should never happen. (getEnumProcessStateHandler)"); //$NON-NLS-1$
+    			        }
+    			    }
+			    }
+			    else {
+			        TraceDebug.debug("pid_in is null! This should never happen, really... (getEnumProcessStateHandler)"); //$NON-NLS-1$
+			    }
+			    
+				return false;
+			}
+		};
+		return handler;
+	}
+

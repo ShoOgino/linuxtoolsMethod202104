@@ -1,0 +1,64 @@
+	public String getHoverInfo(ITextViewer textViewer, IRegion hoverRegion) {
+		if (hoverRegion == null || hoverRegion.getLength() == 0)
+			return null;
+		
+		Specfile spec = editor.getSpecfile();
+		
+		
+		String macroName;
+		try {
+			macroName = textViewer.getDocument().get(hoverRegion.getOffset() + 1, hoverRegion.getLength() - 1);
+		} catch (BadLocationException e) {
+			return null;
+		}
+		
+                
+                // First we try to get a define based on the given name
+		SpecfileDefine define = spec.getDefine(macroName);
+		
+                String value = macroName + ": ";
+                
+		if (define != null) {
+                    value += define.getStringValue();
+                    return value;
+                }
+                
+		String macroLower = macroName.toLowerCase();
+                
+                // If there's no such define we try to see if it corresponds to
+                // a Source or Patch declaration
+       
+                Pattern p = Pattern.compile("(source|patch)(\\d*)");
+                Matcher m = p.matcher(macroLower);
+                
+                if (m.matches()){
+                    String digits = m.group(2);
+                    
+                    SpecfileSource source = null;
+                    int number = -1;
+                    
+                    if (digits != null && digits.equals("")){ 
+                        number = 0;
+                    }else if (digits != null && !digits.equals("")){
+                        number =Integer.parseInt(digits);
+                    }
+                    
+                    if (number != -1){
+                        if( m.group(1).equals("source"))
+                            source = spec.getSource(number);
+                        else if (m.group(1).equals("patch"))
+                            source = spec.getPatch(number);
+                        
+                        if (source != null){
+                            value += source.getFileName();
+                            
+                            return value;
+                        }
+                    }
+
+                }
+               
+                
+		return value;
+	}
+

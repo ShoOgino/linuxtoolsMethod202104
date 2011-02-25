@@ -1,0 +1,57 @@
+	/**
+	 * <p>
+	 * Handles: LTT_EVENT_SYSCALL_ENTRY
+	 * </p>
+	 * Replace C function named "before_execmode_hook" in eventhooks.c
+	 * 
+	 * @return
+	 */
+	final ILttngEventProcessor getStateModesHandler() {
+		AbsFlowTRangeUpdate handler = new AbsFlowTRangeUpdate() {
+
+			// @Override
+			@Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+
+				Long cpu = trcEvent.getCpuId();
+				LttngProcessState stateProcess = traceSt.getRunning_process()
+						.get(cpu);
+				// TraceDebug.debug("Before handler called");
+				String traceId = traceSt.getTraceId();
+
+				if (stateProcess != null) {
+					// Find process within the list of registered time-range
+					// related
+					// processes
+
+					// key process attributes to look for it or store it
+					// are: pid, birth, trace_num, note: cpu not relevant since
+					// it
+					// may change
+					TimeRangeEventProcess localProcess = procContainer
+							.findProcess(stateProcess.getPid(), stateProcess.getCpu(), traceId, stateProcess
+                                    .getCreation_time());
+
+					// Add process to process list if not present
+					if (localProcess == null) {
+						TmfTimeRange timeRange = traceSt.getContext()
+								.getTraceTimeWindow();
+						localProcess = addLocalProcess(stateProcess, timeRange
+								.getStartTime().getValue(), timeRange
+								.getEndTime().getValue(), traceId);
+					}
+
+					// Do the actual drawing
+					makeDraw(traceSt, trcEvent.getTimestamp().getValue(),
+							stateProcess, localProcess, params);
+				} else {
+					TraceDebug
+							.debug("Running state process is null! (getStateModesHandler)"); //$NON-NLS-1$
+				}
+
+				return false;
+			}
+		};
+		return handler;
+	}
+

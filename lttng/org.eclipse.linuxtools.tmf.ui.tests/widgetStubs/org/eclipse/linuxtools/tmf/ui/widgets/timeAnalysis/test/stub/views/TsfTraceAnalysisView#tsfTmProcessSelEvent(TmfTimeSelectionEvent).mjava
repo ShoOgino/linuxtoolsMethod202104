@@ -1,0 +1,65 @@
+	@Override
+	public void tsfTmProcessSelEvent(TmfTimeSelectionEvent event) {
+		Object source = event.getSource();
+		if (source == null || !(source instanceof ITimeAnalysisViewer)) {
+			return;
+		}
+
+		ITimeAnalysisViewer rViewer = (ITimeAnalysisViewer) event.getSource();
+		ITimeAnalysisViewer synchViewer = null;
+		// Synchronize viewer selections if Enabled,
+		// make sure the selection does not go in loops
+		if (tsfviewer == rViewer) {
+			synchViewer = tsfviewer2;
+		} else {
+			synchViewer = tsfviewer;
+		}
+		Object selection = event.getSelection();
+
+		long selTimens = event.getSelectedTime();
+		long tms = (long) (selTimens * 1E-6);
+		Date date = new Date(tms);
+		String fDate = stimeformat.format(date);
+		String ns = formatNs(selTimens);
+
+		if (selection instanceof EventImpl) {
+			EventImpl selEvent = (EventImpl) selection;
+			date = new Date((long) (selTimens / 1E-6));
+			System.out
+					.println("TsfTmIncubatorListener.tsfTmProcessEvent() Selected Event: \nType: "
+							+ selEvent.getType().toString()
+							+ "\nTime: "
+							+ selEvent.getTime()
+							+ "\nTrace Name: "
+							+ selEvent.getEntry().getName()
+							+ "\nSelection Type: "
+							+ event.getDType().toString()
+							+ "\nSelected Time: "
+							+ selTimens + " " + fDate + " " + ns);
+
+			synchViewer.setSelectedEvent(selEvent, source);
+
+		} else if (selection instanceof TraceImpl) {
+			TraceImpl selTrace = (TraceImpl) selection;
+			System.out
+					.println("TsfTmIncubatorListener.tsfTmProcessEvent() Selected Trace: \nName: "
+							+ selTrace.getName().toString()
+							+ "\nClass Name: "
+							+ selTrace.getClassName()
+							+ "\nNumber of Events: "
+							+ selTrace.getTraceEvents().size()
+							+ "\nSelection Type: "
+							+ event.getDType().toString()
+							+ "\nSelected Time: "
+							+ selTimens + " " + fDate + " " + ns);
+
+			synchViewer.setSelectedTraceTime(selTrace, event.getSelectedTime(),
+					source);
+		} else {
+			System.out
+					.println("TsfTmIncubatorListener.tsfTmProcessEvent() Unexpected event source received: "
+							+ selection.getClass().getName());
+		}
+
+	}
+

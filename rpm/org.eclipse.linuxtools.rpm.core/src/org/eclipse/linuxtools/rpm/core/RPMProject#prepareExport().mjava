@@ -1,0 +1,40 @@
+	/**
+	 * Prepares for project export. This method updates the project model with
+	 * the given RPM project export delta by:
+	 * <ul>
+	 * <li>Parsing the given spec file and updating the model accordingly</li>
+	 * <li>Updating the spec file model and writing it to disk</li>
+	 * <li>Determining if a patch is needed and generating a patch</li>
+	 * </ul>
+	 * 
+	 * @param exportOp
+	 *            the export delta
+	 * @throws CoreException
+	 *             if:
+	 *             <ul>
+	 *             <li>The project does not have an RPM nature</li>
+	 *             <li>Parsing the spec file fails</li>
+	 *             <li>Patch generation fails</li>
+	 *             <li>Writing the spec file fails</li>
+	 *             </ul>
+	 */
+	private void prepareExport() throws CoreException {
+		/* Don't support exporting projects that have not been imported as SRPMs */
+		if (!getProject().hasNature(RPMProjectNature.RPM_NATURE_ID)) {
+			String throw_message = Messages
+					.getString("RPMCore.RPMProject.prepareExport") + //$NON-NLS-1$
+					getProject().getName();
+			IStatus error = new Status(IStatus.ERROR, IRPMConstants.ERROR, 1,
+					throw_message, null);
+			throw new CoreException(error);
+		}
+
+		// Do a buildPrep again to make sure the BUILD folder is pristine
+		buildPrep();
+
+		getConfiguration().getSourcesFolder().refreshLocal(
+				IResource.DEPTH_INFINITE, null);
+		getConfiguration().getSpecsFolder().refreshLocal(
+				IResource.DEPTH_INFINITE, null);
+	}
+

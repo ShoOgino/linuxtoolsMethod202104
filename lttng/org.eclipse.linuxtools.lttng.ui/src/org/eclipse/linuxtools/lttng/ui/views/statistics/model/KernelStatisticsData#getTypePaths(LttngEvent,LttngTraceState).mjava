@@ -1,0 +1,129 @@
+    /**
+     * <h4>Get the event types paths.</h4>
+     * 
+     * @param event
+     *            Event to get the path for.
+     * @param traceState
+     *            State of the trace for this event.
+     * @return Array of FixedArray representing the paths.
+     */
+    private FixedArray[] getTypePaths(LttngEvent event, LttngTraceState traceState) {
+        int trace = (int) traceState.getContext().getIdentifier(); // No need
+                                                                   // for the
+                                                                   // identifier
+                                                                   // (already
+                                                                   // applied)
+        Long cpu = event.getCpuId();
+        int cpus = cpu.intValue() | LttngConstants.STATS_CPU_ID;
+        LttngProcessState process = traceState.getRunning_process().get(cpu);
+        int processName = fPidKeys.getUniqueId(process.getPid().intValue(), process.getCpu().intValue(), process.getCreation_time());
+        int mode = process.getState().getExec_mode().ordinal() | LttngConstants.STATS_MODE_ID;
+        int submode = fSubModeKeys.getUniqueId(process.getState().getExec_submode_id(), process.getState().getExec_submode());
+        int function = process.getCurrent_function().intValue() | LttngConstants.STATS_FUNCTION_ID;
+        int type = fTypeKeys.getUniqueId(event.getMarkerId(), event.getMarkerName());
+
+        /*
+         * Note that it's faster to re-use the path object, set the relevant
+         * fields and clone the path later when it's time to add to the map
+         */
+
+        // FixedArray(trace,HEADER_EVENT_TYPES_INT,type)
+        fTypedPaths[0].set(0, trace);
+        fTypedPaths[0].set(2, type);
+
+        // FixedArray(trace,HEADER_MODES_INT,mode,HEADER_EVENT_TYPES_INT,type)
+        fTypedPaths[1].set(0, trace);
+        fTypedPaths[1].set(2, mode);
+        fTypedPaths[1].set(4, type);
+
+        // FixedArray(trace,HEADER_MODES_INT,mode,HEADER_SUBMODES_INT,submode,HEADER_EVENT_TYPES_INT,type)
+        fTypedPaths[2].set(0, trace);
+        fTypedPaths[2].set(2, mode);
+        fTypedPaths[2].set(4, submode);
+        fTypedPaths[2].set(6, type);
+
+        // FixedArray(trace,HEADER_PROCESSES_INT,processName,HEADER_EVENT_TYPES_INT,type)
+        fTypedPaths[3].set(0, trace);
+        fTypedPaths[3].set(2, processName);
+        fTypedPaths[3].set(4, type);
+
+        // FixedArray(trace,HEADER_PROCESSES_INT,processName,HEADER_CPUS_INT,cpus,HEADER_EVENT_TYPES_INT,type)
+        fTypedPaths[4].set(0, trace);
+        fTypedPaths[4].set(2, processName);
+        fTypedPaths[4].set(4, cpus);
+        fTypedPaths[4].set(6, type);
+
+        // FixedArray(trace,HEADER_PROCESSES_INT,processName,HEADER_CPUS_INT,cpus,HEADER_FUNCTIONS_INT,function,HEADER_EVENT_TYPES_INT,type)
+        fTypedPaths[5].set(0, trace);
+        fTypedPaths[5].set(2, processName);
+        fTypedPaths[5].set(4, cpus);
+        fTypedPaths[5].set(6, function);
+        fTypedPaths[5].set(8, type);
+
+        // FixedArray(trace,HEADER_PROCESSES_INT,processName,HEADER_CPUS_INT,cpus,HEADER_FUNCTIONS_INT,function,HEADER_MODES_INT,mode,HEADER_EVENT_TYPES_INT,type)
+        fTypedPaths[6].set(0, trace);
+        fTypedPaths[6].set(2, processName);
+        fTypedPaths[6].set(4, cpus);
+        fTypedPaths[6].set(6, function);
+        fTypedPaths[6].set(8, mode);
+        fTypedPaths[6].set(10, type);
+
+        // FixedArray(trace,HEADER_PROCESSES_INT,processName,HEADER_CPUS_INT,cpus,HEADER_FUNCTIONS_INT,function,
+        // HEADER_MODES_INT,mode,HEADER_SUBMODES_INT,submode,HEADER_EVENT_TYPES_INT,type)
+        fTypedPaths[7].set(0, trace);
+        fTypedPaths[7].set(2, processName);
+        fTypedPaths[7].set(4, cpus);
+        fTypedPaths[7].set(6, function);
+        fTypedPaths[7].set(8, mode);
+        fTypedPaths[7].set(10, submode);
+        fTypedPaths[7].set(12, type);
+
+        // FixedArray(trace,HEADER_PROCESSES_INT,processName,HEADER_CPUS_INT,cpus,HEADER_MODES_INT,mode,HEADER_EVENT_TYPES_INT,type)
+        fTypedPaths[8].set(0, trace);
+        fTypedPaths[8].set(2, processName);
+        fTypedPaths[8].set(4, cpus);
+        fTypedPaths[8].set(6, mode);
+        fTypedPaths[8].set(8, type);
+
+        // FixedArray(trace,HEADER_PROCESSES_INT,processName,HEADER_CPUS_INT,cpus,HEADER_MODES_INT,mode,HEADER_SUBMODES_INT,submode,HEADER_EVENT_TYPES_INT,type)
+        fTypedPaths[9].set(0, trace);
+        fTypedPaths[9].set(2, processName);
+        fTypedPaths[9].set(4, cpus);
+        fTypedPaths[9].set(6, mode);
+        fTypedPaths[9].set(8, submode);
+        fTypedPaths[9].set(10, type);
+
+        // FixedArray(trace,HEADER_PROCESSES_INT,processName,HEADER_MODES_INT,mode,HEADER_EVENT_TYPES_INT,type)
+        fTypedPaths[10].set(0, trace);
+        fTypedPaths[10].set(2, processName);
+        fTypedPaths[10].set(4, mode);
+        fTypedPaths[10].set(6, type);
+
+        // FixedArray(trace,HEADER_PROCESSES_INT,processName,HEADER_MODES_INT,mode,HEADER_SUBMODES_INT,submode,HEADER_EVENT_TYPES_INT,type)
+        fTypedPaths[11].set(0, trace);
+        fTypedPaths[11].set(2, processName);
+        fTypedPaths[11].set(4, mode);
+        fTypedPaths[11].set(6, submode);
+        fTypedPaths[11].set(8, type);
+
+        // FixedArray(trace,HEADER_CPUS_INT,cpus,HEADER_EVENT_TYPES_INT,type)
+        fTypedPaths[12].set(0, trace);
+        fTypedPaths[12].set(2, cpus);
+        fTypedPaths[12].set(4, type);
+
+        // FixedArray(trace,HEADER_CPUS_INT,cpus,HEADER_MODES_INT,mode,HEADER_EVENT_TYPES_INT,type)
+        fTypedPaths[13].set(0, trace);
+        fTypedPaths[13].set(2, cpus);
+        fTypedPaths[13].set(4, mode);
+        fTypedPaths[13].set(6, type);
+
+        // FixedArray(trace,HEADER_CPUS_INT,cpus,HEADER_MODES_INT,mode,HEADER_SUBMODES_INT,submode,HEADER_EVENT_TYPES_INT,type)
+        fTypedPaths[14].set(0, trace);
+        fTypedPaths[14].set(2, cpus);
+        fTypedPaths[14].set(4, mode);
+        fTypedPaths[14].set(6, submode);
+        fTypedPaths[14].set(8, type);
+
+        return fTypedPaths;
+    }
+

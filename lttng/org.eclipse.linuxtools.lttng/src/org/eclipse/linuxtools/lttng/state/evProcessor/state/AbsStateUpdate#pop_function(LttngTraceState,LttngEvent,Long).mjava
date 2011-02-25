@@ -1,0 +1,30 @@
+	protected void pop_function(LttngTraceState traceSt, LttngEvent trcEvent,
+			Long funcptr) {
+		Long cpu = trcEvent.getCpuId();
+		LttngProcessState process = traceSt.getRunning_process().get(cpu);
+		Long curr_function = process.getCurrent_function();
+
+		if (curr_function != null && !curr_function.equals(funcptr)) {
+			TraceDebug.debug("Different functions: " + funcptr + " current: " //$NON-NLS-1$ //$NON-NLS-2$
+					+ curr_function + " time stamp: " //$NON-NLS-1$
+					+ trcEvent.getTimestamp().toString());
+
+			// g_info("Different functions (%lu.%09lu): ignore it\n",
+			// tfs->parent.timestamp.tv_sec, tfs->parent.timestamp.tv_nsec);
+			// g_info("process state has %" PRIu64 " when pop_function is %"
+			// PRIu64
+			// "\n",
+			// process->current_function, funcptr);
+			// g_info("{ %u, %u, %s, %s, %s }\n",
+			// process->pid,
+			// process->ppid,
+			// g_quark_to_string(process->name),
+			// g_quark_to_string(process->brand),
+			// g_quark_to_string(process->state->s));
+			return;
+		}
+		
+		process.popFromUserStack();
+		process.setCurrent_function(process.peekFromUserStack());
+	}
+

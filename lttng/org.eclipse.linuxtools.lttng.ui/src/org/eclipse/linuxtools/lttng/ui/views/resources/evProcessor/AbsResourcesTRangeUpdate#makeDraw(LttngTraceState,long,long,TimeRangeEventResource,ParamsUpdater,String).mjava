@@ -1,0 +1,105 @@
+	/**
+	 * @param traceSt
+	 * @param startTime
+	 * @param endTime
+	 * @param localResource
+	 * @param params
+	 * @param stateMode
+	 * @return
+	 */
+	protected boolean makeDraw(LttngTraceState traceSt, long stime, long etime,
+			TimeRangeEventResource localResource, ParamsUpdater params,
+			String stateMode) {
+
+		if (TraceDebug.isRV()) {
+			TraceDebug.traceRV("makeDraw():[" + localResource + ",candidate=[stime=" + stime + ",etime=" + etime + ",state=" + stateMode + "]]"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+		}
+
+		// Check if the event is out of range
+		if (!withinViewRange(stime, etime)) {
+			params.incrementEventsDiscarded(ParamsUpdater.OUT_OF_VIEWRANGE);
+			return false;
+		}
+
+		// Check if the time range is consistent.
+		if (etime < stime) {
+			params.incrementEventsDiscardedWrongOrder();
+			return false;
+		}
+
+		// Store the next good time to start drawing the next event
+		// this is done this early to display an accurate start time of the
+		// first event
+		// within the display window
+		// Moved at the end since it produces space gaps among events
+		// localResource.setNext_good_time(etime);
+
+		// If First event of a resource, initialise start time half page before to enable pagination to the left
+		if (stime < params.getStartTime()) {
+			// event start time is before the visible time window
+			long insertion = localResource.getInsertionTime();
+			if (stime == insertion) {
+				// if start time is equal to insertion this is the first event to be drawn for this resource
+				long halfPage = (params.getEndTime() - params.getStartTime()) / 2;
+				long initTime = params.getStartTime() - halfPage;
+				if (initTime > insertion) {
+					// start time of this event is unknown, place it half page before visible window to allow left side
+					// pagination when selecting previous event
+					stime = initTime;
+				}
+			}
+		}
+
+		// Determine if the time range event will fit it the current
+		// pixel map
+		double duration = etime - stime;
+		double k = getPixelsPerNs(traceSt, params);
+		double pixels = duration * k;
+
+		// Visibility check
+		// Display a "more information" indication by allowing non visible event
+		// as long as its previous event is visible.
+		boolean visible = true;
+		if (pixels < 1.0) {
+			boolean prevEventVisibility = true;
+			// Get the visibility indication on previous event for
+			// this process
+			Vector<TimeRangeComponent> inMemEvents = localResource
+					.getTraceEvents();
+			if (inMemEvents.size() != 0) {
+				TimeRangeComponent prevEvent = inMemEvents.get(inMemEvents
+						.size() - 1);
+				prevEventVisibility = prevEvent.isVisible();
+
+				// if previous event visibility is false and the time span
+				// between events less than two pixels, there is no need to
+				// load it in memory i.e. not visible and a more indicator is
+				// within two pixels.
+				// return i.e. event discarded to free up memory
+				Long eventSpan = stime - prevEvent.getStartTime();
+				if (prevEventVisibility == false
+						&& ((double) eventSpan * k) < 2.0) {
+					params.incrementEventsDiscarded(ParamsUpdater.NOT_VISIBLE);
+					return false;
+				}
+			}
+
+			// if previous event is visible, set this one to not
+			// visible and continue
+			visible = false;
+		}
+
+		Type eventType = getEventType(localResource);
+		if (eventType != null) {
+			TimeRangeEvent time_window = new TimeRangeEvent(stime, etime,
+					localResource, eventType, stateMode);
+
+			time_window.setVisible(visible);
+			localResource.addChildren(time_window);
+
+			localResource.setNext_good_time(etime);
+		}
+
+		return false;
+	}
+

@@ -1,0 +1,126 @@
+	/**
+	 * <p>
+	 * Handles: LTT_EVENT_SCHED_SCHEDULE
+	 * </p>
+	 * Replace C function named "before_schedchange_hook" in eventhooks.c
+	 * <p>
+	 * Fields: LTT_FIELD_PREV_PID, LTT_FIELD_NEXT_PID, LTT_FIELD_PREV_STATE (?)
+	 * </p>
+	 * 
+	 * @return
+	 */
+	final ILttngEventProcessor getBeforeSchedChangeHandler() {
+		AbsFlowTRangeUpdate handler = new AbsFlowTRangeUpdate() {
+
+			// @Override
+			@Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+
+				Long pid_out = getAFieldLong(trcEvent, traceSt,
+						Fields.LTT_FIELD_PREV_PID);
+				Long pid_in = getAFieldLong(trcEvent, traceSt,
+						Fields.LTT_FIELD_NEXT_PID);
+
+				// This is useless even in Lttv !!
+				// Long state_out = getAFieldLong(trcEvent, traceSt,
+				// Fields.LTT_FIELD_PREV_STATE);
+
+				// We need to process information.
+				LttngProcessState process = traceSt.getRunning_process().get(
+						trcEvent.getCpuId());
+
+				if (process != null) {
+					if (process.getPid().equals(pid_out) == false) {
+						// To replace :
+						// process = lttv_state_find_process(ts,tfs->cpu,
+						// pid_out);
+						process = lttv_state_find_process(traceSt, trcEvent
+								.getCpuId(), pid_out);
+						// Also, removed :
+						// guint trace_num = ts->parent.index;
+					}
+
+					if (process != null) {
+						// TODO: Implement something similar to current hash in
+						// order to keep track of the current process and speed
+						// up finding the local resource.
+
+						// HashedProcessData *hashed_process_data = NULL;
+						// hashed_process_data =
+						// processlist_get_process_data(process_list,pid_out,process->cpu,&birth,trace_num);
+						TimeRangeEventProcess localProcess = procContainer
+								.findProcess(process.getPid(), process.getCpu(), traceSt
+										.getTraceId(), process.getCreation_time());
+
+						// Add process to process list if not present
+						// Replace C Call :
+						// processlist_add(process_list,drawing,pid_out,process->tgid,process->cpu,process->ppid,&birth,trace_num,process->name,process->brand,&pl_height,&process_info,&hashed_process_data);
+						if (localProcess == null) {
+							TmfTimeRange timeRange = traceSt.getContext()
+									.getTraceTimeWindow();
+							localProcess = addLocalProcess(process, timeRange
+									.getStartTime().getValue(), timeRange
+									.getEndTime().getValue(), traceSt
+									.getTraceId());
+						}
+
+						// Do the actual drawing
+						makeDraw(traceSt, trcEvent.getTimestamp().getValue(),
+								process,
+								localProcess, params);
+					} else {
+						// Process may be null if the process started BEFORE the
+						// trace start
+						// TraceDebug.debug("Process is null for pid_out! (getBeforeSchedChangeHandler)");
+					}
+
+					// PID_IN section
+					process = lttv_state_find_process(traceSt, trcEvent
+							.getCpuId(), pid_in);
+
+					if (process != null) {
+						// HashedProcessData *hashed_process_data = NULL;
+						// hashed_process_data =
+						// processlist_get_process_data(process_list, pid_in,
+						// tfs->cpu, &birth, trace_num);
+						TimeRangeEventProcess localProcess = procContainer
+								.findProcess(process.getPid(), process.getCpu(), traceSt
+										.getTraceId(), process.getCreation_time());
+
+						// Add process to process list if not present
+						// Replace C Call :
+						// processlist_add(process_list, drawing, pid_in,
+						// process->tgid, tfs->cpu, process->ppid, &birth,
+						// trace_num, process->name, process->brand, &pl_height,
+						// &process_info, &hashed_process_data);
+						if (localProcess == null) {
+							TmfTimeRange timeRange = traceSt.getContext()
+									.getTraceTimeWindow();
+							localProcess = addLocalProcess(process, timeRange
+									.getStartTime().getValue(), timeRange
+									.getEndTime().getValue(), traceSt
+									.getTraceId());
+						}
+
+						// Do the actual drawing
+						makeDraw(traceSt, trcEvent.getTimestamp().getValue(),
+								process,
+								localProcess, params);
+
+					} else {
+						// Process can be null if it started AFTER the trace
+						// end. Do nothing...
+						// TraceDebug.debug("No process found for pid_in! Something is wrong? (getBeforeSchedChangeHandler)");
+					}
+				} else {
+					TraceDebug
+							.debug("Running process is null! (getBeforeSchedChangeHandler)"); //$NON-NLS-1$
+				}
+
+				return false;
+			}
+		};
+
+		return handler;
+	}
+

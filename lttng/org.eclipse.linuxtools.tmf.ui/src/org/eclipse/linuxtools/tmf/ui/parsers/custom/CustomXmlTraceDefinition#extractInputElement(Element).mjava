@@ -1,0 +1,40 @@
+    private static InputElement extractInputElement(Element inputElementElement) {
+        InputElement inputElement = new InputElement();
+        inputElement.elementName = inputElementElement.getAttribute(NAME_ATTRIBUTE);
+        inputElement.logEntry = (Boolean.toString(true).equals(inputElementElement.getAttribute(LOG_ENTRY_ATTRIBUTE))) ? true : false;
+        NodeList nodeList = inputElementElement.getChildNodes();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            String nodeName = node.getNodeName();
+            if (nodeName.equals(INPUT_DATA_ELEMENT)) {
+                Element inputDataElement = (Element) node;
+                inputElement.inputName = inputDataElement.getAttribute(NAME_ATTRIBUTE);
+                inputElement.inputAction = Integer.parseInt(inputDataElement.getAttribute(ACTION_ATTRIBUTE));
+                inputElement.inputFormat = inputDataElement.getAttribute(FORMAT_ATTRIBUTE);
+            } else if (nodeName.equals(ATTRIBUTE_ELEMENT)) {
+                Element attributeElement = (Element) node;
+                InputAttribute attribute = new InputAttribute();
+                attribute.attributeName = attributeElement.getAttribute(NAME_ATTRIBUTE);
+                NodeList attributeNodeList = attributeElement.getChildNodes();
+                for (int j = 0; j < attributeNodeList.getLength(); j++) {
+                    Node attributeNode = attributeNodeList.item(j);
+                    String attributeNodeName = attributeNode.getNodeName();
+                    if (attributeNodeName.equals(INPUT_DATA_ELEMENT)) {
+                        Element inputDataElement = (Element) attributeNode;
+                        attribute.inputName = inputDataElement.getAttribute(NAME_ATTRIBUTE);
+                        attribute.inputAction = Integer.parseInt(inputDataElement.getAttribute(ACTION_ATTRIBUTE));
+                        attribute.inputFormat = inputDataElement.getAttribute(FORMAT_ATTRIBUTE);
+                    }
+                }
+                inputElement.addAttribute(attribute);
+            } else if (nodeName.equals(INPUT_ELEMENT_ELEMENT)) {
+                Element childInputElementElement = (Element) node;
+                InputElement childInputElement = extractInputElement(childInputElementElement);
+                if (childInputElement != null) {
+                    inputElement.addChild(childInputElement);
+                }
+            }
+        }
+        return inputElement;
+    }
+

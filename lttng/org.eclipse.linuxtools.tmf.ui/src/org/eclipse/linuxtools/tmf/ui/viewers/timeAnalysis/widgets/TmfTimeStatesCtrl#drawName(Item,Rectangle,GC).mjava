@@ -1,0 +1,89 @@
+    void drawName(Item item, Rectangle rect, GC gc) {
+        // No name to be drawn
+        if (_timeProvider.getNameSpace() == 0)
+            return;
+        boolean group = item instanceof GroupItem;
+
+        int elemHeight = rect.height / 2;
+        int elemWidth = elemHeight;
+        String name = item._name;
+        if (group) {
+            gc.setBackground(_colors.getBkColorGroup(item._selected, _isInFocus));
+            gc.fillRectangle(rect);
+            if (item._selected && _isInFocus) {
+                gc.setForeground(_colors.getBkColor(item._selected, _isInFocus, false));
+                gc.drawRectangle(rect.x, rect.y, rect.width - 2, rect.height - 2);
+            }
+            gc.setForeground(_colors.getBkColor(false, false, false));
+            gc.drawLine(rect.x, rect.y + rect.height - 1, rect.width - 1, rect.y + rect.height - 1);
+            gc.setForeground(_colors.getFgColorGroup(false, false));
+            gc.setBackground(_colors.getBkColor(false, false, false));
+            Utils.init(_rect1, rect);
+            _rect1.x += MARGIN;
+            _rect1.y += (rect.height - elemHeight) / 2;
+            _rect1.width = elemWidth;
+            _rect1.height = elemHeight;
+            // Get the icon rectangle in the group items
+            gc.fillRectangle(_rect1);
+            gc.drawRectangle(_rect1.x, _rect1.y, _rect1.width - 1, _rect1.height - 1);
+            int p = _rect1.y + _rect1.height / 2;
+            gc.drawLine(_rect1.x + 2, p, _rect1.x + _rect1.width - 3, p);
+            if (!item._expanded) {
+                p = _rect1.x + _rect1.width / 2;
+                gc.drawLine(p, _rect1.y + 2, p, _rect1.y + _rect1.height - 3);
+            }
+            gc.setForeground(_colors.getFgColorGroup(item._selected, _isInFocus));
+            elemWidth += MARGIN;
+        } else {
+            gc.setBackground(_colors.getBkColor(item._selected, _isInFocus, true));
+            gc.setForeground(_colors.getFgColor(item._selected, _isInFocus));
+            gc.fillRectangle(rect);
+            Utils.init(_rect1, rect);
+            _rect1.x += MARGIN;
+            // draw icon
+            ITmfTimeAnalysisEntry trace = ((TraceItem) item)._trace;
+            Image img = utilImpl.getItemImage(trace);
+            if (null != img) {
+                _rect1.y += (rect.height - img.getImageData().height) / 2;
+                gc.drawImage(img, _rect1.x, _rect1.y);
+            }
+            elemWidth = SMALL_ICON_SIZE;
+            // cut long string with "..."
+            Point size = gc.stringExtent(name);
+            if (_idealNameWidth < size.x)
+                _idealNameWidth = size.x;
+            int width = rect.width - MARGIN - MARGIN - elemWidth;
+            int cuts = 0;
+            while (size.x > width && name.length() > 1) {
+                cuts++;
+                name = name.substring(0, name.length() - 1);
+                size = gc.stringExtent(name + "..."); //$NON-NLS-1$
+            }
+            if (cuts > 0)
+                name += "..."; //$NON-NLS-1$
+            elemWidth += MARGIN;
+        }
+        Utils.init(_rect1, rect);
+        int leftMargin = MARGIN + elemWidth;
+        _rect1.x += leftMargin;
+        _rect1.width -= leftMargin;
+        int textWidth = 0;
+        // draw text
+        if (_rect1.width > 0) {
+            _rect1.y += 2;
+            textWidth = Utils.drawText(gc, name, _rect1, true) + 8;
+            _rect1.y -= 2;
+        }
+        // draw middle line
+        if (_rect1.width > 0 && !group) {
+            Utils.init(_rect1, rect);
+            _rect1.x += leftMargin + textWidth;
+            _rect1.width -= textWidth;
+            gc.setForeground(_colors.getColor(TraceColorScheme.MID_LINE));
+            int midy = _rect1.y + _rect1.height / 2;
+            gc.drawLine(_rect1.x, midy, _rect1.x + _rect1.width, midy);
+        }
+        // gc.drawLine(_rect1.x + _rect1.width - 1, _rect1.y, _rect1.x +
+        // _rect1.width - 1, _rect1.y + _rect1.height);
+    }
+

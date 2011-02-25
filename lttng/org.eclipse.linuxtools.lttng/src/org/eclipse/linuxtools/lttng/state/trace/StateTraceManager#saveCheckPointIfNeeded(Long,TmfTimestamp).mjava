@@ -1,0 +1,38 @@
+	/**
+	 * Save a checkpoint if it is needed at that point
+	 * <p>
+	 * The function will use "eventCount" internally to determine if a save was
+	 * needed
+	 * 
+	 * @param eventCounter
+	 *            The event "count" or event "id" so far
+	 * @param eventTime
+	 *            The timestamp of this event
+	 * 
+	 * @return boolean True if a checkpoint was saved, false otherwise
+	 */
+	private void saveCheckPointIfNeeded(Long eventCounter, TmfTimestamp eventTime) {
+		// Save a checkpoint every LTTNG_STATE_SAVE_INTERVAL event
+		if ((eventCounter.longValue() % fcheckPointInterval) == 0) {
+
+			LttngTraceState stateCheckPoint;
+			synchronized (fCheckPointsLock) {
+				stateCheckPoint = fCheckPointStateModel.clone();
+			}
+
+			TraceDebug.debug("Check point created here: " + eventCounter //$NON-NLS-1$
+					+ " -> " + eventTime.toString() + "************" //$NON-NLS-1$ //$NON-NLS-2$
+					+ getTrace().getName() + "   >>>>> Thread: " //$NON-NLS-1$
+					+ Thread.currentThread().getId());
+
+			synchronized (fCheckPointsLock) {
+				// Save the checkpoint
+				stateCheckpointsList.put(eventCounter, stateCheckPoint);
+				// Save correlation between timestamp and checkpoint index
+
+				timestampCheckpointsList.add(new TmfCheckpoint(new TmfTimestamp(eventTime), new TmfLocation<Long>(
+						eventCounter)));
+			}
+		}
+	}
+

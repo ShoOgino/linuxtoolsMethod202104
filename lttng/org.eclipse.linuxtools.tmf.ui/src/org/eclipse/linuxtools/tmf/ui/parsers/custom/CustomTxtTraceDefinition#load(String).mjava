@@ -1,0 +1,54 @@
+    public static CustomTxtTraceDefinition load(String definitionName) {
+        try {
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            DocumentBuilder db = dbf.newDocumentBuilder();
+
+            // The following allows xml parsing without access to the dtd
+            EntityResolver resolver = new EntityResolver () {
+            	@Override
+                public InputSource resolveEntity (String publicId, String systemId) {
+                    String empty = ""; //$NON-NLS-1$
+                    ByteArrayInputStream bais = new ByteArrayInputStream(empty.getBytes());
+                    return new InputSource(bais);
+                }
+            };
+            db.setEntityResolver(resolver);
+
+            // The following catches xml parsing exceptions
+            db.setErrorHandler(new ErrorHandler(){
+            	@Override
+                public void error(SAXParseException saxparseexception) throws SAXException {}
+            	@Override
+                public void warning(SAXParseException saxparseexception) throws SAXException {}
+            	@Override
+                public void fatalError(SAXParseException saxparseexception) throws SAXException {
+                    throw saxparseexception;
+                }});
+
+            File file = new File(CUSTOM_TXT_TRACE_DEFINITIONS_PATH_NAME);
+            Document doc = db.parse(file);
+
+            Element root = doc.getDocumentElement();
+            if (! root.getNodeName().equals(CUSTOM_TXT_TRACE_DEFINITION_ROOT_ELEMENT)) {
+                return null;
+            }
+
+            NodeList nodeList = root.getChildNodes();
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                Node node = nodeList.item(i);
+                if (node instanceof Element &&
+                        node.getNodeName().equals(DEFINITION_ELEMENT) &&
+                        definitionName.equals(((Element) node).getAttribute(NAME_ATTRIBUTE))) {
+                    return extractDefinition((Element) node);
+                }
+            }
+        } catch (ParserConfigurationException e) {
+            e.printStackTrace();
+        } catch (SAXException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+

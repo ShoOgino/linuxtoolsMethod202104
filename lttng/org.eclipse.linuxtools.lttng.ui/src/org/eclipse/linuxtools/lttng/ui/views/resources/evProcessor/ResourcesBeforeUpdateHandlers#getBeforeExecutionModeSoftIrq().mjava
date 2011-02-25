@@ -1,0 +1,88 @@
+	/**
+	 * <p>
+	 * Handles: LTT_EVENT_SOFT_IRQ_RAISE, LTT_EVENT_SOFT_IRQ_ENTRY,
+	 * LTT_EVENT_SOFT_IRQ_EXIT,
+	 * </p>
+	 * Replace C function named "before_execmode_hook_soft_irq" in eventhooks.c
+	 * <p>
+	 * Fields: LTT_FIELD_SOFT_IRQ_ID
+	 * </p>
+	 * 
+	 * @return
+	 */
+	final ILttngEventProcessor getBeforeExecutionModeSoftIrq() {
+		AbsResourcesTRangeUpdate handler = new AbsResourcesTRangeUpdate() {
+
+			// @Override
+			@Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+
+				Long softIrqId = null;
+
+				// According to Ltt, we should not draw anything if the channel
+				// is the kernel one
+				if (trcEvent.getChannelName().equals(
+						Channels.LTT_CHANNEL_KERNEL)) {
+					return false;
+				} else {
+
+					if ((trcEvent.getMarkerName()
+							.equals(Events.LTT_EVENT_SOFT_IRQ_RAISE.getInName()))
+							|| (trcEvent.getMarkerName()
+									.equals(Events.LTT_EVENT_SOFT_IRQ_ENTRY
+											.getInName()))) {
+						softIrqId = getAFieldLong(trcEvent, traceSt,
+								Fields.LTT_FIELD_SOFT_IRQ_ID);
+					} else if (trcEvent.getMarkerName().equals(
+							Events.LTT_EVENT_SOFT_IRQ_EXIT.getInName())) {
+						long cpu = trcEvent.getCpuId();
+						softIrqId = traceSt.getCpu_states().get(cpu)
+								.peekFromSoftIrqStack();
+						if (softIrqId < 0) {
+							// nothing to update
+							return false;
+						}
+					}
+
+					// Add the resource to the resource list
+					// softIrqId is the resource id here
+					TimeRangeEventResource localResource = resourcelist_obtain_soft_irq(
+							traceSt, softIrqId);
+
+					// If the resource is missing in the list, add it
+					if (localResource == null) {
+						TmfTimeRange timeRange = traceSt.getContext()
+								.getTraceTimeWindow();
+						localResource = addLocalResource(timeRange
+								.getStartTime().getValue(), timeRange
+								.getEndTime().getValue(), traceSt.getTraceId(),
+								ResourceTypes.SOFT_IRQ, softIrqId, trcEvent
+										.getTimestamp().getValue());
+					}
+
+					// get the start time
+					long stime = localResource.getNext_good_time();
+
+					// Get the resource state mode
+					String softIrqStateMode = localResource
+							.getStateMode(traceSt);
+
+					// Call the makeDraw function
+					makeDraw(traceSt, stime,
+							trcEvent.getTimestamp().getValue(), localResource,
+							params, softIrqStateMode);
+
+					// Call the globalProcessBeforeExecmode() after, as
+					// it is needed by all
+					// getBeforeExecmode*SOMETHING*()
+					globalProcessBeforeExecmode(trcEvent, traceSt);
+
+				}
+
+				return false;
+			}
+		};
+
+		return handler;
+	}
+

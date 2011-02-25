@@ -1,0 +1,45 @@
+	/**
+	 * Position the trace to the event at the given time.
+	 * <p>
+	 * NOTE : Seeking by time is very fast compare to seeking by position but is
+	 * still slower than "ReadNext", avoid using it for small interval.
+	 * 
+	 * @param timestamp
+	 *            Time of the event in the trace. If no event available at this
+	 *            exact time, we will position ourself to the next one.
+	 * 
+	 * @return The TmfContext that point to this event
+	 * 
+	 * @see org.eclipse.linuxtools.lttng.event.LttngLocation
+	 * @see org.eclipse.linuxtools.tmf.trace.TmfContext
+	 */
+	@Override
+	public synchronized TmfContext seekEvent(TmfTimestamp timestamp) {
+
+		// // [lmcfrch]
+		// lastTime = 0;
+
+		if (PrintDebug) {
+			System.out
+					.println("seekEvent(timestamp) timestamp -> " + timestamp); //$NON-NLS-1$
+		}
+
+		// Call JNI to seek
+		currentJniTrace.seekToTime(new JniTime(timestamp.getValue()));
+
+		// Save the time at which we seeked
+		previousLocation.setOperationTime(timestamp.getValue());
+		// Set the operation marker as seek, to be able to detect we did "seek"
+		// this event
+		previousLocation.setLastOperationSeek();
+
+		// *** VERIFY ***
+		// Is that too paranoid?
+		//
+		// We don't trust what upper level could do with our internal location
+		// so we create a new one to return instead
+		LttngLocation curLocation = new LttngLocation(previousLocation);
+
+		return new TmfContext(curLocation);
+	}
+

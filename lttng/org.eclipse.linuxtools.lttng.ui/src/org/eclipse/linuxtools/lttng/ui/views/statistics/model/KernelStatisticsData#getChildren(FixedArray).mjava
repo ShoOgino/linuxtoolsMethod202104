@@ -1,0 +1,64 @@
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * org.eclipse.linuxtools.lttng.ui.views.statistics.model.StatisticsData
+     * #getChildren
+     * (org.eclipse.linuxtools.lttng.ui.views.statistics.model.FixedArray)
+     */
+    @Override
+    public Collection<StatisticsTreeNode> getChildren(final FixedArray path) {
+        LinkedList<StatisticsTreeNode> result = new LinkedList<StatisticsTreeNode>();
+
+        if (path.size() % 2 == 0) { // if we are at a Category
+            StatisticsTreeNode current = null;
+            for (int value : getKeys().get(path.get(path.size() - 1))) {
+                current = get(path.append(value));
+                if (current != null && current.getValue().nbEvents != 0)
+                    result.add(current);
+            }
+        } else if (path.size() == 1) { // Special case.
+            if (path.equals(ROOT)) // Asking for the root.
+                for (int value : getKeys().get(ROOT.get(0)))
+                    result.add(getOrCreate(new FixedArray(value)));
+            else
+                // Get value under the root
+                for (int value : getKeys().get(ROOT_NODE_KEY)) {
+                    StatisticsTreeNode node = getOrCreate(path.append(value));
+                    node.setName(getCategoryFromId(value));
+                    result.add(node);
+                }
+        } else {// If we are at a value
+            for (int value : getKeys().get((path.get(path.size() - 2) * NODE))) { // Search
+                                                                                  // the
+                                                                                  // parent
+                                                                                  // name
+                                                                                  // +
+                                                                                  // NODE
+                StatisticsTreeNode node = getOrCreate(path.append(value));
+                node.setName(getCategoryFromId(value));
+                result.add(node);
+            }
+
+            if (path.size() == 5 && path.get(3) == HEADER_CPUS_INT) { // Special
+                                                                      // the
+                                                                      // Functions
+                                                                      // is just
+                                                                      // there.
+                                                                      // We want
+                                                                      // the
+                                                                      // fourth
+                                                                      // element
+                                                                      // but it
+                                                                      // start
+                                                                      // at 0.
+                                                                      // So #3
+                StatisticsTreeNode node = getOrCreate(path.append(HEADER_FUNCTIONS_INT));
+                node.setName(getCategoryFromId(HEADER_FUNCTIONS_INT));
+                result.add(node);
+            }
+        }
+
+        return result;
+    }
+

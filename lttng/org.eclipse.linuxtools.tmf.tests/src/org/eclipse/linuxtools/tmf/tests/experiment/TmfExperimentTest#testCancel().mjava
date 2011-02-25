@@ -1,0 +1,31 @@
+    public void testCancel() throws Exception {
+
+		final int nbEvents  = NB_EVENTS;
+        final int blockSize = fDefaultBlockSize;
+        final Vector<TmfEvent> requestedEvents = new Vector<TmfEvent>();
+
+        TmfTimeRange range = new TmfTimeRange(TmfTimestamp.BigBang, TmfTimestamp.BigCrunch);
+        final TmfEventRequest<TmfEvent> request = new TmfEventRequest<TmfEvent>(TmfEvent.class, range, nbEvents, blockSize) {
+        	int nbRead = 0;
+        	@Override
+        	public void handleData(TmfEvent event) {
+        		super.handleData(event);
+        		requestedEvents.add(event);
+        		if (++nbRead == blockSize)
+        			cancel();
+        	}
+            @Override
+            public void handleCancel() {
+            	if (requestedEvents.size() < blockSize) {
+            		System.out.println("aie");
+            	}
+            }
+        };
+        fExperiment.sendRequest(request);
+        request.waitForCompletion();
+
+        assertEquals("nbEvents",  blockSize, requestedEvents.size());
+        assertTrue("isCompleted", request.isCompleted());
+        assertTrue("isCancelled", request.isCancelled());
+    }
+

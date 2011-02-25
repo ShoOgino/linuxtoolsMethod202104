@@ -1,0 +1,33 @@
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @seeorg.eclipse.linuxtools.lttng.state.IStateDataRequestListener#
+	 * processingStarted(org.eclipse.linuxtools.lttng.state.StateDataRequest)
+	 */
+	@Override
+	@TmfSignalHandler
+	public synchronized void processingStarted(RequestStartedSignal signal) {
+		LttngSyntEventRequest request = signal.getRequest();
+		if (request != null) {
+			// update queue with the id of the current request.
+			// freqState.requestStarted(request);
+
+			// if there was no new request then this one is still on
+			// prepare for the reception of new data
+			waitCursor(true);
+
+			// no new time range for zoom orders
+			TmfTimeRange trange = null;
+			// Time Range will be used to filter out events which are
+			// not visible in one pixel
+			trange = request.getRange();
+
+			// indicate if the data model needs to be cleared e.g. a new
+			// experiment is being selected
+			boolean clearData = request.isclearDataInd();
+			// Indicate if current data needs to be cleared and if so
+			// specify the new experiment time range that applies
+			ModelUpdatePrep(trange, clearData);
+		}
+	}
+

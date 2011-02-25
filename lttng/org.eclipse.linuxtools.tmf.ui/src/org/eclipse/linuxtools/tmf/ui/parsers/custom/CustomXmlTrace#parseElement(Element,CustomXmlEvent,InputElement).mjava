@@ -1,0 +1,26 @@
+    private void parseElement(Element element, CustomXmlEvent event, InputElement inputElement) {
+        if (inputElement.inputName != null && !inputElement.inputName.equals(CustomXmlTraceDefinition.TAG_IGNORE)) {
+            event.parseInput(parseElement(element, new StringBuffer()).toString(), inputElement.inputName, inputElement.inputAction, inputElement.inputFormat);
+        }
+        if (inputElement.attributes != null) {
+            for (InputAttribute attribute : inputElement.attributes) {
+                event.parseInput(element.getAttribute(attribute.attributeName), attribute.inputName, attribute.inputAction, attribute.inputFormat);
+            }
+        }
+        NodeList childNodes = element.getChildNodes();
+        if (inputElement.childElements != null) {
+            for (int i = 0; i < childNodes.getLength(); i++) {
+                Node node = childNodes.item(i);
+                if (node instanceof Element) {
+                    for (InputElement child : inputElement.childElements) {
+                        if (node.getNodeName().equals(child.elementName)) {
+                            parseElement((Element) node, event, child);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return;
+    }
+

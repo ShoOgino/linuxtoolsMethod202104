@@ -1,0 +1,75 @@
+    /*
+     * Create the canvas needed and issue the requests
+     * 
+     * @param newExperiment	Experiment we will use for the request
+     */
+    private void createCanvasAndRequests(TmfExperiment<LttngEvent> newExperiment) {
+    	// Save the experiment we are about to use
+    	lastUsedExperiment = newExperiment;
+    	
+//    	// Create a copy of the trace that will be use only by the full experiment request
+//    	TmfExperiment<LttngEvent> experimentCopy = newExperiment.createTraceCopy();
+    	
+    	// Create the content for the full experiment. 
+    	// This NEED to be created first, as we use it in the selectedWindowCanvas
+		fullExperimentCanvas.createNewHistogramContent(
+			fullExperimentCanvas.getSize().x,
+			FULL_TRACE_BAR_WIDTH,
+/*
+			// 2010-06-20 Yuriy: We will use the dynamic height.
+			FULL_TRACE_CANVAS_HEIGHT
+*/
+		  	fullExperimentCanvas.getSize().y / 2,
+			FULL_TRACE_DIFFERENCE_TO_AVERAGE
+		);
+
+		TmfTimeRange timeRange = getExperimentTimeRange(newExperiment);
+
+		// We will take the half of the full experiment length in case of bigger window size than the full experiment length
+		if(timeRange.getEndTime().getValue() - timeRange.getStartTime().getValue() >  DEFAULT_WINDOW_SIZE ) {
+			fullExperimentCanvas.createNewSelectedWindow(
+					timeRange.getStartTime().getValue(),
+					DEFAULT_WINDOW_SIZE
+					);
+		} else {
+			fullExperimentCanvas.createNewSelectedWindow(
+					timeRange.getStartTime().getValue(),
+					(timeRange.getEndTime().getValue() - timeRange.getStartTime().getValue() ) / 2
+					);
+		}
+
+		currentEventTime = timeRange.getStartTime().getValue();
+
+		// Set the window of the fullTrace canvas visible.
+		fullExperimentCanvas.getCurrentWindow().setSelectedWindowVisible(true);
+		fullExperimentCanvas.getHistogramContent().resetTable(timeRange.getStartTime().getValue(), timeRange.getEndTime().getValue());
+
+		// Create the content for the selected window. 
+		selectedWindowCanvas.createNewHistogramContent(
+				selectedWindowCanvas.getSize().x,
+				SELECTED_WINDOW_BAR_WIDTH,
+				selectedWindowCanvas.getSize().y,
+				SELECTED_WINDOW_DIFFERENCE_TO_AVERAGE
+				);
+		selectedWindowCanvas.getHistogramContent().resetTable(fullExperimentCanvas.getCurrentWindow().getTimestampOfLeftPosition(), fullExperimentCanvas.getCurrentWindow().getTimestampOfRightPosition());
+		
+    	// Make sure the UI object are sane
+		resetControlsContent();
+		
+		// Redraw the canvas right away to have something "clean" as soon as we can
+    	if ( dataBackgroundFullRequest != null ) {
+    		fullExperimentCanvas.redraw();
+    		selectedWindowCanvas.redraw();
+    	}
+    	// Nullify the (possible) old request to be sure we start we something clean
+    	// Note : this is very important for the order of the request below, 
+    	//	see "TODO" in performSelectedWindowEventsRequest
+    	dataBackgroundFullRequest = null;
+    	selectedWindowRequest = null;
+		
+		// Perform both request. 
+		// Order is important here, the small/synchronous request for the selection window should go first
+		performSelectedWindowEventsRequest(newExperiment);
+		performAllTraceEventsRequest(newExperiment);
+    }
+

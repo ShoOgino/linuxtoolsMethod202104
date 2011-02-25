@@ -1,0 +1,60 @@
+	/**
+	 * <p>
+	 * Handles: LTT_EVENT_PROCESS_EXIT
+	 * </p>
+	 * Replace C function named "before_process_exit_hook" in eventhooks.c
+	 * 
+	 * @return
+	 */
+	final ILttngEventProcessor getProcessExitHandler() {
+		AbsFlowTRangeUpdate handler = new AbsFlowTRangeUpdate() {
+
+			// @Override
+			@Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+
+				// We need to process information.
+				LttngProcessState process = traceSt.getRunning_process().get(
+						trcEvent.getCpuId());
+
+				if (process != null) {
+					// TODO: Implement a similar method to track the current
+					// local process in order to speed up finding the local
+					// resource
+
+					// hashed_process_data =
+					// processlist_get_process_data(process_list, pid,
+					// process->cpu, &birth,trace_num);
+					TimeRangeEventProcess localProcess = procContainer
+							.findProcess(process.getPid(), process.getCpu(), traceSt
+									.getTraceId(), process.getCreation_time());
+
+					// Add process to process list if not present
+					// Replace C Call :
+					// processlist_add(process_list, drawing, pid,
+					// process->tgid, process->cpu, process->ppid, &birth,
+					// trace_num, process->name, process->brand,&pl_height,
+					// &process_info, &hashed_process_data);
+					if (localProcess == null) {
+						TmfTimeRange timeRange = traceSt.getContext()
+								.getTraceTimeWindow();
+						localProcess = addLocalProcess(process, timeRange
+								.getStartTime().getValue(), timeRange
+								.getEndTime().getValue(), traceSt.getTraceId());
+					}
+
+					// Call the function that does the actual drawing
+					makeDraw(traceSt, trcEvent.getTimestamp().getValue(),
+							process, localProcess, params);
+
+				} else {
+					TraceDebug
+							.debug("Running process is null! (getProcessExitHandler)"); //$NON-NLS-1$
+				}
+
+				return false;
+			}
+		};
+		return handler;
+	}
+

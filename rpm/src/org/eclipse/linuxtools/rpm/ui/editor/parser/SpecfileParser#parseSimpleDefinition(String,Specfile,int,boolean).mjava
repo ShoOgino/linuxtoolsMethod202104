@@ -1,0 +1,59 @@
+	private SpecfileElement parseSimpleDefinition(String lineText, Specfile specfile, int lineNumber, boolean warnMultipleValues) {
+		List tokens = Arrays.asList(lineText.split("\\s+"));
+		SpecfileTag toReturn = null;
+		
+		for (Iterator iter = tokens.iterator(); iter.hasNext();) {
+			String token = (String) iter.next();
+
+			if (token.length() <= 0) {
+				break;
+			}
+			
+			if (iter.hasNext()) {
+				toReturn = new SpecfileTag(token.substring(0, token.length() - 1).toLowerCase(),
+						(String) iter.next(), specfile);
+				if (iter.hasNext()) {
+					if (!warnMultipleValues) {
+						errorHandler.handleError(new SpecfileParseException(
+								token.substring(0, token.length() - 1) + " cannot have multiple values.",
+								lineNumber, 0, lineText.length(),
+								IMarker.SEVERITY_ERROR));
+						return null;
+					} else {
+						errorHandler.handleError(new SpecfileParseException(
+								token.substring(0, token.length() - 1) + " should be an acronym.",
+								lineNumber, 0, lineText.length(),
+								IMarker.SEVERITY_WARNING));
+					}
+				}
+			} else {
+				errorHandler.handleError(new SpecfileParseException(
+						token.substring(0, token.length() - 1) + " declaration without value.", lineNumber,
+						0, lineText.length(), IMarker.SEVERITY_ERROR));
+				toReturn = null;
+			}
+		}
+		if ((toReturn != null) && (toReturn.getStringValue() != null)) {
+			if (toReturn.getStringValue().indexOf("_") > 0) {
+				if (toReturn.getName().equalsIgnoreCase("release"))
+					errorHandler.handleError(new SpecfileParseException(
+							"Release should not contain an underscore.", lineNumber,
+							0, lineText.length(), IMarker.SEVERITY_WARNING));
+			}
+			try {
+				int intValue = Integer.parseInt(toReturn.getStringValue());
+				toReturn.setIntValue(intValue);
+				toReturn.setStringValue(null);
+				toReturn.setTagType(SpecfileTag.INT);
+			} catch (NumberFormatException e) {
+				if (toReturn.getName().equals("epoch")) {
+					errorHandler.handleError(new SpecfileParseException(
+							"Epoch cannot have non-integer value.", lineNumber,
+							0, lineText.length(), IMarker.SEVERITY_ERROR));
+					toReturn = null;
+				}
+			}
+		}
+		return toReturn;
+	}
+

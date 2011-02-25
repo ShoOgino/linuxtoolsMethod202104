@@ -1,0 +1,34 @@
+    public static ITmfTrace getTrace(IResource resource) {
+        if (resource == null) {
+            return null;
+        }
+        try {
+            String parser = resource.getPersistentProperty(PARSER_PROPERTY);
+            if (parser != null) {
+                for (IParserProvider parserProvider : fParserProviders) {
+                    if (parserProvider != null) {
+                        ITmfTrace trace = parserProvider.getTraceForParser(parser, resource);
+                        if (trace != null) {
+                            return trace;
+                        }
+                    }
+                }
+            }
+            IContentType contentType = Platform.getContentTypeManager().findContentTypeFor(resource.getName());
+            if (contentType != null) {
+                for (IParserProvider parserProvider : fParserProviders) {
+                    if (parserProvider != null) {
+                        ITmfTrace trace = parserProvider.getTraceForContentType(contentType.getId(), resource);
+                        if (trace != null) {
+                            resource.setPersistentProperty(PARSER_PROPERTY, trace.getClass().getCanonicalName());
+                            return trace;
+                        }
+                    }
+                }
+            }
+        } catch (CoreException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+

@@ -1,0 +1,34 @@
+	/** Tries to set most convenient time range for display. */
+	void setTimeRange(Object traces[]) {
+		_endTime = 0;
+		_beginTime = -1;
+		ITimeEvent event;
+		for (int i = 0; i < traces.length; i++) {
+			ITmfTimeAnalysisEntry entry = (ITmfTimeAnalysisEntry) traces[i];
+			if (entry.getStopTime() >= entry.getStartTime() && entry.getStopTime() > 0) {
+			    if (_beginTime < 0 || entry.getStartTime() < _beginTime) {
+			        _beginTime = entry.getStartTime();
+			    }
+			    if (entry.getStopTime() > _endTime) {
+			        _endTime = entry.getStopTime();
+			    }
+			}
+			List<TimeEvent> list = entry.getTraceEvents();
+			int len = list.size();
+			if (len > 0) {
+                event = (ITimeEvent) list.get(0);
+                if (_beginTime < 0 || event.getTime() < _beginTime) {
+                    _beginTime = event.getTime();
+                }
+				event = (ITimeEvent) list.get(list.size() - 1);
+				long eventEndTime = event.getTime() + (event.getDuration() > 0 ? event.getDuration() : 0);
+				if (eventEndTime > _endTime) {
+					_endTime = eventEndTime;
+				}
+			}
+		}
+
+		if (_beginTime < 0)
+			_beginTime = 0;
+	}
+

@@ -1,55 +1,20 @@
 	/**
 	 * canFinish()
 	 * 
-	 * Hot validation. Called to determine whether Finish
-	 * button can be set to true
+	 * Hot validation. Called to determine whether Finish button can be set to
+	 * true
+	 * 
 	 * @return boolean. true if finish can be activated
 	 */
 	public boolean canFinish() {
-		// Make sure project has been selected
-		if (getSelectedProjectName() == null && rpmProject == null) {
-			setDescription(Messages.getString("RPMExportPage.Select_project")); //$NON-NLS-1$
+		if (rpmProject != null && !exportBinary.getSelection()
+				&& !exportSource.getSelection()) {
+			// Make sure either export binary/source is checked
+			setErrorMessage(Messages
+					.getString("RPMExportPage.Select_export_type")); //$NON-NLS-1$
 			return false;
 		}
-		
-		// Make sure spec file is selected
-		if(specFileField.getText() == "") { //$NON-NLS-1$
-			setDescription(Messages.getString("RPMExportPage.Select_spec_file"));
-			return false;
-		}
-		// Make sure spec file exists and path is valid
-		else {
-			IPath path = rpmProject.getProject().getFullPath().addTrailingSeparator().append(specFileField.getText());
-			IFile newSpecFile = rpmProject.getProject().getParent().getFile(path);
-			IPath newSpecFilePath = newSpecFile.getFullPath();
-			IPath specFolderPath = rpmProject.getConfiguration().getSpecsFolder().getFullPath();
-			if(!specFolderPath.isPrefixOf(newSpecFilePath)) {
-				setErrorMessage(Messages.getString("RPMExportPage.Not_in_specs"));
-				return false;
-			}
-			if(!newSpecFile.exists()) {
-				setErrorMessage(Messages.getString("RPMExportPage.Spec_file_does_not_exist"));
-				return false;
-			}
-		}
-			
-		// Make sure version/release fields are filled in
-		if (!checkVersionReleaseFields()) {
-			setDescription(Messages.getString("RPMExportPage.Fill_in_ver_rel")); //$NON-NLS-1$
-			return false;
-		}
-		// Make sure version/release fields are valid
-		if(!checkInvalidChars(rpmVersion.getText()) || !checkInvalidChars(rpmRelease.getText())) {
-			setErrorMessage(Messages.getString("RPMExportPage.Invalid_ver_rel"));
-			return false;
-		}
-		
-		// Make sure either export binary/source is checked
-		if (!exportBinary.getSelection() && !exportSource.getSelection()) {
-			setErrorMessage(Messages.getString("RPMExportPage.Select_export_type")); //$NON-NLS-1$
-			return false;
-		}
-		
+
 		setDescription(null);
 		setErrorMessage(null);
 		return true;

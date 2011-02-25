@@ -1,0 +1,189 @@
+	/**
+	 * <p>
+	 * Handles: LTT_EVENT_PROCESS_STATE
+	 * </p>
+	 * <p>
+	 * FIELDS: LTT_FIELD_PID, LTT_FIELD_PARENT_PID, LTT_FIELD_NAME,
+	 * LTT_FIELD_TYPE, LTT_FIELD_MODE, LTT_FIELD_SUBMODE, LTT_FIELD_STATUS,
+	 * LTT_FIELD_TGID
+	 * </p>
+	 * 
+	 * @return
+	 */
+	final ILttngEventProcessor getEnumProcessStateHandler() {
+		AbsStateUpdate handler = new AbsStateUpdate() {
+
+			// @Override
+			@Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+
+				Long parent_pid;
+				Long pid;
+				Long tgid;
+				String command;
+				Long cpu = trcEvent.getCpuId();
+				
+				LttngProcessState process = traceSt.getRunning_process().get(
+						cpu);
+				LttngProcessState parent_process;
+				String type;
+				// String mode, submode, status;
+				LttngExecutionState es;
+				
+				/* PID */
+				pid = getAFieldLong(trcEvent, traceSt, Fields.LTT_FIELD_PID);
+
+				/* Parent PID */
+				parent_pid = getAFieldLong(trcEvent, traceSt,
+						Fields.LTT_FIELD_PARENT_PID);
+
+				/* Command name */
+				command = getAFieldString(trcEvent, traceSt,
+						Fields.LTT_FIELD_NAME);
+
+				Long typeVal = getAFieldLong(trcEvent, traceSt,
+						Fields.LTT_FIELD_TYPE);
+
+				type = ProcessType.LTTV_STATE_KERNEL_THREAD.getInName();
+				if ((typeVal != null) && (typeVal.longValue() == 0L)) {
+					type = ProcessType.LTTV_STATE_USER_THREAD.getInName();
+				}
+
+				// /* mode */
+				// mode = getAFieldString(trcEvent, traceSt,
+				// Fields.LTT_FIELD_MODE);
+				//
+				// /* submode */
+				// submode = getAFieldString(trcEvent, traceSt,
+				// Fields.LTT_FIELD_SUBMODE);
+				//
+				// /* status */
+				// status = getAFieldString(trcEvent, traceSt,
+				// Fields.LTT_FIELD_STATUS);
+
+				/* TGID */
+				tgid = getAFieldLong(trcEvent, traceSt, Fields.LTT_FIELD_TGID);
+				if (tgid == null) {
+					tgid = 0L;
+				}
+
+				if ((pid != null) && (pid.longValue() == 0L)) {
+					for (Long acpu : traceSt.getCpu_states().keySet()) {
+						process = lttv_state_find_process(traceSt, acpu, pid);
+						if (process != null) {
+							process.setPpid(parent_pid);
+							process.setTgid(tgid);
+							process.setName(command);
+							process
+									.setType(ProcessType.LTTV_STATE_KERNEL_THREAD);
+						} else {
+							StringBuilder sb = new StringBuilder(
+									"Unexpected, null process read from the TraceState list of processes, event time: " //$NON-NLS-1$
+											+ trcEvent.getTimestamp());
+							TraceDebug.debug(sb.toString());
+						}
+					}
+				} else {
+					/*
+					 * The process might exist if a process was forked while
+					 * performing the state dump.
+					 */
+					process = lttv_state_find_process(traceSt, ANY_CPU, pid);
+					if (process == null) {
+						parent_process = lttv_state_find_process(traceSt,
+								ANY_CPU, parent_pid);
+						TmfTimestamp eventTime = trcEvent.getTimestamp();
+						process = create_process(traceSt, cpu, pid, tgid,
+								command, eventTime);
+						if (parent_process != null) {
+							process.setPpid(parent_process.getPid(), eventTime.getValue());
+						}
+
+						/* Keep the stack bottom : a running user mode */
+						/*
+						 * Disabled because of inconsistencies in the current
+						 * statedump states.
+						 */
+						if (type.equals(ProcessType.LTTV_STATE_KERNEL_THREAD
+								.getInName())) {
+							/*
+							 * FIXME Kernel thread : can be in syscall or
+							 * interrupt or trap.
+							 */
+							/*
+							 * Will cause expected trap when in fact being
+							 * syscall (even after end of statedump event) Will
+							 * cause expected interrupt when being syscall.
+							 * (only before end of statedump event)
+							 */
+							// process type is USER_THREAD by default.
+							process
+									.setType(ProcessType.LTTV_STATE_KERNEL_THREAD);
+
+						}
+						
+						//Only one entry needed in the execution stack
+						process.popFromExecutionStack();
+						es = process.getState();
+						es.setExec_mode(ExecutionMode.LTTV_STATE_MODE_UNKNOWN);
+						es.setProc_status(ProcessStatus.LTTV_STATE_UNNAMED);
+						es.setExec_submode(ExecutionSubMode.LTTV_STATE_SUBMODE_UNKNOWN
+										.getInName());
+                        // Note: For statistics performance improvement a integer representation of the submode is used 
+                        // as well as a bit mask is applied! 
+						es.setExec_submode_id(StateStrings.ExecutionSubMode.LTTV_STATE_SUBMODE_UNKNOWN.ordinal() | LttngConstants.STATS_NONE_ID);
+						
+						// #if 0
+						// /* UNKNOWN STATE */
+						// {
+						// es = process->state =
+						// &g_array_index(process->execution_stack,
+						// LttvExecutionState, 1);
+						// es->t = LTTV_STATE_MODE_UNKNOWN;
+						// es->s = LTTV_STATE_UNNAMED;
+						// es->n = LTTV_STATE_SUBMODE_UNKNOWN;
+						// }
+						// #endif //0
+					} else {
+						/*
+						 * The process has already been created : Probably was
+						 * forked while dumping the process state or was simply
+						 * scheduled in prior to get the state dump event.
+						 */
+						process.setPpid(parent_pid);
+						process.setTgid(tgid);
+						process.setName(command);
+						if (type.equals(ProcessType.LTTV_STATE_KERNEL_THREAD
+								.getInName())) {
+							process
+									.setType(ProcessType.LTTV_STATE_KERNEL_THREAD);
+						} else {
+							process.setType(ProcessType.LTTV_STATE_USER_THREAD);
+						}
+
+						// es =
+						// &g_array_index(process->execution_stack,
+						// LttvExecutionState,
+						// 0);
+						// #if 0
+						// if(es->t == LTTV_STATE_MODE_UNKNOWN) {
+						// if(type == LTTV_STATE_KERNEL_THREAD)
+						// es->t = LTTV_STATE_SYSCALL;
+						// else
+						// es->t = LTTV_STATE_USER_MODE;
+						// }
+						// #endif //0
+						/*
+						 * Don't mess around with the stack, it will eventually
+						 * become ok after the end of state dump.
+						 */
+					}
+				}
+
+				return false;
+
+			}
+		};
+		return handler;
+	}
+

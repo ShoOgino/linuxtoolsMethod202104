@@ -1,0 +1,82 @@
+	/**
+	 * <p>
+	 * Handles: LTT_EVENT_SCHED_SCHEDULE
+	 * </p>
+	 * Replace C function "after_schedchange_hook" in eventhooks.c
+	 * <p>
+	 * Fields: LTT_FIELD_PREV_PID, LTT_FIELD_NEXT_PID
+	 * </p>
+	 * 
+	 * @return
+	 */
+	final ILttngEventProcessor getSchedChangeHandler() {
+		AbsFlowTRangeUpdate handler = new AbsFlowTRangeUpdate() {
+
+			// @Override
+			@Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+				
+				// get event time, cpu, trace_number, process, pid
+				LttngProcessState process_in = traceSt.getRunning_process().get(trcEvent.getCpuId());
+				
+				// pid_out is never used, even in LTTv!
+				//Long pid_out = getAFieldLong(trcEvent, traceSt, Fields.LTT_FIELD_PREV_PID);
+				Long pid_in = getAFieldLong(trcEvent, traceSt, Fields.LTT_FIELD_NEXT_PID);
+				
+				if ( !(pid_in.equals(process_in.getPid())) ) {
+				    TraceDebug.debug("pid_in != PID!  (getSchedChangeHandler)"); //$NON-NLS-1$
+                }
+				
+				//hashed_process_data = processlist_get_process_data(process_list,pid_out,process->cpu,&birth,trace_num);
+				TimeRangeEventProcess localProcess = procContainer.findProcess(pid_in, process_in.getCpu(), traceSt
+						.getTraceId(), process_in.getCreation_time());
+				
+				if ( localProcess == null ) {
+					if ( (pid_in == 0) || (pid_in != process_in.getPpid()) ) {
+					    TmfTimeRange timeRange = traceSt.getContext().getTraceTimeWindow();
+	                    localProcess = addLocalProcess(process_in, timeRange.getStartTime().getValue(), timeRange.getEndTime().getValue(), traceSt.getTraceId());
+					}
+					else {
+						TraceDebug
+								.debug("pid_in is not 0 or pid_in == PPID!  (getSchedChangeHandler)"); //$NON-NLS-1$
+					}
+				}
+
+				// There is no drawing done by the C code below, only refreshing
+				// the references to the current hash data to make it ready for
+				// next event
+
+				// This current implementation does not support the use of
+				// current hashed data
+				// although an equivalent would be good in order to improve the
+				// time to find the currently running process per cpu.
+				/*
+				if(ltt_time_compare(hashed_process_data_in->next_good_time, evtime) <= 0)
+				{
+				    TimeWindow time_window = lttvwindow_get_time_window(control_flow_data->tab);
+				  
+					#ifdef EXTRA_CHECK
+				    if(ltt_time_compare(evtime, time_window.start_time) == -1 || ltt_time_compare(evtime, time_window.end_time) == 1)
+				       return FALSE;
+					#endif //EXTRA_CHECK
+				
+				    Drawing_t *drawing = control_flow_data->drawing;
+				    guint width = drawing->width;
+				    guint new_x;
+				      
+				    convert_time_to_pixels(time_window,evtime,width,&new_x);
+				  	
+				    if(hashed_process_data_in->x.middle != new_x) {
+				        hashed_process_data_in->x.middle = new_x;
+				        hashed_process_data_in->x.middle_used = FALSE;
+				        hashed_process_data_in->x.middle_marked = FALSE;
+				    }
+				}*/
+				
+				return false;
+
+			}
+		};
+		return handler;
+	}
+

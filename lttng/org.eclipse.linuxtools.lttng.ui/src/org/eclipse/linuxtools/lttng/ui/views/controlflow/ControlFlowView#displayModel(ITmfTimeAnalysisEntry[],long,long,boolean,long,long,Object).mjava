@@ -1,0 +1,64 @@
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.eclipse.linuxtools.lttng.ui.views.common.AbsTimeUpdateView#displayModel
+	 * (org.eclipse.linuxtools.tmf.ui.viewers.timeAnalysis.model.
+	 * ITmfTimeAnalysisEntry[], long, long, boolean, long, long,
+	 * java.lang.Object)
+	 */
+	@Override
+	public void displayModel(final ITmfTimeAnalysisEntry[] items,
+			final long startBoundTime, final long endBoundTime,
+			final boolean updateTimeBounds, final long startVisibleWindow,
+			final long endVisibleWindow, final Object source) {
+		
+		if(tableViewer != null) {
+			final Table table = tableViewer.getTable();
+			
+			// Ignore update if widget is disposed
+			if (table.isDisposed()) return;
+			
+			Display display = table.getDisplay();
+
+			// Perform the updates on the UI thread)
+			display.asyncExec(new Runnable() {
+				@Override
+				public void run() {
+					if (!table.isDisposed()) {
+						tableViewer.setInput(items); // This shall be the minimal
+						// initial
+						tableFilter = new ViewProcessFilter(tableViewer);
+						tableViewer.setFilters(new ViewerFilter[] { tableFilter });
+
+						resizeTableColumns(table);
+						table.update();
+						tableViewer.refresh();
+
+						tsfviewer.display(items, startBoundTime, endBoundTime,
+								updateTimeBounds);
+
+						// validate visible boundaries
+						if (startVisibleWindow > -1 && endVisibleWindow > -1) {
+							tsfviewer.setSelectVisTimeWindow(startVisibleWindow,
+									endVisibleWindow, source);
+						}
+
+						tsfviewer.resizeControls();
+
+						// Adjust asynchronously the size of the vertical scroll bar to fit the
+						// contents 
+                        tableViewer.getTable().getDisplay().asyncExec(new Runnable() {
+                            @Override
+                            public void run() {
+                                if ((scrollFrame != null) && (!scrollFrame.isDisposed())) {
+                                    updateScrolls(scrollFrame);
+                                }
+                            }
+                        });
+					}
+				}
+			});
+		}
+	}
+

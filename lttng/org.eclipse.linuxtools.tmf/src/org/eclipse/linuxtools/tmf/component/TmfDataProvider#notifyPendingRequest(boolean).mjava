@@ -1,0 +1,27 @@
+	/**
+	 * Increments/decrements the pending requests counters and fires
+	 * the request if necessary (counter == 0). Used for coalescing
+	 * requests accross multiple TmfDataProvider.
+	 * 
+	 * @param isIncrement
+	 */
+    @Override
+    public void notifyPendingRequest(boolean isIncrement) {
+        synchronized(fLock) {
+            if (isIncrement) {
+                if (fSignalDepth > 0) {
+                    fRequestPendingCounter++;
+                }
+            } else {
+                if (fRequestPendingCounter > 0) {
+                    fRequestPendingCounter--;
+                }
+                
+                // fire request if all pending requests are received
+                if (fRequestPendingCounter == 0) {
+                    fireRequest();
+                }
+            }
+        }
+	}
+

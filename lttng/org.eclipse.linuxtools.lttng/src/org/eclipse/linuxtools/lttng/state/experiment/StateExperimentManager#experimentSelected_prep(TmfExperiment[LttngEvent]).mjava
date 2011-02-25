@@ -1,0 +1,62 @@
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.eclipse.linuxtools.lttng.state.experiment.IStateExperimentManager
+	 * #experimentSelected_prep
+	 * (org.eclipse.linuxtools.tmf.experiment.TmfExperiment)
+	 */
+	@Override
+	public void experimentSelected_prep(TmfExperiment<LttngEvent> experiment) {
+	    
+	    if (fSelectedExperiment != null) {
+	        clearExperimentNode(fSelectedExperiment);
+	        fSelectedExperiment = null;
+	    }
+
+		LTTngTreeNode experimentNode = null;
+		if (experiment != null) {
+			experimentNode = getChildByName(experiment.getName());
+			// keep experiment if already loaded with the same value
+			if (experimentNode != null
+					&& experimentNode.getValue() != experiment) {
+			    clearExperimentNode(experimentNode);
+				experimentNode = null;
+			}
+
+			// Make sure all traces involved have a corresponding state manager
+			// and
+			// state system to request its initial data
+			if (experimentNode == null) {
+				// Create the new experiment tree node
+				experimentNode = new LTTngTreeNode(getNextUniqueId(), this,
+						experiment.getName(), experiment);
+				// add the new experiment to this children list
+				addChild(experimentNode);
+			}
+			
+			// Make sure the traces exists in the tree
+			ITmfTrace[] rtraces = experiment.getTraces();
+			String traceName;
+			LTTngTreeNode traceStateManagerNode;
+			// StateStacksHandler
+			for (ITmfTrace rtrace : rtraces) {
+				traceName = rtrace.getName();
+				traceStateManagerNode = experimentNode.getChildByName(traceName);
+				// Node does not exist for this experiment, so needs to be
+				// created
+				if (traceStateManagerNode == null) {
+					traceStateManagerNode = StateManagerFactory.getManager(
+							rtrace, experimentNode);
+					experimentNode.addChild(traceStateManagerNode);
+				}
+			}
+
+			// Reset event provider to handle requests for the new experiment
+			LttngCoreProviderFactory.reset(experimentNode);
+
+			// preserve the selected experiment
+			fSelectedExperiment = experimentNode;
+		}
+	}
+

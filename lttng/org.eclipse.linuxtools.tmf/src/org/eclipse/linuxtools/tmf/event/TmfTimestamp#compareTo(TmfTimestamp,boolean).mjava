@@ -1,0 +1,64 @@
+    /**
+     * Compare with another timestamp
+     * 
+     * @param other the other timestamp
+     * @param withinPrecision indicates if precision is to be take into consideration
+     * @return -1: this timestamp is lower (i.e. anterior)
+     *          0: timestamps are equal (within precision if requested)
+     *          1: this timestamp is higher (i.e. posterior)
+     */
+    public int compareTo(final TmfTimestamp other, boolean withinPrecision) {
+
+		// If values have the same time scale, perform the comparison
+		if (fScale == other.fScale) {
+			if (withinPrecision)
+				return compareWithinPrecision(this.fValue, this.fPrecision, other.fValue, other.fPrecision);
+			else
+				return compareNoPrecision(this.fValue, other.fValue);
+		}
+
+		// If values have different time scales, adjust to the finest one and
+		// then compare. If the scaling difference is too large, revert to
+		// some heuristics. Hopefully, nobody will try to compare galactic and
+		// quantic clock events...
+		int scaleDiff = Math.abs(fScale - other.fScale);
+		long factor, limit;
+		if (scaleDiff < scalingFactors.length) {
+			factor = scalingFactors[scaleDiff];
+			limit = scalingLimits[scaleDiff];
+		} else {
+			factor = 0;
+			limit = 0; // !!! 0 can always be scaled!!!
+		}
+
+		if (fScale < other.fScale) {
+			// this has finer scale, so other should be scaled
+			if (withinPrecision)
+				if (other.fValue > limit || other.fValue < -limit
+						|| other.fPrecision > limit
+						|| other.fPrecision < -limit)
+					return other.fValue > 0 ? -1 : +1; // other exceeds scaling limit
+				else
+					return compareWithinPrecision(this.fValue, this.fPrecision,
+							other.fValue * factor, other.fPrecision * factor);
+			else if (other.fValue > limit || other.fValue < -limit)
+				return other.fValue > 0 ? -1 : +1; // other exceeds scaling limit
+			else
+				return compareNoPrecision(this.fValue, other.fValue * factor);
+		} else {
+			// other has finer scale, so this should be scaled
+			if (withinPrecision)
+				if (this.fValue > limit || this.fValue < -limit
+						|| this.fPrecision > limit || this.fPrecision < -limit)
+					return this.fValue > 0 ? +1 : -1; // we exceed scaling limit
+				else
+					return compareWithinPrecision(this.fValue * factor,
+							this.fPrecision * factor, other.fValue,
+							other.fPrecision);
+			else if (this.fValue > limit || this.fValue < -limit)
+				return this.fValue > 0 ? +1 : -1; // we exceed scaling limit
+			else
+				return compareNoPrecision(this.fValue * factor, other.fValue);
+		}
+    }
+

@@ -1,0 +1,54 @@
+    public boolean isSelectedElementsValidLttngTraces() {
+	boolean returnedValue = true;
+
+	// We don't want to test until something is selected
+	if (selectionGroup.getCheckedElementCount() > 0) {
+
+	    // We don't want to revalidate each time, only want a new directory
+	    // is selected
+	    if (!selectedSourceDirectory.equals(getSourceDirectory().getAbsolutePath().toString())) {
+		try {
+		    if (isPathLttngTrace(getSourceDirectory().getAbsolutePath()) == false) {
+			returnedValue = false;
+			selectedSourceDirectory = ""; //$NON-NLS-1$
+
+			String errMessage[] = { Messages.ImportTraceWizardPage_BadTraceVersion + getSourceDirectory().getAbsolutePath() };
+			errMessage = extendErrorMessage(errMessage, ""); //$NON-NLS-1$
+			errMessage = extendErrorMessage(errMessage, Messages.ImportTraceWizardPage_BadTraceVersionMsg1);
+			errMessage = extendErrorMessage(errMessage, Messages.ImportTraceWizardPage_BadTraceVersionMsg2);
+			showVersionErrorPopup(errMessage);
+			selectionGroup.setAllSelections(false);
+		    } else {
+			selectedSourceDirectory = getSourceDirectory().getAbsolutePath();
+
+			if (isContainerSet == false) {
+			    isContainerSet = true;
+
+			    if (!getDestination().toString().equals(getInitialContainerString() + "/" + getTraceDirectory())) { //$NON-NLS-1$
+				// *** HACK ***
+				// Force a sane destination to avoid imported
+				// files to end up in the root of the "Traces/"
+				// directory
+				setContainerFieldValue(getInitialContainerString() + "/" + getTraceDirectory()); //$NON-NLS-1$
+			    }
+			}
+		    }
+		} catch (LttngException e) {
+		    String[] errorMessages = e.toString().split("\n"); //$NON-NLS-1$
+		    String exceptionMessage[] = { "Version check failed for the path : ", this.getTracepath(), "", "Returned error was :" }; //$NON-NLS-1$//$NON-NLS-2$ //$NON-NLS-3$
+
+		    for (int pos = 0; pos < errorMessages.length; pos++) {
+			exceptionMessage = extendErrorMessage(exceptionMessage, errorMessages[pos]);
+		    }
+
+		    showVersionErrorPopup(exceptionMessage);
+		    selectionGroup.setAllSelections(false);
+		    returnedValue = false;
+		}
+	    }
+	}
+	isContainerSet = false;
+
+	return returnedValue;
+    }
+

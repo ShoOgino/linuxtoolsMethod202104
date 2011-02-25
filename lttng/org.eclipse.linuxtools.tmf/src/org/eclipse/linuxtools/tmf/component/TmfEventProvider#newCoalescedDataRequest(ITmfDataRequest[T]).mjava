@@ -1,0 +1,18 @@
+	@Override
+	protected synchronized void newCoalescedDataRequest(ITmfDataRequest<T> request) {
+		if (request instanceof ITmfEventRequest<?>) {
+			ITmfEventRequest<T> eventRequest = (ITmfEventRequest<T>) request;
+			TmfCoalescedEventRequest<T> coalescedRequest = 
+				new TmfCoalescedEventRequest<T>(fType, eventRequest.getRange(), eventRequest.getNbRequested(), eventRequest.getExecType());
+			coalescedRequest.addRequest(eventRequest);
+	        if (Tracer.isRequestTraced()) {
+		        Tracer.traceRequest(request, "coalesced with " + coalescedRequest.getRequestId()); //$NON-NLS-1$
+		        Tracer.traceRequest(coalescedRequest, "added " + request.getRequestId()); //$NON-NLS-1$
+	        }
+			fPendingCoalescedRequests.add(coalescedRequest);
+		}
+		else {
+			super.newCoalescedDataRequest(request);
+		}
+	}
+

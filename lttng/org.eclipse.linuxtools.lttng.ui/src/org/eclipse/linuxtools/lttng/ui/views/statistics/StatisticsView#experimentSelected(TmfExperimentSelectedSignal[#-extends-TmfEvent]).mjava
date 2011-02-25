@@ -1,0 +1,47 @@
+	/**
+	 * @param signal
+	 */
+	@TmfSignalHandler
+	public void experimentSelected(TmfExperimentSelectedSignal<? extends TmfEvent> signal) {
+		if (signal != null) {
+			TmfExperiment<?> experiment = signal.getExperiment();
+			String experimentName =  experiment.getName();
+
+			if (StatisticsTreeRootFactory.containsTreeRoot(experimentName)) {
+				// The experiment root is already present
+				StatisticsTreeNode experimentTreeNode = StatisticsTreeRootFactory.getStatTreeRoot(experimentName);
+
+				ITmfTrace[] traces = experiment.getTraces();
+				
+				LTTngTreeNode expNode = StateManagerFactory.getExperimentManager().getSelectedExperiment();
+				
+				// check if there is partial data loaded in the experiment
+				int numTraces = experiment.getTraces().length;
+				int numNodeTraces = experimentTreeNode.getNbChildren();
+
+				if (numTraces == numNodeTraces) {
+					boolean same = true;
+					// Detect if the experiment contains the same traces as when
+					// previously selected
+					for (int i = 0; i < numTraces; i++) {
+						String traceName = traces[i].getName();
+						LTTngTreeNode child = expNode.getChildByName(traceName);
+						if ((child == null) || (!experimentTreeNode.containsChild(child.getId().intValue()))) {
+							 same = false;
+							 break;
+						}
+					}
+
+					if (same) {
+						// no need to reload data, all traces are already loaded
+						treeViewer.setInput(experimentTreeNode);
+						return;
+					}
+				}
+			}
+
+			// if the data is not available or has changed, reload it
+			requestData(experiment);
+		}
+	}
+

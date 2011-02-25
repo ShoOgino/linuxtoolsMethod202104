@@ -1,0 +1,29 @@
+    /**
+     * @param signal
+     */
+    @TmfSignalHandler
+    public void currentTimeRangeUpdated(TmfRangeSynchSignal signal) {
+	if (signal.getSource() != this) {
+	    // Update the time frame
+	    TmfTimeRange selTimeRange = signal.getCurrentRange();
+	    TmfTimestamp selStart = selTimeRange.getStartTime().synchronize(0, fScale);
+	    TmfTimestamp selEnd = selTimeRange.getEndTime().synchronize(0, fScale);
+
+	    fupdateExternalListeners = false;
+	    // Update the widgets and prevent broadcast notifications to
+	    // the views which have been notified already.
+	    {
+		fStartGroup.setContent(fTraceTimeRange, selStart);
+		fEndGroup.setContent(fTraceTimeRange, selEnd);
+
+		TmfTimestamp delta = new TmfTimestamp(selStart.getAdjustment(selEnd, fScale), fScale, 0);
+
+		fRangeGroup.setContent(fTraceSpan, delta);
+	    }
+
+	    // restore the external notification flag
+	    fupdateExternalListeners = true;
+
+	}
+    }
+

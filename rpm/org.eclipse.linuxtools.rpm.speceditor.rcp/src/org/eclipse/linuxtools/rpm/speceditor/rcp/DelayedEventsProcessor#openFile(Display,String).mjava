@@ -1,0 +1,28 @@
+	private void openFile(Display display, final String path) {
+		display.asyncExec(new Runnable() {
+			public void run() {
+				IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+				if (window == null)
+					return;
+				IFileStore fileStore = EFS.getLocalFileSystem().getStore(new Path(path));
+				IFileInfo fetchInfo = fileStore.fetchInfo();
+				if (!fetchInfo.isDirectory() && fetchInfo.exists()) {
+					IWorkbenchPage page = window.getActivePage();
+					try {
+						IDE.openEditorOnFileStore(page, fileStore);
+					} catch (PartInitException e) {
+						String msg = "Error on open of: " +	fileStore.getName();
+						MessageDialog.open(MessageDialog.ERROR, window.getShell(),
+								"Initial Open",
+								msg, SWT.SHEET);
+					}
+				} else {
+					String msg = "File not found: " + path.toString();
+					MessageDialog.open(MessageDialog.ERROR, window.getShell(),
+							"Initial Open",
+							msg, SWT.SHEET);
+				}
+			}
+		});
+	}
+

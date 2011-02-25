@@ -1,0 +1,41 @@
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @seeorg.eclipse.linuxtools.lttng.state.IStateDataRequestListener#
+	 * processingCompleted(org.eclipse.linuxtools.lttng.state.StateDataRequest)
+	 */
+	@Override
+	@TmfSignalHandler
+	public void processingCompleted(RequestCompletedSignal signal) {
+		ILttngSyntEventRequest request = signal.getRequest();
+
+		if (request == null) {
+			return;
+		}
+
+		// Update wait cursor
+		waitCursor(false);
+
+		// No data refresh actions for cancelled requests.
+		if (request.isCancelled() || request.isFailed()) {
+			if (TraceDebug.isDEBUG()) {
+				TmfTimeRange trange = request.getRange();
+				if (request.isCancelled()) {
+					TraceDebug.debug("Request cancelled " //$NON-NLS-1$
+							+ trange.getStartTime() + "-" + trange.getEndTime() //$NON-NLS-1$
+							+ " Handled Events: " + request.getSynEventCount() //$NON-NLS-1$
+							+ " " + request.toString(), 15); //$NON-NLS-1$
+				} else if (request.isFailed()) {
+					TraceDebug.debug("Request Failed " + trange.getStartTime() //$NON-NLS-1$
+							+ "-" + trange.getEndTime() + " Handled Events: " //$NON-NLS-1$ //$NON-NLS-2$
+							+ request.getSynEventCount() + " " //$NON-NLS-1$
+							+ request.toString());
+				}
+			}
+
+			return;
+		} else {
+			modelInputChanged(request, true);
+		}
+	}
+

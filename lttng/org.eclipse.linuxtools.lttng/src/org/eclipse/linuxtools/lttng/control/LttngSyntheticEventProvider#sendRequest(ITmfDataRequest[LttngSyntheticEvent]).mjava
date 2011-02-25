@@ -1,0 +1,30 @@
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.eclipse.linuxtools.tmf.component.TmfDataProvider#sendRequest(org.
+	 * eclipse.linuxtools.tmf.request.TmfDataRequest)
+	 */
+	@Override
+	public void sendRequest(final ITmfDataRequest<LttngSyntheticEvent> request) {
+	    synchronized (this) {
+	        if (!fIsExperimentNotified) {
+	            @SuppressWarnings("unchecked")
+	            TmfExperiment<LttngSyntheticEvent> experiment = (TmfExperiment<LttngSyntheticEvent>) TmfExperiment.getCurrentExperiment();
+	            if (experiment != null) {
+	                experiment.notifyPendingRequest(true);
+	                fIsExperimentNotified = true;
+	            }
+	        }
+	    }
+
+		super.sendRequest(request);
+		if (waitForRequest) {
+			try {
+				request.waitForCompletion();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+

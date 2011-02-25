@@ -1,0 +1,66 @@
+    private void validate() {
+
+        definition.definitionName = logtypeText.getText().trim();
+        definition.timeStampOutputFormat = timestampOutputFormatText.getText().trim();
+        
+        if (selectedLine != null) {
+            selectedLine.extractInputs();
+            treeViewer.refresh();
+        }
+        
+        StringBuffer errors = new StringBuffer();
+        
+        if (definition.definitionName.length() == 0) {
+            errors.append("Enter a name for the new log type. "); //$NON-NLS-1$
+            logtypeText.setBackground(COLOR_LIGHT_RED);
+        } else {
+            logtypeText.setBackground(COLOR_TEXT_BACKGROUND);
+            for (CustomTxtTraceDefinition def : CustomTxtTraceDefinition.loadAll()) {
+                if (definition.definitionName.equals(def.definitionName)) {
+                    if (editDefinitionName == null || ! editDefinitionName.equals(definition.definitionName)) {
+                        errors.append("The log type name already exists. "); //$NON-NLS-1$
+                        logtypeText.setBackground(COLOR_LIGHT_RED);
+                        break;
+                    }
+                }
+            }
+        }
+        
+        timestampFound = false;
+        for (int i = 0; i < definition.inputs.size(); i++) {
+            
+            InputLine inputLine = definition.inputs.get(i);
+            String name = Integer.toString(i+1);
+            errors.append(validateLine(inputLine, name));
+        }
+        if (timestampFound) {
+            if (definition.timeStampOutputFormat.length() == 0) {
+                errors.append("Enter the output format for the Time Stamp field. "); //$NON-NLS-1$
+                timestampOutputFormatText.setBackground(COLOR_LIGHT_RED);
+            } else {
+                try {
+                    new SimpleDateFormat(definition.timeStampOutputFormat);
+                    timestampOutputFormatText.setBackground(COLOR_TEXT_BACKGROUND);
+                } catch (IllegalArgumentException e) {
+                    errors.append("Enter a valid output format for the Time Stamp field. "); //$NON-NLS-1$
+                    timestampOutputFormatText.setBackground(COLOR_LIGHT_RED);
+                }
+            }
+            
+        } else {
+            timestampOutputFormatText.setBackground(COLOR_TEXT_BACKGROUND);
+//            timestampPreviewText.setBackground(COLOR_WIDGET_BACKGROUND);
+//            errors.append("Identify a Time Stamp group (Line "+name+"). ");
+//            timestampPreviewText.setText("*no timestamp group*");
+//            timestampPreviewText.setBackground(COLOR_LIGHT_RED);
+        }
+
+        if (errors.length() == 0) {
+            setDescription(defaultDescription);
+            setPageComplete(true);
+        } else {
+            setDescription(errors.toString());
+            setPageComplete(false);
+        }
+    }
+

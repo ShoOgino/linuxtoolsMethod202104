@@ -1,0 +1,47 @@
+	final ILttngEventProcessor getSyscallEntryHandler() {
+		AbsStateUpdate handler = new AbsStateUpdate() {
+
+			// @Override
+			@Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+
+				Long cpu = trcEvent.getCpuId();
+
+				// No syscall_entry update for initialization process
+				LttngProcessState process = traceSt.getRunning_process().get(
+						cpu);
+				if ((process != null) && (process.getPid() != null)
+						&& (process.getPid().longValue() == 0L)) {
+					return true;
+				}
+
+				// Get the expected event field
+				Long syscall = getAFieldLong(trcEvent, traceSt,
+						Fields.LTT_FIELD_SYSCALL_ID);
+
+				String submode = null;
+				int submodeId = 0;
+				if (syscall == null) {
+					TraceDebug
+							.debug("Syscall Field not found, traceVent time: " //$NON-NLS-1$
+									+ trcEvent.getTimestamp());
+				} else {
+					submode = traceSt.getSyscall_names().get(syscall);
+					// Note: For statistics performance improvement only the integer value of syscall is used 
+					// as well as a bit mask is applied! 
+					submodeId = syscall.intValue() | LttngConstants.STATS_SYS_CALL_NAME_ID;
+				}
+
+				if (submode == null) {
+					submode = ExecutionSubMode.LTTV_STATE_SUBMODE_UNKNOWN.getInName();
+					submodeId = ExecutionSubMode.LTTV_STATE_SUBMODE_UNKNOWN.ordinal() | LttngConstants.STATS_NONE_ID; 
+				}
+
+				push_state(cpu, StateStrings.ExecutionMode.LTTV_STATE_SYSCALL,
+						submode, submodeId, trcEvent.getTimestamp(), traceSt);
+				return false;
+			}
+		};
+		return handler;
+	}
+

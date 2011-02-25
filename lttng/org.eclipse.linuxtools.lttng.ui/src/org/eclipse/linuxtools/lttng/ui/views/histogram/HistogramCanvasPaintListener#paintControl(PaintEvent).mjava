@@ -1,0 +1,48 @@
+	@Override
+	public void paintControl(PaintEvent event) {
+
+		if (childrenCanvas.getSize().x > 0 && childrenCanvas.getSize().y > 0) {
+			Image image = (Image) childrenCanvas.getData(DATA_KEY);
+			
+			// Creates new image only absolutely necessary.
+			if (image == null
+					|| image.getBounds().width != childrenCanvas.getBounds().width
+					|| image.getBounds().height != childrenCanvas.getBounds().height) {
+
+				image =	new Image(
+						event.display,
+						childrenCanvas.getBounds().width,
+						childrenCanvas.getBounds().height
+						);
+
+				childrenCanvas.setData(DATA_KEY, image);
+			}
+			
+			// Initializes the graphics context of the image. 
+	        GC imageGC = new GC(image);
+	        
+			// First clear the whole canvas to have a clean section where to draw
+			clearDrawingSection(imageGC, image, childrenCanvas);
+	        
+			// If the content is null or has rady to draw we quit the function here
+			if ( (childrenCanvas.getHistogramContent() != null)
+					&& (childrenCanvas.getHistogramContent().getReadyUpToPosition() != 0) ) {
+				
+				// Call the function that draw the bars
+//				if (!isFinished) {
+					drawHistogram(imageGC, image);
+//				}
+				
+				// Pinpoint a position if set
+				if (childrenCanvas.getHistogramContent().getSelectedEventTimeInWindow() > 0 ) {
+					drawSelectedEventInWindow(imageGC, image);
+				}
+
+				// Draws the buffer image onto the canvas. 
+				event.gc.drawImage(image, 0, 0);
+			}
+
+			imageGC.dispose();
+		}
+	}
+

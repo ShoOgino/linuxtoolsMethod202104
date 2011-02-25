@@ -1,0 +1,205 @@
+	@SuppressWarnings("unchecked")
+	@Override
+	public ITmfContext armRequest(final ITmfDataRequest<LttngSyntheticEvent> request) {
+		// validate
+		// make sure we have the right type of request
+		if (!(request instanceof ITmfEventRequest<?>)) {
+			request.cancel();
+			TraceDebug.debug("Request is not an instance of ITmfEventRequest"); //$NON-NLS-1$
+			return null;
+		}
+
+		if (fExperiment == null) {
+			TraceDebug.debug("Experiment is null"); //$NON-NLS-1$
+			request.cancel();
+			return null;
+		}
+
+		// get ready to start processing
+		reset(fExperiment);
+
+		// At least one base provider shall be available
+		if (fEventProviderRequests.size() < 1) {
+			request.cancel();
+			TraceDebug.debug("No Base event providers available"); //$NON-NLS-1$
+			return null;
+		}
+
+		fmainRequest = request;
+
+		// define event data handling
+		ITmfEventRequest<LttngSyntheticEvent> eventRequest = (ITmfEventRequest<LttngSyntheticEvent>) fmainRequest;
+		TmfTimeRange reqWindow = eventRequest.getRange();
+
+		TraceDebug.debug("Main Synthethic event request started on thread:  " + Thread.currentThread().getName()); //$NON-NLS-1$
+
+		TmfExperiment<LttngEvent> experiment = (TmfExperiment<LttngEvent>) fExperiment.getValue();
+		experiment.startSynch(new TmfStartSynchSignal(0));
+		
+		TmfTimeRange adjustedRange = reqWindow;
+				
+		// Figure-out if we need to increase the range of the request:  if some
+		// checkpoints are before the beginning of the range, increase the 
+		// range to catch them.   We will then exercise the state system of 
+		// those traces until the requested beginning time range, discarding
+		// the unrequested data.   		
+		IStateTraceManager traceManager;
+		Iterator<IStateTraceManager> iter = fEventProviderRequests.iterator();
+		// For each traceManager in the current experiment...
+		while(iter.hasNext()) {
+			traceManager = iter.next();
+			// restore trace state system to nearest check point
+			TmfTimestamp checkPoint = traceManager
+					.restoreCheckPointByTimestamp(reqWindow.getStartTime());
+
+			// validate that the checkpoint restored is within requested bounds
+			// (not outside the current trace's range or after the end of requested range)
+			TmfTimeRange traceRange = traceManager.getTrace().getTimeRange();
+			if ((checkPoint != null) && !(
+					checkPoint.getValue() >= traceRange.getStartTime().getValue() &&
+					checkPoint.getValue() <= traceRange.getEndTime().getValue() && 
+					checkPoint.getValue() < reqWindow.getEndTime().getValue())
+					) {
+				// checkpoint is out of trace bounds; no need to adjust request for this
+				// trace
+			}
+			else {
+				// use checkpoint time as new startTime for request if it's earlier than
+				// current startTime
+				if (checkPoint != null && adjustedRange.getStartTime().getValue() > checkPoint.getValue()) {
+					adjustedRange = new TmfTimeRange(checkPoint, reqWindow.getEndTime());
+				}	
+			}		
+			// Save which trace state model corresponds to current trace
+			traceToTraceStateModel.put(traceManager.getTrace(), traceManager.getStateModel());
+		}
+
+		dispatchTime = reqWindow.getStartTime().getValue();
+
+		// Create a single request for all traces in the experiment, with coalesced time range.
+		fSubRequest = new LttngBaseEventRequest(adjustedRange, reqWindow.getStartTime(),
+				0, TmfEventRequest.ALL_DATA, BLOCK_SIZE, eventRequest.getExecType() /*ITmfDataRequest.ExecutionType.FOREGROUND*/) {
+
+			private LttngSyntheticEvent syntheticEvent = null;
+
+			/*
+			 * (non-Javadoc)
+			 * 
+			 * @see org.eclipse.linuxtools.lttng.control.LttngEventRequest#handleData()
+			 */
+			@Override
+			public void handleData(LttngEvent event) {
+				super.handleData(event);
+				if (event != null) {
+				    synchronized (LttngSyntheticEventProvider.this) {
+				        // Check if request was canceled
+				        if ((fmainRequest == null) || (fmainRequest.isCompleted()) ) {
+				            TraceDebug.debug("fmainRequest was canceled. Ignoring event " + event); //$NON-NLS-1$
+				            return;
+				        } 
+
+				        handleIncomingData(event);
+				    }
+				} else {
+					TraceDebug.debug("handle data received with no data"); //$NON-NLS-1$
+				}
+			}
+
+			/*
+			 * (non-Javadoc)
+			 * 
+			 * @see org.eclipse.linuxtools.tmf.request.TmfDataRequest#handleCompleted()
+			 */
+			@Override
+	         public void handleCompleted() {
+				// mark this sub-request as completed
+                handleProviderDone(!isCancelled() && !isFailed());
+                super.handleCompleted();
+			}
+
+			/**
+			 * Trigger the Analysis and sequential control of the events.
+			 * 
+			 * @param e
+			 */
+			private void handleIncomingData(LttngEvent e) {
+				long eventTime = e.getTimestamp().getValue();
+
+				TmfTrace<LttngEvent> inTrace = e.getParentTrace();
+				LttngTraceState traceModel = traceToTraceStateModel.get(inTrace);
+				
+				// queue the new event data
+				updateSynEvent(e);
+				
+				// If time at or above requested time, update application
+				if (eventTime >= dispatchTime) {
+					// Before update
+					syntheticEvent.setSequenceInd(SequenceInd.BEFORE);
+					fmainRequest.handleData(syntheticEvent);
+
+					// Update state locally
+					syntheticEvent.setSequenceInd(SequenceInd.UPDATE);
+					fstateUpdateProcessor.process(syntheticEvent, traceModel);
+
+					// After Update
+					syntheticEvent.setSequenceInd(SequenceInd.AFTER);
+					fmainRequest.handleData(syntheticEvent);
+
+				} else {
+					// event time is between checkpoint adjusted time and
+					// requested time i.e. application does not expect the
+					// event, however the state system needs to be re-built
+					// to the dispatch point
+					syntheticEvent.setSequenceInd(SequenceInd.UPDATE);
+					fstateUpdateProcessor.process(syntheticEvent, traceModel);
+				}
+			}
+
+			/**
+			 * Create a synthetic event from the received new reference, if
+			 * the reference is the same there is no need for a new instance
+			 * 
+			 * if this is the first event for this request, call start
+			 * handler
+			 * 
+			 * @param e
+			 * @return
+			 */
+			private LttngSyntheticEvent updateSynEvent(LttngEvent e) {
+				if ((syntheticEvent == null) || (syntheticEvent.getBaseEvent() != e)) {
+					syntheticEvent = new LttngSyntheticEvent(e);
+				}
+
+				TmfTrace<LttngEvent> inTrace = e.getParentTrace();
+				LttngTraceState traceModel = traceToTraceStateModel.get(inTrace);
+				
+				// Trace model needed by application handlers
+				syntheticEvent.setTraceModel(traceModel);
+
+				// send the start request indication once per request thread
+				if (!startIndSent) {
+					TraceDebug.debug("Thread started: " + Thread.currentThread().getName()); //$NON-NLS-1$
+					handleProviderStarted(traceModel);
+					startIndSent = true;
+				}
+
+				return syntheticEvent;
+			}
+		};
+
+		// start request
+		TmfExperiment<LttngEvent> provider = (TmfExperiment<LttngEvent>) fExperiment.getValue();
+		provider.sendRequest(fSubRequest);
+
+		// notify LTTngEvent provider that all requests were sent
+		synchronized (this) {
+		    TmfExperiment.getCurrentExperiment().notifyPendingRequest(false);
+		    fIsExperimentNotified = false;
+		}
+
+		experiment.endSynch(new TmfEndSynchSignal(0));
+
+		// Return a dummy context, not used for relay provider
+		return new TmfContext();
+	}
+

@@ -1,0 +1,40 @@
+    /**
+     * <h4>Get or create a node.</h4>
+     * 
+     * @param path
+     *            Path to the node.
+     * @param event
+     *            The current event
+     * @param traceState
+     *            The current trace state
+     * @param index
+     *            The corresponding index of the statistic
+     * @param isType
+     *            The type of statistic (type or other)
+     * @return The node.
+     */
+    public StatisticsTreeNode getOrCreate(final FixedArray path, LttngEvent event, LttngTraceState traceState, int index, boolean isType) {
+        StatisticsTreeNode current = get(path);
+        if (current == null) {
+            // We have to clone the path since the object for the path is
+            // re-used for performance reasons!
+            FixedArray newPath = (FixedArray) path.clone();
+
+            // Note that setting of the name is done here only when the node is
+            // created (for performance reasons).
+            String name = (isType) ? getTypeStatsName(event, traceState, index) : getOtherStatsName(event, traceState, index);
+            registerName(path);
+            current = new StatisticsTreeNode(newPath, this, name);
+            put(newPath, current);
+        }
+        else {
+            // Special case: Update name if event is of type "exec". This is necessary because the 
+            // process name can change at this point (See Bug333114))
+            if ((index == 3) && !isType && Events.LTT_EVENT_EXEC.getInName().equals(event.getMarkerName())) {
+                String name = getOtherStatsName(event, traceState, index);
+                current.setName(name);
+            }
+        }
+        return current;
+    }
+

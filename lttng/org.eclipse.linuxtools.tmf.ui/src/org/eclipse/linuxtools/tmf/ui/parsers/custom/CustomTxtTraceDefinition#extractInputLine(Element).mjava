@@ -1,0 +1,36 @@
+    private static InputLine extractInputLine(Element inputLineElement) {
+        InputLine inputLine = new InputLine();
+        NodeList nodeList = inputLineElement.getChildNodes();
+        for (int i = 0; i < nodeList.getLength(); i++) {
+            Node node = nodeList.item(i);
+            String nodeName = node.getNodeName();
+            if (nodeName.equals(CARDINALITY_ELEMENT)) {
+                Element cardinalityElement = (Element) node;
+                try {
+                    int min = Integer.parseInt(cardinalityElement.getAttribute(MIN_ATTRIBUTE));
+                    int max = Integer.parseInt(cardinalityElement.getAttribute(MAX_ATTRIBUTE));
+                    inputLine.cardinality = new Cardinality(min, max);
+                } catch (NumberFormatException e) {
+                    return null;
+                }
+            } else if (nodeName.equals(REGEX_ELEMENT)) {
+                Element regexElement = (Element) node;
+                inputLine.regex = regexElement.getTextContent();
+            } else if (nodeName.equals(INPUT_DATA_ELEMENT)) {
+                Element inputDataElement = (Element) node;
+                InputData inputData = new InputData();
+                inputData.name = inputDataElement.getAttribute(NAME_ATTRIBUTE);
+                inputData.action = Integer.parseInt(inputDataElement.getAttribute(ACTION_ATTRIBUTE));
+                inputData.format = inputDataElement.getAttribute(FORMAT_ATTRIBUTE);
+                inputLine.addColumn(inputData);
+            } else if (nodeName.equals(INPUT_LINE_ELEMENT)) {
+                Element childInputLineElement = (Element) node;
+                InputLine childInputLine = extractInputLine(childInputLineElement);
+                if (childInputLine != null) {
+                    inputLine.addChild(childInputLine);
+                }
+            }
+        }
+        return inputLine;
+    }
+

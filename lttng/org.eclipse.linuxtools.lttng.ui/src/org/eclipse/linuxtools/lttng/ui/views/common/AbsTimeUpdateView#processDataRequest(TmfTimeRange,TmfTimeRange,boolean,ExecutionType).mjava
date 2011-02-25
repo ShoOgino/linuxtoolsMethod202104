@@ -1,0 +1,124 @@
+	/**
+	 * send data request directly e.g. doesn't use a queue
+	 * 
+	 * @param requestTrange
+	 * @param listener
+	 * @param experimentTRange
+	 * @param execType 
+	 * @param processor
+	 * @return
+	 */
+	private boolean processDataRequest(TmfTimeRange requestTrange,
+			TmfTimeRange experimentTRange, boolean clearingData, ExecutionType execType) {
+		// Validate input
+		if (requestTrange == null || experimentTRange == null) {
+			TraceDebug.debug("Invalid input"); //$NON-NLS-1$
+			return false;
+		}
+
+		// Cancel the currently executing request before starting a new one
+		fProvider.conditionallyCancelRequests();
+
+		fCurrentRequest = new LttngSyntEventRequest(
+				requestTrange, DEFAULT_OFFSET, TmfDataRequest.ALL_DATA,
+				DEFAULT_CHUNK, this, experimentTRange, getEventProcessor(), 
+				TmfExperiment.getCurrentExperiment().getName(), execType) {
+	
+			Long fCount = getSynEventCount();
+			ITransEventProcessor processor = getProcessor();
+			TmfTimestamp frunningTimeStamp;
+	
+			/*
+			 * (non-Javadoc)
+			 * 
+			 * @see
+			 * org.eclipse.linuxtools.lttng.request.LttngSyntEventRequest#handleData
+			 * ()
+			 */
+////			int handleDataCount = 0;
+////			int handleDataValidCount = 0;
+//			@Override
+//			public void handleData() {
+//				LttngSyntheticEvent[] result = getData();
+//	
+//				TmfEvent evt = (result.length > 0) ? result[0] : null;
+////				handleDataCount++;
+
+			@Override
+			public void handleData(LttngSyntheticEvent event) {
+				super.handleData(event);
+				if (event != null) {
+//					handleDataValidCount++;
+					LttngSyntheticEvent synEvent = (LttngSyntheticEvent) event;
+					// process event
+					switch (synEvent.getSynType()) {
+
+					    case STARTREQ: {
+					        handleRequestStarted();
+					        break;
+					    }
+
+					    case BEFORE: {
+					        processor.process(event, synEvent.getTraceModel());
+					        fCount++;
+					        if ((fCount != 0) && (fCount % getInputChangedRefresh() == 0)) {
+					            // send partial update
+					            modelInputChanged(this, false);
+  
+					            if (TraceDebug.isDEBUG()) {
+					                frunningTimeStamp = event.getTimestamp();
+					                TraceDebug.debug("handled: " + fCount + " sequence: " + synEvent.getSynType()); //$NON-NLS-1$ //$NON-NLS-2$
+					            }
+					        }
+					        break;
+					    }
+
+					    case AFTER:
+					        // fall-through
+					    case ENDREQ:{
+					        processor.process(event, synEvent.getTraceModel());
+					        break;
+					    }
+
+					    default:
+                          // nothing to do
+                          break;
+				    }
+				}
+			}
+	
+			public void handleRequestStarted() {
+				notifyStarting();
+			}
+
+			@Override
+			public void done() {
+//				if (TraceDebug.isDEBUG()) {
+//					TraceDebug.debug("AbsTimeUpdateView: Received=" + handleDataCount + ", Valid=" + handleDataCount + ", fCount=" + fCount);
+//				}
+				super.done();
+			}
+	
+			@Override
+			public void handleCompleted() {
+				super.handleCompleted();
+
+				// Data is not complete and should be handled as such
+				if (isFailed() || isCancelled()) {
+					modelIncomplete(this);
+				}
+
+				if (TraceDebug.isDEBUG()) {
+					if (frunningTimeStamp != null) {
+						TraceDebug.debug("Last event time stamp: " + frunningTimeStamp.getValue()); //$NON-NLS-1$
+					}
+				}
+			}
+		};
+	
+		// send the request to TMF
+		fCurrentRequest.startRequestInd(fProvider);
+		fCurrentRequest.setclearDataInd(clearingData);
+		return true;
+	}
+

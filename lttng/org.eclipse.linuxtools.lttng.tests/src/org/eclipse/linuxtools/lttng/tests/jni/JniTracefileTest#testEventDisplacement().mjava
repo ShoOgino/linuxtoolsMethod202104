@@ -1,0 +1,46 @@
+        public void testEventDisplacement() {
+                
+                int readValue = -1;
+                int seekValue = -1; 
+                JniTracefile testTracefile = prepareTracefileToTest();
+                
+                // Test #1 readNextEvent()
+                readValue = testTracefile.readNextEvent();
+                assertSame("readNextEvent() returned error (test #1)",0,readValue);
+                assertEquals("readNextEvent() event timestamp is incoherent (test #1)",secondEventTimestamp,testTracefile.getCurrentEvent().getEventTime().getTime() );
+                
+                // Test #2 readNextEvent()
+                readValue = testTracefile.readNextEvent();
+                assertSame("readNextEvent() returned error (test #1)",0,readValue);
+                assertEquals("readNextEvent() event timestamp is incoherent (test #1)",thirdEventTimestamp,testTracefile.getCurrentEvent().getEventTime().getTime() );
+                
+                
+                // Test  #1 of seekToTime()
+                seekValue = testTracefile.seekToTime(new JniTime(timestampToSeekTest1) );
+                assertSame("seekToTime() returned error (test #1)",0,seekValue);
+                // Read SHOULD NOT be performed after a seek!
+                assertEquals("readNextEvent() event timestamp is incoherent (test #1)",timestampToSeekTest1,testTracefile.getCurrentEvent().getEventTime().getTime() );
+                
+                readValue = testTracefile.readNextEvent();
+                assertEquals("readNextEvent() event timestamp is incoherent (test #1)",timestampAfterSeekTest1,testTracefile.getCurrentEvent().getEventTime().getTime() );
+                
+                
+                // Test  #2 of seekToTime()
+                seekValue = testTracefile.seekToTime(new JniTime(timestampToSeekLast) );
+                assertSame("seekToTime() returned error (test #2)",0,seekValue);
+                // Read SHOULD NOT be performed after a seek!
+                assertEquals("readNextEvent() event timestamp is incoherent (test #2)",timestampToSeekLast,testTracefile.getCurrentEvent().getEventTime().getTime() );
+                
+                // Read AFTER the last event should bring an error
+                readValue = testTracefile.readNextEvent();
+                assertNotSame("readNextEvent() AFTER last event should return error (test #2)",0,readValue);
+                
+                
+                // Test to see if we can seek back
+                seekValue = testTracefile.seekToTime(new JniTime(firstEventTimestamp) );
+                assertSame("seekToTime() returned error (test seek back)",0,seekValue);
+             	// Read SHOULD NOT be performed after a seek!
+                assertEquals("readNextEvent() event timestamp is incoherent (test seek back)",firstEventTimestamp,testTracefile.getCurrentEvent().getEventTime().getTime() );
+                
+        }
+

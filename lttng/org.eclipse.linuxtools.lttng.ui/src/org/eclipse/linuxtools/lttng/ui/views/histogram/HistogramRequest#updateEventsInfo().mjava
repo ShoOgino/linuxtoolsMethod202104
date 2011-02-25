@@ -1,0 +1,32 @@
+    /**
+	 * Update the HistogramContent with the latest information.<p>
+	 * This will perform some calculation that might be a bit harsh so it should'nt be called too often.
+	 */
+    public void updateEventsInfo() {
+    	// *** Note *** 
+    	// The average number of event is calculated while skipping empty interval if asked
+    	int averageNumberOfEvents = 0;
+    	if ( HistogramConstant.SKIP_EMPTY_INTERVALS_WHEN_CALCULATING_AVERAGE ) {
+    		averageNumberOfEvents = (int)Math.ceil((double)nbEventRead / (double)nbIntervalNotEmpty);
+    	}
+    	else {
+    		averageNumberOfEvents = (int)Math.ceil((double)nbEventRead / (double)parentCanvas.getHistogramContent().getNbElement());
+    	}
+    	
+    	parentCanvas.getHistogramContent().setAverageNumberOfEvents(averageNumberOfEvents);
+    	
+    	// It is possible that the height factor didn't change; 
+    	//		If not, we only need to redraw the updated section, no the whole content
+    	// Save the actual height, recalculate the height and check if there was any changes
+    	double previousHeightFactor = parentCanvas.getHistogramContent().getHeightFactor();
+    	parentCanvas.getHistogramContent().recalculateHeightFactor();
+    	if ( parentCanvas.getHistogramContent().getHeightFactor() != previousHeightFactor ) {
+    		parentCanvas.getHistogramContent().recalculateEventHeight();
+    	}
+    	else {
+    		parentCanvas.getHistogramContent().recalculateEventHeightInInterval(lastDrawPosition, parentCanvas.getHistogramContent().getReadyUpToPosition());
+    	}
+    	
+    	lastDrawPosition = parentCanvas.getHistogramContent().getReadyUpToPosition();
+    }
+

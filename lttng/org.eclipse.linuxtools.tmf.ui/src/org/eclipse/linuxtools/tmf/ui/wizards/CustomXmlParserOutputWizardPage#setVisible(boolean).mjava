@@ -1,0 +1,55 @@
+    /* (non-Javadoc)
+     * @see org.eclipse.jface.dialogs.DialogPage#setVisible(boolean)
+     */
+    @Override
+    public void setVisible(boolean visible) {
+        if (visible) {
+            this.definition = wizard.inputPage.getDefinition();
+            List<String> outputNames = wizard.inputPage.getInputNames();
+            
+            // dispose outputs that have been removed in the input page
+            Iterator<Output> iter = outputs.iterator();
+            while (iter.hasNext()) {
+                Output output = iter.next();
+                boolean found = false;
+                for (String name : outputNames) {
+                    if (output.name.equals(name)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    output.dispose();
+                    iter.remove();
+                }
+            }
+            
+            // create outputs that have been added in the input page
+            for (String name : outputNames) {
+                boolean found = false;
+                for (Output output : outputs) {
+                    if (output.name.equals(name)) {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    outputs.add(new Output(outputsContainer, name));
+                }
+            }
+            
+            outputsContainer.layout();
+            outputsScrolledComposite.setMinSize(outputsContainer.computeSize(SWT.DEFAULT, SWT.DEFAULT).x, outputsContainer.computeSize(SWT.DEFAULT, SWT.DEFAULT).y-5);
+            updatePreviewTable();
+            if (sash.getSize().y > outputsContainer.computeSize(SWT.DEFAULT, SWT.DEFAULT).y + previewTable.getTable().getItemHeight()) {
+                sash.setWeights(new int[] {outputsContainer.computeSize(SWT.DEFAULT, SWT.DEFAULT).y, sash.getSize().y - outputsContainer.computeSize(SWT.DEFAULT, SWT.DEFAULT).y});
+            } else {
+                sash.setWeights(new int[] {outputsContainer.computeSize(SWT.DEFAULT, SWT.DEFAULT).y, previewTable.getTable().getItemHeight()});
+            }
+            setPageComplete(true);
+        } else {
+            setPageComplete(false);
+        }
+        super.setVisible(visible);
+    }
+

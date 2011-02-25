@@ -1,0 +1,55 @@
+	/**
+	 * 
+	 * @return
+	 */
+	final ILttngEventProcessor getIrqEntryHandler() {
+		AbsStateUpdate handler = new AbsStateUpdate() {
+
+			// @Override
+			@Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+
+				Long cpu = trcEvent.getCpuId();
+
+				Long irq = getAFieldLong(trcEvent, traceSt,
+						Fields.LTT_FIELD_IRQ_ID);
+				if (irq == null || traceSt.getIrq_states().get(irq) == null) {
+					if (irq != null) {
+						TraceDebug.debug("Invalid irq (" + irq + "), ts = " + trcEvent.getOriginalTimestamp()); //$NON-NLS-1$ //$NON-NLS-2$
+					}
+					return true;
+				}
+
+				String submode;
+				submode = traceSt.getIrq_names().get(irq);
+                // Note: For statistics performance improvement only the integer value of irq is used 
+                // as well as a bit mask is applied! 
+				int submodeId = irq.intValue() | LttngConstants.STATS_IRQ_NAME_ID;
+                
+				if (submode == null) {
+					submode = ExecutionSubMode.LTTV_STATE_SUBMODE_UNKNOWN.getInName();
+					submodeId = ExecutionSubMode.LTTV_STATE_SUBMODE_UNKNOWN.ordinal() | LttngConstants.STATS_NONE_ID;
+				}
+
+				/*
+				 * Do something with the info about being in user or system mode
+				 * when int?
+				 */
+				push_state(cpu, ExecutionMode.LTTV_STATE_IRQ, submode, submodeId, trcEvent
+						.getTimestamp(), traceSt);
+
+				/* update cpu state */
+				LTTngCPUState cpust = traceSt.getCpu_states().get(cpu);
+				cpu_push_mode(cpust, CpuMode.LTTV_CPU_IRQ); /* mode stack */
+				cpust.pushToIrqStack(irq); /* last irq */
+
+				/* udpate irq state */
+				irq_push_mode(traceSt.getIrq_states().get(irq),
+						IRQMode.LTTV_IRQ_BUSY);
+				return false;
+
+			}
+		};
+		return handler;
+	}
+

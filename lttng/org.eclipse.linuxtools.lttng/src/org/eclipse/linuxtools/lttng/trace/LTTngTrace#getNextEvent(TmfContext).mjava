@@ -1,0 +1,102 @@
+	@Override
+	public synchronized LttngEvent getNextEvent(TmfContext context) {
+
+		if (PrintDebug) {
+			System.out
+					.println("getNextEvent(context) context.getLocation() -> " //$NON-NLS-1$
+							+ context.getLocation());
+		}
+
+		LttngEvent returnedEvent = null;
+		LttngLocation curLocation = null;
+
+		curLocation = (LttngLocation)context.getLocation();
+    	// If the location in context is null, create a new one
+    	if ( curLocation == null ) {
+    		curLocation = getCurrentLocation(context);
+    	}
+
+		// // [lmcfrch]
+		// TmfContext savedContext = context.clone();
+		// // [/lmcfrch]
+
+		// *** HACK ***
+		// TMF assumes it is possible to read (GetNextEvent) to the next Event
+		// once ParseEvent() is called
+		// In LTTNG, there is not difference between "Parsing" and "Reading" an
+		// event.
+		// Since parsing/reading invalidate the previous event,
+		// we need to make sure the sequence ParseEvent() -> GetNextEvent() will
+		// not actually move to the next event.
+		// To do so, we avoid moving for call to "GetNextEvent()" that follow
+		// call to a call to "ParseEvent()".
+		// However, calling ParseEvent() -> GetNextEvent() -> GetNextEvent()
+		// will only move next by one.
+
+		// *** Positioning trick :
+		// GetNextEvent only read the trace if :
+		// 1- The last operation was NOT a ParseEvent --> A read is required
+		// OR
+		// 2- The time of the previous location is different from the current
+		// one --> A seek + a read is required
+		if ((!(curLocation.isLastOperationParse()))
+				|| (previousLocation.getOperationTimeValue() != curLocation
+						.getOperationTimeValue())) {
+			if (previousLocation.getOperationTimeValue() != curLocation
+					.getOperationTimeValue()) {
+				if (PrintDebug) {
+					System.out
+							.println("\t\tSeeking in getNextEvent. [ LastTime : " //$NON-NLS-1$
+									+ previousLocation.getOperationTimeValue()
+									+ " CurrentTime" //$NON-NLS-1$
+									+ curLocation.getOperationTimeValue()
+									+ " ]"); //$NON-NLS-1$
+				}
+				seekEvent(curLocation.getOperationTime());
+			}
+			// Read the next event from the trace. The last one will NO LONGER
+			// BE VALID.
+			returnedEvent = readNextEvent(curLocation);
+			
+		} else {
+			// No event was read, just return the one currently loaded (the last
+			// one we read)
+			returnedEvent = currentLttngEvent;
+
+			// *** IMPORTANT!
+			// Reset (erase) the operation marker to both location, to be able
+			// to detect we did NOT "read" this event
+			previousLocation.resetLocationState();
+			curLocation.resetLocationState();
+		}
+
+		// If we read an event, set it's time to the locations (both previous
+		// and current)
+		if (returnedEvent != null) {
+			setPreviousAndCurrentTimes(context, returnedEvent, curLocation);
+
+			// // [lmcfrch]
+			// LttngLocation prevLocation = (LttngLocation)
+			// savedContext.getLocation();
+			// LttngLocation currLocation = (LttngLocation)
+			// context.getLocation();
+			// if (prevLocation.equals(currLocation)) {
+			// System.out.println("Aie");
+			// }
+			// Tracer.trace("Trc: " + context.getRank() + ": " +
+			// returnedEvent.getTimestamp().toString() + " (" +
+			// (prevLocation.isLastOperationParse() ? "T" : "F") + "," +
+			// (prevLocation.isLastOperationReadNext() ? "T" : "F") + "," +
+			// (prevLocation.isLastOperationSeek() ? "T" : "F") + "), (" +
+			// (currLocation.isLastOperationParse() ? "T" : "F") + "," +
+			// (currLocation.isLastOperationReadNext() ? "T" : "F") + "," +
+			// (currLocation.isLastOperationSeek() ? "T" : "F") + ")"
+			// );
+			// // [/lmcfrch]
+
+		
+		}
+
+		return returnedEvent;
+	}
+

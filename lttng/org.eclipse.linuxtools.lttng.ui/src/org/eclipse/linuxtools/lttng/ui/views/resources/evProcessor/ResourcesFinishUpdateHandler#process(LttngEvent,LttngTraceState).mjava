@@ -1,0 +1,34 @@
+	@Override
+	public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+		// The end of the last state is unknown since it's beyond the requested time range window. Create this last
+		// event to half page after the visible window but not beyond the end of trace
+		long endOfTrace = traceSt.getContext().getTraceTimeWindow().getEndTime().getValue();
+		long halfWindow = (params.getEndTime() - params.getStartTime()) / 2;
+
+		// End of event common to all resources within the trace for this specific request
+		long endOfEvent = params.getEndTime() + halfWindow;
+		if (endOfEvent > endOfTrace) {
+			endOfEvent = endOfTrace;
+		}
+		
+		TraceDebug.debug("Number of localResources: " //$NON-NLS-1$
+				+ resContainer.readItems().length);
+
+		// for each existing resource
+		for (TimeRangeEventResource localResource : resContainer
+				.readItems()) {
+
+			// get the start time
+			long stime = localResource.getNext_good_time();
+
+			// Get the resource state mode
+			String stateMode = localResource.getStateMode(traceSt);
+
+			// Insert an instance from previous time to end request time with
+			// the current state
+			makeDraw(traceSt, stime, endOfEvent, localResource, params, stateMode);
+		}
+
+		return false;
+	}
+

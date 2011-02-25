@@ -1,0 +1,52 @@
+    /**
+     * Update the spinners with the new current time value
+     * Perform the update on the UI thread
+     */
+    public void updateSpinners() {
+    	// Ignore update if disposed
+    	if (seconds.isDisposed()) return;
+    	
+        seconds.getDisplay().asyncExec(new Runnable() {
+			@Override
+			public void run() {
+				if (!seconds.isDisposed() && !nanosec.isDisposed()) {
+		            // If we are on the start second, ensure that [currentNS >= startNS]
+		            // If the currentSeconds > startSeconds, set startns to -1 so we can
+		            // "underflow"
+		            int startns = -1;
+		            if (currentSeconds <= startSeconds) {
+		                currentSeconds = startSeconds;
+		                startns = startNanosec;
+		                if (currentNanosec < startns) {
+		                    currentNanosec = startns;
+		                }
+		            }
+
+		            // If we are on the end second, ensure that [currentNS <= endNS]
+		            // If the currentSeconds < endSeconds, set endns to MAX so we can
+		            // "overflow"
+		            int endns = NS_PER_SECOND;
+		            if (currentSeconds >= endSeconds) {
+		                currentSeconds = endSeconds;
+		                endns = endNanosec;
+		                if (currentNanosec > endns) {
+		                    currentNanosec = endns;
+		                }
+		            }
+
+		            // Refresh the spinners (value, range, increments, ...)
+					// To ensure that the spinners are properly set, the range has to be > 0 
+//					seconds.setValues(currentSeconds, startSeconds - 1, endSeconds + 1, 0, 1, 10);
+//					nanosec.setValues(currentNanosec, startns - 1, endns + 1, 0, 1, 1000000);
+					seconds.setValues(currentSeconds, startSeconds, endSeconds, 0, 1, 10);
+					nanosec.setValues(currentNanosec, startns, endns, 0, 100000, 10000000);
+
+		            // If start == end (i.e. no range), disable the spinner
+		            // (if start == end, the spinner widget range is set to [0..100] by default)
+		            seconds.setEnabled(startSeconds != endSeconds);
+		            nanosec.setEnabled(startns != endns);
+				}
+			}
+        });
+    }
+

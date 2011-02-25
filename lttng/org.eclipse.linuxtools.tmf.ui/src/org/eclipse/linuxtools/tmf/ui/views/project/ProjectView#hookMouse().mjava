@@ -1,0 +1,40 @@
+    private void hookMouse() {
+        fViewer.getTree().addMouseListener(new MouseAdapter() {
+        	@Override
+			public void mouseDoubleClick(MouseEvent event) {
+                TreeItem treeItem = fViewer.getTree().getItem(new Point(event.x, event.y));
+                if (treeItem == null) return;
+                Object element = treeItem.getData();
+                if (element instanceof TmfExperimentNode) {
+                	TmfExperimentNode experiment = (TmfExperimentNode) element;
+                	selectExperiment(experiment);                
+                } else if (element instanceof TmfProjectNode) {
+                    TmfProjectNode project = (TmfProjectNode) element;
+                    if (project.isOpen() && project.isTmfProject()) {
+                        IEclipsePreferences node = new InstanceScope().getNode(TmfUiPlugin.PLUGIN_ID);
+                        node.put(TmfUiPreferenceInitializer.ACTIVE_PROJECT_PREFERENCE, ((TmfProjectNode) element).getName());
+                        try {
+                            node.flush();
+                        } catch (BackingStoreException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                } else if (element instanceof TmfTraceNode) {
+                    IWorkbench wb = PlatformUI.getWorkbench();
+                    IWorkbenchWindow win = wb.getActiveWorkbenchWindow();
+                    IHandlerService handlerService = (IHandlerService) win.getService(IHandlerService.class);
+                    try {
+                        handlerService.executeCommand("org.eclipse.linuxtools.tmf.ui.command.project.trace.open", null); //$NON-NLS-1$
+                    } catch (ExecutionException e) {
+                        e.printStackTrace();
+                    } catch (NotDefinedException e) {
+                        e.printStackTrace();
+                    } catch (NotEnabledException e) {
+                    } catch (NotHandledException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+    }
+

@@ -1,0 +1,34 @@
+	static private void sendSignal(TmfSignal signal) {
+
+		// Build the list of listener methods that are registered for this signal
+		Class<?> signalClass = signal.getClass();
+		Map<Object, List<Method>> listeners = new HashMap<Object, List<Method>>();
+		listeners.clear();
+		for (Map.Entry<Object, Method[]> entry : fListeners.entrySet()) {
+			List<Method> matchingMethods = new ArrayList<Method>();
+			for (Method method : entry.getValue()) {
+				if (method.getParameterTypes()[0].isAssignableFrom(signalClass)) {
+					matchingMethods.add(method);
+				}
+			}
+			if (!matchingMethods.isEmpty()) {
+				listeners.put(entry.getKey(), matchingMethods);
+			}
+		}
+
+		// Call the signal handlers 
+		for (Map.Entry<Object, List<Method>> entry : listeners.entrySet()) {
+			for (Method method : entry.getValue()) {
+				try {
+					method.invoke(entry.getKey(), new Object[] { signal });
+				} catch (IllegalArgumentException e) {
+					// TODO Auto-generated catch block
+				} catch (IllegalAccessException e) {
+					// TODO Auto-generated catch block
+				} catch (InvocationTargetException e) {
+					// TODO Auto-generated catch block
+				}
+			}
+		}
+	}
+

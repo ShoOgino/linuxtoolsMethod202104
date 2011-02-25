@@ -1,0 +1,29 @@
+	public void testBuildSourceRPMHelloWorld() throws Exception {
+		// Create a project for the test
+		IProject testProject = root.getProject("testBuildSourceRPMHelloWorld1");
+		testProject.create(monitor);
+		testProject.open(monitor);
+
+		// Instantiate an RPMProject
+		RPMProject rpmProject = new RPMProject(testProject);
+
+		// Find the test SRPM and install it
+		URL url = FileLocator.find(FrameworkUtil.getBundle(RPMProjectTest.class), new Path(
+				"resources" + file_sep + "srpms" + file_sep + //$NON-NLS-1$ //$NON-NLS-2$
+						"helloworld-2-2.src.rpm"), null);
+		if (url == null) {
+			fail("Unable to find resource" + file_sep + "srpms" + file_sep
+					+ "helloworld-2-2.src.rpm");
+		}
+		File foo = new File(FileLocator.toFileURL(url).getPath());
+		rpmProject.importSourceRPM(foo);
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		rpmProject.buildSourceRPM(bos);
+
+		IFile foo2 = rpmProject.getConfiguration().getSrpmsFolder().getFile(
+				"helloworld-2-2.src.rpm");
+		assertTrue(foo2.exists());
+
+		testProject.delete(true, false, null);
+	}
+

@@ -1,0 +1,115 @@
+    /**
+     * <h4>Get the standard paths for an event.</h4>
+     * 
+     * @param event
+     *            Event to get the path for.
+     * @param traceState
+     *            State of the trace for this event.
+     * @return Array of FixedArray representing the paths.
+     */
+    private FixedArray[] getNormalPaths(LttngEvent event, LttngTraceState traceState) {
+        int trace = (int) traceState.getContext().getIdentifier(); // No need
+                                                                   // for the
+                                                                   // identifier
+                                                                   // (already
+                                                                   // applied)
+        Long cpu = event.getCpuId();
+        int cpus = cpu.intValue() | LttngConstants.STATS_CPU_ID;
+        LttngProcessState process = traceState.getRunning_process().get(cpu);
+        int processName = fPidKeys.getUniqueId(process.getPid().intValue(), process.getCpu().intValue(), process.getCreation_time());
+        int mode = process.getState().getExec_mode().ordinal() | LttngConstants.STATS_MODE_ID;
+        int submode = fSubModeKeys.getUniqueId(process.getState().getExec_submode_id(), process.getState().getExec_submode());
+        int function = process.getCurrent_function().intValue() | LttngConstants.STATS_FUNCTION_ID;
+
+        /*
+         * Note that it's faster to re-use the path object, set the relevant
+         * fields and clone the path later when it's time to add to the map
+         */
+
+        // FixedArray(trace)
+        fNormalPaths[0].set(0, trace);
+
+        // FixedArray(trace,HEADER_MODES_INT,mode)
+        fNormalPaths[1].set(0, trace);
+        fNormalPaths[1].set(2, mode);
+
+        // FixedArray(trace,HEADER_MODES_INT,mode,HEADER_SUBMODES_INT,submode)
+        fNormalPaths[2].set(0, trace);
+        fNormalPaths[2].set(2, mode);
+        fNormalPaths[2].set(4, submode);
+
+        // FixedArray(trace,HEADER_PROCESSES_INT,processName)
+        fNormalPaths[3].set(0, trace);
+        fNormalPaths[3].set(2, processName);
+
+        // FixedArray(trace,HEADER_PROCESSES_INT,processName,HEADER_CPUS_INT,cpus)
+        fNormalPaths[4].set(0, trace);
+        fNormalPaths[4].set(2, processName);
+        fNormalPaths[4].set(4, cpus);
+
+        // FixedArray(trace,HEADER_PROCESSES_INT,processName,HEADER_CPUS_INT,cpus,HEADER_FUNCTIONS_INT,function)
+        fNormalPaths[5].set(0, trace);
+        fNormalPaths[5].set(2, processName);
+        fNormalPaths[5].set(4, cpus);
+        fNormalPaths[5].set(6, function);
+
+        // FixedArray(trace,HEADER_PROCESSES_INT,processName,HEADER_CPUS_INT,cpus,HEADER_FUNCTIONS_INT,function,
+        // HEADER_MODES_INT, mode)
+        fNormalPaths[6].set(0, trace);
+        fNormalPaths[6].set(2, processName);
+        fNormalPaths[6].set(4, cpus);
+        fNormalPaths[6].set(6, function);
+        fNormalPaths[6].set(8, mode);
+
+        // FixedArray(trace,HEADER_PROCESSES_INT,processName,HEADER_CPUS_INT,cpus,HEADER_FUNCTIONS_INT,function,
+        // HEADER_MODES_INT, mode, HEADER_SUBMODES_INT, submode)
+        fNormalPaths[7].set(0, trace);
+        fNormalPaths[7].set(2, processName);
+        fNormalPaths[7].set(4, cpus);
+        fNormalPaths[7].set(6, function);
+        fNormalPaths[7].set(8, mode);
+        fNormalPaths[7].set(10, submode);
+
+        // FixedArray(trace,HEADER_PROCESSES_INT,processName,HEADER_CPUS_INT,cpus,HEADER_MODES_INT,mode)
+        fNormalPaths[8].set(0, trace);
+        fNormalPaths[8].set(2, processName);
+        fNormalPaths[8].set(4, cpus);
+        fNormalPaths[8].set(6, mode);
+
+        // FixedArray(trace,HEADER_PROCESSES_INT,processName,HEADER_CPUS_INT,cpus,HEADER_MODES_INT,mode,HEADER_SUBMODES_INT,submode)
+        fNormalPaths[9].set(0, trace);
+        fNormalPaths[9].set(2, processName);
+        fNormalPaths[9].set(4, cpus);
+        fNormalPaths[9].set(6, mode);
+        fNormalPaths[9].set(8, submode);
+
+        // FixedArray(trace,HEADER_PROCESSES_INT,processName,HEADER_MODES_INT,mode)
+        fNormalPaths[10].set(0, trace);
+        fNormalPaths[10].set(2, processName);
+        fNormalPaths[10].set(4, mode);
+
+        // FixedArray(trace,HEADER_PROCESSES_INT,processName,HEADER_MODES_INT,mode,HEADER_SUBMODES_INT,submode)
+        fNormalPaths[11].set(0, trace);
+        fNormalPaths[11].set(2, processName);
+        fNormalPaths[11].set(4, mode);
+        fNormalPaths[11].set(6, submode);
+
+        // FixedArray(trace,HEADER_CPUS_INT,cpus)
+        fNormalPaths[12].set(0, trace);
+        fNormalPaths[12].set(2, cpus);
+
+        // FixedArray(trace,HEADER_CPUS_INT,cpus,HEADER_MODES_INT,mode)
+        fNormalPaths[13].set(0, trace);
+        fNormalPaths[13].set(2, cpus);
+        fNormalPaths[13].set(4, mode);
+
+        // FixedArray(trace,HEADER_CPUS_INT,cpus,HEADER_MODES_INT,mode,HEADER_SUBMODES_INT,submode)
+        fNormalPaths[14].set(0, trace);
+        fNormalPaths[14].set(2, cpus);
+        fNormalPaths[14].set(4, mode);
+        fNormalPaths[14].set(6, submode);
+
+        return fNormalPaths;
+
+    }
+

@@ -1,45 +1,51 @@
 	/**
 	 * @see org.eclipse.jface.operation.IRunnableWithProgress#run(IProgressMonitor)
-	 *
+	 * 
 	 */
 	public void run(IProgressMonitor progressMonitor)
-		throws InvocationTargetException {
+			throws InvocationTargetException {
 		int totalWork = 2;
 
 		monitor = progressMonitor;
 
 		// We keep a all our reported errors in an ArrayList.
-		rpm_errorTable = new ArrayList();
+		rpm_errorTable = new ArrayList<Exception>();
 
 		// Start progress
 		monitor.beginTask(Messages.getString("RPMExportOperation.Starting"), //$NON-NLS-1$
-		totalWork);
+				totalWork);
 		monitor.worked(1);
-		
-		switch(exportType) {
-		case IRPMUIConstants.BUILD_ALL:
+		MessageConsole myConsole = findConsole("rpmbuild"); //$NON-NLS-1$
+		MessageConsoleStream out = myConsole.newMessageStream();
+		myConsole.clearConsole();
+		myConsole.activate();
+		switch (exportType) {
+		case ALL:
 			try {
-				monitor.setTaskName(Messages.getString("RPMExportOperation.Executing_RPM_Export"));
-				rpmProject.buildAll(exportDelta);
-			} catch(Exception e) {
+				monitor.setTaskName(Messages
+						.getString("RPMExportOperation.Executing_RPM_Export")); //$NON-NLS-1$
+				rpmProject.buildAll(out);
+			} catch (Exception e) {
 				rpm_errorTable.add(e);
 			}
 			break;
-		
-		case IRPMUIConstants.BUILD_BINARY:
-			monitor.setTaskName(Messages.getString("RPMExportOperation.Executing_RPM_Export")); //$NON-NLS-1$
+
+		case BINARY:
+			monitor.setTaskName(Messages
+					.getString("RPMExportOperation.Executing_RPM_Export")); //$NON-NLS-1$
 			try {
-				rpmProject.buildBinaryRPM(exportDelta);
-			} catch(Exception e) {
+				rpmProject.buildBinaryRPM(out);
+			} catch (Exception e) {
 				rpm_errorTable.add(e);
 			}
 			break;
-		
-		case IRPMUIConstants.BUILD_SOURCE:
-			monitor.setTaskName(Messages.getString("RPMExportOperation.Executing_SRPM_Export")); //$NON-NLS-1$
+
+		case SOURCE:
+			monitor.setTaskName(Messages
+					.getString("RPMExportOperation.Executing_SRPM_Export")); //$NON-NLS-1$
 			try {
-				rpmProject.buildSourceRPM(exportDelta);
-			} catch(Exception e) {
+				rpmProject.buildSourceRPM(out);
+			} catch (Exception e) {
 				rpm_errorTable.add(e);
 			}
 			break;

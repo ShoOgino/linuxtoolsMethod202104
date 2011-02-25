@@ -1,8 +1,33 @@
 	// Add the RPMExportPage as the only page in this wizard.
+	@Override
 	public void addPages() {
-		mainPage = new RPMExportPage(selection);
+		IProject project = null;
+		if (selection.isEmpty()) {
+
+		} else if (!(selection.getFirstElement() instanceof IProject)) {
+			if (selection.getFirstElement() instanceof IResource) {
+				IResource resource = (IResource) selection.getFirstElement();
+				IProject parentProject = resource.getProject();
+				try {
+					if (parentProject.hasNature(RPMProjectNature.RPM_NATURE_ID)) {
+						project = parentProject;
+					}
+				} catch (CoreException e) {
+					// nothing we can do
+				}
+			}
+		} else if (selection.getFirstElement() instanceof IProject) {
+			IProject tempProject = (IProject) selection.getFirstElement();
+			try {
+				if (tempProject.hasNature(RPMProjectNature.RPM_NATURE_ID)) {
+					project = tempProject;
+				}
+			} catch (CoreException e) {
+				// nothing we can do
+			}
+		}
+
+		mainPage = new RPMExportPage(project);
 		addPage(mainPage);
-		patchPage = new RPMExportPatchPage();
-		addPage(patchPage);
 	}
 

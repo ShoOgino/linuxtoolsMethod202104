@@ -1,0 +1,32 @@
+    private void processData() {
+        String timeStampString = fData.get(CustomTraceDefinition.TAG_TIMESTAMP);
+        String timeStampInputFormat = fData.get(TIMESTAMP_INPUT_FORMAT_KEY);
+        Date date = null;
+        if (timeStampInputFormat != null && timeStampString != null) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat(timeStampInputFormat);
+            try {
+                date = dateFormat.parse(timeStampString);
+                fOriginalTimestamp = fEffectiveTimestamp = new TmfTimestamp(date.getTime(), TIMESTAMP_SCALE);
+            } catch (ParseException e) {
+                fOriginalTimestamp = fEffectiveTimestamp = TmfTimestamp.Zero;
+            }
+        } else {
+            fOriginalTimestamp = fEffectiveTimestamp = TmfTimestamp.Zero;
+        }
+        
+        int i = 0;
+        fColumnData = new String[fDefinition.outputs.size()];
+        for (OutputColumn outputColumn : fDefinition.outputs) {
+            String value = fData.get(outputColumn.name);
+            if (outputColumn.name.equals(CustomTraceDefinition.TAG_TIMESTAMP) && date != null) {
+                SimpleDateFormat dateFormat = new SimpleDateFormat(fDefinition.timeStampOutputFormat);
+                fColumnData[i++] = dateFormat.format(date);
+            } else {
+                fColumnData[i++] = value;
+            }
+        }
+        String message = fData.get(CustomTraceDefinition.TAG_MESSAGE);;
+        setContent(new TmfEventContent(this, message));
+        fData = null;
+    }
+

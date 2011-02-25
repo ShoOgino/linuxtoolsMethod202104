@@ -1,0 +1,27 @@
+	@Override
+	public void refreshChildren() {
+        IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+        IProject[] projects = root.getProjects();
+        for (IProject project : projects) {
+			LTTngProjectNode node = find(project.getName());
+			if (node == null) {
+				node = new LTTngProjectNode(this, project);
+				fChildren.add(node);
+			} else {
+				node.updateState();
+			}
+        }
+      	List<ILTTngProjectTreeNode> toRemove = new ArrayList<ILTTngProjectTreeNode>();
+       	for (ILTTngProjectTreeNode node : fChildren) {
+       		if (exists(node.getName(), projects)) {
+       			node.refreshChildren();
+       		}
+       		else {
+        		toRemove.add(node);
+       		}
+        }
+		for (ILTTngProjectTreeNode node : toRemove) {
+			fChildren.remove(node);
+		}
+	}
+

@@ -1,0 +1,23 @@
+    /* 
+     * Fills a map of all the JniMarkerField associated with this JniMarker.
+     * 
+     * Note: This function is called from C and there is no way to propagate
+     * exception back to the caller without crashing JNI. Therefore, it MUST
+     * catch all exceptions.
+     * 
+     * @param markerName        Name of the parent marker
+     * @param markerFieldPtr    C Pointer (converted in long) to marker_field C Structure
+     */
+	private void addMarkerFieldFromC(String markerFieldName, long markerFieldPtr) {
+        // Create a new Jni_markerField object and insert it in the map
+        // the maker field fill itself with LTT data while being constructed
+        try {
+            JniMarkerField newMarkerField = allocateNewJniMarkerField( new Jni_C_Pointer_And_Library_Id(thisMarkerPtr.getLibraryId(), markerFieldPtr));
+            markerFieldsArrayList.add(newMarkerField);
+            markerFieldsHashMap.put(markerFieldName, newMarkerField);
+            
+        } catch (JniException e) {
+            printlnC(thisMarkerPtr.getLibraryId(), "Failed to add marker field " + markerFieldName + " to marker fields list!(addMarkerFieldFromC)\n\tException raised : " + e.toString() ); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+    }
+

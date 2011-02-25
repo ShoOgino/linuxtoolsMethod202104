@@ -1,0 +1,29 @@
+    /**
+     * Zooming based on mouse cursor location with mouse scrolling
+     * 
+     * @param zoomIn
+     */
+    public void zoom(boolean zoomIn) {
+        int globalX = getDisplay().getCursorLocation().x;
+        Point p = toControl(globalX, 0);
+        int nameSpace = _timeProvider.getNameSpace();
+        int timeSpace = _timeProvider.getTimeSpace();
+        int xPos = Math.max(nameSpace, Math.min(nameSpace + timeSpace, p.x));
+        long time0 = _timeProvider.getTime0();
+        long time1 = _timeProvider.getTime1();
+        long interval = time1 - time0;
+        if (interval == 0) {
+            interval = 1;
+        } // to allow getting out of single point interval
+        long newInterval;
+        if (zoomIn) {
+            newInterval = Math.max(Math.round((double) interval * 0.8), _timeProvider.getMinTimeInterval());
+        } else {
+            newInterval = Math.round((double) interval * 1.25);
+        }
+        long center = time0 + Math.round(((double) (xPos - nameSpace) / timeSpace * interval));
+        long newTime0 = center - Math.round((double) newInterval * (center - time0) / interval);
+        long newTime1 = newTime0 + newInterval;
+        _timeProvider.setStartFinishTime(newTime0, newTime1);
+    }
+

@@ -1,0 +1,57 @@
+	@Override
+	public void paintControl(PaintEvent event) {
+		
+		if (parentCanvas.getSize().x > 0 && parentCanvas.getSize().y > 0) {
+			Image image = (Image) parentCanvas.getData(DATA_KEY);
+			
+			// Creates new image only absolutely necessary.
+			if (image == null
+					|| image.getBounds().width != parentCanvas.getClientArea().width
+					|| image.getBounds().height != parentCanvas.getClientArea().height) {
+
+				image =	new Image(
+						event.display,
+						parentCanvas.getClientArea().width,
+						parentCanvas.getClientArea().height
+						);
+
+				parentCanvas.setData(DATA_KEY, image);
+//				isFinished = false;
+			}
+			
+			// Initializes the graphics context of the image. 
+	        GC imageGC = new GC(image);
+	        
+			// If the content is null or has rady to draw we quit the function here
+			if ( (parentCanvas.getHistogramContent() != null)
+					&& (parentCanvas.getHistogramContent().getReadyUpToPosition() != 0)	) {
+				
+				// Call the function that draw the bars
+//				if (!isFinished) {
+					drawHistogram(imageGC, image);
+//					isFinished = HistogramCanvas.getHistogramView().getDataBackgroundFullRequest().isCompleted();
+//				}
+
+				Image img = new Image (image.getDevice(), image, SWT.IMAGE_COPY);
+				GC imgGC = new GC(img);
+				
+				// If we have a selected window set to visible, call the function to draw it
+				if ( (parentCanvas.getCurrentWindow() != null) && (parentCanvas.getCurrentWindow().getSelectedWindowVisible()) ) {
+					drawSelectedWindow(
+							imgGC,
+							img
+							);
+				}
+
+				// Draws the buffer image onto the canvas. 
+				event.gc.drawImage(img, 0, 0);
+				
+				imgGC.dispose();
+				img.dispose();
+			}
+
+			imageGC.dispose();
+		}
+		
+	}
+

@@ -1,0 +1,57 @@
+	/**
+	 * Method to convert a JniEvent into a LttngEvent
+	 * 
+	 * @param jniEvent
+	 *            The JniEvent to convert into LttngEvent
+	 * @param isParsingNeeded
+	 *            A boolean value telling if the event should be parsed or not.
+	 * 
+	 * @return The converted LttngEvent
+	 * 
+	 * @see org.eclipse.linuxtools.org.eclipse.linuxtools.lttng.jni.JniEvent
+	 * @see org.eclipse.linuxtools.lttng.event.LttngEvent
+	 */
+	public synchronized LttngEvent convertJniEventToTmf(JniEvent jniEvent,
+			boolean isParsingNeeded) {
+
+		if (UniqueEvent) {
+
+			// ***
+			// UNHACKED : We can no longer do that because TCF need to maintain
+			// several events at once.
+			// This is very slow to do so in LTTng, this has to be temporary.
+			// *** HACK ***
+			// To save time here, we only set value instead of allocating new
+			// object
+			// This give an HUGE performance improvement
+			// all allocation done in the LttngTrace constructor
+			// ***
+			eventTimestamp.setValue(jniEvent.getEventTime().getTime());
+			eventSource.setSourceId(jniEvent.requestEventSource());
+
+			eventType = traceTypes.get(EventTypeKey.getEventTypeHash(jniEvent));
+
+			eventReference.setValue(jniEvent.getParentTracefile()
+					.getTracefilePath());
+			eventReference.setTracepath(this.getName());
+
+			eventContent.emptyContent();
+
+			currentLttngEvent.setType(eventType);
+			// Save the jni reference
+			currentLttngEvent.updateJniEventReference(jniEvent);
+
+			// Parse now if was asked
+			// Warning : THIS IS SLOW
+			if (isParsingNeeded) {
+				eventContent.getFields();
+			}
+
+			return currentLttngEvent;
+		} else {
+			return convertJniEventToTmfMultipleEventEvilFix(jniEvent,
+					isParsingNeeded);
+		}
+
+	}
+

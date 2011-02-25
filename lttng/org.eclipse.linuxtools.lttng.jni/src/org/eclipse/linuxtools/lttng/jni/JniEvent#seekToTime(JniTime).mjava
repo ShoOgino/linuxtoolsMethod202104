@@ -1,0 +1,26 @@
+    /**
+     * Seek to a certain time.<p>
+     * 
+     * Seek to a certain time and read event at this exact time or the next one if there is no event there.<p>
+     * 
+     * Note that this function can seek in an invalid position if the timestamp is after the last event.<br>
+     * In that case, a seek back would be required to get back to a consistent state.<p>
+     * 
+     * If the seek fails, the event will not get populated and the last event data will still be available.<p>
+     * 
+     * @return LTT read status, as defined in Jni_C_Constant
+     * 
+     * @see org.eclipse.linuxtools.lttng.jni.common.Jni_C_Constant
+     */
+    public int seekToTime(JniTime seekTime) {
+        // Ask Ltt to read the next event for this particular tracefile
+        eventState = ltt_seekEvent(tracefilePtr.getLibraryId(), tracefilePtr.getPointer(), seekTime);
+        
+        // If the event state is sane populate it
+        if (eventState == EOK) {
+            populateEventInformation();
+        }
+
+        return eventState;
+    }
+

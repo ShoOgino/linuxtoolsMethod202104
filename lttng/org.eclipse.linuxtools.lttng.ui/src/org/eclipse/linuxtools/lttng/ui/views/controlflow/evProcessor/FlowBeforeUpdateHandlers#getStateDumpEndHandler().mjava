@@ -1,0 +1,66 @@
+	/**
+	 * <p>
+	 * Handles: LTT_EVENT_STATEDUMP_END
+	 * </p>
+	 * Replace C function named "before_statedump_end" in eventhooks.c
+	 * 
+	 * @return
+	 */
+	final ILttngEventProcessor getStateDumpEndHandler() {
+		AbsFlowTRangeUpdate handler = new AbsFlowTRangeUpdate() {
+
+			// @Override
+			@Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+
+				// What's below should replace the following call in C :
+				// ClosureData closure_data;
+				// closure_data.events_request = events_request;
+				// closure_data.tss = tss;
+				// closure_data.end_time = evtime;
+				// convert_time_to_pixels(time_window,evtime,width,&closure_data.x_end);
+				// g_hash_table_foreach(process_list->process_hash,
+				// draw_closure,(void*)&closure_data);
+				//
+				// And the draw is always the same then...
+
+				// The c-library loops through the local processes, search for
+				// the local processes in the state provider and then draws
+				// If it's present is the local processes why shuldn't they be
+				// present in the state provider?
+				// This seems more direct. and makes sure all processes are
+				// reflected in the control flow view.
+				LttngProcessState[] processes = traceSt.getProcesses();
+				for (int pos=0; pos < processes.length; pos++) {
+					LttngProcessState process = processes[pos];
+					
+					// Replace the C call :
+					// hashed_process_data =
+					// processlist_get_process_data(process_list,pid,process->cpu,&birth,trace_num);
+					TimeRangeEventProcess localProcess = procContainer
+							.findProcess(process.getPid(), process.getCpu(), traceSt
+									.getTraceId(), process
+                                    .getCreation_time());
+
+					// Add process to process list if not present
+					if (localProcess == null) {
+						TmfTimeRange timeRange = traceSt.getContext()
+								.getTraceTimeWindow();
+						localProcess = addLocalProcess(process, timeRange
+								.getStartTime().getValue(), timeRange
+								.getEndTime().getValue(), traceSt.getTraceId());
+					}
+
+					// Call the function that will does the actual
+					// drawing
+					makeDraw(traceSt, trcEvent.getTimestamp().getValue(),
+							process, localProcess, params);
+				}
+
+				return false;
+			}
+		};
+
+		return handler;
+	}
+

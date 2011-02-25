@@ -1,0 +1,145 @@
+    @Override
+    public TmfEvent parseEvent(TmfContext tmfContext) {
+        //System.out.println(Thread.currentThread().getName() + ":: " + getName() + " parseEvent(" + tmfContext.getRank() + " @ " + (tmfContext.getLocation().getLocation() == null ? "null" : tmfContext.getLocation()));
+        if (!(tmfContext instanceof CustomTxtTraceContext)) {
+            return null;
+        }
+        
+        CustomTxtTraceContext context = (CustomTxtTraceContext) tmfContext;
+        if (!(context.getLocation().getLocation() instanceof Long)) {
+            return null;
+        }
+
+        CustomTxtEvent event = parseFirstLine(context);
+
+        HashMap<InputLine, Integer> countMap = new HashMap<InputLine, Integer>();
+        InputLine currentInput = null;
+        if (context.inputLine.childrenInputs != null && context.inputLine.childrenInputs.size() > 0) {
+            currentInput = context.inputLine.childrenInputs.get(0);
+            countMap.put(currentInput, 0);
+        }
+        
+        synchronized (context.raFile) {
+            try {
+                if (context.raFile.getFilePointer() != context.nextLineLocation) {
+                    context.raFile.seek(context.nextLineLocation);
+                }
+                String line;
+                long rawPos = context.raFile.getFilePointer();
+                while ((line = context.raFile.readLine()) != null) {
+                    boolean processed = false;
+                    if (currentInput == null) {
+                        for (InputLine input : getFirstLines()) {
+                            Matcher matcher = input.getPattern().matcher(line);
+                            if (matcher.find()) {
+                                context.setLocation(new TmfLocation<Long>(rawPos));
+                                context.firstLineMatcher = matcher;
+                                context.nextLineLocation = context.raFile.getFilePointer();
+                                context.inputLine = input;
+                                return event;
+                            }
+                        }
+                    } else {
+                        if (countMap.get(currentInput) >= currentInput.getMinCount()) {
+                            List<InputLine> nextInputs = currentInput.getNextInputs(countMap);
+                            if (nextInputs.size() == 0 || nextInputs.get(nextInputs.size() - 1).getMinCount() == 0) {
+                                for (InputLine input : getFirstLines()) {
+                                    Matcher matcher = input.getPattern().matcher(line);
+                                    if (matcher.find()) {
+                                        context.setLocation(new TmfLocation<Long>(rawPos));
+                                        context.firstLineMatcher = matcher;
+                                        context.nextLineLocation = context.raFile.getFilePointer();
+                                        context.inputLine = input;
+                                        return event;
+                                    }
+                                }
+                            }
+                            for (InputLine input : nextInputs) {
+                                Matcher matcher = input.getPattern().matcher(line);
+                                if (matcher.find()) {
+                                    event.processGroups(input, matcher);
+                                    currentInput = input;
+                                    if (countMap.get(currentInput) == null) {
+                                        countMap.put(currentInput, 1);
+                                    } else {
+                                        countMap.put(currentInput, countMap.get(currentInput) + 1);
+                                    }
+                                    Iterator<InputLine> iter = countMap.keySet().iterator();
+                                    while (iter.hasNext()) {
+                                        InputLine inputLine = iter.next();
+                                        if (inputLine.level > currentInput.level) {
+                                            iter.remove();
+                                        }
+                                    }
+                                    if (currentInput.childrenInputs != null && currentInput.childrenInputs.size() > 0) {
+                                        currentInput = currentInput.childrenInputs.get(0);
+                                        countMap.put(currentInput, 0);
+                                    } else {
+                                        if (countMap.get(currentInput) >= currentInput.getMaxCount()) {
+                                            if (currentInput.getNextInputs(countMap).size() > 0) {
+                                                currentInput = currentInput.getNextInputs(countMap).get(0);
+                                                if (countMap.get(currentInput) == null) {
+                                                    countMap.put(currentInput, 0);
+                                                }
+                                                iter = countMap.keySet().iterator();
+                                                while (iter.hasNext()) {
+                                                    InputLine inputLine = iter.next();
+                                                    if (inputLine.level > currentInput.level) {
+                                                        iter.remove();
+                                                    }
+                                                }
+                                            } else {
+                                                currentInput = null;
+                                            }
+                                        }
+                                    }
+                                    processed = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (! processed) {
+                            Matcher matcher = currentInput.getPattern().matcher(line);
+                            if (matcher.find()) {
+                                event.processGroups(currentInput, matcher);
+                                countMap.put(currentInput, countMap.get(currentInput) + 1);
+                                if (currentInput.childrenInputs != null && currentInput.childrenInputs.size() > 0) {
+                                    currentInput = currentInput.childrenInputs.get(0);
+                                    countMap.put(currentInput, 0);
+                                } else {
+                                    if (countMap.get(currentInput) >= currentInput.getMaxCount()) {
+                                        if (currentInput.getNextInputs(countMap).size() > 0) {
+                                            currentInput = currentInput.getNextInputs(countMap).get(0);
+                                            if (countMap.get(currentInput) == null) {
+                                                countMap.put(currentInput, 0);
+                                            }
+                                            Iterator<InputLine> iter = countMap.keySet().iterator();
+                                            while (iter.hasNext()) {
+                                                InputLine inputLine = iter.next();
+                                                if (inputLine.level > currentInput.level) {
+                                                    iter.remove();
+                                                }
+                                            }
+                                        } else {
+                                            currentInput = null;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    rawPos = context.raFile.getFilePointer();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        for(Entry<InputLine, Integer> entry : countMap.entrySet()) {
+            if (entry.getValue() < entry.getKey().getMinCount()) {
+                event = null;
+            }
+        }
+        context.setLocation(new TmfLocation<Long>((Long)null));
+        return event;
+    }
+

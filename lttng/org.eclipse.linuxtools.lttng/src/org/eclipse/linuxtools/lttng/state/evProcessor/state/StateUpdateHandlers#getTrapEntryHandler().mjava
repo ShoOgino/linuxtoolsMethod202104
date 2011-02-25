@@ -1,0 +1,65 @@
+	/**
+	 * Update stacks related to the parsing of an LttngEvent
+	 * 
+	 * @return
+	 */
+	final ILttngEventProcessor getTrapEntryHandler() {
+		AbsStateUpdate handler = new AbsStateUpdate() {
+
+			// @Override
+			@Override
+			public boolean process(LttngEvent trcEvent, LttngTraceState traceSt) {
+				Long cpu = trcEvent.getCpuId();
+
+				Long trap = getAFieldLong(trcEvent, traceSt,
+						Fields.LTT_FIELD_TRAP_ID);
+				if (trap == null) {
+					TraceDebug
+							.debug("Trap field could not be found, event time: " //$NON-NLS-1$
+									+ trcEvent.getTimestamp());
+					return true;
+				}
+
+				// ready the trap submode name
+				String submode = traceSt.getTrap_names().get(trap);
+				// Note: For statistics performance improvement only the integer value of trap is used 
+                // as well as a bit mask is applied! 
+
+				int submodeId = trap.intValue() | LttngConstants.STATS_TRAP_NAME_ID; 
+
+				if (submode == null) {
+					submode = ExecutionSubMode.LTTV_STATE_SUBMODE_UNKNOWN.getInName();
+					submodeId = ExecutionSubMode.LTTV_STATE_SUBMODE_UNKNOWN.ordinal() | LttngConstants.STATS_NONE_ID;
+				}
+
+				/* update process state */
+				push_state(cpu, StateStrings.ExecutionMode.LTTV_STATE_TRAP,
+						submode, submodeId, trcEvent.getTimestamp(), traceSt);
+
+				/* update cpu status */
+				LTTngCPUState cpust = traceSt.getCpu_states().get(cpu);
+				cpu_push_mode(cpust, StateStrings.CpuMode.LTTV_CPU_TRAP);
+				cpust.pushToTrapStack(trap); /* update trap status */
+				
+				// update Trap State
+				LttngTrapState trap_state = null;
+				trap_state = traceSt.getTrap_states().get(trap);
+				
+				// If the trape_state exists, just increment it's counter, 
+				//	otherwise, create it
+				if ( trap_state == null ) {
+					trap_state = new LttngTrapState();
+					trap_state.incrementRunning();
+					traceSt.getTrap_states().put(trap, trap_state);
+				}
+				else {
+					trap_state.incrementRunning();
+				}
+				
+				return false;
+
+			}
+		};
+		return handler;
+	}
+
