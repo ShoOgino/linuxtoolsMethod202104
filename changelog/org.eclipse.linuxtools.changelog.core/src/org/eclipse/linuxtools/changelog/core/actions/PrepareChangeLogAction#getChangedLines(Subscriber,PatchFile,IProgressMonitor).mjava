@@ -16,8 +16,10 @@
 					String osEncoding = file.getCharset();
 					IFileRevision ancestorState = localDiff.getBeforeState();
 					IStorage ancestorStorage;
-					if (ancestorState != null)
+					if (ancestorState != null) {
 						ancestorStorage = ancestorState.getStorage(monitor);
+						p.setStorage(ancestorStorage);
+					}
 					else 
 						ancestorStorage = null;
 
@@ -29,8 +31,15 @@
 						LineComparator right = new LineComparator(file.getContents(), osEncoding);
 						for (RangeDifference tmp: RangeDifferencer.findDifferences(left, right)) {
 							if (tmp.kind() == RangeDifference.CHANGE) {
+								// Right side of diff are all changes found in local file.
 								int rightLength = tmp.rightLength() > 0 ? tmp.rightLength() : tmp.rightLength() + 1;
-								p.addLineRange(tmp.rightStart() + 1, tmp.rightStart() + rightLength);
+								// We also want to store left side of the diff which are changes to the ancestor as it may contain
+								// functions/methods that have been removed.
+								int leftLength = tmp.leftLength() > 0 ? tmp.leftLength() : tmp.leftLength() + 1;
+								// Only store left side changes if the storage exists and we add one to the start line number
+								if (p.getStorage() != null)
+									p.addLineRange(tmp.leftStart(), tmp.leftStart() + leftLength, false);
+								p.addLineRange(tmp.rightStart(), tmp.rightStart() + rightLength, true);
 							}
 						}
 					} catch (UnsupportedEncodingException e) {

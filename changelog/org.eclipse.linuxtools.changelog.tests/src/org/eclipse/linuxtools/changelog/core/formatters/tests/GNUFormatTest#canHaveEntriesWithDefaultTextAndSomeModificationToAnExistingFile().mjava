@@ -1,0 +1,76 @@
+	/**
+	 * Test for a changelog entry with items for removed files, new files and modified
+	 * existing files. This test should also catch Eclipse Bz #331244 regressions.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void canHaveEntriesWithDefaultTextAndSomeModificationToAnExistingFile() throws Exception {
+		// set date/author line
+		String authorName = "Test Author";
+		String email = "test@example.com";
+		final String dateLine = gnuFormatter.formatDateLine(authorName, email);
+
+		// full absolute path to ChangeLog file (relative to project root)
+		String changelogPath = "/" + project.getTestProject().getName() + "/test/example";
+		final String changelogFilePath = changelogPath + "/ChangeLog";
+
+		// pre-existing content to merge into
+		String content = "2010-10-05  William Shakespeare  <will@pear.com>\n\n\t" +
+						 "* path/to/file.c: New File.\n\n";
+		
+		// add a ChangeLog file to our test project
+		InputStream newFileInputStream = new ByteArrayInputStream(
+				content.getBytes());
+		IFile changelogFile = project.addFileToProject( "/test/example", "ChangeLog",
+				newFileInputStream);
+		// Open a document and get the IEditorPart
+		changelogEditorPart = openEditor(changelogFile);
+		
+		assertEquals(content, getContent(changelogEditorPart));
+
+		// entry file path (need overlap with changelogPath)
+		final String firstFileEntryRelPath = "eclipse/example/test/NewCoffeeMaker.java";
+		String entryFilePath = changelogPath + "/" + firstFileEntryRelPath;
+		
+		final String firstDefaultContent = "New file.";
+		
+		// Note: This always returns an empty String (should probably be changed...)
+		// merge result will be written to editorContent.
+		// 
+		// Create an item with default text "New file"
+		gnuFormatter.mergeChangelog(dateLine, "" /* no guessed function name */,
+				firstDefaultContent, changelogEditorPart,
+				changelogFilePath, entryFilePath);
+		final String secondFileEntryRelPath = "eclipse/example/test/OldCoffeeMaker.java";
+		entryFilePath = changelogPath + "/" + secondFileEntryRelPath;
+		final String secondDefaultContent = "Removed.";
+		// Add entry for removed file
+		gnuFormatter.mergeChangelog(dateLine, "" /* no guessed function name */,
+				secondDefaultContent,	changelogEditorPart,
+				changelogFilePath, entryFilePath);
+		final String thirdFileEntryRelPath = "eclipse/example/test/ModifiedFile.java";
+		entryFilePath = changelogPath + "/" + thirdFileEntryRelPath;
+		final String guessedFunctionName = "main";
+		// Create a bullet point describing a change in some existing file
+		gnuFormatter.mergeChangelog(dateLine, guessedFunctionName,
+				"" /* no default content */, changelogEditorPart,
+				changelogFilePath, entryFilePath);
+	 
+		final String actualMergeResult = getContent(changelogEditorPart);		
+		
+		// Note that changes to existing files appear first in the changelog entries.
+		// Second are removed files and new files are last.
+		final String expectedResult = dateLine + TAB + FILE_ENTRY_START_MARKER +
+		  							  thirdFileEntryRelPath + SPACE + FUNCTION_START_MARKER + 
+		  							  guessedFunctionName + FUNCTION_END_MARKER + FILE_ENTRY_END_MARKER +
+		  							  NEW_LINE + TAB + FILE_ENTRY_START_MARKER + 
+									  secondFileEntryRelPath+ FILE_ENTRY_END_MARKER +
+									  secondDefaultContent + NEW_LINE + TAB + FILE_ENTRY_START_MARKER +
+									  firstFileEntryRelPath + FILE_ENTRY_END_MARKER +
+									  firstDefaultContent + NEW_LINE + NEW_LINE +
+									  content /* orig. content */; 
+		
+		assertEquals(expectedResult, actualMergeResult);
+	}
+

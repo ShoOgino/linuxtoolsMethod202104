@@ -1,0 +1,54 @@
+	/**
+	 * Given an IEditorPart and current selection is in a static class initializer
+	 * block, JavaParser should be able to figure out that we were in an static
+	 * initializer block.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void canIdentifyStaticInitializerWhenInStaticClassInitializer() throws Exception {
+		final String javaSourceCode = "public class JavaParserExampleClass {\n"
+			 	+ "private String someStrVariable = null;\n"
+			 	// create static class initializer block
+			 	+ "static {\n"
+			 		+ "// "	+ OFFSET_MARKER + "\n"
+			 	+ "}\n"
+				+ "private void someMethod(String param) {\n"
+					+ "// empty \n"
+					+ "}\n"
+				+ "}\n";
+
+		assertNull(project.getTestProject().findMember( new Path(
+								"/src/org/eclipse/changelog/tests/JavaParserExampleClass.java")));
+
+		// Add JavaParserExampleClass.java to project
+		InputStream newFileInputStream = new ByteArrayInputStream(
+				javaSourceCode.getBytes());
+		IFile javaSourceFile = project.addFileToProject(
+				"/src/org/eclipse/changelog/tests",
+				"JavaParserExampleClass.java", newFileInputStream);
+
+		assertNotNull(project.getTestProject().findMember( new Path(
+								"/src/org/eclipse/changelog/tests/JavaParserExampleClass.java")));
+		
+		// Open a source file and get the IEditorPart
+		javaSourceEditorPart = openEditor(javaSourceFile);
+		// make sure changelog editor content is right before merging
+		assertEquals(javaSourceCode, getContent(javaSourceEditorPart));
+		
+		// make sure we have the proper editor type
+		assertTrue( javaSourceEditorPart instanceof AbstractDecoratedTextEditor );
+
+		// Select the snippet we want
+		int selectionStart = javaSourceCode.indexOf(OFFSET_MARKER);
+		assertTrue(selectionStart >= 0);
+		int selectionLength = OFFSET_MARKER.length();
+		AbstractDecoratedTextEditor javaEditor = (AbstractDecoratedTextEditor) javaSourceEditorPart;		
+		javaEditor.getSelectionProvider().setSelection(
+				new TextSelection(selectionStart, selectionLength));
+		
+		final String actualFunctionName = javaParser.parseCurrentFunction(javaSourceEditorPart);
+		
+		assertEquals(JavaParser.STATIC_INITIALIZER_NAME, actualFunctionName);
+	}
+

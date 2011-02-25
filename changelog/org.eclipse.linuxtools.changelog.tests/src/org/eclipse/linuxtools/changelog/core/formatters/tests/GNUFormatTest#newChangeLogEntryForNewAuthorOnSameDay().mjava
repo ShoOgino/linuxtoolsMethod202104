@@ -1,0 +1,68 @@
+	/**
+	 * If two different authors make modifications on the same day, both modifications must
+	 * show up as separate changelog entries for that day.
+	 */
+	@Test
+	public void newChangeLogEntryForNewAuthorOnSameDay() throws Exception {
+		// first author
+		String authorName = "Test Author";
+		String email = "test@example.com";
+		final String firstDateLine = gnuFormatter.formatDateLine(authorName, email);
+		// second author
+		authorName = "William Shakespeare";
+		email = "will@pear.com";
+		final String secondDateLine = gnuFormatter.formatDateLine(authorName, email);
+
+		// full absolute path to ChangeLog file
+		String changelogPath = "/" + project.getTestProject().getName() + "/path/to";
+		final String changelogFilePath = changelogPath + "/ChangeLog";
+
+		// No existing content in ChangeLog file
+		String content = "";
+		
+		assertNull(project.getTestProject().findMember(new Path("/path/to/ChangeLog")));
+		
+		// add a ChangeLog file to our test project
+		InputStream newFileInputStream = new ByteArrayInputStream(
+				content.getBytes());
+		IFile changelogFile = project.addFileToProject( changelogPath, "ChangeLog",
+				newFileInputStream);
+		// Open a document and get the IEditorPart
+		changelogEditorPart = openEditor(changelogFile);
+
+		// entry file path (needs overlap with changelogPath)
+		String fileEntryRelPath = "eclipse/example/test/NewCoffeeMaker.java";
+		final String entryFilePath = changelogPath + "/" + fileEntryRelPath;
+		
+		final String guessedFunctionName = "bazinga"; 
+		
+		// merge first changelog entry with empty content
+		gnuFormatter.mergeChangelog(firstDateLine, guessedFunctionName,
+				"" /* empty default content */, changelogEditorPart,
+				changelogFilePath, entryFilePath);
+		
+		String actualMergeResult = getContent(changelogEditorPart);		
+		
+		String expectedResult = firstDateLine + TAB + FILE_ENTRY_START_MARKER + 
+									  fileEntryRelPath + SPACE + FUNCTION_START_MARKER +
+									  guessedFunctionName + FUNCTION_END_MARKER +
+									  FILE_ENTRY_END_MARKER;
+		
+		assertEquals(expectedResult, actualMergeResult);
+		
+		// add second changelog entry on same date but by different author
+		gnuFormatter.mergeChangelog(secondDateLine, guessedFunctionName,
+				"" /* empty default content */, changelogEditorPart,
+				changelogFilePath, entryFilePath);
+		
+		actualMergeResult = getContent(changelogEditorPart);		
+		
+		expectedResult = secondDateLine + TAB + FILE_ENTRY_START_MARKER + 
+									  fileEntryRelPath + SPACE + FUNCTION_START_MARKER +
+									  guessedFunctionName + FUNCTION_END_MARKER +
+									  FILE_ENTRY_END_MARKER + NEW_LINE + NEW_LINE +
+									  expectedResult;
+		
+		assertEquals(expectedResult, actualMergeResult);
+	}
+

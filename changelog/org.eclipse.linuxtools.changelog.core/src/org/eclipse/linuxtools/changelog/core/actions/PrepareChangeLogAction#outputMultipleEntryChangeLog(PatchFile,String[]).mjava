@@ -26,34 +26,52 @@
 			return;
 		}
 
-		// get formatter
-		clw.setFormatter(extensionManager.getFormatterContributor(
-				entryFileName, pref_Formatter));
-
+		// Check if formatter is internal or inline..if inline, use the
+		// current active editor part, otherwise, we must find the external
+		// ChangeLog file.
 		IEditorPart changelog = null;
+	
+		// Before accessing the getFormatterConfigElement, the getFormatContibutor
+		// method must be called to initialize.
+		extensionManager.getFormatterContributor(clw.getEntryFilePath(), 
+				pref_Formatter);
+		IConfigurationElement formatterConfigElement = extensionManager
+        .getFormatterConfigElement();
+		
+		if (formatterConfigElement.getAttribute("inFile").toLowerCase().equals( //$NON-NLS-1$
+		    "true")) { //$NON-NLS-1$
+			try {
+				changelog = openEditor((IFile)pf.getResource());
+				clw.setFormatter(extensionManager.getFormatterContributor(
+						clw.getEntryFilePath(), pref_Formatter));
+			} catch (Exception e) {
+				// do nothing changelog will be null
+			}
+		} else {
+			// external changelog
+			// get formatter
+			clw.setFormatter(extensionManager.getFormatterContributor(
+					entryFileName, pref_Formatter));
 
-		if (pf.isRemovedFile())
-			changelog = getChangelogForRemovePath(entryPath);
-		else
-			changelog = getChangelog(entryFileName);
+			if (pf.isRemovedFile())
+				changelog = getChangelogForRemovePath(entryPath);
+			else
+				changelog = getChangelog(entryFileName);
 
-		// FIXME: this doesn't seem very useful or probable
-		if (changelog == null)
-			changelog = askChangeLogLocation(entryFileName);
-
-		if (changelog == null) {
-			ChangelogPlugin.getDefault().getLog().log(
-					new Status(IStatus.ERROR, ChangelogPlugin.PLUGIN_ID, IStatus.ERROR, // $NON-NLS-1$
-							Messages.getString("ChangeLog.ErrNoChangeLog"), null)); // $NON-NLS-1$
-			return;
+			// If there isn't a ChangeLog, we will not create one here.
+			// This prevents the situation whereby a project has an inline
+			// ChangeLog formatter and some other files have been modified
+			// as well (e.g. an rpm project).  In that case, we don't want
+			// to create a separate ChangeLog for the end-user.
+			if (changelog == null)
+				return;
 		}
-
 		// select changelog
 		clw.setChangelog(changelog);
-
+		
 		// write to changelog
-
-		clw.setDateLine(clw.getFormatter().formatDateLine(pref_AuthorName,
+		IFormatterChangeLogContrib formatter = clw.getFormatter();
+		clw.setDateLine(formatter.formatDateLine(pref_AuthorName,
 				pref_AuthorEmail));
 
 		clw.setChangelogLocation(getDocumentLocation(clw.getChangelog(), true));

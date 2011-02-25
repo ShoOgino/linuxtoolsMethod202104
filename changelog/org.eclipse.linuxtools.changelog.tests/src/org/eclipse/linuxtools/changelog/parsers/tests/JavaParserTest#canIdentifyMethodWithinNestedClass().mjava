@@ -1,0 +1,62 @@
+	/**
+	 * Given an IEditorPart and current selection is inside a method within a nested
+	 * class, JavaParser should return a "nestedClass.methodName" construct for the
+	 * current function.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void canIdentifyMethodWithinNestedClass() throws Exception {
+		final String nestedClassName = "Encapsulated";
+		final String currentMethodName = "getString";
+		final String javaSourceCode = "public class JavaParserExampleClass {\n"
+			 	+ "private String someStrVariable = null;\n"
+			 	+ "static {\n"
+			 		+ "// empty \n"
+			 	+ "}\n"
+				+ "private void someMethod(String param) {\n"
+					+ "// empty \n"
+					+ "}\n"
+				+ "private class " + nestedClassName + "{\n"
+						+ "public String " + currentMethodName + "() throws Exception {\n"
+						+ "// " + OFFSET_MARKER + "\n"
+						+ "return \"returnString\";\n"
+						+ "}\n"
+					+ "}\n"
+				+ "}\n";
+
+		assertNull(project.getTestProject().findMember( new Path(
+								"/src/org/eclipse/changelog/tests/JavaParserExampleClass.java")));
+
+		// Add JavaParserExampleClass.java to project
+		InputStream newFileInputStream = new ByteArrayInputStream(
+				javaSourceCode.getBytes());
+		IFile javaSourceFile = project.addFileToProject(
+				"/src/org/eclipse/changelog/tests",
+				"JavaParserExampleClass.java", newFileInputStream);
+
+		assertNotNull(project.getTestProject().findMember( new Path(
+								"/src/org/eclipse/changelog/tests/JavaParserExampleClass.java")));
+		
+		// Open a source file and get the IEditorPart
+		javaSourceEditorPart = openEditor(javaSourceFile);
+		// make sure changelog editor content is right before merging
+		assertEquals(javaSourceCode, getContent(javaSourceEditorPart));
+		
+		// make sure we have the proper editor type
+		assertTrue( javaSourceEditorPart instanceof AbstractDecoratedTextEditor );
+
+		// Select the snippet we want
+		int selectionStart = javaSourceCode.indexOf(OFFSET_MARKER);
+		assertTrue(selectionStart >= 0);
+		int selectionLength = OFFSET_MARKER.length();
+		AbstractDecoratedTextEditor javaEditor = (AbstractDecoratedTextEditor) javaSourceEditorPart;		
+		javaEditor.getSelectionProvider().setSelection(
+				new TextSelection(selectionStart, selectionLength));
+		
+		final String expectedFunctionName = nestedClassName + "." + currentMethodName;
+		final String actualFunctionName = javaParser.parseCurrentFunction(javaSourceEditorPart);
+		
+		assertEquals(expectedFunctionName, actualFunctionName);
+	}
+

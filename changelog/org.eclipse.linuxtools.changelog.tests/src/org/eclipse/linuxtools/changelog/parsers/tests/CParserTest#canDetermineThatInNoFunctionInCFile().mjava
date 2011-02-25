@@ -1,0 +1,52 @@
+	/**
+	 * Given an IEditorPart and not being inside any function within a C
+	 * source file, no function should be determined.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void canDetermineThatInNoFunctionInCFile() throws Exception {
+		// make test project a C project
+		project.addCNature();
+		
+		final String cSourceCode = "// Prototype " + OFFSET_MARKER + "\n"
+			+ "static int doSomething(char *test);\n\n"
+			+ "static int doSomething(char *test)\n"
+				+ "{\n"
+					+ "int index = 0;\n"
+					+ "return 0;\n"
+				+ "}\n";
+
+		assertNull(project.getTestProject().findMember( new Path(
+								"/src/some_c_file.c")));
+
+		// Add some_c_file.c to project
+		InputStream newFileInputStream = new ByteArrayInputStream(
+				cSourceCode.getBytes());
+		IFile cSourceFile = project.addFileToProject(
+				"/src",
+				"some_c_file.c", newFileInputStream);
+
+		assertNotNull(project.getTestProject().findMember( new Path(
+								"/src/some_c_file.c")));
+		
+		// Open a source file and get the IEditorPart
+		cppSourceEditorPart = openEditor(cSourceFile);
+		assertEquals(cSourceCode, getContent(cppSourceEditorPart));
+		
+		// make sure we have the proper editor type
+		assertTrue( cppSourceEditorPart instanceof AbstractTextEditor );
+
+		// Select the snippet we want
+		int selectionStart = cSourceCode.indexOf(OFFSET_MARKER);
+		assertTrue(selectionStart >= 0);
+		int selectionLength = OFFSET_MARKER.length();
+		AbstractTextEditor cEditor = (AbstractTextEditor) cppSourceEditorPart;		
+		cEditor.getSelectionProvider().setSelection(
+				new TextSelection(selectionStart, selectionLength));
+		
+		final String actualFunctionName = cParser.parseCurrentFunction(cppSourceEditorPart);
+		
+		assertEquals("" /* expect empty function name */, actualFunctionName);
+	}
+

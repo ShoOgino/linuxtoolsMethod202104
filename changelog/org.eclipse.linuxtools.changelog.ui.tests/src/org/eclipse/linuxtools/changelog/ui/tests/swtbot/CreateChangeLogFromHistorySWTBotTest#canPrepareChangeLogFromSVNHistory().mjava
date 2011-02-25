@@ -1,0 +1,75 @@
+	/**
+	 * Create changelog from SVN history (commit messages).
+	 * 
+	 * @throws Exception
+	 */
+	@SuppressWarnings({ "unchecked" })
+	@Test
+	public void canPrepareChangeLogFromSVNHistory() throws Exception {
+		// select ChangeLog file
+		String teamProviderString = "[changelog/trunk/" + PROJECT_NAME + "]";
+		SWTBotTreeItem projectItem = ProjectExplorer.expandProject(projectExplorerViewTree, PROJECT_NAME, teamProviderString);
+		long oldTimeout = SWTBotPreferences.TIMEOUT;
+		SWTBotPreferences.TIMEOUT = 5000;
+		bot.waitUntil(new ProjectExplorerTreeItemAppearsCondition(projectExplorerViewTree, PROJECT_NAME, teamProviderString, "ChangeLog"));
+		SWTBotPreferences.TIMEOUT = oldTimeout;
+		SWTBotTreeItem changeLogItem = ProjectExplorer.getProjectItem(projectItem, "ChangeLog");
+		changeLogItem.select();
+		
+		// open history for ChangeLog file
+		clickOnShowHistory(projectExplorerViewTree);
+		SWTBot historyViewBot = bot.viewByTitle("History").bot();
+		// wait for SVN revision table to appear
+		oldTimeout = SWTBotPreferences.TIMEOUT;
+		SWTBotPreferences.TIMEOUT = 3 * 5000;
+		historyViewBot.waitUntil(new TableAppearsCondition());
+		SWTBotPreferences.TIMEOUT = oldTimeout;
+		SWTBotTable historyTable = historyViewBot.table();
+		historyTable.select(0); // select the first row
+		
+		// right-click => Generate Changelog...
+		clickOnGenerateChangeLog(historyTable);
+		bot.waitUntil(Conditions.shellIsActive("Generate ChangeLog"));
+		SWTBotShell shell = bot.shell("Generate ChangeLog");
+		
+		SWTBot generateChangelogBot = shell.bot();
+		generateChangelogBot.radio("Clipboard").click();
+		generateChangelogBot.button("OK").click();
+		
+		// create and open a new file for pasting
+		String pasteFile = "newFile";
+		IFile newFile = project.getFile(new Path(pasteFile));
+		newFile.create(new ByteArrayInputStream("".getBytes()) /* empty content */, false, null);
+		project.refreshLocal(IResource.DEPTH_INFINITE, null);
+		
+		assertNotNull(project.findMember(new Path(pasteFile)));
+		
+		ProjectExplorer.expandProject(projectExplorerViewTree, PROJECT_NAME,
+				teamProviderString).expandNode(pasteFile).select().doubleClick();
+		Matcher<?> editorMatcher = Matchers.allOf(
+				IsInstanceOf.instanceOf(IEditorReference.class),
+				withPartName(pasteFile)
+				);
+		bot.waitUntil(Conditions.waitForEditor((Matcher<IEditorReference>) editorMatcher));
+		oldTimeout = SWTBotPreferences.TIMEOUT;
+		SWTBotPreferences.TIMEOUT = oldTimeout;
+		SWTBotEditor swtBoteditor = bot.activeEditor();
+		assertEquals(pasteFile, swtBoteditor.getTitle());
+		SWTBotEclipseEditor eclipseEditor = swtBoteditor.toTextEditor();
+		
+		// go to beginning of editor
+		eclipseEditor.selectRange(0, 0, 0);
+		// paste
+		eclipseEditor.pressShortcut(Keystrokes.CTRL, KeyStroke.getInstance("V"));
+		swtBoteditor.save();
+		// make sure some changelog like text was pasted
+		String text = eclipseEditor.getText();
+		assertTrue(!text.equals(""));
+		// FIXME: Add a better assertion. Not sure what would be a good one.
+//		eclipseEditor.selectLine(2); // select third line
+//		final String actualThirdLineContent = eclipseEditor.getSelection();
+//		System.out.println(actualThirdLineContent);
+//		System.out.println(text);
+//		assertTrue(actualThirdLineContent.contains("\t* "));
+	}
+

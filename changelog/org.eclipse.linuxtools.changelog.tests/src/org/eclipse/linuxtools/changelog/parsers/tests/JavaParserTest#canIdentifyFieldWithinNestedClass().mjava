@@ -1,0 +1,64 @@
+	/**
+	 * Given an IEditorPart and currently a field within a nested
+	 * class is selected, JavaParser should return a "nestedClass.fieldName"
+	 * construct for the current function.
+	 * 
+	 * @throws Exception
+	 */
+	@Test
+	public void canIdentifyFieldWithinNestedClass() throws Exception {
+		final String nestedClassName = "Encapsulated";
+		final String currentFieldName = "variableInNestedClass";
+		final String javaSourceCode = "public class JavaParserExampleClass {\n"
+			 	+ "private String someStrVariable = null;\n"
+			 	+ "static {\n"
+			 		+ "// empty \n"
+			 	+ "}\n"
+				+ "private void someMethod(String param) {\n"
+					+ "// empty \n"
+					+ "}\n"
+				+ "private class " + nestedClassName + "{\n"
+						+ "private int " + currentFieldName + " = 10;\n"
+						+ "public String getString() throws Exception {\n"
+						+ "// return a String, yay ;-)\n"
+						+ "return \"returnString\";\n"
+						+ "}\n"
+					+ "}\n"
+				+ "}\n";
+
+		assertNull(project.getTestProject().findMember( new Path(
+								"/src/org/eclipse/changelog/tests/JavaParserExampleClass.java")));
+
+		// Add JavaParserExampleClass.java to project
+		InputStream newFileInputStream = new ByteArrayInputStream(
+				javaSourceCode.getBytes());
+		IFile javaSourceFile = project.addFileToProject(
+				"/src/org/eclipse/changelog/tests",
+				"JavaParserExampleClass.java", newFileInputStream);
+
+		assertNotNull(project.getTestProject().findMember( new Path(
+								"/src/org/eclipse/changelog/tests/JavaParserExampleClass.java")));
+		
+		// Open a source file and get the IEditorPart
+		javaSourceEditorPart = openEditor(javaSourceFile);
+		// make sure changelog editor content is right before merging
+		assertEquals(javaSourceCode, getContent(javaSourceEditorPart));
+		
+		// make sure we have the proper editor type
+		assertTrue( javaSourceEditorPart instanceof AbstractDecoratedTextEditor );
+
+		// Select the snippet we want
+		int selectionStart = javaSourceCode.indexOf(currentFieldName);
+		assertTrue(selectionStart >= 0);
+		// select only a part of field name, as this should be sufficient
+		int selectionLength = currentFieldName.length() - 3;
+		AbstractDecoratedTextEditor javaEditor = (AbstractDecoratedTextEditor) javaSourceEditorPart;		
+		javaEditor.getSelectionProvider().setSelection(
+				new TextSelection(selectionStart, selectionLength));
+		
+		final String expectedFunctionName = nestedClassName + "." + currentFieldName;
+		final String actualFunctionName = javaParser.parseCurrentFunction(javaSourceEditorPart);
+		
+		assertEquals(expectedFunctionName, actualFunctionName);
+	}
+
