@@ -1,0 +1,46 @@
+	/**
+	 * Prompts the user to select a  binary
+	 * 
+	 * @return the selected binary or <code>null</code> if none.
+	 */
+	protected IBinary chooseBinary(List<IBinary> binList, String mode) {
+		ILabelProvider programLabelProvider = new CElementLabelProvider() {
+			public String getText(Object element) {
+				if (element instanceof IBinary) {
+					IBinary bin = (IBinary)element;
+					StringBuffer name = new StringBuffer();
+					name.append(bin.getPath().lastSegment());
+					return name.toString();
+				}
+				return super.getText(element);
+			}
+		};
+	
+		ILabelProvider qualifierLabelProvider = new CElementLabelProvider() {
+			public String getText(Object element) {
+				if (element instanceof IBinary) {
+					IBinary bin = (IBinary)element;
+					StringBuffer name = new StringBuffer();
+					name.append(bin.getCPU() + (bin.isLittleEndian() ? "le" : "be")); //$NON-NLS-1$ //$NON-NLS-2$
+					name.append(" - "); //$NON-NLS-1$
+					name.append(bin.getPath().toString());
+					return name.toString();
+				}
+				return super.getText(element);
+			}
+		};
+	
+		TwoPaneElementSelector dialog = new TwoPaneElementSelector(getActiveWorkbenchShell(), programLabelProvider, qualifierLabelProvider);
+		dialog.setElements(binList.toArray());
+		dialog.setTitle(Messages.getString("ProfileLaunchShortcut.Profile")); //$NON-NLS-1$
+		dialog.setMessage(Messages.getString("ProfileLaunchShortcut.Choose_a_local_application")); //$NON-NLS-1$
+		dialog.setUpperListLabel(Messages.getString("ProfileLaunchShortcut.Binaries")); //$NON-NLS-1$
+		dialog.setLowerListLabel(Messages.getString("ProfileLaunchShortcut.Qualifier")); //$NON-NLS-1$
+		dialog.setMultipleSelection(false);
+		if (dialog.open() == Window.OK) {
+			return (IBinary) dialog.getFirstResult();
+		}
+	
+		return null;
+	}
+

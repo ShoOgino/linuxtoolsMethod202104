@@ -1,0 +1,45 @@
+	/**
+	 * Locate a configuration to relaunch for the given type.  If one cannot be found, create one.
+	 * 
+	 * @return a re-useable config or <code>null</code> if none
+	 */
+	protected ILaunchConfiguration findLaunchConfiguration(IBinary bin, String mode) {
+		ILaunchConfiguration configuration = null;
+		ILaunchConfigurationType configType = getLaunchConfigType();
+		List<ILaunchConfiguration> candidateConfigs = Collections.emptyList();
+		try {
+			ILaunchConfiguration[] configs = DebugPlugin.getDefault().getLaunchManager().getLaunchConfigurations(configType);
+			candidateConfigs = new ArrayList<ILaunchConfiguration>(configs.length);
+			for (int i = 0; i < configs.length; i++) {
+				ILaunchConfiguration config = configs[i];
+				IPath programPath = CDebugUtils.getProgramPath(config);
+				String projectName = CDebugUtils.getProjectName(config);
+				IPath binPath = bin.getResource().getProjectRelativePath();
+				if (programPath != null && programPath.equals(binPath)) {
+					if (projectName != null && projectName.equals(bin.getCProject().getProject().getName())) {
+						candidateConfigs.add(config);
+					}
+				}
+			}
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+	
+		// If there are no existing configs associated with the IBinary, create one.
+		// If there is exactly one config associated with the IBinary, return it.
+		// Otherwise, if there is more than one config associated with the IBinary, prompt the
+		// user to choose one.
+		int candidateCount = candidateConfigs.size();
+		if (candidateCount < 1) {
+			configuration = createConfiguration(bin);
+		} else if (candidateCount == 1) {
+			configuration = (ILaunchConfiguration) candidateConfigs.get(0);
+		} else {
+			// Prompt the user to choose a config.  A null result means the user
+			// cancelled the dialog, in which case this method returns null,
+			// since cancelling the dialog should also cancel launching anything.
+			configuration = chooseConfiguration(candidateConfigs, mode);
+		}
+		return configuration;
+	}
+

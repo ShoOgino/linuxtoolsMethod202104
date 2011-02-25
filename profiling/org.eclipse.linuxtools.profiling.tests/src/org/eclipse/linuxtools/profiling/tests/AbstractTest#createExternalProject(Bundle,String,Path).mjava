@@ -1,0 +1,82 @@
+	/**
+	 * Create a CDT project outside the default workspace.
+	 * 
+	 * @param bundle			The plug-in bundle.
+	 * @param projname			The name of the project.
+	 * @param absProjectPath	Absolute path to the directory to which the project should be mapped
+	 * 							outside the workspace.
+	 * @return					A new external CDT project.
+	 * @throws CoreException
+	 * @throws URISyntaxException
+	 * @throws IOException
+	 * @throws InvocationTargetException
+	 * @throws InterruptedException
+	 */
+	protected IProject createExternalProject(Bundle bundle,
+			final String projname, final Path absProjectPath)
+			throws CoreException, URISyntaxException, IOException,
+			InvocationTargetException, InterruptedException {
+		
+		IProject externalProject;
+		// Turn off auto-building
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		IWorkspaceDescription wspDesc = workspace.getDescription();
+		wspDesc.setAutoBuilding(false);
+		workspace.setDescription(wspDesc);
+
+		// Create external project
+		IWorkspaceRoot root = workspace.getRoot();
+		externalProject = root.getProject(projname);
+		IProjectDescription description = workspace
+				.newProjectDescription(projname);
+		URI fileProjectURL = new URI("file://" + absProjectPath.toString());
+		description.setLocationURI(fileProjectURL);
+		externalProject = CCorePlugin.getDefault().createCDTProject(
+				description, externalProject, new NullProgressMonitor());
+		assertNotNull(externalProject);
+		externalProject.open(null);
+
+		try {
+			// CDT opens the Project with BACKGROUND_REFRESH enabled which causes the
+			// refresh manager to refresh the project 200ms later. This Job interferes
+			// with the resource change handler firing see: bug 271264
+			Job.getJobManager().join(ResourcesPlugin.FAMILY_AUTO_REFRESH, null);
+		} catch (Exception e) {
+			// Ignore
+		}
+		assertTrue(externalProject.isOpen());
+
+		// Import boiler-plate files which can then be built and profiled
+		URL location = FileLocator.find(bundle, new Path(
+				"resources/" + projname), null); //$NON-NLS-1$
+		File testDir = new File(FileLocator.toFileURL(location).toURI());
+		ImportOperation op = new ImportOperation(externalProject.getFullPath(),
+				testDir, FileSystemStructureProvider.INSTANCE,
+				new IOverwriteQuery() {
+					public String queryOverwrite(String pathString) {
+						return ALL;
+					}
+				});
+		op.setCreateContainerStructure(false);
+		op.run(null);
+
+		IStatus status = op.getStatus();
+		if (!status.isOK()) {
+			throw new CoreException(status);
+		}
+		// Make sure import went well
+		assertNotNull(externalProject.findMember(BIN_DIR));
+
+		// Index the project
+		IIndexManager indexMgr = CCorePlugin.getIndexManager();
+		indexMgr.joinIndexer(IIndexManager.FOREVER, new NullProgressMonitor());
+
+		// These natures must be enabled at this point to continue
+		assertTrue(externalProject
+				.isNatureEnabled(ScannerConfigNature.NATURE_ID));
+		assertTrue(externalProject
+				.isNatureEnabled(ManagedCProjectNature.MNG_NATURE_ID));
+
+		return externalProject;
+	}
+

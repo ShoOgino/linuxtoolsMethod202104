@@ -1,0 +1,61 @@
+	/**
+	 * Get a mapping between a file name, and the data relevant to locating
+	 * the corresponding function name for a given project.
+	 * 
+	 * @param project : C Project Type
+	 * @param functionName : Name of a function 
+	 * @param numArgs : The number of arguments this function is expected to have.
+	 * A value of -1 will ignore the number of arguments when searching.
+	 * @param fileHint : The name of the file where we expect to find functionName.
+	 * It is null if we do not want to use this option.
+	 * @return a HashMap<String, int []> of String absolute paths of files and the
+	 * function's corresponding node-offset and length.
+	 */
+	public static HashMap<String,int[]> findFunctionsInProject(ICProject project, String functionName,
+			int numArgs, String fileHint)  {
+		  HashMap<String,int[]> files = new HashMap<String,int[]>() ;
+
+		  IIndexManager manager = CCorePlugin.getIndexManager();
+		  IIndex index = null;
+		    try {
+				index = manager.getIndex(project);
+				index.acquireReadLock();
+				IBinding[] bindings = index.findBindings(functionName.toCharArray(), IndexFilter.ALL, null);
+				for (IBinding bind : bindings) {
+					if (bind instanceof IFunction
+							&& (numArgs == -1 || ((IFunction)bind).getParameters().length == numArgs)) {
+						IFunction ifunction = (IFunction) bind;
+						IIndexName[] names = index.findNames(ifunction, IIndex.FIND_DEFINITIONS);
+						for (IIndexName iname : names) {
+							IIndexFile file = iname.getFile();
+							if (file != null) {
+								String loc = file.getLocation().getURI().getPath();
+								if (fileHint != null){
+									if (loc.equals(new File(fileHint).getCanonicalPath())){
+										//TODO: Consider changing data structure so that we can
+										// store multiple same-named functions (different args)
+										// from the same file.
+										files.put(loc, new int [] {iname.getNodeOffset(), iname.getNodeLength()});
+									}
+								}else{
+									files.put(loc, new int [] {iname.getNodeOffset(), iname.getNodeLength()});
+								}
+							}
+						}
+					}
+				}
+				
+			} catch (CoreException e) {
+				e.printStackTrace();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally{
+				index.releaseReadLock();
+			}
+		   return files;
+	}
+
