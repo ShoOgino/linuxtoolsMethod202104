@@ -1,7 +1,32 @@
 	private File getSelectedSRPM() {
 		String srpmName = sourceSRPM.getText();
-		if(srpmName == null || srpmName.equals("")) { //$NON-NLS-1$
+		if (srpmName == null || srpmName.equals("")) { //$NON-NLS-1$
 			return null;
+		}
+		if (srpmName.startsWith("http://")) { //$NON-NLS-1$
+			try {
+				URL url = new URL(srpmName);
+				URLConnection content = url.openConnection();
+				File tempFile = new File(
+						System.getProperty("java.io.tmpdir"), srpmName.substring(srpmName.lastIndexOf('/') + 1)); //$NON-NLS-1$
+				if (tempFile.exists()) {
+					tempFile.delete();
+				}
+				final FileDownloadJob downloadJob = new FileDownloadJob(
+						tempFile, content);
+				getContainer().run(false, true, new IRunnableWithProgress() {
+
+					public void run(IProgressMonitor monitor)
+							throws InvocationTargetException,
+							InterruptedException {
+						downloadJob.run(monitor);
+
+					}
+				});
+				return tempFile;
+			} catch (Exception e) {
+				// TODO: handle exception
+			}
 		}
 		return new File(sourceSRPM.getText());
 	}

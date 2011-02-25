@@ -2,21 +2,18 @@
 	 * @see org.eclipse.jface.operation.IRunnableWithProgress#run(IProgressMonitor)
 	 * 
 	 */
-	public void run(IProgressMonitor progressMonitor)
-			throws InvocationTargetException {
+	@Override
+	public IStatus run(IProgressMonitor progressMonitor) {
 		int totalWork = 2;
 
 		monitor = progressMonitor;
-
-		// We keep a all our reported errors in an ArrayList.
-		rpm_errorTable = new ArrayList<Exception>();
 
 		// Start progress
 		monitor.beginTask(Messages.getString("RPMExportOperation.Starting"), //$NON-NLS-1$
 				totalWork);
 		monitor.worked(1);
-		MessageConsole myConsole = findConsole("rpmbuild"); //$NON-NLS-1$
-		MessageConsoleStream out = myConsole.newMessageStream();
+		IOConsole myConsole = findConsole(); 
+		IOConsoleOutputStream out = myConsole.newOutputStream();
 		myConsole.clearConsole();
 		myConsole.activate();
 		switch (exportType) {
@@ -25,8 +22,8 @@
 				monitor.setTaskName(Messages
 						.getString("RPMExportOperation.Executing_RPM_Export")); //$NON-NLS-1$
 				rpmProject.buildAll(out);
-			} catch (Exception e) {
-				rpm_errorTable.add(e);
+			} catch (CoreException e) {
+				return new Status(IStatus.ERROR, RPMUIPlugin.ID, e.getMessage(), e);
 			}
 			break;
 
@@ -35,8 +32,8 @@
 					.getString("RPMExportOperation.Executing_RPM_Export")); //$NON-NLS-1$
 			try {
 				rpmProject.buildBinaryRPM(out);
-			} catch (Exception e) {
-				rpm_errorTable.add(e);
+			} catch (CoreException e) {
+				return new Status(IStatus.ERROR, RPMUIPlugin.ID, e.getMessage(), e);
 			}
 			break;
 
@@ -45,11 +42,13 @@
 					.getString("RPMExportOperation.Executing_SRPM_Export")); //$NON-NLS-1$
 			try {
 				rpmProject.buildSourceRPM(out);
-			} catch (Exception e) {
-				rpm_errorTable.add(e);
+			} catch (CoreException e) {
+				return new Status(IStatus.ERROR, RPMUIPlugin.ID, e.getMessage(), e);
 			}
 			break;
 		}
 		monitor.worked(1);
+		monitor.done();
+		return Status.OK_STATUS;
 	}
 
