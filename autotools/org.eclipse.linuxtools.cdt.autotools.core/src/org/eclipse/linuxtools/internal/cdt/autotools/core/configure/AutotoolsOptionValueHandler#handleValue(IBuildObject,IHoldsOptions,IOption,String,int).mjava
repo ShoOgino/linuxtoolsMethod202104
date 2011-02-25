@@ -1,0 +1,58 @@
+	//FIXME: Use holder to set option value, not the "option" parameter
+	public boolean handleValue(IBuildObject buildObject, 
+                   IHoldsOptions holder, 
+                   IOption option,
+                   String extraArgument, int event)
+	{
+		// Get the current value of the build dir option.
+		String value = (String)option.getValue();
+
+		if (buildObject instanceof IConfiguration &&
+				(event == IManagedOptionValueHandler.EVENT_OPEN)) {
+//			SortedSet<Integer> nums = new TreeSet<Integer>();
+			IConfiguration configuration = (IConfiguration)buildObject;
+			ICConfigurationDescription cfgd = ManagedBuildManager.getDescriptionForConfiguration(configuration);
+			if (option.getName().equals("Name") && cfgd != null) {
+				String cfgId = cfgd.getId();
+				if (!value.equals("") && !value.equals(cfgId)) {
+					// we have a cloned configuration and we know that the
+					// clonee's name is the value of the option
+					IProject project = (IProject)configuration.getManagedProject().getOwner();
+					String autoName = null;
+					String autoNameTemplate = null;
+					// Check if we are supposed to automatically name the build directory for any
+					// new configuration.  If yes, generate a build directory under the project using
+					// the configuration name which must be unique.
+					try {
+						autoName = project.getPersistentProperty(AutotoolsPropertyConstants.AUTO_BUILD_NAME);
+					} catch (CoreException e) {
+						// ignore
+					}
+					if (autoName == null || autoName.equals(AutotoolsPropertyConstants.TRUE)) {
+						autoNameTemplate = "${workspace_loc:/" + project.getName() + // $NON-NLS-1$ 
+							"}/build-" + fixName(configuration.getName()); // $NON-NLS-1$
+						IBuilder cfgBuilder = configuration.getEditableBuilder();
+						cfgBuilder.setBuildPath(autoNameTemplate);
+					}
+					// Clone old configuration to tmp configuration list
+					boolean isSaved = AutotoolsConfigurationManager.getInstance().cloneCfg(project, value, cfgd);
+					// Check to see if we should patch up the name option.  If we aren't synchronizing
+					// configurations or the configuration isn't already saved, we leave the name field alone
+					// so we will trigger this again when the clone will get used.
+					if (!isSaved && !AutotoolsConfigurationManager.getInstance().isSyncing()) {
+						return true;
+					}
+				}
+				try {
+					IOption optionToSet = holder.getOptionToSet(option, false);
+					optionToSet.setValue(cfgId);
+				} catch (BuildException e) {
+					return false;
+				}
+			}
+		}
+		
+		// The event was not handled, thus return false
+		return true;
+	}
+

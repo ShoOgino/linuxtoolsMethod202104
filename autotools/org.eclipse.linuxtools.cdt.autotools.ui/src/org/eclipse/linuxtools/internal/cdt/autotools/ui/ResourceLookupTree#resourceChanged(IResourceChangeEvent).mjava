@@ -1,0 +1,30 @@
+	/**
+	 * Handle resource change notifications.
+	 */
+	public void resourceChanged(IResourceChangeEvent event) {
+		IResourceDelta delta= event.getDelta();
+		synchronized (fLock) {
+			if (fNodeMapRef == null)
+				return;
+			boolean unsetMap= false;
+			if (fNodeMap == null) {
+				fNodeMap= fNodeMapRef.get();
+				if (fNodeMap == null)
+					return;
+				unsetMap= true;
+			}
+			try {
+				delta.accept(this);
+			} catch (CoreException e) {
+				AutotoolsUIPlugin.log(e);
+			} finally {
+				if (fNeedCleanup)
+					cleanup();
+				fCurrentExtensions= null;
+				fNeedCleanup= false;
+				if (unsetMap)
+					fNodeMap= null;
+			}
+		}
+	}
+

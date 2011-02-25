@@ -1,0 +1,27 @@
+	// This method examines contents of currentLine buffer
+	// if it contains whole line this line is checked by error
+	// parsers (processLine method). 
+	// If flush is true rest of line is checked by error parsers.
+	private void checkLine(boolean flush) {
+		String buffer = currentLine.toString();
+		int i = 0;
+		while ((i = buffer.indexOf('\n')) != -1) {
+			String line = buffer.substring(0, i);
+			// get rid of any trailing '\r'
+			if (line.endsWith("\r"))  //$NON-NLS-1$
+				line=line.substring(0,line.length()-1);
+			processLine(line);
+			previousLine = line;
+			buffer = buffer.substring(i + 1); // skip the \n and advance
+		}
+		currentLine.setLength(0);
+		if (flush) {
+			if (buffer.length() > 0) {
+				processLine(buffer);
+				previousLine = buffer;
+			}
+		} else {
+			currentLine.append(buffer);
+		}
+	}
+

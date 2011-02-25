@@ -1,0 +1,35 @@
+	/**
+	 * Compute a relevance for the given file. The higher the score the more relevant the
+	 * file. It is determined by the following criteria: <br>
+	 * - file belongs to preferred project <br>
+	 * - file belongs to a cdt-project <br>
+	 * - file belongs to a source folder of a cdt-project <br>
+	 * - file is accessible
+	 * - file is not a link
+	 * @param f the file to compute the relevance for
+	 * @return integer representing file relevance. Larger numbers are more relevant
+	 */
+	public static int getRelevance(IFile f, IProject preferredProject) {
+		int result= 0;
+		IProject p= f.getProject();
+		if (p.equals(preferredProject))
+			result+= PREFERRED_PROJECT;
+
+		if (CoreModel.hasCNature(p)) {
+			result+= CDT_PROJECT;
+			ICProject cproject= CoreModel.getDefault().create(p);
+			if (cproject.isOnSourceRoot(f))
+				result+= ON_SOURCE_ROOT;
+		}
+
+		if (!f.isAccessible())
+			result >>= INACCESSIBLE_SHIFT;
+		else {
+			ResourceAttributes ra = f.getResourceAttributes();
+			if (f.isLinked() || (ra != null && ra.isSymbolicLink()))
+				result -= LINK_PENALTY;
+		}
+
+		return result;
+	}
+

@@ -1,0 +1,50 @@
+	@Test
+	// Verify we can set an environment variable and use it as a configure parameter
+	// Verifies fix for Bug: #303616
+	public void setEnvVar() throws Exception {
+		SWTBotView view = bot.viewByTitle("Project Explorer");
+		view.bot().tree().select("GnuProject2");
+		bot.menu("Project", 1).menu("Properties").click();
+		SWTBotShell shell = bot.shell("Properties for GnuProject2");
+		shell.activate();
+		bot.tree().expandNode("C/C++ Build").select("Environment");
+		bot.button("Add...").click();
+		shell = bot.shell("New variable");
+		shell.activate();
+		SWTBotText text = bot.textWithLabel("Name:");
+		text.typeText("some_var");
+		text = bot.textWithLabel("Value:");
+		text.typeText("--enable-somevar");
+		bot.button("OK").click();
+		shell = bot.shell("Properties for GnuProject2");
+		shell.activate();
+		bot.button("OK").click();
+		view = bot.viewByTitle("Project Explorer");
+		view.bot().tree().select("GnuProject2");
+		bot.menu("Project", 1).menu("Reconfigure Project").click();
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		assertTrue(workspace != null);
+		IWorkspaceRoot root = workspace.getRoot();
+		assertTrue(root != null);
+		IProject project = root.getProject("GnuProject2");
+		assertTrue(project != null);
+		IPath path = project.getLocation();
+		File f = null;
+		// We need to wait until the config.status file is created so
+		// sleep a bit and look for it...give up after 40 seconds
+		for (int i = 0; i < 80; ++i) {
+			bot.sleep(500);
+			f = new File(path.append("config.status").toOSString());
+			if (f.exists())
+				break;
+		}
+		bot.sleep(1000);
+		SWTBotView consoleView = bot.viewByTitle("Console");
+		consoleView.setFocus();
+		String output = consoleView.bot().styledText().getText();
+		Pattern p = Pattern.compile(".*--enable-somevar.*", Pattern.DOTALL);
+		Matcher m = p.matcher(output);
+		// We should see the expanded some_var variable in the console
+		assertTrue(m.matches());
+	}
+

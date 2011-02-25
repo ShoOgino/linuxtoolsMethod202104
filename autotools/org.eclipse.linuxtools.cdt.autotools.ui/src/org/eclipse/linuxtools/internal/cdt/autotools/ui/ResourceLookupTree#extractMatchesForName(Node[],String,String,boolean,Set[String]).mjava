@@ -1,0 +1,52 @@
+	/**
+	 * Selects the actual matches for the list of candidate nodes.
+	 */
+	private IFile[] extractMatchesForName(Node[] candidates, String name, String suffix, boolean ignoreCase, Set<String> prjSet) {
+		final char[] n1= name.toCharArray();
+		final int namelen = n1.length;
+		int resultIdx= 0;
+		
+		if (ignoreCase) {
+			for (int j = 0; j < namelen; j++) {
+				n1[j]= Character.toUpperCase(n1[j]);
+			}
+		}
+		final int suffixLen= suffix.length();
+		final IWorkspaceRoot root= ResourcesPlugin.getWorkspace().getRoot();
+		IFile[] result= null;
+		outer: for (int i = 0; i < candidates.length; i++) {
+			final Node node = candidates[i];
+			if (node.fHasFileLocationName && checkProject(node, prjSet)) {
+				final char[] n2= node.fResourceName;
+				if (namelen == n2.length) {
+					for (int j = 0; j < n2.length; j++) {
+						final char c= ignoreCase ? Character.toUpperCase(n2[j]) : n2[j];
+						if (c != n1[j]) 
+							continue outer;
+					}
+					final IFile file= root.getFile(createPath(node));
+					final URI loc= file.getLocationURI();
+					if (loc != null) {
+						String path= loc.getPath();
+						final int len= path.length();
+						if (len >= suffixLen && 
+								suffix.regionMatches(ignoreCase, 0, path, len-suffixLen, suffixLen)) {
+							if (result == null) 
+								result= new IFile[candidates.length-i];
+							result[resultIdx++]= root.getFile(createPath(node));
+						} 
+					}
+				}
+			}
+		}
+		if (result==null)
+			return NO_FILES;
+		
+		if (resultIdx < result.length) {
+			IFile[] copy= new IFile[resultIdx];
+			System.arraycopy(result, 0, copy, 0, resultIdx);
+			return copy;
+		}
+		return result;
+	}
+

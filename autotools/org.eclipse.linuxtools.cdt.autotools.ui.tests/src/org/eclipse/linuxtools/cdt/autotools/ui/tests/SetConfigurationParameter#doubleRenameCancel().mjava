@@ -1,0 +1,79 @@
+	@Test
+	// Verify we can do a double rename of configurations, renaming one configuration to
+	// another and then cancel without changing configuration settings.
+	public void doubleRenameCancel() throws Exception {
+		SWTBotView view = bot.viewByTitle("Project Explorer");
+		view.bot().tree().select("GnuProject0");
+		bot.menu("Project", 1).menu("Properties").click();
+		SWTBotShell shell = bot.shell("Properties for GnuProject0");
+		shell.activate();
+		bot.tree().expandNode("Autotools").select("Configure Settings");
+		SWTBotCombo configs = bot.comboBoxWithLabel(UIMessages.getString("AbstractPage.6"));
+		assertTrue(configs.getText().contains("debug"));
+		bot.button("Manage Configurations...").click();
+		shell = bot.shell("GnuProject0: Manage Configurations");
+		shell.activate();
+		bot.table().select("debug");
+		// Rename "debug" to "release" and rename "default" to "debug".
+		// The settings should follow the rename operation.
+		bot.button("Rename...").click();
+		shell = bot.shell("Rename Configuration");
+		shell.activate();
+		SWTBotText text = bot.textWithLabel("Name:");
+		text.setText("");
+		text.typeText("release");
+		bot.button("OK").click();
+		shell = bot.shell("GnuProject0: Manage Configurations");
+		shell.activate();
+		bot.table().select("default");
+		bot.button("Rename...").click();
+		shell = bot.shell("Rename Configuration");
+		shell.activate();
+		text = bot.textWithLabel("Name:");
+		text.setText("");
+		text.typeText("debug");
+		bot.button("OK").click();
+		shell = bot.shell("GnuProject0: Manage Configurations");
+		shell.activate();
+		bot.button("OK").click();
+		// Verify that "release" has --enable-jeff set and that
+		// the new "debug" configuration has no user setting.
+		shell = bot.shell("Properties for GnuProject0");
+		shell.activate();
+		configs = bot.comboBoxWithLabel(UIMessages.getString("AbstractPage.6"));
+		bot.treeWithLabel("Configure Settings").expandNode("configure").select("Advanced");
+		text = bot.textWithLabel("Additional command-line options");
+		String setting = text.getText();
+		assertEquals("--enable-jeff", setting);
+		configs.setFocus();
+		configs.setSelection("debug");
+		bot.treeWithLabel("Configure Settings").expandNode("configure").select("Advanced");
+		text = bot.textWithLabel("Additional command-line options");
+		setting = text.getText();
+		assertEquals("", setting);
+		bot.button("Cancel").click();
+		// Cancel and then verify that "debug" is back to normal with
+		// --enable-jeff set and that "default" is back to normal with
+		// no user setting.
+		view = bot.viewByTitle("Project Explorer");
+		view.bot().tree().select("GnuProject0");
+		bot.menu("Project", 1).menu("Properties").click();
+		shell = bot.shell("Properties for GnuProject0");
+		shell.activate();
+		bot.tree().expandNode("Autotools").select("Configure Settings");
+		configs = bot.comboBoxWithLabel(UIMessages.getString("AbstractPage.6"));
+		assertTrue(configs.getText().contains("debug"));
+		bot.treeWithLabel("Configure Settings").expandNode("configure").select("Advanced");
+		text = bot.textWithLabel("Additional command-line options");
+		setting = text.getText();
+		assertEquals("--enable-jeff", setting);
+		configs.setFocus();
+		configs.setSelection("default");
+		assertTrue(configs.getText().contains("default"));
+		bot.treeWithLabel("Configure Settings").expandNode("configure").select("Advanced");
+		text = bot.textWithLabel("Additional command-line options");
+		setting = text.getText();
+		assertEquals("", setting);
+		bot.button("OK").click();
+	}
+

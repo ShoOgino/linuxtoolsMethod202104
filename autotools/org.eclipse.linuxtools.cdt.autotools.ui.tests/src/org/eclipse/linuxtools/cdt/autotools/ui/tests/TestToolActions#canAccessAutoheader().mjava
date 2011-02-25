@@ -1,0 +1,26 @@
+	@Test
+	// Verify we can access the libtoolize tool
+	public void canAccessAutoheader() throws Exception {
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		assertTrue(workspace != null);
+		IWorkspaceRoot root = workspace.getRoot();
+		assertTrue(root != null);
+		IProject project = root.getProject("GnuProject1");
+		assertTrue(project != null);
+		SWTBotView view = bot.viewByTitle("Project Explorer");
+		view.bot().tree().select("GnuProject1");
+		bot.menu("Project", 1).menu("Invoke Autotools").menu("Invoke Autoheader").click();
+		SWTBotShell shell = bot.shell("Autoheader Options");
+		shell.activate();
+		bot.text(0).typeText("--help");
+		bot.button("OK").click();
+		bot.sleep(1000);
+		SWTBotView consoleView = bot.viewByTitle("Console");
+		consoleView.setFocus();
+		String output = consoleView.bot().styledText().getText();
+		// Verify we got some help output to the console
+		Pattern p = Pattern.compile(".*Invoking autoheader in.*GnuProject1.*autoheader --help.*Usage:.*autoheader.*", Pattern.DOTALL);
+		Matcher m = p.matcher(output);
+		assertTrue(m.matches());
+	}
+

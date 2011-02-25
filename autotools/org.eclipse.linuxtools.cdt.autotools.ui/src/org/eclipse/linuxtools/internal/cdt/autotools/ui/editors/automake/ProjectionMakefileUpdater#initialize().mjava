@@ -1,0 +1,32 @@
+	public void initialize() {
+		
+		if (!isInstalled())
+			return;
+		
+		initializePreferences();
+		
+		try {
+			
+			IDocumentProvider provider= fEditor.getDocumentProvider();
+			fCachedDocument= provider.getDocument(fEditor.getEditorInput());
+			fAllowCollapsing= true;
+			
+			IWorkingCopyManager manager= AutomakeEditorFactory.getDefault().getWorkingCopyManager();
+			fInput= manager.getWorkingCopy(fEditor.getEditorInput());
+			
+			if (fInput != null) {
+				ProjectionAnnotationModel model= (ProjectionAnnotationModel) fEditor.getAdapter(ProjectionAnnotationModel.class);
+				if (model != null) {
+					@SuppressWarnings("unchecked")
+					Map additions= computeAdditions((IParent) fInput);
+					model.removeAllAnnotations();
+					model.replaceAnnotations(null, additions);
+				}
+			}
+			
+		} finally {
+			fCachedDocument= null;
+			fAllowCollapsing= false;
+		}
+	}
+

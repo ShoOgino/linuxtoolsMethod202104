@@ -1,0 +1,66 @@
+	/**
+	 * Inserts a node for the given path.
+	 */
+	private Node createNode(char[][] segments, int segmentCount, boolean hasFileLocationName, boolean isFileLinkTarget) {
+		assert Thread.holdsLock(fLock);
+		
+		if (segmentCount == 0)
+			return fRootNode;
+
+		if (!hasFileLocationName && fLastFolderNode != null) {
+			if (isNodeForSegments(fLastFolderNode, segments, segmentCount, isFileLinkTarget))
+				return fLastFolderNode;
+		}
+		
+		final char[] name= segments[segmentCount-1];
+		final int hash= hashCode(name);
+		
+		// search for existing node
+		Object obj= fNodeMap.get(hash);
+
+		Node[] nodes= null;
+		int len= 0;
+		if (obj != null) {
+			if (obj instanceof Node) {
+				Node node= (Node) obj;
+				if (isNodeForSegments(node, segments, segmentCount, isFileLinkTarget)) {
+					if (!hasFileLocationName)
+						fLastFolderNode= node;
+					return node;
+				}
+				nodes= new Node[]{node, null};
+				fNodeMap.put(hash, nodes);
+				len= 1;
+			} else {
+				nodes= (Node[]) obj;
+				for (len=0; len < nodes.length; len++) {
+					Node node = nodes[len];
+					if (node == null) 
+						break;
+					if (isNodeForSegments(node, segments, segmentCount, isFileLinkTarget)) {
+						if (!hasFileLocationName)
+							fLastFolderNode= node;
+						return node;
+					}
+				}
+			}
+		}		
+		final Node parent= createNode(segments, segmentCount-1, false, false);
+		Node node= new Node(parent, name, hasFileLocationName, isFileLinkTarget);
+		if (nodes == null) {
+			fNodeMap.put(hash, node);
+		} else { 
+			if (len == nodes.length) {
+				Node[] newNodes= new Node[len+2];
+				System.arraycopy(nodes, 0, newNodes, 0, len);
+				nodes= newNodes;
+				fNodeMap.put(hash, nodes);
+			}
+			nodes[len]= node;
+		}
+		
+		if (!hasFileLocationName)
+			fLastFolderNode= node;
+		return node;
+	}
+

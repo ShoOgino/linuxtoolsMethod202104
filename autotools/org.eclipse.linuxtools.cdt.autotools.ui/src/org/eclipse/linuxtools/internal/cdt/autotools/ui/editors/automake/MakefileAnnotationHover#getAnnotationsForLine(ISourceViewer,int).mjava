@@ -1,0 +1,34 @@
+	/**
+	 * Returns one marker which includes the ruler's line of activity.
+	 */
+	protected List<Annotation> getAnnotationsForLine(ISourceViewer viewer, int line) {
+		
+		IDocument document= viewer.getDocument();
+		IAnnotationModel model= viewer.getAnnotationModel();
+		
+		if (model == null)
+			return null;
+			
+		List<Annotation> exact= new ArrayList<Annotation>();
+		List<Annotation> including= new ArrayList<Annotation>();
+		
+		@SuppressWarnings("unchecked")
+		Iterator e= model.getAnnotationIterator();
+		while (e.hasNext()) {
+			Object o= e.next();
+			if (o instanceof Annotation) {
+				Annotation a= (Annotation) o;
+				switch (compareRulerLine(model.getPosition(a), document, line)) {
+					case 1:
+						exact.add(a);
+						break;
+					case 2:
+						including.add(a);
+						break;
+				}
+			}
+		}
+		
+		return select(exact, including);
+	}
+

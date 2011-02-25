@@ -1,0 +1,40 @@
+	@SuppressWarnings("unchecked")
+	public Map getDefinedSymbols () {
+		HashMap symbolMap = new HashMap();
+		if (project == null || filePath == null)
+			return symbolMap;
+		if (definedSymbols != null && !isDirty && compilationString != null) {
+			return definedSymbols;
+		}
+		// Extract -D directives from the compilation string.
+		// TODO: Handle -U directives as well.
+		String cs = getCompilationString();
+		if (cs != null) {
+			Pattern p4 = Pattern.compile("\\s-D([^\\s=]+)(?:=(\\\\\".*?\\\\\"|\\S*))?"); // $NON-NLS-1$
+			Matcher m = p4.matcher(cs);
+			while(m.find()) {
+				String name = m.group(1);
+				String value = m.group(2);
+				if(value != null)
+					symbolMap.put(name, value.replace("\\", "")); // $NON-NLS-1$ $NON-NLS-2$
+				else
+					symbolMap.put(name, "");
+			}
+		}
+		// Add the defined symbols from ManagedBuildManager.  This will include
+		// the builtin implicit defines from the compiler and the user-set
+		// defines from settings.  Since these are added last, they will overwrite
+		// existing defines fished out of the Makefiles above.  For the user-defined
+		// symbols, this is the correct behavior.  For the implicit defines,
+		// this is not; however, this is not valid programming behavior and
+		// the compiler definitely warns against it.
+		IScannerInfo info = (IScannerInfo)ManagedBuildManager.getBuildInfo(project);
+		if (info != null) {
+			Map builtinDefinedSymbols = info.getDefinedSymbols();
+			symbolMap.putAll(builtinDefinedSymbols);
+		}
+
+		definedSymbols = symbolMap;
+		return definedSymbols;
+	}
+

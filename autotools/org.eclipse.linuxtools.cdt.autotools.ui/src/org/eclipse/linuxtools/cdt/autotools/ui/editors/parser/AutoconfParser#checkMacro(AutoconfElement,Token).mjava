@@ -1,0 +1,80 @@
+	/**
+	 * Check whether the given token is part of a macro, and parse it as such
+	 * if necessary.  
+	 * @param parent
+	 * @param token
+	 * @return Token last read for the macro call
+	 */
+	private Token checkMacro(AutoconfElement parent, Token token) {
+		String name = token.getText();
+		
+		boolean hasArguments = tokenizer.peekToken().getType() == ITokenConstants.LPAREN;
+		if (macroDetector != null && macroDetector.isMacroIdentifier(name)) {
+			// ok
+		} else if (m4builtins.contains(name)) {
+			// all of these except dnl take arguments
+			if (!name.equals("dnl") && !hasArguments) //$NON-NLS-1$
+				return token;
+		} else {
+			return token;
+		}
+		
+		AutoconfMacroElement macro = new AutoconfMacroElement(name);
+		token = parseMacro(macro, token);
+		
+		// handle special macros here
+		if ("dnl".equals(name)) { //$NON-NLS-1$
+			// consume to EOL
+			while (true) {
+				token = tokenizer.readToken();
+				if (token.getType() == ITokenConstants.EOF || token.getType() == ITokenConstants.EOL)
+					break;
+			}
+			
+			// ignore macro entirely
+			macro = null;
+		} else if ("changequote".equals(name)) { //$NON-NLS-1$
+			// change quote delimiters
+			validateMacroParameterCount(macro, token, 2);
+			
+			// GNU behavior for invalid argument count
+			String parm0 = "`"; //$NON-NLS-1$
+			String parm1 = "'"; //$NON-NLS-1$
+			if (macro.getParameterCount() >= 1)
+				parm0 = macro.getParameter(0);
+			if (macro.getParameterCount() >= 2)
+				parm1 = macro.getParameter(1);
+			
+			tokenizer.setM4Quote(parm0, parm1);
+		}  else if ("changecom".equals(name)) { //$NON-NLS-1$
+			// change comment delimiters
+			validateMacroParameterCount(macro, token, 2);
+			
+			// GNU behavior for invalid argument count
+			String parm0 = "#"; //$NON-NLS-1$
+			String parm1 = "\n"; //$NON-NLS-1$
+			if (macro.getParameterCount() >= 1)
+				parm0 = macro.getParameter(0);
+			if (macro.getParameterCount() >= 2)
+				parm1 = macro.getParameter(1);
+			
+			tokenizer.setM4Comment(parm0, parm1);
+		}
+		
+		if (macro != null) {
+			parent.addChild(macro);
+		}
+		
+		// now validate that the macro is properly terminated
+		if (!(parent instanceof AutoconfMacroArgumentElement) 
+				&& !(parent instanceof AutoconfMacroElement)
+				&& !(parent instanceof AutoconfForElement)) {
+			Token peek = tokenizer.peekToken();
+			if (peek.getType() == ITokenConstants.RPAREN) {
+				handleError(macro, peek, AutoconfEditorMessages.getString(UNMATCHED_RIGHT_PARENTHESIS)); 
+			}
+		}
+		
+		return token;
+	}
+

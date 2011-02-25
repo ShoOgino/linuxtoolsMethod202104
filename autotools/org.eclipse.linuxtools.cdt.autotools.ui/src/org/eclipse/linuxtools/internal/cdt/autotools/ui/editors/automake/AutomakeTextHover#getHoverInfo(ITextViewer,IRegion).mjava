@@ -1,0 +1,83 @@
+	public String getHoverInfo(ITextViewer textViewer, IRegion hoverRegion) {
+		TargetRule target = null;
+		String[] preReqs = null;
+		
+		if (hoverRegion == null || hoverRegion.getLength() == 0)
+			return null;
+		Automakefile makefile = (Automakefile) editor.getMakefile();
+		if (makefile == null)
+			return null;
+		
+		String hoverText;
+		int hoverLine;
+		try {
+			hoverText = textViewer.getDocument().get(hoverRegion.getOffset(), hoverRegion.getLength());
+			hoverLine = textViewer.getDocument().getLineOfOffset(hoverRegion.getOffset());
+		} catch (BadLocationException e) {
+			return null;
+		}
+		
+		// Automatic variables
+		if (hoverText.startsWith("$")) {
+			IDirective containingDirective = makefile.getDirectiveContainingLine(hoverLine);
+			if (containingDirective instanceof TargetRule) {
+				target = (TargetRule) containingDirective;
+			}
+			if (target == null)
+				return "";
+			switch (hoverText.charAt(1)) {
+			case '@':
+				return target.getTarget().toString();
+			case '<':
+				preReqs = target.getPrerequisites();
+				if (preReqs != null && preReqs.length > 0)
+					return preReqs[0];
+				break;
+			// FIXME:  implement $* ?
+//			case '*':
+//				break;
+			case '?':
+				preReqs = target.getPrerequisites();
+				if (preReqs != null && preReqs.length > 0) {
+					String toReturn = "";
+					toReturn = preReqs[0];
+					for (int i = 1; i < preReqs.length; i++) {
+						toReturn += " " + preReqs[i];
+					}
+					return toReturn;
+				}
+				break;
+			case '%':
+//				if (target instanceOf ArchiveTarget) {
+//					return target.getMember();
+//				} else {
+//					error;
+//				}
+//				break;
+			default:
+				break;
+			}
+		} else {
+			// Macros
+			IMacroDefinition[] macroDefinitions = makefile.getMacroDefinitions(hoverText);
+			for (int i = 0; i < macroDefinitions.length; i++) {
+				IMacroDefinition definition = macroDefinitions[i];
+				if (definition.getName().equals(hoverText))
+					return definition.getValue().toString();
+			}
+		}
+		
+//		IRule[] rules = makefile.getRules();
+//		for (int i = 0; i < rules.length; i++) {
+//			rule = rules[i];
+//			System.out.println("rule:  " + rule);
+//			System.out.println("target:  " + rule.getTarget());
+//			ICommand[] commands = rule.getCommands();
+//			for (int j = 0; j < commands.length; j++) {
+//				ICommand command = commands[j];
+//				System.out.println("command:  " + command);
+//			}
+//		}
+		return "";
+	}
+

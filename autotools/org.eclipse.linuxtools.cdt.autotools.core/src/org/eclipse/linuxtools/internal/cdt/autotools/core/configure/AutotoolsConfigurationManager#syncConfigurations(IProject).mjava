@@ -1,0 +1,25 @@
+	/** 
+	 * Synchronize the current set of configurations for the project with the
+	 * Autotools saved configuration data.  This is required when configuration
+	 * management occurs outside of the Autotools Configure Settings page in the
+	 * Property menu.
+	 * 
+	 * @param project to synchronize configurations for
+	 * 
+	 */
+	public void syncConfigurations(IProject project) {
+		setSyncing(true);
+		clearTmpConfigurations(project);
+		ICProjectDescription pd = CoreModel.getDefault().getProjectDescription(project);
+		ICConfigurationDescription[] cfgs = pd.getConfigurations();
+		Map <String, IAConfiguration> newCfgList = new HashMap<String, IAConfiguration>();
+		for (int i = 0; i < cfgs.length; ++i) {
+			cfgs[i].getConfigurationData();
+			IAConfiguration acfg = getTmpConfiguration(project, cfgs[i]);
+			newCfgList.put(cfgs[i].getId(), acfg);
+		}
+		setSyncing(false);
+		clearTmpConfigurations(project);
+		replaceProjectConfigurations(project, newCfgList);
+	}
+

@@ -1,0 +1,39 @@
+	@BeforeClass
+	public static void beforeClass() throws Exception {
+		SWTBotPreferences.KEYBOARD_LAYOUT = "EN_US";
+		bot = new SWTWorkbenchBot();
+		// Close the Welcome view if it exists
+		try {
+		bot.viewByTitle("Welcome").close();
+		// Turn off automatic building by default
+		} catch (Exception e) {
+			// do nothing
+		}
+		bot.menu("Window").menu("Preferences").click();
+		SWTBotShell shell = bot.shell("Preferences");
+		shell.activate();
+		bot.tree().expandNode("General").select("Workspace");
+		SWTBotCheckBox buildAuto = bot.checkBox("Build automatically");
+		if (buildAuto != null && buildAuto.isChecked())
+			buildAuto.click();
+		bot.button("Apply").click();
+		// Ensure that the C/C++ perspective is chosen automatically
+		// and doesn't require user intervention
+		bot.tree().expandNode("General").select("Perspectives");
+		SWTBotRadio radio = bot.radio("Always open");
+		if (radio != null && !radio.isSelected())
+			radio.click();
+		bot.button("OK").click();
+		bot.menu("File").menu("New").menu("Project...").click();
+		 
+		shell = bot.shell("New Project");
+		shell.activate();
+		bot.tree().expandNode("C/C++").select("C Project");
+		bot.button("Next >").click();
+ 
+		bot.textWithLabel("Project name:").setText("GnuProject1");
+		bot.tree().expandNode("GNU Autotools").select("Hello World ANSI C Autotools Project");
+ 
+		bot.button("Finish").click();
+	}
+

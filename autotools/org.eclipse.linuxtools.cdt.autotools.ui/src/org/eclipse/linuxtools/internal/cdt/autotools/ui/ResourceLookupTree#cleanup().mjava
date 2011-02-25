@@ -1,0 +1,35 @@
+	private void cleanup() {
+		assert Thread.holdsLock(fLock);
+		fLastFolderNode= null;
+		
+		for (Iterator<Object> iterator = fNodeMap.values().iterator(); iterator.hasNext();) {
+			Object obj= iterator.next();
+			if (obj instanceof Node) {
+				if (isDeleted((Node) obj)) {
+					iterator.remove();
+				}
+			} else {
+				Node[] nodes= (Node[]) obj;
+				int j= 0;
+				for (int i = 0; i < nodes.length; i++) {
+					final Node node = nodes[i];
+					if (node == null) {
+						if (j==0) {
+							iterator.remove();
+						} 
+						break;
+					}
+					if (!isDeleted(node)) {
+						if (i != j) {
+							nodes[j]= node;
+							nodes[i]= null;
+						}
+						j++;
+					} else {
+						nodes[i]= null;
+					}
+				}
+			}
+		}
+	}
+

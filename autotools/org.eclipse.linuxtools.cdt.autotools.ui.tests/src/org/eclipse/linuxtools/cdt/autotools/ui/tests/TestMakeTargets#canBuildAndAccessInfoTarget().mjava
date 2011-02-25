@@ -1,0 +1,88 @@
+	@Test
+	// Verify we can build and run the info MakeTarget tool
+	public void canBuildAndAccessInfoTarget() throws Exception {
+		SWTBotView view = bot.viewByTitle("Project Explorer");
+		view.bot().tree().select("GnuProject3");
+		bot.menu("Project", 1).menu("Build Project").click();
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		assertTrue(workspace != null);
+		IWorkspaceRoot root = workspace.getRoot();
+		assertTrue(root != null);
+		IProject project = root.getProject("GnuProject3");
+		assertTrue(project != null);
+		IPath path = project.getLocation();
+		path = path.append("config.status");
+		// We need to wait until the config.status file is created so
+		// sleep a bit and look for it...give up after 120 seconds
+		for (int i = 0; i < 240; ++i) {
+			bot.sleep(500);
+			File f = new File(path.toOSString());
+			if (f.exists())
+				break;
+		}
+		File f = new File(path.toOSString());
+		assertTrue(f.exists());
+		view = bot.viewByTitle("Project Explorer");
+		// FIXME: there is a problem with the CDT adding multiple MakeTargets
+		//        so the Autotools plugin adds them into the saved data all at
+		//        once.  The targets aren't refreshed until the project is reopened.
+		//        We do this by manually closing and opening the project.  This
+		//        will not be needed as of CDT 7.0.0.
+		SWTBotTreeItem node = view.bot().tree().getTreeItem("GnuProject3");
+		node.setFocus();
+		node.select().contextMenu("Close Project").click();
+		node.setFocus();
+		node.select().contextMenu("Open Project").click();
+		view.bot().tree().select("GnuProject3");
+		bot.menu("Project", 1).menu("Make Target").menu("Build...").click();
+		SWTBotShell shell = bot.shell("Make Targets");
+		shell.activate();
+		bot.table().getTableItem("info").setFocus();
+		bot.table().getTableItem("info").select();
+		bot.button("Build").click();
+		bot.sleep(3000);
+		SWTBotView consoleView = bot.viewByTitle("Console");
+		consoleView.setFocus();
+		String output = consoleView.bot().styledText().getText();
+		Pattern p = Pattern.compile(".*make info.*", Pattern.DOTALL);
+		Matcher m = p.matcher(output);
+		assertTrue(m.matches());
+		view = bot.viewByTitle("Project Explorer");
+		view.setFocus();
+		node = view.bot().tree().getTreeItem("GnuProject3");
+		node.setFocus();
+		node.select();
+		// FIXME: when context menus work properly, add test to try out
+		// Make Targets using right-click on project.
+//		node.contextMenu("Make Targets").contextMenu("Build...").click();
+//			org.hamcrest.Matcher<MenuItem> withMnemonic = withMnemonic("Make Targets");
+//			final org.hamcrest.Matcher<MenuItem> matcher = allOf(widgetOfType(MenuItem.class));
+//			final ContextMenuFinder menuFinder = new ContextMenuFinder((Control)view.bot().tree().widget);
+//			new SWTBot().waitUntil(new DefaultCondition() {
+//				public String getFailureMessage() {
+//					return "Could not find context menu with text: Make Targets"; //$NON-NLS-1$
+//				}
+//
+//				public boolean test() throws Exception {
+//					return !menuFinder.findMenus(matcher).isEmpty();
+//				}
+//			});
+//			List<MenuItem> list = menuFinder.findMenus(matcher);
+//		bot.sleep(23000);
+//		// Following does not work but should
+//		SWTBotMenu menu = node.select().contextMenu("Make Targets");
+//		bot.sleep(4000);
+//		shell = bot.shell("Make Targets");
+//		shell.activate();
+//		bot.table().getTableItem("check").setFocus();
+//		bot.table().getTableItem("check").select();
+//		bot.button("Build").click();
+//		bot.sleep(3000);
+//		consoleView = bot.viewByTitle("Console");
+//		consoleView.setFocus();
+//		output = consoleView.bot().styledText().getText();
+//		p = Pattern.compile(".*make check.*Making check in src.*", Pattern.DOTALL);
+//		m = p.matcher(output);
+//		assertTrue(m.matches());
+	}
+

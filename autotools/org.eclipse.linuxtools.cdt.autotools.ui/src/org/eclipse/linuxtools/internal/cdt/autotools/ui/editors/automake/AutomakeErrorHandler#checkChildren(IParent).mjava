@@ -1,0 +1,20 @@
+	private void checkChildren(IParent parent) {
+		IDirective[] directives = parent.getDirectives();
+		for (int i = 0; i < directives.length; i++) {
+			IDirective directive = directives[i];
+			if (directive instanceof IParent) {
+				checkChildren((IParent)directive);
+			} else if (directive instanceof BadDirective) {
+				int lineNumber = directive.getStartLine();
+				Integer charStart = getCharOffset(lineNumber - 1, 0);
+				Integer charEnd = new Integer(getCharOffset(directive.getEndLine() - 1, -1).intValue());
+				
+				String annotationType = CDT_ANNOTATION_ERROR;
+				Annotation annotation = new AutomakeAnnotation(annotationType, true, "Bad directive"); //$NON-NLS-1$
+				Position p = new Position(charStart.intValue(),charEnd.intValue() - charStart.intValue());
+				fAnnotationModel.addAnnotation(annotation, p);
+			}
+		}
+		return;
+	}
+

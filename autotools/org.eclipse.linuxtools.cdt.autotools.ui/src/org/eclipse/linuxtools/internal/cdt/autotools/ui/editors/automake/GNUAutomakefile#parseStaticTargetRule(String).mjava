@@ -1,0 +1,38 @@
+	protected StaticTargetRule[] parseStaticTargetRule(String line) {
+		// first colon: the Targets
+		String targetPattern;
+		String[] prereqPatterns;
+		String[] targets;
+		int colon = Util.indexOf(line, ':');
+		if (colon > 1) {
+			String targetLine = line.substring(0, colon).trim();
+			targets = PosixMakefileUtil.findTargets(targetLine);
+			// second colon: Target-Pattern
+			line = line.substring(colon + 1);
+			colon = Util.indexOf(line, ':');
+			if (colon != -1) {
+				targetPattern = line.substring(0, colon).trim();
+				line = line.substring(colon + 1);
+				StringTokenizer st = new StringTokenizer(line);
+				int count = st.countTokens();
+				prereqPatterns = new String[count];
+				for (int i = 0; i < count; i++) {
+					prereqPatterns[i] = st.nextToken();
+				}
+			} else {
+				targetPattern = ""; //$NON-NLS-1$
+				prereqPatterns = new String[0];
+			}
+		} else {
+			targets = new String[0];
+			targetPattern = ""; //$NON-NLS-1$
+			prereqPatterns = new String[0];
+		}
+
+		StaticTargetRule[] staticRules = new StaticTargetRule[targets.length];
+		for (int i = 0; i < targets.length; i++) {
+			staticRules[i] = new StaticTargetRule(this, new Target(targets[i]), targetPattern, prereqPatterns, new Command[0]);
+		}
+		return staticRules;
+	}
+

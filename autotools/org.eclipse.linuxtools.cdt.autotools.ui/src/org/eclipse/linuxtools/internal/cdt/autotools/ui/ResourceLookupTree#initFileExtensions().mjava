@@ -1,0 +1,40 @@
+	/**
+	 * Initializes file-extensions and node map
+	 */
+	private void initFileExtensions() {
+		
+		if (fDefaultExtensions == null) {
+			HashSet<String> cdtContentTypes= new HashSet<String>();
+			String[] registeredContentTypes= CoreModel.getRegistedContentTypeIds();
+			cdtContentTypes.addAll(Arrays.asList(registeredContentTypes));
+
+			final IContentTypeManager ctm= Platform.getContentTypeManager();
+			final IContentType[] ctts= ctm.getAllContentTypes();
+			Set<String> result= new HashSet<String>();
+			outer: for (IContentType ctt : ctts) {
+				IContentType basedOn= ctt;
+				while (basedOn != null) {
+					if (cdtContentTypes.contains(basedOn.getId())) 
+						continue outer;
+					basedOn= basedOn.getBaseType();
+				}
+				// this is a non-cdt content type
+				addFileSpecs(ctt, result);
+			}
+			fCDTProjectExtensions= new Extensions(result, true);
+
+			result= new HashSet<String>();
+			for (IContentType ctt : ctts) {
+				IContentType basedOn= ctt;
+				while (basedOn != null) {
+					if (cdtContentTypes.contains(basedOn.getId())) {
+						addFileSpecs(ctt, result);
+						break;
+					}
+					basedOn= basedOn.getBaseType();
+				}
+			}
+			fDefaultExtensions= new Extensions(result, false);
+		}
+	}
+

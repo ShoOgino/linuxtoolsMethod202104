@@ -1,0 +1,34 @@
+	/**
+	 * Create an IMakefile using the given IMakefileReaderProvider to fetch
+	 * contents by name. 
+	 * 
+	 * @param fileURI URI of main file
+	 * @param makefileReaderProvider may be <code>null</code> for EFS IFileStore reading
+	 */
+	public static IMakefile createMakefile(IFile file) throws CoreException {
+		URI fileURI = file.getLocationURI();
+		IMakefile makefile = null;
+		GNUAutomakefile gnu = new GNUAutomakefile();
+		ArrayList<String> includeList = new ArrayList<String>();
+		includeList.add(new Path(fileURI.getPath()).removeLastSegments(1).toString());
+		includeList.addAll(Arrays.asList(gnu.getIncludeDirectories()));
+		String[] includes = includeList.toArray(new String[includeList.size()]);
+		gnu.setIncludeDirectories(includes);
+		try {
+			final IFileStore store = EFS.getStore(fileURI);
+			final IFileInfo info = store.fetchInfo();
+			if (!info.exists() || info.isDirectory())
+				throw new IOException();
+
+			MakefileReader reader = new MakefileReader(new InputStreamReader(
+					store.openInputStream(EFS.NONE, null)));
+			gnu.parse(fileURI, reader);
+		} catch (IOException e) {
+			AutotoolsUIPlugin.log(e);
+			Status status = new Status(IStatus.ERROR, AutotoolsUIPlugin.PLUGIN_ID, e.getLocalizedMessage());
+			throw new CoreException(status);
+		}
+		makefile = gnu;
+		return makefile;
+	}
+

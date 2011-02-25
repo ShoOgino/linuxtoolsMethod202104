@@ -1,0 +1,50 @@
+	public ArrayList<String> getParameters() {
+		// May be multiple user-specified options in which case we
+		// need to split them up into individual options
+		if (!isDirty && userArgs != null)
+			return userArgs;
+		// Otherwise, we need to calculate userArgs
+		userArgs = new ArrayList<String>();
+		isDirty = false;
+		int lastArgIndex = -1;
+		int i = 0;
+		while (i < value.length()) {
+			char ch = value.charAt(i);
+			// Skip white-space
+			while (Character.isWhitespace(ch)) {
+				++i;
+				if (i < value.length())
+					ch = value.charAt(i);
+				else // Otherwise we are done
+					return userArgs;
+			}
+
+			// Simplistic parser.  We break up into strings delimited
+			// by blanks.  If quotes are used, we ignore blanks within.
+			// If a backslash is used, we ignore the next character and
+			// pass it through.
+			lastArgIndex = i;
+			boolean inString = false;
+			while (i < value.length()) {
+				ch = value.charAt(i);
+				if (ch == '\\') // escape character
+					++i; // skip over the next character
+				else if (ch == '\"') { // double quotes
+					inString = !inString;
+				} else if (Character.isWhitespace(ch)) {
+					if (!inString) {
+						userArgs.add(value.substring(lastArgIndex, i));
+						break;
+					}
+				}
+				++i;
+			}
+			// Look for the case where we ran out of chars for the last
+			// token.
+			if (i >= value.length())
+				userArgs.add(value.substring(lastArgIndex));
+			++i;
+		}
+		return userArgs;
+	}
+

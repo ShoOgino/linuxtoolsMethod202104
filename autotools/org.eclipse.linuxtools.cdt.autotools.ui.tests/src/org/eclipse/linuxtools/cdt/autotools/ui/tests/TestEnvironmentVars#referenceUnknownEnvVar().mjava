@@ -1,0 +1,44 @@
+	@Test
+	// Verify we can pass an unknown env var in configure options and it will be nulled out
+	// Verifies fix for Bug: #303616
+	public void referenceUnknownEnvVar() throws Exception {
+		SWTBotView view = bot.viewByTitle("Project Explorer");
+		view.bot().tree().select("GnuProject2");
+		bot.menu("Project", 1).menu("Properties").click();
+		SWTBotShell shell = bot.shell("Properties for GnuProject2");
+		shell.activate();
+		bot.tree().expandNode("Autotools").select("Configure Settings");
+		bot.treeWithLabel("Configure Settings").expandNode("configure").select("Advanced");
+		// Set the configure parameters to be --enable-jeff via user-defined options
+		SWTBotText text = bot.textWithLabel("Additional command-line options");
+		text.typeText("${some_var}");
+		bot.button("OK").click();
+		view = bot.viewByTitle("Project Explorer");
+		view.bot().tree().select("GnuProject2");
+		bot.menu("Project", 1).menu("Reconfigure Project").click();
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		assertTrue(workspace != null);
+		IWorkspaceRoot root = workspace.getRoot();
+		assertTrue(root != null);
+		IProject project = root.getProject("GnuProject2");
+		assertTrue(project != null);
+		IPath path = project.getLocation();
+		File f = null;
+		// We need to wait until the config.status file is created so
+		// sleep a bit and look for it...give up after 40 seconds
+		for (int i = 0; i < 80; ++i) {
+			bot.sleep(500);
+			f = new File(path.append("config.status").toOSString());
+			if (f.exists())
+				break;
+		}
+		bot.sleep(1000);
+		SWTBotView consoleView = bot.viewByTitle("Console");
+		consoleView.setFocus();
+		String output = consoleView.bot().styledText().getText();
+		Pattern p = Pattern.compile(".*some_var.*", Pattern.DOTALL);
+		Matcher m = p.matcher(output);
+		// We shouldn't see some_var anywhere in the console
+		assertTrue(!m.matches());
+	}
+

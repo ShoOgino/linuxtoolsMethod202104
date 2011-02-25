@@ -1,0 +1,64 @@
+	private void match(ProjectionAnnotationModel model, List<AutoconfProjectionAnnotation> deletions, Map<AutoconfProjectionAnnotation, Position> additions, List<AutoconfProjectionAnnotation> changes) {
+		if (deletions.isEmpty() || (additions.isEmpty() && changes.isEmpty()))
+			return;
+		
+		List<AutoconfProjectionAnnotation> newDeletions= new ArrayList<AutoconfProjectionAnnotation>();
+		List<AutoconfProjectionAnnotation> newChanges= new ArrayList<AutoconfProjectionAnnotation>();
+		
+		Iterator<AutoconfProjectionAnnotation> deletionIterator= deletions.iterator();
+		outer: while (deletionIterator.hasNext()) {
+			AutoconfProjectionAnnotation deleted= (AutoconfProjectionAnnotation) deletionIterator.next();
+			Position deletedPosition= model.getPosition(deleted);
+			if (deletedPosition == null)
+				continue;
+			
+			Iterator<AutoconfProjectionAnnotation> changesIterator= changes.iterator();
+			while (changesIterator.hasNext()) {
+				AutoconfProjectionAnnotation changed= (AutoconfProjectionAnnotation) changesIterator.next();
+				if (deleted.isComment() == changed.isComment()) {
+					Position changedPosition= model.getPosition(changed);
+					if (changedPosition == null)
+						continue;
+					
+					if (deletedPosition.getOffset() == changedPosition.getOffset()) {
+						
+						deletedPosition.setLength(changedPosition.getLength());
+						deleted.setElement(changed.getElement());
+						
+						deletionIterator.remove();
+						newChanges.add(deleted);
+						
+						changesIterator.remove();
+						newDeletions.add(changed);
+						
+						continue outer;
+					}
+				}
+			}
+			
+			Iterator<AutoconfProjectionAnnotation> additionsIterator= additions.keySet().iterator();
+			while (additionsIterator.hasNext()) {
+				AutoconfProjectionAnnotation added= (AutoconfProjectionAnnotation) additionsIterator.next();
+				if (deleted.isComment() == added.isComment()) {
+					Position addedPosition= (Position) additions.get(added);
+					
+					if (deletedPosition.getOffset() == addedPosition.getOffset()) {
+						
+						deletedPosition.setLength(addedPosition.getLength());
+						deleted.setElement(added.getElement());
+						
+						deletionIterator.remove();
+						newChanges.add(deleted);
+						
+						additionsIterator.remove();
+						
+						break;
+					}
+				}
+			}
+		}
+		
+		deletions.addAll(newDeletions);
+		changes.addAll(newChanges);
+	}
+

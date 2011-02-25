@@ -1,0 +1,57 @@
+	/**
+	 * Updates this model to the given marker deltas.
+	 *
+	 * @param markerDeltas the array of marker deltas
+	 */
+	@SuppressWarnings("unchecked")
+	private void batchedUpdate(IMarkerDelta[] markerDeltas) {
+		HashSet removedMarkers= new HashSet(markerDeltas.length);
+		HashSet modifiedMarkers= new HashSet(markerDeltas.length);
+
+		for (int i= 0; i < markerDeltas.length; i++) {
+			IMarkerDelta delta= markerDeltas[i];
+			switch (delta.getKind()) {
+				case IResourceDelta.ADDED:
+					addMarkerAnnotation(delta.getMarker());
+					break;
+				case IResourceDelta.REMOVED:
+					removedMarkers.add(delta.getMarker());
+					break;
+				case IResourceDelta.CHANGED:
+					modifiedMarkers.add(delta.getMarker());
+					break;
+				}
+		}
+
+		if (modifiedMarkers.isEmpty() && removedMarkers.isEmpty())
+			return;
+
+		Iterator e= getAnnotationIterator(false);
+		while (e.hasNext()) {
+			Object o= e.next();
+			if (o instanceof MarkerAnnotation) {
+				MarkerAnnotation a= (MarkerAnnotation)o;
+				IMarker marker= a.getMarker();
+
+				if (removedMarkers.remove(marker))
+					removeAnnotation(a, false);
+
+				if (modifiedMarkers.remove(marker)) {
+					Position p= createPositionFromMarker(marker);
+					if (p != null) {
+						a.update();
+						modifyAnnotationPosition(a, p, false);
+					}
+				}
+
+				if (modifiedMarkers.isEmpty() && removedMarkers.isEmpty())
+					return;
+
+			}
+		}
+
+		Iterator iter= modifiedMarkers.iterator();
+		while (iter.hasNext())
+			addMarkerAnnotation((IMarker)iter.next());
+	}
+

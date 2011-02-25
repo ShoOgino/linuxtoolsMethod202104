@@ -1,0 +1,33 @@
+	private static IEditorPart openInEditor(IFile file, boolean activate) throws PartInitException {
+		if (!file.getProject().isAccessible()){
+			closedProject(file.getProject());
+			return null;
+		}
+		
+		if (file != null) {
+		try {
+				if (!isLinked(file)) {
+					File tempFile = file.getRawLocation().toFile();
+				
+					if (tempFile != null){
+						String canonicalPath = null;
+						try {
+							canonicalPath = tempFile.getCanonicalPath();
+						} catch (IOException e1) {}
+						
+						if (canonicalPath != null){
+							IPath path = new Path(canonicalPath);
+							file = CUIPlugin.getWorkspace().getRoot().getFileForLocation(path);
+						}
+					}
+				}
+				
+				IEditorInput input = getEditorInput(file);
+				if (input != null) {
+					return openInEditor(input, getEditorID(input, file), activate);
+				}
+			} catch (CModelException e) {}
+		}
+		return null;
+	}
+

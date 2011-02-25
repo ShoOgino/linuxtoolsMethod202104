@@ -1,0 +1,32 @@
+    protected void setUp() throws Exception {
+        super.setUp();
+        tools = new ProjectTools();
+        if (!ProjectTools.setup())
+        	fail("could not perform basic project workspace setup");
+        
+        project = ProjectTools.createProject("testProjectACT");
+        
+        if(project == null) {
+        	fail("Unable to create test project");
+        }
+        
+        project.open(new NullProgressMonitor());
+        
+        makefileAmFile = tools.createFile(project, "Makefile.am", makefileAmContents);
+		workbench = AutotoolsTestsPlugin.getDefault().getWorkbench();
+		
+		IEditorPart openEditor = org.eclipse.ui.ide.IDE.openEditor(workbench
+				.getActiveWorkbenchWindow().getActivePage(), makefileAmFile,
+				true);
+		
+		AutomakeEditor automakeEditor = (AutomakeEditor) openEditor;
+		AutomakeDocumentProvider docProvider = automakeEditor.getAutomakefileDocumentProvider();
+		IDocument automakeDocument = docProvider.getDocument(openEditor.getEditorInput());
+		AutomakefileSourceConfiguration automakeSourceViewerConfig = automakeEditor.getAutomakeSourceViewerConfiguration();
+		
+		ITypedRegion region = automakeDocument.getPartition(0);
+		
+		codeScanner = automakeSourceViewerConfig.getAutomakeCodeScanner();
+		codeScanner.setRange(automakeDocument, region.getOffset(), region.getLength());
+    }
+

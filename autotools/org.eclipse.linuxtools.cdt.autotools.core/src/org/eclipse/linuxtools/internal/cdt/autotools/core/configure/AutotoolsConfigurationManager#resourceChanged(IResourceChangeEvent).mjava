@@ -1,0 +1,29 @@
+	public void resourceChanged(IResourceChangeEvent event) {
+		IResource res = event.getResource();
+		if (!(res instanceof IProject))
+			return;
+		String name = res.getName();
+		IResourceDelta delta = event.getDelta();
+		if (delta == null)
+			return;
+		int kind = delta.getKind();
+		if (configs.containsKey(name)) {
+			if (kind == IResourceDelta.REMOVED) {
+				configs.remove(name);
+				tmpConfigs.remove(name);
+			} else if (kind == IResourceDelta.CHANGED) {
+				int flags = delta.getFlags();
+				if ((flags & IResourceDelta.MOVED_TO) != 0) {
+					IPath path = delta.getMovedToPath();
+					Map<String, IAConfiguration> cfgs = configs.get(name);
+					String newName = path.lastSegment();
+					configs.remove(name);
+					configs.put(newName, cfgs);
+					Map<String, IAConfiguration> tmpcfgs = tmpConfigs.get(name);
+					tmpConfigs.remove(name);
+					tmpConfigs.put(newName, tmpcfgs);
+				}
+			}
+		}
+	}
+

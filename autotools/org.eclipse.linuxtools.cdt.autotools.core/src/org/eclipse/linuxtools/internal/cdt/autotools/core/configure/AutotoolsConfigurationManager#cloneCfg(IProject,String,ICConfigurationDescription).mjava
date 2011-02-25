@@ -1,0 +1,38 @@
+	/**
+	 * Clone a configuration and put it on the tmp list if it is not already a saved configuration
+	 * and not already on the tmp list.
+	 * 
+	 * @param p project
+	 * @param oldId the id of the old configuration to clone
+	 * @param cfgd the configuration descriptor for the clone
+	 * @return true if the configuration is already saved, false otherwise
+	 */
+	public boolean cloneCfg(IProject p, String oldId, ICConfigurationDescription cfgd) {
+		if (isConfigurationAlreadySaved(p, cfgd))
+			return true;
+		Map <String, IAConfiguration> tmpList = getTmpConfigs(p);
+		String newId = cfgd.getId();
+		// Don't bother if the new configuration is already on the tmp list
+		IAConfiguration cfg = tmpList.get(newId);
+		if (cfg != null)
+			return false;
+		// Otherwise, try and find the old id to copy the configuration from
+		// or punt if not found
+		IAConfiguration oldCfg = null;
+		Map <String, IAConfiguration> savedList = getSavedConfigs(p);
+		if (savedList != null)
+			oldCfg = savedList.get(oldId);
+		if (oldCfg != null) {
+			IAConfiguration newCfg = oldCfg.copy(cfgd.getId());
+			tmpList.put(cfgd.getId(), newCfg);
+			// Check to see if the new configuration is already stored as part of the project description.
+			// If yes, it should already be saved.  This can occur if the configuration was added as part of
+			// another CDT Property page and the Autotools Property page was never opened.
+			if (CoreModel.getDefault().getProjectDescription(p).getConfigurationById(newId) != null) {
+				addConfiguration(p, newCfg);
+				return true;
+			}
+		}
+		return false;
+	}
+

@@ -1,0 +1,39 @@
+	public void performOK() {
+		String acVer = null;
+		String amVer = null;
+		boolean changed = false;
+		try {
+			acVer = project.getPersistentProperty(AutotoolsPropertyConstants.AUTOCONF_VERSION);
+			amVer = project.getPersistentProperty(AutotoolsPropertyConstants.AUTOMAKE_VERSION);
+		} catch (CoreException e) {
+			acVer = "";
+			amVer = "";
+		}
+		int index = fACVersionCombo.getSelectionIndex();
+		String acVerSelected = fACVersionCombo.getItem(index);
+		if (!acVerSelected.equals(acVer)) {
+			changed = true;
+			try {
+				project.setPersistentProperty(AutotoolsPropertyConstants.AUTOCONF_VERSION, fACVersionCombo.getItem(index));
+			} catch (CoreException ce) {
+				// Not much we can do at this point
+			}
+		}
+
+		index = fAMVersionCombo.getSelectionIndex();
+		String amVerSelected = fAMVersionCombo.getItem(index);
+		if (!amVerSelected.equals(amVer)) {
+			changed = true;
+			try {
+				project.setPersistentProperty(AutotoolsPropertyConstants.AUTOMAKE_VERSION, fAMVersionCombo.getItem(index));
+			} catch (CoreException ce) {
+				// Not much we can do here either
+			}
+		}
+
+		// Notify any Autoconf editors that are open for this project that macro versioning
+		// has changed.
+		if (changed)
+			AutotoolsPropertyManager.getDefault().notifyPropertyListeners(project, AutotoolsPropertyConstants.AUTOCONF_MACRO_VERSIONING);
+	}
+

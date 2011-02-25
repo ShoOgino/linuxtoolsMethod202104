@@ -1,0 +1,49 @@
+	/**
+	 * Remove a resource from the tree
+	 */
+	private void remove(IResource res) {
+		assert Thread.holdsLock(fLock);
+		
+		final char[] name= res.getName().toCharArray();
+		final int hash= hashCode(name);
+		
+		Object obj= fNodeMap.get(hash);
+		if (obj == null)
+			return;
+		
+		final IPath fullPath= res.getFullPath();
+		final int segmentCount= fullPath.segmentCount();
+		if (segmentCount == 0)
+			return;
+		
+		final char[][]segments= toCharArrayArray(fullPath.segments(), null);
+		if (obj instanceof Node) {
+			final Node node= (Node) obj;
+			if (!node.fDeleted && isNodeForSegments(node, segments, segmentCount, false)) {
+				node.fDeleted= true;
+				if (node.fHasChildren)
+					fNeedCleanup= true;
+				fNodeMap.remove(hash);
+			}
+		} else {
+			final Node[] nodes= (Node[]) obj;
+			for (int i= 0; i < nodes.length; i++) {
+				Node node = nodes[i];
+				if (node == null)
+					return;
+				if (!node.fDeleted && isNodeForSegments(node, segments, segmentCount, false)) {
+					remove(nodes, i);
+
+					if (nodes[0] == null) 
+						fNodeMap.remove(hash);
+
+					node.fDeleted= true;
+					if (node.fHasChildren)
+						fNeedCleanup= true;
+
+					return;
+				}
+			}
+		}
+	}
+

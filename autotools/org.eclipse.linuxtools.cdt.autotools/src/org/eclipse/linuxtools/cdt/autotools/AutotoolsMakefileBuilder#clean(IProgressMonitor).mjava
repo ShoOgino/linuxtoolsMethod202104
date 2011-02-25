@@ -1,0 +1,49 @@
+	@SuppressWarnings({ "unchecked", "deprecation" })
+	protected void clean(IProgressMonitor monitor) throws CoreException {
+		// See what type of cleaning the user has set up in the
+		// build properties dialog.
+		String cleanDelete = null;
+		try {
+			cleanDelete = getProject().getPersistentProperty(AutotoolsPropertyConstants.CLEAN_DELETE);
+		} catch (CoreException ce) {
+			// do nothing
+		}
+		
+		if (cleanDelete != null && cleanDelete.equals(AutotoolsPropertyConstants.TRUE))
+			removeBuildDir(monitor);
+		else {
+			IProject project = getProject();
+			IManagedBuildInfo info = ManagedBuildManager.getBuildInfo(project);
+			IConfiguration cfg = info.getDefaultConfiguration();
+			IManagedBuilderMakefileGenerator generator = new MakeGenerator();
+			generator.initialize(getProject(), info, monitor);
+
+//			// Hijack the builder itself so that instead of ManagedMake
+//			// policy of defaulting the build path to the configuration name,
+//			// we get the build occurring in the builddir configure tool setting.
+//			builders[0] = new AutotoolsBuilder(cfg.getEditableBuilder(), project);
+//			builders[0].setBuildPath(project.getLocation().append(generator.getBuildWorkingDir()).toOSString());
+//			builders[0].setAutoBuildEnable(true);
+//			builders[0].setCleanBuildEnable(true);
+//			builders[0].setManagedBuildOn(false);
+
+			ToolChain toolChain = (ToolChain)cfg.getToolChain();
+			IBuilder oldBuilder = cfg.getBuilder();
+			IBuilder builder = new AutotoolsBuilder(cfg.getEditableBuilder(), project, toolChain);
+			builder.setBuildPath(project.getLocation().append(generator.getBuildWorkingDir()).toOSString());
+			builder.setAutoBuildEnable(true);
+			builder.setCleanBuildEnable(true);
+			builder.setManagedBuildOn(false);
+			// Following is needed to circumvent the CommonBuilder from using the default
+			// GNUMakefileGenerator.
+			builder.setBuildFileGeneratorElement(AutotoolsPlugin.getDefault().getGeneratorElement());
+			toolChain.setBuilder((Builder)builder);
+			
+			try {
+				super.build(CLEAN_BUILD, (Map)null, monitor);
+			} finally {
+				toolChain.setBuilder((Builder)oldBuilder);
+			}
+		}
+	}
+

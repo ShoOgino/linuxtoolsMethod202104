@@ -1,0 +1,60 @@
+	private String[] getConfigArgs() throws BuildException {
+		// Get the arguments to be passed to config from build model
+		ITool tool = cfg.getToolFromOutputExtension("status"); //$NON-NLS-1$
+		IOption[] options = tool.getOptions();
+		ArrayList<String> configArgs = new ArrayList<String>();
+		for (int i = 0; i < options.length; ++i) {
+			if (options[i].getValueType() == IOption.STRING) {
+				String value = (String) options[i].getValue();
+				try {
+					String resolved = ManagedBuildManager.getBuildMacroProvider().resolveValue(value, "", null, 
+							IBuildMacroProvider.CONTEXT_CONFIGURATION, cfg);
+					value = resolved;
+				} catch (BuildMacroException e) {
+					// do nothing
+				}
+				String id = options[i].getId();
+				if (id.indexOf("configdir") > 0 || id.indexOf("builddir") > 0) //$NON-NLS-1$ $NON-NLS-2$
+					continue;
+				else if (id.indexOf("user") > 0) { //$NON-NLS-1$
+					// May be multiple user-specified options in which case we
+					// need to split them up into individual options
+					value = value.trim();
+					boolean finished = false;
+					int lastIndex = value.indexOf("--"); //$NON-NLS-1$
+					if (lastIndex != -1) {
+						while (!finished) {
+							int index = value.indexOf("--",lastIndex+2); //$NON-NLS-1$
+							if (index != -1) {
+								String previous = value.substring(lastIndex, index).trim();
+								configArgs.add(previous);
+								value = value.substring(index);
+							} else {
+								configArgs.add(value);
+								finished = true;
+							}
+						}
+					} else {
+						// No --xxx arguments, but there might still be some NAME=VALUE args
+						// and we should pass them on regardless
+						configArgs.add(value);
+					}
+				}
+				else if (value.trim().length() > 0) {
+					String categoryId = options[i].getCategory().getId();
+					if (categoryId.indexOf("directories") >= 0) //$NON-NLS-1$
+						value = getAbsoluteDirectory(value);
+					String cmd = options[i].getCommand().concat(value);
+					configArgs.add(cmd);
+				}
+			} else if (options[i].getValueType() == IOption.BOOLEAN) {
+				Boolean value = (Boolean) options[i].getValue();
+				if (value.booleanValue())
+					configArgs.add(options[i].getCommand());
+				else if (!options[i].getCommandFalse().equals(""))
+					configArgs.add(options[i].getCommandFalse());
+			}
+		}
+		return (String[]) configArgs.toArray(new String[configArgs.size()]);
+	}
+

@@ -1,0 +1,53 @@
+	private void displayPageForElement(ToolListElement element) {
+		selectedElement = element;
+		settingsStore.setSelection(getAutotoolsCfg(), selectedElement);
+		
+		AbstractConfigurePropertyOptionsPage oldPage = currentSettingsPage;
+		currentSettingsPage = null;
+
+		// Create a new settings page if necessary
+		List<AbstractConfigurePropertyOptionsPage> pages = getPagesForConfig();
+		ListIterator<AbstractConfigurePropertyOptionsPage> iter = pages.listIterator();
+		
+		while (iter.hasNext()) {
+			AbstractConfigurePropertyOptionsPage page = iter.next();
+			if (page.getName().equals(element.getName())) {
+				currentSettingsPage = page;
+				break;
+			}
+		}
+		if (currentSettingsPage == null) {
+			if (element.getType() == IConfigureOption.TOOL) {
+				currentSettingsPage = new AutotoolsToolPropertyOptionPage(
+					element, getAutotoolsCfg());
+			}
+			else {
+				currentSettingsPage = new AutotoolsCategoryPropertyOptionPage(
+						element, getAutotoolsCfg());
+			}
+			pages.add(currentSettingsPage);
+			currentSettingsPage.setContainer(this);
+			if (currentSettingsPage.getControl() == null) {
+				currentSettingsPage.createControl(settingsPageContainer);
+			}
+		}
+		
+		// Make all the other pages invisible
+		Control[] children = settingsPageContainer.getChildren();
+		Control currentControl = currentSettingsPage.getControl();
+		for (int i = 0; i < children.length; i++) {
+			if (children[i] != currentControl)
+				children[i].setVisible(false);
+		}
+		currentSettingsPage.setVisible(true);
+		currentSettingsPage.updateFields();
+		
+		if (oldPage != null  && oldPage != currentSettingsPage)
+			oldPage.setVisible(false);
+
+		// Set the size of the scrolled area
+		containerSC.setMinSize(currentSettingsPage.computeSize());
+		settingsPageContainer.layout();
+	
+	}
+

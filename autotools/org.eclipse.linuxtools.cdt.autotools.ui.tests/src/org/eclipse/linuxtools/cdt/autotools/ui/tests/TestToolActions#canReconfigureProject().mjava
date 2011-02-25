@@ -1,0 +1,50 @@
+	@Test
+	// Verify we can access the autoreconf tool
+	public void canReconfigureProject() throws Exception {
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		assertTrue(workspace != null);
+		IWorkspaceRoot root = workspace.getRoot();
+		assertTrue(root != null);
+		IProject project = root.getProject("GnuProject1");
+		assertTrue(project != null);
+		IPath path = project.getLocation();
+		// Remove a number of generated files
+		File f = new File(path.append("src/Makefile.in").toOSString());
+		if (f.exists())
+			f.delete();
+		f = new File(path.append("Makefile.in").toOSString());
+		if (f.exists())
+			f.delete();
+		f = new File(path.append("configure").toOSString());
+		if (f.exists())
+			f.delete();
+		f = new File(path.append("config.status").toOSString());
+		if (f.exists())
+			f.delete();
+		f = new File(path.append("config.sub").toOSString());
+		if (f.exists())
+			f.delete();
+		SWTBotView view = bot.viewByTitle("Project Explorer");
+		view.bot().tree().select("GnuProject1");
+		bot.menu("Project", 1).menu("Reconfigure Project").click();
+		// We need to wait until the config.status file is created so
+		// sleep a bit and look for it...give up after 40 seconds
+		for (int i = 0; i < 40; ++i) {
+			bot.sleep(500);
+			f = new File(path.append("config.status").toOSString());
+			if (f.exists())
+				break;
+		}
+		// Verify a number of generated files now exist
+		f = new File(path.append("src/Makefile.in").toOSString());
+		assertTrue(f.exists());
+		f = new File(path.append("Makefile.in").toOSString());
+		assertTrue(f.exists());
+		f = new File(path.append("configure").toOSString());
+		assertTrue(f.exists());
+		f = new File(path.append("config.status").toOSString());
+		assertTrue(f.exists());
+		f = new File(path.append("config.sub").toOSString());
+		assertTrue(f.exists());
+	}
+
