@@ -1,0 +1,39 @@
+	/**
+	 * @return the name of the events used on the current session
+	 */
+	private String[] getEventNames (){
+		String [] ret = null;
+		try {
+			Process p = Runtime.getRuntime().exec("opreport -X --details");
+			InputStream is = p.getInputStream();
+			if (p.waitFor() == 0){
+				DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+				DocumentBuilder builder;
+				builder = factory.newDocumentBuilder();
+				Document doc = builder.parse(is);
+				Element root = (Element) doc.getElementsByTagName(ModelDataAdapter.PROFILE).item(0);
+
+				Element setupTag = (Element) root.getElementsByTagName(ModelDataAdapter.SETUP).item(0);
+				NodeList eventSetupList = setupTag.getElementsByTagName(ModelDataAdapter.EVENT_SETUP);
+
+				// get the event names for the current session
+				ret = new String[eventSetupList.getLength()];
+				for (int i = 0; i < eventSetupList.getLength(); i++) {
+					Element elm = (Element) eventSetupList.item(i);
+					ret[i] = elm.getAttribute(ModelDataAdapter.EVENT_NAME);
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			OprofileCorePlugin.showErrorDialog("opxmlParse", null); //$NON-NLS-1$
+		} catch (ParserConfigurationException e) {
+			e.printStackTrace();
+		} catch (SAXException e) {
+			e.printStackTrace();
+			OprofileCorePlugin.showErrorDialog("opxmlSAXParseException", null); //$NON-NLS-1$
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		return ret;
+	}
+

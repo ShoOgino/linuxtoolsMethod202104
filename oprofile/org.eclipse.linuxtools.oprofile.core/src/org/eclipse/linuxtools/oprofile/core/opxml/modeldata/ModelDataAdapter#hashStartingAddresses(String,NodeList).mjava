@@ -1,0 +1,36 @@
+	/**
+	 * @param binName the binary to query against
+	 * @param oldSymbolDataList the list of 'symboldata' tags within symboltable
+	 * @return a HashMap where the keys are the adresses and values are the
+	 * corresponding file locations
+	 */
+	private HashMap<String, String> hashStartingAddresses (String binName, NodeList oldSymbolDataList){
+		StringBuffer arg = new StringBuffer();
+		String [] starting_addrs = new String [oldSymbolDataList.getLength()];
+		HashMap<String, String> ret = new HashMap<String, String> ();
+		for (int j = 0; j < oldSymbolDataList.getLength(); j++){
+			Element symbolData = (Element) oldSymbolDataList.item(j);
+			String starting_addr = symbolData.getAttribute(STARTING_ADDR);
+			starting_addrs[j] = starting_addr;
+			arg.append(" " + starting_addr);
+		}
+		
+		try {
+			Process p = Runtime.getRuntime().exec(ADDR2LINE + " " + binName + arg);
+			BufferedReader bi = new BufferedReader(new InputStreamReader(p.getInputStream()));
+			
+			int count = 0;
+			String line;
+			while ((line = bi.readLine()) != null){
+				int index = line.indexOf(':');
+				ret.put(starting_addrs[count], line.substring(0, index));
+				count++;
+			}
+			bi.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		return ret;
+	}
+

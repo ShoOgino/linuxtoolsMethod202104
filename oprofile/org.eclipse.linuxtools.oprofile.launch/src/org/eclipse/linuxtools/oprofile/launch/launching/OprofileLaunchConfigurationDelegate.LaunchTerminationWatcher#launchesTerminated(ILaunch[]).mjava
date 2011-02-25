@@ -1,0 +1,27 @@
+		public void launchesTerminated(ILaunch[] launches) {
+			try {
+				for (ILaunch l : launches) {
+					/**
+					 * Dump samples from the daemon,
+					 * shut down the daemon,
+					 * activate the OProfile view (open it if it isn't already),
+					 * refresh the view (which parses the data/ui model and displays it).
+					 */
+					if (l.equals(launch)) {
+						oprofileDumpSamples();
+						oprofileShutdown();
+
+						//need to run this in the ui thread otherwise get SWT Exceptions
+						// based on concurrency issues
+						Display.getDefault().syncExec(new Runnable() {
+							public void run() {
+								refreshOprofileView();
+							}
+						});
+					}
+				}
+			} catch (OpcontrolException oe) {
+				OprofileCorePlugin.showErrorDialog("opcontrolProvider", oe); //$NON-NLS-1$
+			}
+		}
+

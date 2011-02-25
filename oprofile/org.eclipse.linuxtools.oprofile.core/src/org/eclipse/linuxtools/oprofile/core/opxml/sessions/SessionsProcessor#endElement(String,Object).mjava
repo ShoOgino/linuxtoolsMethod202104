@@ -1,0 +1,23 @@
+	/* (non-Javadoc)
+	 * @see org.eclipse.linuxtools.oprofile.core.opxml.XMLProcessor#endElement(java.lang.String, java.lang.Object)
+	 */
+	public void endElement(String name, Object callData) {
+		if (name.equals(SESSION_TAG)) {
+			// Got end of session -- save in session list
+			_sessionList.add(_currentSession);
+			_currentSession = null;
+		} else if (name.equals(EVENT_TAG)) {
+			// Got end of event -- save session list into current OpModelEvent and
+			// save current event into call data
+			OpModelSession[] s = new OpModelSession[_sessionList.size()];
+			_sessionList.toArray(s);
+			_currentEvent._setSessions(s);
+			SessionInfo info = (SessionInfo) callData;
+			info.list.add(_currentEvent);
+			_currentEvent = null;
+			_sessionList = null;
+		} else {
+			super.endElement(name, callData);
+		}
+	}
+

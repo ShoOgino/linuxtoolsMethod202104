@@ -1,0 +1,126 @@
+	private void createXML() {
+		
+		// get the binary name and the image count
+		Element oldImage = (Element) oldRoot.getElementsByTagName(BINARY).item(0);
+		Element newImage = newDoc.createElement(IMAGE);
+		
+		String binName = oldImage.getAttribute(NAME);
+		newImage.setAttribute(NAME, binName);
+		
+		Element countTag = (Element) oldImage.getElementsByTagName(COUNT).item(0);
+		String imageCount = countTag.getTextContent().trim();
+		newImage.setAttribute(COUNT, imageCount);
+		
+		// get the count that was used to profile
+		Element setupTag = (Element) oldRoot.getElementsByTagName(SETUP).item(0);
+		Element eventSetupTag = (Element) setupTag.getElementsByTagName(EVENT_SETUP).item(0);
+		String setupcount = eventSetupTag.getAttribute(SETUP_COUNT);
+		newImage.setAttribute(SETUP_COUNT, setupcount);
+		
+		newRoot.appendChild(newImage);
+		
+		Element newSymbolsTag = newDoc.createElement(SYMBOLS);
+		
+		// these elements contain the data needed to populate the new symbol table
+		Element oldSymbolsTag = (Element) oldRoot.getElementsByTagName(BINARY).item(0);
+		NodeList oldSymbolList = oldSymbolsTag.getElementsByTagName(SYMBOL);
+		
+		Element oldSymbolTableTag = (Element) oldRoot.getElementsByTagName(SYMBOL_TABLE).item(0);
+		NodeList oldSymbolDataList = oldSymbolTableTag.getElementsByTagName(SYMBOL_DATA);
+		
+		Element oldDetailTableTag = (Element) oldRoot.getElementsByTagName(DETAIL_TABLE).item(0);
+		NodeList oldDetailTableList = oldDetailTableTag.getElementsByTagName(SYMBOL_DETAILS);
+		
+		// parse the data into HashMaps for O(1) lookup time, as opposed to O(n).
+		HashMap<String, HashMap<String, String>> oldSymbolDataListMap = parseDataList (oldSymbolDataList);
+		HashMap<String, NodeList> oldDetailTableListMap = parseDetailTable (oldDetailTableList);
+		
+		// parse the data into HashMaps using just one call to addr2line. (many calls are very slow)
+		HashMap <String, String> addrToFileMap = hashStartingAddresses(binName, oldSymbolDataList);
+		HashMap <String, String> addrToLineMap = hashVMAOffset(binName, oldDetailTableList);
+		
+		// iterate through all symbols
+		for (int i = 0; i < oldSymbolList.getLength(); i++){
+			Element oldSymbol = (Element)oldSymbolList.item(i);
+			Element newSymbol = newDoc.createElement(SYMBOL);
+			String idref = oldSymbol.getAttribute(IDREF);
+			String symbolCount = ((Element)oldSymbol.getElementsByTagName(COUNT).item(0)).getTextContent().trim();
+			newSymbol.setAttribute(COUNT, symbolCount);
+			
+			// get the symboltable entry corresponding to the id of this symbol
+			HashMap<String,String> symbolData = oldSymbolDataListMap.get(idref);
+			// name of the symbol
+			newSymbol.setAttribute(NAME, symbolData.get(NAME));
+			// decode the address with addr2line
+			String file = addrToFileMap.get(symbolData.get(STARTING_ADDR));
+			file = (file != null) ? file : "?"; //$NON-NLS-1$
+			newSymbol.setAttribute(FILE, file);
+			
+			// get the symboldetails entry corresponding to the id of this symbol
+			NodeList detailDataList = oldDetailTableListMap.get(idref);
+
+			// go through the detail data of each symbol's details
+			HashMap<String, Element> tmp = new HashMap<String, Element> ();
+			// temporary place to store the elements for sorting
+			TreeSet<Element> sorted = new TreeSet<Element>(SAMPLE_COUNT_ORDER);
+			for (int l = 0; l < detailDataList.getLength(); l++) {
+
+				Element detailData = (Element) detailDataList.item(l);
+				String line = addrToLineMap.get(detailData.getAttribute(VMA_OFFSET));
+				line = (line != null) ? line : "0"; //$NON-NLS-1$
+				
+				Element detailDataCount = (Element) detailData.getElementsByTagName(COUNT).item(0);
+				String count = detailDataCount.getTextContent().trim();
+				
+				// if a sample at this line already exists then increase count for that line.
+				if (tmp.containsKey(line)){
+					Element elem = (Element) tmp.get(line).getElementsByTagName(COUNT).item(0);
+					int val = Integer.parseInt(elem.getTextContent().trim()) + Integer.parseInt(count);
+					elem.setTextContent(String.valueOf(val));
+				}else{
+					Element sampleTag = newDoc.createElement(SAMPLE);
+					
+					Element lineTag = newDoc.createElement(LINE);
+					lineTag.setTextContent(line);
+					
+					Element sampleCountTag = newDoc.createElement(COUNT);
+					sampleCountTag.setTextContent(count);
+					
+					sampleTag.appendChild(lineTag);
+					sampleTag.appendChild(sampleCountTag);
+					
+					tmp.put(line, sampleTag);
+				}
+			}
+			
+			// add the elements to the sorter
+			for (Element elem : tmp.values()){
+				sorted.add(elem);
+			}
+			
+			// append the elements in sorted order
+			for (Element e : sorted){
+				newSymbol.appendChild(e);
+			}
+			
+			newSymbolsTag.appendChild(newSymbol);
+		}
+		
+		// get the vdso if it exists
+		Element moduleTag = (Element) oldImage.getElementsByTagName(MODULE).item(0);
+		if (moduleTag != null){
+			Element moduleCountTag = (Element) moduleTag.getElementsByTagName(COUNT).item(0);
+			String moduleCount = moduleCountTag.getTextContent().trim();
+			
+			Element dependent = newDoc.createElement(DEPENDENT);
+			dependent.setAttribute(COUNT, moduleCount);
+			Element image = newDoc.createElement(IMAGE);
+			image.setAttribute(NAME, VDSO);
+			image.setAttribute(COUNT, moduleCount);
+			dependent.appendChild(image);
+			newRoot.appendChild(dependent);
+		}
+		
+		newRoot.appendChild(newSymbolsTag);
+	}
+

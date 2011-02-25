@@ -1,0 +1,29 @@
+	@Override
+	protected boolean preExec(LaunchOptions options, OprofileDaemonEvent[] daemonEvents) {
+		//set up and launch the oprofile daemon
+		try {
+			if (!oprofileStatus())
+				return false;
+			
+			//kill the daemon (it shouldn't be running already, but to be safe)
+			oprofileShutdown();
+			
+			//reset data from the (possibly) existing default session, 
+			// otherwise multiple runs will combine samples and results
+			// won't make much sense
+			oprofileReset();
+			
+			//setup the events and other parameters
+			oprofileSetupDaemon(options.getOprofileDaemonOptions(), daemonEvents);
+			
+			//start the daemon & collection of samples 
+			//note: since the daemon is only profiling for the specific image we told 
+			// it to, no matter to start the daemon before the binary itself is run
+			oprofileStartCollection();
+		} catch (OpcontrolException oe) {
+			OprofileCorePlugin.showErrorDialog("opcontrolProvider", oe); //$NON-NLS-1$
+			return false;
+		}
+		return true;
+	}
+

@@ -1,0 +1,34 @@
+	public void assertValidity (String path){
+		cea = new CheckEventAdapter(ctr, event, umask);
+		cea.process();
+		Document actualDocument = cea.getDocument();
+		Element actualRoot = (Element) actualDocument.getElementsByTagName(CheckEventAdapter.CHECK_EVENTS).item(0);
+		
+		Path filePath = new Path(path);
+		URL fileURL = FileLocator.find(CoreTestsPlugin.getDefault().getBundle(), filePath, null);
+		Element expectedRoot = null;
+		try {
+			String absFilePath = FileLocator.toFileURL(fileURL).getFile();
+			File file = new File (absFilePath);
+			FileInputStream inp = new FileInputStream(file);
+			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder builder;
+			builder = factory.newDocumentBuilder();
+			Document expectedDocument = builder.parse(inp);
+			expectedRoot = (Element) expectedDocument.getElementsByTagName(CheckEventAdapter.CHECK_EVENTS).item(0);
+			
+		} catch (FileNotFoundException e) {
+			fail("File was not found.");
+		} catch (IOException e) {
+			fail("Failed to convert the resource file's path.");
+		} catch (SAXException e) {
+			fail("Failed to parse the XML.");
+		} catch (ParserConfigurationException e) {
+			fail("Failed to create a document builder.");
+		}
+		
+		Element expectedResultTag = (Element) expectedRoot.getElementsByTagName(CheckEventAdapter.RESULT).item(0);
+		Element actualResultTag = (Element) actualRoot.getElementsByTagName(CheckEventAdapter.RESULT).item(0);
+		assertEquals(expectedResultTag.getTextContent(), actualResultTag.getTextContent());
+	}
+

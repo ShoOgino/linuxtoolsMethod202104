@@ -1,0 +1,23 @@
+	private boolean handleModelData (String [] args){
+		Process p;
+		try {
+			p = Runtime.getRuntime().exec("opreport -X --details event:" + args[1]); //$NON-NLS-1$
+			if (p.waitFor() != 0){
+				return false;
+			}
+			ModelDataAdapter mda = new ModelDataAdapter(p.getInputStream());
+			if (! mda.isParseable()){
+				return false;
+			}
+			mda.process();
+			BufferedReader bi = new BufferedReader(new InputStreamReader(mda.getInputStream()));
+			saveOpxmlToFile(bi, args);
+		} catch (IOException e) {
+			e.printStackTrace();
+			OprofileCorePlugin.showErrorDialog("opxmlParse", null); //$NON-NLS-1$
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		return true;
+	}
+
