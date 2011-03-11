@@ -1,7 +1,23 @@
     @SuppressWarnings({ "unchecked" })
     private void indexTrace(boolean waitForCompletion) {
 
-        fCheckpoints.clear();
+    	final Job job = new Job("Indexing " + getName() + "...") { //$NON-NLS-1$ //$NON-NLS-2$
+    		@Override
+    		protected IStatus run(IProgressMonitor monitor) {
+    			while (!monitor.isCanceled()) {
+    				try {
+    					Thread.sleep(100);
+    				} catch (InterruptedException e) {
+    					return Status.OK_STATUS;
+    				}
+    			}
+    			monitor.done();
+    			return Status.OK_STATUS;
+    		}
+    	};
+    	job.schedule();
+
+    	fCheckpoints.clear();
         ITmfEventRequest<TmfEvent> request = new TmfEventRequest<TmfEvent>(TmfEvent.class, TmfTimeRange.Eternity,
                 TmfDataRequest.ALL_DATA, 1, ITmfDataRequest.ExecutionType.BACKGROUND) {
 
@@ -26,6 +42,12 @@
             @Override
             public void handleSuccess() {
                 updateTrace();
+            }
+
+            @Override
+            public void handleCompleted() {
+            	job.cancel();
+            	super.handleCompleted();
             }
 
             private void updateTrace() {
