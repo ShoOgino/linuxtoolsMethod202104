@@ -6,15 +6,11 @@
 	private void handleTableKeyEvent(KeyEvent event) {
 
 		int lastEventRank        = fTableItemCount - 1;
-		int lastPageTopEntryRank = fTableItemCount - fTableRows;
+		int lastPageTopEntryRank = Math.max(0, fTableItemCount - fFullyVisibleRows);
 
-		int lastRowIndex = ((fTableItemCount < fTableRows) ? fTableItemCount : fTableRows) - 1;
-		int numberOfFullyVisibleRows = fTableRows - ((fPartialRowVisible) ? 1 : 0);
-
+		int previousSelectedEventRank = fSelectedEventRank;
+		int selectedRow = fSelectedEventRank - fTableTopEventRank;
 		boolean needsRefresh = false;
-
-		// We are handling things...
-		event.doit = false;
 
 		// In all case, perform the following steps:
 		// - Update the selected entry rank (within valid range)
@@ -24,12 +20,12 @@
 		switch (event.keyCode) {
 
 			case SWT.ARROW_DOWN: {
+				event.doit = false;
 				if (fSelectedEventRank < lastEventRank) {
 					fSelectedEventRank++;
-					fSelectedRow = fSelectedEventRank - fTableTopEventRank;
-					if (fSelectedRow > lastRowIndex) {
+					selectedRow = fSelectedEventRank - fTableTopEventRank;
+					if (selectedRow >= fFullyVisibleRows) {
 						fTableTopEventRank++;
-						fSelectedRow = lastRowIndex;
 						needsRefresh = true;
 					}
 				}
@@ -37,12 +33,12 @@
 			}
 
 			case SWT.ARROW_UP: {
+				event.doit = false;
 				if (fSelectedEventRank > 0) {
 					fSelectedEventRank--;
-					fSelectedRow = fSelectedEventRank - fTableTopEventRank;
-					if (fSelectedRow < 0) {
+					selectedRow = fSelectedEventRank - fTableTopEventRank;
+					if (selectedRow < fFrozenRowCount && fTableTopEventRank > 0) {
 						fTableTopEventRank--;
-						fSelectedRow = 0;
 						needsRefresh = true;
 					}
 				}
@@ -50,34 +46,34 @@
 			}
 
 			case SWT.END: {
+				event.doit = false;
 				fTableTopEventRank = lastPageTopEntryRank;
 				fSelectedEventRank = lastEventRank;
-				fSelectedRow = lastRowIndex;
 				needsRefresh = true;
 				break;
 			}
 
 			case SWT.HOME: {
-				fSelectedEventRank = 0;
-				fSelectedRow       = 0;
+				event.doit = false;
+				fSelectedEventRank = fFrozenRowCount;
 				fTableTopEventRank = 0;
-				needsRefresh       = true;
+				needsRefresh = true;
 				break;
 			}
 
 			case SWT.PAGE_DOWN: {
+				event.doit = false;
 				if (fSelectedEventRank < lastEventRank) {
-					fSelectedEventRank += numberOfFullyVisibleRows;
+					fSelectedEventRank += fFullyVisibleRows;
 					if (fSelectedEventRank > lastEventRank) {
 						fSelectedEventRank = lastEventRank;
 					}
-					fSelectedRow = fSelectedEventRank - fTableTopEventRank;
-					if (fSelectedRow > numberOfFullyVisibleRows - 1) {
-						fTableTopEventRank += numberOfFullyVisibleRows;
+					selectedRow = fSelectedEventRank - fTableTopEventRank;
+					if (selectedRow > fFullyVisibleRows - 1) {
+						fTableTopEventRank += fFullyVisibleRows;
 						if (fTableTopEventRank > lastPageTopEntryRank) {
 							fTableTopEventRank = lastPageTopEntryRank;
 						}
-						fSelectedRow = fSelectedEventRank - fTableTopEventRank;
 						needsRefresh = true;
 					}
 				}
@@ -85,32 +81,47 @@
 			}
 
 			case SWT.PAGE_UP: {
+				event.doit = false;
 				if (fSelectedEventRank > 0) {
-					fSelectedEventRank -= numberOfFullyVisibleRows;
-					if (fSelectedEventRank < 0) {
-						fSelectedEventRank = 0;
+					fSelectedEventRank -= fFullyVisibleRows;
+					if (fSelectedEventRank < fFrozenRowCount) {
+						fSelectedEventRank = fFrozenRowCount;
 					}
-					fSelectedRow = fSelectedEventRank - fTableTopEventRank;
-					if (fSelectedRow < 0) {
-						fSelectedRow = 0;
-						fTableTopEventRank -= numberOfFullyVisibleRows;
+					selectedRow = fSelectedEventRank - fTableTopEventRank;
+					if (selectedRow < 0) {
+						fTableTopEventRank -= fFullyVisibleRows;
 						if (fTableTopEventRank < 0) {
 							fTableTopEventRank = 0;
 						}
-						fSelectedRow = fSelectedEventRank - fTableTopEventRank;
 						needsRefresh = true;
 					}
 				}
 				break;
 			}
-		}
-	
-		if (needsRefresh) {
-			for (int i = 0; i < fTableItems.length; i++) {
-				setDataItem(i, fTableItems[i]);
+			default: {
+				return;
 			}
 		}
-		// Notify about changed selection
-		notifyUpdatedSelection();
+
+		boolean done = true;
+		if (needsRefresh) {
+			done = refreshTable(); // false if table items not updated yet in this thread
+		} else {
+			fTable.select(selectedRow);
+		}
+
+		if (fFullyVisibleRows < fTableItemCount) {
+			fSlider.setSelection(fTableTopEventRank);
+		}
+
+		if (fSelectedEventRank != previousSelectedEventRank && fTable.getSelection().length > 0) {
+			if (done) {
+    	        Event e = new Event();
+    	        e.item = fTable.getSelection()[0];
+    			fTable.notifyListeners(SWT.Selection, e);
+			} else {
+				fPendingSelection = true;
+			}
+		}
 	}
 

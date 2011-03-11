@@ -1,8 +1,30 @@
-	private void refreshTable() {
-		setSelectedRowVisibility();
-
+	private boolean refreshTable() {
+		boolean done = true;
 		for (int i = 0; i < fTableRows; i++) {
-			setDataItem(i, fTableItems[i]);
+			if (i + fTableTopEventRank < fTableItemCount) {
+				TableItem tableItem;
+				if (i < fTable.getItemCount()) {
+					tableItem = fTable.getItem(i);
+				} else {
+					tableItem = new TableItem(fTable, SWT.NONE);
+				}
+				done &= setDataItem(i, tableItem); // false if table item not updated yet in this thread
+			} else {
+				if (fTable.getItemCount() > fTableItemCount - fTableTopEventRank) {
+					fTable.remove(fTableItemCount - fTableTopEventRank);
+				}
+			}
 		}
+
+		int lastRowOffset = fTableTopEventRank + fTableRows - 1;
+		if ((fSelectedEventRank >= fTableTopEventRank + fFrozenRowCount) && (fSelectedEventRank <= lastRowOffset)) {
+			int selectedRow = fSelectedEventRank - fTableTopEventRank;
+			fTable.select(selectedRow);
+		} else if (fSelectedEventRank < fFrozenRowCount) {
+			fTable.select(fSelectedEventRank);
+		} else {
+			fTable.deselectAll();
+		}
+		return done;
 	}
 
