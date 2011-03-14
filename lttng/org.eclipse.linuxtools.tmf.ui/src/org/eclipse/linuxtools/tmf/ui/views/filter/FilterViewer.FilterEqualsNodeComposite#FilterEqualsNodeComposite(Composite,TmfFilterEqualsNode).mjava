@@ -1,0 +1,90 @@
+		FilterEqualsNodeComposite(Composite parent, TmfFilterEqualsNode node) {
+			super(parent);
+			fNode = node;
+			
+			Label label = new Label(this, SWT.NONE);
+			label.setBackground(Display.getCurrent().getSystemColor(SWT.COLOR_WHITE));
+			label.setText(Messages.FilterViewer_NotLabel);
+			
+			fNotButton = new Button(this, SWT.CHECK);
+			fNotButton.setSelection(fNode.isNot());
+			fNotButton.addSelectionListener(new SelectionAdapter() {
+				@Override
+				public void widgetSelected(SelectionEvent e) {
+					fNode.setNot(fNotButton.getSelection());
+					fViewer.refresh(fNode);
+				}
+			});
+			
+			label = new Label(this, SWT.NONE);
+			label.setBackground(Display.getCurrent().getSystemColor(SWT.COLOR_WHITE));
+			label.setText(Messages.FilterViewer_FieldLabel);
+			
+			fFieldCombo = new Combo(this, SWT.DROP_DOWN);
+			fFieldCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+			fFieldCombo.setItems(getFieldsList(fNode));
+			if (fNode.getField() != null) {
+				fFieldCombo.setText(fNode.getField());
+			}
+			fFieldCombo.addModifyListener(new ModifyListener() {
+				@Override
+                public void modifyText(ModifyEvent e) {
+					fNode.setField(fFieldCombo.getText());
+					fViewer.refresh(fNode);
+				}
+			});
+			
+			label = new Label(this, SWT.NONE);
+			label.setBackground(Display.getCurrent().getSystemColor(SWT.COLOR_WHITE));
+			label.setText(Messages.FilterViewer_ValueLabel);
+			
+			fValueText = new Text(this, SWT.BORDER);
+			fValueText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+			if (node.getValue() != null && node.getValue().length() > 0) {
+				fValueText.setText(node.getValue());
+			} else {
+				fValueText.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_GRAY));
+				fValueText.setText(Messages.FilterViewer_ValueHint);
+			}
+			fValueText.addFocusListener(new FocusListener() {
+				@Override
+                public void focusLost(FocusEvent e) {
+					if (fNode.getValue() == null || fNode.getValue().length() == 0) {
+						fValueText.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_GRAY));
+						fValueText.setText(Messages.FilterViewer_ValueHint);
+					}
+				}
+				@Override
+                public void focusGained(FocusEvent e) {
+					if (fValueText.getForeground().equals(Display.getCurrent().getSystemColor(SWT.COLOR_GRAY))) {
+						fValueText.setText(""); //$NON-NLS-1$
+					}
+					fValueText.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_BLACK));
+				}
+			});
+			fValueText.addModifyListener(new ModifyListener() {
+				@Override
+                public void modifyText(ModifyEvent e) {
+					if (! fValueText.getForeground().equals(Display.getCurrent().getSystemColor(SWT.COLOR_GRAY))) {
+						fNode.setValue(fValueText.getText());
+						fViewer.refresh(fNode);
+					}
+				}
+			});
+			
+			label = new Label(this, SWT.NONE);
+			label.setBackground(Display.getCurrent().getSystemColor(SWT.COLOR_WHITE));
+			
+			fIgnoreCaseButton = new Button(this, SWT.CHECK);
+			fIgnoreCaseButton.setSelection(fNode.isIgnoreCase());
+			fIgnoreCaseButton.setText(Messages.FilterViewer_IgnoreCaseButtonText);
+			fIgnoreCaseButton.setBackground(Display.getCurrent().getSystemColor(SWT.COLOR_WHITE));
+			fIgnoreCaseButton.addSelectionListener(new SelectionAdapter() {
+				@Override
+				public void widgetSelected(SelectionEvent e) {
+					fNode.setIgnoreCase(fIgnoreCaseButton.getSelection());
+					fViewer.refresh(fNode);
+				}
+			});
+		}
+
