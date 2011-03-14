@@ -1,0 +1,54 @@
+	public static void save(String pathName, ColorSetting[] colorSettings) {
+		try {
+			DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+			DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+			Document document = documentBuilder.newDocument();
+			
+			Element rootElement = document.createElement(COLOR_SETTINGS_TAG);
+			document.appendChild(rootElement);
+	
+			for (ColorSetting colorSetting : colorSettings) {
+				Element colorSettingElement = document.createElement(COLOR_SETTING_TAG);
+				rootElement.appendChild(colorSettingElement);
+				
+				Element fgElement = document.createElement(FG_TAG);
+				colorSettingElement.appendChild(fgElement);
+				RGB foreground = colorSetting.getForegroundRGB();
+				fgElement.setAttribute(R_ATTR, Integer.toString(foreground.red));
+				fgElement.setAttribute(G_ATTR, Integer.toString(foreground.green));
+				fgElement.setAttribute(B_ATTR, Integer.toString(foreground.blue));
+				
+				Element bgElement = document.createElement(BG_TAG);
+				colorSettingElement.appendChild(bgElement);
+				RGB background = colorSetting.getBackgroundRGB();
+				bgElement.setAttribute(R_ATTR, Integer.toString(background.red));
+				bgElement.setAttribute(G_ATTR, Integer.toString(background.green));
+				bgElement.setAttribute(B_ATTR, Integer.toString(background.blue));
+				
+				Element tickColorElement = document.createElement(TICK_COLOR_TAG);
+				colorSettingElement.appendChild(tickColorElement);
+				int index = colorSetting.getTickColorIndex();
+				tickColorElement.setAttribute(INDEX_ATTR, Integer.toString(index));
+				
+				if (colorSetting.getFilter() != null) {
+					Element filterElement = document.createElement(FILTER_TAG);
+					colorSettingElement.appendChild(filterElement);
+					TmfFilterXMLWriter.buildXMLTree(document, colorSetting.getFilter(), filterElement);
+				}
+			}
+	
+			TransformerFactory transformerFactory = TransformerFactory.newInstance();
+		
+			Transformer transformer = transformerFactory.newTransformer();
+	        DOMSource source = new DOMSource(document);
+	        StreamResult result =  new StreamResult(new File(pathName));
+			transformer.transform(source, result);
+		} catch (ParserConfigurationException e) {
+			e.printStackTrace();
+		} catch (TransformerConfigurationException e) {
+			e.printStackTrace();
+		} catch (TransformerException e) {
+			e.printStackTrace();
+		}
+	}
+
