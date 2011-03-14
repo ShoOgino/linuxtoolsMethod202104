@@ -1,0 +1,23 @@
+        public void itemizeEvent(TimeChartEvent event) {
+            synchronized (event) {
+                if (event.isItemizing()) {
+                    return;
+                }
+                event.setItemizing(true);
+            }
+            TimeChartAnalysisEntry timeAnalysisEntry = new TimeChartAnalysisEntry(fTimeAnalysisEntry.getTrace(),
+                    (int) Math.min(event.getNbEvents() + 1, fDisplayWidth * 2));
+            synchronized (event.getRankRangeList()) {
+            	for (RankRange range : event.getRankRangeList()) {
+            		timeAnalysisEntry.setLastRank(range.getFirstRank());
+            		updateTraceEntry(timeAnalysisEntry, range.getLastRank() + 1, event.getTime(), event.getTime() + event.getDuration());
+            	}
+            }
+            event.setItemizedEntry(timeAnalysisEntry);
+            refreshViewer(false);
+            itemizeTraceEntry(timeAnalysisEntry);
+            synchronized (event) {
+                event.setItemizing(false);
+            }
+        }
+

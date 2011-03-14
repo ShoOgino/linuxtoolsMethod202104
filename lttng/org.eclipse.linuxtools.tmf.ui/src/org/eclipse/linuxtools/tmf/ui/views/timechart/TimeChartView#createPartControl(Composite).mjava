@@ -1,0 +1,38 @@
+    @Override
+    public void createPartControl(Composite parent) {
+        fComposite = new Composite(parent, SWT.NONE);
+        GridLayout gl = new GridLayout();
+        gl.marginWidth = 0;
+        gl.marginHeight = 0;
+        fComposite.setLayout(gl);
+        
+        fViewer = TmfViewerFactory.createViewer(fComposite, new TimeChartAnalysisProvider());
+        fViewer.groupTraces(false);
+        fViewer.setTimeCalendarFormat(true);
+        fViewer.setAcceptSelectionAPIcalls(true);
+        fViewer.addWidgetTimeScaleSelectionListner(this);
+        fViewer.addWidgetSelectionListner(this);
+        fViewer.setMinimumItemWidth(1);
+        
+        IEditorReference[] editorReferences = getSite().getPage().getEditorReferences();
+        for (IEditorReference editorReference : editorReferences) {
+            IEditorPart editor = editorReference.getEditor(false);
+            if (editor instanceof ITmfTraceEditor) {
+                ITmfTrace trace = ((ITmfTraceEditor) editor).getTrace();
+                if (trace != null) {
+                    IResource resource = ((ITmfTraceEditor) editor).getResource();
+                    TimeChartAnalysisEntry timeAnalysisEntry = new TimeChartAnalysisEntry(trace, fDisplayWidth * 2);
+                    fTimeAnalysisEntries.add(timeAnalysisEntry);
+                    fDecorationProviders.put(trace, new TimeChartDecorationProvider(resource));
+                    Thread thread = new ProcessTraceThread(timeAnalysisEntry);
+                    thread.start();
+                }
+            }
+        }
+        fViewer.display(fTimeAnalysisEntries.toArray(new TimeChartAnalysisEntry[0]));
+        
+        fDecorateThreads = new ArrayList<DecorateThread>();
+        ColorSettingsManager.addColorSettingsListener(this);
+        ResourcesPlugin.getWorkspace().addResourceChangeListener(this, IResourceChangeEvent.POST_CHANGE);
+    }
+

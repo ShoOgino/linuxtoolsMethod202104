@@ -1,18 +1,24 @@
     @Override
     public void mouseUp(MouseEvent e) {
-        if (0 != _dragState) {
+        if (DRAG_NONE != _dragState) {
             setCapture(false);
-            if (1 == _dragState) {
+            if (DRAG_TRACE_ITEM == _dragState) {
                 // Notify time provider to check the need for listener
                 // notification
                 _timeProvider.notifyStartFinishTime();
-            } else if (2 == _dragState) {
-                if (hitTest(e.x, e.y) == _hitIdx)
+                if (_dragX == _dragX0) { // click without drag
+                    long time = hitTimeTest(e.x);
+                    _timeProvider.setSelectedTimeInt(time, false);
+                    selectItem(_hitIdx, false);
+                    fireSelectionChanged();
+                }
+            } else if (DRAG_GROUP_ITEM == _dragState) {
+                if (e.x == _dragX0) // click without drag
                     toggle(_hitIdx);
-            } else if (3 == _dragState) {
+            } else if (DRAG_SPLIT_LINE == _dragState) {
                 redraw();
             }
-            _dragState = 0;
+            _dragState = DRAG_NONE;
         }
     }
 

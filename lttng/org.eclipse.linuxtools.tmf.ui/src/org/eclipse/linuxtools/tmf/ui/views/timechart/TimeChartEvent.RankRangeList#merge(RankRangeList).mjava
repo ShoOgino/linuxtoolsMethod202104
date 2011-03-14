@@ -1,0 +1,29 @@
+        public void merge(RankRangeList rankRangeList) {
+            long threshold = fParentEntry.getTrace().getCacheSize();
+            for (RankRange newRange : rankRangeList) {
+                boolean merged = false;
+                for (RankRange oldRange : fRankRangeList) {
+                    if (newRange.distanceFrom(oldRange) <= threshold) {
+                        oldRange.firstRank = Math.min(oldRange.firstRank, newRange.firstRank);
+                        oldRange.lastRank = Math.max(oldRange.lastRank, newRange.lastRank);
+                        merged = true;
+                        break;
+                    }
+                }
+                if (!merged) {
+                    add(newRange);
+                }
+            }
+            Iterator<RankRange> iterator = fRankRangeList.iterator();
+            RankRange previous = null;
+            while (iterator.hasNext()) {
+                RankRange range = iterator.next();
+                if (previous != null && range.distanceFrom(previous) <= threshold) {
+                    previous.firstRank = Math.min(previous.firstRank, range.firstRank);
+                    previous.lastRank = Math.max(previous.lastRank, range.lastRank);
+                    iterator.remove();
+                }
+                previous = range;
+            }
+        }
+
