@@ -1,0 +1,33 @@
+	private void updateTextArea() {
+	    if (fTopLineIndex < fLastTopLineIndex) {
+	        StringBuffer insertedText = new StringBuffer();
+	        for (int i = fTopLineIndex; i < fLastTopLineIndex; i++) {
+	            insertedText.append(fLines.get(i).string + "\n"); //$NON-NLS-1$
+	        }
+	        fStyledText.replaceTextRange(0, 0, insertedText.toString());
+            for (int i = 0; i < fLastTopLineIndex - fTopLineIndex; i++) {
+                LineData lineData = fLines.get(fTopLineIndex + i);
+                setLineBackground(i, lineData);
+            }
+	        fLastTopLineIndex = fTopLineIndex;
+	    } else if (fTopLineIndex > fLastTopLineIndex) {
+	        int length = 0;
+	        for (int i = 0; i < fTopLineIndex - fLastTopLineIndex && i < fNumVisibleLines; i++) {
+	            length += fLines.get(i + fLastTopLineIndex).string.length();
+	            if (i < fStyledText.getLineCount()) length += 1;
+	        }
+	        fStyledText.replaceTextRange(0, length, ""); //$NON-NLS-1$
+            fLastTopLineIndex = fTopLineIndex;
+            fillTextArea();
+	    }
+        int endLine = Math.min(fNumVisibleLines, fLines.size());
+        if (endLine < fStyledText.getLineCount()) {
+    	    int endOffset = fStyledText.getOffsetAtLine(endLine) - 1;
+    	    if (endOffset > fStyledText.getCharCount()) {
+    	        fStyledText.replaceTextRange(endOffset, fStyledText.getCharCount() - endOffset, ""); //$NON-NLS-1$
+    	    }
+        }
+	    fTextArea.layout();
+	    fScrolledComposite.setMinSize(fTextArea.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+	}
+

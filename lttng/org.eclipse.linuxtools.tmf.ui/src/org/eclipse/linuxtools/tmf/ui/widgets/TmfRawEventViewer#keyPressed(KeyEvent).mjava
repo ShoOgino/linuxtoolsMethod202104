@@ -1,0 +1,165 @@
+    @Override
+    public void keyPressed(KeyEvent e) {
+        if (fLines.size() == 0) {
+            return;
+        }
+        int caretOffset = fStyledText.getCaretOffset();
+        int previousCaretOffset = getPreviousCaretOffset(e.time);
+        int previousLineAtCaretPosition = fStyledText.getLineAtOffset(previousCaretOffset);
+        int previousColumnAtCaretPosition = getPreviousCaretOffset(e.time) - fStyledText.getOffsetAtLine(previousLineAtCaretPosition);
+        switch (e.keyCode) {
+            case SWT.ARROW_DOWN: {
+                if (previousLineAtCaretPosition < (fNumVisibleLines - 2)) {
+                    break;
+                }
+                fHoldSelection++;
+                fTopLineIndex++;
+                loadLineData();
+                updateTextArea();
+                fHoldSelection--;
+                LineData lineData = fLines.get(fTopLineIndex + fStyledText.getLineAtOffset(fStyledText.getCaretOffset()));
+                if (!lineData.location.equals(fSelectedLocation)) {
+                    fSelectedLocation = lineData.location;
+                    refreshLineBackgrounds();
+                    sendSelectionEvent(lineData);
+                }
+                break;
+            }
+            case SWT.PAGE_DOWN: {
+                if (previousLineAtCaretPosition >= (fNumVisibleLines - 1)) {
+                    fHoldSelection++;
+                    if (fLines.get(fTopLineIndex + previousLineAtCaretPosition).rank % 2 == 0) {
+                        fStyledText.setLineBackground(previousLineAtCaretPosition, 1, COLOR_BACKGROUND_EVEN);
+                    } else {
+                        fStyledText.setLineBackground(previousLineAtCaretPosition, 1, COLOR_BACKGROUND_ODD);
+                    }
+                    fSelectedLocation = null;
+                    fTopLineIndex += Math.max(fNumVisibleLines - 1, 1);
+                    loadLineData();
+                    updateTextArea();
+                    fHoldSelection--;
+                }
+                int line = Math.min(fNumVisibleLines - 1, fStyledText.getLineCount() - 1);
+                int offset = fStyledText.getOffsetAtLine(line);
+                fStyledText.setSelection(offset + Math.min(previousColumnAtCaretPosition, fLines.get(fTopLineIndex + line).string.length()));
+                break;
+            }
+            case SWT.ARROW_RIGHT: {
+                if (previousCaretOffset < fStyledText.getCharCount() || previousLineAtCaretPosition < (fNumVisibleLines - 2)) {
+                    break;
+                }
+                fHoldSelection++;
+                fTopLineIndex++;
+                loadLineData();
+                updateTextArea();
+                fHoldSelection--;
+                fStyledText.setSelection(fStyledText.getCaretOffset() + 1);
+                break;
+            }
+            case SWT.ARROW_UP: {
+                if (previousLineAtCaretPosition > 0) {
+                    break;
+                }
+                if (fLines.size() == 0) {// || (fTopLineIndex == 0 && fLines.get(0).rank == 0)) {
+                    break;
+                }
+                fHoldSelection++;
+                fTopLineIndex--;
+                loadLineData();
+                updateTextArea();
+                fHoldSelection--;
+                LineData lineData = fLines.get(fTopLineIndex);
+                if (!lineData.location.equals(fSelectedLocation)) {
+                    fSelectedLocation = lineData.location;
+                    refreshLineBackgrounds();
+                    sendSelectionEvent(lineData);
+                }
+                fStyledText.setSelection(caretOffset);
+                break;
+            }
+            case SWT.PAGE_UP: {
+                if (previousLineAtCaretPosition > 0) {
+                    break;
+                }
+                fHoldSelection++;
+                fTopLineIndex -= Math.max(fNumVisibleLines - 1, 1);
+                loadLineData();
+                updateTextArea();
+                fHoldSelection--;
+                LineData lineData = fLines.get(fTopLineIndex);
+                if (!lineData.location.equals(fSelectedLocation)) {
+                    fSelectedLocation = lineData.location;
+                    refreshLineBackgrounds();
+                    sendSelectionEvent(lineData);
+                }
+                fStyledText.setSelection(caretOffset);
+                break;
+            }
+            case SWT.ARROW_LEFT: {
+                if (previousCaretOffset > 0) {
+                    break;
+                }
+                if (fLines.size() == 0) {// || (fTopLineIndex == 0 && fLines.get(0).rank == 0)) {
+                    break;
+                }
+                long topRank = fLines.get(fTopLineIndex).rank;
+                fHoldSelection++;
+                fTopLineIndex--;
+                loadLineData();
+                updateTextArea();
+                fHoldSelection--;
+                LineData lineData = fLines.get(fTopLineIndex);
+                if (!lineData.location.equals(fSelectedLocation)) {
+                    fSelectedLocation = lineData.location;
+                    refreshLineBackgrounds();
+                    sendSelectionEvent(lineData);
+                }
+                if (topRank != fLines.get(fTopLineIndex).rank) {
+                    fStyledText.setSelection(fLines.get(fTopLineIndex).string.length());
+                }
+                break;
+            }
+            case SWT.HOME: {
+                if ((e.stateMask & SWT.CTRL) == 0) {
+                    break;
+                }
+                //selectAndReveal(0);
+                setTopPosition(0.0);
+                LineData lineData = fLines.get(fTopLineIndex);
+                if (!lineData.location.equals(fSelectedLocation)) {
+                    fSelectedLocation = lineData.location;
+                    refreshLineBackgrounds();
+                    sendSelectionEvent(lineData);
+                }
+                break;
+            }
+            case SWT.END: {
+                if ((e.stateMask & SWT.CTRL) == 0) {
+                    break;
+                }
+                //if (fTrace.getNbEvents() > 0) {
+                    //selectAndReveal(fTrace.getNbEvents() - 1);
+                //}
+                double ratio = 1.0;
+                double delta = Math.pow(10, -15);
+                fLines.clear();
+                while (fLines.size() == 0) {
+                    setTopPosition(ratio);
+                    if (ratio == 0.0) break;
+                    delta = Math.min(delta * 10, 0.1);
+                    ratio = Math.max(ratio - delta, 0.0);
+                }
+                LineData lineData = fLines.get(fTopLineIndex);
+                if (!lineData.location.equals(fSelectedLocation)) {
+                    fSelectedLocation = lineData.location;
+                    refreshLineBackgrounds();
+                    sendSelectionEvent(lineData);
+                }
+                break;
+            }
+        }
+        //fSlider.setSelection((int) (SLIDER_MAX * ((double) fLines.get(fTopLineIndex).rank / fTrace.getNbEvents())));
+        updateHighlightedRank();
+        fSlider.setSelection((int) (SLIDER_MAX * fTrace.getLocationRatio(fLines.get(fTopLineIndex).location)));
+    }
+
