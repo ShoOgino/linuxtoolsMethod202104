@@ -1,0 +1,66 @@
+		@Override
+		public void run() {
+			final Display display = Display.getDefault();
+			long lastRefreshTime = System.currentTimeMillis();
+			TmfContext context = fTrace.seekLocation(null);
+			context.setRank(0);
+			long rank = 0;
+			/*
+			TmfContext context;
+			long rank;
+			synchronized (fFilteredEventCache) {
+				if (fFilterCheckCount == 0) {
+					rank = 0;
+					context = fTrace.seekLocation(null);
+					context.setRank(0);
+				} else {
+					// Get the event following the last checked event
+					rank = fFilterCheckCount;
+					context = fTrace.seekEvent(rank);
+				}
+			}
+			*/
+			
+			TmfEvent event = fTrace.getNextEvent(context);
+			while (!interrupted && event != null) {
+				fFilterCheckCount++;
+				if (filter.matches(event)) {
+					synchronized (fFilteredEventCache) {
+						fFilteredEventCache.add(new FilteredEvent(event, rank));
+						fFilterMatchCount++;
+					}
+					display.asyncExec(new Runnable() {
+						@Override
+                        public void run() {
+							if (interrupted) return;
+							if (fTable.isDisposed()) return;
+							fTable.setItemCount(fFilteredEventCache.size() + 3); // +1 for header row, +2 for top and bottom filter status rows
+						}
+					});
+				}
+				if (fFilterCheckCount % 100 == 0) {
+					long currentTime = System.currentTimeMillis();
+					if (currentTime - lastRefreshTime > 1000) {
+						lastRefreshTime = currentTime;
+						display.asyncExec(new Runnable() {
+							@Override
+                            public void run() {
+								if (interrupted) return;
+								if (fTable.isDisposed()) return;
+								fTable.refresh();
+							}
+						});
+					}
+				}
+				rank = context.getRank();
+				event = fTrace.getNextEvent(context);
+			}
+			display.asyncExec(new Runnable() {
+				@Override
+                public void run() {
+					if (fTable.isDisposed()) return;
+					fTable.refresh();
+				}
+			});
+		}
+

@@ -1,0 +1,26 @@
+    protected void searchPrevious() {
+		synchronized (fSearchSyncObj) {
+			if (fSearchThread != null) {
+				return;
+			}
+	    	final ITmfFilterTreeNode filter = (ITmfFilterTreeNode) fTable.getData(Key.SEARCH_OBJ);
+	    	if (filter == null) {
+	    		return;
+	    	}
+	    	int selectionIndex = fTable.getSelectionIndex();
+			int startIndex;
+			if (selectionIndex > 0) {
+				startIndex = selectionIndex - 2; // -1 for header row, -1 for previous event
+			} else {
+				// header row is selected, start at precedent of top event
+				startIndex = fTable.getTopIndex() - 2; // -1 for header row, -1 for previous event
+			}
+			if (fTable.getData(Key.FILTER_OBJ) != null) {
+				fSearchThread = new SearchFilteredThread(filter, startIndex - 1, Direction.BACKWARD); // -1 for top filter status row
+			} else {
+				fSearchThread = new SearchThread(filter, startIndex, Direction.BACKWARD);
+			}
+			fSearchThread.schedule();
+		}
+    }
+

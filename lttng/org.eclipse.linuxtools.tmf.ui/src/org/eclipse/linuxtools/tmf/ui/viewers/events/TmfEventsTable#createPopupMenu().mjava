@@ -1,0 +1,172 @@
+    protected void createPopupMenu() {
+        final IAction showTableAction = new Action(Messages.TmfEventsTable_ShowTableActionText) {
+            @Override
+            public void run() {
+                fTable.setVisible(true);
+                fSashForm.layout();
+            }
+        };
+        
+        final IAction hideTableAction = new Action(Messages.TmfEventsTable_HideTableActionText) {
+            @Override
+            public void run() {
+                fTable.setVisible(false);
+                fSashForm.layout();
+            }
+        };
+        
+        final IAction showRawAction = new Action(Messages.TmfEventsTable_ShowRawActionText) {
+            @Override
+            public void run() {
+                fRawViewer.setVisible(true);
+                fSashForm.layout();
+                int index = fTable.getSelectionIndex();
+                if (index >= +1) { // +1 for header row
+                	fRawViewer.selectAndReveal(index - 1);
+                }
+            }
+        };
+            
+        final IAction hideRawAction = new Action(Messages.TmfEventsTable_HideRawActionText) {
+            @Override
+            public void run() {
+                fRawViewer.setVisible(false);
+                fSashForm.layout();
+            }
+        };
+
+        final IAction showSearchBarAction = new Action(Messages.TmfEventsTable_ShowSearchBarActionText) {
+            @Override
+            public void run() {
+            	fHeaderState = HeaderState.SEARCH;
+            	fTable.refresh();
+            }
+        };
+
+        final IAction showFilterBarAction = new Action(Messages.TmfEventsTable_ShowFilterBarActionText) {
+            @Override
+            public void run() {
+            	fHeaderState = HeaderState.FILTER;
+            	fTable.refresh();
+            }
+        };
+
+        final IAction clearFiltersAction = new Action(Messages.TmfEventsTable_ClearFiltersActionText) {
+            @Override
+            public void run() {
+            	stopFilterThread();
+            	stopSearchThread();
+            	clearFilters();
+            }
+        };
+
+        class ToggleBookmarkAction extends Action {
+        	long fRank;
+        	public ToggleBookmarkAction(String text, long rank) {
+        		super(text);
+        		fRank = rank;
+        	}
+        	
+        	@Override
+            public void run() {
+            	toggleBookmark(fRank);
+            }
+        }
+
+        final MenuManager tablePopupMenu = new MenuManager();
+        tablePopupMenu.setRemoveAllWhenShown(true);
+        tablePopupMenu.addMenuListener(new IMenuListener() {
+            @Override
+            public void menuAboutToShow(IMenuManager manager) {
+            	if (fTable.getSelectionIndex() == 0) {
+            		// Right-click on header row
+            		if (fHeaderState == HeaderState.FILTER) {
+            			tablePopupMenu.add(showSearchBarAction);
+            		} else {
+                        tablePopupMenu.add(showFilterBarAction);
+            		}
+            		return;
+            	}
+				Point point = fTable.toControl(Display.getDefault().getCursorLocation());
+				TableItem item = fTable.getItem(point);
+            	if (item != null) {
+            		Rectangle imageBounds = item.getImageBounds(0);
+            		imageBounds.width = BOOKMARK_IMAGE.getBounds().width;
+            		if (imageBounds.contains(point)) {
+            			// Right-click on left margin 
+                		Long rank = (Long) item.getData(Key.RANK);
+                		if (rank != null) {
+                			if (fBookmarksMap.containsKey(rank)) {
+                                tablePopupMenu.add(new ToggleBookmarkAction(Messages.TmfEventsTable_RemoveBookmarkActionText, rank));
+                			} else {
+                                tablePopupMenu.add(new ToggleBookmarkAction(Messages.TmfEventsTable_AddBookmarkActionText, rank));
+                			}
+                		}
+                		return;
+            		}
+            	}
+            	// Right-click on table
+                if (fTable.isVisible() && fRawViewer.isVisible()) {
+                    tablePopupMenu.add(hideTableAction);
+                    tablePopupMenu.add(hideRawAction);
+                } else if (!fTable.isVisible()) {
+                    tablePopupMenu.add(showTableAction);
+                } else if (!fRawViewer.isVisible()) {
+                    tablePopupMenu.add(showRawAction);
+                }
+                tablePopupMenu.add(new Separator());
+                tablePopupMenu.add(clearFiltersAction);
+                ITmfFilterTreeNode[] savedFilters = FilterManager.getSavedFilters();
+                if (savedFilters.length > 0) {
+                    MenuManager subMenu = new MenuManager(Messages.TmfEventsTable_ApplyPresetFilterMenuName);
+                    for (ITmfFilterTreeNode node : savedFilters) {
+                    	if (node instanceof TmfFilterNode) {
+                    		final TmfFilterNode filter = (TmfFilterNode) node;
+                    		subMenu.add(new Action(filter.getFilterName()) {
+                    			@Override
+                    			public void run() {
+                					synchronized (fFilteredEventCache) {
+                						fFilteredEventCache.clear();
+                						fFilterMatchCount = 0;
+                						fFilterCheckCount = 0;
+                					}
+                					fCacheStartIndex = 0;
+                					fCacheEndIndex = 0;
+            						fTable.clearAll();
+            						fTable.setData(Key.FILTER_OBJ, filter);
+            						fTable.setItemCount(3); // +1 for header row, +2 for top and bottom filter status rows
+            						startFilterThread();
+            						fireFilterApplied(filter);
+                    			}});
+                    	}
+                    }
+                    tablePopupMenu.add(subMenu);
+                }
+                appendToTablePopupMenu(tablePopupMenu, item);
+            }
+        });
+        
+        final MenuManager rawViewerPopupMenu = new MenuManager();
+        rawViewerPopupMenu.setRemoveAllWhenShown(true);
+        rawViewerPopupMenu.addMenuListener(new IMenuListener() {
+            @Override
+            public void menuAboutToShow(IMenuManager manager) {
+                if (fTable.isVisible() && fRawViewer.isVisible()) {
+                	rawViewerPopupMenu.add(hideTableAction);
+                	rawViewerPopupMenu.add(hideRawAction);
+                } else if (!fTable.isVisible()) {
+                	rawViewerPopupMenu.add(showTableAction);
+                } else if (!fRawViewer.isVisible()) {
+                	rawViewerPopupMenu.add(showRawAction);
+                }
+                appendToRawPopupMenu(tablePopupMenu);
+            }
+        });
+        
+        Menu menu = tablePopupMenu.createContextMenu(fTable);
+        fTable.setMenu(menu);
+        
+        menu = rawViewerPopupMenu.createContextMenu(fRawViewer);
+        fRawViewer.setMenu(menu);
+    }
+
