@@ -1,53 +1,66 @@
-		@Override
-		protected IStatus run(final IProgressMonitor monitor) {
-			final Display display = Display.getDefault();
-			if (startRank < 0) {
-				startRank = fTrace.getNbEvents() - 1;
-			} else if (startRank > fTrace.getNbEvents() - 1) {
-				startRank = 0;
-			}
-			TmfContext context = fTrace.seekEvent(startRank);
-			long rank = context.getRank();
-			TmfEvent event = fTrace.getNextEvent(context);
-			while (!monitor.isCanceled() && event != null) {
-				if (filter.matches(event)) {
-					break;
-				}
-				if (direction == Direction.FORWARD) {
-					rank = context.getRank();
-					if (rank == startRank) {
-						return Status.OK_STATUS;
-					}
-					event = fTrace.getNextEvent(context);
-					if (event == null) {
-						if (startRank == 0) {
-							return Status.OK_STATUS;
-						}
-						context = fTrace.seekLocation(null);
-						context.setRank(0);
-						rank = 0;
-						event = fTrace.getNextEvent(context);
-					}
-				} else {
-					rank--;
-					if (rank < 0) rank = fTrace.getNbEvents() - 1;
-					context = fTrace.seekEvent(rank);
-					event = fTrace.getNextEvent(context);
-				}
-			}
-			final int selection = (int) rank + 1; // +1 for header row
-			
-			display.asyncExec(new Runnable() {
-				@Override
-                public void run() {
-					if (monitor.isCanceled()) return;
-					if (fTable.isDisposed()) return;
-					fTable.setSelection(selection);
-					synchronized (fSearchSyncObj) {
-						fSearchThread = null;
-					}
-				}
-			});
-			return Status.OK_STATUS;
-		}
+    	@SuppressWarnings("unchecked")
+    	@Override
+    	protected IStatus run(final IProgressMonitor monitor) {
+    		final Display display = Display.getDefault();
+    		if (startRank < 0) {
+    			startRank = fTrace.getNbEvents() - 1;
+    		} else if (startRank > fTrace.getNbEvents() - 1) {
+    			startRank = 0;
+    		}
+    		int startIndex = (int) startRank;
+    		int nbRequested = (direction == Direction.FORWARD ? Integer.MAX_VALUE : 1);
+    		while (!monitor.isCanceled() && rank == -1) {
+    			request = new TmfDataRequest<TmfEvent>(TmfEvent.class, startIndex, nbRequested) {
+    				@Override
+    				public void handleData(TmfEvent event) {
+    					super.handleData(event);
+    					if (filter.matches(event)) {
+    						rank = startRank + getNbRead() - 1;
+    						done();
+    					}
+    				}
+    			};
+    			((ITmfDataProvider<TmfEvent>) fTrace).sendRequest(request);
+    			try {
+    				request.waitForCompletion();
+    				if (request.isCancelled()) {
+    					return Status.OK_STATUS;
+    				}
+    			} catch (InterruptedException e) {
+    				return Status.OK_STATUS;
+    			}
+    			if (rank == -1) {
+    				if (direction == Direction.FORWARD) {
+    					if (startIndex == 0) {
+    						return Status.OK_STATUS;
+    					} else {
+    						nbRequested = startIndex;
+    						startIndex = 0;
+    					}
+    				} else {
+    					startIndex--;
+    					if (startIndex < 0) {
+    						startIndex = (int) fTrace.getNbEvents() - 1;
+    					}
+    					if (startIndex == startRank) {
+    						return Status.OK_STATUS;
+    					}
+    				}
+    			}
+    		}
+    		final int selection = (int) rank + 1; // +1 for header row
+
+    		display.asyncExec(new Runnable() {
+    			@Override
+    			public void run() {
+    				if (monitor.isCanceled()) return;
+    				if (fTable.isDisposed()) return;
+    				fTable.setSelection(selection);
+    				synchronized (fSearchSyncObj) {
+    					fSearchThread = null;
+    				}
+    			}
+    		});
+    		return Status.OK_STATUS;
+    	}
 
