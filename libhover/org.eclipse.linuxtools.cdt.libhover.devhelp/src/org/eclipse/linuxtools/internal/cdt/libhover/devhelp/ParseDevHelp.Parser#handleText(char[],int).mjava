@@ -1,0 +1,95 @@
+	    public void handleText(char[] data, int pos) {
+	    	if (begin) {
+	    		if (returnType) {
+	    			returnValue = ""; //$NON-NLS-1$
+	    			String tmp = String.valueOf(data).trim();
+	    			boolean completed = false;
+	    			if (tmp.endsWith(");")) { //$NON-NLS-1$
+	    				completed = true;
+	    				tmp = tmp.substring(0, tmp.length() - 2);
+	    			}
+	    			String tokens[] = tmp.split("\\s+"); //$NON-NLS-1$
+	    			String separator = ""; //$NON-NLS-1$
+	    			protoStart = true;
+	    			for (int i = 0; i < tokens.length; ++i) {
+	    				String token = tokens[i];
+	    				if (!token.equals(funcName)) {
+	    					returnValue += separator + token;
+	    					separator = " "; //$NON-NLS-1$
+	    				} else {
+	    					separator = ""; //$NON-NLS-1$
+	    					for (int j = i + 1; j < tokens.length; ++j) {
+	    						String jtoken = tokens[j];
+	    						if (j == i + 1 && jtoken.charAt(0) == '(') {
+	    							jtoken = jtoken.substring(1);
+	    							parmStart = true;
+	    							protoStart = false;
+	    						}
+	    						prototype += separator + jtoken;
+	    						separator = " ";
+	    					}
+	    					if (parmStart && completed) {
+	    						parmStart = false;
+	    						descStart = true;
+	    					}
+	    					break;
+	    				}
+	    			}
+	    			returnType = false;
+	    		}
+	    		else if (protoStart) {
+	    			String temp = String.valueOf(data).trim();
+	    			boolean completed = false;
+	    			if (temp.endsWith(");")) { //$NON-NLS-1$
+	    				completed = true;
+	    				temp = temp.substring(0, temp.length() - 2);
+	    			}
+	    			String separator = " ";
+	    			while (temp.startsWith("*") || temp.startsWith("const")) { //$NON-NLS-1$
+	    				if (temp.charAt(0) == '*') { //$NON-NLS-1$
+	    					returnValue += separator + "*"; //$NON-NLS-1$
+	    					temp = temp.substring(1).trim();
+	    					separator = ""; //$NON-NLS-1$
+	    				} else {
+	    					returnValue += "const"; //$NON-NLS-1$
+	    					temp = temp.substring(5).trim();
+	    					separator = " ";
+	    				}
+	    			}
+	    			int index = temp.lastIndexOf('(');
+	    			int index2 = temp.lastIndexOf(')');
+	    			if (index2 < index) {
+	    				if (index + 1 < temp.length()) {
+	    					temp = temp.substring(index + 1).trim();
+	    					prototype += temp;
+	    				}
+	    				parmStart = true;
+	    				protoStart = false;
+	    			}
+	    			if (parmStart && completed) {
+	    				parmStart = false;
+	    				descStart = true;
+	    			}
+	    		}
+	    		else if (parmStart) {
+	    			String parmData = String.valueOf(data).trim();
+	    			int index = parmData.indexOf(')');
+	    			if (index >= 0) {
+	    				parmStart = false;
+	    				descStart = true;
+	    				parmData = parmData.substring(0, index);
+	    			}
+	    			if (!prototype.equals("")) {
+	    			   if (!parmData.equals(",") && !parmData.equals(""))
+	    				   parmData = " " + parmData;
+	    			}
+	    			prototype += parmData;
+	    		}
+	    		else if (descStart) {
+	    			if (!rowIgnore)
+	    				description += String.valueOf(data);
+	    		}
+	    	}
+
+	    }
+

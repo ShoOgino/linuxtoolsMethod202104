@@ -1,0 +1,74 @@
+	private synchronized void regenerate() {
+		generateButton.setEnabled(false);
+		Job k = new Job(LibHoverMessages.getString(REGENERATE_MSG)) {
+
+			@Override
+			protected IStatus run(IProgressMonitor monitor) {
+				// TODO Auto-generated method stub
+				IPreferenceStore ps = DevHelpPlugin.getDefault().getPreferenceStore();
+				ParseDevHelp.DevHelpParser p =  
+					new ParseDevHelp.DevHelpParser(ps.getString(PreferenceConstants.DEVHELP_DIRECTORY));
+				LibHoverInfo hover = p.parse(monitor);
+				// Update the devhelp library info if it is on library list
+				Collection<LibHoverLibrary> libs = LibHover.getLibraries();
+				for (Iterator<LibHoverLibrary> i = libs.iterator(); i.hasNext();) {
+					LibHoverLibrary l = i.next();
+					if (l.getName().equals("devhelp")) { //$NON-NLS-1$
+						l.setHoverinfo(hover);
+						break;
+					}
+				}
+				try {
+					// Now, output the LibHoverInfo for caching later
+					IPath location = LibhoverPlugin.getDefault().getStateLocation().append("C"); //$NON-NLS-1$
+					File ldir = new File(location.toOSString());
+					ldir.mkdir();
+					location = location.append("devhelp.libhover"); //$NON-NLS-1$
+					FileOutputStream f = new FileOutputStream(location.toOSString());
+					ObjectOutputStream out = new ObjectOutputStream(f);
+					out.writeObject(hover);
+					out.close();
+					monitor.done();
+				} catch(Exception e) {
+					monitor.done();
+					return new Status(IStatus.ERROR, DevHelpPlugin.PLUGIN_ID, e.getLocalizedMessage(), e);
+				}
+				
+				
+				return Status.OK_STATUS;
+			}
+			
+		};
+		k.setUser(true);
+		k.addJobChangeListener(new IJobChangeListener() {
+			public void aboutToRun(IJobChangeEvent event) {
+				// TODO Auto-generated method stub
+			}
+			public void awake(IJobChangeEvent event) {
+				// TODO Auto-generated method stub
+			}
+			public void done(IJobChangeEvent event) {
+				Display.getDefault().syncExec(new Runnable() {
+					@Override
+					public void run() {
+						try {
+							generateButton.setEnabled(true);
+						} catch (Exception e) {
+							// do nothing
+						}
+					}
+				});
+			}
+			public void running(IJobChangeEvent event) {
+				// TODO Auto-generated method stub
+			}
+			public void scheduled(IJobChangeEvent event) {
+				// TODO Auto-generated method stub	
+			}
+			public void sleeping(IJobChangeEvent event) {
+				// TODO Auto-generated method stub
+			}
+		});
+		k.schedule();
+	}
+

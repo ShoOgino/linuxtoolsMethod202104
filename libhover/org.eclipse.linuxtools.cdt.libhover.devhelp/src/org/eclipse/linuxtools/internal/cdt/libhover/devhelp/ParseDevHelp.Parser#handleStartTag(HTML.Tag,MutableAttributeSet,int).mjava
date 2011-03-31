@@ -1,0 +1,58 @@
+		public void handleStartTag(HTML.Tag t, MutableAttributeSet a, int pos) {
+			if (t == HTML.Tag.A) {
+				String name = (String)(a.getAttribute(HTML.Attribute.NAME));
+				if (func.equals(name)) {
+					begin = true;
+				}
+			}
+			if (begin) {
+				if (t == HTML.Tag.DIV) {
+					++divCounter;
+				}
+				if (!descStart) {
+					if (t == HTML.Tag.SPAN) {
+						String type = (String)a.getAttribute(HTML.Attribute.CLASS);
+						if (returnValue == null && type != null && 
+								type.equals("returnvalue")) { //$NON-NLS-1$
+							returnType = true;
+						}
+					}
+					if (t == HTML.Tag.PRE) {
+						String type = (String)a.getAttribute(HTML.Attribute.CLASS);
+						if (type != null && type.equals("programlisting")) //$NON-NLS-1$
+							returnType = true;
+					}
+				}
+				if (protoStart) {
+					if (t == HTML.Tag.P) {
+						protoStart = false;
+						descStart = true;;
+ 						description += "<p>"; //$NON-NLS-1$
+					}
+				} else	if (descStart) {
+					if (t == HTML.Tag.P) {
+						description += "<p>"; //$NON-NLS-1$
+					}
+					else if (t == HTML.Tag.TABLE) {
+						description += "<dl>"; //$NON-NLS-1$
+					}
+					else if (t == HTML.Tag.TR) {
+						rowItemCount = 0;
+					}
+					else if (t == HTML.Tag.TD) {
+						String type = (String)a.getAttribute(HTML.Attribute.CLASS);
+						if (type != null && type.equals("listing_lines")) { //$NON-NLS-1$
+							rowIgnore = true;
+						} else {
+							rowIgnore = false;
+							if (rowItemCount++ == 0)
+								rowTag = "<dt>"; //$NON-NLS-1$
+							else
+								rowTag = "<dd>"; //$NON-NLS-1$
+							description += rowTag;
+						}
+					}
+				}
+			}
+		}
+

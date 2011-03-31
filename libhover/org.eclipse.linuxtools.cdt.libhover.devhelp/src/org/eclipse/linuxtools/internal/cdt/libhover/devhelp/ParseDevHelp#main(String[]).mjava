@@ -1,0 +1,32 @@
+	public static void main(String[] args) {
+		
+		String devhelpHtmlDirectory = args[0];
+		DevHelpParser p = new DevHelpParser(devhelpHtmlDirectory);
+		File dir = new File(devhelpHtmlDirectory);
+		File[] files = dir.listFiles();
+		for (int i = 0; i < files.length; ++i) {
+			File f = files[i];
+			String name = f.getName();
+			p.parse(f.getAbsolutePath() + "/" + name + ".devhelp",  //$NON-NLS-1$ //$NON-NLS-2$
+					new NullProgressMonitor());
+		}
+		LibHoverInfo hover = p.getLibHoverInfo();
+		try {
+			// Now, output the LibHoverInfo for caching later
+			IPath workspaceDir = new Path(args[1]);
+			IPath location = workspaceDir.append("org.eclipse.linuxtools.cdt.libhover/C"); //$NON-NLS-1$
+			File ldir = new File(location.toOSString());
+			ldir.mkdir();
+			location = location.append("devhelp.libhover"); //$NON-NLS-1$
+			FileOutputStream f = new FileOutputStream(location.toOSString());
+			ObjectOutputStream out = new ObjectOutputStream(f);
+			out.writeObject(hover);
+			out.close();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		
+		System.out.println("Parse Complete"); //$NON-NLS-1$
+
+	}
+
