@@ -1,0 +1,39 @@
+		@Override
+		public void run() {
+			FileDialog fileDialog = new FileDialog(fShell, SWT.OPEN);
+			fileDialog.setFilterExtensions(new String[] {"*.xml"}); //$NON-NLS-1$
+			String pathName = fileDialog.open();
+	        if (pathName != null) {
+	        	ColorSetting[] colorSettings = ColorSettingsXML.load(pathName);
+	        	if (colorSettings.length > 0) {
+	        		if (fColorSettings.size() > 0) {
+	        			boolean overwrite = MessageDialog.openQuestion(fShell,
+	        					Messages.ColorsView_ImportOverwriteDialogTitle,
+	        					Messages.ColorsView_ImportOverwriteDialogMessage1 +
+	        					Messages.ColorsView_ImportOverwriteDialogMessage2);
+	        			if (overwrite) {
+		        			for (Control control : fListComposite.getChildren()) {
+		        				if (control instanceof ColorSettingRow) {
+		        					control.dispose();
+		        				}
+		        			}
+		        			fColorSettings = new ArrayList<ColorSetting>();
+		        			fSelectedRow = null;
+	        			}
+	        		}
+	                for (ColorSetting colorSetting : colorSettings) {
+		            	ColorSettingRow row = new ColorSettingRow(fListComposite, colorSetting);
+		            	if (fSelectedRow == null) {
+		            		fColorSettings.add(colorSetting);
+		            		row.moveAbove(fFillerComposite);
+		            	} else {
+		            		fColorSettings.add(fColorSettings.indexOf(fSelectedRow.getColorSetting()), colorSetting);
+		            		row.moveAbove(fSelectedRow);
+		            	}
+	                }
+	                refresh();
+	                ColorSettingsManager.setColorSettings(fColorSettings.toArray(new ColorSetting[0]));
+	        	}
+	        }
+		}
+

@@ -41,13 +41,11 @@
             ITmfTimeAnalysisEntry trace = ((TraceItem) item)._trace;
 
             double x0 = rect.x;
-            List<TimeEvent> list = trace.getTraceEvents();
-            // Iterator it = list.iterator();
-            int count = list.size();
+            Iterator<ITimeEvent> iterator = trace.getTraceEventsIterator();
             ITimeEvent lastEvent = null;
             // Trace.debug("count is: " + count);
-            if (count > 0) {
-                ITimeEvent currEvent = list.get(0);
+            if (iterator.hasNext()) {
+                ITimeEvent currEvent = iterator.next();
                 ITimeEvent nextEvent = null;
                 long currEventTime = currEvent.getTime();
                 long nextEventTime = currEventTime;
@@ -58,20 +56,20 @@
                 double xEnd = rect.x + (double) ((time1 - time0) * pixelsPerNanoSec);
                 double x1 = -1;
                 int idx = 1;
-                double xNext = 0;
+                //double xNext = 0;
 
                 // Drawing rectangle is smaller than reserved space
                 _rect1.y += 3;
                 _rect1.height -= 6;
 
                 // Clean up to empty line to draw on top
-                fillSpace(rect, gc, selected, _rect1.x, xEnd, xEnd);
+                fillSpace(rect, gc, selected);
                 // draw event states
                 while (x0 <= xEnd && null != currEvent) {
                     boolean stopped = false;// currEvent instanceof
                     // TsfTmTraceDeadEvent;
-                    if (idx < count) {
-                        nextEvent = list.get(idx);
+                    if (iterator.hasNext()) {
+                        nextEvent = iterator.next();
                         nextEventTime = nextEvent.getTime();
                         idx++;
                     } else if (stopped) {
@@ -101,10 +99,10 @@
                         // with space until next event
                         _rect1.x += _rect1.width;
                         x0 = x1;
-                        xNext = rect.x + (double) ((nextEventTime - time0) * pixelsPerNanoSec);
+                        //xNext = rect.x + (double) ((nextEventTime - time0) * pixelsPerNanoSec);
                     }
                     // Fill space till next event
-                    fillSpace(rect, gc, selected, x0, xNext, xEnd);
+                    fillSpace(rect, gc, selected);
 
                     lastEvent = currEvent;
                     currEvent = nextEvent;
@@ -135,22 +133,6 @@
                 gc.drawLine(_rect1.x, midy, _rect1.x + _rect1.width, midy);
                 gc.setLineWidth(lw);
             }
-
-            // draw focus area
-            Utils.init(_rect1, rect);
-            gc.setForeground(_colors.getBkColor(selected, _isInFocus, false));
-            int y = _rect1.y;
-            gc.drawLine(_rect1.x, y, _rect1.x + _rect1.width, y);
-            y++;
-            gc.drawLine(_rect1.x, y, _rect1.x + _rect1.width, y);
-            y++;
-            gc.drawLine(_rect1.x, y, _rect1.x + _rect1.width, y);
-            y = _rect1.y + _rect1.height - 1;
-            gc.drawLine(_rect1.x, y, _rect1.x + _rect1.width, y);
-            y--;
-            gc.drawLine(_rect1.x, y, _rect1.x + _rect1.width, y);
-            y--;
-            gc.drawLine(_rect1.x, y, _rect1.x + _rect1.width, y);
         }
 
         // draw selected time

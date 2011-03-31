@@ -1,0 +1,172 @@
+		public ColorSettingRow(final Composite parent, final ColorSetting colorSetting) {
+			super(parent, SWT.NONE);
+			fColorSetting = colorSetting;
+			
+			setBackground(Display.getDefault().getSystemColor(SWT.COLOR_LIST_BACKGROUND));
+			
+	        setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+	        GridLayout gl = new GridLayout(7, false);
+	        gl.marginHeight = 1;
+	        gl.marginWidth = 1;
+	        gl.horizontalSpacing = 1;
+	        gl.verticalSpacing = 0;
+	        setLayout(gl);
+
+	        final Button fgButton = new Button(this, SWT.PUSH);
+	        fgButton.setText(Messages.ColorsView_ForegroundButtonText);
+	        fgButton.setSize(fgButton.computeSize(SWT.DEFAULT, 19));
+	        fgButton.setBackground(Display.getDefault().getSystemColor(SWT.COLOR_LIST_BACKGROUND));
+	
+	        final Button bgButton = new Button(this, SWT.PUSH);
+	        bgButton.setText(Messages.ColorsView_BackgroundButtonText);
+	        bgButton.setBackground(Display.getDefault().getSystemColor(SWT.COLOR_LIST_BACKGROUND));
+
+	        final Composite labelComposite = new Composite(this, SWT.NONE);
+	        labelComposite.setLayoutData(new GridData(SWT.CENTER, SWT.FILL, false, false));
+	        gl = new GridLayout();
+	        gl.marginHeight = 0;
+	        gl.marginWidth = 0;;
+	        labelComposite.setLayout(gl);
+	        labelComposite.setBackground(colorSetting.getBackgroundColor());
+	        
+	        final Label label = new Label(labelComposite, SWT.NONE);
+	        label.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, false, true));
+	        label.setText(" Text "); //$NON-NLS-1$
+	        label.setForeground(colorSetting.getForegroundColor());
+	        label.setBackground(colorSetting.getBackgroundColor());
+	        
+	        fgButton.addSelectionListener(new SelectionAdapter() {
+	        	@Override
+	        	public void widgetSelected(SelectionEvent e) {
+	        		fSelectedRow = ColorSettingRow.this;
+	        		refresh();
+	        		ColorDialog dialog = new ColorDialog(fShell);
+	        		dialog.setRGB(colorSetting.getForegroundRGB());
+	        		dialog.setText(Messages.ColorsView_ForegroundDialogText);
+	        		dialog.open();
+	        		colorSetting.setForegroundRGB(dialog.getRGB());
+	        		ColorSettingsManager.setColorSettings(fColorSettings.toArray(new ColorSetting[0]));
+	        		label.setForeground(colorSetting.getForegroundColor());
+	        	}});
+	        
+	        bgButton.addSelectionListener(new SelectionAdapter() {
+	        	@Override
+	        	public void widgetSelected(SelectionEvent e) {
+	        		fSelectedRow = ColorSettingRow.this;
+	        		refresh();
+	        		ColorDialog dialog = new ColorDialog(fShell);
+	        		dialog.setRGB(colorSetting.getBackgroundRGB());
+	        		dialog.setText(Messages.ColorsView_BackgroundDialogText);
+	        		dialog.open();
+	        		colorSetting.setBackgroundRGB(dialog.getRGB());
+	        		ColorSettingsManager.setColorSettings(fColorSettings.toArray(new ColorSetting[0]));
+	        		labelComposite.setBackground(colorSetting.getBackgroundColor());
+	        		label.setBackground(colorSetting.getBackgroundColor());
+	        	}});
+	        
+	        final Button tickButton = new Button(this, SWT.PUSH);
+	        tickButton.setText(Messages.ColorsView_TickButtonText);
+	        tickButton.setSize(tickButton.computeSize(SWT.DEFAULT, 19));
+	        tickButton.setBackground(Display.getDefault().getSystemColor(SWT.COLOR_LIST_BACKGROUND));
+	        
+	        final Canvas tickCanvas = new Canvas(this, SWT.NONE);
+	        GridData gd = new GridData(SWT.CENTER, SWT.FILL, false, false);
+	        gd.widthHint = 12;
+	        gd.heightHint = bgButton.getSize().y;
+	        tickCanvas.setLayoutData(gd);
+	        tickCanvas.setBackground(traceColorScheme.getBkColor(false, false, false));
+	        tickCanvas.addPaintListener(new PaintListener() {
+				@Override
+                public void paintControl(PaintEvent e) {
+					Rectangle bounds = tickCanvas.getBounds();
+					e.gc.setForeground(traceColorScheme.getColor(TraceColorScheme.MID_LINE));
+					int midy = bounds.y + bounds.height / 2 - 1;
+					//int midy = e.y + e.height / 2;
+					e.gc.drawLine(e.x, midy, e.x + e.width, midy);
+					Rectangle rect = new Rectangle(e.x + 1, bounds.y + 2, 0, bounds.height - 6);
+					for (int i = 1; i <= 3; i++) {
+						rect.x += i;
+						rect.width = i;
+						timeAnalysisProvider.drawState(traceColorScheme, fColorSetting.getTickColorIndex(), rect, e.gc, false, false, false);
+					}
+                }});
+
+	        tickButton.addSelectionListener(new SelectionAdapter() {
+	        	@Override
+	        	public void widgetSelected(SelectionEvent e) {
+	        		fSelectedRow = ColorSettingRow.this;
+	        		refresh();
+	        		TickColorDialog dialog = new TickColorDialog(fShell);
+	        		dialog.setColorIndex(colorSetting.getTickColorIndex());
+	        		dialog.open();
+	        		if (dialog.getReturnCode() == Dialog.OK) {
+	        			if (dialog.getColorIndex() != colorSetting.getTickColorIndex()) {
+	        				colorSetting.setTickColorIndex(dialog.getColorIndex());
+	        				ColorSettingsManager.setColorSettings(fColorSettings.toArray(new ColorSetting[0]));
+	        				refresh();
+	        			}
+	        		}
+	        	}});
+	        
+	        final Button filterButton = new Button(this, SWT.PUSH);
+	        filterButton.setText(Messages.ColorsView_FilterButtonText);
+	        filterButton.setBackground(Display.getDefault().getSystemColor(SWT.COLOR_LIST_BACKGROUND));
+	        
+	        final Label filterText = new Label(this, SWT.NONE);
+	        if (colorSetting.getFilter() != null) {
+	        	filterText.setText(colorSetting.getFilter().toString());
+	        	filterText.setToolTipText(colorSetting.getFilter().toString());
+	        }
+	        filterText.setBackground(Display.getDefault().getSystemColor(SWT.COLOR_LIST_BACKGROUND));
+	        filterText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+	        
+	        filterButton.addSelectionListener(new SelectionAdapter() {
+	        	@Override
+	        	public void widgetSelected(SelectionEvent e) {
+	        		fSelectedRow = ColorSettingRow.this;
+	        		refresh();
+	        		FilterDialog dialog = new FilterDialog(fShell);
+	        		dialog.setFilter(colorSetting.getFilter());
+	        		dialog.open();
+	        		if (dialog.getReturnCode() == Dialog.OK) {
+		        		if (dialog.getFilter() != null) {
+			        		colorSetting.setFilter(dialog.getFilter());
+			        		filterText.setText(dialog.getFilter().toString());
+			        		filterText.setToolTipText(dialog.getFilter().toString());
+		        		} else {
+			        		colorSetting.setFilter(null);
+			        		filterText.setText(""); //$NON-NLS-1$
+			        		filterText.setToolTipText(""); //$NON-NLS-1$
+		        		}
+		        		ColorSettingsManager.setColorSettings(fColorSettings.toArray(new ColorSetting[0]));
+		        		refresh();
+	        		}
+	        	}});
+	        
+	        addPaintListener(new PaintListener() {
+				@Override
+                public void paintControl(PaintEvent e) {
+					if (fSelectedRow == ColorSettingRow.this) {
+						Color borderColor = Display.getDefault().getSystemColor(SWT.COLOR_BLACK);
+						Point p = ColorSettingRow.this.getSize();
+						Rectangle rect = new Rectangle(0, 0, p.x - 1, p.y - 1);
+						GC gc = e.gc;
+						gc.setForeground(borderColor);
+						gc.drawRectangle(rect);
+					}
+				}
+			});
+
+	        MouseListener mouseListener = new MouseAdapter() {
+				@Override
+				public void mouseDown(MouseEvent e) {
+					fSelectedRow = ColorSettingRow.this;
+					refresh();
+				}
+	        }; 
+	        addMouseListener(mouseListener);
+	        label.addMouseListener(mouseListener);
+	        tickCanvas.addMouseListener(mouseListener);
+	        filterText.addMouseListener(mouseListener);
+		}
+

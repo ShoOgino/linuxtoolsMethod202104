@@ -1,0 +1,31 @@
+    protected void clearFilters() {
+		if (fTable.getData(Key.FILTER_OBJ) == null) {
+			return;
+		}
+		long selectedRank = -1;
+		synchronized (fFilteredEventCache) {
+			int selectedIndex = fTable.getSelectionIndex() - 2; // -1 for header row, -1 for top filter status row
+			if (selectedIndex >= 0 && selectedIndex < fFilteredEventCache.size()) {
+				selectedRank = fFilteredEventCache.get(selectedIndex).rank;
+			}
+		}
+		fTable.clearAll();
+		for (TableColumn column : fTable.getColumns()) {
+			column.setData(Key.FILTER_OBJ, null);
+			column.setData(Key.FILTER_TXT, null);
+		}
+		fTable.setData(Key.FILTER_OBJ, null);
+        fTable.setItemCount((int) fTrace.getNbEvents() + 1); // +1 for header row
+		synchronized (fFilteredEventCache) {
+			fFilteredEventCache.clear();
+			fFilterMatchCount = 0;
+			fFilterCheckCount = 0;
+		}
+		if (selectedRank >= 0) {
+			fTable.setSelection((int) selectedRank + 1); // +1 for header row
+		} else {
+			fTable.setSelection(0);
+		}
+		fireFilterApplied(null);
+    }
+

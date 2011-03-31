@@ -1,0 +1,53 @@
+    private void updateTraceEntry(TimeChartAnalysisEntry timeAnalysisEntry, long stopRank, long startTime, long stopTime) {
+        ITmfTrace trace = timeAnalysisEntry.getTrace();
+        TimeChartDecorationProvider decorationProvider = fDecorationProviders.get(trace);
+        if (decorationProvider == null) {
+        	return; // the trace has been closed
+        }
+        TmfContext context = null;
+        //TmfTimestamp lastTimestamp = null;
+        boolean done = false;
+        while (!done) {
+            synchronized (timeAnalysisEntry) {
+                if (timeAnalysisEntry.getLastRank() >= trace.getNbEvents()) {
+                    done = true;
+                    break;
+                }
+                if (context == null || context.getRank() != timeAnalysisEntry.getLastRank()) {
+                    if (timeAnalysisEntry.getLastRank() != -1) {
+                        context = trace.seekEvent(timeAnalysisEntry.getLastRank());
+                    } else {
+                        //context = trace.seekLocation(null);
+                        context = trace.seekEvent(0);
+                    }
+                }
+                while (true) {
+                    long rank = context.getRank();
+                    TmfEvent event = trace.getNextEvent(context);
+                    if (event == null) {
+                        done = true;
+                        break;
+                    }
+                    //if (!event.getTimestamp().equals(lastTimestamp)) {
+                    TimeChartEvent timeEvent = new TimeChartEvent(timeAnalysisEntry, event, rank, decorationProvider);
+                    if (timeEvent.getTime() >= startTime && timeEvent.getTime() <= stopTime) {
+                        timeAnalysisEntry.addTraceEvent(timeEvent);
+                    }
+                    //lastTimestamp = event.getTimestamp();
+                    //} *** commented out so that color setting priority gets set even if the event has same time
+                    if (context.getRank() == trace.getNbEvents() || context.getRank() == stopRank) {
+                        done = true;
+                        break;
+                    }
+                    if (context.getRank() % trace.getCacheSize() == 1) {
+                    	// break for UI refresh
+                        break;
+                    }
+                }
+                //timeAnalysisEntry.setLastRank(Math.min(trace.getNbEvents(), stopRank));
+                timeAnalysisEntry.setLastRank(context.getRank());
+            }
+            refreshViewer(false);
+        }
+    }
+

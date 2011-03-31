@@ -1,48 +1,17 @@
 	private void resize() {
-
 		// Compute the numbers of rows that fit the new area
-		int tableHeight = fTable.getClientArea().height - fTable.getHeaderHeight();
+		int tableHeight = Math.max(0, getSize().y - fTable.getHeaderHeight());
+		int itemHeight = getItemHeight();
+		fTableRows = Math.min((tableHeight + itemHeight - 1) / itemHeight, fTableItemCount);
 
-		if (tableHeight < 0) tableHeight = 0;
-		int itemHeight  = fTable.getItemHeight();
-		fTableRows  = tableHeight / itemHeight;
-		fPartialRowVisible = false;
-		if (fTableRows * itemHeight < tableHeight) {
-			fTableRows++;	// For partial rows
-			fPartialRowVisible = true;
-		}
-		if (fTableRows > fTableItemCount) {
-			fTableRows = fTableItemCount;
-		}
-		
-		// If we are at the end, get elements before to populate
-		if (fTableTopEventRank + fTableRows >= fTableItemCount) {
-			fTableTopEventRank = fTableItemCount - fTableRows;
-		}
-		
-		// Set the slider thumb size
-		if (fTableItemCount > 0) {
-			fSlider.setThumb(fTableRows);
-		}
-		
-		// Re-size and re-create the virtual table if needed
-		int delta = fTable.getItemCount() - fTableRows;
-		if (delta != 0) {
-			fTable.removeAll();
-			if (fTableItems != null) {
-				for (int i = 0; i < fTableItems.length; i++) {
-					if (fTableItems[i] != null) {
-						fTableItems[i].dispose();
-					}
-					fTableItems[i] = null;
-				}
-			}
-			fTableItems = new TableItem[fTableRows];
-			for (int i = 0; i < fTableItems.length; i++) {
-				fTableItems[i] = new TableItem(fTable, i);
-			}
+		if (fTableTopEventRank + fFullyVisibleRows > fTableItemCount) {
+			// If we are at the end, get elements before to populate
+			fTableTopEventRank = Math.max(0, fTableItemCount - fFullyVisibleRows);
+			refreshTable();
+		} else if (fTableRows > fTable.getItemCount() || fTableItemCount < fTable.getItemCount()) {
+			// Only refresh if new table items are needed or if table items need to be deleted
+			refreshTable();
 		}
 
-		refresh();
 	}
 

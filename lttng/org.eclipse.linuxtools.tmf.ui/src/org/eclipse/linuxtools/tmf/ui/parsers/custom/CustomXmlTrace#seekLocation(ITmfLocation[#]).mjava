@@ -2,12 +2,12 @@
     public TmfContext seekLocation(ITmfLocation<?> location) {
         //System.out.println(Thread.currentThread().getName() + "::" + getName() + " seekLocation(" + ((location == null || location.getLocation() == null) ? "null" : location) + ")");
         //new Throwable().printStackTrace();
-        CustomXmlTraceContext context = new CustomXmlTraceContext(new TmfLocation<Long>((Long)null), ITmfContext.INITIAL_RANK);
-        if (!new File(getPath()).isFile()) {
+        CustomXmlTraceContext context = new CustomXmlTraceContext(NULL_LOCATION, ITmfContext.INITIAL_RANK);
+        if (NULL_LOCATION.equals(location) || !new File(getPath()).isFile()) {
             return context;
         }
         try {
-            context.raFile = new RandomAccessFile(getPath(), "r"); //$NON-NLS-1$
+            context.raFile = new BufferedRandomAccessFile(getPath(), "r"); //$NON-NLS-1$
             if (location != null && location.getLocation() instanceof Long) {
                 context.raFile.seek((Long)location.getLocation());
             }
@@ -16,7 +16,7 @@
             String recordElementStart = "<" + fRecordInputElement.elementName; //$NON-NLS-1$
             long rawPos = context.raFile.getFilePointer();
             
-            while ((line = context.raFile.readLine()) != null) {
+            while ((line = context.raFile.getNextLine()) != null) {
                 int idx = line.indexOf(recordElementStart); 
                 if (idx != -1) {
                     context.setLocation(new TmfLocation<Long>(rawPos + idx));

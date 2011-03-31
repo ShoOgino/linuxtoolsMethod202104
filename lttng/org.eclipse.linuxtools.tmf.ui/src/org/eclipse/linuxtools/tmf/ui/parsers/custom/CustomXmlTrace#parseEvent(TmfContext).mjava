@@ -6,7 +6,7 @@
         }
         
         CustomXmlTraceContext context = (CustomXmlTraceContext) tmfContext;
-        if (!(context.getLocation().getLocation() instanceof Long)) {
+        if (!(context.getLocation().getLocation() instanceof Long) || NULL_LOCATION.equals(context.getLocation())) {
             return null;
         }
 
@@ -21,12 +21,13 @@
                 Element element = parseElementBuffer(elementBuffer);
                 
                 event = extractEvent(element, fRecordInputElement);
+                ((StringBuffer) event.getContent().getContent()).append(elementBuffer);
                 
                 String line;
                 String recordElementStart = "<" + fRecordInputElement.elementName; //$NON-NLS-1$
                 long rawPos = context.raFile.getFilePointer();
                 
-                while ((line = context.raFile.readLine()) != null) {
+                while ((line = context.raFile.getNextLine()) != null) {
                     int idx = line.indexOf(recordElementStart); 
                     if (idx != -1) {
                         context.setLocation(new TmfLocation<Long>(rawPos + idx));
@@ -37,7 +38,7 @@
             } catch (IOException e) {
                 e.printStackTrace();
             }
-            context.setLocation(new TmfLocation<Long>((Long)null));
+            context.setLocation(NULL_LOCATION);
             return event;
         }
     }

@@ -1,0 +1,32 @@
+        @Override
+        public boolean hasNext() {
+            synchronized (fTraceEvents) {
+                if (next != null) return true;
+                if (nestedIterator != null) {
+                    if (nestedIterator.hasNext()) {
+                        return true;
+                    } else {
+                        nestedIterator = null;
+                    }
+                }
+                long time = (lastTime == -1) ? fStartTime : lastTime;
+                int index = (fReferenceTime == -1) ? 0 : (int) ((time - fReferenceTime) >> fPower);
+                while (index < fTraceEvents.size()) {
+                    TimeChartEvent event = fTraceEvents.get(index++);
+                    if (event != null && (lastTime == -1 || event.getTime() > time)) {
+                        if (event.getTime() + event.getDuration() >= fIteratorStartTime && event.getTime() <= fIteratorStopTime) {
+                            if (event.getItemizedEntry() == null || event.getDuration() <= fIteratorMaxDuration) {
+                                lastTime = event.getTime() + event.getDuration();
+                                next = event;
+                                return true;
+                            } else {
+                                nestedIterator = event.getItemizedEntry().getTraceEventsIterator(fIteratorStartTime, fIteratorStopTime, fIteratorMaxDuration);
+                                return nestedIterator.hasNext();
+                            }
+                        }
+                    }
+                }
+                return false;
+            }
+        }
+

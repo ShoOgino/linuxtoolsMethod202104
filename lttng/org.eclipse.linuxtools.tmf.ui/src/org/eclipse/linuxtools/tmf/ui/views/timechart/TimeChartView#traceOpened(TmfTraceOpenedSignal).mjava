@@ -1,0 +1,26 @@
+	@TmfSignalHandler
+    public void traceOpened(TmfTraceOpenedSignal signal) {
+        if (fTimeAnalysisEntries == null) return;
+        final ITmfTrace trace = signal.getTrace();
+        final IResource resource = signal.getResource();
+        final ITmfEventsFilterProvider eventsFilterProvider = signal.getEventsFilterProvider();
+        TimeChartAnalysisEntry timeAnalysisEntry = null;
+        for (int i = 0; i < fTimeAnalysisEntries.size(); i++) {
+            if (fTimeAnalysisEntries.get(i).getTrace().equals(trace)) {
+                timeAnalysisEntry = fTimeAnalysisEntries.get(i);
+                break;
+            }
+        }
+        if (timeAnalysisEntry == null) {
+            timeAnalysisEntry = new TimeChartAnalysisEntry(trace, fDisplayWidth * 2); 
+            fTimeAnalysisEntries.add(timeAnalysisEntry);
+            fDecorationProviders.put(trace, new TimeChartDecorationProvider(resource));
+            Thread thread = new ProcessTraceThread(timeAnalysisEntry);
+            thread.start();
+        }
+        refreshViewer(true);
+        if (eventsFilterProvider != null) {
+        	eventsFilterProvider.addEventsFilterListener(this);
+        }
+    }
+

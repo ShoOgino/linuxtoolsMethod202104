@@ -1,0 +1,43 @@
+	/**
+	 * Fill the context menu for the tree viewer
+	 */
+	protected void fillContextMenu(IMenuManager manager) {
+		final ISelection selection = fViewer.getSelection();
+		ITmfFilterTreeNode filterTreeNode = null;
+		if (selection instanceof StructuredSelection) {
+			Object element = ((StructuredSelection) selection).getFirstElement();
+			if (element instanceof ITmfFilterTreeNode) {
+				filterTreeNode = (ITmfFilterTreeNode) element;
+			}
+		}
+
+		final ITmfFilterTreeNode selectedNode = filterTreeNode;
+		
+		if (selectedNode != null) {
+			
+			fillContextMenuForNode(selectedNode, manager);
+			
+			if (selectedNode.getValidChildren().size() > 0) {
+				manager.add(new Separator());
+			}
+
+			Action deleteAction = new Action() {
+				@Override
+				public void run() {
+					selectedNode.remove();
+					fViewer.refresh();
+				}
+			};
+			deleteAction.setText(Messages.FilterViewer_DeleteActionText);
+			manager.add(deleteAction);
+			
+			manager.add(new Separator());
+		}
+
+		if (fViewer.getInput() instanceof TmfFilterRootNode || selectedNode == null) {
+			final ITmfFilterTreeNode root = (ITmfFilterTreeNode) fViewer.getInput();
+			
+			fillContextMenuForNode(root, manager);
+		}
+	}
+

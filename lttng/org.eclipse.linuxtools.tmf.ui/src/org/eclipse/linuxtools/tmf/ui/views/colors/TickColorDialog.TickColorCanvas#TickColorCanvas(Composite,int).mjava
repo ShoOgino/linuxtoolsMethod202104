@@ -1,0 +1,45 @@
+    	public TickColorCanvas(Composite parent, int style) {
+    		super(parent, style);
+    		
+    		GridData gd = new GridData(SWT.CENTER, SWT.FILL, true, false);
+    		gd.widthHint = 40;
+    		gd.heightHint = 25;
+    		setLayoutData(gd);
+    		setBackground(traceColorScheme.getBkColor(false, false, false));
+    		
+    		addPaintListener(new PaintListener() {
+    			@Override
+    			public void paintControl(PaintEvent e) {
+    				e.gc.setForeground(traceColorScheme.getColor(TraceColorScheme.MID_LINE));
+    				int midy = e.y + e.height / 2;
+    				e.gc.drawLine(e.x, midy, e.x + e.width, midy);
+    				int midx = e.x + e.width / 2;
+    				Rectangle rect = new Rectangle(midx - 10, e.y + 3, 0, e.height - 6);
+    				for (int i = 1; i <= 3; i++) {
+    					rect.x += i;
+    					rect.width = i;
+    					timeAnalysisProvider.drawState(traceColorScheme, colorIndex, rect, e.gc, false, false, false);
+    				}
+    				for (int i = 3; i > 0; i--) {
+    					rect.x += i + 2;
+    					rect.width = i;
+    					timeAnalysisProvider.drawState(traceColorScheme, colorIndex, rect, e.gc, false, false, false);
+    				}
+					if (selectedIndex == colorIndex) {
+						Color borderColor = Display.getDefault().getSystemColor(SWT.COLOR_BLACK);
+						Point p = TickColorCanvas.this.getSize();
+						rect = new Rectangle(0, 0, p.x - 1, p.y - 1);
+						GC gc = e.gc;
+						gc.setForeground(borderColor);
+						gc.drawRectangle(rect);
+					}
+    			}});
+    		
+    		addMouseListener(new MouseAdapter() {
+				@Override
+                public void mouseUp(MouseEvent e) {
+					selectedIndex = colorIndex;
+					colorComposite.redraw(0, 0, colorComposite.getBounds().width, colorComposite.getBounds().height, true);
+                }});
+    	}
+

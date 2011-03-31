@@ -1,0 +1,90 @@
+    @Override
+    public void widgetSelected(SelectionEvent e) {
+    	fTextArea.setFocus();
+        if (fLines.size() == 0) {
+            return;
+        }
+        if (e.detail == SWT.DRAG) {
+            return;
+        }
+        fHoldSelection++;
+        switch (e.detail) {
+            case SWT.NONE: {
+                //long rank = (long) (fTrace.getNbEvents() * ((double) fSlider.getSelection() / SLIDER_MAX));
+                //setTopRank(rank);
+            	if (fSlider.getSelection() == 0 || fSlider.getThumb() == SLIDER_MAX) {
+                    fLines.clear();
+                    setTopPosition(0.0);
+                    break;
+            	}
+                double ratio = (double) fSlider.getSelection() / (SLIDER_MAX - fSlider.getThumb());
+                double delta = Math.pow(10, -15);
+                fLines.clear();
+                while (fLines.size() == 0) {
+                    setTopPosition(ratio);
+                    if (ratio == 0.0) break;
+                    delta = Math.min(delta * 10, 0.1);
+                    ratio = Math.max(ratio - delta, 0.0);
+                }
+                break;
+            }
+            case SWT.ARROW_DOWN: {
+                if (fTopLineIndex >= fLines.size()) {
+                    break;
+                }
+                fTopLineIndex++;
+                loadLineData();
+                updateTextArea();
+                break;
+            }
+            case SWT.PAGE_DOWN: {
+                fTopLineIndex += Math.max(fNumVisibleLines - 1, 1);
+                loadLineData();
+                updateTextArea();
+                break;
+            }
+            case SWT.ARROW_UP: {
+                //if (fLines.size() == 0 || (fTopLineIndex == 0 && fLines.get(0).rank == 0)) {
+                if (fLines.size() == 0) {// || (fTopLineIndex == 0 && fLines.get(0).rank == 0)) {
+                    break;
+                }
+                fTopLineIndex--;
+                loadLineData();
+                updateTextArea();
+                break;
+            }
+            case SWT.PAGE_UP: {
+                fTopLineIndex -= Math.max(fNumVisibleLines - 1, 1);
+                loadLineData();
+                updateTextArea();
+                break;
+            }
+            case SWT.HOME: {
+                //selectAndReveal(0);
+                setTopPosition(0.0);
+                break;
+            }
+            case SWT.END: {
+                //if (fTrace.getNbEvents() > 0) {
+                    //selectAndReveal(fTrace.getNbEvents() - 1);
+                //}
+                double ratio = 1.0;
+                double delta = Math.pow(10, -15);
+                fLines.clear();
+                while (fLines.size() == 0) {
+                    setTopPosition(ratio);
+                    if (ratio == 0.0) break;
+                    delta = Math.min(delta * 10, 0.1);
+                    ratio = Math.max(ratio - delta, 0.0);
+                }
+                break;
+            }
+        }
+        //fSlider.setSelection((int) (SLIDER_MAX * ((double) fLines.get(fTopLineIndex).rank / fTrace.getNbEvents())));
+        if (e.detail != SWT.NONE) {
+            fSlider.setSelection((int) (SLIDER_MAX * fTrace.getLocationRatio(fLines.get(fTopLineIndex).location)));
+        }
+        
+        fHoldSelection = 0;
+    }
+

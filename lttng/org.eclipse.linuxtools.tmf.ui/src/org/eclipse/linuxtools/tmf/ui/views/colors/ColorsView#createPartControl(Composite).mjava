@@ -1,0 +1,63 @@
+	/* (non-Javadoc)
+	 * @see org.eclipse.linuxtools.tmf.ui.views.TmfView#createPartControl(org.eclipse.swt.widgets.Composite)
+	 */
+	@Override
+	public void createPartControl(Composite parent) {
+		fShell = parent.getShell();
+
+        fScrolledComposite = new ScrolledComposite(parent, SWT.V_SCROLL | SWT.H_SCROLL);
+        fScrolledComposite.setExpandHorizontal(true);
+        fScrolledComposite.setExpandVertical(true);
+        fListComposite = new Composite(fScrolledComposite, SWT.NONE);
+        fScrolledComposite.setContent(fListComposite);
+        
+        GridLayout gl = new GridLayout();
+        gl.marginHeight = 0;
+        gl.marginWidth = 0;
+        gl.verticalSpacing = 1;
+        fListComposite.setLayout(gl);
+
+		fColorSettings = new ArrayList<ColorSetting>(Arrays.asList(ColorSettingsManager.getColorSettings())); 
+        for (ColorSetting colorSetting : fColorSettings) {
+        	new ColorSettingRow(fListComposite, colorSetting);
+        }
+        
+        fFillerComposite = new Composite(fListComposite, SWT.NONE);
+        GridData gd = new GridData(SWT.FILL, SWT.FILL, true, true);
+        gd.heightHint = 0;
+        fFillerComposite.setLayoutData(gd);
+        gl = new GridLayout();
+        gl.marginHeight = 1;
+        gl.marginWidth = 1;
+        fFillerComposite.setLayout(gl);
+        Label fillerLabel = new Label(fFillerComposite, SWT.NONE);
+        fillerLabel.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+        fillerLabel.setBackground(Display.getDefault().getSystemColor(SWT.COLOR_LIST_BACKGROUND));
+        
+        fFillerComposite.addPaintListener(new PaintListener() {
+			@Override
+            public void paintControl(PaintEvent e) {
+				if (fSelectedRow == null) {
+					Color lineColor = Display.getDefault().getSystemColor(SWT.COLOR_BLACK);
+					Point p = fFillerComposite.getSize();
+					GC gc = e.gc;
+					gc.setForeground(lineColor);
+					gc.drawLine(0, 0, p.x - 1, 0);
+				}
+			}
+		});
+
+        MouseListener mouseListener = new MouseAdapter() {
+			@Override
+			public void mouseDown(MouseEvent e) {
+				fSelectedRow = null;
+				refresh();
+			}
+        }; 
+        fillerLabel.addMouseListener(mouseListener);
+        
+        fScrolledComposite.setMinSize(fListComposite.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+        
+        fillToolBar();
+	}
+

@@ -1,0 +1,55 @@
+    	@SuppressWarnings("unchecked")
+    	@Override
+    	public void run() {
+    		final Display display = Display.getDefault();
+    		lastRefreshTime = System.currentTimeMillis();
+
+    		request = new TmfDataRequest<TmfEvent>(TmfEvent.class, 0, Integer.MAX_VALUE, ExecutionType.BACKGROUND) {
+    			@Override
+    			public void handleData(TmfEvent event) {
+    				super.handleData(event);
+    				fFilterCheckCount++;
+    				if (filter.matches(event)) {
+    					synchronized (fFilteredEventCache) {
+    						fFilteredEventCache.add(new FilteredEvent(event.clone(), getNbRead() - 1));
+    						fFilterMatchCount++;
+    					}
+    					display.asyncExec(new Runnable() {
+    						@Override
+    						public void run() {
+    							if (request.isCancelled()) return;
+    							if (fTable.isDisposed()) return;
+    							fTable.setItemCount(fFilteredEventCache.size() + 3); // +1 for header row, +2 for top and bottom filter status rows
+    						}
+    					});
+    				}
+    				if (fFilterCheckCount % 100 == 0) {
+    					long currentTime = System.currentTimeMillis();
+    					if (currentTime - lastRefreshTime > 1000) {
+    						lastRefreshTime = currentTime;
+    						display.asyncExec(new Runnable() {
+    							@Override
+    							public void run() {
+    								if (request.isCancelled()) return;
+    								if (fTable.isDisposed()) return;
+    								fTable.refresh();
+    							}
+    						});
+    					}
+    				}
+    			}
+    		};
+    		((ITmfDataProvider<TmfEvent>) fTrace).sendRequest(request);
+    		try {
+    			request.waitForCompletion();
+    		} catch (InterruptedException e) {
+    		}
+    		display.asyncExec(new Runnable() {
+    			@Override
+    			public void run() {
+    				if (fTable.isDisposed()) return;
+    				fTable.refresh();
+    			}
+    		});
+    	}
+

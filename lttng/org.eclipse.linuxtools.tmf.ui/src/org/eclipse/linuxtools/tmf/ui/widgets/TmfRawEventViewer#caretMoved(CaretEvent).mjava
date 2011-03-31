@@ -1,0 +1,26 @@
+    @Override
+    public void caretMoved(CaretEvent event) {
+        if (fHoldSelection == 0) {
+            int line = fStyledText.getLineAtOffset(event.caretOffset);
+            if (fTopLineIndex + line < fLines.size()) {
+                LineData lineData = fLines.get(fTopLineIndex + line);
+                if (!lineData.location.equals(fSelectedLocation)) {
+                    fSelectedLocation = lineData.location;
+                    refreshLineBackgrounds();
+                    sendSelectionEvent(lineData);
+                }
+            }
+        }
+        storeCaretPosition(event.time, event.caretOffset);
+        if (fHoldSelection == 0) {
+            Point caret = fStyledText.getLocationAtOffset(fStyledText.getCaretOffset());
+            Point origin = fScrolledComposite.getOrigin();
+            if (origin.x > caret.x) {
+                origin.x = caret.x;
+            } else if (caret.x - origin.x > fScrolledComposite.getSize().x) {
+                origin.x = caret.x - fScrolledComposite.getSize().x + 1;
+            }
+            fScrolledComposite.setOrigin(origin);
+        }
+    }
+

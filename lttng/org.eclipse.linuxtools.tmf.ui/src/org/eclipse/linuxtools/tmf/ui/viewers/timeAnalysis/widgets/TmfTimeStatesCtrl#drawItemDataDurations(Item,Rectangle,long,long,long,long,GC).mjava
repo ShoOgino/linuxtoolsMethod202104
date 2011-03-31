@@ -40,10 +40,8 @@
             ITmfTimeAnalysisEntry trace = ((TraceItem) item)._trace;
 
             double x0 = rect.x;
-            @SuppressWarnings("unchecked")
-            List<TimeEvent> list = (List<TimeEvent>) trace.getTraceEvents().clone();
-            // Iterator it = list.iterator();
-            int count = list.size();
+            long maxDuration = (_timeProvider.getTimeSpace() == 0) ? Long.MAX_VALUE : 1 * (_timeProvider.getTime1() - _timeProvider.getTime0()) / _timeProvider.getTimeSpace();
+            Iterator<ITimeEvent> iterator = trace.getTraceEventsIterator(_timeProvider.getTime0(), _timeProvider.getTime1(), maxDuration);
             // ITimeEvent lastEvent = null;
             // if (Trace.isDEBUG()) {
             // Trace.debug("\n\t\t\tTrace: " + trace.getName()
@@ -56,9 +54,9 @@
 
             // Clean up to empty line to draw on top
             int xEnd = rect.x + rect.width;
-            fillSpace(rect, gc, selected, _rect1.x, xEnd, xEnd);
-            if (count > 0) {
-                ITimeEvent currEvent = list.get(0);
+            fillSpace(rect, gc, selected);
+            if (iterator.hasNext()) {
+                ITimeEvent currEvent = iterator.next();
                 ITimeEvent nextEvent = null;
                 long currEventTime = currEvent.getTime();
                 long currEventDuration = currEvent.getDuration();
@@ -78,8 +76,8 @@
                     // refresh current event duration as the loop moves
                     currEventDuration = currEvent.getDuration();
                     // TsfTmTraceDeadEvent;
-                    if (idx < count) {
-                        nextEvent = list.get(idx);
+                    if (iterator.hasNext()) {
+                        nextEvent = iterator.next();
                         nextEventTime = nextEvent.getTime();
                         idx++;
                     } else if (stopped) {
@@ -118,11 +116,11 @@
                     if (x1 >= rect.x && x0 <= xEnd) {
                         if (currEventDuration != 0) {
                             x0 = (double) (x0 >= rect.x ? x0 : rect.x);
-                            _rect1.width = (int) ((x1 <= xEnd ? x1 : xEnd) - x0);
+                            _rect1.width = (int) Math.ceil(x1 <= xEnd ? x1 : xEnd) - (int) x0;
                         } else {
-                            _rect1.width = 2; // make punctual events 2 pixels
-                                              // wide
+                            _rect1.width = 1;
                         }
+                        _rect1.width = Math.max(_minimumItemWidth, _rect1.width);
                         _rect1.x = (int) x0;
                         boolean timeSelected = currEventTime <= selectedTime && selectedTime < nextEventTime;
                         utilImpl.drawState(_colors, currEvent, _rect1, gc, selected, false, timeSelected);
@@ -150,22 +148,6 @@
                     // + K + " = " + x0);
                 }
             }
-
-            // draw focus area
-            Utils.init(_rect1, rect);
-            gc.setForeground(_colors.getBkColor(selected, _isInFocus, false));
-            int y = _rect1.y;
-            gc.drawLine(_rect1.x, y, _rect1.x + _rect1.width, y);
-            y++;
-            gc.drawLine(_rect1.x, y, _rect1.x + _rect1.width, y);
-            y++;
-            gc.drawLine(_rect1.x, y, _rect1.x + _rect1.width, y);
-            y = _rect1.y + _rect1.height - 1;
-            gc.drawLine(_rect1.x, y, _rect1.x + _rect1.width, y);
-            y--;
-            gc.drawLine(_rect1.x, y, _rect1.x + _rect1.width, y);
-            y--;
-            gc.drawLine(_rect1.x, y, _rect1.x + _rect1.width, y);
         }
 
         // draw selected time

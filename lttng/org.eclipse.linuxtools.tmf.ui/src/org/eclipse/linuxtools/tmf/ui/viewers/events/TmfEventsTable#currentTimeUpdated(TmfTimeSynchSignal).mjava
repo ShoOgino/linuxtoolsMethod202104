@@ -1,3 +1,4 @@
+    @SuppressWarnings("unchecked")
     @TmfSignalHandler
     public void currentTimeUpdated(final TmfTimeSynchSignal signal) {
     	if ((signal.getSource() != fTable) && (fTrace != null) && (!fTable.isDisposed())) {
@@ -26,7 +27,8 @@
     				}
 
     				// Get the rank for the event selection in the table
-    				final int index = (int) fTrace.getRank(timestamp[0]);
+    				final long rank = fTrace.getRank(timestamp[0]);
+    				fSelectedRank = rank;
 
     				fTable.getDisplay().asyncExec(new Runnable() {
     					@Override
@@ -34,37 +36,20 @@
     						// Return if table is disposed
     						if (fTable.isDisposed()) return;
 
-    						fTable.setSelection(index);
-
-    						// If index is in cache, then notify about updated selection. 
-    						// Otherwise it's done after fetching the relevant events from the trace
-    						if ((index >= fCacheStartIndex) && (index < fCacheEndIndex)) {
-    							// Use the timestamp in signal to broadcast to avoid moving the selection
-    							// at the source of the signal
-    							fTable.notifyUpdatedSelection(timestamp[0]);
-    						}
-
-    						// The timestamp might not correspond to an actual event
-    						// and the selection will point to the next experiment event.
-    						// But we would like to display both the event before and
-    						// after the selected timestamp.
-    						// This works fine by default except when the selected event
-    						// is the top displayed event. The following ensures that we
-    						// always see both events.
-    						if ((index > 0) && (index == fTable.getTopIndex())) {
-    							fTable.setTopIndex(index - 1);
-    						}
+                            int index = (int) rank;
+                            if (fTable.isDisposed()) return;
+                            if (fTable.getData(Key.FILTER_OBJ) != null) {
+                            	index = getFilteredEventIndex(rank) + 1; //+1 for top filter status row
+                            }
+                            fTable.setSelection(index + 1); // +1 for header row
+                            fRawViewer.selectAndReveal(rank);
     					}
     				});
     				super.handleCompleted();
     			}
     		};
 
-    		@SuppressWarnings("unchecked")
-            TmfExperiment<TmfEvent> experiment = (TmfExperiment<TmfEvent>)TmfExperiment.getCurrentExperiment();
-    		if (experiment != null) {
-    			experiment.sendRequest(subRequest);
-    		}
+            ((ITmfDataProvider<TmfEvent>) fTrace).sendRequest(subRequest);
     	}
 	}
 

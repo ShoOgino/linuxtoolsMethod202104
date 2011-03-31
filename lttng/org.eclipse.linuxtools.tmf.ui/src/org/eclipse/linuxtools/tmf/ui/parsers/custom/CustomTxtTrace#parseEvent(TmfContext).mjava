@@ -6,7 +6,7 @@
         }
         
         CustomTxtTraceContext context = (CustomTxtTraceContext) tmfContext;
-        if (!(context.getLocation().getLocation() instanceof Long)) {
+        if (!(context.getLocation().getLocation() instanceof Long) || NULL_LOCATION.equals(context.getLocation())) {
             return null;
         }
 
@@ -26,7 +26,7 @@
                 }
                 String line;
                 long rawPos = context.raFile.getFilePointer();
-                while ((line = context.raFile.readLine()) != null) {
+                while ((line = context.raFile.getNextLine()) != null) {
                     boolean processed = false;
                     if (currentInput == null) {
                         for (InputLine input : getFirstLines()) {
@@ -34,6 +34,7 @@
                             if (matcher.find()) {
                                 context.setLocation(new TmfLocation<Long>(rawPos));
                                 context.firstLineMatcher = matcher;
+                                context.firstLine = line;
                                 context.nextLineLocation = context.raFile.getFilePointer();
                                 context.inputLine = input;
                                 return event;
@@ -48,6 +49,7 @@
                                     if (matcher.find()) {
                                         context.setLocation(new TmfLocation<Long>(rawPos));
                                         context.firstLineMatcher = matcher;
+                                        context.firstLine = line;
                                         context.nextLineLocation = context.raFile.getFilePointer();
                                         context.inputLine = input;
                                         return event;
@@ -126,6 +128,7 @@
                                     }
                                 }
                             }
+                            ((StringBuffer) event.getContent().getContent()).append("\n").append(line); //$NON-NLS-1$
                         }
                     }
                     rawPos = context.raFile.getFilePointer();
@@ -139,7 +142,7 @@
                 event = null;
             }
         }
-        context.setLocation(new TmfLocation<Long>((Long)null));
+        context.setLocation(NULL_LOCATION);
         return event;
     }
 

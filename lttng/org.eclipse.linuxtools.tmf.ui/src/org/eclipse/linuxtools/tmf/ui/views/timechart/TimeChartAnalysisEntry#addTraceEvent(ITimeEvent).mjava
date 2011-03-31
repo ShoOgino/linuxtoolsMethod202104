@@ -1,0 +1,49 @@
+    @Override
+    public void addTraceEvent(ITimeEvent timeEvent) {
+        long time = timeEvent.getTime();
+        synchronized (fTraceEvents) {
+            long index = (fReferenceTime == -1) ? 0 : (time - fReferenceTime) >> fPower;
+            if (index < 0) {
+                if (fTraceEvents.capacity() - fTraceEvents.size() < -index) {
+                    int powershift = (-index + fTraceEvents.size() <= 2 * fTraceEvents.capacity()) ? 1 :
+                        (int) Math.ceil(Math.log((double) (-index + fTraceEvents.size()) / fTraceEvents.capacity()) / Math.log(2));
+                    merge(powershift);
+                    index = (int) ((time - fReferenceTime) >> fPower);
+                }
+                shift((int) -index);
+                index = 0;
+                fTraceEvents.set(0, (TimeChartEvent) timeEvent);
+            } else if (index < fTraceEvents.capacity()) {
+                if (index >= fTraceEvents.size()) {
+                    fTraceEvents.setSize((int) index + 1);
+                }
+            } else {
+                int powershift = (index < 2 * fTraceEvents.capacity()) ? 1 :
+                    (int) Math.ceil(Math.log((double) (index + 1) / fTraceEvents.capacity()) / Math.log(2));
+                merge(powershift);
+                index = (int) ((time - fReferenceTime) >> fPower);
+                fTraceEvents.setSize((int) index + 1);
+            }
+            TimeChartEvent event = (TimeChartEvent) fTraceEvents.get((int) index);
+            if (event == null) {
+                fTraceEvents.set((int) index, (TimeChartEvent) timeEvent);
+            } else {
+                if (event.getItemizedEntry() == null) {
+                    event.merge((TimeChartEvent) timeEvent);
+                } else {
+                	event.mergeDecorations((TimeChartEvent) timeEvent);
+                    event.getItemizedEntry().addTraceEvent(timeEvent);
+                }
+            }
+            if (fReferenceTime == -1 || time < fReferenceTime) {
+                fReferenceTime = (time >> fPower) << fPower;
+            }
+            if (fStartTime == -1 || time < fStartTime) {
+                fStartTime = time;
+            }
+            if (fStopTime == -1 || time > fStopTime) {
+                fStopTime = time;
+            }
+        }
+    }
+

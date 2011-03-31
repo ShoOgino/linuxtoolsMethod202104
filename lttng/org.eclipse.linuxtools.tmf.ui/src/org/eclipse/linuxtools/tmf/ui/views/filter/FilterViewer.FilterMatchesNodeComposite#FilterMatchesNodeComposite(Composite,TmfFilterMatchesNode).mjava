@@ -1,0 +1,75 @@
+		FilterMatchesNodeComposite(Composite parent, TmfFilterMatchesNode node) {
+			super(parent);
+			fNode = node;
+			
+			Label label = new Label(this, SWT.NONE);
+			label.setBackground(Display.getCurrent().getSystemColor(SWT.COLOR_WHITE));
+			label.setText(Messages.FilterViewer_NotLabel);
+			
+			fNotButton = new Button(this, SWT.CHECK);
+			fNotButton.setSelection(fNode.isNot());
+			fNotButton.addSelectionListener(new SelectionAdapter() {
+				@Override
+				public void widgetSelected(SelectionEvent e) {
+					fNode.setNot(fNotButton.getSelection());
+					fViewer.refresh(fNode);
+				}
+			});
+			
+			label = new Label(this, SWT.NONE);
+			label.setBackground(Display.getCurrent().getSystemColor(SWT.COLOR_WHITE));
+			label.setText(Messages.FilterViewer_FieldLabel);
+			
+			fFieldCombo = new Combo(this, SWT.DROP_DOWN);
+			fFieldCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+			fFieldCombo.setItems(getFieldsList(fNode));
+			if (fNode.getField() != null) {
+				fFieldCombo.setText(fNode.getField());
+			}
+			fFieldCombo.addModifyListener(new ModifyListener() {
+				@Override
+                public void modifyText(ModifyEvent e) {
+					fNode.setField(fFieldCombo.getText());
+					fViewer.refresh(fNode);
+				}
+			});
+			
+			label = new Label(this, SWT.NONE);
+			label.setBackground(Display.getCurrent().getSystemColor(SWT.COLOR_WHITE));
+			label.setText(Messages.FilterViewer_RegexLabel);
+			
+			fRegexText = new Text(this, SWT.BORDER);
+			fRegexText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+			if (node.getRegex() != null && node.getRegex().length() > 0) {
+				fRegexText.setText(node.getRegex());
+			} else {
+				fRegexText.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_GRAY));
+				fRegexText.setText(Messages.FilterViewer_RegexHint);
+			}
+			fRegexText.addFocusListener(new FocusListener() {
+				@Override
+                public void focusLost(FocusEvent e) {
+					if (fNode.getRegex() == null || fNode.getRegex().length() == 0) {
+						fRegexText.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_GRAY));
+						fRegexText.setText(Messages.FilterViewer_RegexHint);
+					}
+				}
+				@Override
+                public void focusGained(FocusEvent e) {
+					if (fRegexText.getForeground().equals(Display.getCurrent().getSystemColor(SWT.COLOR_GRAY))) {
+						fRegexText.setText(""); //$NON-NLS-1$
+					}
+					fRegexText.setForeground(Display.getCurrent().getSystemColor(SWT.COLOR_BLACK));
+				}
+			});
+			fRegexText.addModifyListener(new ModifyListener() {
+				@Override
+                public void modifyText(ModifyEvent e) {
+					if (! fRegexText.getForeground().equals(Display.getCurrent().getSystemColor(SWT.COLOR_GRAY))) {
+						fNode.setRegex(fRegexText.getText());
+						fViewer.refresh(fNode);
+					}
+				}
+			});
+		}
+

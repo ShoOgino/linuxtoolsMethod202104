@@ -1,5 +1,21 @@
 	@SuppressWarnings("unchecked")
-	private void indexExperiment(boolean waitForCompletion) {
+	protected void indexExperiment(boolean waitForCompletion) {
+		
+		final Job job = new Job("Indexing " + getName() + "...") { //$NON-NLS-1$ //$NON-NLS-2$
+			@Override
+			protected IStatus run(IProgressMonitor monitor) {
+				while (!monitor.isCanceled()) {
+					try {
+						Thread.sleep(100);
+					} catch (InterruptedException e) {
+						return Status.OK_STATUS;
+					}
+				}
+				monitor.done();
+				return Status.OK_STATUS;
+			}
+		};
+		job.schedule();
 
 		fCheckpoints.clear();
 		
@@ -39,7 +55,14 @@
 //				long average = (indexingEnd - indexingStart) / fNbEvents;
 //				System.out.println(getName() + ": start=" + startTime + ", end=" + lastTime + ", elapsed=" + (indexingEnd * 1.0 - indexingStart) / 1000000000);
 //				System.out.println(getName() + ": nbEvents=" + fNbEvents + " (" + (average / 1000) + "." + (average % 1000) + " us/evt)");
+				super.handleSuccess();
 			}
+
+            @Override
+            public void handleCompleted() {
+                job.cancel();
+	            super.handleCompleted();
+            }
 
 			private void updateExperiment() {
 				int nbRead = getNbRead();

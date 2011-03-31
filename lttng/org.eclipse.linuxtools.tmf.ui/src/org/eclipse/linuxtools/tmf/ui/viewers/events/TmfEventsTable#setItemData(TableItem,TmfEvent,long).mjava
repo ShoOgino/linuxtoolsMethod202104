@@ -1,0 +1,43 @@
+    protected void setItemData(TableItem item, TmfEvent event, long rank) {
+    	item.setText(extractItemFields(event));
+    	item.setData(Key.TIMESTAMP, new TmfTimestamp(event.getTimestamp()));
+    	item.setData(Key.RANK, rank);
+    	
+    	boolean bookmark = false;
+    	if (fBookmarksMap.containsKey(rank)) {
+    		bookmark = true;
+    	}
+    	
+    	boolean searchMatch = false;
+    	boolean searchNoMatch = false;
+    	ITmfFilter searchFilter = (ITmfFilter) fTable.getData(Key.SEARCH_OBJ);
+    	if (searchFilter != null) {
+    		if (searchFilter.matches(event)) {
+    			searchMatch = true;
+    		} else {
+    			searchNoMatch = true;
+    		}
+    	}
+    	
+    	ColorSetting colorSetting = ColorSettingsManager.getColorSetting(event);
+    	if (searchNoMatch) {
+        	item.setForeground(colorSetting.getDimmedForegroundColor());
+        	item.setBackground(colorSetting.getDimmedBackgroundColor());
+    	} else {
+    		item.setForeground(colorSetting.getForegroundColor());
+    		item.setBackground(colorSetting.getBackgroundColor());
+    	}
+    	
+    	if (searchMatch) {
+    		if (bookmark) {
+    			item.setImage(SEARCH_MATCH_BOOKMARK_IMAGE);
+    		} else {
+    			item.setImage(SEARCH_MATCH_IMAGE);
+    		}
+    	} else if (bookmark) {
+			item.setImage(BOOKMARK_IMAGE);
+    	} else {
+			item.setImage((Image) null);
+    	}
+    }
+
