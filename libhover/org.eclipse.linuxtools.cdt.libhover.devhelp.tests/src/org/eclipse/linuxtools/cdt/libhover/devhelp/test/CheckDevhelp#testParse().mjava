@@ -1,0 +1,35 @@
+	public void testParse() {
+		ParseDevHelp.DevHelpParser p =  
+			new ParseDevHelp.DevHelpParser("/usr/share/gtk-doc/html");
+		LibHoverInfo hover = p.parse(new NullProgressMonitor());
+		assertTrue(hover != null);
+		Map<String, FunctionInfo> functions = hover.functions;
+		assertTrue(functions != null);
+		assertTrue(functions.size() > 0);
+		try {
+			// Now, output the LibHoverInfo for caching later
+			IPath location = LibhoverPlugin.getDefault().getStateLocation().append("C"); //$NON-NLS-1$
+			File ldir = new File(location.toOSString());
+			ldir.mkdir();
+			location = location.append("devhelp.libhover"); //$NON-NLS-1$
+			FileOutputStream f = new FileOutputStream(location.toOSString());
+			ObjectOutputStream out = new ObjectOutputStream(f);
+			out.writeObject(hover);
+			out.close();
+		} catch(Exception e) {
+			fail();
+		}
+		IPreferenceStore ps = LibhoverPlugin.getDefault().getPreferenceStore();
+		ps.setValue(PreferenceConstants.CACHE_EXT_LIBHOVER, true);
+		LibHover.getLibHoverDocs();
+		Collection<LibHoverLibrary> c = LibHover.getLibraries();
+		assertTrue(c.size() > 0);
+		boolean found = false;
+		for (Iterator<LibHoverLibrary> i = c.iterator(); i.hasNext();) {
+			LibHoverLibrary l = i.next();
+			if (l.getName().equals("devhelp"))
+				found = true;
+		}
+		assertTrue(found);
+	}
+

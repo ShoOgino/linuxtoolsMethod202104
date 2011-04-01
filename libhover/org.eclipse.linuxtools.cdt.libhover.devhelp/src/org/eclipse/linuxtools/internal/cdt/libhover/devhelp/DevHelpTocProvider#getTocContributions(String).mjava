@@ -1,0 +1,90 @@
+	@Override
+	public ITocContribution[] getTocContributions(String locale) {
+		// TODO Auto-generated method stub
+        ITocContribution contribution = new ITocContribution() {
+            public String getId() {
+               // a way to identify our book
+               return "org.eclipse.linuxtools.cdt.libhover.devhelp.toc"; //$NON-NLS-1$
+            }
+            public String getCategoryId() {
+               // our book does not belong to any category of books
+               return null;
+            }
+            public boolean isPrimary() {
+               // this is a primary, top-level contribution (a book)
+               return true;
+            }
+            public IToc getToc() {
+            	return new IToc() {
+            		public String getLabel() {
+            			return "Devhelp Documents"; //$NON-NLS-1$
+            		}
+            		public String getHref() {
+            			return null;
+            		}
+            		@Override
+            		public boolean isEnabled(IEvaluationContext context) {
+            			// TODO Auto-generated method stub
+            			return true;
+            		}
+            		@Override
+            		public IUAElement[] getChildren() {
+            			// TODO Auto-generated method stub
+            			return getTopics();
+            		}
+            		@Override
+            		public ITopic[] getTopics() {
+            			try {
+            				ArrayList<ITopic> topics = new ArrayList<ITopic>();
+            				IPreferenceStore ps = DevHelpPlugin.getDefault().getPreferenceStore();
+            				IPath devhelpLocation = new Path(ps.getString(PreferenceConstants.DEVHELP_DIRECTORY));
+            				IFileSystem fs = EFS.getLocalFileSystem();
+            				IFileStore htmlDir = fs.getStore(devhelpLocation);
+            				IFileStore[] files = htmlDir.childStores(EFS.NONE, null);
+            				Arrays.sort(files, new Comparator<IFileStore>() {
+
+            					@Override
+            					public int compare(IFileStore arg0, IFileStore arg1) {
+            						return (arg0.getName().compareToIgnoreCase(arg1.getName()));
+            					}
+            					
+            				});
+            				for (int i = 0; i < files.length; ++i) {
+            					IFileStore file = files[i];
+            					String name = file.fetchInfo().getName();
+            					ITopic topic = new DevhelpTopic(name);
+            					topics.add(topic);
+            				}
+            				ITopic[] retval = new ITopic[topics.size()];
+            				return topics.toArray(retval);
+            			} catch (CoreException e) {
+             			}
+            			return null;
+            		}
+            		@Override
+            		public ITopic getTopic(String href) {
+            			// TODO Auto-generated method stub
+            			return null;
+            		}
+            	};
+            }
+            public String getLocale() {
+            	// this provider only provides content for the en_US locale
+            	return "en_US"; //$NON-NLS-1$
+            }
+            public String[] getExtraDocuments() {
+            	// there are no extra documents associated with this book
+            	return new String[0];
+            }
+            public String getLinkTo() {
+            	return "../org.eclipse.linuxtools.cdt.libhover.library_docs/libraries.xml#devhelpdocs";
+            }
+            @Override
+            public String getContributorId() {
+            	// TODO Auto-generated method stub
+            	return "org.eclipse.linuxtools.cdt.libhover.devhelp"; //$NON-NLS-1$
+            }
+        };
+        return new ITocContribution[] { contribution };
+	}
+
