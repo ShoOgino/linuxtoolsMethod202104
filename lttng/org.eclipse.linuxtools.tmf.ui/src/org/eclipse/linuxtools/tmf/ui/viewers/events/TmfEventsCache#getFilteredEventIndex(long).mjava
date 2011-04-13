@@ -1,0 +1,78 @@
+    @SuppressWarnings("unchecked")
+    public int getFilteredEventIndex(final long rank) {
+    	int current;
+    	int startRank;
+    	TmfDataRequest<TmfEvent> request;
+    	synchronized (this) {
+    		int start = 0;
+    		int end = fFilterIndex.size();
+    		
+    		if (fCacheEndIndex - fCacheStartIndex > 1) {
+    			if (rank < fCache[0].rank) {
+    				end = fCacheStartIndex / fCache.length + 1;
+    			} else if (rank > fCache[fCacheEndIndex - fCacheStartIndex - 1].rank) {
+    				start = fCacheEndIndex / fCache.length;
+    			} else {
+    				for (int i = 0; i < fCacheEndIndex - fCacheStartIndex; i++) {
+    					if (fCache[i].rank >= rank) {
+    						return fCacheStartIndex + i;
+    					}
+    				}
+    				return fCacheEndIndex;
+    			}
+    		}
+    		
+    		current = (start + end) / 2;
+    		while (current != start) {
+    			if (rank < fFilterIndex.get(current)) {
+    				end = current;
+    				current = (start + end) / 2;
+    			} else {
+    				start = current;
+    				current = (start + end) / 2;
+    			}
+    		}
+    		startRank = fFilterIndex.get(current);
+    	}
+    	
+    	final int index = current * fCache.length;
+    	
+    	class DataRequest<T extends TmfEvent> extends TmfDataRequest<T> {
+    		int fRank;
+    		int fIndex;
+    		
+    		DataRequest(Class<T> dataType, int start, int nbRequested) {
+    			super(dataType, start, nbRequested);
+    			fRank = start;
+    			fIndex = index;
+    		}
+    		
+			@Override
+			public void handleData(T event) {
+				super.handleData(event);
+				if (isCancelled()) return;
+				if (fRank >= rank) {
+					cancel();
+					return;
+				}
+				fRank++;
+				if (fFilter.matches(event)) {
+					fIndex++;
+				}
+			}
+
+			public int getFilteredIndex() {
+	            return fIndex;
+            }
+    	}
+    	
+    	request = new DataRequest<TmfEvent>(TmfEvent.class, startRank, TmfDataRequest.ALL_DATA);
+		((ITmfDataProvider<TmfEvent>) fTrace).sendRequest(request);
+		try {
+			request.waitForCompletion();
+			return ((DataRequest<TmfEvent>) request).getFilteredIndex();
+		} catch (InterruptedException e) {
+		}
+    	return 0;
+    }
+

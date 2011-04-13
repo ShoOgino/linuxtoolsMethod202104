@@ -11,7 +11,7 @@
          */
         if (job != null) {
             if (job.getState() != Job.NONE) {
-                if (index >= fCacheStartIndex && index < (fCacheStartIndex + fCacheSize)) {
+                if (index >= fCacheStartIndex && index < (fCacheStartIndex + fCache.length)) {
                     return;
                 }
                 // The new index is out of the requested range
@@ -24,12 +24,27 @@
         fCacheEndIndex   = index;
 
         job = new Job("Fetching Events") { //$NON-NLS-1$
+        	private int startIndex = index;
+        	private int skipCount = 0;
             @Override
             @SuppressWarnings("unchecked")
             protected IStatus run(final IProgressMonitor monitor) {
 
-                TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(TmfEvent.class, index, fCacheSize) {
+            	int nbRequested;
+            	if (fFilter == null) {
+            		nbRequested = fCache.length;
+            	} else {
+            		nbRequested = TmfDataRequest.ALL_DATA;
+            		int i = index / fCache.length;
+            		if (i < fFilterIndex.size()) {
+            			startIndex = fFilterIndex.get(i);
+            			skipCount = index - (i * fCache.length);
+            		}
+            	}
+            	
+                TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(TmfEvent.class, startIndex, nbRequested) {
                     private int count = 0;
+                    private long rank = startIndex;
                     @Override
                     public void handleData(TmfEvent event) {
                         // If the job is canceled, cancel the request so waitForCompletion() will unlock
@@ -39,9 +54,23 @@
                         }
                         super.handleData(event);
                         if (event != null) {
-                            fCache[count++] = event.clone();
-                            fCacheEndIndex++;   // TODO: Need to protect this??
+                        	if ((fFilter == null || fFilter.matches(event)) && skipCount-- <= 0) {
+                        		synchronized (TmfEventsCache.this) {
+                        			fCache[count] = new CachedEvent(event.clone(), rank);
+                        			count++;
+                        			fCacheEndIndex++;
+                        		}
+                                if (fFilter != null) {
+                                	fTable.cacheUpdated(false);
+                                }
+                        	}
                         }
+                        if (count >= fCache.length) {
+                        	cancel();
+                        } else if (fFilter != null && count >= fTable.getTable().getItemCount() - 3) { // -1 for header row, -2 for top and bottom filter status rows
+                        	cancel();
+                        }
+                        rank++;
                     }
                 };
 
@@ -52,19 +81,7 @@
                     e.printStackTrace();
                 }
 
-                // Event cache is now updated. Perform update on the UI thread
-                if (!fTable.isDisposed() && !monitor.isCanceled()) {
-                    fTable.getDisplay().asyncExec(new Runnable() {
-                        @Override
-                        public void run() {
-                            if (!fTable.isDisposed()) {
-                                fTable.refresh();
-                                packColumns();
-                            }
-                            populateCompleted();
-                        }
-                    });
-                }
+                fTable.cacheUpdated(true);
                 
                 // Flag the UI thread that the cache is ready
                 if (monitor.isCanceled()) {

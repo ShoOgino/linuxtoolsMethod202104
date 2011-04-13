@@ -62,8 +62,8 @@
             }
         });
 
-        fCacheSize = Math.max(cacheSize, Display.getDefault().getBounds().height / fTable.getItemHeight());
-        fCache = new TmfEvent[fCacheSize];
+        cacheSize = Math.max(cacheSize, Display.getDefault().getBounds().height / fTable.getItemHeight());
+        fCache = new TmfEventsCache(cacheSize, this);
 
         // Handle the table item requests 
         fTable.addListener(SWT.SetData, new Listener() {
@@ -72,53 +72,28 @@
 			public void handleEvent(Event event) {
 
                 final TableItem item = (TableItem) event.item;
-                final int index = event.index - 1; // -1 for the header row
+                int index = event.index - 1; // -1 for the header row
 
-                if (index == -1) {
-                    String txtKey = null;
-                    if (fHeaderState == HeaderState.SEARCH) {
-                        item.setImage(SEARCH_IMAGE);
-                        txtKey = Key.SEARCH_TXT;
-                    } else if (fHeaderState == HeaderState.FILTER) {
-                        item.setImage(FILTER_IMAGE);
-                        txtKey = Key.FILTER_TXT;
-                    }
-                    item.setForeground(fGrayColor);
-                    for (int i = 0; i < fTable.getColumns().length; i++) {
-                        TableColumn column = fTable.getColumns()[i];
-                        String filter = (String) column.getData(txtKey);
-                        if (filter == null) {
-                            if (fHeaderState == HeaderState.SEARCH) {
-                                item.setText(i, SEARCH_HINT);
-                            } else if (fHeaderState == HeaderState.FILTER) {
-                                item.setText(i, FILTER_HINT);
-                            }
-                            item.setForeground(i, fGrayColor);
-                            item.setFont(i, fTable.getFont());
-                        } else {
-                            item.setText(i, filter);
-                            item.setForeground(i, fGreenColor);
-                            item.setFont(i, fBoldFont);
-                        }
-                    }
+                if (event.index == 0) {
+                	setHeaderRowItemData(item);
                     return;
                 }
 
-                // If available, return the cached data  
-                if ((index >= fCacheStartIndex) && (index < fCacheEndIndex)) {
-                    int i = index - fCacheStartIndex;
-                    setItemData(item, fCache[i], index);
-                    return;
-                }
-
-                // If filter is applied, use the filtered event cache
                 if (fTable.getData(Key.FILTER_OBJ) != null) {
-                	setFilteredItemData(item, index);
-                	return;
+                	if (event.index == 1 || event.index == fTable.getItemCount() - 1) {
+                		setFilterStatusRowItemData(item);
+                		return;
+                	}
+                	index = index - 1; // -1 for top filter status row
                 }
-
+                
+                CachedEvent cachedEvent = fCache.getEvent(index);
+                if (cachedEvent != null) {
+                    setItemData(item, cachedEvent.event, cachedEvent.rank);
+                    return;
+                }
+                
                 // Else, fill the cache asynchronously (and off the UI thread)
-                populateCache(index);
                 event.doit = false;
             }
         });
@@ -161,7 +136,7 @@
                     long rank = (Long) e.data;
                     int index = (int) rank;
                     if (fTable.getData(Key.FILTER_OBJ) != null) {
-                    	index = getFilteredEventIndex(rank) + 1; // +1 for top filter status row
+                    	index = fCache.getFilteredEventIndex(rank) + 1; // +1 for top filter status row
                     }
                     fTable.setSelection(index + 1); // +1 for header row
                     fSelectedRank = rank;

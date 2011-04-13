@@ -1,0 +1,27 @@
+    	public void refreshTable() {
+	        synchronized (syncObj) {
+	        	if (refreshBusy) {
+	        		refreshPending = true;
+	        		return;
+	        	} else {
+	        		refreshBusy = true;
+	        	}
+	        }
+	        Display.getDefault().asyncExec(new Runnable() {
+				@Override
+				public void run() {
+					if (request.isCancelled()) return;
+					if (fTable.isDisposed()) return;
+					fTable.setItemCount((int) fFilterMatchCount + 3); // +1 for header row, +2 for top and bottom filter status rows
+					fTable.refresh();
+	                synchronized (syncObj) {
+	                	refreshBusy = false;
+	                	if (refreshPending) {
+	                		refreshPending = false;
+	                		refreshTable();
+	                	}
+	                }
+				}
+			});
+    	}
+

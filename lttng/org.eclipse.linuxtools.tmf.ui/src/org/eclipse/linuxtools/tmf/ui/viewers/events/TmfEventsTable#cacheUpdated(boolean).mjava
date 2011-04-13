@@ -1,0 +1,34 @@
+    public void cacheUpdated(final boolean completed) {
+        synchronized (fCacheUpdateSyncObj) {
+        	if (fCacheUpdateBusy) {
+        		fCacheUpdatePending = true;
+        		fCacheUpdateCompleted = completed;
+        		return;
+        	} else {
+        		fCacheUpdateBusy = true;
+        	}
+        }
+    	// Event cache is now updated. Perform update on the UI thread
+        if (!fTable.isDisposed()) {
+            fTable.getDisplay().asyncExec(new Runnable() {
+                @Override
+                public void run() {
+                    if (!fTable.isDisposed()) {
+                        fTable.refresh();
+                        packColumns();
+                    }
+                    if (completed) {
+                    	populateCompleted();
+                    }
+	                synchronized (fCacheUpdateSyncObj) {
+	                	fCacheUpdateBusy = false;
+	                	if (fCacheUpdatePending) {
+	                		fCacheUpdatePending = false;
+	                		cacheUpdated(fCacheUpdateCompleted);
+	                	}
+	                }
+                }
+            });
+        }
+    }
+

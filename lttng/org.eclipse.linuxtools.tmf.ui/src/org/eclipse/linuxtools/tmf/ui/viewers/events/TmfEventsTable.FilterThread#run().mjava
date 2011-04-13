@@ -1,42 +1,21 @@
     	@SuppressWarnings("unchecked")
     	@Override
     	public void run() {
-    		final Display display = Display.getDefault();
-    		lastRefreshTime = System.currentTimeMillis();
-
-    		request = new TmfDataRequest<TmfEvent>(TmfEvent.class, 0, Integer.MAX_VALUE, ExecutionType.BACKGROUND) {
+    		request = new TmfEventRequest<TmfEvent>(TmfEvent.class, TmfTimeRange.Eternity, TmfDataRequest.ALL_DATA, fTrace.getCacheSize(), ExecutionType.BACKGROUND) {
     			@Override
     			public void handleData(TmfEvent event) {
     				super.handleData(event);
-    				fFilterCheckCount++;
+					if (request.isCancelled()) return;
     				if (filter.matches(event)) {
-    					synchronized (fFilteredEventCache) {
-    						fFilteredEventCache.add(new FilteredEvent(event.clone(), getNbRead() - 1));
-    						fFilterMatchCount++;
-    					}
-    					display.asyncExec(new Runnable() {
-    						@Override
-    						public void run() {
-    							if (request.isCancelled()) return;
-    							if (fTable.isDisposed()) return;
-    							fTable.setItemCount(fFilteredEventCache.size() + 3); // +1 for header row, +2 for top and bottom filter status rows
-    						}
-    					});
+    					long rank = fFilterCheckCount;
+    					int index = (int) fFilterMatchCount;
+						fFilterMatchCount++;
+						fCache.storeEvent(event.clone(), rank, index);
+						refreshTable();
+    				} else if (fFilterCheckCount % 100 == 0) {
+    					refreshTable();
     				}
-    				if (fFilterCheckCount % 100 == 0) {
-    					long currentTime = System.currentTimeMillis();
-    					if (currentTime - lastRefreshTime > 1000) {
-    						lastRefreshTime = currentTime;
-    						display.asyncExec(new Runnable() {
-    							@Override
-    							public void run() {
-    								if (request.isCancelled()) return;
-    								if (fTable.isDisposed()) return;
-    								fTable.refresh();
-    							}
-    						});
-    					}
-    				}
+    				fFilterCheckCount++;
     			}
     		};
     		((ITmfDataProvider<TmfEvent>) fTrace).sendRequest(request);
@@ -44,12 +23,6 @@
     			request.waitForCompletion();
     		} catch (InterruptedException e) {
     		}
-    		display.asyncExec(new Runnable() {
-    			@Override
-    			public void run() {
-    				if (fTable.isDisposed()) return;
-    				fTable.refresh();
-    			}
-    		});
+    		refreshTable();
     	}
 
