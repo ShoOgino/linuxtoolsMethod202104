@@ -1,0 +1,58 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.jface.dialogs.Dialog#createDialogArea(org.eclipse.swt.widgets.Composite)
+     */
+    @Override
+    protected Control createDialogArea(Composite parent) {
+        //Main dialog panel
+        Composite composite = new Composite(parent, SWT.RESIZE);
+        GridLayout mainLayout = new GridLayout(1, true);
+        composite.setLayout(mainLayout);
+        
+        fErrorLabel = new Label(composite, SWT.LEFT);
+        fErrorLabel.setLayoutData(new GridData(GridData.FILL, 
+                GridData.CENTER, true, false, 6, 1));
+        fErrorLabel.setForeground(getShell().getDisplay().getSystemColor(SWT.COLOR_RED));
+        
+        Group group = new Group(composite, SWT.SHADOW_OUT);
+        group.setText(Messages.ConfigureTraceDialog_Trace_Location);
+        group.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, false, 1, 1));
+        
+        GridLayout groupLayout = new GridLayout(6, true);
+        group.setLayout(groupLayout);
+
+        Label tracePathLabel = new Label(group, SWT.LEFT);
+        tracePathLabel.setText(Messages.ConfigureTraceDialog_Trace_Path);
+        tracePathLabel.setLayoutData(new GridData(GridData.FILL, 
+                GridData.CENTER, true, false, 1, 1));
+        
+        fPath = new Text(group, SWT.LEFT);
+        fPath.setLayoutData(new GridData(GridData.FILL, 
+                GridData.CENTER, true, false, 4, 1));
+        
+        fPath.addListener(SWT.Modify, new Listener() {
+            @Override
+            public void handleEvent(Event event) {
+                Button ok = getButton(IDialogConstants.OK_ID);
+                ok.setEnabled(validatePathName(fPath.getText()));
+            }
+        });
+        
+        Button browseButton = new Button(group, SWT.PUSH);
+        browseButton.setText(Messages.ConfigureTraceDialog_Browse + "...");  //$NON-NLS-1$
+        browseButton.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, false, 1, 1));
+        
+        browseButton.setEnabled(true);
+        browseButton.addListener(SWT.Selection, new Listener() {
+            @Override
+            public void handleEvent(Event event) {
+                DirectoryDialog dialog = new DirectoryDialog(getShell());
+                String newPath = dialog.open();
+                if (newPath != null) {
+                    fPath.setText(newPath);
+                }
+            }
+        });
+        return composite;
+    }
+

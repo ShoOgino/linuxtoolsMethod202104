@@ -1,0 +1,51 @@
+    /*
+     * Retrieves the trace instances for a given target from the remote system.
+     */
+    private TraceResource[] createTraces(final TargetResource target) throws SystemMessageException {
+    	TraceResource[] traces;
+        try {
+            final ILttControllerService service = getControllerService();
+
+            // Create future task
+            traces = new TCFTask<TraceResource[]>() {
+                @Override
+                public void run() {
+                    // Get targets using Lttng controller service proxy
+                    service.getTraces(target.getParent().getName(), target.getName(), new ILttControllerService.DoneGetTraces() {
+
+                        @Override
+                        public void doneGetTraces(IToken token, Exception error, String[] str) {
+                            if (error != null) {
+                                // Notify with error
+                                error(error);
+                                return;
+                            }
+                            
+                            // Create trace list
+                            TraceResource[] traces = new TraceResource[str.length];
+                            for (int i = 0; i < str.length; i++) {
+                                TraceResource trace = new TraceResource(TraceSubSystem.this);
+                                trace.setName(str[i]);
+                                trace.setParent(target);
+                                trace.setTraceState(TraceState.CREATED);
+                                traces[i] = trace;
+                            }
+
+                            // Notify with trace list
+                            done(traces);
+                        }
+                    });
+                }}.get(TraceControlConstants.DEFAULT_TCF_TASK_TIMEOUT, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            target.setTraces(new TraceResource[0]);
+            if (e instanceof SystemMessageException) throw (SystemMessageException)e;
+            throw new SystemMessageException(LTTngUiPlugin.getDefault().getMessage(e));
+        }
+
+        target.setTraces(traces);
+
+        // get active trace information (is only supported for kernel traces)
+        createTraceConfigurations(target, traces);
+        return traces;
+    }
+

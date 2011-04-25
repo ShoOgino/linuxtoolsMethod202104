@@ -1,0 +1,36 @@
+    /**
+     * Writes trace data to traces files. 
+     * 
+     * @param data binary data
+     */
+    public void writeDownloadedTrace(byte[] data) {
+        Object[] args = null;
+        try {
+            args = JSON.parseSequence(data);
+        } catch (IOException e) {
+            SystemBasePlugin.logError("DownloadProxy", e); //$NON-NLS-1$
+        }
+        if (args != null) {
+            byte[] traceData = JSON.toByteArray(args[4]);
+            TraceResource trace = fSubSystem.findTrace(args[0].toString(), args[1].toString(), args[2].toString());
+            if (trace != null) {
+                TraceConfig conf = trace.getTraceConfig();
+                FileOutputStream fos = null;
+                if (!TraceConfig.InvalidTracePath.equals(conf.getTracePath())) {
+//                  String fileName = conf.getTracePath() + System.getProperty("path.separator") + args[3].toString();  //$NON-NLS-1$
+                    String fileName = conf.getTracePath() + "/" + args[3].toString();  //$NON-NLS-1$
+                    try {
+                        fos = new FileOutputStream(fileName, true);
+                        fos.write(traceData);
+                        fos.close();
+                        // ((TraceResource) args[2]).setSize(sizeFile.length());
+                    } catch (FileNotFoundException e) {
+                        SystemBasePlugin.logError("DownloadProxy", e); //$NON-NLS-1$
+                    } catch (IOException e) {
+                        SystemBasePlugin.logError("DownloadProxy", e); //$NON-NLS-1$
+                    }
+                }
+            }
+        }
+    }
+

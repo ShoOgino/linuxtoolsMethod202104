@@ -1,0 +1,46 @@
+    /*
+     * Enable or disable a channel on the remote system. 
+     */
+    private void setChannelEnable(final String channelName, final boolean enabled) {
+        try {
+            final ILttControllerService service = ((TraceSubSystem)fSelectedTrace.getSubSystem()).getControllerService();
+
+            // Create future task
+            new TCFTask<Boolean>() {
+                @Override
+                public void run() {
+
+                    // Set marker enable using Lttng controller service proxy
+                    service.setChannelEnable(fSelectedTrace.getParent().getParent().getName(),
+                            fSelectedTrace.getParent().getName(), 
+                            fSelectedTrace.getName(), 
+                            channelName, 
+                            enabled,  
+                            new ILttControllerService.DoneSetChannelEnable() {
+
+                        @Override
+                        public void doneSetChannelEnable(IToken token, Exception error, Object str) {
+                            if (error != null) {
+                                // Notify with error
+                                error(error);
+                                return;
+                            }
+
+                            // Notify about success
+                            done(Boolean.valueOf(true));
+                        }
+                    });
+                }}.get(TraceControlConstants.DEFAULT_TCF_TASK_TIMEOUT, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            SystemMessageException sysExp;
+            if (e instanceof SystemMessageException) {
+                sysExp = (SystemMessageException)e;
+            } else {
+                sysExp = new SystemMessageException(LTTngUiPlugin.getDefault().getMessage(e));    
+            }
+            SystemBasePlugin.logError(Messages.Lttng_Control_ErrorSetChannelEnable + " (" +  //$NON-NLS-1$
+                    Messages.Lttng_Resource_Trace + ": "  + fSelectedTrace.getName() + ", " + //$NON-NLS-1$ //$NON-NLS-2$
+                    Messages.Lttng_Resource_Channel + ": " + channelName + ")", sysExp); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+    }
+

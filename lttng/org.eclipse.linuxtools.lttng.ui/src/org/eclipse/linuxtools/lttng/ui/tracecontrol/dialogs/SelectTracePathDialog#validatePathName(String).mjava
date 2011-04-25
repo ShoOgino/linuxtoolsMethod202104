@@ -1,0 +1,58 @@
+    /*
+     * Validates the trace path.
+     */
+    private boolean validatePathName(String path) {
+        if (path.length() > 0) {
+            final char c0 = path.charAt(0);
+            if (c0 != '/') {
+                fTracePathError = Messages.ConfigureTraceDialog_Error_Invalid_Path;
+                fErrorLabel.setText(fTracePathError);
+                return false;
+            } else {
+                String[] folders = path.split("/"); //$NON-NLS-1$
+                for (int i = 0; i < folders.length; i++) {
+                    final char[] chars = folders[i].toCharArray();
+                    for (int x = 0; x < chars.length; x++) {
+                        final char c = chars[x];
+                        if ((c >= 'a') && (c <= 'z')) {
+                            continue; // lowercase
+                        }
+                        if ((c >= 'A') && (c <= 'Z')) {
+                            continue; // uppercase
+                        }
+                        if ((c >= '0') && (c <= '9')) {
+                            continue; // numeric
+                        }
+                        fTracePathError = Messages.ConfigureTraceDialog_Error_Invalid_Folder;
+                        fErrorLabel.setText(fTracePathError);
+                        return false;
+                    }
+                }
+                if (path.length() > 1) {
+                    for (int i = 0; i < path.length() - 1; i++) {
+                        if ((path.charAt(i) == '/') && (path.charAt(i + 1) == '/')) {
+                            fTracePathError = Messages.ConfigureTraceDialog_Error_Multiple_Seps;
+                            fErrorLabel.setText(fTracePathError);
+                            return false;
+                        }
+                    }
+                }
+            }
+            
+            File file = new File(path);
+            if (file.isFile()) {
+                fTracePathError = Messages.ConfigureTraceDialog_Error_File_Exists;
+                fErrorLabel.setText(fTracePathError);
+                return false;
+            }
+            if (path.length() > 1 && !file.getParentFile().canWrite()) {
+                fTracePathError = Messages.ConfigureTraceDialog_Error_Can_Not_Write;
+                fErrorLabel.setText(fTracePathError);
+                return false;
+            }
+        }
+        fErrorLabel.setText(""); //$NON-NLS-1$
+        fTracePathError = ""; //$NON-NLS-1$
+        return true;
+    }
+

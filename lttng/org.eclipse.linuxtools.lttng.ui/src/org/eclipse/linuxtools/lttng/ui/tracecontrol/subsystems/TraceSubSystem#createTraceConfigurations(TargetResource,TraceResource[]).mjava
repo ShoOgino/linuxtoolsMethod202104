@@ -1,0 +1,101 @@
+    /*
+     * Retrieves the trace configurations for the given trace from the remote system.
+     */
+    private void createTraceConfigurations(final TargetResource target, TraceResource[] traces) throws SystemMessageException {
+        if (!target.isUst() && (traces.length > 0)) {
+            // get active traces 
+            String[] activeTraceNames;
+            try {
+                final ILttControllerService service = getControllerService();
+                activeTraceNames = new TCFTask<String[]>() {
+                    @Override
+                    public void run() {
+                        // Get targets using Lttng controller service proxy
+                        service.getActiveTraces(target.getParent().getName(), target.getName(), new ILttControllerService.DoneGetActiveTraces() {
+
+                            @Override
+                            public void doneGetActiveTraces(IToken token, Exception error, String[] str) {
+                                if (error != null) {
+                                    // Notify with error
+                                    error(error);
+                                    return;
+                                }
+
+                                // Notify with active trace list
+                                done(str);
+                            }
+                        });
+                    }}.get(TraceControlConstants.DEFAULT_TCF_TASK_TIMEOUT, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                if (e instanceof SystemMessageException) throw (SystemMessageException)e;
+                throw new SystemMessageException(LTTngUiPlugin.getDefault().getMessage(e));
+            }
+            
+            // get active trace information
+            for (int j = 0; j < activeTraceNames.length; j++) {
+                final TraceResource trace = target.getTrace(activeTraceNames[j]);
+                if (trace != null) {
+                    // get trace info
+                    TraceConfig traceConfig;
+
+                    // Currently, if a trace is active then all the setup commands have been executed
+                    // and it's either started or paused. However, currently there is no means to retrieve
+                    // the state (paused or started). So we set it to state started (even if trace is not actually
+                    // started on target the command pause will be successful. However, the use will have the wrong
+                    // impression that the trace is started) Therefore ... the state needs to be retrievable.
+                    // TODO update to correct state if there is a possibility to retrieve the correct state. 
+                    trace.setTraceState(TraceState.STARTED);  
+                    try {
+                        final ILttControllerService service = getControllerService();
+                        traceConfig = new TCFTask<TraceConfig>() {
+                            @Override
+                            public void run() {
+                                // Get targets using Lttng controller service proxy
+                                service.getActiveTraceInfo(target.getParent().getName(), target.getName(), trace.getName(), new ILttControllerService.DoneGetActiveTraceInfo() {
+
+                                    @Override
+                                    public void doneGetActiveTraceInfo(IToken token, Exception error, String[] str) {
+                                        if (error != null) {
+                                            // Notify with error
+                                            error(error);
+                                            return;
+                                        }
+
+                                        TraceConfig config = new TraceConfig();
+                                        config.setIsAppend(false); 
+                                        if (str[3].equals("true")) { //$NON-NLS-1$
+                                            config.setMode(TraceConfig.FLIGHT_RECORDER_MODE);    
+                                        }
+                                        else if (str[1].equals("true")) { //$NON-NLS-1$
+                                            config.setMode(TraceConfig.NORMAL_MODE);
+                                        }
+                                        else {
+                                            config.setMode(TraceConfig.NONE_MODE);
+                                        }
+
+                                        if (str[5].equals(TraceConfig.InvalidTracePath)) {
+                                            config.setNetworkTrace(true); 
+                                        }
+                                        else {
+                                            config.setNetworkTrace(false);
+                                        }
+                                        config.setNumChannel(Integer.valueOf(str[0]));
+                                        config.setTraceName(trace.getName());
+                                        config.setTracePath(str[5]);
+                                        config.setTraceTransport(TraceControlConstants.Lttng_Trace_Transport_Relay); 
+                                        
+                                        // Notify with active trace list
+                                        done(config);
+                                    }
+                                });
+                            }}.get(TraceControlConstants.DEFAULT_TCF_TASK_TIMEOUT, TimeUnit.SECONDS);
+                    } catch (Exception e) {
+                        if (e instanceof SystemMessageException) throw (SystemMessageException)e;
+                        throw new SystemMessageException(LTTngUiPlugin.getDefault().getMessage(e));
+                    }
+                    trace.setTraceConfig(traceConfig);
+                }
+            }
+        }
+    }
+

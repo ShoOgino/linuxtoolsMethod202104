@@ -1,0 +1,51 @@
+    /*
+     * Retrieves the providers from the remote system.
+     */
+    private ProviderResource[] createProviders() throws SystemMessageException {
+        ProviderResource[] providers = null;
+        try {
+            
+            final ILttControllerService service = getControllerService();
+
+            // Create future task
+            providers = new TCFTask<ProviderResource[]>() {
+                @Override
+                public void run() {
+
+                    // Get provider using Lttng controller service proxy
+                    service.getProviders(new ILttControllerService.DoneGetProviders() {
+
+                        @Override
+                        public void doneGetProviders(IToken token, Exception error, String[] str) {
+                            if (error != null) {
+                                // Notify with error
+                                error(error);
+                                return;
+                            }
+
+                            // Create provider list
+                            ProviderResource[] providers = new ProviderResource[str.length]; 
+
+                            for (int i = 0; i < str.length; i++) {
+                                ProviderResource tempProvider = new ProviderResource(TraceSubSystem.this);
+                                tempProvider.setName(str[i]);
+                                providers[i] = tempProvider;
+                            }
+
+                            // Notify with provider list
+                            done(providers);
+                        }
+                    });
+                }}.get(TraceControlConstants.DEFAULT_TCF_TASK_TIMEOUT, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            if (e instanceof SystemMessageException) throw (SystemMessageException)e;
+            throw new SystemMessageException(LTTngUiPlugin.getDefault().getMessage(e));
+        }
+
+        for (int i = 0; i < providers.length; i++) {
+            createTargets(providers[i]);
+        }
+
+        return providers;
+    }
+

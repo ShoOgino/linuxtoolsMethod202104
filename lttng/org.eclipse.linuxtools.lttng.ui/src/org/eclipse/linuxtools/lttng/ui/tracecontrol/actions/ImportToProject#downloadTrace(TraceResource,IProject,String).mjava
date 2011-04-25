@@ -1,0 +1,63 @@
+    /*
+     * method to download a trace from the remote system.
+     */
+    private void downloadTrace(TraceResource trace, IProject project, String traceName) {
+		try {
+			IHost host = trace.getSubSystem().getHost();
+			ISubSystem[] sss = RSECorePlugin.getTheSystemRegistry().getSubsystems(host, IFileServiceSubSystem.class);
+			if (sss.length == 0 || !(sss[0] instanceof FileServiceSubSystem)) {
+				MessageDialog.openWarning(getShell(),
+						Messages.ImportToProject_ImportFailed,
+						Messages.ImportToProject_NoFileServiceSubsystem);
+				return;
+			}
+			FileServiceSubSystem fsss = (FileServiceSubSystem) sss[0];
+			
+			IFolder traceFolder = project.getFolder(TRACE_FOLDER_NAME);
+			if (!traceFolder.exists()) {
+				MessageDialog.openWarning(getShell(),
+						Messages.ImportToProject_ImportFailed,
+						Messages.ImportToProject_NoProjectTraceFolder);
+				return;
+			}
+
+			IRemoteFile remoteFolder = fsss.getRemoteFileObject(trace.getTraceConfig().getTracePath(), new NullProgressMonitor());
+			if (remoteFolder == null || !remoteFolder.exists()) {
+				MessageDialog.openWarning(getShell(),
+						Messages.ImportToProject_ImportFailed,
+						Messages.ImportToProject_NoRemoteTraceFolder);
+				return;
+			}
+			
+			IFolder folder = traceFolder.getFolder(traceName);
+			if (folder.exists()) {
+				MessageDialog.openWarning(getShell(),
+						Messages.ImportToProject_ImportFailed,
+						Messages.ImportToProject_AlreadyExists);
+				return;
+			} else {
+				folder.create(true, true, null);
+			}
+			
+			IRemoteFile[] sources = fsss.list(remoteFolder, IFileService.FILE_TYPE_FILES, new NullProgressMonitor());
+
+			String[] destinations = new String[sources.length];
+			String[] encodings = new String[sources.length];
+			for (int i = 0; i < sources.length; i++) {
+				destinations[i] = folder.getLocation().addTrailingSeparator().append(sources[i].getName()).toString();
+				encodings[i] = null;
+			}
+			
+			fsss.downloadMultiple(sources, destinations, encodings, new NullProgressMonitor());
+			
+		} catch (SystemMessageException e) {
+			MessageDialog.openWarning(getShell(),
+					Messages.ImportToProject_ImportFailed,
+					e.getMessage());
+		} catch (CoreException e) {
+			MessageDialog.openWarning(getShell(),
+					Messages.ImportToProject_ImportFailed,
+					e.getMessage());
+		}
+	}
+

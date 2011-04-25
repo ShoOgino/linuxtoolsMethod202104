@@ -1,0 +1,26 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.ui.IActionDelegate#run(org.eclipse.jface.action.IAction)
+     */
+    @Override
+    public void run(IAction arg0) {
+    	
+		boolean confirm = MessageDialog.openConfirm(getShell(),
+				Messages.DeleteTrace_ConfirmTitle,
+				Messages.DeleteTrace_ConfirmMessage);
+		if (!confirm) {
+			return;
+		}
+
+        int size = fSelectedTraces.size();
+        for (int i = 0; i < size; i++) {
+
+            final TraceResource trace = (TraceResource) fSelectedTraces.get(i);
+
+            trace.getParent().removeTrace(trace);
+            
+            ISystemRegistry registry = SystemStartHere.getSystemRegistry();
+            registry.fireRemoteResourceChangeEvent(ISystemRemoteChangeEvents.SYSTEM_REMOTE_RESOURCE_DELETED, trace, trace.getParent(), trace.getSubSystem(), null);
+        }
+    }
+

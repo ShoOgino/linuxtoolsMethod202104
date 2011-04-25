@@ -1,0 +1,69 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.jface.wizard.Wizard#addPages()
+     */
+    @Override
+	public void addPages() {
+        traceConfigPage = new TraceConfigurationPage(this);
+        addPage(traceConfigPage);
+
+        if (fSelectedTrace.isUst()) {
+            // User space trace
+            TraceChannels channels = null;
+            if ((fSelectedTrace.getTraceConfig()) != null && fSelectedTrace.getTraceConfig().getTraceChannels() != null) {
+                channels = fSelectedTrace.getTraceConfig().getTraceChannels().clone(); 
+            }
+            else {
+                channels = new TraceChannels();
+                channels.put(TraceChannel.UST_TRACE_CHANNEL_NAME, new TraceChannel(TraceChannel.UST_TRACE_CHANNEL_NAME));
+            }
+            channelConfigPage = new UstTraceChannelConfigurationPage(channels);
+            addPage(channelConfigPage);
+        } else {
+            // Kernel trace 
+            TraceChannels channels = null;
+            if ((fSelectedTrace.getTraceConfig()) != null && (fSelectedTrace.getTraceConfig().getTraceChannels() != null)) {
+                channels = fSelectedTrace.getTraceConfig().getTraceChannels().clone(); 
+            }
+            else {
+                String[] channelNames = new String[0];
+                try {
+                    final ILttControllerService service = ((TraceSubSystem)fSelectedTrace.getSubSystem()).getControllerService();
+                    channelNames = new TCFTask<String[]>() {
+                        @Override
+                        public void run() {
+                            // Get targets using Lttng controller service proxy
+                            service.getChannels(fSelectedTrace.getParent().getParent().getName(), fSelectedTrace.getParent().getName(), fSelectedTrace.getName(), new ILttControllerService.DoneGetChannels() {
+
+                                @Override
+                                public void doneGetChannels(IToken token, Exception error, String[] str) {
+                                    if (error != null) {
+                                        // Notify with error
+                                        error(error);
+                                        return;
+                                    }
+                                    // Notify with active trace list
+                                    done(str);
+                                }
+                            });
+                        }}.get(TraceControlConstants.DEFAULT_TCF_TASK_TIMEOUT, TimeUnit.SECONDS);
+                } catch (Exception e) {
+                    if (e instanceof SystemMessageException) {
+                        SystemBasePlugin.logError("Trace Configuration", e); //$NON-NLS-1$;
+                    }
+                    else {
+                        SystemBasePlugin.logError("TraceSubSystem", new SystemMessageException(LTTngUiPlugin.getDefault().getMessage(e))); //$NON-NLS-1$
+                    }
+                }
+
+                channels = new TraceChannels();
+                channels.putAll(channelNames);
+            }
+
+            channelConfigPage = new KernelTraceChannelConfigurationPage(channels, fSelectedTrace.getTraceState());
+            addPage(channelConfigPage);
+        }
+
+        getShell().setImage(LTTngUiPlugin.getDefault().getImage(LTTngUiPlugin.ICON_ID_CONFIG_TRACE));
+    }
+

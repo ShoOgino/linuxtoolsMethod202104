@@ -1,0 +1,72 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.rse.core.subsystems.ICommunicationsListener#communicationsStateChange(org.eclipse.rse.core.subsystems.CommunicationsEvent)
+     */
+    @Override
+    public void communicationsStateChange(CommunicationsEvent e) {
+        switch (e.getState())
+        {
+        case CommunicationsEvent.BEFORE_CONNECT :
+            break;
+        case CommunicationsEvent.AFTER_CONNECT :
+            break;
+        case CommunicationsEvent.BEFORE_DISCONNECT :
+            
+            try {
+                final TraceResource[] traces = getAllTraces();
+
+                StringBuffer traceNames = new StringBuffer("");  //$NON-NLS-1$
+                String filler = ""; //$NON-NLS-1$
+                for (int j = 0; j < traces.length; j++) {
+                    // For network traces, ask user to pause tracing
+                    if (traces[j].isNetworkTraceAndStarted()) {
+                        traceNames.append(filler);
+                        traceNames.append(traces[j].getName());
+                    }
+                    filler = ", "; //$NON-NLS-1$
+                }
+                if (!"".equals(traceNames.toString())) { //$NON-NLS-1$
+                    final String finalTraceNames = traceNames.toString();
+                    Display.getDefault().syncExec(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            MessageDialog.openWarning(Display.getDefault().getActiveShell(), Messages.Ltt_ShutdownWarning, Messages.Ltt_NetworkTraceRunningWarning + ":\n" + finalTraceNames); //$NON-NLS-1$
+
+                            // Pause tracing
+                            PauseTrace pauseAction = new PauseTrace();
+                            pauseAction.setSelectedTraces(new ArrayList<TraceResource>(Arrays.asList(traces)));
+                            pauseAction.run(null);
+                        }
+                    });
+                }
+
+                if (fProviders != null) {
+                    // reset all providers and it's children
+                    for (int i = 0; i < fProviders.length; i++) {
+                        fProviders[i].removeAllTargets();
+                    }
+                    fProviders = null;
+                }
+
+            } catch (SystemMessageException ex) {
+                SystemBasePlugin.logError("TraceSubSystem", ex); //$NON-NLS-1$
+            }
+            break;
+        case CommunicationsEvent.AFTER_DISCONNECT :
+            getConnectorService().removeCommunicationsListener(this);
+            break;
+        case CommunicationsEvent.CONNECTION_ERROR :
+            // TODO notify user about the lost connection ?!
+            getConnectorService().removeCommunicationsListener(this);
+            try {
+                this.disconnect();
+            } catch (Exception e1) {
+                // Nothing to do
+            }
+            break;
+        default :
+            break;
+        }
+    }
+

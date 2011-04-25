@@ -1,0 +1,45 @@
+    /*
+     * Method to copy a trace residing on the local host. 
+     */
+	private void copyTrace(TraceResource trace, IProject project, String traceName) {
+		IFolder traceFolder = project.getFolder(TRACE_FOLDER_NAME);
+		if (!traceFolder.exists()) {
+			MessageDialog.openWarning(getShell(),
+					Messages.ImportToProject_ImportFailed,
+					Messages.ImportToProject_NoProjectTraceFolder);
+			return;
+		}
+		
+		IPath containerPath = traceFolder.getFullPath().addTrailingSeparator().append(traceName);
+		
+		File sourceFolder = new File(trace.getTraceConfig().getTracePath());
+		
+		IOverwriteQuery overriteImplementor = new IOverwriteQuery(){
+			@Override
+			public String queryOverwrite(String pathString) {
+				MessageDialog.openWarning(getShell(),
+						Messages.ImportToProject_ImportFailed,
+						Messages.ImportToProject_AlreadyExists);
+				return IOverwriteQuery.NO_ALL;
+			}};
+		
+		ImportOperation operation = new ImportOperation(
+				containerPath,
+				sourceFolder,
+				FileSystemStructureProvider.INSTANCE,
+				overriteImplementor);
+		operation.setCreateContainerStructure(false);
+		
+		try {
+			operation.run(new NullProgressMonitor());
+		} catch (InvocationTargetException e) {
+			MessageDialog.openWarning(getShell(),
+					Messages.ImportToProject_ImportFailed,
+					e.getMessage());
+		} catch (InterruptedException e) {
+			MessageDialog.openWarning(getShell(),
+					Messages.ImportToProject_ImportFailed,
+					e.getMessage());
+		}
+	}
+
