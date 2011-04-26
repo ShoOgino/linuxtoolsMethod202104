@@ -1,0 +1,31 @@
+    /*
+     * Method to create a symbolic link to a trace residing on the local host. 
+     */
+	private void linkTrace(TraceResource trace, IProject project, String traceName) {
+		IFolder traceFolder = project.getFolder(TRACE_FOLDER_NAME);
+		if (!traceFolder.exists()) {
+			MessageDialog.openWarning(getShell(),
+					Messages.ImportToProject_ImportFailed,
+					Messages.ImportToProject_NoProjectTraceFolder);
+			return;
+		}
+		
+		IFolder folder = traceFolder.getFolder(traceName);
+		if (folder.exists()) {
+			MessageDialog.openWarning(getShell(),
+					Messages.ImportToProject_ImportFailed,
+					Messages.ImportToProject_AlreadyExists);
+			return;
+		}
+		
+		File sourceFolder = new File(trace.getTraceConfig().getTracePath());
+		
+		try {
+			folder.createLink(sourceFolder.toURI(), IResource.REPLACE, null);
+		} catch (CoreException e) {
+			MessageDialog.openWarning(getShell(),
+					Messages.ImportToProject_ImportFailed,
+					e.getMessage());
+		}
+	}
+

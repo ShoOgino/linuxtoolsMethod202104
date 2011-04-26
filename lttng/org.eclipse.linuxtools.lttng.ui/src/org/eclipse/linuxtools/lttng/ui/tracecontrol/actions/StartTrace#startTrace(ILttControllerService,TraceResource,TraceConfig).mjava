@@ -1,0 +1,27 @@
+    /*
+     * Starts the trace on the remote system.
+     */
+    private void startTrace(final ILttControllerService service, final TraceResource trace, final TraceConfig oldConfig) throws Exception {
+        new TCFTask<Boolean>() {
+        @Override
+        public void run() {
+
+            // Setup trace transport using Lttng controller service proxy
+            service.startTrace(trace.getParent().getParent().getName(), trace.getParent().getName(), oldConfig.getTraceName(), new ILttControllerService.DoneStartTrace() {
+
+                @Override
+                public void doneStartTrace(IToken token, Exception error, Object str) {
+                    if (error != null) {
+                        
+                        // Notify with error
+                        error(error);
+                        return;
+                    }
+
+                    // Notify about success
+                    done(Boolean.valueOf(true));
+                }
+            });
+        }}.get(TraceControlConstants.DEFAULT_TCF_TASK_TIMEOUT, TimeUnit.SECONDS );
+    }
+

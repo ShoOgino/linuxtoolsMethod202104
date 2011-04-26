@@ -1,0 +1,76 @@
+    /*
+     * Setup the trace location for UST.
+     */ 
+    private boolean setupUstLocation(final ILttControllerService service, final TargetResource targetResource, final TraceConfig traceConfig) throws Exception {
+        if (traceConfig.isNetworkTrace()) {
+        	File localDir = new File(traceConfig.getTracePath());
+        	if (!localDir.exists()) {
+	            boolean success = localDir.mkdirs();
+	            if (!success) {
+	            	return false;
+	            }
+        	}
+
+            // Create future task
+            boolean ok = new TCFTask<Boolean>() {
+                @Override
+                public void run() {
+
+                    // Setup trace location using Lttng controller service proxy
+                    service.writeTraceNetwork(targetResource.getParent().getName(),
+                            targetResource.getName(),
+                            traceConfig.getTraceName(), 
+                            traceConfig.getNumChannel(), 
+                            traceConfig.getIsAppend(), 
+                            traceConfig.getMode() == TraceConfig.FLIGHT_RECORDER_MODE, 
+                            traceConfig.getMode() == TraceConfig.NORMAL_MODE, 
+                            new ILttControllerService.DoneWriteTraceNetwork() {
+
+                        @Override
+                        public void doneWriteTraceNetwork(IToken token, Exception error, Object str) {
+                            if (error != null) {
+                                // Notify with error
+                                error(error);
+                                return;
+                            }
+
+                            // Notify about success
+                            done(true);
+                        }
+                    });
+                }}.get(TraceControlConstants.DEFAULT_TCF_TASK_TIMEOUT, TimeUnit.SECONDS);
+            return ok;
+        } else {
+            // Create future task
+            boolean ok = new TCFTask<Boolean>() {
+                @Override
+                public void run() {
+
+                    // Setup trace location using Lttng controller service proxy
+                    service.writeTraceLocal(targetResource.getParent().getName(),
+                            targetResource.getName(),
+                            traceConfig.getTraceName(), 
+                            traceConfig.getTracePath(), 
+                            traceConfig.getNumChannel(),
+                            traceConfig.getIsAppend(), 
+                            traceConfig.getMode() == TraceConfig.NORMAL_MODE, 
+                            traceConfig.getMode() == TraceConfig.FLIGHT_RECORDER_MODE, 
+                            new ILttControllerService.DoneWriteTraceLocal() {
+
+                        @Override
+                        public void doneWriteTraceLocal(IToken token, Exception error, Object str) {
+                            if (error != null) {
+                                // Notify with error
+                                error(error);
+                                return;
+                            }
+
+                            // Notify about success
+                            done(true);
+                        }
+                    });
+                }}.get(TraceControlConstants.DEFAULT_TCF_TASK_TIMEOUT, TimeUnit.SECONDS);
+            return ok;
+        }
+    }
+

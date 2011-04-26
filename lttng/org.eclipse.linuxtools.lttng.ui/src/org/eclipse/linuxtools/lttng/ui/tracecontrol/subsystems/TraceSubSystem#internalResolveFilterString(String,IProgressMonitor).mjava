@@ -1,0 +1,29 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.rse.core.subsystems.SubSystem#internalResolveFilterString(java.lang.String, org.eclipse.core.runtime.IProgressMonitor)
+     */
+    @Override
+    protected Object[] internalResolveFilterString(String filterString, IProgressMonitor monitor) throws java.lang.reflect.InvocationTargetException, java.lang.InterruptedException {
+        
+        ProviderResource[] allProviders;
+
+        try {
+             allProviders = getAllProviders();
+        } catch (SystemMessageException e) {
+            SystemBasePlugin.logError("TraceSubSystem", e); //$NON-NLS-1$
+            Object[] children = new SystemMessageObject[1];
+            children[0] = new SystemMessageObject(e.getSystemMessage(), ISystemMessageObject.MSGTYPE_ERROR, null);
+            return children;
+        }
+
+        // Now, subset master list, based on filter string...
+        NamePatternMatcher subsetter = new NamePatternMatcher(filterString);
+        Vector<ProviderResource> v = new Vector<ProviderResource>();
+        for (int idx = 0; idx < allProviders.length; idx++) {
+            if (subsetter.matches(allProviders[idx].getName())) {
+                v.addElement(allProviders[idx]);
+            }
+        }
+        return allProviders;
+    }
+

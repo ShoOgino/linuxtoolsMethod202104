@@ -1,0 +1,30 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.rse.core.subsystems.AbstractConnectorService#internalConnect(org.eclipse.core.runtime.IProgressMonitor)
+     */
+    @Override
+    protected void internalConnect(final IProgressMonitor monitor) throws Exception {
+        assert !Protocol.isDispatchThread();
+        final Exception[] res = new Exception[1];
+        // Fire comm event to signal state about to change
+        fireCommunicationsEvent(CommunicationsEvent.BEFORE_CONNECT);
+        monitor.beginTask(Messages.Trace_Connector_Service_Connect_Msg + " " + getHostName(), 1); //$NON-NLS-1$
+        synchronized (res) {
+            Protocol.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    if (!connectTCFChannel(res, monitor)) {
+                        add_to_wait_list(this);
+                    }
+                }
+            });
+            res.wait();
+        }
+        monitor.done();
+        if (res[0] != null) {
+            throw res[0];
+        }
+        // pretend. Normally, we'd connect to our remote server-side code here
+        fIsConnected = true;
+    }
+

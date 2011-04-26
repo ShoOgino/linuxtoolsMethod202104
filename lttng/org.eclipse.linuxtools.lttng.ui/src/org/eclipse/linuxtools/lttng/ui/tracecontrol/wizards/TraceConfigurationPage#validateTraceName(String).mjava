@@ -1,0 +1,43 @@
+    /*
+     * Validates the trace name which has to be unique.
+     */
+    protected boolean validateTraceName(String name) {
+        if (name.length() > 0) {
+            TraceResource[] traces = new TraceResource[0];
+            try {
+                traces = fSubSystem.getAllTraces();
+            } catch (SystemMessageException e) {
+                SystemBasePlugin.logError("TraceConfigurationPage ", e); //$NON-NLS-1$
+            }
+            for (int i = 0; i < traces.length; i++) {
+                if (traces[i].getName().compareTo(name) == 0) {
+                    fTraceNameError = Messages.NewTraceDialog_Error_Already_Exists;
+                    setErrorMessage(fTraceNameError);
+                    return false;
+                }
+            }
+            final char[] chars = name.toCharArray();
+            for (int x = 0; x < chars.length; x++) {
+                final char c = chars[x];
+                if ((x == 0) && !(((c >= 'a') && (c <= 'z')) || ((c >= 'A') && (c <= 'Z')))) {
+                    fTraceNameError = Messages.NewTraceDialog_Error_Invalid_First_Char;
+                    setErrorMessage(fTraceNameError);
+                    return false;
+                } else if (x != 0) {
+                    if (!((c >= 'a') && (c <= 'z')) && !((c >= 'A') && (c <= 'Z')) && !((c >= '0') && (c <= '9'))) {
+                        fTraceNameError = Messages.NewTraceDialog_Error_Invalid_Name;
+                        setErrorMessage(fTraceNameError);
+                        return false;
+                    }
+                }
+            }
+        }
+        if (fTracePathError.length() > 0) {
+            setErrorMessage(fTracePathError);
+        } else {
+            setErrorMessage(null);
+        }
+        fTraceNameError = ""; //$NON-NLS-1$
+        return true;
+    }
+

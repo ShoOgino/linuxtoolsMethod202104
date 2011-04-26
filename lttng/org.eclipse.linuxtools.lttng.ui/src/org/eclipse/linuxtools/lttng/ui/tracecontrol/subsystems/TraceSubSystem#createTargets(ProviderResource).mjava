@@ -1,0 +1,53 @@
+    /*
+     * Retrieves the targets for given provider from the remote system.
+     */
+    private TargetResource[] createTargets(final ProviderResource provider) throws SystemMessageException {
+    	TargetResource[] targets;
+    	try {
+            final ILttControllerService service = getControllerService();
+
+            // Create future task
+            targets = new TCFTask<TargetResource[]>() {
+                @Override
+                public void run() {
+                    
+                    // Get targets using Lttng controller service proxy
+                    service.getTargets(provider.getName(), new ILttControllerService.DoneGetTargets() {
+
+                        @Override
+                        public void doneGetTargets(IToken token, Exception error, String[] str) {
+                            if (error != null) {
+                                // Notify with error
+                                error(error);
+                                return;
+                            }
+
+                            // Create targets
+                            TargetResource[] targets = new TargetResource[str.length];
+                            for (int i = 0; i < str.length; i++) {
+                                TargetResource tempTarget = new TargetResource(TraceSubSystem.this);
+                                tempTarget.setName(str[i]);
+                                tempTarget.setParent(provider);
+                                targets[i] = tempTarget;
+                            }
+                            // Notify with target list
+                            done(targets);
+                        }
+                    });
+                }}.get(TraceControlConstants.DEFAULT_TCF_TASK_TIMEOUT, TimeUnit.SECONDS);
+        } catch (Exception e) {
+        	provider.setTargets(new TargetResource[0]);
+            if (e instanceof SystemMessageException) throw (SystemMessageException)e;
+            throw new SystemMessageException(LTTngUiPlugin.getDefault().getMessage(e));
+        }
+
+        provider.setTargets(targets);
+        for (int i = 0; i < targets.length; i++) {
+        	if (targets[i].getParent().getName().equals(LttngConstants.Lttng_Provider_Kernel)) {
+	            createTraces(targets[i]);
+        	}
+        }
+
+        return targets;
+    }
+

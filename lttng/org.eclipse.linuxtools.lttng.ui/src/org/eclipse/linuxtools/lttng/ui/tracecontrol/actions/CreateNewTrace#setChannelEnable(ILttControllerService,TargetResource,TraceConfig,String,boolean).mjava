@@ -1,0 +1,32 @@
+    /*
+     * Enable or disable a channel on the remote system. 
+     */
+    private void setChannelEnable(final ILttControllerService service, final TargetResource targetResource, final TraceConfig traceConfig, final String channelName, final boolean enabled) throws Exception{
+            // Create future task
+           new TCFTask<Boolean>() {
+                @Override
+                public void run() {
+
+                    // Set marker enable using Lttng controller service proxy
+                    service.setChannelEnable(targetResource.getParent().getName(),
+                            targetResource.getName(), 
+                            traceConfig.getTraceName(), 
+                            channelName, 
+                            enabled,  
+                            new ILttControllerService.DoneSetChannelEnable() {
+
+                        @Override
+                        public void doneSetChannelEnable(IToken token, Exception error, Object str) {
+                            if (error != null) {
+                                // Notify with error
+                                error(error);
+                                return;
+                            }
+
+                            // Notify about success
+                            done(Boolean.valueOf(true));
+                        }
+                    });
+                }}.get(TraceControlConstants.DEFAULT_TCF_TASK_TIMEOUT, TimeUnit.SECONDS);
+    }
+
