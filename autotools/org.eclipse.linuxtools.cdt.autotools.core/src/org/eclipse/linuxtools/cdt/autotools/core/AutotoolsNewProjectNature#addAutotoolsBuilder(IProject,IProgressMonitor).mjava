@@ -52,13 +52,30 @@
 			protected IStatus run(IProgressMonitor monitor) {
 				try {
 					ResourcesPlugin.getWorkspace().run(new IWorkspaceRunnable() {
+						protected boolean savedAutoBuildingValue;
 
 						public void run(IProgressMonitor monitor) throws CoreException {
-
+							IWorkspace workspace = ResourcesPlugin.getWorkspace();
+							turnOffAutoBuild(workspace);
 							IProjectDescription description = proj.getDescription();
 							description.setBuildSpec(newCommands);
 							proj.setDescription(description, new NullProgressMonitor());
+							restoreAutoBuild(workspace);
 						}
+						
+						protected final void turnOffAutoBuild(IWorkspace workspace) throws CoreException {
+							IWorkspaceDescription workspaceDesc = workspace.getDescription();
+							savedAutoBuildingValue = workspaceDesc.isAutoBuilding();
+							workspaceDesc.setAutoBuilding(false);
+							workspace.setDescription(workspaceDesc);
+						}
+						
+						protected final void restoreAutoBuild(IWorkspace workspace) throws CoreException {
+							IWorkspaceDescription workspaceDesc = workspace.getDescription();
+							workspaceDesc.setAutoBuilding(savedAutoBuildingValue);
+							workspace.setDescription(workspaceDesc);
+						}
+
 					}, rule, IWorkspace.AVOID_UPDATE, monitor);
 				} catch (CoreException e) {
 					return e.getStatus();
