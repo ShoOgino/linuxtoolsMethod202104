@@ -6,28 +6,12 @@
 		String l = line + "\n";  //$NON-NLS-1$
 		if ( outputStream == null ) return; 
 		try {
-			Class<?> c = outputStream.getClass();
-			Method m = null;
-			try {
-				if (marker != null) {
-					m = c.getDeclaredMethod("write", String.class, ProblemMarkerInfo.class);
-					if (m != null) {
-						m.invoke(outputStream, l, marker);
-						return;
-					}
+			if (marker != null) {
+				if (outputStream instanceof IErrorMarkeredOutputStream) {
+					IErrorMarkeredOutputStream mos = (IErrorMarkeredOutputStream)outputStream;
+					mos.write(l, marker);
 				}
-			} catch (SecurityException e) {
-				// do nothing
-			} catch (NoSuchMethodException e) {
-				// do nothing
-			} catch (IllegalArgumentException e) {
-				// do nothing
-			} catch (IllegalAccessException e) {
-				// do nothing
-				AutotoolsPlugin.log(e);
-			} catch (InvocationTargetException e) {
-				// do nothing
-			}		
+			}
 			byte[] b = l.getBytes();
 			outputStream.write(b, 0, b.length);			
 		} catch (IOException e) {
