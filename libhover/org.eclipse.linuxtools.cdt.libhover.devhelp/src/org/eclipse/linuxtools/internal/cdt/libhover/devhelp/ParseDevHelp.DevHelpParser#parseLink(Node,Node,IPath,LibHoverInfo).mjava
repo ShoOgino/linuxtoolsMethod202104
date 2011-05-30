@@ -1,0 +1,28 @@
+		private void parseLink(Node link, Node name, IPath path, LibHoverInfo libhover) {
+			String linkValue = link.getNodeValue();
+			String[] linkParts = linkValue.split("#"); //$NON-NLS-1$
+			if (linkParts.length == 2) {
+				try {
+					String nameString = name.getNodeValue();
+					nameString = nameString.replaceAll("\\(.*\\);+", "").trim(); //$NON-NLS-1$ //$NON-NLS-2$
+					if (nameString.contains("::") || nameString.startsWith("enum ") //$NON-NLS-1$ //$NON-NLS-2$
+							|| nameString.contains("\"")) //$NON-NLS-1$
+						return;
+					Reader reader = new FileReader(path.removeLastSegments(1).toOSString()
+							+ "/" + linkParts[0]); //$NON-NLS-1$
+					Parser callback = new Parser(linkParts[1], nameString);
+					new ParserDelegator().parse(reader, callback, true);
+					FunctionInfo finfo = callback.getFunctionInfo();
+					if (finfo != null) {
+						if (debug)
+							System.out.println(callback.toString());
+						libhover.functions.put(callback.getFuncName(), callback.getFunctionInfo());
+					}
+				} catch (FileNotFoundException e1) {
+					// ignore
+				} catch (IOException e) {
+					// ignore
+				}
+			}
+		}
+
