@@ -1,0 +1,29 @@
+	/**
+	 * Figure out the error location and create a marker and message for it.
+	 * @param exception
+	 */
+	protected void handleError (InvalidMacroException exception) {
+		AutoconfElement element = exception.getBadElement();
+		
+		if (errorHandler != null) {
+			int lineNumber = 0;
+			int startColumn = 0;
+			int endColumn = 0;
+			try {
+				lineNumber = element.getDocument().getLineOfOffset(element.getStartOffset());
+				int lineOffs = element.getDocument().getLineOffset(lineNumber);
+				startColumn = element.getStartOffset() - lineOffs;
+				endColumn = startColumn + element.getLength();
+			} catch (BadLocationException e) {
+				// Don't care if we blow up trying to issue marker
+			}
+			errorHandler.handleError(new ParseException(
+					exception.getMessage(),
+					element.getStartOffset(),
+					element.getEndOffset(),
+					lineNumber, 
+					startColumn, endColumn,
+					IMarker.SEVERITY_ERROR));
+		}
+	}
+
