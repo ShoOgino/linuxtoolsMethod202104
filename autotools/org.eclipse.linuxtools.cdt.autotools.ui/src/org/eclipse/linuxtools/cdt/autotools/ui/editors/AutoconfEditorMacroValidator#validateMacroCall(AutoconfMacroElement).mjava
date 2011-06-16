@@ -2,7 +2,7 @@
 	 * @see org.eclipse.linuxtools.cdt.autotools.ui.editors.parser.IAutoconfMacroValidator#validateMacroCall(org.eclipse.linuxtools.cdt.autotools.core.ui.editors.parser.AutoconfMacroElement)
 	 */
 	public void validateMacroCall(AutoconfMacroElement macro)
-			throws ParseException {
+			throws ParseException, InvalidMacroException {
 		AutoconfPrototype p = AutoconfTextHover.getPrototype(macro.getName(), fEditor);
 		if (p != null) {
 			boolean tooFew = false;
@@ -56,6 +56,24 @@
 							IMarker.SEVERITY_WARNING);
 				}
 			}
+			
+			IProject project = fEditor.getProject();
+			String acDocVer = AutoconfTextHover.getDefaultAutoconfMacrosVer();
+			try {
+				String acVer = project.getPersistentProperty(AutotoolsPropertyConstants.AUTOCONF_VERSION);
+				if (acVer != null)
+					acDocVer = acVer;
+				else { // look for compat project properties
+					acVer = project.getPersistentProperty(AutotoolsPropertyConstants.AUTOCONF_VERSION_COMPAT);
+					if (acVer != null)
+						acDocVer = acVer;
+				}
+			} catch (CoreException ce1) {
+				// do nothing
+			}
+			
+			macro.validate(acDocVer);
+
 		}
 
 	}
