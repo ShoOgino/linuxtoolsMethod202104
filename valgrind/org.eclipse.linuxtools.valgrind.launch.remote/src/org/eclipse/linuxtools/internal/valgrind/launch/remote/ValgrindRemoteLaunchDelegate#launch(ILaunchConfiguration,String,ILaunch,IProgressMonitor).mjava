@@ -17,6 +17,7 @@
 			return;
 		}
 
+		caller = this;
 		this.config = config;
 		this.launch = launch;
 		try {			
@@ -58,23 +59,23 @@
 							command = new ValgrindRemoteCommand(channel, launchSteps);
 							
 							// Retrieve user-defined Valgrind binary location
-							final IPath valgrindLocation = Path.fromOSString(config.getAttribute(RemoteLaunchConstants.ATTR_REMOTE_VALGRINDLOC, RemoteLaunchConstants.DEFAULT_REMOTE_VALGRINDLOC));
+							final IPath valgrindLocation = Path.fromOSString(config.getAttribute(ValgrindRemoteLaunchConstants.ATTR_REMOTE_VALGRINDLOC, ValgrindRemoteLaunchConstants.DEFAULT_REMOTE_VALGRINDLOC));
 
 							monitor.worked(1);
 
 							// Copy binary using FileSystem service
 							final IPath exePath = CDebugUtils.verifyProgramPath(config);
-							final IPath remoteDir = Path.fromOSString(config.getAttribute(RemoteLaunchConstants.ATTR_REMOTE_DESTDIR, RemoteLaunchConstants.DEFAULT_REMOTE_DESTDIR));
+							final IPath remoteDir = Path.fromOSString(config.getAttribute(ValgrindRemoteLaunchConstants.ATTR_REMOTE_DESTDIR, ValgrindRemoteLaunchConstants.DEFAULT_REMOTE_DESTDIR));
 							remoteBinFile = remoteDir.append(exePath.lastSegment());
 							
-							IPath remoteLogDir = Path.fromOSString(config.getAttribute(RemoteLaunchConstants.ATTR_REMOTE_OUTPUTDIR, RemoteLaunchConstants.DEFAULT_REMOTE_OUTPUTDIR));
-							outputPath = remoteLogDir.append("eclipse-valgrind-" + System.currentTimeMillis());
+							IPath remoteLogDir = Path.fromOSString(config.getAttribute(ValgrindRemoteLaunchConstants.ATTR_REMOTE_OUTPUTDIR, ValgrindRemoteLaunchConstants.DEFAULT_REMOTE_OUTPUTDIR));
+							outputPath = remoteLogDir.append("eclipse-valgrind-" + System.currentTimeMillis()); //$NON-NLS-1$
 
 							try {
 								new RemoteLaunchStep(launchSteps, channel, "FileSystem Write Binary") { //$NON-NLS-1$
 									@Override
 									public void start() throws Exception {
-										writeFileToRemote(exePath, remoteBinFile, this);					
+										RemoteUtils.writeFileToRemote(fsService, caller, exePath, remoteBinFile, this);					
 									}
 								};
 								
