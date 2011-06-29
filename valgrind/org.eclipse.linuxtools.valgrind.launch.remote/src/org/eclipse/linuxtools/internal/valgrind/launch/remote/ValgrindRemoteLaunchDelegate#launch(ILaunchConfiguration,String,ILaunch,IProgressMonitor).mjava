@@ -3,7 +3,6 @@
 		if (m == null) {
 			m = new NullProgressMonitor();
 		}
-		launchSteps = new ConcurrentLinkedQueue<RemoteLaunchStep>();
 		
 		// Clear process as we wait on it to be instantiated
 		process = null;
@@ -17,7 +16,6 @@
 			return;
 		}
 
-		caller = this;
 		this.config = config;
 		this.launch = launch;
 		try {			
@@ -27,129 +25,67 @@
 			getPlugin().setCurrentLaunchConfiguration(null);
 			getPlugin().setCurrentLaunch(null);
 
-			// Open TCF Channel
-			Map<String, IPeer> peers = Protocol.getLocator().getPeers();
-			String peerID = config.getAttribute(RemoteLaunchConstants.ATTR_REMOTE_PEERID, RemoteLaunchConstants.DEFAULT_REMOTE_PEERID);
-			peer = peers.get(peerID);
+			rc = new RemoteConnection(config);
+			monitor.worked(1);
+
+			// Copy binary using FileSystem service
+			final IPath exePath = CDebugUtils.verifyProgramPath(config);
+			final IPath remoteDir = Path.fromOSString(config.getAttribute(ValgrindRemoteLaunchConstants.ATTR_REMOTE_DESTDIR, ValgrindRemoteLaunchConstants.DEFAULT_REMOTE_DESTDIR));
+
+			remoteBinFile = remoteDir.append(exePath.lastSegment());
 			
-			if (peer == null) {
-				abort(NLS.bind(Messages.ValgrindRemoteLaunchDelegate_error_no_peers, peerID), null, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
-			}
-			else {
-				channel = peer.openChannel();
-				channel.addChannelListener(new IChannel.IChannelListener() {
-
-					public void onChannelOpened() {
-						try {
-							IStreams streamService = channel.getRemoteService(IStreams.class);
-							if (streamService == null) {
-								abort(Messages.ValgrindRemoteLaunchDelegate_error_no_streams, null, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
-							}
-
-							fsService = channel.getRemoteService(IFileSystem.class);
-							if (fsService == null) {
-								abort(Messages.ValgrindRemoteLaunchDelegate_error_no_fs, null, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
-							}
-
-							procService = channel.getRemoteService(IProcesses.class);
-							if (procService == null) {
-								abort(Messages.ValgrindRemoteLaunchDelegate_error_no_proc, null, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
-							}
-
-							command = new ValgrindRemoteCommand(channel, launchSteps);
-							
-							// Retrieve user-defined Valgrind binary location
-							final IPath valgrindLocation = Path.fromOSString(config.getAttribute(ValgrindRemoteLaunchConstants.ATTR_REMOTE_VALGRINDLOC, ValgrindRemoteLaunchConstants.DEFAULT_REMOTE_VALGRINDLOC));
-
-							monitor.worked(1);
-
-							// Copy binary using FileSystem service
-							final IPath exePath = CDebugUtils.verifyProgramPath(config);
-							final IPath remoteDir = Path.fromOSString(config.getAttribute(ValgrindRemoteLaunchConstants.ATTR_REMOTE_DESTDIR, ValgrindRemoteLaunchConstants.DEFAULT_REMOTE_DESTDIR));
-							remoteBinFile = remoteDir.append(exePath.lastSegment());
-							
-							IPath remoteLogDir = Path.fromOSString(config.getAttribute(ValgrindRemoteLaunchConstants.ATTR_REMOTE_OUTPUTDIR, ValgrindRemoteLaunchConstants.DEFAULT_REMOTE_OUTPUTDIR));
-							outputPath = remoteLogDir.append("eclipse-valgrind-" + System.currentTimeMillis()); //$NON-NLS-1$
-
-							try {
-								new RemoteLaunchStep(launchSteps, channel, "FileSystem Write Binary") { //$NON-NLS-1$
-									@Override
-									public void start() throws Exception {
-										RemoteUtils.writeFileToRemote(fsService, caller, exePath, remoteBinFile, this);					
-									}
-								};
-								
-								new RemoteLaunchStep(launchSteps, channel, "FileSystem Log Mkdir") { //$NON-NLS-1$
-									@Override
-									public void start() throws Exception {
-										fsService.mkdir(outputPath.toOSString(), new FileAttrs(0, 0, 0, 0, 0, 0, 0, null), new DoneMkDir() {
-											public void doneMkDir(IToken token,
-													FileSystemException error) {
-												if (error != null) {
-													disconnect(error);
-												}
-												else {
-													done();
-												}
-											}
-										});
-									}
-								};
-
-								
-								String[] arguments = getProgramArgumentsArray(config);
-
-								// Start process using Processes service
-								startRemoteProcess(config, launch,
-										valgrindLocation, remoteBinFile,
-										arguments, remoteDir.toFile(), remoteLogDir);
-								
-								// Begin executing launch steps
-								launchSteps.remove().start();
-							} catch (Throwable e) {
-								disconnect(e);
-							}
-						} catch (CoreException e) {
-							disconnect(e);
-						}
-					}
-
-					public void onChannelClosed(Throwable error) {
-						channel.removeChannelListener(this);
-						if (error != null) {
-							ex = error;
-						}
-					}
-
-					public void congestionLevel(int level) {
-					}
-				});
-			}
-
-			// Wait for the process to exist and finish but don't bother
-			// waiting if the channel has been closed
-			while (channel.getState() != IChannel.STATE_CLOSED && 
-					(process == null || !process.isTerminated())) {
-				Thread.sleep(100);
-			}
+			rc.upload(exePath, remoteDir, new SubProgressMonitor(monitor, 1));
 			
-			cleanup(null);
-			
-			// Begin executing launch steps
+			IPath remoteLogDir = Path.fromOSString(config.getAttribute(ValgrindRemoteLaunchConstants.ATTR_REMOTE_OUTPUTDIR, ValgrindRemoteLaunchConstants.DEFAULT_REMOTE_OUTPUTDIR));
+			outputPath = remoteLogDir.append("eclipse-valgrind-" + System.currentTimeMillis()); //$NON-NLS-1$
+
+			rc.createFolder(outputPath, new SubProgressMonitor(monitor, 1));
+
+			// Retrieve user-defined Valgrind binary location
+			final IPath valgrindLocation = Path.fromOSString(config.getAttribute(ValgrindRemoteLaunchConstants.ATTR_REMOTE_VALGRINDLOC, ValgrindRemoteLaunchConstants.DEFAULT_REMOTE_VALGRINDLOC));
+			String[] arguments = getProgramArgumentsArray(config);
+			// create/empty local output directory
+			IValgrindOutputDirectoryProvider provider = getPlugin().getOutputDirectoryProvider();
 			try {
-				launchSteps.remove().start();
-			} catch (Exception e) {
-				disconnect(e);
-			}
-			
-			// Wait for TCF connection to close
-			while (channel.getState() != IChannel.STATE_CLOSED) {
-				Thread.sleep(100);
+				localOutputDir = provider.getOutputPath();
+				createDirectory(localOutputDir);
+			} catch (IOException e2) {
+				// TODO Auto-generated catch block
+				e2.printStackTrace();
 			}
 
-			if (ex != null) {
-				abort(Messages.ValgrindRemoteLaunchDelegate_error_launch_failed, ex, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
+			// tool that was launched
+			toolID = getTool(config);
+			// ask tool extension for arguments
+			dynamicDelegate = getDynamicDelegate(toolID);
+			String[] opts = getValgrindArgumentsArray(config);
+			Map<String, String> env = (Map<String, String>) config.getAttribute(ILaunchManager.ATTR_ENVIRONMENT_VARIABLES, (Map<String, String>) null);
+			boolean usePty = config.getAttribute(
+					ICDTLaunchConfigurationConstants.ATTR_USE_TERMINAL,
+					ICDTLaunchConfigurationConstants.USE_TERMINAL_DEFAULT);
+
+			String command = valgrindLocation.toString();
+			// Add valgrind options
+			for (String opt : opts) {
+				command += " " + opt; //$NON-NLS-1$
 			}
+			// Add executable to run
+			command += " " + remoteBinFile.toString();
+			// Add arguments to pass to executable
+			for (String argument : arguments) {
+				command += " " + argument; //$NON-NLS-1$
+			}
+			@SuppressWarnings("unused")
+			String[] output = rc.runCommand(command, remoteDir, new SubProgressMonitor(monitor, 1));
+
+			// delete remote binary
+			rc.delete(remoteBinFile, new SubProgressMonitor(monitor, 1));
+
+			// move remote log files to local directory
+			rc.download(outputPath, localOutputDir, new SubProgressMonitor(monitor, 1));
+
+			// remove remote log dir and all files under it
+			rc.delete(outputPath, new SubProgressMonitor(monitor, 1));
 			
 			// store these for use by other classes
 			getPlugin().setCurrentLaunchConfiguration(config);
@@ -180,12 +116,16 @@
 			// show view
 			ValgrindUIPlugin.getDefault().showView();
 			monitor.worked(1);
+
+			
 		} catch (IOException e) {
-			abort("Error starting process", e, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR); //$NON-NLS-1$
+			// TODO Auto-generated catch block
 			e.printStackTrace();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
+		} catch (RemoteConnectionException e) {
+			// TODO Auto-generated catch block
+			abort(e.getLocalizedMessage(), null, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
 		} finally {
+			monitor.done();
 			m.done();
 		}
 	}
