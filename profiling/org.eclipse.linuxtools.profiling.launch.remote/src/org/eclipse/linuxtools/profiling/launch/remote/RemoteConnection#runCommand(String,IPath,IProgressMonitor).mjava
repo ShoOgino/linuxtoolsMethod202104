@@ -1,0 +1,32 @@
+	/**
+	 * Run a command on the remote system.
+	 * 
+	 * @param command - the command to run remotely
+	 * @param remoteWorkingDir - the working directory on the remote system
+	 * @param monitor - progress monitor
+	 * @return An array of String representing the command line output, if any.
+	 * @throws RemoteConnectionException
+	 */
+	public String[] runCommand(String command, IPath remoteWorkingDir, IProgressMonitor monitor) throws RemoteConnectionException {
+		String[] outputLines = null;
+		try {
+			IRemoteFile rf = fs.getRemoteFileObject(remoteWorkingDir.toString(), monitor);
+			RemoteCommand rc = new RemoteCommand(rcs, rf);
+			IRemoteCommandShell shell = rc.run();
+			rc.sendCommand(command);
+			while (!rc.isFinished() && !monitor.isCanceled()) {
+				// wait until complete before continuing
+				Thread.sleep(100);
+			}
+			rc.finish();
+			outputLines = new String[shell.getSize()]; 
+			for (int i = 0; i < shell.getSize(); ++i) {
+				Object output = shell.getOutputAt(i);
+				outputLines[i] = output.toString();
+			}
+		} catch (Exception e1) {
+			throw new RemoteConnectionException(e1.getLocalizedMessage());
+		}
+		return outputLines;
+	}
+

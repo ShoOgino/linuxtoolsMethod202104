@@ -1,0 +1,20 @@
+	private void uploadRecursive(File f, IPath remotePath, IProgressMonitor monitor) throws RemoteConnectionException {
+		try {
+			if (f.isDirectory()) {
+				File[] children = f.listFiles();
+				for (int i = 0; i < children.length; ++i) {
+					File child = children[i];
+					if (child.isDirectory()) {
+					    IPath remoteChildPath = remotePath.append(child.getName());
+						createFolder(remoteChildPath, monitor);
+						uploadRecursive(child, remoteChildPath, monitor);
+					}
+				}
+			} else {
+				fs.upload(f.getAbsolutePath().toString(), "UTF-8", remotePath.append(f.getName()).toString(), "UTF-8", monitor);
+			}
+		} catch (SystemMessageException e1) {
+			throw new RemoteConnectionException(e1.getLocalizedMessage());
+		}
+	}
+

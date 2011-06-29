@@ -1,0 +1,43 @@
+	/**
+	 * Called (on the main Thread) whenever output is retrieved from the host
+	 */
+	public void outputUpdated()
+	{
+		// check for command completion
+		synchronized(_commandStack)
+		{
+		if (!_commandStack.empty())
+		{
+			Object[] outputs = _remoteCmdShell.listOutput();
+			synchronized(outputs)
+			{
+			for (int i = _outputOffset; i < outputs.length && !_commandStack.empty(); i++)
+			{
+				boolean handledOutput = false;
+
+				CommandAlias firstCommand = (CommandAlias)_commandStack.firstElement();
+
+				Object output = outputs[_outputOffset];
+				if (output instanceof IRemoteOutput)
+				{
+					IRemoteOutput rmtOutput = (IRemoteOutput)output;
+					String text = rmtOutput.getText();
+					if (commandMatches(text, firstCommand))
+					{
+						_commandStack.remove(0);
+						handleCommandFinished(firstCommand.getCommand());
+						handledOutput = true;
+					}
+				}
+				if (!handledOutput)
+				{
+					handleOutputChanged(firstCommand.getCommand(), output);
+				}
+				_outputOffset++;
+			}
+			}
+
+		}
+		}
+	}
+

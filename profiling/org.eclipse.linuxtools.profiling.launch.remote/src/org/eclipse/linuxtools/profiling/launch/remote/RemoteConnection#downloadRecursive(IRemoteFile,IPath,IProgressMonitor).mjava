@@ -1,0 +1,22 @@
+	private void downloadRecursive(IRemoteFile rf, IPath localPath, IProgressMonitor monitor) throws RemoteConnectionException {
+		try {
+			if (rf.isDirectory()) {
+				IPath dirPath = localPath;
+				IRemoteFile[] children = fs.list(rf, IFileService.FILE_TYPE_FILES_AND_FOLDERS, monitor);
+				for (int i = 0; i < children.length; ++i) {
+					IRemoteFile remotelogfile = children[i];
+					if (remotelogfile.isDirectory()) {
+						dirPath = localPath.append(remotelogfile.getName());
+						File f = dirPath.toFile();
+						f.mkdir();
+					}
+					downloadRecursive(remotelogfile, dirPath, monitor);
+				}
+			} else {
+				fs.download(rf, localPath.append(rf.getName()).toString(), "UTF-8", monitor);
+			}
+		} catch (SystemMessageException e1) {
+			throw new RemoteConnectionException(e1.getLocalizedMessage());
+		}
+	}
+

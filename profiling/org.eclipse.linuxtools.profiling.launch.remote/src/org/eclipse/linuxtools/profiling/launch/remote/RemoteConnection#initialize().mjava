@@ -1,0 +1,63 @@
+	private void initialize() throws RemoteConnectionException {
+		// Open TCF Channel
+		Map<String, IPeer> peers = Protocol.getLocator().getPeers();
+		String peerID = null;
+		try {
+			peerID = config.getAttribute(RemoteLaunchConstants.ATTR_REMOTE_PEERID, RemoteLaunchConstants.DEFAULT_REMOTE_PEERID);
+		} catch (CoreException e) {
+			throw new RemoteConnectionException(RemoteMessages.RemoteLaunchDelegate_error_launch_failed);
+		}
+		peer = peers.get(peerID);
+		if (peer == null) {
+			throw new RemoteConnectionException(RemoteMessages.RemoteLaunchDelegate_error_no_peers);
+		}
+		
+		ISystemRegistry registry = SystemStartHere.getSystemRegistry();
+		IRSESystemType[] systemTypes = RSECorePlugin.getTheCoreRegistry().getSystemTypes();
+		IRSESystemType tcfSystemType = null;
+		for (int i = 0; i < systemTypes.length; ++i) {
+			IRSESystemType rst = systemTypes[i];
+			if (rst.getId().equals("org.eclipse.tm.tcf.rse.systemType")) { // $NON-NLS-1$
+				tcfSystemType = rst;
+			}
+		}
+		if (tcfSystemType == null) {
+			throw new RemoteConnectionException(RemoteMessages.RemoteLaunchDelegate_error_no_systemType);
+		}
+		tcfHost = null;
+		IHost[] tcfHosts = registry.getHostsBySystemType(tcfSystemType);
+		for (int i = 0; i < tcfHosts.length; ++i) {
+			IHost host = tcfHosts[i];
+			if (host.getHostName().equals(peer.getAttributes().get(IPeer.ATTR_IP_HOST))) {
+				tcfHost = host;
+			}
+		}
+//		if (tcfHost == null) {
+			try {
+				tcfHost = registry.createHost(tcfSystemType, "TCF:" + peer.getAttributes().get(IPeer.ATTR_IP_HOST), peer.getAttributes().get(IPeer.ATTR_IP_HOST), "TCF Agent");
+			} catch (Exception e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+				throw new RemoteConnectionException(RemoteMessages.RemoteLaunchDelegate_error_launch_failed);
+			}
+//		}
+		
+		// Get pertinent remote RSE services
+		ISubSystem[] subSystems = registry.getSubSystems(tcfHost);
+		for (int i = 0; i < subSystems.length; ++i) {
+			ISubSystem subSystem = subSystems[i];
+			if (subSystem instanceof IRemoteFileSubSystem)
+				fs = (IRemoteFileSubSystem)subSystem;
+			else if (subSystem instanceof IRemoteCmdSubSystem) {
+				rcs = (IRemoteCmdSubSystem)subSystem;
+			}
+		}
+		
+		try {
+			fs.connect(new NullProgressMonitor(), false);
+		} catch (Exception e) {
+			throw new RemoteConnectionException(RemoteMessages.RemoteLaunchDelegate_error_no_fs);
+		}
+
+	}
+
