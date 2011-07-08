@@ -1,0 +1,37 @@
+	/**
+	 * Check the log file for the check for the given name and return the line
+	 * number in configure where the check occurs.
+	 * 
+	 * @param name
+	 * @return
+	 */
+	private int getErrorConfigLineNumber(String name) {
+		try {
+			File file = new File(configDir + "/config.log");
+			// If the log file is not present there is nothing we can do.
+			if (!file.exists())
+				return -1;
+
+			FileReader stream = new FileReader(file);
+			LineNumberReader reader = new LineNumberReader(stream);
+
+			Pattern errorPattern = Pattern
+					.compile("configure:(\\d+): checking for " + name); //$NON-NLS-1$
+			String line = reader.readLine();
+			while (line != null) {
+				// configure:9751: checking for windres
+				Matcher m = errorPattern.matcher(line);
+
+				if (m.matches()) {
+					return Integer.parseInt(m.group(1));
+				}
+
+				line = reader.readLine();
+			}
+
+		} catch (Exception e) {
+			return -1;
+		}
+		return -1;
+	}
+

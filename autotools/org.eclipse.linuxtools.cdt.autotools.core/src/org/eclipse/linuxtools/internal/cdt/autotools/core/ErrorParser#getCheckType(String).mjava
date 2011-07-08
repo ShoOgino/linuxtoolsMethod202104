@@ -1,0 +1,47 @@
+	/**
+	 * Given the name of the filed check object, look for it in the log file
+	 * file and then examine the configure script to figure out what the type of
+	 * the check was.
+	 * 
+	 * @param name
+	 * @return
+	 */
+	private String getCheckType(String name) {
+		int lineNumber = getErrorConfigLineNumber(name);
+
+		// now open configure file.
+		File file = new File(configDir + "/configure");
+		// If the log file is not present there is nothing we can do.
+		if (!file.exists())
+			return null;
+
+		FileReader stream;
+		try {
+			stream = new FileReader(file);
+			LineNumberReader reader = new LineNumberReader(stream);
+
+			// look for something like:
+			// if test "${ac_cv_prog_WINDRES+set}" = set; then :
+			Pattern errorPattern = Pattern.compile(".*ac_cv_([a-z]*)_.*"); //$NON-NLS-1$
+
+			// skip to the line
+			String line = reader.readLine();
+			for (int i = 0; i < lineNumber + 10 && line != null; i++) {
+				if (i < lineNumber) {
+					line = reader.readLine();
+					continue;
+				}
+				Matcher m = errorPattern.matcher(line);
+				if (m.matches()) {
+					return m.group(1);
+				}
+				line = reader.readLine();
+			}
+
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+
+		return null;
+	}
+
