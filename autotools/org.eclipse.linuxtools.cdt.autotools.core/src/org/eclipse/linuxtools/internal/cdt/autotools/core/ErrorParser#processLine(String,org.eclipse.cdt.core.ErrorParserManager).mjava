@@ -1,0 +1,31 @@
+	public boolean processLine(String line,
+			org.eclipse.cdt.core.ErrorParserManager eoParser) {
+
+		if (this.project == null)
+			this.project = eoParser.getProject();
+
+		if (this.buildDir == null)
+			this.buildDir = new Path(eoParser.getWorkingDirectoryURI().getPath());
+		
+		if (this.sourcePath == null)
+			this.sourcePath = eoParser.getProject().getLocation();
+
+		AutotoolsProblemMarkerInfo marker = processLine(line);
+		if ( marker != null){
+			// Check to see if addProblemMarker exists.
+			try {
+				Method method = eoParser.getClass().getMethod("addProblemMarker", ProblemMarkerInfo.class);
+				try {
+					method.invoke(eoParser, marker);
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
+			} catch (SecurityException e) {
+				return false;
+			} catch (NoSuchMethodException e) {
+				return false;
+			}
+		}
+		return false;
+	}
+

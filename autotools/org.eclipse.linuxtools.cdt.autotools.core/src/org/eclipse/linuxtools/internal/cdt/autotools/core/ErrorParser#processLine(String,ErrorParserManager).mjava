@@ -1,37 +1,12 @@
 	public boolean processLine(String line, ErrorParserManager eoParser) {
-		Matcher m;
+		if (this.project == null)
+			this.project = eoParser.getProject();
 		
-		m = changingConfigDirectory.matcher(line);
-		if(m.matches()){
-			// set configuration directory.
-			return false;
-		}
-		if (epm == null)
-			epm = eoParser;
-		m = pkgconfigError.matcher(line);
-		if (m.matches()) {
-			eoParser.generateExternalMarker(epm.getProject(), -1, m.group(1), SEVERITY_ERROR_BUILD, null, null, m.group(2),
-					AutotoolsProblemMarkerInfo.Type.PACKAGE);
+		AutotoolsProblemMarkerInfo marker = processLine(line);
+		if ( marker != null){
+			eoParser.addProblemMarker(marker);
 			return true;
-		} 
-		
-		m = genconfigError.matcher(line);
-		if (m.matches()) {
-			eoParser.generateMarker(epm.getProject(), -1, m.group(1), SEVERITY_ERROR_BUILD, null,
-					AutotoolsProblemMarkerInfo.Type.GENERIC);
-			return true; 			
 		}
-		
-		m = checkingFail.matcher(line);
-		if (m.matches()) {
-			// We know that there is a 'checking for ...' fail.
-			// Find the log file containing this check
-			AutotoolsProblemMarkerInfo.Type type = getCheckType(m.group(1));
-			if (type != null)
-				eoParser.generateMarker(epm.getProject(), -1, "Missing " + type + " " + m.group(1), SEVERITY_INFO, m.group(1), type);
-			return true; 			
-		}
-
 		return false;
 	}
 
