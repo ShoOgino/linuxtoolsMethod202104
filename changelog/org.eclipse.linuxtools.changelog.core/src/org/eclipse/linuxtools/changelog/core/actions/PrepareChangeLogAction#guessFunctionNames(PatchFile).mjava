@@ -15,7 +15,7 @@
 		if (patchFileInfo.isNewfile() || patchFileInfo.isRemovedFile()) {
 			return new String[]{""};
 		}
-
+		
 		String[] fnames = new String[0];
 		String editorName = ""; // $NON-NLS-1$
 
@@ -33,10 +33,13 @@
 		// check if the file type is supported
 
 		// get editor input for target file
-		FileEditorInput fei = new FileEditorInput(getWorkspaceRoot()
-				.getFileForLocation(
-						getWorkspaceRoot().getLocation().append(
-								patchFileInfo.getPath())));
+		IPath path = getWorkspaceRoot().getLocation().append(patchFileInfo.getPath());
+		IFileStore fileStore = EFS.getLocalFileSystem().getStore(path);
+		IFile workspaceFile = getWorkspaceFile(fileStore);
+		IURIEditorInput fei = null;
+		if (workspaceFile != null)
+			fei =  new FileEditorInput(workspaceFile);
+		fei = new FileStoreEditorInput(fileStore);
 		
 		SourceEditorInput sei = new SourceEditorInput(patchFileInfo.getStorage());
 
