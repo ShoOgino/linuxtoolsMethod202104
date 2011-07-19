@@ -1,7 +1,7 @@
 	public void importSourceRPM(File externalFile) throws CoreException {
 		// Copy original SRPM to workspace
 		IFile srpmFile = getConfiguration().getSrpmsFolder().getFile(
-				externalFile.getName());
+				new Path(externalFile.getName()));
 		try {
 			srpmFile.create(new FileInputStream(externalFile), false, null);
 		} catch (FileNotFoundException e) {
@@ -20,8 +20,10 @@
 		getProject().refreshLocal(IResource.DEPTH_INFINITE, null);
 
 		// Set the spec file
-		IResource[] installedSpecs = getConfiguration().getSpecsFolder().members();
-		if (installedSpecs.length != 1) {
+		SpecfileVisitor specVisitor = new SpecfileVisitor();
+		project.accept(specVisitor);
+		List<IResource> installedSpecs = specVisitor.getSpecFiles();
+		if (installedSpecs.size() != 1) {
 			String throw_message = Messages
 					.getString("RPMCore.spec_file_ambiguous") + //$NON-NLS-1$
 					rpmConfig.getSpecsFolder().getLocation().toOSString();
@@ -29,8 +31,8 @@
 					throw_message, null);
 			throw new CoreException(error);
 		}
-		setSpecFile(getConfiguration().getSpecsFolder().getFile(
-				installedSpecs[0].getName()));
+		setSpecFile(getConfiguration().getSpecsFolder().findMember(
+				installedSpecs.get(0).getName()));
 
 		// Set the project nature
 		RPMProjectNature.addRPMNature(getProject(), null);
