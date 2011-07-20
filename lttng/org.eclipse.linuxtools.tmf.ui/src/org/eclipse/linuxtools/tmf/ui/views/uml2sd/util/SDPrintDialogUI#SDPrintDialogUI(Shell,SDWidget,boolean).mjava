@@ -1,0 +1,92 @@
+    public SDPrintDialogUI(Shell s, SDWidget v, boolean showPrintBtn) {
+
+        setShell(s);
+        view = v;
+        showPrintButton = showPrintBtn;
+
+        printerData = Printer.getDefaultPrinterData();
+        if (printerData != null) {
+            printerData.scope = PrinterData.SELECTION;
+        }
+
+        pagesList = new int[0];
+
+        selectionListener = new SelectionListener() {
+
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                if (useCurrentZoom.getSelection()) {
+                    hPagesNum.setEnabled(false);
+                    vPagesNum.setEnabled(false);
+                }
+                if (setHPagesNumber.getSelection()) {
+                    hPagesNum.setEnabled(true);
+                    vPagesNum.setEnabled(false);
+                    if (currentPage.getSelection()) {
+                        currentPage.setSelection(false);
+                        allPages.setSelection(true);
+                    }
+                    if (hPagesNum.getText() == "") //$NON-NLS-1$
+                        hPagesNum.setText("1"); //$NON-NLS-1$
+                }
+                if (setVPagesNumber.getSelection()) {
+                    hPagesNum.setEnabled(false);
+                    vPagesNum.setEnabled(true);
+                    if (currentPage.getSelection()) {
+                        currentPage.setSelection(false);
+                        allPages.setSelection(true);
+                    }
+                    if (vPagesNum.getText() == "") //$NON-NLS-1$
+                        vPagesNum.setText("1"); //$NON-NLS-1$
+                }
+                if (currentPage.getSelection() || allPages.getSelection() || pageList.getSelection()) {
+                    fromPage.setEnabled(false);
+                    toPage.setEnabled(false);
+                } else {
+                    fromPage.setEnabled(true);
+                    toPage.setEnabled(true);
+                }
+
+                currentPage.setEnabled(useCurrentZoom.getSelection());
+                overviewCanvas.setEnabled(pageList.getSelection());
+                if (overviewCanvas.isEnabled() && (e.widget == useCurrentZoom || e.widget == setHPagesNumber || e.widget == setVPagesNumber)) {
+                    pagesList = new int[1];
+                    pagesList[0] = 1;
+                    pageNum = 1;
+                    firstPage = 1;
+                } else if (overviewCanvas.isEnabled() && (e.widget == pageList)) {
+                    if (pagesList == null || pagesList.length <= 0) {
+                        pagesList = new int[1];
+                        pagesList[0] = 1;
+                        pageNum = 1;
+                        firstPage = 1;
+                    }
+                }
+                computeStepXY();
+                totalPages.setText(Integer.valueOf(maxNumOfPages()).toString());
+                overviewCanvas.redraw();
+                overviewCanvas.update();
+            }
+
+            @Override
+            public void widgetDefaultSelected(SelectionEvent e) {
+                pagesList = new int[0];
+                computeStepXY();
+                overviewCanvas.redraw();
+            }
+
+        };
+
+        modifyListener = new ModifyListener() {
+
+            @Override
+            public void modifyText(ModifyEvent e) {
+                pagesList = new int[0];
+                computeStepXY();
+                totalPages.setText(Integer.valueOf(maxNumOfPages()).toString());
+                overviewCanvas.redraw();
+            }
+
+        };
+    }
+

@@ -1,0 +1,95 @@
+    @Override
+    protected void keyPressedEvent(KeyEvent event) {
+        if (!(isFocusControl() || getViewControl().isFocusControl())) {
+            Control[] child = getParent().getChildren();
+            for (int i = 0; i < child.length; i++) {
+                if (child[i].isFocusControl()) {
+                    if (!(child[i] instanceof ScrollView)) {
+                        getViewControl().setFocus();
+                        break;
+                    }
+                }
+            }
+        }
+        setFocus(-1);
+
+        if (event.keyCode == SWT.CTRL)
+            ctrlSelection = true;
+        if (event.keyCode == SWT.SHIFT) {
+            shiftSelection = true;
+            prevList = new ArrayList<GraphNode>();
+            prevList.addAll(getSelection());
+        }
+
+        GraphNode prevNode = getFocusNode();
+
+        if (event.keyCode == SWT.ARROW_RIGHT)
+            traverseRight();
+
+        if (event.keyCode == SWT.ARROW_LEFT)
+            traverseLeft();
+
+        if (event.keyCode == SWT.ARROW_DOWN)
+            traverseDown();
+
+        if (event.keyCode == SWT.ARROW_UP)
+            traverseUp();
+
+        if (event.keyCode == SWT.HOME)
+            traverseHome();
+
+        if (event.keyCode == SWT.END)
+            traverseEnd();
+
+        if ((!shiftSelection) && (!ctrlSelection))
+            listStart = currentGraphNode;
+
+        if (event.character == ' ') {
+            performSelection(currentGraphNode);
+            if (!shiftSelection)
+                listStart = currentGraphNode;
+        }
+
+        if ((shiftSelection) && (prevNode != getFocusNode())) {
+            clearSelection();
+            addSelection(prevList);
+            addSelection(frame.getNodeList(listStart, getFocusNode()));
+            if (getFocusNode() instanceof Lifeline)
+                ensureVisible(getFocusNode().getX(), getFocusNode().getY(), getFocusNode().getWidth(), getFocusNode().getHeight(), SWT.CENTER | SWT.VERTICAL, true);
+            else
+                ensureVisible(getFocusNode());
+        } else if ((!ctrlSelection) && (!shiftSelection)) {
+
+            clearSelection();
+            if (getFocusNode() != null) {
+                addSelection(getFocusNode());
+
+                if (getFocusNode() instanceof Lifeline)
+                    ensureVisible(getFocusNode().getX(), getFocusNode().getY(), getFocusNode().getWidth(), getFocusNode().getHeight(), SWT.CENTER | SWT.VERTICAL, true);
+                else
+                    ensureVisible(getFocusNode());
+            }
+        }
+
+        if (currentGraphNode != null)
+            currentGraphNode.setFocused(true);
+        redraw();
+
+        if ((event.character == ' ') && ((zoomInMode) || (zoomOutMode))) {
+            int cx = Math.round((getContentsX() + getVisibleWidth() / 2) / zoomValue);
+            int cy = Math.round((getContentsY() + getVisibleHeight() / 2) / zoomValue);
+            if (zoomInMode) {
+                if (zoomValue < 64)
+                    zoomValue = zoomValue * (float) 1.25;
+            } else
+                zoomValue = zoomValue / (float) 1.25;
+            int x = Math.round(cx * zoomValue - getVisibleWidth() / (float) 2);
+            int y = Math.round(cy * zoomValue - getVisibleHeight() / (float) 2);
+            setContentsPos(x, y);
+            if (timeBar != null)
+                timeBar.setZoom(zoomValue);
+            // redraw also resize the scrollView content
+            redraw();
+        }
+    }
+

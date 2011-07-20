@@ -1,0 +1,49 @@
+    /**
+     * Returns true if the message or the message label contains the point given in parameter
+     */
+    @Override
+    public boolean contains(int _x, int _y) {
+        int x = getX();
+        int y = getY();
+        int width = getWidth();
+        int height = getHeight();
+
+        // Used to create a rectangle which contains the message label to allow selection when clicking the label
+        int tempHeight = Metrics.MESSAGES_NAME_SPACING + Metrics.getMessageFontHeigth();
+
+        // Is it a self message?
+        if (startLifeline == endLifeline) {
+            /*
+             * Rectangle.contains(x,y, width, height) does not works with negative height or width We check here if the
+             * rectangle width is negative.
+             */
+            if (getName().length() * Metrics.getAverageCharWidth() > Metrics.swimmingLaneWidth() - Metrics.EXECUTION_OCCURRENCE_WIDTH / 2 + -Metrics.INTERNAL_MESSAGE_WIDTH) {
+                if (Frame.contains(x + Metrics.INTERNAL_MESSAGE_WIDTH + 10, y, Metrics.swimmingLaneWidth() - Metrics.EXECUTION_OCCURRENCE_WIDTH / 2 + -Metrics.INTERNAL_MESSAGE_WIDTH, Metrics.getMessageFontHeigth(), _x, _y))
+                    return true;
+            } else {
+                if (Frame.contains(x + Metrics.INTERNAL_MESSAGE_WIDTH + 10, y, getName().length() * Metrics.getAverageCharWidth(), Metrics.getMessageFontHeigth(), _x, _y))
+                    return true;
+            }
+
+            // Test if the point is in part 1 of the self message
+            // see: "private void drawMessage (NGC context)" method for self message drawing schema
+            if (Frame.contains(x, y - Metrics.MESSAGE_SELECTION_TOLERANCE / 2, Metrics.INTERNAL_MESSAGE_WIDTH / 2, Metrics.MESSAGE_SELECTION_TOLERANCE, _x, _y))
+                return true;
+
+            // Test if the point is in part 3 of the self message
+            if (Frame.contains(x + Metrics.INTERNAL_MESSAGE_WIDTH - Metrics.MESSAGE_SELECTION_TOLERANCE / 2, y, Metrics.MESSAGE_SELECTION_TOLERANCE, height + Metrics.SYNC_INTERNAL_MESSAGE_HEIGHT, _x, _y))
+                return true;
+
+            // Test if the point is in part 5 of the self message
+            if (Frame.contains(x, y + height - Metrics.MESSAGE_SELECTION_TOLERANCE / 2 + Metrics.SYNC_INTERNAL_MESSAGE_HEIGHT, Metrics.INTERNAL_MESSAGE_WIDTH / 2, Metrics.MESSAGE_SELECTION_TOLERANCE, _x, _y))
+                return true;
+
+            // false otherwise
+            return false;
+        }
+        if (Frame.contains(x, y - tempHeight, width, tempHeight, _x, _y))
+            return true;
+        // false otherwise
+        return false;
+    }
+

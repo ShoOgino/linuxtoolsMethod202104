@@ -1,0 +1,46 @@
+    @Override
+    protected void contentsMouseUpEvent(MouseEvent event) {
+        // Just in case the diagram highlight a time compression region
+        // this region need to be released when clicking everywhere
+        insertionCartet.setVisible(false);
+        if (dragAndDrop != null) {
+            if ((overView != null) && (!overView.isDisposed()))
+                overView.dispose();
+            overView = null;
+            Lifeline node = frame.getCloserLifeline(dragX);
+            if (node != null) {
+                int rx = Math.round(node.getX() * zoomValue);
+                if (rx <= event.x && Math.round(rx + (node.getWidth() * zoomValue)) >= event.x) {
+                    if ((collapseProvider != null) && (dragAndDrop != node))
+                        collapseProvider.collapseTwoLifelines((Lifeline) dragAndDrop, node);
+                } else if (rx < event.x) {
+                    frame.insertLifelineAfter((Lifeline) dragAndDrop, node);
+                    if (node.getIndex() < frame.lifeLinesCount()) {
+                        Lifeline temp[] = { (Lifeline) dragAndDrop, frame.getLifeline(node.getIndex()) };
+                        reorderList.add(temp);
+                    } else {
+                        Lifeline temp[] = { (Lifeline) dragAndDrop, null };
+                        reorderList.add(temp);
+                    }
+                } else {
+                    frame.insertLifelineBefore((Lifeline) dragAndDrop, node);
+                    Lifeline temp[] = { (Lifeline) dragAndDrop, node };
+                    reorderList.add(temp);
+                }
+            }
+        }
+        dragAndDrop = null;
+        redraw();
+        if (frame == null) {
+            return;
+        }
+        frame.resetTimeCompression();
+
+        // reset auto scroll if it's engaged
+        if (local_auto_scroll_ != null) {
+            local_auto_scroll_.cancel();
+            local_auto_scroll_ = null;
+        }
+        super.contentsMouseUpEvent(event);
+    }
+

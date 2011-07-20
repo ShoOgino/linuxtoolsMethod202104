@@ -1,0 +1,42 @@
+    /**
+     * 
+     * @param gc the context
+     */
+    @Override
+    protected void drawContents(GC gc, int clipx, int clipy, int clipw, int cliph) {
+        if (frame == null) {
+            gc.setBackground(getDisplay().getSystemColor(SWT.COLOR_WHITE));
+            gc.fillRectangle(0, 0, getVisibleWidth(), getVisibleHeight());
+            gc.dispose();
+            return;
+        } else {
+            Frame.setUserPref(SDViewPref.getInstance());
+        }
+
+        Rectangle area = getClientArea();
+        Image dbuffer = getDrawBuffer(gc);
+        int height = Math.round((frame.getHeight() + 2 * Metrics.FRAME_V_MARGIN) * zoomValue);
+
+        try {
+            gc.drawImage(dbuffer, 0, 0, area.width, area.height, 0, 0, area.width, area.height);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        dbuffer.dispose();
+        setHScrollBarIncrement(Math.round(SDViewPref.getInstance().getLifelineWidth() / (float) 2 * zoomValue));
+        setVScrollBarIncrement(Math.round(Metrics.getMessagesSpacing() * zoomValue));
+        if ((timeBar != null) && (frame.hasTimeInfo())) {
+            timeBar.resizeContents(9, height + getHorizontalBarHeight());
+            timeBar.setContentsPos(getContentsX(), getContentsY());
+            timeBar.redraw();
+            timeBar.update();
+        }
+        float xRatio = getContentsWidth() / (float) getVisibleWidth();
+        float yRatio = getContentsHeight() / (float) getVisibleHeight();
+        if (yRatio > xRatio) {
+            setOverviewSize((int) (getVisibleHeight() * 0.75));
+        } else {
+            setOverviewSize((int) (getVisibleWidth() * 0.75));
+        }
+    }
+

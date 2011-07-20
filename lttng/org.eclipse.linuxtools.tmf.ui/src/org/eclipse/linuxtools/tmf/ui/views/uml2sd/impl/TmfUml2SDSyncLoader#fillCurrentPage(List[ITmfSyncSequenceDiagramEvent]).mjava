@@ -1,0 +1,117 @@
+    /**
+     * Fills current page with sequence diagram content.
+     * @param events sequence diagram events
+     */
+    protected void fillCurrentPage(List<ITmfSyncSequenceDiagramEvent> events) {
+
+        fLock.lock();
+        try {
+            fEvents = new ArrayList<ITmfSyncSequenceDiagramEvent>(events);
+            if (fView != null) {
+                fView.toggleWaitCursorAsync(true);
+            }
+        } finally {
+            fLock.unlock();
+        }
+      
+        final Frame frame = new Frame();
+        if (events.size() > 0) {
+
+            HashMap<String, Lifeline> nodeToLifelineMap = new HashMap<String, Lifeline>();
+
+            frame.setName(Messages.TmfUml2SDSyncLoader_FrameName);
+
+            for (int i = 0; i < events.size(); i++) {
+
+                ITmfSyncSequenceDiagramEvent sdEvent = events.get(i);
+
+                if ((nodeToLifelineMap.get(sdEvent.getSender()) == null) && (!filterLifeLine(sdEvent.getSender()))) {
+                    Lifeline lifeline = new Lifeline();
+                    lifeline.setName(sdEvent.getSender());
+                    nodeToLifelineMap.put(sdEvent.getSender(), lifeline);
+                    frame.addLifeLine(lifeline);
+                }
+
+                if ((nodeToLifelineMap.get(sdEvent.getReceiver()) == null) && (!filterLifeLine(sdEvent.getReceiver()))) {
+                    Lifeline lifeline = new Lifeline();
+                    lifeline.setName(sdEvent.getReceiver());
+                    nodeToLifelineMap.put(sdEvent.getReceiver(), lifeline);
+                    frame.addLifeLine(lifeline);
+                }
+            }
+
+            int eventOccurence = 1;
+
+            for (int i = 0; i < events.size(); i++) {
+                ITmfSyncSequenceDiagramEvent sdEvent = (TmfSyncSequenceDiagramEvent) events.get(i);
+
+                // Check message filter
+                if (filterMessage(sdEvent)) {
+                    continue;
+                }
+
+                // Set the message sender and receiver
+                Lifeline startLifeline = (Lifeline) nodeToLifelineMap.get(sdEvent.getSender());
+                Lifeline endLifeline = (Lifeline) nodeToLifelineMap.get(sdEvent.getReceiver());
+
+                // Check if any of the lifelines were filtered 
+                if (startLifeline == null || endLifeline == null) {
+                    continue;
+                }
+
+                int tmp = Math.max(startLifeline.getEventOccurrence(), endLifeline.getEventOccurrence());
+                eventOccurence = Math.max(eventOccurence, tmp);
+                
+                startLifeline.setCurrentEventOccurrence(eventOccurence);
+                endLifeline.setCurrentEventOccurrence(eventOccurence);
+                
+                TmfSyncMessage message = new TmfSyncMessage(sdEvent, eventOccurence++);
+                
+                message.setStartLifeline(startLifeline);
+                message.setEndLifeline(endLifeline);
+
+                message.setTime(sdEvent.getStartTime());
+
+                // add the message to the frame
+                frame.addMessage(message);
+                
+            }
+            fLock.lock();
+            try {
+                if (!fView.getSDWidget().isDisposed()) {
+                    fView.getSDWidget().getDisplay().asyncExec(new Runnable() {
+
+                        @Override
+                        public void run() {
+
+                            fLock.lock();
+                            try {
+                                // check if view was disposed in the meanwhile
+                                if ((fView != null) && (!fView.getSDWidget().isDisposed())) {
+                                    fFrame = frame;
+                                    fView.setFrame(fFrame);
+
+                                    if (fCurrentTime != null) {
+                                        moveToMessageInPage();
+                                    }
+
+                                    if (fFindCriteria != null) {
+                                        find(fFindCriteria);
+                                    }
+                                    
+                                    fView.toggleWaitCursorAsync(false);
+                                }
+                            }  finally {
+                                fLock.unlock();
+                            }
+
+                        }
+                    });
+                }
+            }
+            finally {
+                fLock.unlock();
+            }
+        }
+    }
+

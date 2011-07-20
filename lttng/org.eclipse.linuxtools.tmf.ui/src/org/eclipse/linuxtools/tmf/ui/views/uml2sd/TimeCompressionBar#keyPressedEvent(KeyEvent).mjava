@@ -1,0 +1,83 @@
+    @Override
+    protected void keyPressedEvent(KeyEvent _e) {
+        if (tooltip != null)
+            tooltip.hideToolTip();
+        if (!isFocusControl() || getViewControl().isFocusControl()) {
+            Control[] child = getParent().getChildren();
+            for (int i = 0; i < child.length; i++) {
+                if (child[i].isFocusControl()) {
+                    // getViewControl().setFocus();
+                    break;
+                }
+            }
+        }
+        setFocus(-1);
+
+        boolean top = false;
+        if (nextNodeY == 0)
+            top = true;
+        if ((frame != null) && (nextNodeY == 0)) {
+            for (int i = 0; i < nodeList.size() - 1 && i < 1; i++) {
+                SDTimeEvent m1 = (SDTimeEvent) nodeList.get(i);
+                SDTimeEvent m2 = (SDTimeEvent) nodeList.get(i + 1);
+                if (SDViewPref.getInstance().excludeExternalTime()) {
+                    if ((m1.getGraphNode() instanceof BaseMessage) && (m2.getGraphNode() instanceof BaseMessage)) {
+                        BaseMessage mes1 = (BaseMessage) m1.getGraphNode();
+                        BaseMessage mes2 = (BaseMessage) m2.getGraphNode();
+                        if ((mes2.getStartLifeline() == null) || (mes1.getEndLifeline() == null))
+                            continue;
+                    }
+                }
+
+                int y1 = ((GraphNode) m1.getGraphNode()).getY();
+                int y2 = ((GraphNode) m2.getGraphNode()).getY();
+                if (m1.getGraphNode() instanceof AsyncMessage) {
+                    AsyncMessage as = (AsyncMessage) m1.getGraphNode();
+                    if (as.getEndTime() == m1.getTime())
+                        y1 += as.getHeight();
+                }
+                if (m2.getGraphNode() instanceof AsyncMessage) {
+                    AsyncMessage as = (AsyncMessage) m2.getGraphNode();
+                    if (as.getEndTime() == m2.getTime())
+                        y2 += as.getHeight();
+                }
+                if (m1.getGraphNode() instanceof ExecutionOccurrence) {
+                    ExecutionOccurrence eo = (ExecutionOccurrence) m1.getGraphNode();
+                    if (m1.getEvent() == eo.getEndOccurrence())
+                        y1 += eo.getHeight();
+
+                    if (m2.getGraphNode() instanceof ExecutionOccurrence) {
+
+                        ExecutionOccurrence eo2 = (ExecutionOccurrence) m2.getGraphNode();
+                        if (m2.getEvent() == eo2.getEndOccurrence())
+                            y2 += eo2.getHeight();
+
+                    }
+                }
+                prevNodeY = Math.round(y1 * zoomValue);
+                nextNodeY = Math.round(y2 * zoomValue);
+            }
+        }
+
+        if (ll != null)
+            for (int j = 0; j < listenerList.size(); j++) {
+                ITimeCompressionListener list = (ITimeCompressionListener) listenerList.get(j);
+                list.deltaSelected(ll, ls, ln, lc);
+            }
+
+        if (_e.keyCode == SWT.ARROW_DOWN) {
+            if (!top)
+                selectTimeDelta(nextNodeY + 1, 1);
+            else
+                selectTimeDelta(prevNodeY + 1, 1);
+            setFocus(1);
+        } else if (_e.keyCode == SWT.ARROW_UP) {
+            selectTimeDelta(prevNodeY - 1, 2);
+            setFocus(1);
+        } else if (_e.keyCode == SWT.ARROW_RIGHT) {
+            selectTimeDelta(prevNodeY, 1);
+            setFocus(1);
+        }
+        super.keyPressedEvent(_e);
+    }
+

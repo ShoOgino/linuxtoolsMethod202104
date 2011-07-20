@@ -1,0 +1,92 @@
+        /** Process overview appear */
+        protected void overviewAppear(int mx, int my) {
+            if (overview == null) {
+                overview = new Shell(getShell(), SWT.ON_TOP | SWT.NO_BACKGROUND);
+                overview.addPaintListener(new PaintListener() {
+                    @Override
+                    public void paintControl(PaintEvent e) {
+                        drawOverview(e.gc, overview.getClientArea());
+                    }
+                });
+            }
+            // always the same..
+            // overview.setBackground( viewcontrol_.getBackground() );
+            overview.setForeground(viewcontrol_.getForeground());
+
+            // get location of shell (in screeen coordinates)
+            Point p = toGlobalCoordinates(corner_control_, 0, 0);
+            int x = p.x;
+            int y = p.y;
+            int w, h;
+            w = h = overview_size_;
+            Rectangle scr = getDisplay().getBounds();
+            Point ccs = corner_control_.getSize();
+            try {
+                if (contents_width_ > contents_height_) {
+                    float ratio = contents_height_ / (float) contents_width_;
+                    h = (int) (w * ratio);
+                    if (h < ccs.y)
+                        h = ccs.y;
+                    else if (h >= scr.height / 2)
+                        h = scr.height / 2;
+                } else {
+                    float ratio = contents_width_ / (float) contents_height_;
+                    w = (int) (h * ratio);
+                    if (w < ccs.x)
+                        w = ccs.x;
+                    else if (w >= scr.width / 2)
+                        w = scr.width / 2;
+                }
+                overview_factor_x_ = contents_width_ / (float) w;
+                overview_factor_y_ = contents_height_ / (float) h;
+            }
+            // no contents size set ?
+            catch (java.lang.ArithmeticException e) {
+            }
+
+            // try pop-up on button, extending to bottom right,
+            // if outside screen, extend pop-up to top left
+            // if( x+w > scr.width ) x = scr.width-w; //x += corner_control_.getSize().x-w;
+            // if( y+h > scr.height ) y = scr.height-h;//y += corner_control_.getSize().y-h;
+            if (x <= 0)
+                x = 1;
+            if (y <= 0)
+                y = 1;
+            x = x - w + ccs.x;
+            y = y - h + ccs.y;
+            overview.setBounds(x, y, w, h);
+            overview.setVisible(true);
+            overview.redraw();
+            // mouse cursor disappear, so set invisible mouse cursor ...
+            // if (hideCursor)
+            {
+                if (overview_cursor_ == null) {
+                    RGB rgb[] = { new RGB(0, 0, 0), new RGB(255, 0, 0) };
+                    PaletteData pal_ = new PaletteData(rgb);
+                    int s = 1;
+                    byte src[] = new byte[s * s];
+                    byte msk[] = new byte[s * s];
+                    for (int i = 0; i < s * s; ++i)
+                        src[i] = (byte) 0xFF;
+                    ImageData i_src = new ImageData(s, s, 1, pal_, 1, src);
+                    ImageData i_msk = new ImageData(s, s, 1, pal_, 1, msk);
+                    overview_cursor_ = new Cursor(null, i_src, i_msk, 0, 0);
+                }
+                corner_control_.setCursor(overview_cursor_);
+            }
+            // convert to global coordinates
+            p = toGlobalCoordinates(corner_control_, mx, my);
+            save_cursor_x = p.x;
+            save_cursor_y = p.y;
+
+            Rectangle r = overview.getClientArea();
+            int cx = (int) (r.width * contents_x_ / (float) contents_width_);
+            int cy = (int) (r.height * contents_y_ / (float) contents_height_);
+
+            // cx,cy to display's global coordinates
+            p = toGlobalCoordinates(overview.getParent(), cx, cy);
+            cx = p.x;
+            cy = p.y;
+
+        }
+

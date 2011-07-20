@@ -1,0 +1,94 @@
+    /**
+     * Force the time compression bar to highlight the event occurrences between the two given messages. The event
+     * occurrences are highlighted on the first message's end lifeline
+     * 
+     * @param mes1 the first message
+     * @param mes2
+     */
+    public void highlightRegion(BaseMessage mes1, BaseMessage mes2) {
+        if (frame == null)
+            return;
+        if (!(mes1 instanceof ITimeRange))
+            return;
+        if (!(mes2 instanceof ITimeRange))
+            return;
+        ITimeRange t1 = (ITimeRange) mes1;
+        ITimeRange t2 = (ITimeRange) mes2;
+
+        TmfTimestamp time1 = t1.getStartTime();
+        TmfTimestamp time2 = t2.getStartTime();
+        int event1 = mes1.getEventOccurrence();
+        int event2 = mes2.getEventOccurrence();
+
+        if (mes1 instanceof AsyncMessage) {
+            AsyncMessage as = (AsyncMessage) mes2;
+            time1 = as.getEndTime();
+            event1 = as.getEndOccurrence();
+        }
+        if (mes2 instanceof AsyncMessage) {
+            AsyncMessage as = (AsyncMessage) mes2;
+            if (as.getEndOccurrence() > as.getStartOccurrence()) {
+                time1 = as.getEndTime();
+                event1 = as.getEndOccurrence();
+            } else {
+                time1 = as.getStartTime();
+                event1 = as.getStartOccurrence();
+            }
+        }
+
+        if (event1 > event2) {
+            BaseMessage tempMes = mes2;
+            mes2 = mes1;
+            mes1 = tempMes;
+
+            t1 = (ITimeRange) mes1;
+            t2 = (ITimeRange) mes2;
+
+            time1 = t1.getStartTime();
+            time2 = t2.getStartTime();
+            event1 = mes1.getEventOccurrence();
+            event2 = mes2.getEventOccurrence();
+
+            if (mes1 instanceof AsyncMessage) {
+                AsyncMessage as = (AsyncMessage) mes2;
+                time1 = as.getEndTime();
+                event1 = as.getEndOccurrence();
+            }
+            if (mes2 instanceof AsyncMessage) {
+                AsyncMessage as = (AsyncMessage) mes2;
+                if (as.getEndOccurrence() > as.getStartOccurrence()) {
+                    time1 = as.getEndTime();
+                    event1 = as.getEndOccurrence();
+                } else {
+                    time1 = as.getStartTime();
+                    event1 = as.getStartOccurrence();
+                }
+            }
+        }
+
+        TmfTimestamp minMaxdelta = max.getDelta(min);
+        double gr = (minMaxdelta.getValue()) / (double) 10;
+
+        TmfTimestamp delta = time2.getDelta(time1).getDelta(min);
+        long absDelta = Math.abs(delta.getValue());
+
+        int colIndex = 0;
+        if (gr != 0) {
+            colIndex = Math.round((float) (absDelta / gr));
+            if (colIndex >= col.length)
+                colIndex = col.length - 1;
+            else if (colIndex < 0)
+                colIndex = 0;
+        } else
+            colIndex = 0;
+        for (int j = 0; j < listenerList.size(); j++) {
+            ITimeCompressionListener list = (ITimeCompressionListener) listenerList.get(j);
+            if (mes1.getEndLifeline() != null) {
+                list.deltaSelected(mes1.getEndLifeline(), event1, event2 - event1, col[colIndex]);
+            } else if (mes2.getStartLifeline() != null) {
+                list.deltaSelected(mes2.getStartLifeline(), event1, event2 - event1, col[colIndex]);
+            } else
+                list.deltaSelected(mes1.getStartLifeline(), event1, event2 - event1, col[colIndex]);
+        }
+    }
+

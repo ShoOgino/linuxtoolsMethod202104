@@ -1,0 +1,26 @@
+    /**
+     * @param signal The experiment disposed signal
+     */
+    @TmfSignalHandler 
+    public void experimentDisposed(TmfExperimentDisposedSignal<TmfEvent> signal) {
+        fLock.lock(); 
+        try {
+            if ((fIndexRequest != null) && !fIndexRequest.isCompleted()) {
+                fIndexRequest.cancel();
+                fIndexRequest = null;
+            }
+
+            cancelOngoingRequests();
+
+            if (fFilterCriteria != null) {
+                fFilterCriteria.clear();
+            }
+
+            FilterListDialog.deactivateSavedGlobalFilters();
+
+            resetLoader();
+        } finally {
+            fLock.unlock();
+        }
+    }
+

@@ -1,0 +1,27 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.linuxtools.tmf.ui.views.uml2sd.load.IUml2SDLoader#setViewer(org.eclipse.linuxtools.tmf.ui.views.uml2sd.SDView)
+     */
+    @SuppressWarnings("unchecked")
+    @Override
+    public void setViewer(SDView viewer) {
+        
+        fLock.lock(); 
+        try {
+            fView = viewer;
+            PlatformUI.getWorkbench().getActiveWorkbenchWindow().getSelectionService().addPostSelectionListener(this);
+            fView.setSDFindProvider(this);
+            fView.setSDPagingProvider(this);
+            fView.setSDFilterProvider(this);
+
+            resetLoader();
+
+            fExperiment = (TmfExperiment<TmfEvent>) TmfExperiment.getCurrentExperiment();
+            if (fExperiment != null) {
+                experimentSelected(new TmfExperimentSelectedSignal<TmfEvent>(this, fExperiment));
+            }
+        } finally {
+            fLock.unlock();
+        }
+    }
+

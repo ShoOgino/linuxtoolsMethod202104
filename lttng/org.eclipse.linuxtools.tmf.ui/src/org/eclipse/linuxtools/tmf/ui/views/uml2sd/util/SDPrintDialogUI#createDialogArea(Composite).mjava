@@ -1,0 +1,218 @@
+    public Control createDialogArea(Composite parent) {
+
+        GridLayout parentLayout = new GridLayout();
+        parentLayout.numColumns = 6;
+        parent.setLayout(parentLayout);
+
+        Group g1 = new Group(parent, SWT.SHADOW_NONE);
+        g1.setText(SDMessages._113);
+        g1.setLayoutData(newGridData(3));
+        GridLayout g1layout = new GridLayout();
+        g1layout.numColumns = 2;
+        g1.setLayout(g1layout);
+
+        useCurrentZoom = new Button(g1, SWT.RADIO);
+        useCurrentZoom.setText(SDMessages._112);
+        useCurrentZoom.setLayoutData(newGridData(2));
+        useCurrentZoom.addSelectionListener(selectionListener);
+
+        setHPagesNumber = new Button(g1, SWT.RADIO);
+        setHPagesNumber.setText(SDMessages._110);
+        setHPagesNumber.setLayoutData(newGridData(1));
+        setHPagesNumber.addSelectionListener(selectionListener);
+
+        hPagesNum = new Text(g1, SWT.SINGLE | SWT.BORDER);
+        hPagesNum.addModifyListener(modifyListener);
+
+        setVPagesNumber = new Button(g1, SWT.RADIO);
+        setVPagesNumber.setText(SDMessages._111);
+        setVPagesNumber.setLayoutData(newGridData(1));
+        setVPagesNumber.addSelectionListener(selectionListener);
+
+        vPagesNum = new Text(g1, SWT.SINGLE | SWT.BORDER);
+        vPagesNum.addModifyListener(modifyListener);
+
+        Label nbTotal = new Label(g1, SWT.SHADOW_NONE | SWT.RIGHT);
+        nbTotal.setText(SDMessages._109);
+        // nbTotal.setLayoutData(newGridData(1));
+
+        totalPages = new Text(g1, SWT.SINGLE | SWT.BORDER | SWT.READ_ONLY);
+        // nbHV.addModifyListener(modifListener);
+
+        Group g2 = new Group(parent, SWT.SHADOW_NONE);
+        g2.setText(SDMessages._119);
+        GridData data = new GridData(GridData.GRAB_VERTICAL | GridData.VERTICAL_ALIGN_FILL | GridData.GRAB_HORIZONTAL | GridData.HORIZONTAL_ALIGN_FILL);
+        data.horizontalSpan = 3;
+        data.verticalSpan = 2;
+        g2.setLayoutData(data);
+        GridLayout g2layout = new GridLayout();
+        // g2layout.
+        g2layout.numColumns = 1;
+        // SVLayout g2layout = new SVLayout();
+        g2.setLayout(g2layout);
+
+        GridData data2 = new GridData(GridData.GRAB_VERTICAL | GridData.VERTICAL_ALIGN_FILL | GridData.GRAB_HORIZONTAL | GridData.HORIZONTAL_ALIGN_FILL);
+        data2.horizontalSpan = 1;
+        data2.verticalSpan = 1;
+
+        overviewCanvas = new LocalSD(g2, SWT.NO_BACKGROUND);
+        GridData seqDiagLayoutData = new GridData(GridData.HORIZONTAL_ALIGN_FILL// |GridData.GRAB_HORIZONTAL|
+                /* GridData.GRAB_VERTICAL| */| GridData.VERTICAL_ALIGN_FILL);
+        // seqDiagLayoutData.widthHint=400;
+        // seqDiagLayoutData.horizontalAlignment=GridData.HORIZONTAL_ALIGN_FILL;
+        overviewCanvas.setLayoutData(seqDiagLayoutData);
+        // overviewCanvas.resizeContents(100,100);
+        if (view.getContentsWidth() < view.getVisibleWidth() && view.getContentsHeight() < view.getVisibleHeight())
+            test = 3;
+        else
+            test = 10;
+        overviewCanvas.setFrame(view.getFrame(), true);
+        overviewCanvas.zoomValue = (float) 1 / test;
+        overviewCanvas.setCornerControl(null);
+        seqDiagLayoutData.widthHint = overviewCanvas.getContentsWidth() / test;
+        seqDiagLayoutData.widthHint = overviewCanvas.getFrame().getWidth() / test + 15;
+
+        if (view.getVisibleWidth() < view.getContentsWidth()) {
+            seqDiagLayoutData.widthHint = overviewCanvas.getContentsWidth() / test;
+            if (seqDiagLayoutData.widthHint > Display.getDefault().getClientArea().width / 4)
+                seqDiagLayoutData.widthHint = Display.getDefault().getClientArea().width / 4;
+        } else
+            seqDiagLayoutData.widthHint = overviewCanvas.getFrame().getWidth() / test + 15;
+
+        if (view.getVisibleHeight() < view.getContentsHeight()) {
+            seqDiagLayoutData.heightHint = overviewCanvas.getContentsHeight() / test;
+            if (seqDiagLayoutData.heightHint > Display.getDefault().getClientArea().width / 4)
+                seqDiagLayoutData.heightHint = Display.getDefault().getClientArea().width / 4;
+        } else
+            seqDiagLayoutData.heightHint = overviewCanvas.getFrame().getHeight() / test;
+
+        overviewCanvas.setEnabled(false);
+
+        currentSelection = new Label(g2, SWT.SHADOW_NONE | SWT.LEFT);
+        currentSelection.setLayoutData(newGridData(1));
+
+        Group g3 = new Group(parent, SWT.SHADOW_NONE);
+        g3.setText(SDMessages._118);
+        g3.setLayoutData(newGridData(3));
+        GridLayout g3layout = new GridLayout();
+        g3layout.numColumns = 4;
+        g3.setLayout(g3layout);
+
+        allPages = new Button(g3, SWT.RADIO);
+        allPages.setText(SDMessages._108);
+        allPages.setLayoutData(newGridData(4));
+        allPages.addSelectionListener(selectionListener);
+
+        currentPage = new Button(g3, SWT.RADIO);
+        currentPage.setText(SDMessages._107);
+        currentPage.setLayoutData(newGridData(4));
+        currentPage.setEnabled(true);
+        currentPage.setSelection(true);
+        currentPage.addSelectionListener(selectionListener);
+
+        pageList = new Button(g3, SWT.RADIO);
+        pageList.setText(SDMessages._106);
+        pageList.setLayoutData(newGridData(4));
+        pageList.addSelectionListener(selectionListener);
+
+        pageRange = new Button(g3, SWT.RADIO);
+        pageRange.setText(SDMessages._103);
+        pageRange.setLayoutData(newGridData(1));
+        pageRange.addSelectionListener(selectionListener);
+
+        fromPage = new Text(g3, SWT.SINGLE | SWT.BORDER);
+
+        Label labelTo = new Label(g3, SWT.CENTER);
+        labelTo.setText(SDMessages._105);
+
+        toPage = new Text(g3, SWT.SINGLE | SWT.BORDER);
+
+        toolTip = new DiagramToolTip(overviewCanvas);
+
+        overviewCanvas.getViewControl().addMouseTrackListener(new MouseTrackListener() {
+
+            @Override
+            public void mouseEnter(MouseEvent e) {
+                toolTip.hideToolTip();
+            }
+
+            @Override
+            public void mouseExit(MouseEvent e) {
+                toolTip.hideToolTip();
+            }
+
+            @Override
+            public void mouseHover(MouseEvent e) {
+                int x1 = (int) (overviewCanvas.viewToContentsX(e.x) / overviewCanvas.zoomValue / stepX);
+                int x2 = (int) (overviewCanvas.viewToContentsY(e.y) / overviewCanvas.zoomValue / stepY);
+                int num = x1 + x2 * getNbRow() + 1;
+                if (num > maxNumOfPages())
+                    return;
+                if (num > 0) {
+                    toolTip.showToolTip(String.valueOf(num));
+                    displayPageNum();
+                } else {
+                    currentSelection.setText("");//$NON-NLS-1$
+                    toolTip.hideToolTip();
+                }
+            }
+
+        });
+
+        overviewCanvas.addTraverseListener(new TraverseListener() {
+
+            @Override
+            public void keyTraversed(TraverseEvent e) {
+                if ((e.detail == SWT.TRAVERSE_TAB_NEXT) || (e.detail == SWT.TRAVERSE_TAB_PREVIOUS))
+                    e.doit = true;
+            }
+
+        });
+
+        overviewCanvas.addFocusListener(new FocusListener() {
+
+            @Override
+            public void focusGained(FocusEvent e) {
+                overviewCanvas.redraw();
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                overviewCanvas.redraw();
+            }
+        });
+
+        if (showPrintButton) {
+            Composite printerDlg = new Composite(parent, SWT.NONE);
+            data = GridUtil.createHorizontalFill();
+            data.horizontalSpan = 6;
+            parentLayout = new GridLayout();
+            parentLayout.numColumns = 2;
+            printerDlg.setLayout(parentLayout);
+            printerDlg.setLayoutData(data);
+
+            Label label = new Label(printerDlg, SWT.NONE);
+            label.setLayoutData(GridUtil.createHorizontalFill());
+            printerDialog = new Button(printerDlg, SWT.PUSH);
+            printerDialog.setText(SDMessages._115);
+
+            printerDialog.addSelectionListener(new SelectionListener() {
+
+                @Override
+                public void widgetSelected(SelectionEvent e) {
+
+                    printButtonSelected();
+                }
+
+                @Override
+                public void widgetDefaultSelected(SelectionEvent e) {
+                }
+
+            });
+        }
+
+        updatePrinterStatus();
+
+        return parent;
+    }
+

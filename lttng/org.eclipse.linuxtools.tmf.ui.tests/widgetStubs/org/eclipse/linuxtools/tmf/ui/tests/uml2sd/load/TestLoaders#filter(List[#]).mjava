@@ -1,0 +1,41 @@
+    @Override
+    public boolean filter(List<?> filters) {
+
+        if (savedFrame != null) {
+            savedFrame = v.getFrame();
+        }
+
+        Frame frame = v.getFrame();
+
+        if (frame == null) {
+            return false;
+        }
+
+        if (filters.size() != 1) {
+            return false;
+        }
+
+        FilterCriteria filterCriteria = (FilterCriteria) filters.get(0);
+
+        // One way is to set visiblity of the item, but this only works for messages and not
+        // for lifelines! It's better to create a new frame without the filtered messages.
+        boolean found = false;
+        if (filterCriteria.getCriteria().isSyncMessageSelected()) {
+            for (int i = 0; i < frame.syncMessageCount(); i++) {
+                if (filterCriteria.getCriteria().matches(frame.getSyncMessage(i).getName())) {
+                    frame.getSyncMessage(i).setVisible(false);
+                    found = true;
+                }
+            }
+
+            for (int i = 0; i < frame.syncMessageReturnCount(); i++)
+                if (filterCriteria.getCriteria().matches(frame.getSyncMessageReturn(i).getName())) {
+                    frame.getSyncMessageReturn(i).setVisible(false);
+                    found = true;
+                }
+        }
+
+        v.getSDWidget().redraw();
+        return found;
+    }
+

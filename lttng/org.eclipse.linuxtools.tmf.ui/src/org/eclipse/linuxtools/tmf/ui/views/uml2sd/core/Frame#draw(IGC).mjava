@@ -1,0 +1,54 @@
+    @Override
+    public void draw(IGC context) {
+        drawFrame(context);
+        if (!hasChilden)
+            return;
+        
+        if (highlightLifeline != null) {
+            IColor backupColor = context.getBackground();
+            context.setBackground(Frame.getUserPref().getTimeCompressionSelectionColor());
+            int gy = highlightLifeline.getY() + highlightLifeline.getHeight() + (Metrics.getMessageFontHeigth() + Metrics.getMessagesSpacing()) * startEvent;
+            context.fillRectangle(Metrics.FRAME_H_MARGIN + 1, gy, highlightLifeline.getX() + Metrics.getLifelineWidth() / 2 - Metrics.FRAME_H_MARGIN, (Metrics.getMessageFontHeigth() + Metrics.getMessagesSpacing()) * nbEvent);
+            context.setBackground(backupColor);
+        }
+        super.draw(context, false);
+        int lifelineArryStep = 1;
+        if (Metrics.swimmingLaneWidth() * context.getZoom() < Metrics.LIFELINE_SIGNIFICANT_HSPACING)
+            lifelineArryStep = Math.round(Metrics.LIFELINE_SIGNIFICANT_HSPACING / (Metrics.swimmingLaneWidth() * context.getZoom()));
+        if (indexes.size() == 0)
+            return;
+        int lifeLineDrawIndex = ((Integer) indexes.get(Lifeline.LIFELINE_TAG)).intValue();
+        for (int i = lifeLineDrawIndex; i < ((List<GraphNode>) nodes.get(Lifeline.LIFELINE_TAG)).size(); i = i + lifelineArryStep) {
+            Lifeline toDraw = (Lifeline) ((List<GraphNode>) nodes.get(Lifeline.LIFELINE_TAG)).get(i);
+            if (toDraw.getX() - Metrics.LIFELINE_SPACING / 2 > context.getContentsX() + context.getVisibleWidth())
+                break;
+            toDraw.drawName(context);
+
+            if (highlightLifeline != null) {
+                if (toDraw == highlightLifeline)
+                    toDraw.highlightExecOccurrenceRegion(context, startEvent, nbEvent, highlightColor);
+                else if ((toDraw.getIndex() < highlightLifeline.getIndex()) || ((toDraw.getIndex() < highlightLifeline.getIndex()))) {
+
+                    int acIndex = toDraw.getExecOccurrenceDrawIndex();
+                    // acIndex = first visible execution occurrence
+                    // for drawing speed reason with only search on the visible subset
+                    if (toDraw.getExecutions() != null)
+                        for (int index = acIndex; index < toDraw.getExecutions().size(); index++) {
+                            BasicExecutionOccurrence exec = (BasicExecutionOccurrence) toDraw.getExecutions().get(index);
+                            int tempEvent = startEvent;
+                            for (int j = 0; j < nbEvent; j++) {
+                                if (((tempEvent >= exec.startEventOccurrence) && (tempEvent <= exec.endEventOccurrence) && (tempEvent + 1 >= exec.startEventOccurrence) && (tempEvent + 1 <= exec.endEventOccurrence))) {
+                                    toDraw.highlightExecOccurrenceRegion(context, tempEvent, 1, Frame.getUserPref().getTimeCompressionSelectionColor());
+                                }
+                                tempEvent = tempEvent + 1;
+                            }
+                            // if we are outside the visible area we stop right now
+                            // This works because execution occurrences are ordered along the Y axis
+                            if (exec.getY() > getY())
+                                break;
+                        }
+                }
+            }
+        }
+    }
+

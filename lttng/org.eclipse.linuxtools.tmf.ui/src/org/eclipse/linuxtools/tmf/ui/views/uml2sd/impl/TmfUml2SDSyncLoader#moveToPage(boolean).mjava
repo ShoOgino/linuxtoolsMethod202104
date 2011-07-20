@@ -1,0 +1,49 @@
+    /**
+     * Moves to a certain page.
+     * @param notifyAll true to broadcast time range signal to other signal handlers else false
+     */
+    protected void moveToPage(boolean notifyAll) {
+
+        TmfTimeRange window = TmfTimeRange.Eternity;
+
+        fLock.lock();
+        try {
+            // Safety check
+            if (fCurrentPage > fCheckPoints.size()) {
+                return;
+            }
+            window = fCheckPoints.get(fCurrentPage);
+        } finally {
+            fLock.unlock();
+        }
+
+        fPageRequest = new TmfEventRequest<TmfEvent>(TmfEvent.class, window, TmfDataRequest.ALL_DATA, 1, ITmfDataRequest.ExecutionType.FOREGROUND) {
+            private List<ITmfSyncSequenceDiagramEvent> fSdEvent = new ArrayList<ITmfSyncSequenceDiagramEvent>();
+
+            @Override
+            public void handleData(TmfEvent event) {
+                super.handleData(event);
+
+                ITmfSyncSequenceDiagramEvent sdEvent = getSequnceDiagramEvent(event);
+
+                if (sdEvent != null) {
+                    fSdEvent.add(sdEvent);
+                }
+            }
+
+            @Override
+            public void handleSuccess() {
+                fillCurrentPage(fSdEvent);
+                super.handleSuccess();
+            }
+            
+        };
+
+        ((TmfExperiment<TmfEvent>) fExperiment).sendRequest((ITmfDataRequest<TmfEvent>) fPageRequest);
+
+        if (notifyAll) {
+            TmfTimeRange timeRange = getSignalTimeRange(window.getStartTime());
+            broadcast(new TmfRangeSynchSignal(this, timeRange, timeRange.getStartTime()));
+        }
+    }
+

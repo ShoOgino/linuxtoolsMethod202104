@@ -1,0 +1,49 @@
+    /**
+     * Draw the GraphNode stored in the given list, starting at index startIndex with the given step
+     * 
+     * @param context the context to draw to
+     * @param list the GraphNodes list
+     * @param startIndex the start index
+     * @param step the step to browse the list
+     * @return the number of GraphNodes drawn
+     */
+    protected int drawNodes(IGC context, List<GraphNode> list, int startIndex, int step) {
+        if (!hasChilden)
+            return 0;
+
+        GraphNode last = null;
+        int nodesCount = 0;
+        if (list.size() < 0)
+            return 0;
+
+        GraphNode node = (GraphNode) list.get(0);
+        context.setFont(Frame.getUserPref().getFont(node.prefId));
+        Comparator<GraphNode> comparator = node.getComparator();
+        for (int i = startIndex; i < list.size(); i = i + step) {
+            GraphNode toDraw = (GraphNode) list.get(i);
+            if (i < list.size() - 1) {
+                GraphNode next = (GraphNode) list.get(i + 1);
+                if ((comparator != null) && (comparator.compare(toDraw, next) == 1)) {
+                    fSort.put(next.getArrayId(), Boolean.valueOf(true));
+                }
+            }
+            int cx = context.getContentsX();
+            int cy = context.getContentsY();
+            int cw = context.getVisibleWidth();
+            int ch = context.getVisibleHeight();
+            // The arrays should be ordered, no needs to continue for this one
+            if (!toDraw.isVisible(cx, cy, cw, ch) && toDraw.positiveDistanceToPoint(cx + cw, cy + ch))
+                break;
+            // ***Common*** nodes visibility
+            if ((!toDraw.isSameAs(last) || toDraw.isSelected()) && (toDraw.isVisible(context.getContentsX(), context.getContentsY(), context.getVisibleWidth(), context.getVisibleHeight()))) {
+                nodesCount++;
+                
+                toDraw.draw(context);
+                if (hasFocus())
+                    toDraw.drawFocus(context);
+            }
+            last = toDraw;
+        }
+        return nodesCount;
+    }
+

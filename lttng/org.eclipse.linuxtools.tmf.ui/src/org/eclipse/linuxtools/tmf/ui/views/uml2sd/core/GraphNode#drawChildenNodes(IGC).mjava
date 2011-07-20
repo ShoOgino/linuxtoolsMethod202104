@@ -1,0 +1,71 @@
+    /**
+     * Draws the children nodes on the given context.<br>
+     * This method start width GraphNodes ordering if needed.<br>
+     * After, depending on the visible area, only visible GraphNodes are drawn.<br>
+     * 
+     * @param context the context to draw to
+     * @param drawFrame indicate if the frame rectangle need to be redrawn
+     * @see org.eclipse.linuxtools.tmf.ui.views.uml2sd.core.GraphNode#draw(IGC)
+     */
+    protected void drawChildenNodes(IGC context) {
+
+        if (!hasChilden)
+            return;
+        // If the nodes have not been added ordered, the array is ordered
+        Iterator<String> it = fSort.keySet().iterator();
+        while (it.hasNext()) {
+            String nodeType = it.next();
+            boolean sort = ((Boolean) fSort.get(nodeType)).booleanValue();
+            if (sort) {
+                GraphNode[] temp = ((List<GraphNode>) fnodes.get(nodeType)).toArray(new GraphNode[0]);
+                GraphNode node = (GraphNode) ((List<GraphNode>) nodes.get(nodeType)).get(0);
+                Arrays.sort(temp, node.getComparator());
+                fSort.put(nodeType, Boolean.valueOf(false));
+                nodes.put(nodeType, Arrays.asList(temp));
+                fnodes.put(nodeType, Arrays.asList(temp));
+                if (TmfUiTracer.isSortingTraced())
+                    TmfUiTracer.traceSorting(nodeType + " array sorted\n"); //$NON-NLS-1$
+            }
+        }
+
+        Iterator<String> it2 = bSort.keySet().iterator();
+        while (it2.hasNext()) {
+            String nodeType = it2.next();
+            boolean sort = ((Boolean) bSort.get(nodeType)).booleanValue();
+            if (sort) {
+                GraphNode[] temp = ((List<GraphNode>) bnodes.get(nodeType)).toArray(new GraphNode[0]);
+                GraphNode node = (GraphNode) ((List<GraphNode>) nodes.get(nodeType)).get(0);
+                Arrays.sort(temp, node.getBackComparator());
+                bSort.put(nodeType, Boolean.valueOf(false));
+                bnodes.put(nodeType, Arrays.asList(temp));
+                if (TmfUiTracer.isSortingTraced())
+                    TmfUiTracer.traceSorting(nodeType + " back array sorted\n"); //$NON-NLS-1$
+            }
+        }
+
+        if (TmfUiTracer.isDisplayTraced()) {
+            TmfUiTracer.traceDisplay("*****************************\n"); //$NON-NLS-1$
+        }
+
+        int arrayStep = 1;
+        if ((Metrics.getMessageFontHeigth() + Metrics.MESSAGES_NAME_SPACING * 2) * context.getZoom() < Metrics.MESSAGE_SIGNIFICANT_VSPACING)
+            arrayStep = Math.round(Metrics.MESSAGE_SIGNIFICANT_VSPACING / ((Metrics.getMessageFontHeigth() + Metrics.MESSAGES_NAME_SPACING * 2) * context.getZoom()));
+
+        int count = 0;
+        Iterator<String> it3 = fSort.keySet().iterator();
+        while (it3.hasNext()) {
+            count = 0;
+            Object nodeType = it3.next();
+            GraphNode node = (GraphNode) ((List<GraphNode>) nodes.get(nodeType)).get(0);
+            context.setFont(Frame.getUserPref().getFont(node.prefId));
+            int index = ((Integer) indexes.get(nodeType)).intValue();
+            count = drawNodes(context, (List<GraphNode>) nodes.get(nodeType), index, arrayStep);
+            if (TmfUiTracer.isDisplayTraced())
+                TmfUiTracer.traceDisplay(count + " " + nodeType + " drawn, starting from index " + index + "\r\n"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        }
+        if (TmfUiTracer.isDisplayTraced()) {
+            TmfUiTracer.traceDisplay("*****************************\n"); //$NON-NLS-1$
+        }
+
+    }
+

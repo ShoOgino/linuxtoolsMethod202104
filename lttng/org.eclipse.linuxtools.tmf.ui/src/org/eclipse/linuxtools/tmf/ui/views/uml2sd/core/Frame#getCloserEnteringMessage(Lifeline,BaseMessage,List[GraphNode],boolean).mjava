@@ -1,0 +1,42 @@
+    protected GraphNode getCloserEnteringMessage(Lifeline lifeline, BaseMessage message, List<GraphNode> list, boolean smallerEvent) {
+        if (list == null)
+            return null;
+        if (smallerEvent == false) {
+            int event = 0;
+            if (message != null)
+                event = message.getEventOccurrence();
+            for (int i = 0; i < list.size(); i++) {
+                GraphNode node = (GraphNode) list.get(i);
+                if (node instanceof SyncMessage) {
+                    SyncMessage syncNode = (SyncMessage) node;
+                    if ((syncNode.getEventOccurrence() > event) && (syncNode.getEndLifeline() == lifeline) && !syncNode.isSameAs(message))
+                        return node;
+                } else if (node instanceof AsyncMessage) {
+                    AsyncMessage asyncNode = (AsyncMessage) node;
+                    if ((asyncNode.getStartOccurrence() > event) && (asyncNode.getEndLifeline() == lifeline) && !asyncNode.isSameAs(message))
+                        return node;
+                }
+            }
+        } else {
+            int event = getMaxEventOccurrence();
+            if (message != null)
+                if (message instanceof AsyncMessage) {
+                    event = ((AsyncMessage) message).getStartOccurrence();
+                } else
+                    event = message.getEventOccurrence();
+            for (int i = list.size() - 1; i >= 0; i--) {
+                GraphNode node = (GraphNode) list.get(i);
+                if (node instanceof SyncMessage) {
+                    SyncMessage syncNode = (SyncMessage) node;
+                    if ((syncNode.getEventOccurrence() < event) && (syncNode.getEndLifeline() == lifeline) && !syncNode.isSameAs(message))
+                        return node;
+                } else if (node instanceof AsyncMessage) {
+                    AsyncMessage asyncNode = (AsyncMessage) node;
+                    if ((asyncNode.getStartOccurrence() < event) && (asyncNode.getEndLifeline() == lifeline) && !asyncNode.isSameAs(message))
+                        return node;
+                }
+            }
+        }
+        return null;
+    }
+

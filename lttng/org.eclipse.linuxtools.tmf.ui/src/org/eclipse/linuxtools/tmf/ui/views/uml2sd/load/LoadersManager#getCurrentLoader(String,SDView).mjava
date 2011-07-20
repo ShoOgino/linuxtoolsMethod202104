@@ -1,0 +1,46 @@
+    /**
+     * Returns the loader in use in this Sequence Diagram View
+     * 
+     * @param viewId The Sequence Diagram viewId
+     * @param view The Sequence Diagram view (if known). Use null to reference the primary SD View.
+     * @return the current loader if any - null otherwise
+     */
+    public IUml2SDLoader getCurrentLoader(String viewId, SDView view) {
+        if (viewId == null) {
+            return null;
+        }
+
+        IWorkbenchPage persp = TmfUiPlugin.getDefault().getWorkbench().getActiveWorkbenchWindow().getActivePage();
+
+        SDView sdView = view;
+
+        try {
+            // Search the view corresponding to the viewId
+            if (sdView == null) {
+                IViewReference viewref = (IViewReference) persp.findViewReference(viewId);
+                if (viewref != null) {
+                    sdView = (SDView) viewref.getView(false);
+                }
+                
+                if (sdView == null) {
+                    // no corresponding view exists -> return null for the loader
+                    return null;
+                }
+            }
+
+            // Return the loader corresponding to that view (if any)
+            IUml2SDLoader loader = fViewLoaderMap.get(viewId);
+            if (loader == null) {
+                createLastLoaderIfAny(viewId);
+                loader = fViewLoaderMap.get(viewId);
+            }
+
+            return loader;
+        } catch (Exception e) {
+            if (Tracer.isErrorTraced()) {
+                Tracer.traceError("Exception during getCurrentLoder(): " + e); //$NON-NLS-1$
+            }
+        }
+        return null;
+    }
+

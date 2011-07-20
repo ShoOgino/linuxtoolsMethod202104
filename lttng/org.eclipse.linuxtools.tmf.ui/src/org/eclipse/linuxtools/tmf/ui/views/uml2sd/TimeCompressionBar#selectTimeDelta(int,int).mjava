@@ -1,0 +1,126 @@
+    /**
+     * 0 no direction, 1 = down, 2 = up
+     * 
+     * @param dy
+     * @param direction
+     */
+    protected void selectTimeDelta(int dy, int direction) {
+        SDTimeEvent lastM1 = null;
+        SDTimeEvent lastM2 = null;
+        int lastY1 = 0;
+        int lastY2 = 0;
+        boolean done = false;
+        if (frame != null) {
+            for (int i = 0; i < nodeList.size() - 1; i++) {
+                SDTimeEvent m1 = (SDTimeEvent) nodeList.get(i);
+                SDTimeEvent m2 = (SDTimeEvent) nodeList.get(i + 1);
+                if (SDViewPref.getInstance().excludeExternalTime()) {
+                    if ((m1.getGraphNode() instanceof BaseMessage) && (m2.getGraphNode() instanceof BaseMessage)) {
+                        BaseMessage mes1 = (BaseMessage) m1.getGraphNode();
+                        BaseMessage mes2 = (BaseMessage) m2.getGraphNode();
+                        if ((mes2.getStartLifeline() == null) || (mes1.getEndLifeline() == null))
+                            continue;
+                    }
+                }
+
+                int y1 = ((GraphNode) m1.getGraphNode()).getY();
+                int y2 = ((GraphNode) m2.getGraphNode()).getY();
+                if (m1.getGraphNode() instanceof AsyncMessage) {
+                    AsyncMessage as = (AsyncMessage) m1.getGraphNode();
+                    if (as.getEndTime() == m1.getTime())
+                        y1 += as.getHeight();
+                }
+                if (m2.getGraphNode() instanceof AsyncMessage) {
+                    AsyncMessage as = (AsyncMessage) m2.getGraphNode();
+                    if (as.getEndTime() == m2.getTime())
+                        y2 += as.getHeight();
+                }
+                if (m1.getGraphNode() instanceof ExecutionOccurrence) {
+                    ExecutionOccurrence eo = (ExecutionOccurrence) m1.getGraphNode();
+                    if (m1.getEvent() == eo.getEndOccurrence())
+                        y1 += eo.getHeight();
+
+                    if (m2.getGraphNode() instanceof ExecutionOccurrence) {
+
+                        ExecutionOccurrence eo2 = (ExecutionOccurrence) m2.getGraphNode();
+                        if (m2.getEvent() == eo2.getEndOccurrence())
+                            y2 += eo2.getHeight();
+
+                    }
+                }
+                int m1Y = Math.round(y1 * zoomValue);
+                int m2Y = Math.round(y2 * zoomValue);
+
+                if ((m1Y < dy) && (m2Y > dy) || (!done && m2Y > dy && direction == 1 && lastM1 != null) || (!done && m1Y > dy && direction == 2 && lastM1 != null)) {
+                    if (m1Y > dy && direction == 2) {
+                        m1 = lastM1;
+                        m2 = lastM2;
+                        m1Y = lastY1;
+                        m2Y = lastY2;
+                    }
+                    done = true;
+                    prevNodeY = m1Y;
+                    nextNodeY = m2Y;
+                    TmfTimestamp minMaxdelta = max.getDelta(min);
+                    double gr = (minMaxdelta.getValue()) / (double) 10;
+
+                    TmfTimestamp delta = m2.getTime().getDelta(m1.getTime()).getDelta(min);
+                    long absDelta = Math.abs(delta.getValue());
+
+                    int colIndex = 0;
+                    if (gr != 0) {
+                        colIndex = Math.round((float) (absDelta / gr));
+                        if (colIndex >= col.length)
+                            colIndex = col.length - 1;
+                        else if (colIndex < 0)
+                            colIndex = 0;
+                    } else
+                        colIndex = 0;
+                    if (m1.getGraphNode() instanceof BaseMessage) {
+                        BaseMessage mes1 = (BaseMessage) m1.getGraphNode();
+                        if (mes1.getEndLifeline() != null) {
+                            ll = mes1.getEndLifeline();
+                            ls = m1.getEvent();
+                            ln = m2.getEvent() - m1.getEvent();
+                            lc = col[colIndex];
+                        } else if (m2.getGraphNode() instanceof BaseMessage && ((BaseMessage) m2.getGraphNode()).getStartLifeline() != null) {
+                            ll = ((BaseMessage) m2.getGraphNode()).getStartLifeline();
+                            ls = m1.getEvent();
+                            ln = m2.getEvent() - m1.getEvent();
+                            lc = col[colIndex];
+                        } else {
+                            ll = mes1.getStartLifeline();
+                            ls = m1.getEvent();
+                            ln = m2.getEvent() - m1.getEvent();
+                            lc = col[colIndex];
+                        }
+                    } else if (m1.getGraphNode() instanceof ExecutionOccurrence) {
+                        if (m2.getGraphNode() instanceof ExecutionOccurrence) {
+                            ExecutionOccurrence eo = (ExecutionOccurrence) m2.getGraphNode();
+                            ll = eo.getLifeline();
+                            ls = m1.getEvent();
+                            ln = m2.getEvent() - m1.getEvent();
+                            lc = col[colIndex];
+                        } else {
+                            ExecutionOccurrence eo = (ExecutionOccurrence) m1.getGraphNode();
+                            ll = eo.getLifeline();
+                            ls = m1.getEvent();
+                            ln = m2.getEvent() - m1.getEvent();
+                            lc = col[colIndex];
+                        }
+                    }
+                    for (int j = 0; j < listenerList.size(); j++) {
+                        ITimeCompressionListener list = (ITimeCompressionListener) listenerList.get(j);
+                        list.deltaSelected(ll, ls, ln, lc);
+                    }
+                    break;
+                } else {
+                    lastM1 = m1;
+                    lastM2 = m2;
+                    lastY1 = m1Y;
+                    lastY2 = m2Y;
+                }
+            }
+        }
+    }
+

@@ -1,0 +1,47 @@
+    /**
+     * Changes the current unique loader to the given secondary viewId.
+     * 
+     * @param loader The current loader
+     * @param id the view secondary id or null
+     */
+    private void setCurrentLoader(IUml2SDLoader loader, String id) {
+        if (id == null) {
+            return;
+        }
+
+        // Get the loader in use
+        IUml2SDLoader currentLoader = fViewLoaderMap.get(id);
+
+        if ((currentLoader != null) && (currentLoader != loader)) {
+            if (loader != null) {
+                IWorkbenchPage persp = TmfUiPlugin.getDefault().getWorkbench().getActiveWorkbenchWindow().getActivePage();
+                try {
+                    // Search view corresponding to the viewId
+                    SDView sdview = null;
+                    IViewReference viewref = (IViewReference) persp.findViewReference(id);
+                    if (viewref != null) {
+                        sdview = (SDView) viewref.getView(false);
+                    }
+
+                    // Make everything clean for the new loader
+                    if (sdview != null) {
+                        sdview.resetProviders();
+                    }
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            // The old loader is going to be kicked
+            currentLoader.dispose();
+        }
+
+        // Replace the current loader by the new one in the map
+        fViewLoaderMap.put(id, loader);
+
+        // Store this loader in the preferences to be able to restore it when the workbench will be re-launched
+        if (loader != null) {
+            saveLastLoader(loader.getClass().getName(), id);
+        }
+    }
+

@@ -1,0 +1,71 @@
+    /**
+     * Make rectangle (_x,_y,_w,_h, in contents coordinates) visible. if rectangle cannot be completely visible, use
+     * _align flags.
+     * 
+     * @param _x x contents coordinates of rectangle.
+     * @param _y y contents coordinates of rectangle.
+     * @param _w width of rectangle.
+     * @param _h height of rectangle.
+     * @param _align bit or'ed SWT flag like SWT.LEFT,RIGHT,CENTER,TOP,BOTTOM,VERTICAL used only for bigger rectangle
+     *            than visible area. By default CENTER/VERTICAL
+     * @param forceAlign force alignment for rectangle smaller than the visible area
+     */
+    protected void ensureVisible(int _x, int _y, int _w, int _h, int _align, boolean forceAlign) {
+        if (_w < 0) {
+            _x = _x + _w;
+            _w = -_w;
+        }
+        if (_h < 0) {
+            _y = _y + _h;
+            _h = -_h;
+        }
+        int hbar = getHorizontalBarHeight();
+        int vbar = getVerticalBarWidth();
+        int cx = getContentsX(), cy = getContentsY();
+        int right = getContentsX() + getVisibleWidth() - vbar;
+        int bottom = getContentsY() + getVisibleHeight() - hbar;
+        boolean align_h = false, align_v = false;
+
+        if (_x < getContentsX()) {
+            cx = _x;
+        } else if (_x + _w > right) {
+            cx = _x - _w;
+        }
+        if (_y < getContentsY()) {
+            cy = _y;
+
+        } else if (_y + _h > bottom) {
+            cy = _y - _h;
+        }
+
+        if (_w > getVisibleWidth())
+            align_h = true;
+        if (_h > getVisibleHeight())
+            align_v = true;
+        // compute alignment on visible area horizontally
+        if (align_h || (forceAlign && _x + _w > right)) {
+            // use _align flags
+            if ((_align & SWT.LEFT) != 0) {
+                cx = _x;
+            } else if ((_align & SWT.RIGHT) != 0) {
+                cx = right - _w;
+            } else // center
+            {
+                cx = _x + (_w - getVisibleWidth()) / 2;
+            }
+        }
+        // compute alignment on visible area vertically
+        if (align_v || (forceAlign && _y + _h > bottom)) {
+            // use _align flags
+            if ((_align & SWT.TOP) != 0) {
+                cy = _y;
+            } else if ((_align & SWT.BOTTOM) != 0) {
+                cy = bottom - _h;
+            } else // center
+            {
+                cy = _y + (_h - getVisibleHeight()) / 2;
+            }
+        }
+        setContentsPos(cx, cy);
+    }
+

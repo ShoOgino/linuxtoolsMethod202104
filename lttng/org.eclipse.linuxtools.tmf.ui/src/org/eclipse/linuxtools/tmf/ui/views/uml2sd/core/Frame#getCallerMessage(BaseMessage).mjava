@@ -1,0 +1,22 @@
+    public GraphNode getCallerMessage(BaseMessage StartMessage) {
+        int event = getMaxEventOccurrence();
+        GraphNode result = null;
+        Lifeline lifeline = null;
+        if (StartMessage != null) {
+            event = ((BaseMessage) StartMessage).getEventOccurrence();
+            lifeline = ((BaseMessage) StartMessage).getStartLifeline();
+            if (lifeline == null)
+                lifeline = ((BaseMessage) StartMessage).getEndLifeline();
+        }
+        if (lifeline == null)
+            return null;
+        GraphNode message = getCloserEnteringMessage(lifeline, StartMessage, getSyncMessages(), true);
+        GraphNode messageReturn = getCloserEnteringMessage(lifeline, StartMessage, getSyncMessagesReturn(), true);
+        result = getCloserToEvent(message, messageReturn, event);
+        message = getCloserEnteringMessage(lifeline, StartMessage, getAsyncMessages(), true);
+        result = getCloserToEvent(result, message, event);
+        messageReturn = getCloserEnteringMessage(lifeline, StartMessage, getAsyncMessagesReturn(), true);
+        result = getCloserToEvent(result, messageReturn, event);
+        return result;
+    }
+

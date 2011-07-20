@@ -1,0 +1,57 @@
+    @SuppressWarnings("nls")
+    public void testGetGraphNodeSummary() {
+        
+        // Create a dummy provider
+        ISDFilterProvider provider = new ISDFilterProvider() {
+            
+            @Override
+            public boolean isNodeSupported(int nodeType) {
+                return true;
+            }
+            
+            @Override
+            public String getNodeName(int nodeType, String loaderClassName) {
+                // not clear about purpose loaderClassName
+                switch (nodeType) {
+                case ISDGraphNodeSupporter.LIFELINE:
+                    return "MyLifeline";
+                case ISDGraphNodeSupporter.SYNCMESSAGE:
+                    return "MySyncMessage";
+                case ISDGraphNodeSupporter.SYNCMESSAGERETURN:
+                    return "MySyncMessageReturn";
+                case ISDGraphNodeSupporter.ASYNCMESSAGE:
+                    return "MyAsyncMessage";
+                case ISDGraphNodeSupporter.ASYNCMESSAGERETURN:
+                    return "MyAsyncMessageReturn";
+                case ISDGraphNodeSupporter.STOP:
+                    return "MyStop";
+                default:
+                    return "";
+                }
+            }
+
+            @Override
+            public boolean filter(List<?> filters) {
+                return false;
+            }
+        };
+        
+        Criteria criteria = new Criteria();
+        criteria.setExpression("BALL_.*");
+        criteria.setAsyncMessageReturnSelected(true); 
+        criteria.setAsyncMessageSelected(true);
+        criteria.setLifeLineSelected(true);
+        criteria.setStopSelected(true);
+        criteria.setSyncMessageReturnSelected(true);
+        criteria.setSyncMessageSelected(true);
+
+        // Test summary when provider is available
+        String summary = criteria.getGraphNodeSummary(provider, null);
+        assertEquals("testGetGraphNodeSummary", "[MyLifeline or MySyncMessage or MySyncMessageReturn or MyAsyncMessage or MyAsyncMessageReturn or MyStop]", summary);
+        
+        // Test default summary when no provider is provided 
+        summary = criteria.getGraphNodeSummary(null, null);
+        assertEquals("testGetGraphNodeSummary", "[Lifeline or Synchronous message or Synchronous message return or Asynchronous message or Asynchronous message return or Stop]", summary);
+        
+    }
+

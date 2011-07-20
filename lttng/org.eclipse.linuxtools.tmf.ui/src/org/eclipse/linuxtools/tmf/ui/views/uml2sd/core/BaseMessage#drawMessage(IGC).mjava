@@ -1,0 +1,189 @@
+    protected void drawMessage(IGC context) {
+        int fX, fY, fW, fH;
+        fX = fY = fW = fH = 0;
+
+        // temporay store the coordinates to avoid more methods calls
+        int x = getX();
+        int y = getY();
+        int width = getWidth();
+        int height = getHeight();
+
+        // UML2 found message (always drawn from left to right)
+        // or UML2 lost message (always drawn from left to right)
+        if ((startLifeline == null || endLifeline == null) && startLifeline != endLifeline) {
+            // Draw the message label above the message and centered
+            // The label is truncated if it cannot fit between the two message end
+            // 2*Metrics.MESSAGES_NAME_SPACING = space above the label + space below the label
+            IColor temp = context.getForeground();
+            context.setForeground(Frame.getUserPref().getFontColor(prefId));
+            context.drawTextTruncatedCentred(getName(), x, y - Metrics.getMessageFontHeigth() - 2 * Metrics.MESSAGES_NAME_SPACING, width, 2 * Metrics.MESSAGES_NAME_SPACING + Metrics.getMessageFontHeigth(), !isSelected());
+            context.setForeground(temp);
+            int margin = 0;
+            if (endLifeline == null)
+                margin = Metrics.MESSAGE_CIRCLE_RAY;
+
+            // Draw the message main line
+            context.drawLine(x, y, x + width, y + height);
+            // Draw the two little lines which make a arrow part of the message
+            Double xt = new Double(Math.cos(0.75) * 7);
+            Double yt = new Double(Math.sin(0.75) * 7);
+            if (context.getLineStyle() == context.getLineSolidStyle()) {
+                IColor backcolor = context.getBackground();
+                context.setBackground(context.getForeground());
+                int[] points = { x + width - margin, y + height, x + width - xt.intValue() - margin, y + height - yt.intValue(), x + width - xt.intValue() - margin, y + height + yt.intValue(), x + width - margin, y + height };
+                context.fillPolygon(points);
+                context.drawPolygon(points);
+                context.setBackground(backcolor);
+            } else {
+                int currentStyle = context.getLineStyle();
+                int currentWidth = context.getLineWidth();
+                context.setLineWidth(currentWidth + 2);
+                context.setLineStyle(context.getLineSolidStyle());
+                context.drawLine(x + width - xt.intValue() - margin, y + height - yt.intValue(), x + width - margin, y + height);
+                context.drawLine(x + width - xt.intValue() - margin, y + height + yt.intValue(), x + width - margin, y + height);
+                context.setLineStyle(currentStyle);
+                context.setLineWidth(currentWidth);
+            }
+            IColor storedColor = context.getBackground();
+            context.setBackground(context.getForeground());
+
+            // Draw a circle at the message end (endLifeline side)
+            int ray = Metrics.MESSAGE_CIRCLE_RAY;
+            if (context.getLineWidth() != Metrics.NORMAL_LINE_WIDTH)
+                ray = ray + Metrics.SELECTION_LINE_WIDTH - Metrics.NORMAL_LINE_WIDTH;
+            if (startLifeline == null)
+                context.fillOval(x - ray, y - ray, ray * 2, ray * 2);
+            else
+                context.fillOval(x + width - ray, y + height - ray, ray * 2, ray * 2);
+            context.setBackground(storedColor);
+            context.setForeground(Frame.getUserPref().getFontColor(prefId));
+            fX = x;
+            fY = y - yt.intValue();
+            fW = width;
+            fH = height + 2 * yt.intValue();
+        }
+        // it is self message (always drawn at the left side of the owning lifeLifeline)
+        else if (startLifeline != null && endLifeline != null && startLifeline == endLifeline) {
+            /*
+             * Self syncMessages are drawn in 5 parts 1 -----------+ + 2 + | | | 3 | + 5 + 4 -----------+
+             */
+            int tempy = Metrics.INTERNAL_MESSAGE_WIDTH / 2;
+            if (Metrics.SYNC_INTERNAL_MESSAGE_HEIGHT <= Metrics.INTERNAL_MESSAGE_WIDTH)
+                tempy = Metrics.SYNC_INTERNAL_MESSAGE_HEIGHT / 2;
+
+            // Part 1
+            context.drawLine(x, y, x + Metrics.INTERNAL_MESSAGE_WIDTH / 2, y);
+            // Part 3
+            context.drawLine(x + Metrics.INTERNAL_MESSAGE_WIDTH, y + tempy, x + Metrics.INTERNAL_MESSAGE_WIDTH, y + height + Metrics.SYNC_INTERNAL_MESSAGE_HEIGHT - tempy);
+            // Part 5
+            context.drawLine(x, y + height + Metrics.SYNC_INTERNAL_MESSAGE_HEIGHT, x + Metrics.INTERNAL_MESSAGE_WIDTH / 2, y + height + Metrics.SYNC_INTERNAL_MESSAGE_HEIGHT);
+
+            Double xt = new Double(Math.cos(0.75) * 7);
+            Double yt = new Double(Math.sin(0.75) * 7);
+
+            fX = x;
+            fY = y;
+            fW = Metrics.INTERNAL_MESSAGE_WIDTH;
+            fH = height + Metrics.SYNC_INTERNAL_MESSAGE_HEIGHT;
+
+            // Draw the two little lines which make a arrow part of the message
+            if (context.getLineStyle() == context.getLineSolidStyle()) {
+                IColor backcolor = context.getBackground();
+                context.setBackground(context.getForeground());
+                int[] points = { x, y + height + Metrics.SYNC_INTERNAL_MESSAGE_HEIGHT, x + xt.intValue(), y + height + Metrics.SYNC_INTERNAL_MESSAGE_HEIGHT + yt.intValue(), x + xt.intValue(),
+                        y + height + Metrics.SYNC_INTERNAL_MESSAGE_HEIGHT - yt.intValue(), x, y + height + Metrics.SYNC_INTERNAL_MESSAGE_HEIGHT };
+                context.fillPolygon(points);
+                context.drawPolygon(points);
+                context.setBackground(backcolor);
+            } else {
+                int currentStyle = context.getLineStyle();
+                int currentWidth = context.getLineWidth();
+                context.setLineWidth(currentWidth + 2);
+                context.setLineStyle(context.getLineSolidStyle());
+                context.drawLine(x + xt.intValue(), y + height + Metrics.SYNC_INTERNAL_MESSAGE_HEIGHT + yt.intValue(), x, y + height + Metrics.SYNC_INTERNAL_MESSAGE_HEIGHT);
+                context.drawLine(x + xt.intValue(), y + height + Metrics.SYNC_INTERNAL_MESSAGE_HEIGHT - yt.intValue(), x, y + height + Metrics.SYNC_INTERNAL_MESSAGE_HEIGHT);
+                context.setLineStyle(currentStyle);
+                context.setLineWidth(currentWidth);
+            }
+
+            // Part 2
+            context.drawArc(x, y, Metrics.INTERNAL_MESSAGE_WIDTH, 2 * tempy, 0, 90);
+            // Part 4
+            context.drawArc(x, y + Metrics.SYNC_INTERNAL_MESSAGE_HEIGHT, Metrics.INTERNAL_MESSAGE_WIDTH, -2 * tempy, 0, -90);
+
+            // Draw the message label above the message and centered
+            // The label is truncated if it cannot fit between the two message end
+            // 2*Metrics.MESSAGES_NAME_SPACING = space above the label + space below the label
+
+            // the space available for the text is sorter if are drawing internal message on the last lifeline
+            context.setForeground(Frame.getUserPref().getFontColor(prefId));
+            if (startLifeline.getIndex() == startLifeline.getFrame().getHorizontalIndex())
+                context.drawTextTruncated(getName(), x + width + Metrics.INTERNAL_MESSAGE_V_MARGIN / 2, y, Metrics.swimmingLaneWidth() / 2 - Metrics.EXECUTION_OCCURRENCE_WIDTH + -Metrics.INTERNAL_MESSAGE_WIDTH, +Metrics.MESSAGES_NAME_SPACING
+                        - Metrics.getMessageFontHeigth(), !isSelected());
+            else
+                context.drawTextTruncated(getName(), x + width + Metrics.INTERNAL_MESSAGE_V_MARGIN / 2, y, Metrics.swimmingLaneWidth() - Metrics.EXECUTION_OCCURRENCE_WIDTH + -Metrics.INTERNAL_MESSAGE_WIDTH,
+                        +Metrics.MESSAGES_NAME_SPACING - Metrics.getMessageFontHeigth(), !isSelected());
+        }
+        // it is regular message
+        else if (startLifeline != null && endLifeline != null) {
+            // Draw the message main line
+            context.drawLine(x, y, x + width, y + height);
+
+            int spaceBTWStartEnd = endLifeline.getX() - startLifeline.getX();
+
+            double a = height;
+            double b = width;
+            double angle = Math.atan(a / b);
+            // Compute the coordinates of the two little lines which make the arrow part of the message
+            int sign = 1;
+            if (spaceBTWStartEnd < 0)
+                sign = -1;
+            Double x1 = new Double(sign * Math.cos(angle - 0.75) * 7);
+            Double y1 = new Double(sign * Math.sin(angle - 0.75) * 7);
+            Double x2 = new Double(sign * Math.cos(angle + 0.75) * 7);
+            Double y2 = new Double(sign * Math.sin(angle + 0.75) * 7);
+
+            fX = getX();
+            fY = y + height - y2.intValue();
+            fW = getWidth();
+            fH = y2.intValue() - y1.intValue() + 1;
+            if (fW < 0) {
+                fW = -fW;
+                fX = fX - fW;
+            }
+
+            if (fH < 0) {
+                fH = -fH;
+                fY = fY - fH;
+            }
+
+            // Draw the two little lines which make a arrow part of the message
+            if (context.getLineStyle() == context.getLineSolidStyle()) {
+                IColor backcolor = context.getBackground();
+                context.setBackground(context.getForeground());
+                int[] points = { x + width - x1.intValue(), y + height - y1.intValue(), x + width, y + height, x + width - x2.intValue(), y + height - y2.intValue(), x + width - x1.intValue(), y + height - y1.intValue() };
+                context.fillPolygon(points);
+                context.drawPolygon(points);
+                context.setBackground(backcolor);
+            } else {
+                int currentStyle = context.getLineStyle();
+                int currentWidth = context.getLineWidth();
+                context.setLineWidth(currentWidth + 2);
+                context.setLineStyle(context.getLineSolidStyle());
+                context.drawLine(x + width - x1.intValue(), y + height - y1.intValue(), x + width, y + height);
+                context.drawLine(x + width - x2.intValue(), y + height - y2.intValue(), x + width, y + height);
+                context.setLineStyle(currentStyle);
+                context.setLineWidth(currentWidth);
+            }
+
+            // Draw the message label above the message and centered
+            // The label is truncated if it cannot fit between the two message end
+            // 2*Metrics.MESSAGES_NAME_SPACING = space above the label + space below the label
+            context.setForeground(Frame.getUserPref().getFontColor(prefId));
+            if (spaceBTWStartEnd > 0)
+                context.drawTextTruncatedCentred(getName(), x, y + height / 2 - (2 * Metrics.MESSAGES_NAME_SPACING + Metrics.getMessageFontHeigth()), width, 2 * Metrics.MESSAGES_NAME_SPACING + Metrics.getMessageFontHeigth(), !isSelected());
+            else
+                context.drawTextTruncatedCentred(getName(), x + width, y + height / 2 - (2 * Metrics.MESSAGES_NAME_SPACING + Metrics.getMessageFontHeigth()), -width, 2 * Metrics.MESSAGES_NAME_SPACING + +Metrics.getMessageFontHeigth(), !isSelected());
+        }
+    }
+

@@ -1,0 +1,56 @@
+    /**
+     * Called when mouse is on contents area and mode.
+     * 
+     * @param _event
+     */
+    protected void contentsMouseMoveEvent(MouseEvent _event) {
+        if ((_event.stateMask & SWT.BUTTON_MASK) != 0) {
+            if (!auto_scroll_enabled_) {
+                scrollBy(-(_event.x - mouse_down_x_), -(_event.y - mouse_down_y_));
+                return;
+            }
+
+            int sx = 0, sy = 0;
+
+            int v_right = getContentsX() + getVisibleWidth();
+            int v_bottom = getContentsY() + getVisibleHeight();
+
+            // auto scroll... ?
+            if (_event.x < getContentsX()) {
+                sx = (getContentsX() - _event.x);
+                mouse_down_x_ = getContentsX();
+            } else if (_event.x > v_right) {
+                sx = -_event.x + v_right;
+                mouse_down_x_ = v_right;
+            }
+            if (_event.y < getContentsY()) {
+                sy = (getContentsY() - _event.y);
+                mouse_down_y_ = getContentsY();
+            } else if (_event.y > v_bottom) {
+                sy = -_event.y + v_bottom;
+                mouse_down_y_ = v_bottom;
+            }
+
+            if (sx != 0 || sy != 0) {
+                // start auto scroll...
+                if (auto_scroll_ == null) {
+                    if (auto_scroll_timer_ == null) {
+                        auto_scroll_timer_ = new Timer(true);
+                    }
+                    auto_scroll_ = new AutoScroll(this, sx, sy);
+                    auto_scroll_timer_.schedule(auto_scroll_, 0, auto_scroll_period_);
+                } else {
+                    auto_scroll_.dx_ = sx;
+                    auto_scroll_.dy_ = sy;
+                }
+            } else {
+                if (auto_scroll_ != null) {
+                    auto_scroll_.cancel();
+                    auto_scroll_ = null;
+                }
+
+                scrollBy(-(_event.x - mouse_down_x_), -(_event.y - mouse_down_y_));
+            }
+        }
+    }
+

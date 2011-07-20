@@ -1,0 +1,56 @@
+    protected void createFakeTooltip() {
+        if (tooltip == null) {
+            tooltip = new DrawableToolTip(this);
+        }
+        if (frame != null) {
+            setFocus(0);
+            for (int i = 0; i < nodeList.size() - 1; i++) {
+                SDTimeEvent m1 = (SDTimeEvent) nodeList.get(i);
+                SDTimeEvent m2 = (SDTimeEvent) nodeList.get(i + 1);
+
+                if (SDViewPref.getInstance().excludeExternalTime()) {
+                    if ((m1.getGraphNode() instanceof BaseMessage) && (m2.getGraphNode() instanceof BaseMessage)) {
+                        BaseMessage mes1 = (BaseMessage) m1.getGraphNode();
+                        BaseMessage mes2 = (BaseMessage) m2.getGraphNode();
+                        if ((mes2.getStartLifeline() == null) || (mes1.getEndLifeline() == null))
+                            continue;
+                    }
+                }
+
+                int y1 = ((GraphNode) m1.getGraphNode()).getY();
+                int y2 = ((GraphNode) m2.getGraphNode()).getY();
+
+                if (m1.getGraphNode() instanceof AsyncMessage) {
+                    AsyncMessage as = (AsyncMessage) m1.getGraphNode();
+                    if (as.getEndTime() == m1.getTime())
+                        y1 += as.getHeight();
+                }
+                if (m2.getGraphNode() instanceof AsyncMessage) {
+                    AsyncMessage as = (AsyncMessage) m2.getGraphNode();
+                    if (as.getEndTime() == m2.getTime())
+                        y2 += as.getHeight();
+                }
+                if (m1.getGraphNode() instanceof ExecutionOccurrence) {
+                    ExecutionOccurrence eo = (ExecutionOccurrence) m1.getGraphNode();
+                    if (m1.getEvent() == eo.getEndOccurrence())
+                        y1 += eo.getHeight();
+
+                    if (m2.getGraphNode() instanceof ExecutionOccurrence) {
+
+                        ExecutionOccurrence eo2 = (ExecutionOccurrence) m2.getGraphNode();
+                        if (m2.getEvent() == eo2.getEndOccurrence())
+                            y2 += eo2.getHeight();
+
+                    }
+                }
+                int m1Y = Math.round(y1 * zoomValue);
+                int m2Y = Math.round(y2 * zoomValue);
+                if ((m1Y < prevNodeY + 1) && (m2Y >= prevNodeY + 1)) {
+                    TmfTimestamp delta = m2.getTime().getDelta(m1.getTime());
+                    tooltip.showToolTip(delta, min, max);
+                    tooltip.hideToolTip();
+                }
+            }
+        }
+    }
+

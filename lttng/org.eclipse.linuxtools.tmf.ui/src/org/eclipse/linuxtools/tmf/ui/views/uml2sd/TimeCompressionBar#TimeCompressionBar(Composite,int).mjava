@@ -1,0 +1,111 @@
+    public TimeCompressionBar(Composite parent, int s) {
+        super(parent, s | SWT.NO_BACKGROUND, false);
+        setVScrollBarMode(ScrollView.ALWAYS_OFF);
+        setHScrollBarMode(ScrollView.ALWAYS_OFF);
+        listenerList = new ArrayList<ITimeCompressionListener>();
+        col = new ColorImpl[10];
+        col[0] = new ColorImpl(Display.getDefault(), 255, 229, 229);
+        col[1] = new ColorImpl(Display.getDefault(), 255, 204, 204);
+        col[2] = new ColorImpl(Display.getDefault(), 255, 178, 178);
+        col[3] = new ColorImpl(Display.getDefault(), 255, 153, 153);
+        col[4] = new ColorImpl(Display.getDefault(), 255, 127, 127);
+        col[5] = new ColorImpl(Display.getDefault(), 255, 102, 102);
+        col[6] = new ColorImpl(Display.getDefault(), 255, 76, 76);
+        col[7] = new ColorImpl(Display.getDefault(), 255, 51, 51);
+        col[8] = new ColorImpl(Display.getDefault(), 255, 25, 25);
+        col[9] = new ColorImpl(Display.getDefault(), 255, 0, 0);
+        super.addDisposeListener(this);
+
+        accessible = getViewControl().getAccessible();
+
+        accessible.addAccessibleListener(new AccessibleAdapter() {
+            @Override
+            public void getName(AccessibleEvent e) {
+                if (e.childID == ACC.CHILDID_SELF) {
+                    // e.result = "Sequence Diagram";
+                }
+                // Case toolTip
+                else if (e.childID == 0) {
+                    if (tooltip != null)
+                        e.result = tooltip.getAccessibleText();
+                } else if (e.childID == 1) {
+                    createFakeTooltip();
+                    e.result = tooltip.getAccessibleText();
+                }
+            }
+        });
+
+        accessible.addAccessibleControlListener(new AccessibleControlAdapter() {
+            @Override
+            public void getFocus(AccessibleControlEvent e) {
+                if (focusedWidget == -1)
+                    e.childID = ACC.CHILDID_SELF;
+                else
+                    e.childID = focusedWidget;
+            }
+
+            @Override
+            public void getRole(AccessibleControlEvent e) {
+                switch (e.childID) {
+                case ACC.CHILDID_SELF:
+                    e.detail = ACC.ROLE_CLIENT_AREA;
+                    break;
+                case 0:
+                    e.detail = ACC.ROLE_TOOLTIP;
+                    break;
+                case 1:
+                    e.detail = ACC.ROLE_LABEL;
+                    break;
+                }
+            }
+
+            @Override
+            public void getState(AccessibleControlEvent e) {
+                e.detail = ACC.STATE_FOCUSABLE;
+                if (e.childID == ACC.CHILDID_SELF) {
+                    e.detail |= ACC.STATE_FOCUSED;
+                } else {
+                    e.detail |= ACC.STATE_SELECTABLE;
+                    if (e.childID == focusedWidget)
+                        e.detail |= ACC.STATE_FOCUSED | ACC.STATE_SELECTED | ACC.STATE_CHECKED;
+                }
+            }
+        });
+
+        getViewControl().addTraverseListener(new TraverseListener() {
+
+            @Override
+            public void keyTraversed(TraverseEvent e) {
+                if ((e.detail == SWT.TRAVERSE_TAB_NEXT) || (e.detail == SWT.TRAVERSE_TAB_PREVIOUS))
+                    e.doit = true;
+
+            }
+
+        });
+
+        addTraverseListener(new TraverseListener() {
+
+            @Override
+            public void keyTraversed(TraverseEvent e) {
+                if ((e.detail == SWT.TRAVERSE_TAB_NEXT) || (e.detail == SWT.TRAVERSE_TAB_PREVIOUS))
+                    e.doit = true;
+
+            }
+
+        });
+
+        getViewControl().addFocusListener(new FocusListener() {
+
+            @Override
+            public void focusGained(FocusEvent e) {
+
+                redraw();
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                redraw();
+            }
+        });
+    }
+

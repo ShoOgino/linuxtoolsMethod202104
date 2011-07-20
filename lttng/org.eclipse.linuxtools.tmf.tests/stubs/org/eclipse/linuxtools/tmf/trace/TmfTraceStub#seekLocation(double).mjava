@@ -1,13 +1,19 @@
 	@Override
     public TmfContext seekLocation(double ratio) {
+	    fLock.lock();
         try {
-            ITmfLocation<?> location = new TmfLocation<Long>(new Long((long) (ratio * fTrace.length())));
-            TmfContext context = seekLocation(location);
-            context.setRank(ITmfContext.UNKNOWN_RANK);
-            return context;
+            if (fTrace != null) {
+                ITmfLocation<?> location = new TmfLocation<Long>(new Long((long) (ratio * fTrace.length())));
+                TmfContext context = seekLocation(location);
+                context.setRank(ITmfContext.UNKNOWN_RANK);
+                return context;
+            }
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            fLock.unlock();
         }
+        
         return null;
     }
 

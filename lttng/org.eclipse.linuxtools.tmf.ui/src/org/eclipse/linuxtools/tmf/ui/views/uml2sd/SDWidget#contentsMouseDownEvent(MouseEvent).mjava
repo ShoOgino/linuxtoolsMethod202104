@@ -1,0 +1,60 @@
+    @Override
+    protected void contentsMouseDownEvent(MouseEvent event) {
+        if (currentGraphNode != null)
+            currentGraphNode.setFocused(false);
+        // Just in case the diagram highlight a time compression region
+        // this region need to be released when clicking everywhere
+        if (frame == null) {
+            return;
+        }
+        frame.resetTimeCompression();
+
+        if ((event.stateMask & SWT.CTRL) != 0) {
+            ctrlSelection = true;
+        } else
+            ctrlSelection = false;
+
+        if (((zoomInMode) || (zoomOutMode)) && (event.button == 1)) {
+            int cx = Math.round(event.x / zoomValue);
+            int cy = Math.round(event.y / zoomValue);
+            if (zoomInMode) {
+                if (zoomValue < 64)
+                    zoomValue = zoomValue * (float) 1.25;
+            } else
+                zoomValue = zoomValue / (float) 1.25;
+            int x = Math.round(cx * zoomValue - getVisibleWidth() / (float) 2);
+            int y = Math.round(cy * zoomValue - getVisibleHeight() / (float) 2);
+            setContentsPos(x, y);
+            if (timeBar != null)
+                timeBar.setZoom(zoomValue);
+            // redraw also resize the scrollView content
+            redraw();
+        } else// if (event.button ==1)
+        {
+            GraphNode node = null;
+            if (frame != null) {
+                int x = Math.round(event.x / zoomValue);
+                int y = Math.round(event.y / zoomValue);
+                node = frame.getNodeAt(x, y);
+
+                if ((event.button == 1) || ((node != null) && !node.isSelected())) {
+                    if (!shiftSelection)
+                        listStart = node;
+                    if (shiftSelection) {
+                        clearSelection();
+                        addSelection(frame.getNodeList(listStart, node));
+                    } else
+                        performSelection(node);
+                    currentGraphNode = node;
+                    if (node != null)
+                        node.setFocused(true);
+                }
+                redraw();
+            }
+        }
+        if (dragAndDrop == null)
+            super.contentsMouseDownEvent(event);
+        getDragAndDrop = (event.button == 1);
+
+    }
+

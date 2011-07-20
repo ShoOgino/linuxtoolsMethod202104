@@ -1,0 +1,41 @@
+        /*
+         * (non-Javadoc)
+         * @see org.eclipse.linuxtools.tmf.request.TmfDataRequest#handleData(org.eclipse.linuxtools.tmf.event.TmfData)
+         */
+        @Override
+        public void handleData(TmfEvent event) {
+            super.handleData(event);
+
+            if ((fMonitor!= null) && fMonitor.isCanceled()) {
+                cancel();
+                return;
+            }
+
+            ITmfSyncSequenceDiagramEvent sdEvent = getSequnceDiagramEvent(event);
+            
+            if (sdEvent != null) {
+
+                if (fCriteria.isLifeLineSelected()) {
+                    if (fCriteria.matches(sdEvent.getSender())) {
+                        fFoundTime = event.getTimestamp().clone();
+                        fIsFound = true;
+                        super.cancel();
+                    }
+
+                    if (fCriteria.matches(sdEvent.getReceiver())) {
+                        fFoundTime = event.getTimestamp().clone();
+                        fIsFound = true;
+                        super.cancel();
+                    }
+                }
+
+                if (fCriteria.isSyncMessageSelected()) {
+                    if (fCriteria.matches(sdEvent.getName())) {
+                        fFoundTime = event.getTimestamp().clone();
+                        fIsFound = true;
+                        super.cancel();
+                    }
+                }
+            }
+        }
+

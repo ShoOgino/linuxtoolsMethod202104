@@ -1,0 +1,139 @@
+    /**
+     * Creates the coolBar icon depending on the actions supported by the Sequence Diagram provider<br>
+     * - Navigation buttons are displayed if ISDPovider.HasPaging return true<br>
+     * - Navigation buttons are enabled depending on the value return by ISDPovider.HasNext and HasPrev<br>
+     * 
+     * @see ISDGraphNodeSupporter Action support definition
+     * @see SDView#setSDFilterProvider(ISDFilterProvider)
+     * @see SDView#setSDFindProvider(ISDFindProvider)
+     * @see SDView#setSDPagingProvider(ISDPagingProvider)
+     */
+    protected void createCoolbarContent() {
+        IActionBars bar = getViewSite().getActionBars();
+
+        bar.getMenuManager().removeAll();
+        bar.getToolBarManager().removeAll();
+
+        createMenuGroup();
+
+        Zoom resetZoom = new Zoom(this, ZoomType.ZOOM_RESET);
+        bar.getMenuManager().appendToGroup("UML2SD_OTHER_COMMANDS", resetZoom);//$NON-NLS-1$
+        bar.getToolBarManager().appendToGroup("UML2SD_OTHER_COMMANDS", resetZoom); //$NON-NLS-1$
+
+        Zoom noZoom = new Zoom(this, ZoomType.ZOOM_NONE);
+        noZoom.setChecked(true);
+        bar.getMenuManager().appendToGroup("UML2SD_OTHER_COMMANDS", noZoom);//$NON-NLS-1$
+        bar.getToolBarManager().appendToGroup("UML2SD_OTHER_COMMANDS", noZoom); //$NON-NLS-1$
+
+        Zoom zoomIn = new Zoom(this, ZoomType.ZOOM_IN);
+        bar.getMenuManager().appendToGroup("UML2SD_OTHER_COMMANDS", zoomIn);//$NON-NLS-1$
+        bar.getToolBarManager().appendToGroup("UML2SD_OTHER_COMMANDS", zoomIn); //$NON-NLS-1$
+
+        Zoom zoomOut = new Zoom(this, ZoomType.ZOOM_OUT);
+        bar.getMenuManager().appendToGroup("UML2SD_OTHER_COMMANDS", zoomOut);//$NON-NLS-1$
+        bar.getToolBarManager().appendToGroup("UML2SD_OTHER_COMMANDS", zoomOut); //$NON-NLS-1$
+
+        MenuManager navigation = new MenuManager(SDMessages._77);
+
+        ShowNodeStart showNodeStart = new ShowNodeStart(this);
+        showNodeStart.setText(SDMessages.uml_25);
+
+        showNodeStart.setId("org.eclipse.linuxtools.tmf.ui.views.uml2sd.handlers.ShowNodeStart");//$NON-NLS-1$
+        showNodeStart.setActionDefinitionId("org.eclipse.linuxtools.tmf.ui.views.uml2sd.handlers.ShowNodeStart");//$NON-NLS-1$
+        navigation.add(showNodeStart);
+
+        ShowNodeEnd showNodeEnd = new ShowNodeEnd(this);
+        showNodeEnd.setText(SDMessages.uml_23);
+
+        showNodeEnd.setId("org.eclipse.linuxtools.tmf.ui.views.uml2sd.handlers.ShowNodeEnd");//$NON-NLS-1$
+        showNodeEnd.setActionDefinitionId("org.eclipse.linuxtools.tmf.ui.views.uml2sd.handlers.ShowNodeEnd");//$NON-NLS-1$
+        navigation.add(showNodeEnd);
+
+        bar.getMenuManager().appendToGroup("UML2SD_OTHER_COMMANDS", navigation); //$NON-NLS-1$
+
+        ConfigureMinMax minMax = new ConfigureMinMax(this);
+        minMax.setText(SDMessages.uml_45);
+        minMax.setId("org.eclipse.linuxtools.tmf.ui.views.uml2sd.handlers.ConfigureMinMax");//$NON-NLS-1$
+        bar.getMenuManager().appendToGroup("UML2SD_OTHER_COMMANDS", minMax); //$NON-NLS-1$
+
+        if ((sdWidget.getFrame() != null) && (sdWidget.getFrame().hasTimeInfo()))
+            minMax.setEnabled(true);
+        else
+            minMax.setEnabled(false);
+
+        // Do we need to display a paging item
+        if (sdPagingProvider != null) {
+            nextPageButton = new NextPage(this);
+            bar.getToolBarManager().appendToGroup("UML2SD_OTHER_COMMANDS", nextPageButton); //$NON-NLS-1$
+            nextPageButton.setEnabled(sdPagingProvider.hasNextPage());
+            bar.getMenuManager().appendToGroup("UML2SD_OTHER_COMMANDS", nextPageButton); //$NON-NLS-1$
+
+            prevPageButton = new PrevPage(this);
+            bar.getToolBarManager().appendToGroup("UML2SD_OTHER_COMMANDS", prevPageButton); //$NON-NLS-1$
+            prevPageButton.setEnabled(sdPagingProvider.hasPrevPage());
+            bar.getMenuManager().appendToGroup("UML2SD_OTHER_COMMANDS", prevPageButton); //$NON-NLS-1$
+            
+            firstPageButton = new FirstPage(this);
+            bar.getToolBarManager().appendToGroup("UML2SD_OTHER_COMMANDS", firstPageButton); //$NON-NLS-1$
+            firstPageButton.setEnabled(sdPagingProvider.hasPrevPage());
+            bar.getMenuManager().appendToGroup("UML2SD_OTHER_COMMANDS", firstPageButton); //$NON-NLS-1$
+
+            lastPageButton = new LastPage(this);
+            bar.getToolBarManager().appendToGroup("UML2SD_OTHER_COMMANDS", lastPageButton); //$NON-NLS-1$
+            lastPageButton.setEnabled(sdPagingProvider.hasNextPage());
+            bar.getMenuManager().appendToGroup("UML2SD_OTHER_COMMANDS", lastPageButton); //$NON-NLS-1$
+        }
+
+        if (sdExFilterProvider != null) {
+            Action action = sdExFilterProvider.getFilterAction();
+            if (action != null) {
+                if (action.getId() == null)
+                    action.setId("org.eclipse.linuxtools.tmf.ui.views.uml2sd.handlers.extendedFilter"); //$NON-NLS-1$
+                if (action.getImageDescriptor() == null)
+                    action.setImageDescriptor(TmfUiPlugin.getDefault().getImageDescripterFromPath(ITmfImageConstants.IMG_UI_FILTERS));
+                if (action.getText() == null || action.getText().length() == 0)
+                    action.setText(SDMessages._42);
+                bar.getMenuManager().prependToGroup("UML2SD_FILTERING", action); //$NON-NLS-1$
+                bar.getToolBarManager().prependToGroup("UML2SD_FILTERING", action); //$NON-NLS-1$
+            }
+        }
+        // Both systems can be used now: commenting out else keyword
+        /* else */if (sdFilterProvider != null) {
+            bar.getMenuManager().appendToGroup("UML2SD_FILTERING", new OpenSDFiltersDialog(this, sdFilterProvider)); //$NON-NLS-1$	
+            // No longer in the coolbar: commenting out next statement
+            //bar.getToolBarManager().appendToGroup("UML2SD_FILTERING",new OpenSDFiltersDialog(this, sdFilterProvider));	//$NON-NLS-1$	
+        }
+        if (sdPagingProvider != null && sdPagingProvider instanceof ISDAdvancedPagingProvider) {
+            IContributionItem sdPaging = bar.getMenuManager().find(OpenSDPagesDialog.ID);
+            if (sdPaging != null) {
+                bar.getMenuManager().remove(sdPaging);
+                sdPaging = null;
+            }
+            bar.getMenuManager().appendToGroup("UML2SD_OTHER_COMMANDS", new OpenSDPagesDialog(this, (ISDAdvancedPagingProvider) sdPagingProvider)); //$NON-NLS-1$
+            updatePagesMenuItem(bar);
+        }
+
+        if (sdExFindProvider != null) {
+            Action action = sdExFindProvider.getFindAction();
+            if (action != null) {
+                if (action.getId() == null)
+                    action.setId("org.eclipse.linuxtools.tmf.ui.views.uml2sd.handlers.extendedFind"); //$NON-NLS-1$
+                if (action.getImageDescriptor() == null)
+                    action.setImageDescriptor(TmfUiPlugin.getDefault().getImageDescripterFromPath(ITmfImageConstants.IMG_UI_SEARCH_SEQ));
+                if (action.getText() == null)
+                    action.setText(SDMessages._41);
+                bar.getMenuManager().appendToGroup("UML2SD_OTHER_COMMANDS", action); //$NON-NLS-1$
+                bar.getToolBarManager().appendToGroup("UML2SD_OTHER_COMMANDS", action); //$NON-NLS-1$
+            }
+        } else if (sdFindProvider != null) {
+            bar.getMenuManager().appendToGroup("UML2SD_OTHER_COMMANDS", new OpenSDFindDialog(this)); //$NON-NLS-1$
+            bar.getToolBarManager().appendToGroup("UML2SD_OTHER_COMMANDS", new OpenSDFindDialog(this)); //$NON-NLS-1$
+        }
+
+        if (sdExtendedActionBarProvider != null) {
+            sdExtendedActionBarProvider.supplementCoolbarContent(bar);
+        }
+
+        bar.updateActionBars();
+    }
+

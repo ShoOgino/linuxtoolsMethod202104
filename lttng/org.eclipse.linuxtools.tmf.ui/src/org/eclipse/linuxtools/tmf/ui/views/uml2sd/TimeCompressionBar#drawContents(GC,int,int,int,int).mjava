@@ -1,0 +1,184 @@
+    @Override
+    protected void drawContents(GC gc, int clipx, int clipy, int clipw, int cliph) {
+        if (frame == null)
+            return;
+        nodeList = new ArrayList<SDTimeEvent>();
+        int messageArraysStep = 1;
+
+        if ((Metrics.getMessageFontHeigth() + Metrics.MESSAGES_NAME_SPACING * 2) * zoomValue < Metrics.MESSAGE_SIGNIFICANT_VSPACING + 1)
+            messageArraysStep = Math.round(Metrics.MESSAGE_SIGNIFICANT_VSPACING + 1 / ((Metrics.getMessageFontHeigth() + Metrics.MESSAGES_NAME_SPACING * 2) * zoomValue));
+
+        int firstVisible = frame.getFirstVisibleSyncMessage();
+        if (firstVisible > 0)
+            firstVisible = firstVisible - 1;
+        for (int i = firstVisible; i < frame.syncMessageCount(); i = i + messageArraysStep) {
+            SyncMessage m = frame.getSyncMessage(i);
+            if (m.hasTimeInfo()) {
+                SDTimeEvent t = new SDTimeEvent(m.getStartTime(), m.getEventOccurrence(), (ITimeRange) m);
+                nodeList.add(t);
+                if (m.getY() * zoomValue > getContentsY() + getVisibleHeight())
+                    break;
+            }
+        }
+
+        firstVisible = frame.getFirstVisibleSyncMessageReturn();
+        if (firstVisible > 0)
+            firstVisible = firstVisible - 1;
+        for (int i = firstVisible; i < frame.syncMessageReturnCount(); i = i + messageArraysStep) {
+            SyncMessage m = frame.getSyncMessageReturn(i);
+            if (m.hasTimeInfo()) {
+                SDTimeEvent t = new SDTimeEvent(m.getStartTime(), m.getEventOccurrence(), (ITimeRange) m);
+                nodeList.add(t);
+                if (m.getY() * zoomValue > getContentsY() + getVisibleHeight())
+                    break;
+            }
+        }
+
+        firstVisible = frame.getFirstVisibleAsyncMessage();
+        if (firstVisible > 0)
+            firstVisible = firstVisible - 1;
+        for (int i = firstVisible; i < frame.asyncMessageCount(); i = i + messageArraysStep) {
+            AsyncMessage m = frame.getAsyncMessage(i);
+            if (m.hasTimeInfo()) {
+                SDTimeEvent t = new SDTimeEvent(m.getStartTime(), m.getStartOccurrence(), (ITimeRange) m);
+                nodeList.add(t);
+                t = new SDTimeEvent(m.getEndTime(), m.getEndOccurrence(), (ITimeRange) m);
+                nodeList.add(t);
+                if (m.getY() * zoomValue > getContentsY() + getVisibleHeight())
+                    break;
+            }
+        }
+
+        firstVisible = frame.getFirstVisibleAsyncMessageReturn();
+        if (firstVisible > 0)
+            firstVisible = firstVisible - 1;
+        for (int i = firstVisible; i < frame.asyncMessageReturnCount(); i = i + messageArraysStep) {
+            AsyncMessageReturn m = frame.getAsyncMessageReturn(i);
+            if (m.hasTimeInfo()) {
+                SDTimeEvent t = new SDTimeEvent(m.getStartTime(), m.getStartOccurrence(), (ITimeRange) m);
+                nodeList.add(t);
+                t = new SDTimeEvent(m.getEndTime(), m.getEndOccurrence(), (ITimeRange) m);
+                nodeList.add(t);
+                if (m.getY() * zoomValue > getContentsY() + getVisibleHeight())
+                    break;
+            }
+        }
+
+        /*
+         * for (int i=0; i<frame.lifeLinesCount();i++) { 
+         * Lifeline lifeline = frame.getLifeline(i); 
+         * if (lifeline.getExecutions()!=null) 
+         *      for (int j=lifeline.getExecOccurrenceDrawIndex(); j<lifeline.getExecutions().size(); j++) { 
+         *          ExecutionOccurrence exec = (ExecutionOccurrence)lifeline.getExecutions().get(j); 
+         *          if (exec.hasTimeInfo()) { 
+         *              TimeEvent t = new TimeEvent(exec.getFirstTime(), exec.getStartOccurrence(),(ITimeRange)exec); 
+         *              nodeList.add(t); 
+         *              t = new TimeEvent(exec.getLastTime(),exec.getEndOccurrence(),(ITimeRange)exec); nodeList.add(t); 
+         *          } 
+         *          if (exec.getY()*zoomValue>getContentsY()+getVisibleHeight()) break; 
+         *      } 
+         *  float g= lifeline.getX()*zoomValue; 
+         *  int h=frame.getContentX(); int r=frame.getVisibleWidth(); 
+         *  }
+         */
+        List<SDTimeEvent> executionOccurrencesWithTime = frame.getExecutionOccurrencesWithTime();
+        if (executionOccurrencesWithTime != null) {
+            nodeList.addAll(executionOccurrencesWithTime);
+        }
+
+        SDTimeEvent[] temp = nodeList.toArray(new SDTimeEvent[0]);
+        Arrays.sort(temp, new TimeEventComparator());
+        nodeList = Arrays.asList(temp);
+
+        Image dbuffer = null;
+        GC gcim = null;
+        try {
+            dbuffer = new Image(getDisplay(), getClientArea().width, getClientArea().height);
+        } catch (Exception e) {
+            System.out.println(e.toString());
+        }
+        gcim = new GC(dbuffer);
+        for (int i = 0; i < nodeList.size() - 1; i++) {
+            SDTimeEvent m1 = (SDTimeEvent) nodeList.get(i);
+            SDTimeEvent m2 = (SDTimeEvent) nodeList.get(i + 1);
+
+            if (SDViewPref.getInstance().excludeExternalTime()) {
+                if ((m1.getGraphNode() instanceof BaseMessage) && (m2.getGraphNode() instanceof BaseMessage)) {
+                    BaseMessage mes1 = (BaseMessage) m1.getGraphNode();
+                    BaseMessage mes2 = (BaseMessage) m2.getGraphNode();
+                    if ((mes2.getStartLifeline() == null) || (mes1.getEndLifeline() == null))
+                        continue;
+                }
+            }
+
+            min = frame.getMinTime();
+            max = frame.getMaxTime();
+            TmfTimestamp minMaxdelta = max.getDelta(min);
+            double gr = (minMaxdelta.getValue()) / (double) 10;
+
+            TmfTimestamp delta = m2.getTime().getDelta(m1.getTime()).getDelta(min);
+            long absDelta = Math.abs(delta.getValue());
+            
+            ColorImpl color;
+            if (gr != 0) {
+                int colIndex = Math.round((float) (absDelta / gr));
+                if (colIndex < col.length && colIndex > 0)
+                    color = col[colIndex - 1];
+                else if (colIndex <= 0)
+                    color = col[0];
+                else
+                    color = col[col.length - 1];
+            } else
+                color = col[0];
+
+            if (color.getColor() instanceof Color)
+                gcim.setBackground((Color) color.getColor());
+            int y1 = ((GraphNode) m1.getGraphNode()).getY();
+            int y2 = ((GraphNode) m2.getGraphNode()).getY();
+            if (m1.getGraphNode() instanceof AsyncMessage) {
+                AsyncMessage as = (AsyncMessage) m1.getGraphNode();
+                if (as.getEndTime() == m1.getTime())
+                    y1 += as.getHeight();
+            }
+            if (m2.getGraphNode() instanceof AsyncMessage) {
+                AsyncMessage as = (AsyncMessage) m2.getGraphNode();
+                if (as.getEndTime() == m2.getTime())
+                    y2 += as.getHeight();
+            }
+            if (m1.getGraphNode() instanceof ExecutionOccurrence) {
+
+                ExecutionOccurrence eo = (ExecutionOccurrence) m1.getGraphNode();
+                if (m1.getEvent() == eo.getEndOccurrence())
+                    y1 += eo.getHeight();
+
+                if (m2.getGraphNode() instanceof ExecutionOccurrence) {
+
+                    ExecutionOccurrence eo2 = (ExecutionOccurrence) m2.getGraphNode();
+                    if (m2.getEvent() == eo2.getEndOccurrence())
+                        y2 += eo2.getHeight();
+
+                }
+            }
+            gcim.fillRectangle(contentsToViewX(0), contentsToViewY(Math.round(y1 * zoomValue)), 10, Math.round((y2 - y1) * zoomValue) + 1);
+            if (messageArraysStep == 1) {
+                Color backupColor = gcim.getForeground();
+                gcim.setForeground(Display.getDefault().getSystemColor(SWT.COLOR_WHITE));
+                gcim.drawRectangle(contentsToViewX(0), contentsToViewY(Math.round(y1 * zoomValue)), 9, Math.round((y2 - y1) * zoomValue));
+                gcim.setForeground(backupColor);
+            }
+        }
+        if (getViewControl().isFocusControl() || isFocusControl()) {
+            gcim.drawFocus(contentsToViewX(0), contentsToViewY(Math.round(prevNodeY * zoomValue)), contentsToViewX(10), Math.round((nextNodeY - prevNodeY) * zoomValue));
+        }
+        try {
+            gc.drawImage(dbuffer, 0, 0, getClientArea().width, getClientArea().height, 0, 0, getClientArea().width, getClientArea().height);
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+        gcim.dispose();
+        if (dbuffer != null) {
+            dbuffer.dispose();
+        }
+        gc.dispose();
+    }
+

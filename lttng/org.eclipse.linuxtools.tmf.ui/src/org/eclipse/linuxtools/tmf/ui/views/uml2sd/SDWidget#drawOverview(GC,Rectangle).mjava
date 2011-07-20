@@ -1,0 +1,32 @@
+    @Override
+    protected void drawOverview(GC gc, Rectangle r) {
+        float oldzoom = zoomValue;
+        if (getContentsWidth() > getContentsHeight())
+            zoomValue = (float) r.width / (float) getContentsWidth() * oldzoom;
+        else
+            zoomValue = (float) r.height / (float) getContentsHeight() * oldzoom;
+        if ((overView != null) && ((r.width != overView.getBounds().width) || (r.height != overView.getBounds().height))) {
+            overView.dispose();
+            overView = null;
+        }
+        if (overView == null) {
+            int backX = getContentsX();
+            int backY = getContentsY();
+            setContentsPos(0, 0);
+            overView = new Image(getDisplay(), r.width, r.height);
+            GC gcim = new GC(overView);
+            NGC context = new NGC(this, gcim);
+            context.setBackground(SDViewPref.getInstance().getBackGroundColor(SDViewPref.PREF_FRAME));
+            frame.draw(context);
+            setContentsPos(backX, backY);
+            gcim.dispose();
+            context.dispose();
+        }
+        if ((overView != null) && (r.width == overView.getBounds().width) && (r.height == overView.getBounds().height))
+            gc.drawImage(overView, 0, 0, r.width, r.height, 0, 0, r.width, r.height);
+
+        zoomValue = oldzoom;
+
+        super.drawOverview(gc, r);
+    }
+

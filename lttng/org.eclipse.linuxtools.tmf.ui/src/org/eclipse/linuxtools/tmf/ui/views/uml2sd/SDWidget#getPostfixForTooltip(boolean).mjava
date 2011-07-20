@@ -1,0 +1,39 @@
+    protected String getPostfixForTooltip(boolean accessible) {
+        String postfix = "";//$NON-NLS-1$
+        // Determine if the tooltip must show the time difference between the current mouse position and
+        // the last selected graphNode
+        if ((currentGraphNode != null) && 
+                (currentGraphNode instanceof ITimeRange) && 
+                (toolTipNode instanceof ITimeRange) && 
+                (currentGraphNode != toolTipNode) && 
+                ((ITimeRange) toolTipNode).hasTimeInfo() && 
+                ((ITimeRange) currentGraphNode).hasTimeInfo()) {
+            postfix = " -> " + currentGraphNode.getName() + "\n" + SDMessages._138 + " "; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ 
+            
+            //double delta = ((ITimeRange)toolTipNode).getLastTime()-((ITimeRange)currentGraphNode).getLastTime();
+            TmfTimestamp firstTime = ((ITimeRange) currentGraphNode).getEndTime();
+            TmfTimestamp lastTime = ((ITimeRange) toolTipNode).getEndTime();
+            TmfTimestamp delta = lastTime.getDelta(firstTime);
+            postfix += delta.toString();
+        } else {
+            if ((toolTipNode instanceof ITimeRange) && ((ITimeRange) toolTipNode).hasTimeInfo()) {
+                postfix = "\n";//$NON-NLS-1$
+                TmfTimestamp firstTime = ((ITimeRange) toolTipNode).getStartTime();
+                TmfTimestamp lastTime = ((ITimeRange) toolTipNode).getEndTime();  
+                
+                if (firstTime != null) {
+                    if (lastTime != null && firstTime.compareTo(lastTime, true) != 0) {
+                            postfix += "start: " + firstTime + "\n"; //$NON-NLS-1$ //$NON-NLS-2$
+                            postfix += "end: " + lastTime + "\n"; //$NON-NLS-1$ //$NON-NLS-2$
+                        } else {
+                            postfix += firstTime.toString();    
+                        }
+                    }
+                else if (lastTime != null) {
+                    postfix += lastTime.toString();
+                }
+            }
+        }
+        return postfix;
+    }
+

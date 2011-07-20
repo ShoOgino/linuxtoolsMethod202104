@@ -1,0 +1,47 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.jface.action.Action#run()
+     */
+    @Override
+    public void run() {
+        if (fView == null) {
+            return;
+        }
+
+        SDWidget sdWidget = fView.getSDWidget();
+
+        if (sdWidget == null) {
+            return;
+        }
+
+        ISelectionProvider selProvider = sdWidget.getSelectionProvider();
+        ISelection sel = selProvider.getSelection();
+        Object selectedNode = null;
+        @SuppressWarnings("unchecked")
+        Iterator<Object> it = ((StructuredSelection) sel).iterator();
+        while (it.hasNext()) {
+            Object node = it.next();
+            if (node instanceof BaseMessage) {
+                selectedNode = node;
+            }
+        }
+        if (selectedNode == null)
+            return;
+
+        if (selectedNode instanceof SyncMessageReturn) {
+            GraphNode node = ((SyncMessageReturn) selectedNode).getMessage();
+            sdWidget.clearSelection();
+            sdWidget.addSelection(node);
+            sdWidget.ensureVisible(node);
+            // sdWidget.setFocusNode(node);
+            sdWidget.redraw();
+        } else if (selectedNode instanceof SyncMessage) {
+            GraphNode node = ((SyncMessage) selectedNode).getMessageReturn();
+            sdWidget.clearSelection();
+            sdWidget.addSelection(node);
+            sdWidget.ensureVisible(node);
+            // sdWidget.setFocusNode(node);
+            sdWidget.redraw();
+        }
+    }
+

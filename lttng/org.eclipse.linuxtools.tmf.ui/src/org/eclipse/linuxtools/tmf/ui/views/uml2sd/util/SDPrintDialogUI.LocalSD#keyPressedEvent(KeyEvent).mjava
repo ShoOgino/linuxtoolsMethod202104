@@ -1,0 +1,94 @@
+        @Override
+        protected void keyPressedEvent(KeyEvent e) {
+            if (e.keyCode == SWT.CTRL)
+                multiSelection = true;
+            if (e.keyCode == SWT.SHIFT)
+                areaSelection = true;
+            if (e.keyCode == SWT.ARROW_DOWN) {
+                if (pageNum + getNbRow() <= maxNumOfPages())
+                    pageNum += getNbRow();
+                int line = pageNum / getNbRow();
+                int row = pageNum % getNbRow();
+                if (row == 0)
+                    line--;
+                if ((line + 1) * stepY > (overviewCanvas.getContentsY() + overviewCanvas.getVisibleHeight()) / overviewCanvas.zoomValue)
+                    overviewCanvas.scrollBy(0, (int) (stepY * overviewCanvas.zoomValue));
+            }
+            if (e.keyCode == SWT.ARROW_UP) {
+                if (pageNum - getNbRow() > 0)
+                    pageNum -= getNbRow();
+                int line = pageNum / getNbRow();
+                int row = pageNum % getNbRow();
+                if (row == 0)
+                    line--;
+                if ((line) * stepY <= overviewCanvas.getContentsY() / overviewCanvas.zoomValue)
+                    overviewCanvas.scrollBy(0, -(int) (stepY * overviewCanvas.zoomValue));
+            }
+            if (e.keyCode == SWT.ARROW_LEFT) {
+                if ((pageNum - 2) / getNbRow() == (pageNum - 1) / getNbRow() && pageNum > 1)
+                    pageNum--;
+                int row = pageNum % getNbRow();
+                if ((row - 1) * stepX < (overviewCanvas.getContentsX()) / overviewCanvas.zoomValue)
+                    overviewCanvas.scrollBy(-(int) (stepX * overviewCanvas.zoomValue), 0);
+            }
+            if (e.keyCode == SWT.ARROW_RIGHT) {
+                if ((pageNum - 1) / getNbRow() == pageNum / getNbRow())
+                    pageNum++;
+                int row = pageNum % getNbRow();
+                if (row == 0)
+                    row = getNbRow();
+                if ((row) * stepX > (overviewCanvas.getContentsX() + overviewCanvas.getVisibleWidth()) / overviewCanvas.zoomValue)
+                    overviewCanvas.scrollBy((int) (stepX * overviewCanvas.zoomValue), 0);
+            }
+
+            if (e.keyCode == 32 && pageNum > -1) {
+                Arrays.sort(pagesList);
+                int pos = Arrays.binarySearch(pagesList, pageNum);
+                if (pos < 0)
+                    addToPagesList(pageNum);
+                else
+                    removeFromPagesList(pageNum);
+            }
+
+            if (!areaSelection && !multiSelection) {
+                firstPage = pageNum;
+                pagesList = new int[1];
+                pagesList[0] = pageNum;
+            } else if ((pageNum != -1) && (areaSelection) && (firstPage != -1)) {
+                pagesList = new int[0];
+                int line1 = firstPage / getNbRow();
+                int row1 = firstPage % getNbRow();
+                if (row1 != 0)
+                    line1++;
+                else
+                    row1 = getNbRow();
+
+                int line2 = pageNum / getNbRow();
+                int row2 = pageNum % getNbRow();
+                if (row2 != 0)
+                    line2++;
+                else
+                    row2 = getNbRow();
+
+                int temp;
+                if (line1 > line2) {
+                    temp = line2;
+                    line2 = line1;
+                    line1 = temp;
+                }
+
+                if (row1 > row2) {
+                    temp = row2;
+                    row2 = row1;
+                    row1 = temp;
+                }
+
+                for (int i = row1 - 1; i < row2; i++)
+                    for (int j = line1 - 1; j < line2; j++)
+                        addToPagesList(i + j * getNbRow() + 1);
+
+            }
+            displayPageNum();
+            overviewCanvas.redraw();
+        }
+

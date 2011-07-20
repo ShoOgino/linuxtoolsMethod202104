@@ -1,0 +1,28 @@
+    protected List<SDTimeEvent> buildTimeArray() {
+        if (!hasChilden)
+            return null;
+
+        Iterator<String> it = fSort.keySet().iterator();
+        List<SDTimeEvent> timeArray = new ArrayList<SDTimeEvent>();
+        while (it.hasNext()) {
+            String nodeType = it.next();
+            List<GraphNode> list = (List<GraphNode>) nodes.get(nodeType);
+            for (int i = 0; i < list.size(); i++) {
+                Object timedNode = list.get(i);
+                if ((timedNode instanceof ITimeRange) && ((ITimeRange) timedNode).hasTimeInfo()) {
+                    int event = ((GraphNode) list.get(i)).getStartOccurrence();
+                    TmfTimestamp time = ((ITimeRange) list.get(i)).getStartTime();
+                    SDTimeEvent f = new SDTimeEvent(time, event, (ITimeRange) list.get(i));
+                    timeArray.add(f);
+                    if (event != ((GraphNode) list.get(i)).getEndOccurrence()) {
+                        event = ((AsyncMessage) list.get(i)).getEndOccurrence();
+                        time = ((ITimeRange) list.get(i)).getEndTime();
+                        f = new SDTimeEvent(time, event, (ITimeRange) list.get(i));
+                        timeArray.add(f);
+                    }
+                }
+            }
+        }
+        return timeArray;
+    }
+

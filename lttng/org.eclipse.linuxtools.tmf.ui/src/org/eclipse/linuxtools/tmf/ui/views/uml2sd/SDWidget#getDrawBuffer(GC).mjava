@@ -1,0 +1,74 @@
+    protected Image getDrawBuffer(GC gc) {
+
+        update();
+        Rectangle area = getClientArea();
+        Image dbuffer = null;
+        GC gcim = null;
+
+        try {
+            // if (dbuffer!=null)
+            // dbuffer.dispose();
+            dbuffer = new Image(getDisplay(), area.width, area.height);
+        } catch (Exception e) {
+            System.out.println(e.toString());
+        }
+        gcim = new GC(dbuffer);
+
+        NGC context = new NGC(this, gcim);
+
+        // Set the metrics to use for lifeline text and message text
+        // using the Graphical Context
+        Metrics.setLifelineFontHeight(context.getFontHeight(SDViewPref.getInstance().getFont(SDViewPref.PREF_LIFELINE)));
+        Metrics.setLifelineFontWidth(context.getFontWidth(SDViewPref.getInstance().getFont(SDViewPref.PREF_LIFELINE)));
+        Metrics.setLifelineWidth(SDViewPref.getInstance().getLifelineWidth());
+        Metrics.setFrameFontHeight(context.getFontHeight(Frame.getUserPref().getFont(ISDPreferences.PREF_FRAME_NAME)));
+        Metrics.setLifelineHeaderFontHeight(context.getFontHeight(Frame.getUserPref().getFont(ISDPreferences.PREF_LIFELINE_HEADER)));
+
+        int syncMessFontH = context.getFontHeight(SDViewPref.getInstance().getFont(SDViewPref.PREF_SYNC_MESS));
+        int syncMessRetFontH = context.getFontHeight(SDViewPref.getInstance().getFont(SDViewPref.PREF_SYNC_MESS_RET));
+        int asyncMessFontH = context.getFontHeight(SDViewPref.getInstance().getFont(SDViewPref.PREF_ASYNC_MESS));
+        int asyncMessRetFontH = context.getFontHeight(SDViewPref.getInstance().getFont(SDViewPref.PREF_ASYNC_MESS_RET));
+
+        int messageFontHeight = 0;
+        if (syncMessFontH > syncMessRetFontH)
+            messageFontHeight = syncMessFontH;
+        else
+            messageFontHeight = syncMessRetFontH;
+        if (messageFontHeight < asyncMessFontH)
+            messageFontHeight = asyncMessFontH;
+        if (messageFontHeight < asyncMessRetFontH)
+            messageFontHeight = asyncMessRetFontH;
+        Metrics.setMessageFontHeight(messageFontHeight);
+        context.setFont(SDViewPref.getInstance().getFont(SDViewPref.PREF_LIFELINE));
+
+        int width = (int) ((frame.getWidth() + 2 * Metrics.FRAME_H_MARGIN) * zoomValue);
+        int height = (int) ((frame.getHeight() + 2 * Metrics.FRAME_V_MARGIN) * zoomValue);
+        // if (width<area.width)
+        // width=area.width;
+        // if (height<area.height)
+        // height=area.height;
+        resizeContents(width, height);
+
+        context.setBackground(Frame.getUserPref().getBackGroundColor(ISDPreferences.PREF_FRAME));
+        context.fillRectangle(0, 0, getContentsWidth(), Metrics.FRAME_V_MARGIN);
+        context.fillRectangle(0, 0, frame.getX(), getContentsHeight());
+        context.fillRectangle(frame.getX() + frame.getWidth() + 1, 0, getContentsWidth() - (frame.getX() + frame.getWidth() + 1), getContentsHeight());
+        context.fillRectangle(0, frame.getY() + frame.getHeight() + 1, getContentsWidth(), getContentsHeight() - (frame.getY() + frame.getHeight() + 1));
+        gcim.setLineWidth(1);
+
+        frame.draw(context);
+        if (dragAndDrop != null) {
+            Lifeline node = (Lifeline) dragAndDrop;
+            boolean isSelected = dragAndDrop.isSelected();
+            boolean hasFocus = dragAndDrop.hasFocus();
+            node.setSelected(false);
+            node.setFocused(false);
+            node.draw(context, dragX, dragY);
+            node.setSelected(isSelected);
+            node.setFocused(hasFocus);
+        }
+        gcim.dispose();
+        context.dispose();
+        return dbuffer;
+    }
+

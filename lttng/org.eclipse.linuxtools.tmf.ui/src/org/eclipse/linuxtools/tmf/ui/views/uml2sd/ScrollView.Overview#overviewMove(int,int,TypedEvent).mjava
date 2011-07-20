@@ -1,0 +1,42 @@
+        /** Process mouse move event when overviewing */
+        protected void overviewMove(int dx, int dy, TypedEvent event) {
+            boolean ctrl = false;
+            boolean shift = false;
+
+            if (event instanceof MouseEvent) {
+                MouseEvent e = (MouseEvent) event;
+                getDisplay().setCursorLocation(save_cursor_x, save_cursor_y);
+                ctrl = (e.stateMask & SWT.CONTROL) != 0;
+                shift = (e.stateMask & SWT.SHIFT) != 0;
+            } else if (event instanceof KeyEvent) {
+                KeyEvent e = (KeyEvent) event;
+                ctrl = (e.stateMask & SWT.CONTROL) != 0;
+                shift = (e.stateMask & SWT.SHIFT) != 0;
+            }
+
+            int cx = contents_x_;
+            int cy = contents_y_;
+            float fx = overview_factor_x_;
+            float fy = overview_factor_y_;
+
+            if (ctrl && shift) {
+                if ((fx * 0.25f > 1) && (fy * 0.25 > 1)) {
+                    fx = fy = 1.0f;
+                } else {
+                    fx *= 0.1f;
+                    fy *= 0.1f;
+                }
+            } else if (ctrl) {
+                fx *= 0.5f;
+                fy *= 0.5f;
+            } else if (shift) {
+                fx *= 0.5f;
+                fy *= 0.5f;
+            }
+            scrollBy((int) (fx * dx), (int) (fy * dy));
+            if (cx != contents_x_ || cy != contents_y_) {
+                overview.redraw();
+                overview.update(); // draw now !
+            }
+        }
+

@@ -1,0 +1,29 @@
+    /**
+     * Background search in trace for expression in criteria.
+     * @param findCriteria The find criteria
+     * @return true if background request was started else false
+     */
+    protected boolean findInNextPages(Criteria findCriteria) {
+        fLock.lock();
+        try {
+            if (fFindJob != null) {
+                return true;
+            }
+
+            int nextPage = fCurrentPage + 1;
+
+            if ((nextPage) >= fCheckPoints.size()) {
+                // we are at the end
+                return false;
+            }
+
+            TmfTimeRange window = new TmfTimeRange(fCheckPoints.get(nextPage).getStartTime().clone(), fCheckPoints.get(fCheckPoints.size()-1).getEndTime().clone());
+            fFindJob = new SearchJob(findCriteria, window);
+            fFindJob.schedule();
+            fView.toggleWaitCursorAsync(true);
+        } finally {
+            fLock.unlock();
+        }
+        return true;
+    }
+

@@ -1,0 +1,74 @@
+        protected Image createPagesSelectionImages(Image img, int width, float stepX, int height, float stepY) {
+
+            Image over = new Image(super.getShell().getDisplay(), img.getImageData());
+
+            for (int pageIndex = 0; pageIndex < pagesList.length; pageIndex++) {
+                /*
+                 * int line=pageNum/getPagesForSelection(); int row=pageNum%getPagesForSelection(); if (row!=0) line++;
+                 * else row=getPagesForSelection(); line--; row--; over=new
+                 * Image(super.getShell().getDisplay(),drawRegionSelected(img,new Rectangle(row*stepX,
+                 * line*stepY,stepX,stepY),new RGB(0,155,0)));
+                 */
+
+                int pageNum = pagesList[pageIndex];
+                if (getPagesForSelection() > 0 && pageNum > 0) {
+                    int line = pageNum / getNbRow();
+                    int row = pageNum % getNbRow();
+                    if (row != 0)
+                        line++;
+                    else
+                        row = getNbRow();
+
+                    line--;
+                    row--;
+
+                    Image toDel = over;
+                    if (overviewCanvas.isFocusControl())
+                        over = new Image(super.getShell().getDisplay(), drawRegionSelected(toDel, new Rectangle(contentsToViewX((int) (row * stepX * overviewCanvas.zoomValue)), contentsToViewY((int) (line * stepY * overviewCanvas.zoomValue)),
+                                ((int) (stepX * overviewCanvas.zoomValue)), ((int) (stepY * overviewCanvas.zoomValue))), new RGB(0, 0, 128)));
+                    else
+                        over = new Image(super.getShell().getDisplay(), drawRegionSelected(toDel, new Rectangle(contentsToViewX((int) (row * stepX * overviewCanvas.zoomValue)), contentsToViewY((int) (line * stepY * overviewCanvas.zoomValue)),
+                                ((int) (stepX * overviewCanvas.zoomValue)), ((int) (stepY * overviewCanvas.zoomValue))), new RGB(221, 208, 200)));
+                    toDel.dispose();
+                }
+            }
+
+            Arrays.sort(pagesList);
+            int pos = Arrays.binarySearch(pagesList, pageNum);
+            if (pos < 0)
+                if (getPagesForSelection() > 0 && pageNum > 0) {
+                    int line = pageNum / getNbRow();
+                    int row = pageNum % getNbRow();
+                    if (row != 0)
+                        line++;
+                    else
+                        row = getNbRow();
+
+                    line--;
+                    row--;
+
+                    Image toDel = over;
+                    over = new Image(super.getShell().getDisplay(), drawRegionSelected(toDel, new Rectangle(contentsToViewX((int) (row * stepX * overviewCanvas.zoomValue)), contentsToViewY((int) (line * stepY * overviewCanvas.zoomValue)),
+                            ((int) (stepX * overviewCanvas.zoomValue)), ((int) (stepY * overviewCanvas.zoomValue))), new RGB(221, 208, 200)));
+                    toDel.dispose();
+                }
+
+            GC imGC2 = new GC(over);
+            imGC2.setBackground(Display.getDefault().getSystemColor(SWT.COLOR_BLACK));
+            NGC imGC = new NGC(overviewCanvas, imGC2);
+            for (int i = 0, x = 0; x <= width && stepX > 0; i++, x = (int) (i * stepX))
+                imGC.drawLine(x, 0, x, height);
+
+            for (int j = 0, y = 0; y <= height && stepY > 0; j++, y = (int) (j * stepY))
+                imGC.drawLine(0, y, width, y);
+
+            // imGC2.setBackground(Display.getDefault().getSystemColor(SWT.COLOR_BLUE));
+            // // //imGC.drawLine(0, height, width, (int)(getVisibleHeight()/zoomValue));
+            // imGC.fillRectangle(0,height,(int)(getVisibleWidth()/zoomValue),
+            // (int)(getVisibleHeight()/zoomValue)-height);
+
+            imGC2.dispose();
+            imGC.dispose();
+            return over;
+        }
+

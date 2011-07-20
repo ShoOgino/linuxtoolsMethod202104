@@ -1,0 +1,37 @@
+        @Override
+        protected void drawContents(GC gc, int clipx, int clipy, int clipw, int cliph) {
+
+            Image dbuffer = getDrawBuffer(gc);
+            computeStepXY();
+            Image d;
+
+            int lw = (int) (getContentsWidth() / zoomValue);
+            if (getContentsWidth() < getVisibleWidth())
+                lw = (int) (getVisibleWidth() / zoomValue);
+
+            int lh = (int) (getContentsHeight() / zoomValue);
+            if (getContentsHeight() < getVisibleHeight())
+                lh = (int) (getVisibleHeight() / zoomValue);
+            d = createPagesSelectionImages(dbuffer, lw, stepX, lh, stepY);
+
+            if (!isEnabled()) {
+                Image toDel = d;
+                d = new Image(super.getShell().getDisplay(), drawRegionSelected(d, new Rectangle(0, 0, lw, lh), new RGB(221, 208, 200)));
+                // d, new Rectangle(0,0,((int)(stepX*overviewCanvas.zoomValue)),((int)(
+                // stepY*overviewCanvas.zoomValue))),new RGB(221,208,200)));
+                toDel.dispose();
+            }
+
+            Rectangle area = getClientArea();
+            int w = d.getBounds().width;
+            int h = d.getBounds().height;
+            gc.drawImage(d, 0, 0, w, h, 0, 0, area.width, area.height);
+
+            totalPages.setText(Integer.valueOf(maxNumOfPages()).toString());
+            displayPageNum();
+            dbuffer.dispose();
+            d.dispose();
+            gc.dispose();
+
+        }
+

@@ -1,0 +1,48 @@
+    protected void computeStepXY() {
+        float cw = overviewCanvas.getContentsWidth() / overviewCanvas.zoomValue;
+        float ch = overviewCanvas.getContentsHeight() / overviewCanvas.zoomValue;
+        try {
+            if (printerData == null) {
+                stepX = 0;
+                stepY = 0;
+                nbPages = 0;
+                zoomFactor = 0;
+            } else {
+                Printer printer = new Printer(printerData);
+                if (setHPagesNumber.getSelection()) {
+                    nbPages = Integer.valueOf(hPagesNum.getText()).intValue();
+                    float z1 = (float) view.getContentsWidth() / (cw);
+                    float z2 = printer.getClientArea().width / ((float) view.getContentsWidth() / nbPages);
+
+                    stepY = printer.getClientArea().height / z1 / z2;
+                    stepX = cw / nbPages;
+                } else if (setVPagesNumber.getSelection()) {
+                    nbPages = Integer.valueOf(vPagesNum.getText()).intValue();
+                    float z1 = (float) view.getContentsHeight() / (ch);
+                    float z2 = printer.getClientArea().height / ((float) view.getContentsHeight() / nbPages);
+                    stepX = printer.getClientArea().width / z1 / z2;
+                    stepY = ch / nbPages;
+                } else {
+                    float z1 = view.getContentsWidth() / (cw);
+                    stepX = ((float) view.getVisibleWidth() / z1);
+                    nbPages = Math.round(cw / stepX);
+                    if (nbPages == 0)
+                        nbPages = 1;
+                    int pw = printer.getClientArea().width;
+                    int ph = printer.getClientArea().height;
+                    float z2 = pw / ((float) view.getContentsWidth() / nbPages);
+                    stepY = ((float) ph / z1 / z2);
+                }
+            }
+        } finally {
+            stepX = stepY = nbPages = 0;
+            zoomFactor = 0;
+        }
+        sTX = stepX * (view.getContentsWidth() / cw);
+        sTY = stepY * (view.getContentsHeight() / ch);
+        float rat = 1;
+        if ((view.getVisibleWidth() > view.getContentsWidth()) && (setVPagesNumber.getSelection() || setHPagesNumber.getSelection()))
+            rat = (float) view.getVisibleWidth() / (float) view.getContentsWidth();
+        zoomFactor = (overviewCanvas.getContentsWidth() / cw) / overviewCanvas.getZoomFactor() * rat;// /view.getZoomFactor();
+    }
+

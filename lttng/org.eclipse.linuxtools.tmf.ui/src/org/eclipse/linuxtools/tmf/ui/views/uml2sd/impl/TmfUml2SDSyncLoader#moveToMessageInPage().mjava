@@ -1,0 +1,39 @@
+    /**
+     * Moves to a certain message defined by timestamp in current page
+     */
+    protected void moveToMessageInPage() {
+        fLock.lock();
+        try {
+            TmfSyncMessage prevMessage = null;
+            TmfSyncMessage syncMessage = null;
+            boolean isExactTime = false;
+            for (int i = 0; i < fFrame.syncMessageCount(); i++) {
+                if (fFrame.getSyncMessage(i) instanceof TmfSyncMessage) {
+                    syncMessage = (TmfSyncMessage) fFrame.getSyncMessage(i);
+                    if (syncMessage.getStartTime().compareTo(fCurrentTime, false) == 0) {
+                        isExactTime = true;
+                        break;
+                    }
+                    else if (syncMessage.getStartTime().compareTo(fCurrentTime, false) > 0) {
+                        if (prevMessage != null) {
+                            syncMessage = prevMessage;
+                            break;
+                        }
+                    }
+                    prevMessage = syncMessage;
+                }
+            }
+            if (fIsSelect && isExactTime) {
+                fView.getSDWidget().moveTo(syncMessage);
+            }
+            else {
+                fView.getSDWidget().ensureVisible(syncMessage);
+                fView.getSDWidget().clearSelection();
+                fView.getSDWidget().redraw();
+            }
+        }
+        finally {
+            fLock.unlock();
+        }
+    }
+

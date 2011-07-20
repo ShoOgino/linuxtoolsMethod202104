@@ -1,0 +1,56 @@
+        /*
+         * (non-Javadoc)
+         * @see org.eclipse.core.runtime.jobs.Job#run(org.eclipse.core.runtime.IProgressMonitor)
+         */
+        @Override
+        protected IStatus run(IProgressMonitor monitor) {
+            fSearchRequest.setMonitor(monitor);
+            
+            ((TmfExperiment<TmfEvent>) fExperiment).sendRequest((ITmfDataRequest<TmfEvent>) fSearchRequest);
+
+            try {
+                fSearchRequest.waitForCompletion();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            IStatus status = Status.OK_STATUS; 
+            if (fSearchRequest.isFound() && fSearchRequest.getFoundTime() != null) {
+                fCurrentTime = fSearchRequest.getFoundTime();
+                
+                // Avoid double-selection. Selection will be done when calling find(criteria)
+                // after moving to relevant page
+                fIsSelect = false;  
+                if (!fView.getSDWidget().isDisposed()) {
+                    fView.getSDWidget().getDisplay().asyncExec(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            moveToMessage();
+                        }
+                    });
+                }
+            }
+            else {
+                if (monitor.isCanceled()) {
+                    status = Status.CANCEL_STATUS;
+                }
+                else {
+                    // String was not found
+                    status = new Status(Status.WARNING, TmfUiPlugin.PLUGIN_ID, Messages.TmfUml2SDSyncLoader_SearchNotFound);
+                }
+                setProperty(IProgressConstants.KEEP_PROPERTY, Boolean.TRUE);
+            }
+            monitor.done();
+
+            fLock.lock();
+            try {
+                fView.toggleWaitCursorAsync(false);
+                fFindJob = null;
+            } finally {
+                fLock.unlock();
+            }
+
+            return status;
+        }
+

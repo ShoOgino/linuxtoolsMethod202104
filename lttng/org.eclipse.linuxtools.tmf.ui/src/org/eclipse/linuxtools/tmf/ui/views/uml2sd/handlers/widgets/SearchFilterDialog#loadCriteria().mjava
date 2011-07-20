@@ -1,0 +1,38 @@
+    /**
+	 * 
+	 */
+    @SuppressWarnings("rawtypes")
+    protected void loadCriteria() {
+
+        String CRITERIA = FIND_CRITERIA;
+        if (!find)
+            CRITERIA = FILTER_CRITERIA;
+
+        DialogSettings section = (DialogSettings) TmfUiPlugin.getDefault().getDialogSettings().getSection(CRITERIA);
+        List selection = viewer.getSDWidget().getSelection();
+        if ((selection == null || selection.size() != 1) || (!find)) {
+            if (section != null) {
+                criteria = new Criteria();
+                criteria.load(section);
+            }
+        } else {
+            GraphNode gn = (GraphNode) selection.get(0);
+            criteria = new Criteria();
+            criteria.setExpression(gn.getName());
+            criteria.setCaseSenstiveSelected(true);
+            if (gn instanceof Lifeline && provider.isNodeSupported(ISDGraphNodeSupporter.LIFELINE)) {
+                criteria.setLifeLineSelected(true);
+            } else if (gn instanceof SyncMessageReturn && provider.isNodeSupported(ISDGraphNodeSupporter.SYNCMESSAGERETURN)) {
+                criteria.setSyncMessageReturnSelected(true);
+            } else if ((gn instanceof SyncMessageReturn || gn instanceof SyncMessage) && provider.isNodeSupported(ISDGraphNodeSupporter.SYNCMESSAGE)) {
+                criteria.setSyncMessageSelected(true);
+            } else if (gn instanceof AsyncMessageReturn && provider.isNodeSupported(ISDGraphNodeSupporter.ASYNCMESSAGERETURN)) {
+                criteria.setAsyncMessageReturnSelected(true);
+            } else if ((gn instanceof AsyncMessageReturn || gn instanceof AsyncMessage) && provider.isNodeSupported(ISDGraphNodeSupporter.ASYNCMESSAGE)) {
+                criteria.setAsyncMessageSelected(true);
+            } else if (gn instanceof Stop && provider.isNodeSupported(ISDGraphNodeSupporter.STOP)) {
+                criteria.setStopSelected(true);
+            }
+        }
+    }
+

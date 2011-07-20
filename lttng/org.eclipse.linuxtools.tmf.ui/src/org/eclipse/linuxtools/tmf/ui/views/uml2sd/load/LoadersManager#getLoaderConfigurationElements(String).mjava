@@ -1,0 +1,33 @@
+    /**
+     * Gets a list of loader configuration elements from the extension point registry for a given view.
+     * @param viewId The view ID
+     * @return List of extension point configuration elements.
+     */
+    private List<IConfigurationElement> getLoaderConfigurationElements(String viewId) {
+        List<IConfigurationElement> list = (List<IConfigurationElement>) fViewLoadersList.get(viewId);
+        if (list != null) {
+            return list;
+        }
+        ArrayList<IConfigurationElement> ret = new ArrayList<IConfigurationElement>();
+        IExtensionPoint iep = Platform.getExtensionRegistry().getExtensionPoint(TmfUiPlugin.PLUGIN_ID, LOADER_TAG);
+        if (iep == null) {
+            return ret;
+        }
+        
+        IExtension[] ie = iep.getExtensions();
+        if (ie == null) {
+            return ret;
+        }
+
+        for (int i = 0; i < ie.length; i++) {
+            IConfigurationElement c[] = ie[i].getConfigurationElements();
+            for (int j = 0; j < c.length; j++) {
+                if (viewId.equals(c[j].getAttribute("view"))) { //$NON-NLS-1$
+                    ret.add(c[j]);
+                }
+            }
+        }
+        fViewLoadersList.put(viewId, ret);
+        return ret;
+    }
+

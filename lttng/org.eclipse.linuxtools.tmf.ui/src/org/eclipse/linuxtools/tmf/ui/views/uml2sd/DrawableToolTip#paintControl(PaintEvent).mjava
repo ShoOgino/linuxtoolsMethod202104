@@ -1,0 +1,52 @@
+    /**
+     * Draw the tooltip text on the control widget when a paint event is received
+     */
+    @Override
+    public void paintControl(PaintEvent event) {
+        msg = SDMessages._138 + " " +  currentValue.toString(); //$NON-NLS-1$
+        Point size = event.gc.textExtent(msg);
+        if (size.x < SCALE_LENGTH)
+            size.x = SCALE_LENGTH;
+        event.gc.drawText(msg, H_MARGIN, V_MARGIN, true);
+        event.gc.drawLine(H_MARGIN, V_MARGIN + TEXT_SCALE_MARGIN + size.y, H_MARGIN + SCALE_LENGTH, V_MARGIN + TEXT_SCALE_MARGIN + size.y);
+
+        int step = SCALE_LENGTH / 10;
+
+        // double gr = (max - min) / 10;
+        TmfTimestamp minMaxdelta = minMaxRange.getEndTime().getDelta(minMaxRange.getStartTime());
+        double gr = (minMaxdelta.getValue()) / (double) 10;
+
+        // double delta = currentValue-min;
+        TmfTimestamp delta = currentValue.getDelta(minMaxRange.getStartTime());
+        long absDelta = Math.abs(delta.getValue());
+        
+        int colIndex = 0;
+        if (gr != 0) {
+            // colIndex = Math.round((float)(Math.log(1+delta)/gr));
+            colIndex = Math.round((float) (absDelta / gr));
+            if (colIndex > col.length)
+                colIndex = col.length;
+            else if (colIndex <= 1)
+                colIndex = 1;
+        } else
+            colIndex = 1;
+
+        for (int i = 0; i <= 10; i++) {
+            if (i < 10)
+                event.gc.setBackground(col[i]);
+            if ((i < colIndex) && (i < 10))
+                event.gc.fillRectangle(H_MARGIN + i * step, V_MARGIN + TEXT_SCALE_MARGIN + size.y - 5, step, 11);
+            if (i == 0)
+                event.gc.drawText(SDMessages._56, H_MARGIN, size.y + 2 * V_MARGIN + TEXT_SCALE_MARGIN, true);
+            if (i == 0) {
+                int len = event.gc.textExtent(SDMessages._55).x;
+                event.gc.drawText(SDMessages._55, H_MARGIN + SCALE_LENGTH - len + 1, size.y + 2 * V_MARGIN + TEXT_SCALE_MARGIN, true);
+            }
+            int lineWidth = 10;
+            if ((i == 0) || (i == 10))
+                lineWidth = 14;
+            event.gc.drawLine(H_MARGIN + i * step, V_MARGIN + TEXT_SCALE_MARGIN + size.y - lineWidth / 2, H_MARGIN + i * step, V_MARGIN + TEXT_SCALE_MARGIN + size.y + lineWidth / 2);
+        }
+        toolTipShell.setSize(size.x + 2 * H_MARGIN + 2, 2 * size.y + 3 * V_MARGIN + TEXT_SCALE_MARGIN);
+    }
+

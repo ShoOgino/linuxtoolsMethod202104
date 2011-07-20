@@ -1,0 +1,112 @@
+    @Override
+    protected void contentsMouseMoveEvent(MouseEvent e) {
+        scrollToolTip.hideToolTip();
+        toolTip.hideToolTip();
+        // super.contentsMouseMoveEvent(e);
+        if (!(isFocusControl() || getViewControl().isFocusControl())) {
+            Control[] child = getParent().getChildren();
+            for (int i = 0; i < child.length; i++) {
+                if (child[i].isFocusControl()) {
+                    if (!(child[i] instanceof ScrollView)) {
+                        getViewControl().setFocus();
+                        break;
+                    }
+                }
+            }
+        }
+        setFocus(-1);
+
+        if (((e.stateMask & SWT.BUTTON_MASK) != 0) && ((dragAndDrop != null) || getDragAndDrop) && (reorderMode || collapseProvider != null)) {
+            getDragAndDrop = false;
+            if (currentGraphNode instanceof Lifeline)
+                dragAndDrop = (Lifeline) currentGraphNode;
+            if (dragAndDrop != null) {
+                int dx = 0;
+                int dy = 0;
+                if (e.x > getContentsX() + getVisibleWidth()) {
+                    dx = e.x - (getContentsX() + getVisibleWidth());
+                } else if (e.x < getContentsX()) {
+                    dx = -getContentsX() + e.x;
+                }
+                if (e.y > getContentsY() + getVisibleHeight()) {
+                    dy = e.y - (getContentsY() + getVisibleHeight());
+                } else if (e.y < getContentsY()) {
+                    dy = -getContentsY() + e.y;
+                }
+                dragX = e.x;
+                dragY = e.y;
+                if (dx != 0 || dy != 0) {
+                    if (local_auto_scroll_ == null) {
+                        if (local_auto_scroll_timer_ == null) {
+                            local_auto_scroll_timer_ = new Timer(true);
+                        }
+                        local_auto_scroll_ = new AutoScroll(this, dx, dy);
+                        local_auto_scroll_timer_.schedule(local_auto_scroll_, 0, 75);
+                    } else {
+                        local_auto_scroll_.dx_ = dx;
+                        local_auto_scroll_.dy_ = dy;
+                    }
+                } else if (local_auto_scroll_ != null) {
+                    local_auto_scroll_.cancel();
+                    local_auto_scroll_ = null;
+                }
+                dragX = Math.round(e.x / zoomValue);
+                dragY = Math.round(e.y / zoomValue);
+                redraw();
+                Lifeline node = frame.getCloserLifeline(dragX);
+                if ((node != null) && (node != dragAndDrop)) {
+                    int y = 0;
+                    int y1 = 0;
+                    int height = Metrics.getLifelineHeaderFontHeigth() + 2 * Metrics.LIFELINE_HEARDER_TEXT_V_MARGIN;
+                    int hMargin = Metrics.LIFELINE_VT_MAGIN / 4;
+                    int x = node.getX();
+                    int width = node.getWidth();
+                    if (frame.getVisibleAreaY() < node.getY() + node.getHeight() - height - hMargin)
+                        y = contentsToViewY(Math.round((node.getY() + node.getHeight()) * zoomValue));
+                    else
+                        y = Math.round(height * zoomValue);
+
+                    if (frame.getVisibleAreaY() < contentsToViewY(node.getY() - hMargin))
+                        y1 = contentsToViewY(Math.round((node.getY() - hMargin) * zoomValue));
+                    else
+                        y1 = Math.round(height * zoomValue);
+
+                    int rx = Math.round(x * zoomValue);
+
+                    insertionCartet.setVisible(true);
+                    if ((insertionCartet.getImage() != null) && (!insertionCartet.getImage().isDisposed()))
+                        insertionCartet.getImage().dispose();
+                    if (rx <= e.x && Math.round(rx + (width * zoomValue)) >= e.x) {
+                        if (collapseProvider != null) {
+                            ImageData data = collapaseCaretImg.getImageData();
+                            data = data.scaledTo(Math.round(collapaseCaretImg.getBounds().width * zoomValue), Math.round(collapaseCaretImg.getBounds().height * zoomValue));
+                            currentCaretImage = new Image(Display.getCurrent(), data);
+                            insertionCartet.setImage(currentCaretImage);
+                            insertionCartet.setLocation(contentsToViewX(rx + Math.round((width / (float) 2) * zoomValue)) - currentCaretImage.getBounds().width / 2, y);
+                        }
+                    } else if (reorderMode) {
+                        if (rx > e.x) {
+                            if (node.getIndex() > 1 && frame.getLifeline(node.getIndex() - 2) == dragAndDrop)
+                                return;
+                            ImageData data = arrowUpCaretImg.getImageData();
+                            data = data.scaledTo(Math.round(arrowUpCaretImg.getBounds().width * zoomValue), Math.round(arrowUpCaretImg.getBounds().height * zoomValue));
+                            currentCaretImage = new Image(Display.getCurrent(), data);
+                            insertionCartet.setImage(currentCaretImage);
+                            insertionCartet.setLocation(contentsToViewX(Math.round((x - Metrics.LIFELINE_SPACING / 2) * zoomValue)) - currentCaretImage.getBounds().width / 2, y1);
+                        } else {
+                            if (node.getIndex() < frame.lifeLinesCount() && frame.getLifeline(node.getIndex()) == dragAndDrop)
+                                return;
+                            ImageData data = arrowUpCaretImg.getImageData();
+                            data = data.scaledTo(Math.round(arrowUpCaretImg.getBounds().width * zoomValue), Math.round(arrowUpCaretImg.getBounds().height * zoomValue));
+                            currentCaretImage = new Image(Display.getCurrent(), data);
+                            insertionCartet.setImage(currentCaretImage);
+                            insertionCartet.setLocation(contentsToViewX(Math.round((x + width + Metrics.LIFELINE_SPACING / 2) * zoomValue)) - currentCaretImage.getBounds().width / 2 + 1, y1);
+                        }
+                    }
+                } else
+                    insertionCartet.setVisible(false);
+            }
+        } else
+            super.contentsMouseMoveEvent(e);
+    }
+

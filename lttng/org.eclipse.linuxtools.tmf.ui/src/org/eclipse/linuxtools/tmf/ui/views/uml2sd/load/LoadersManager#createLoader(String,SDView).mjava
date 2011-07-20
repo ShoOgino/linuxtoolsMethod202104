@@ -1,0 +1,33 @@
+    /**
+     * Creates a loader instance and associate it to the view. It requires
+     * that the loader-view-association was created by an eclipse extension.
+     * 
+     * @param className The name of the class to create an instance from
+     * @param view The UML2 Sequence Diagram view instance
+     * @return The created loader
+     */
+    public IUml2SDLoader createLoader(String className, SDView view) {
+
+        // Safety check
+        if (view == null) {
+            return null;
+        }
+
+        String viewId = view.getViewSite().getId();
+
+        // Get loaders from all extensions for given view
+        List<IConfigurationElement> loaderElements = getLoaderConfigurationElements(viewId);
+        IConfigurationElement ce = getLoaderConfigurationElement(className, loaderElements);
+
+        if (ce != null) {
+            // Assign a loader instance to this view
+            createLoaderForView(viewId, ce);
+            IUml2SDLoader loader = fViewLoaderMap.get(viewId);
+            if (loader != null) {
+                loader.setViewer(view);
+                return loader;
+            }
+        }
+        return null; 
+    }
+

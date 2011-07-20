@@ -1,0 +1,44 @@
+    public void printButtonSelected() {
+        PrintDialog printer = new PrintDialog(getShell());
+        if (allPages.getSelection())
+            printer.setScope(PrinterData.ALL_PAGES);
+        if (currentPage.getSelection())
+            printer.setScope(PrinterData.SELECTION);
+        if (pageList.getSelection())
+            printer.setScope(PrinterData.SELECTION);
+        if (pageRange.getSelection()) {
+            printer.setScope(PrinterData.PAGE_RANGE);
+            from = Integer.valueOf(fromPage.getText()).intValue();
+            to = Integer.valueOf(toPage.getText()).intValue();
+            printer.setStartPage(from);
+            printer.setEndPage(to);
+        }
+
+        PrinterData newPrinterData = printer.open();
+        if (newPrinterData != null) {
+            printerData = newPrinterData;
+        }
+        updatePrinterStatus();
+
+        if (printer.getScope() == PrinterData.ALL_PAGES) {
+            allPages.setSelection(true);
+            currentPage.setSelection(false);
+            pageList.setSelection(false);
+            pageRange.setSelection(false);
+            hPagesNum.setEnabled(false);
+            vPagesNum.setEnabled(false);
+        }
+        if (printer.getScope() == PrinterData.PAGE_RANGE) {
+            allPages.setSelection(false);
+            currentPage.setSelection(false);
+            pageList.setSelection(false);
+            pageRange.setSelection(true);
+            fromPage.setEnabled(true);
+            toPage.setEnabled(true);
+            fromPage.setText((Integer.valueOf(printer.getStartPage())).toString());
+            toPage.setText((Integer.valueOf(printer.getEndPage())).toString());
+        }
+        computeStepXY();
+        overviewCanvas.redraw();
+    }
+

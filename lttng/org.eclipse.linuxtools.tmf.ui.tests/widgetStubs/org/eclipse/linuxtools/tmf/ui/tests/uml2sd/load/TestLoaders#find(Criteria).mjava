@@ -1,0 +1,75 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.hyades.uml2sd.ui.actions.provider.ISDFindProvider#find(org.eclipse.hyades.uml2sd.ui.actions.widgets.Criteria)
+     */
+    @Override
+    public boolean find(Criteria toSearch) {
+        Frame frame = v.getFrame();
+
+        if (frame == null)
+            return false;
+        if (findResults == null || findCriteria == null || !findCriteria.compareTo(toSearch)) {
+            findResults = new ArrayList<GraphNode>();
+            findCriteria = toSearch;
+            if (findCriteria.isLifeLineSelected()) {
+                for (int i = 0; i < frame.lifeLinesCount(); i++) {
+                    if (findCriteria.matches(frame.getLifeline(i).getName()))
+                        findResults.add(frame.getLifeline(i));
+                }
+
+            }
+            ArrayList<GraphNode> msgs = new ArrayList<GraphNode>();
+            if (findCriteria.isSyncMessageSelected()) {
+                for (int i = 0; i < frame.syncMessageCount(); i++) {
+                    if (findCriteria.matches(frame.getSyncMessage(i).getName()))
+                        msgs.add(frame.getSyncMessage(i));
+                }
+
+                for (int i = 0; i < frame.syncMessageReturnCount(); i++)
+                    if (findCriteria.matches(frame.getSyncMessageReturn(i).getName()))
+                        msgs.add(frame.getSyncMessageReturn(i));
+
+            }
+            // if(msgs.size() > 0) {
+            // GraphNode temp[] = msgs.toArray(new GraphNode[0]);
+            // Arrays.sort(temp, new DateComparator());
+            // findResults.addAll(Arrays.asList(temp));
+            // }
+
+            msgs = new ArrayList<GraphNode>();
+            if (findCriteria.isAsyncMessageSelected()) {
+                for (int i = 0; i < frame.asyncMessageCount(); i++)
+                    if (findCriteria.matches(frame.getAsyncMessage(i).getName()))
+                        msgs.add(frame.getAsyncMessage(i));
+
+                for (int i = 0; i < frame.asyncMessageReturnCount(); i++)
+                    if (findCriteria.matches(frame.getAsyncMessageReturn(i).getName()))
+                        msgs.add(frame.getAsyncMessageReturn(i));
+
+            }
+            // if(msgs.size() > 0) {
+            // GraphNode temp[] = msgs.toArray(new GraphNode[0]);
+            // Arrays.sort(temp, new DateComparator());
+            // findResults.addAll(Arrays.asList(temp));
+            // }
+
+            @SuppressWarnings("rawtypes")
+            List selection = v.getSDWidget().getSelection();
+            if (selection != null && selection.size() == 1)
+                currentFindIndex = findResults.indexOf(selection.get(0)) + 1;
+            else
+                currentFindIndex = 0;
+        } else {
+            currentFindIndex++;
+        }
+        if (findResults.size() > currentFindIndex) {
+            GraphNode current = (GraphNode) findResults.get(currentFindIndex);
+            v.getSDWidget().moveTo(current);
+            return true;
+        } else {
+            // return notFoundYet(findCriteria); // search in other page
+            return false;
+        }
+        // return false;
+    }
+

@@ -1,0 +1,109 @@
+    /**
+     * Spawns a request to index the experiment (checkpoints creation) as well as it fills
+     * the first page.
+     * 
+     * @param signal The experiment selected signal
+     */
+    @SuppressWarnings("unchecked")
+    @TmfSignalHandler
+    public void experimentSelected(TmfExperimentSelectedSignal<TmfEvent> signal) {
+
+        fLock.lock(); 
+        try {
+            // Update the trace reference
+            TmfExperiment<TmfEvent> exp = (TmfExperiment<TmfEvent>) signal.getExperiment();
+            if (!exp.equals(fExperiment)) {
+                fExperiment = exp;
+            }
+
+            // TmfTimeRange window = getInitTRange(fExperiment.getTimeRange());
+            TmfTimeRange window = TmfTimeRange.Eternity;
+
+            fIndexRequest = new TmfEventRequest<TmfEvent>(TmfEvent.class, window, TmfDataRequest.ALL_DATA, DEFAULT_BLOCK_SIZE, ITmfDataRequest.ExecutionType.BACKGROUND) {
+
+                private TmfTimestamp fFirstTime = null;
+                private TmfTimestamp fLastTime = null;
+                private int fNbSeqEvents = 0;
+                private List<ITmfSyncSequenceDiagramEvent> fSdEvents = new ArrayList<ITmfSyncSequenceDiagramEvent>(MAX_NUM_OF_MSG);
+
+                @Override
+                public void handleData(TmfEvent event) {
+                    super.handleData(event);
+
+                    ITmfSyncSequenceDiagramEvent sdEvent = getSequnceDiagramEvent(event);
+
+                    if (sdEvent != null) {
+                        ++fNbSeqEvents;
+
+                        if (fFirstTime == null) {
+                            fFirstTime = event.getTimestamp().clone();
+                        }
+
+                        fLastTime = event.getTimestamp().clone();
+
+                        if ((fNbSeqEvents % MAX_NUM_OF_MSG) == 0) {
+                            fLock.lock();
+                            try {
+                                fCheckPoints.add(new TmfTimeRange(fFirstTime, fLastTime));
+                                if (fView != null) {
+                                    fView.updateCoolBar();
+                                }
+                            } finally {
+                                fLock.unlock();
+                            }
+                            fFirstTime = null;
+                            
+                        }
+
+                        if (fNbSeqEvents > MAX_NUM_OF_MSG) {
+                            // page is full
+                            return;
+                        }
+
+                        fSdEvents.add(sdEvent);
+
+                        if (fNbSeqEvents == MAX_NUM_OF_MSG) {
+                            fillCurrentPage(fSdEvents);
+                        }
+                    }
+                }
+
+                @Override
+                public void handleSuccess() {
+                    // long indexingEnd = System.nanoTime();
+                    if ((fFirstTime != null) && (fLastTime != null)) {
+
+                        fLock.lock();
+                        try {
+                            fCheckPoints.add(new TmfTimeRange(fFirstTime, fLastTime));
+                            if (fView != null) {
+                                fView.updateCoolBar();
+                            }
+                        } finally {
+                            fLock.unlock();
+                        }
+                    }
+
+                    if (fNbSeqEvents <= MAX_NUM_OF_MSG) {
+                        fillCurrentPage(fSdEvents);
+                    }
+
+                    super.handleSuccess();
+                }
+
+                @Override
+                public void handleCompleted() {
+                    if (fEvents.size() == 0) {
+                        fFrame = new Frame();
+                        fView.setFrameSync(fFrame);
+                    }
+                    super.handleCompleted();
+                }
+            };
+
+            ((TmfExperiment<TmfEvent>) fExperiment).sendRequest((ITmfDataRequest<TmfEvent>) fIndexRequest);
+        } finally {
+            fLock.unlock();
+        }
+    }
+

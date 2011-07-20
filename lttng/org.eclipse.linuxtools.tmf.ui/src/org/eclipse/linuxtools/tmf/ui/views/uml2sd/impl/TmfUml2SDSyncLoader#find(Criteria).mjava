@@ -1,0 +1,61 @@
+    /*
+     * (non-Javadoc)
+     * @see
+     * org.eclipse.hyades.uml2sd.ui.actions.provider.ISDFindProvider#find(org.eclipse.hyades.uml2sd.ui.actions.widgets.Criteria)
+     */
+    @Override
+    public boolean find(Criteria toSearch) {
+        fLock.lock();
+        try {
+            if (fFrame == null) {
+                return false;
+            }
+
+            if (fFindResults == null || fFindCriteria == null || !fFindCriteria.compareTo(toSearch)) {
+                fFindResults = new CopyOnWriteArrayList<GraphNode>();
+                fFindCriteria = toSearch;
+                if (fFindCriteria.isLifeLineSelected()) {
+                    for (int i = 0; i < fFrame.lifeLinesCount(); i++) {
+                        if (fFindCriteria.matches(fFrame.getLifeline(i).getName())) {
+                            fFindResults.add(fFrame.getLifeline(i));
+                        }
+                    }
+                }
+
+                ArrayList<GraphNode> msgs = new ArrayList<GraphNode>();
+                if (fFindCriteria.isSyncMessageSelected()) {
+                    for (int i = 0; i < fFrame.syncMessageCount(); i++) {
+                        if (fFindCriteria.matches(fFrame.getSyncMessage(i).getName())) {
+                            msgs.add(fFrame.getSyncMessage(i));
+                        }
+                    }
+                }
+
+                if (msgs.size() > 0) {
+                    fFindResults.addAll(msgs);
+                }
+
+                @SuppressWarnings("rawtypes")
+                List selection = fView.getSDWidget().getSelection();
+                if (selection != null && selection.size() == 1)
+                    fCurrentFindIndex = fFindResults.indexOf(selection.get(0)) + 1;
+                else
+                    fCurrentFindIndex = 0;
+            } else {
+                fCurrentFindIndex++;
+            }
+
+            if (fFindResults.size() > fCurrentFindIndex) {
+                GraphNode current = (GraphNode) fFindResults.get(fCurrentFindIndex);
+                fView.getSDWidget().moveTo(current);
+                return true;
+            } else {
+                fFindResults = null;
+                fCurrentFindIndex =0;
+                return findInNextPages(fFindCriteria); // search in other page
+            }
+        } finally {
+            fLock.unlock();
+        }
+    }
+

@@ -1,0 +1,70 @@
+        @Override
+        protected void contentsMouseDownEvent(MouseEvent event) {
+
+            computeStepXY();
+            int x1 = (int) ((event.x / overviewCanvas.zoomValue) / stepX);
+            int x2 = (int) ((event.y / overviewCanvas.zoomValue) / stepY);
+
+            int oldPage = pageNum;
+
+            pageNum = x1 + x2 * getNbRow() + 1;
+
+            if (pageNum > maxNumOfPages()) {
+                pageNum = oldPage;
+                return;
+            }
+
+            if (!areaSelection)
+                firstPage = pageNum;
+
+            if ((pageNum != -1) && (multiSelection)) {
+                Arrays.sort(pagesList);
+                int pos = Arrays.binarySearch(pagesList, pageNum);
+                if (pos < 0)
+                    addToPagesList(pageNum);
+                else
+                    removeFromPagesList(pageNum);
+            } else if ((pageNum != -1) && (areaSelection) && (firstPage != -1)) {
+
+                pagesList = new int[0];
+
+                int line1 = firstPage / getNbRow();
+                int row1 = firstPage % getNbRow();
+                if (row1 != 0)
+                    line1++;
+                else
+                    row1 = getNbRow();
+
+                int line2 = pageNum / getNbRow();
+                int row2 = pageNum % getNbRow();
+                if (row2 != 0)
+                    line2++;
+                else
+                    row2 = getNbRow();
+
+                int temp;
+                if (line1 > line2) {
+                    temp = line2;
+                    line2 = line1;
+                    line1 = temp;
+                }
+
+                if (row1 > row2) {
+                    temp = row2;
+                    row2 = row1;
+                    row1 = temp;
+                }
+
+                for (int i = row1 - 1; i < row2; i++)
+                    for (int j = line1 - 1; j < line2; j++)
+                        addToPagesList(i + j * getNbRow() + 1);
+            } else {
+                pagesList = new int[1];
+                pagesList[0] = pageNum;
+            }
+            if ((event.stateMask & SWT.CTRL) != 0)
+                multiSelection = true;
+            displayPageNum();
+            redraw();
+        }
+

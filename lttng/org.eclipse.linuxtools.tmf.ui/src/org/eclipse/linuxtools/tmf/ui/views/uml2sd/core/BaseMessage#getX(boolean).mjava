@@ -1,0 +1,44 @@
+    /**
+     * Returns the graph node x coordinate.<br>
+     * Depending on the quick parameter a approximative or exact value is return.<br>
+     * The approximative value does not take into account if both message ends are connected to a Lifeline Execution
+     * Occurrence.<br>
+     * Execution occurrence on a lifeline increase the vertical line width which represent the lifeline, this directly
+     * affect the message x coordinate and width.<br>
+     * <br>
+     * This method is typically used to faster execute none graphical operation like tooltip lookup.<br>
+     * <br>
+     * 
+     * @param quick true to get an approximative value<br>
+     *            false to get the exact x value<br>
+     * @return the graph node x coordinate
+     */
+    protected int getX(boolean quick) {
+        int x = 0;
+        int activationWidth = Metrics.EXECUTION_OCCURRENCE_WIDTH / 2;
+        if ((startLifeline != null) && (endLifeline != null)) {
+            x = startLifeline.getX() + Metrics.getLifelineWidth() / 2;
+        } else {
+            if (startLifeline != null) {
+                x = startLifeline.getX() + Metrics.getLifelineWidth() / 2;
+            }
+
+            if (endLifeline != null) {
+                x = endLifeline.getX() - Metrics.LIFELINE_SPACING / 2;
+            }
+        }
+
+        if (quick)
+            return x;
+
+        if ((startLifeline != null) && (endLifeline != null) && (startLifeline.getX() > endLifeline.getX())) {
+            activationWidth = -activationWidth;
+        }
+
+        if (isMessageStartInActivation(endEventOccurrence)) {
+            x = x + activationWidth;
+        }
+
+        return x;
+    }
+

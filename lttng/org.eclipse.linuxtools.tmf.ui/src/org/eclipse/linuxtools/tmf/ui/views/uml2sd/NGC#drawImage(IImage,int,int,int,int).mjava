@@ -1,0 +1,46 @@
+    @Override
+    public void drawImage(IImage image, int _x, int _y, int maxWith, int maxHeight) {
+        Image img = null;
+        if (image != null && image.getImage() instanceof Image)
+            img = (Image) image.getImage();
+        else {
+            _x = Math.round(_x * view.zoomValue);
+            _y = Math.round(_y * view.zoomValue);
+            int x = view.contentsToViewX(_x);
+            int y = view.contentsToViewY(_y);
+            float tempZoom = view.zoomValue;
+            int width = Math.round(maxWith * tempZoom);
+            int height = Math.round(maxHeight * tempZoom);
+            context.setBackground(view.getDisplay().getSystemColor(SWT.COLOR_RED));
+            context.fillRectangle(x, y, width, height);
+            return;
+        }
+        _x = Math.round(_x * view.zoomValue);
+        _y = Math.round(_y * view.zoomValue);
+        int x = view.contentsToViewX(_x);
+        int y = view.contentsToViewY(_y);
+        Rectangle b = ((Image) image.getImage()).getBounds();
+        int width = b.width;
+        int height = b.height;
+        if (width > maxWith)
+            width = maxWith;
+        if (height > maxHeight)
+            height = maxHeight;
+        float tempZoom = view.zoomValue;
+        width = Math.round(width * tempZoom);
+        height = Math.round(height * tempZoom);
+
+        if (view.printing && width > 0 && height > 0) {
+            Image dbuffer = new Image(view.getDisplay(), width, height);
+            GC tempgc = new GC(dbuffer);
+            tempgc.drawImage(img, 0, 0, b.width, b.height, 0, 0, width, height);
+            Image dbuffer2 = new Image(view.getDisplay(), dbuffer.getImageData());
+            context.drawImage(dbuffer2, x, y);
+            tempgc.dispose();
+            dbuffer.dispose();
+            dbuffer2.dispose();
+        } else {
+            context.drawImage(img, 0, 0, b.width, b.height, x, y, width, height);
+        }
+    }
+

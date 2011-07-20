@@ -1,0 +1,196 @@
+    public SDWidget(Composite c, int s) {
+        super(c, s | SWT.NO_BACKGROUND, true);
+        setOverviewEnabled(true);
+        selectedNodeList = new ArrayList<GraphNode>();
+        selProvider = new SDWidgetSelectionProvider();
+        SDViewPref.getInstance().addPropertyChangeListener(this);
+        toolTip = new DiagramToolTip(getViewControl());
+        super.addDisposeListener(this);
+
+        scrollToolTip = new DiagramToolTip(c);
+        getVerticalBar().addListener(SWT.MouseUp, new Listener() {
+
+            @Override
+            public void handleEvent(Event event) {
+                scrollToolTip.hideToolTip();
+            }
+
+        });
+        // tooltip on vertical bar causes trouble when scrolling, because
+        // tooltip is constantly updated and shown
+        // getVerticalBar().addSelectionListener(new SelectionListener(){
+        //
+        // public void widgetSelected(SelectionEvent e) {
+        // scrollToolTip.hideToolTip();
+        // double minOcc=0;
+        // boolean needInit=true;
+        // GraphNode m=null;
+        // for (int i=0;i<frame.lifeLinesCount();i++)
+        // {
+        // Lifeline lifeline=frame.getLifeline(i);
+        // BasicExecutionOccurrence exec=frame.getFirstExecution(lifeline);
+        // if (exec instanceof ExecutionOccurrence) {
+        // ExecutionOccurrence occ=(ExecutionOccurrence)exec;
+        // if ((occ.hasTimeInfo())&&(occ.getFirstTime()<minOcc||needInit))
+        // {
+        // needInit=false;
+        // minOcc=occ.getFirstTime();
+        // m=occ;
+        // }
+        // }
+        // }
+        //
+        //
+        // int z=frame.getFirstVisibleSyncMessage();
+        // if (m==null)
+        // {
+        // SyncMessage s=frame.getSyncMessage(z);
+        // if (s.hasTimeInfo())
+        // m=s;
+        // }
+        // if (m==null)
+        // return;
+        //
+        //				scrollToolTip.showToolTip(MessageFormat.format(SDMessages._134, //$NON-NLS-1$
+        // new Object[] { formatTimeDate(frame.getSDMinTime()),
+        // formatTimeDate(m),
+        // formatTimeDate(frame.getSDMaxTime())} ));
+        // }
+        //
+        // public void widgetDefaultSelected(SelectionEvent e) {
+        // // scrollToolTip.showToolTip("Toto");
+        // }
+        //
+        // });
+        //
+
+        accessible = getViewControl().getAccessible();
+
+        accessible.addAccessibleListener(new AccessibleAdapter() {
+            @Override
+            public void getName(AccessibleEvent e) {
+                if (e.childID == ACC.CHILDID_SELF) {
+                    // e.result = "";
+                }
+                // Case toolTip
+                else if (e.childID == 0) {
+                    if (toolTipNode != null) {
+                        if (toolTipNode instanceof Lifeline) {
+                            Lifeline lifeline = (Lifeline) toolTipNode;
+                            e.result = lifeline.getToolTipText();
+                        } else {
+                            e.result = toolTipNode.getName() + getPostfixForTooltip(true);
+                        }
+                    }
+                } else {
+                    if (getFocusNode() != null) {
+                        if (getFocusNode() instanceof Lifeline) {
+                            e.result = MessageFormat.format(SDMessages._1, new Object[] { String.valueOf(getFocusNode().getName()) });
+                        }
+                        if (getFocusNode() instanceof BaseMessage) {
+                            BaseMessage mes = (BaseMessage) getFocusNode();
+                            if ((mes.getStartLifeline() != null) && (mes.getEndLifeline() != null)) {
+                                e.result = MessageFormat.format(
+                                        SDMessages._2,
+                                        new Object[] { String.valueOf(mes.getName()), String.valueOf(mes.getStartLifeline().getName()), Integer.valueOf(mes.getStartOccurrence()), String.valueOf(mes.getEndLifeline().getName()),
+                                                Integer.valueOf(mes.getEndOccurrence()) });
+                            } else if ((mes.getStartLifeline() == null) && (mes.getEndLifeline() != null)) {
+                                e.result = MessageFormat.format(SDMessages._4, new Object[] { String.valueOf(mes.getName()), String.valueOf(mes.getEndLifeline().getName()), Integer.valueOf(mes.getEndOccurrence()) });
+                            } else if ((mes.getStartLifeline() != null) && (mes.getEndLifeline() == null)) {
+                                e.result = MessageFormat.format(SDMessages._3, new Object[] { String.valueOf(mes.getName()), String.valueOf(mes.getStartLifeline().getName()), Integer.valueOf(mes.getStartOccurrence()) });
+                            }
+                        } else if (getFocusNode() instanceof BasicExecutionOccurrence) {
+                            BasicExecutionOccurrence exec = (BasicExecutionOccurrence) getFocusNode();
+                            e.result = MessageFormat.format(SDMessages._5,
+                                    new Object[] { String.valueOf(exec.getName()), String.valueOf(exec.getLifeline().getName()), Integer.valueOf(exec.getStartOccurrence()), Integer.valueOf(exec.getEndOccurrence()) });
+                        }
+
+                    }
+                    // e.result =currentGraphNode.getName();
+                }
+            }
+        });
+
+        accessible.addAccessibleControlListener(new AccessibleControlAdapter() {
+            @Override
+            public void getFocus(AccessibleControlEvent e) {
+                if (focusedWidget == -1)
+                    e.childID = ACC.CHILDID_SELF;
+                else
+                    e.childID = focusedWidget;
+            }
+
+            @Override
+            public void getRole(AccessibleControlEvent e) {
+                switch (e.childID) {
+                case ACC.CHILDID_SELF:
+                    e.detail = ACC.ROLE_CLIENT_AREA;
+                    break;
+                case 0:
+                    e.detail = ACC.ROLE_TOOLTIP;
+                    break;
+                case 1:
+                    e.detail = ACC.ROLE_LABEL;
+                    break;
+                }
+            }
+
+            @Override
+            public void getState(AccessibleControlEvent e) {
+                e.detail = ACC.STATE_FOCUSABLE;
+                if (e.childID == ACC.CHILDID_SELF) {
+                    e.detail |= ACC.STATE_FOCUSED;
+                } else {
+                    e.detail |= ACC.STATE_SELECTABLE;
+                    if (e.childID == focusedWidget)
+                        e.detail |= ACC.STATE_FOCUSED | ACC.STATE_SELECTED | ACC.STATE_CHECKED;
+                }
+            }
+        });
+
+        insertionCartet = new Caret((Canvas) getViewControl(), SWT.NONE);
+        insertionCartet.setVisible(false);
+
+        collapaseCaretImg = TmfUiPlugin.getDefault().getImageFromPath(ITmfImageConstants.IMG_UI_ARROW_COLLAPSE_OBJ);
+        arrowUpCaretImg = TmfUiPlugin.getDefault().getImageFromPath(ITmfImageConstants.IMG_UI_ARROW_UP_OBJ);
+
+        reorderList = new ArrayList<Lifeline[]>();
+        getViewControl().addTraverseListener(new TraverseListener() {
+
+            @Override
+            public void keyTraversed(TraverseEvent e) {
+                if ((e.detail == SWT.TRAVERSE_TAB_NEXT) || (e.detail == SWT.TRAVERSE_TAB_PREVIOUS))
+                    e.doit = true;
+            }
+
+        });
+
+        addTraverseListener(new TraverseListener() {
+
+            @Override
+            public void keyTraversed(TraverseEvent e) {
+                if ((e.detail == SWT.TRAVERSE_TAB_NEXT) || (e.detail == SWT.TRAVERSE_TAB_PREVIOUS))
+                    e.doit = true;
+            }
+
+        });
+
+        getViewControl().addFocusListener(new FocusListener() {
+
+            @Override
+            public void focusGained(FocusEvent e) {
+                // TODO Auto-generated method stub
+                SDViewPref.getInstance().setNoFocusSelection(false);
+                ctrlSelection = false;
+                shiftSelection = false;
+                redraw();
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                SDViewPref.getInstance().setNoFocusSelection(true);
+                redraw();
+            }
+        });
+    }
+

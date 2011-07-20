@@ -1,0 +1,81 @@
+        @Override
+        protected void layout(Composite composite, boolean flushCache) {
+            if (dont_layout)
+                return;
+            seek++;
+            if (seek > 10)
+                dont_layout = true;
+
+            // System.out.println(">>> SV.layout() {");
+            Point cs = composite.getSize();
+            int bar_vis = computeBarVisibility(cs.x, cs.y, false, false);
+            boolean vb_vis = (bar_vis & VBAR) != 0;
+            boolean hb_vis = (bar_vis & HBAR) != 0;
+            vertsb_.setVisible(vb_vis);
+            horzsb_.setVisible(hb_vis);
+            int vbw = getVerticalBarWidth();
+            int hbh = getHorizontalBarHeight();
+            int wb = vb_vis ? vbw : 0;
+            int hb = hb_vis ? hbh : 0;
+            int cww = 0, cwh = 0;
+            // System.out.println("SV-LAYOUT H.vis="+hb_vis+" V.vis="+vb_vis);
+
+            if (corner_control_ != null && (vb_vis || hb_vis))// corner_control_.getVisible())
+            {
+                corner_control_.setVisible(true);
+                cww = vbw;
+                cwh = hbh;
+                if (wb == 0)
+                    wb = vbw;
+                if (hb == 0)
+                    hb = hbh;
+            } else if (vb_vis && hb_vis) {
+                if (corner_control_ != null)
+                    corner_control_.setVisible(false);
+                cww = vbw;
+                cwh = hbh;
+            }
+            if (vb_vis || hb_vis)
+                updateScrollBarsValues();
+
+            int vw = cs.x - (vb_vis ? vbw : 0);
+            int vh = cs.y - (hb_vis ? hbh : 0);
+            int vbx = cs.x - wb;
+            int hby = cs.y - hb;
+            Rectangle rc = viewcontrol_.getClientArea();
+            int old_width = rc.width;
+            int old_height = rc.height;
+            // provoque pas un viewResize ???
+            viewcontrol_.setBounds(0, 0, vw, vh);
+            boolean do_view_resize = false;
+            rc = viewcontrol_.getClientArea();
+            if (old_width != rc.width || old_height != rc.height) {
+                // area size change, so visibleWidth()/Height() change too
+                // so scrollbars visibility ma change too..
+                // so need an other layout !
+                /*
+                 * if( updateScrollBarVisiblity() ) { layout( composite, flushCache);
+                 * System.out.println("<<< SV.layout() } (recursive)"); return ; }
+                 */
+                do_view_resize = true;
+            }
+            if (vb_vis) {
+                vertsb_.setBounds(vbx, 0, wb, cs.y - cwh);
+            }
+            if (hb_vis) {
+                horzsb_.setBounds(0, hby, cs.x - cww, hb);
+            }
+            if (corner_control_ != null && corner_control_.getVisible()) {
+                corner_control_.setBounds(vbx, hby, vbw, hbh);
+            }
+            updateScrollBarsValues();
+            if (do_view_resize) {
+                // System.out.println(" -layout do_view_resize old="+old_width+"x"+old_height+" new="+viewcontrol_.getClientArea());
+                viewResized();
+            }
+            // System.out.println("<<< SV.layout() }");
+            seek--;
+            if (seek == 0)
+                dont_layout = false;
+        }
+

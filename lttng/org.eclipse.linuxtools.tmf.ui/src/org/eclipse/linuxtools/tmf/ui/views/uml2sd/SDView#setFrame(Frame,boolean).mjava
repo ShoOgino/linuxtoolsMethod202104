@@ -1,0 +1,50 @@
+    /**
+     * The frame to render (the sequence diagram)
+     * 
+     * @param frame the frame to display
+     */
+    protected void setFrame(Frame frame, boolean resetPosition) {
+        if (sdWidget == null)
+            return;
+
+        if (frame == null) {
+            loadBlank();
+            return;
+        }
+
+        IUml2SDLoader l = LoadersManager.getInstance().getCurrentLoader(getViewSite().getId(), this);
+
+        if ((l != null) && (l.getTitleString() != null)) {
+            setContentDescription(l.getTitleString());
+        }
+
+        if (getSDWidget() != null)
+            getSDWidget().setFrame(frame, resetPosition);
+
+        if (timeCompressionBar != null)
+            timeCompressionBar.setFrame(frame);
+        updateCoolBar();
+        if (!frame.hasTimeInfo()) {
+            Composite parent = timeCompressionBar.getParent();
+            timeCompressionBar.setVisible(false);
+            parent.layout(true);
+        } else {
+            Composite parent = timeCompressionBar.getParent();
+            timeCompressionBar.setVisible(true);
+            parent.layout(true);
+        }
+        IContributionItem shortKeysMenu = getViewSite().getActionBars().getMenuManager().find("org.eclipse.linuxtools.tmf.ui.views.uml2sd.handlers");//$NON-NLS-1$
+        MenuManager shortKeys = (MenuManager) shortKeysMenu;
+        if (shortKeys != null) {
+            IContributionItem[] items = shortKeys.getItems();
+            for (int i = 0; i < items.length; i++) {
+                if (items[i] instanceof ActionContributionItem) {
+                    IAction action = ((ActionContributionItem) items[i]).getAction();
+                    if (action != null)
+                        action.setEnabled(true);
+                }
+            }
+        }
+        createCoolbarContent();
+    }
+

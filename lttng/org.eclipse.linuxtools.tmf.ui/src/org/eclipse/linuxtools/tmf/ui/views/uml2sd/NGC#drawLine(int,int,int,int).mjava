@@ -1,0 +1,60 @@
+    @Override
+    public void drawLine(int x1, int y1, int x2, int y2) {
+        x1 = Math.round(x1 * view.zoomValue);
+        y1 = Math.round(y1 * view.zoomValue);
+        x2 = Math.round(x2 * view.zoomValue);
+        y2 = Math.round(y2 * view.zoomValue);
+        x1 = view.contentsToViewX(x1);
+        y1 = view.contentsToViewY(y1);
+        x2 = view.contentsToViewX(x2);
+        y2 = view.contentsToViewY(y2);
+
+        byte code1 = code(x1, y1);
+        byte code2 = code(x2, y2);
+        byte codex;
+        boolean draw = false;
+        boolean end = false;
+        int x = 0, y = 0;
+
+        do {
+            if (code1 == 0 && code2 == 0) {
+                draw = true;
+                end = true;
+            } else if ((code1 & code2) != 0) {
+                end = true;
+            } else {
+                codex = (code1 != 0) ? code1 : code2;
+                if ((codex & 0x01) != 0) // top
+                {
+                    x = x1 + ((x2 - x1) * (yx - y1)) / (y2 - y1);
+                    y = yx;
+                } else if ((codex & 0x02) != 0) // bottom
+                {
+                    x = x1 + ((x2 - x1) * (y_ - y1)) / (y2 - y1);
+                    y = y_;
+                } else if ((codex & 0x04) != 0) // right
+                {
+                    y = y1 + ((y2 - y1) * (xx - x1)) / (x2 - x1);
+                    x = xx;
+                } else if ((codex & 0x08) != 0) // left
+                {
+                    y = y1 + ((y2 - y1) * (x_ - x1)) / (x2 - x1);
+                    x = x_;
+                }
+
+                if (codex == code1) {
+                    x1 = x;
+                    y1 = y;
+                    code1 = code(x1, y1);
+                } else {
+                    x2 = x;
+                    y2 = y;
+                    code2 = code(x2, y2);
+                }
+            }
+        } while (!end);
+        if (draw) {
+            context.drawLine(x1, y1, x2, y2);
+        }
+    }
+

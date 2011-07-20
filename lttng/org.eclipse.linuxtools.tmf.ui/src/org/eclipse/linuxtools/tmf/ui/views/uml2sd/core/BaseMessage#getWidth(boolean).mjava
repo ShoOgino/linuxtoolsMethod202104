@@ -1,0 +1,48 @@
+    /**
+     * Returns the graph node width.<br>
+     * Depending on the quick parameter a approximative or exact value is returned.<br>
+     * The approximative value does not take into account if both message ends are connected to a Lifeline Execution
+     * Occurrence.<br>
+     * Execution occurrence on a lifeline increase the vertical line width which represent the lifeline, this directly
+     * affect the message x coordinate and width.<br>
+     * <br>
+     * This method is typically used to faster execute none graphical operation like tooltip lookup.<br>
+     * <br>
+     * 
+     * @param quick true to get an approximative value<br>
+     *            false to get the exact x value
+     * @return the graph node width
+     */
+    protected int getWidth(boolean quick) {
+        int width = 0;
+        int activationWidth = Metrics.EXECUTION_OCCURRENCE_WIDTH / 2;
+        if ((startLifeline != null) && (endLifeline != null)) {
+            if (startLifeline == endLifeline)
+                width = Metrics.INTERNAL_MESSAGE_WIDTH + Metrics.EXECUTION_OCCURRENCE_WIDTH;
+            else
+                width = endLifeline.getX() + Metrics.getLifelineWidth() / 2 - getX(true);
+        } else {
+            if (startLifeline != null) {
+                width = Metrics.swimmingLaneWidth() / 2;
+            }
+            if (endLifeline != null) {
+                width = Metrics.swimmingLaneWidth() / 2;
+            }
+        }
+
+        if (quick)
+            return width;
+
+        if ((startLifeline != null) && (endLifeline != null) && (startLifeline.getX() > endLifeline.getX())) {
+            activationWidth = -activationWidth;
+        }
+
+        if (isMessageStartInActivation(endEventOccurrence))
+            width = width - activationWidth;
+
+        if (isMessageEndInActivation(endEventOccurrence))
+            width = width - activationWidth;
+
+        return width;
+    }
+

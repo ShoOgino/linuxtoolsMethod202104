@@ -1,0 +1,62 @@
+    /**
+     * Add a GraphNode into the receiver
+     * 
+     * @param nodeToAdd the node to add
+     */
+    public void addNode(GraphNode nodeToAdd) {
+        if (!hasChilden) {
+            nodes = new HashMap<String, List<GraphNode>>(2);
+            fnodes = new HashMap<String, List<GraphNode>>(2);
+            bnodes = new HashMap<String, List<GraphNode>>(2);
+            indexes = new HashMap<String, Integer>(2);
+            bSort = new HashMap<String, Boolean>(2);
+            fSort = new HashMap<String, Boolean>(2);
+            hasChilden = true;
+        }
+
+        // Nothing to add
+        if (nodeToAdd == null)
+            return;
+
+        if (nodes.get(nodeToAdd.getArrayId()) == null) {
+            nodes.put(nodeToAdd.getArrayId(), new ArrayList<GraphNode>(1));
+            indexes.put(nodeToAdd.getArrayId(), Integer.valueOf(0));
+            fnodes.put(nodeToAdd.getArrayId(), new ArrayList<GraphNode>(1));
+            fSort.put(nodeToAdd.getArrayId(), Boolean.valueOf(false));
+            if (nodeToAdd.getBackComparator() != null) {
+                bnodes.put(nodeToAdd.getArrayId(), new ArrayList<GraphNode>(1));
+                bSort.put(nodeToAdd.getArrayId(), Boolean.valueOf(false));
+            }
+        }
+
+        List<GraphNode> fNodeList = (List<GraphNode>) fnodes.get(nodeToAdd.getArrayId());
+        List<GraphNode> bNodeList = null;
+        if (bnodes != null)
+            bNodeList = (List<GraphNode>) bnodes.get(nodeToAdd.getArrayId());
+        if (fNodeList != null && fNodeList.size() > 0) {
+            // check if the nodes are added y ordered
+            // if not, tag the list to sort it later (during draw)
+            GraphNode node = (GraphNode) fNodeList.get(fNodeList.size() - 1);
+            Comparator<GraphNode> fcomp = nodeToAdd.getComparator();
+            Comparator<GraphNode> bcomp = nodeToAdd.getBackComparator();
+            if ((fcomp != null) && (fcomp.compare(node, nodeToAdd) == 1)) {
+                fSort.put(nodeToAdd.getArrayId(), Boolean.valueOf(true));
+            }
+            if ((bcomp != null) && (bcomp.compare(node, nodeToAdd) == 1)) {
+                bSort.put(nodeToAdd.getArrayId(), Boolean.valueOf(true));
+            }
+        }
+
+        if (fNodeList == null) {
+            fNodeList = new ArrayList<GraphNode>();
+        }
+
+        fNodeList.add(nodeToAdd);
+        nodes.put(nodeToAdd.getArrayId(), fNodeList);
+        fnodes.put(nodeToAdd.getArrayId(), fNodeList);
+        if (nodeToAdd.getBackComparator() != null) {
+            bNodeList.add(nodeToAdd);
+            bnodes.put(nodeToAdd.getArrayId(), bNodeList);
+        }
+    }
+
