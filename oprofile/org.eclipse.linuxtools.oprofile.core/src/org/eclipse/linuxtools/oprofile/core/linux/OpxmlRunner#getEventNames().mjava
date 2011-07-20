@@ -1,11 +1,53 @@
-	/**
-	 * @return the name of the events used on the current session
-	 */
 	private String[] getEventNames (){
 		String [] ret = null;
 		try {
-			Process p = Runtime.getRuntime().exec("opreport -X --details");
-			InputStream is = p.getInputStream();
+			String cmd[] = {"opreport", "-X", "-d"};
+			Process p = Runtime.getRuntime().exec(cmd);		
+			
+			StringBuilder output = new StringBuilder();
+			StringBuilder errorOutput = new StringBuilder();
+			String s = null;
+			try {
+				BufferedReader stdInput = new BufferedReader(new InputStreamReader(
+						p.getInputStream()));
+				BufferedReader stdError = new BufferedReader(new InputStreamReader(
+						p.getErrorStream()));
+				try {
+					// Read output of opreport. We need to do this, since this might
+					// cause the plug-in to hang. See Eclipse bug 341621 for more info.
+					// FIXME: Both of those while loops should really be done in two separate
+					// threads, so that we avoid this very problem when the error input
+					// stream buffer fills up.
+					while ((s = stdInput.readLine()) != null) {
+						output.append(s + System.getProperty("line.separator")); //$NON-NLS-1$
+					}
+					while ((s = stdError.readLine()) != null) {
+						errorOutput.append(s + System.getProperty("line.separator")); //$NON-NLS-1$
+					}
+				} finally {
+					stdInput.close();
+					stdError.close();
+				}
+				if (!errorOutput.toString().trim().equals("")) { //$NON-NLS-1$
+					OprofileCorePlugin
+							.log(Status.ERROR,
+									NLS.bind(
+											OprofileProperties
+													.getString("process.log.stderr"), "opreport", errorOutput.toString().trim())); //$NON-NLS-1$ //$NON-NLS-2$
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			} 
+
+			
+			// convert the string to inputstream to pass to builder.parse
+			InputStream is = null;
+			try {
+				is = new ByteArrayInputStream(output.toString().getBytes("UTF-8"));
+			} catch (UnsupportedEncodingException e) {
+				e.printStackTrace();
+			}
+			
 			if (p.waitFor() == 0){
 				DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 				DocumentBuilder builder;
