@@ -1,28 +1,15 @@
-    /**
-     * Method called when synchronization is active and that the user select an event.
-     * We update the current event timeTextGroup and move the selected window if needed.
-     * 
-     * @param signal	Signal received from the framework. Contain the event.
-     */
     @TmfSignalHandler
     public void currentTimeUpdated(TmfTimeSynchSignal signal) {
-    	// In case we received our own signal
-    	if ( (signal != null) && (signal.getSource() != this) ) {
-            TmfTimestamp currentTime = signal.getCurrentTime();
-            
-            // Update the current event controls
-            currentEventTime = currentTime.getValue();
-            updateSelectedEventTime();
-            
-            // If the given event is outside the selection window, recenter the window
-            if ( isGivenTimestampInSelectedWindow( currentEventTime ) == false) {
-                fullExperimentCanvas.setWindowCenterPosition(currentEventTime);
+        // Because this can't happen :-)
+        assert (signal != null);
 
-            	// Notify control that the window changed
-            	windowChangedNotification();
-            	// Send a broadcast to the framework about the window change
-        		sendTmfRangeSynchSignalBroadcast();
-            }
-    	}
+        // Update the selected event time
+        TmfTimestamp currentTime = signal.getCurrentTime();
+        fCurrentTimestamp = currentTime.getValue();
+
+        // Notify the relevant widgets
+        fFullTraceHistogram.setCurrentEvent(fCurrentTimestamp);
+        fTimeRangeHistogram.setCurrentEvent(fCurrentTimestamp);
+        fCurrentEventTimeControl.setValue(fCurrentTimestamp);
     }
 

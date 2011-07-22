@@ -1,0 +1,36 @@
+    /**
+     * Add event to the correct bucket, compacting the if needed.
+     * 
+     * @param timestamp the timestamp of the event to count
+     */
+    public void countEvent(long timestamp) {
+        // Set the start/end time if not already done
+        if (fLastBucket == 0 && fBuckets[0] == 0 && timestamp > 0) {
+            fFirstEventTime = timestamp;
+            updateEndTime();
+        }
+        if (fLastEventTime < timestamp) {
+            fLastEventTime = timestamp;
+        }
+
+        // Compact as needed
+        while (timestamp >= fTimeLimit) {
+            mergeBuckets();
+        }
+
+        // Validate
+        if (timestamp < fFirstEventTime) {
+            String message = "Out of order timestamp. Going back in time?"; //$NON-NLS-1$
+            EventOutOfSequenceException exception = new EventOutOfSequenceException(message);
+            LTTngUILogger.logError(message, exception);
+            return;
+        }
+
+        // Increment the right bucket
+        int index = (int) ((timestamp - fFirstEventTime) / fBucketDuration);
+        fBuckets[index]++;
+        fNbEvents++;
+        if (fLastBucket < index)
+            fLastBucket = index;
+    }
+

@@ -1,92 +1,9 @@
-	/**
-	 * HandleData function : will be called by TMF each time a new event is receive for the request.<p>
-	 * Calculation for the content is done here.
-	 */
-//	@Override
-//    public void handleData() {
-//        LttngEvent[] result = getData();
-//        LttngEvent event = (result.length > 0) ? result[0] : null;
-        
-	@Override
+    @Override
     public void handleData(LttngEvent event) {
-		super.handleData(event);
-
-        // *** FIXME ***
-    	// *** EVIL BUG ***
-        // The request by timerange only does not work! (see constructor above) 
-    	// 	However, the request with number of events will loop until it reach its number or EOF
-    	//  We have to filter out ourself the extra useless events!
-    	//
+        super.handleData(event);
         if (event != null) {
-        
-//			Tracer.trace("Hst: " + event.getTimestamp());
-        	
-        	// This check is linked to the evil fix mentionned above
-        	if ( ( event.getTimestamp().getValue() >= parentCanvas.getHistogramContent().getStartTime() ) &&
-        		 ( event.getTimestamp().getValue() <= parentCanvas.getHistogramContent().getEndTime() ) )
-        	{
-        		
-        		// Distance (in time) between this event and the last one we read
-	        	long distance = ( event.getTimestamp().getValue() - lastRangeTime );
-				
-	        	// Check if we changed of interval (the distance is higher than the interval time)
-				if  ( distance > parentCanvas.getHistogramContent().getElementsTimeInterval() ) {
-					
-					parentCanvas.getHistogramContent().getElementByIndex(lastInterval).intervalNbEvents = nbEventsInInterval;
-					lastRangeTime = event.getTimestamp().getValue();
-					
-					// * NOTE *
-					// We can skip several interval at once, so we need to find what was our interval now
-					lastInterval = (int)((lastRangeTime - parentCanvas.getHistogramContent().getStartTime()) / parentCanvas.getHistogramContent().getElementsTimeInterval() );
-					
-					// *** HACK ***
-					// Because of the threads, weird phenomenons seem to happen here, like a position after the 
-					//	 element range because another request was issued.
-					// This enforce the position but may result in slightly inconsistent result (i.e. a weird misplaced bar sometime).
-					if ( lastInterval < 0 ) {
-						lastInterval = 0;
-					}
-					else if ( lastInterval >= parentCanvas.getHistogramContent().getNbElement() ) {
-						lastInterval = (parentCanvas.getHistogramContent().getNbElement()-1);
-					}
-					
-					// * NOTE * 
-					// We save the time we have here. This mean only the FIRST time read in an interval will be saved. 
-					parentCanvas.getHistogramContent().getElementByIndex(lastInterval).firstIntervalTimestamp = lastRangeTime;
-					parentCanvas.getHistogramContent().setReadyUpToPosition(lastInterval);
-					
-					nbIntervalNotEmpty++;
-					nbEventsInInterval = 1L;
-				}
-				// We are still in the same interval, just keep counting
-				else {
-					nbEventsInInterval++;
-				}
-				
-				if ( nbEventsInInterval > parentCanvas.getHistogramContent().getHeighestEventCount() ) {
-					parentCanvas.getHistogramContent().setHeighestEventCount(nbEventsInInterval);
-				}
-				nbEventRead++;
-				
-				// Call an asynchronous redraw every REDRAW_EVERY_NB_EVENTS events
-				// That way we don't need to wait until to end to have something on the screen
-				if ( nbEventRead % HistogramConstant.REDRAW_EVERY_NB_EVENTS == 0 ) {
-					redrawAsyncronously();
-				}
-        	}
-		}
-        // We got a null event! This mean we reach the end of the request. 
-        // Save the last interval we had, so we won't miss the very last events at the end. 
-        else {
-        	// Save the last events
-        	parentCanvas.getHistogramContent().getElementByIndex(lastInterval).intervalNbEvents = nbEventsInInterval;
-        	// We reached the end of the request, so assume we fill up the content as well
-        	parentCanvas.getHistogramContent().setReadyUpToPosition(parentCanvas.getHistogramContent().getNbElement());
-			
-			// If the interval wasn't null, count this as a "non empty" interval
-			if (nbEventsInInterval > 0) {
-				nbIntervalNotEmpty++;
-			}
+            long timestamp = event.getTimestamp().getValue();
+            fHistogram.countEvent(timestamp);
         }
     }
 
