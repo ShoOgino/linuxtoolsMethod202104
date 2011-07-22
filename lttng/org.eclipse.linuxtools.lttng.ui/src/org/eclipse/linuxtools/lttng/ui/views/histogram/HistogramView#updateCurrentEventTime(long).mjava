@@ -1,0 +1,16 @@
+    public void updateCurrentEventTime(long newTime) {
+        if (fCurrentExperiment != null) {
+            TmfTimeRange timeRange = new TmfTimeRange(new TmfTimestamp(newTime, TIME_SCALE), TmfTimestamp.BigCrunch);
+            HistogramRequest request = new HistogramRequest(fTimeRangeHistogram, timeRange, 1, ExecutionType.FOREGROUND) {
+                @Override
+                public void handleData(LttngEvent event) {
+                    if (event != null) {
+                        TmfTimeSynchSignal signal = new TmfTimeSynchSignal(this, event.getTimestamp());
+                        TmfSignalManager.dispatchSignal(signal);
+                    }
+                }
+            };
+            fCurrentExperiment.sendRequest(request);
+        }
+    }
+

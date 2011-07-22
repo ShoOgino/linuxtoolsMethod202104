@@ -1,0 +1,32 @@
+    /**
+     * Refresh the histogram display
+     */
+    protected void refresh() {
+        if (!fCanvas.isDisposed() && fCanvas.getDisplay() != null) {
+            fCanvas.getDisplay().asyncExec(new Runnable() {
+                @Override
+                public void run() {
+                    if (!fCanvas.isDisposed()) {
+                        // Retrieve and normalize the data
+                        int canvasWidth = fCanvas.getBounds().width;
+                        int canvasHeight = fCanvas.getBounds().height;
+                        fDataModel.setCurrentEvent(fCurrentEventTime);
+                        fScaledData = fDataModel.scaleTo(canvasWidth, canvasHeight);
+                        // If there's no data, just get out
+                        if (fScaledData.fData[0] == 0)
+                            return;
+                        // Display histogram and update X-,Y-axis labels
+                        fCanvas.redraw();
+                        fTimeRangeStartText.setText(HistogramUtils.nanosecondsToString(fDataModel.getStartTime()));
+                        fTimeRangeEndText.setText(HistogramUtils.nanosecondsToString(fDataModel.getEndTime()));
+                        if (fDataModel.getStartTime() > 0) {
+                            fMaxNbEventsText.setText(Long.toString(fScaledData.fMaxValue));
+                        }
+                        // The Y-axis area might need to be re-sized
+                        fMaxNbEventsText.getParent().layout();
+                    }
+                }
+            });
+        }
+    }
+
