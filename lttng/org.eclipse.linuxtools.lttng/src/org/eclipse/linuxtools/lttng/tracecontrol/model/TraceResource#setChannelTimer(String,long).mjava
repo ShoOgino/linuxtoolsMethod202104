@@ -1,0 +1,32 @@
+    /*
+     * Set channel timer on the remote system. 
+     */
+    public void setChannelTimer(final String channelName, final long timer) throws Exception {
+        // Create future task
+       new TCFTask<Boolean>() {
+            @Override
+            public void run() {
+
+                // Set marker switch_timer using Lttng controller service proxy
+                fService.setChannelTimer(fParent.getParent().getName(),
+                        fParent.getName(), 
+                        fName, 
+                        channelName, 
+                        timer,  
+                        new ILttControllerService.DoneSetChannelTimer() {
+
+                    @Override
+                    public void doneSetChannelTimer(IToken token, Exception error, Object str) {
+                        if (error != null) {
+                            // Notify with error
+                            error(error);
+                            return;
+                        }
+
+                        // Notify about success
+                        done(Boolean.valueOf(true));
+                    }
+                });
+            }}.get(DEFAULT_TCF_TASK_TIMEOUT, TimeUnit.SECONDS);
+    }
+

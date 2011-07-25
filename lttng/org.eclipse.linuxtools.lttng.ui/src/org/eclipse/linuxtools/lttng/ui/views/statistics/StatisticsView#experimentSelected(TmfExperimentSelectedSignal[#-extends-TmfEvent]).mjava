@@ -35,13 +35,32 @@
 					if (same) {
 						// no need to reload data, all traces are already loaded
 						treeViewer.setInput(experimentTreeNode);
+						synchronized (fStatisticsUpdateSyncObj) {
+							fStatisticsUpdateBusy = false;
+							fStatisticsUpdatePending = false;
+						}
 						return;
 					}
 				}
 			}
 
+			StatisticsTreeNode treeModelRoot = StatisticsTreeRootFactory.getStatTreeRoot(experiment.getName());
+
+			// if the model has contents, clear to start over
+			if (treeModelRoot.hasChildren()) {
+				treeModelRoot.reset();
+			}
+
+			// set input to a clean data model
+			treeViewer.setInput(treeModelRoot);
+
+			synchronized (fStatisticsUpdateSyncObj) {
+				fStatisticsUpdateBusy = false;
+				fStatisticsUpdatePending = false;
+			}
+
 			// if the data is not available or has changed, reload it
-			requestData(experiment);
+			requestData(experiment, experiment.getTimeRange(), true);
 		}
 	}
 

@@ -10,7 +10,7 @@
 			TmfExperiment<LttngEvent> experiment) {
 		// validate
 		if (experiment == null) { 
-			TraceDebug.debug("Received expriment is null"); //$NON-NLS-1$
+			TraceDebug.debug("Received experiment is null"); //$NON-NLS-1$
 			return;
 		}
 
@@ -20,7 +20,19 @@
 			fStateCheckPointRequest.cancel();
 		}
 
+		synchronized (fCheckPointUpdateSyncObj) {
+			fCheckPointUpdateBusy = true;
+			fCheckPointUpdatePending = false;
+			fCheckPointUpdateIndex = 0;
+		}
+
 		// trigger data request to build the state system check points
-		fStateCheckPointRequest = buildCheckPoints(experiment);
+		fStateCheckPointRequest = buildCheckPoints(experiment, experiment.getTimeRange(), true);
+
+		if (fStateCheckPointRequest == null) {
+			synchronized (fCheckPointUpdateSyncObj) {
+				fCheckPointUpdateBusy = false;
+			}
+		}
 	}
 

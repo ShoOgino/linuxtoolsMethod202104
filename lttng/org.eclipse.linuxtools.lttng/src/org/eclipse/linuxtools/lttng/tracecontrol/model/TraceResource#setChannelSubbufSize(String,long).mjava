@@ -1,0 +1,32 @@
+    /*
+     * Setup the size of the sub-buffer on the remote system.
+     */
+    public void setChannelSubbufSize(final String channelName, final long subbufSize) throws Exception {
+        // Create future task
+        new TCFTask<Boolean>() {
+            @Override
+            public void run() {
+
+                // Set marker enable using Lttng controller service proxy
+                fService.setChannelSubbufSize(fParent.getParent().getName(),
+                        fParent.getName(), 
+                        fName, 
+                        channelName, 
+                        subbufSize,  
+                        new ILttControllerService.DoneSetChannelSubbufSize() {
+
+                    @Override
+                    public void doneSetChannelSubbufSize(IToken token, Exception error, Object str) {
+                        if (error != null) {
+                            // Notify with error
+                            error(error);
+                            return;
+                        }
+
+                        // Notify about success
+                        done(Boolean.valueOf(true));
+                    }
+                });
+            }}.get(DEFAULT_TCF_TASK_TIMEOUT, TimeUnit.SECONDS);
+    }
+

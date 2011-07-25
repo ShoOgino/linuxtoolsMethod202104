@@ -1,0 +1,107 @@
+    @SuppressWarnings("unchecked")
+    protected void indexExperiment(boolean waitForCompletion, final int index, final TmfTimeRange timeRange) {
+
+        synchronized (fCheckpoints) {
+            if (fIndexing) {
+                return;
+            }
+            fIndexing = true;
+        }
+
+        final Job job = new Job("Indexing " + getName() + "...") { //$NON-NLS-1$ //$NON-NLS-2$
+            @Override
+            protected IStatus run(IProgressMonitor monitor) {
+                while (!monitor.isCanceled()) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        return Status.OK_STATUS;
+                    }
+                }
+                monitor.done();
+                return Status.OK_STATUS;
+            }
+        };
+        job.schedule();
+
+//		fEventLog = openLogFile("TraceEvent.log");
+//		System.out.println(System.currentTimeMillis() + ": Experiment indexing started");
+
+        ITmfEventRequest<TmfEvent> request = new TmfEventRequest<TmfEvent>(TmfEvent.class, timeRange, index, TmfDataRequest.ALL_DATA, fIndexPageSize,
+                ITmfDataRequest.ExecutionType.BACKGROUND) { // PATA FOREGROUND
+
+//			long indexingStart = System.nanoTime();
+
+            TmfTimestamp startTime = (fTimeRange == TmfTimeRange.Null) ? null : fTimeRange.getStartTime();
+            TmfTimestamp lastTime = (fTimeRange == TmfTimeRange.Null) ? null : fTimeRange.getEndTime();
+            long initialNbEvents = fNbEvents;
+
+            @Override
+            public void handleStarted() {
+                super.handleStarted();
+            }
+
+            @Override
+            public void handleData(TmfEvent event) {
+                super.handleData(event);
+                if (event != null) {
+                    TmfTimestamp ts = event.getTimestamp();
+                    if (startTime == null)
+                        startTime = new TmfTimestamp(ts);
+                    lastTime = new TmfTimestamp(ts);
+                    if ((getNbRead() % fIndexPageSize) == 1 && getNbRead() != 1) {
+                        updateExperiment();
+                    }
+                }
+            }
+
+            @Override
+            public void handleSuccess() {
+//				long indexingEnd = System.nanoTime();
+
+                if (getRange() != TmfTimeRange.Eternity) {
+                    lastTime = getRange().getEndTime();
+                }
+                updateExperiment();
+//				System.out.println(System.currentTimeMillis() + ": Experiment indexing completed");
+
+//				long average = (indexingEnd - indexingStart) / fNbEvents;
+//				System.out.println(getName() + ": start=" + startTime + ", end=" + lastTime + ", elapsed=" + (indexingEnd * 1.0 - indexingStart) / 1000000000);
+//				System.out.println(getName() + ": nbEvents=" + fNbEvents + " (" + (average / 1000) + "." + (average % 1000) + " us/evt)");
+                super.handleSuccess();
+            }
+
+            @Override
+            public void handleCompleted() {
+                job.cancel();
+                super.handleCompleted();
+                synchronized (fCheckpoints) {
+                    fIndexing = false;
+                    if (fIndexingPendingRange != TmfTimeRange.Null) {
+                        indexExperiment(false, (int) fNbEvents, fIndexingPendingRange);
+                        fIndexingPendingRange = TmfTimeRange.Null;
+                    }
+                }
+            }
+
+            private void updateExperiment() {
+                int nbRead = getNbRead();
+                if (nbRead != 0) {
+//					updateTimeRange();
+//					updateNbEvents();
+                    fTimeRange = new TmfTimeRange(startTime, new TmfTimestamp(lastTime));
+                    fNbEvents = initialNbEvents + nbRead;
+                    notifyListeners();
+                }
+            }
+        };
+
+        sendRequest((ITmfDataRequest<T>) request);
+        if (waitForCompletion)
+            try {
+                request.waitForCompletion();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+    }
+

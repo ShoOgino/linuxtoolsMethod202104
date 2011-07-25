@@ -1,0 +1,28 @@
+	/**
+	 * @param experiment
+	 */
+	private void requestData(TmfExperiment<?> experiment, TmfTimeRange range, boolean clearingData) {
+		if (experiment != null) {
+			synchronized (fStatisticsUpdateSyncObj) {
+				if (fStatisticsUpdateBusy) {
+					fStatisticsUpdatePending = true;
+					fStatisticsUpdateRange = range;
+					return;
+				} else {
+					fStatisticsUpdateBusy = true;
+				}
+			}
+
+			int index = 0;
+			for (StatisticsTreeNode node : ((StatisticsTreeNode) treeViewer.getInput()).getChildren()) {
+				index += (int) node.getValue().nbEvents;
+			}
+
+			// send the initial request, to start filling up model
+			//eventRequest(fStatisticsUpdateIndex, nbRequested, fStatisticsUpdateStartTime, clearingData, ExecutionType.BACKGROUND);
+			eventRequest(index, range, clearingData, ExecutionType.BACKGROUND);
+		} else {
+			TraceDebug.debug("No selected experiment information available"); //$NON-NLS-1$
+		}
+	}
+

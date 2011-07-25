@@ -1,10 +1,28 @@
     @TmfSignalHandler
     public void traceUpdated(TmfTraceUpdatedSignal signal) {
-    	// TODO: Incremental index update
-    	synchronized(this) {
-    		updateNbEvents();
-    		updateTimeRange();
-    	}
-		broadcast(new TmfExperimentUpdatedSignal(this, this)); // , signal.getTrace()));
+        for (ITmfTrace trace : fTraces) {
+            if (trace == signal.getTrace()) {
+                synchronized (fCheckpoints) {
+                    if (fIndexing) {
+                        if (fIndexingPendingRange == TmfTimeRange.Null) {
+                            fIndexingPendingRange = signal.getRange();
+                        } else {
+                            TmfTimestamp startTime = fIndexingPendingRange.getStartTime();
+                            TmfTimestamp endTime = fIndexingPendingRange.getEndTime();
+                            if (signal.getRange().getStartTime().compareTo(startTime) < 0) {
+                                startTime = signal.getRange().getStartTime();
+                            }
+                            if (signal.getRange().getEndTime().compareTo(endTime) > 0) {
+                                endTime = signal.getRange().getEndTime();
+                            }
+                            fIndexingPendingRange = new TmfTimeRange(startTime, endTime);
+                        }
+                        return;
+                    }
+                }
+                indexExperiment(false, (int) fNbEvents, signal.getRange());
+                return;
+            }
+        }
     }
 

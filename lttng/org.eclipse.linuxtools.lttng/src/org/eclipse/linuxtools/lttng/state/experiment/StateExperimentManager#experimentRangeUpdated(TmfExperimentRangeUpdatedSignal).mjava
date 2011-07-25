@@ -1,0 +1,42 @@
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.eclipse.linuxtools.lttng.signal.ILttExperimentSelectedListener#
+	 * experimentUpdated
+	 * (org.eclipse.linuxtools.tmf.signal.TmfExperimentUpdatedSignal, boolean)
+	 */
+	@SuppressWarnings("unchecked")
+	@Override
+	public void experimentRangeUpdated(TmfExperimentRangeUpdatedSignal signal) {
+		TmfExperiment<LttngEvent> experiment = (TmfExperiment<LttngEvent>) signal.getExperiment();
+		// validate
+		if (experiment != fSelectedExperiment.getValue()) {
+			return;
+		}
+
+		synchronized (fCheckPointUpdateSyncObj) {
+			if (fCheckPointUpdateBusy) {
+				fCheckPointUpdatePending = true;
+				fCheckPointUpdateRange = signal.getRange();
+				return;
+			} else {
+				fCheckPointUpdateBusy = true;
+			}
+		}
+
+		// If previous request is ongoing, cancel it before requesting a new
+		// one.
+		if (fStateCheckPointRequest != null && !fStateCheckPointRequest.isCompleted()) {
+			fStateCheckPointRequest.cancel();
+		}
+
+		// trigger data request to build the state system check points
+		fStateCheckPointRequest = buildCheckPoints(experiment, signal.getRange(), false);
+		
+		if (fStateCheckPointRequest == null) {
+	        synchronized (fCheckPointUpdateSyncObj) {
+	    		fCheckPointUpdateBusy = false;
+	        }
+		}
+	}
+

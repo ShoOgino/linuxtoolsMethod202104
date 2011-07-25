@@ -1,0 +1,32 @@
+    /*
+     * Set channel overwrite on the remote system. 
+     */
+    public void setChannelOverwrite(final String channelName, final boolean overwrite) throws Exception {
+        // Create future task
+       new TCFTask<Boolean>() {
+            @Override
+            public void run() {
+
+                // Set marker overwrite using Lttng controller service proxy
+                fService.setChannelOverwrite(fParent.getParent().getName(),
+                        fParent.getName(), 
+                        fName, 
+                        channelName, 
+                        overwrite,  
+                        new ILttControllerService.DoneSetChannelOverwrite() {
+
+                    @Override
+                    public void doneSetChannelOverwrite(IToken token, Exception error, Object str) {
+                        if (error != null) {
+                            // Notify with error
+                            error(error);
+                            return;
+                        }
+
+                        // Notify about success
+                        done(Boolean.valueOf(true));
+                    }
+                });
+            }}.get(DEFAULT_TCF_TASK_TIMEOUT, TimeUnit.SECONDS);
+    }
+

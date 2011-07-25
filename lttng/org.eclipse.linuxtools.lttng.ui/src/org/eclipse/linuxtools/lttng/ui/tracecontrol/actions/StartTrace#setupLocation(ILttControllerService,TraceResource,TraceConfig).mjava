@@ -1,5 +1,5 @@
     /*
-     * Setup the trace location.  
+     * Setup the trace location. Only normal channels are written while trace is started.  
      */
     private void setupLocation(final ILttControllerService service, final TraceResource trace, final TraceConfig traceConfig) throws Exception {
         if (traceConfig.isNetworkTrace()) {
@@ -10,6 +10,10 @@
                 if (!created) {
                     throw new Exception(Messages.Lttng_Control_ErrorCreateTracePath + ": " + traceConfig.getTracePath()); //$NON-NLS-1$
                 }
+            }
+            
+            if (traceConfig.getProject() != null) {
+                ImportToProject.linkTrace(getShell(), trace, traceConfig.getProject(), traceConfig.getTraceName());
             }
             
             // Create future task
@@ -23,8 +27,8 @@
                             traceConfig.getTraceName(), 
                             traceConfig.getNumChannel(), 
                             traceConfig.getIsAppend(), 
-                            traceConfig.getMode() == TraceConfig.FLIGHT_RECORDER_MODE, 
-                            traceConfig.getMode() == TraceConfig.NORMAL_MODE, 
+                            false, 
+                            true, // write only normal channels 
                             new ILttControllerService.DoneWriteTraceNetwork() {
 
                         @Override
@@ -55,8 +59,8 @@
                             traceConfig.getTracePath(), 
                             traceConfig.getNumChannel(),
                             traceConfig.getIsAppend(), 
-                            traceConfig.getMode() == TraceConfig.FLIGHT_RECORDER_MODE, 
-                            traceConfig.getMode() == TraceConfig.NORMAL_MODE, 
+                            false, 
+                            true, // write only normal channels 
                             new ILttControllerService.DoneWriteTraceLocal() {
 
                         @Override

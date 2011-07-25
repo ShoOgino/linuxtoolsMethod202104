@@ -1,0 +1,30 @@
+    /*
+     * Setup trace on the remote system. 
+     */
+    public void setupTrace() throws Exception {
+        // Create future task
+        new TCFTask<Boolean>() {
+            @Override
+            public void run() {
+
+                // Setup trace using Lttng controller service proxy
+                fService.setupTrace(fParent.getParent().getName(),
+                        fParent.getName(), 
+                        fName, 
+                        new ILttControllerService.DoneSetupTrace() {
+
+                    @Override
+                    public void doneSetupTrace(IToken token, Exception error, Object str) {
+                        if (error != null) {
+                            // Notify with error
+                            error(error);
+                            return;
+                        }
+
+                        // Notify about success
+                        done(Boolean.valueOf(true));
+                    }
+                });
+            }}.get(DEFAULT_TCF_TASK_TIMEOUT, TimeUnit.SECONDS);
+    }
+
