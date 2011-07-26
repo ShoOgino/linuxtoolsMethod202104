@@ -1,14 +1,15 @@
     /*
      * (non-Javadoc)
+     * 
      * @see org.eclipse.ui.IActionDelegate#run(org.eclipse.jface.action.IAction)
      */
     @Override
     public void run(IAction action) {
         Shell shell = getShell();
         final TargetResource targetResource = getFirstSelectedTarget();
-        TraceSubSystem subSystem = (TraceSubSystem)targetResource.getSubSystem();
+        TraceSubSystem subSystem = (TraceSubSystem) targetResource.getSubSystem();
         NewTraceDialog dialog = new NewTraceDialog(shell, subSystem, targetResource);
-        
+
         final TraceConfig traceConfig = dialog.open();
 
         if (traceConfig == null) {
@@ -22,14 +23,14 @@
             trace.setName(traceConfig.getTraceName());
             trace.setParent(targetResource);
             trace.setTraceConfig(traceConfig);
-            
+
             if (targetResource.isUst()) {
                 boolean ok = setupUstLocation(service, targetResource, traceConfig);
                 if (!ok) {
                     return;
                 }
             }
-            
+
             trace.setupTrace();
 
             if (!targetResource.isUst()) {
@@ -37,15 +38,16 @@
                 // Enable all channels by default
                 trace.setChannelEnable(TraceControlConstants.Lttng_Control_AllChannels, true);
 
-                // Set overwrite mode for all channels according to user selection (true for flight recorder, false for normal)
+                // Set overwrite mode for all channels according to user
+                // selection (true for flight recorder, false for normal)
                 trace.setChannelOverwrite(TraceControlConstants.Lttng_Control_AllChannels, traceConfig.getMode() == TraceConfig.FLIGHT_RECORDER_MODE);
 
                 // Set channel timer for all channels
-                final long period = 5000; 
+                final long period = 1000;
                 trace.setChannelTimer(TraceControlConstants.Lttng_Control_AllChannels, period);
 
                 // Set subbuffer size for all channels
-                final long subbufSize = 16384; 
+                final long subbufSize = 16384;
                 trace.setChannelSubbufSize(TraceControlConstants.Lttng_Control_AllChannels, subbufSize);
 
                 // Set number of subbuffers for all channels
@@ -63,29 +65,28 @@
                     }
                 }
             }
-            
+
             if (trace.isUst()) {
                 // in UST the tracing is started after setupTrace!!
                 trace.setTraceState(TraceState.STARTED);
-            }
-            else {
+            } else {
                 trace.setTraceState(TraceState.CONFIGURED);
             }
-            
+
             targetResource.addTrace(trace);
 
             ISystemRegistry registry = SystemStartHere.getSystemRegistry();
             registry.fireRemoteResourceChangeEvent(ISystemRemoteChangeEvents.SYSTEM_REMOTE_RESOURCE_CREATED, trace, targetResource, subSystem, null);
-                
+
         } catch (Exception e) {
             SystemMessageException sysExp;
             if (e instanceof SystemMessageException) {
-                sysExp = (SystemMessageException)e;
+                sysExp = (SystemMessageException) e;
             } else {
-                sysExp = new SystemMessageException(LTTngUiPlugin.getDefault().getMessage(e));    
+                sysExp = new SystemMessageException(LTTngUiPlugin.getDefault().getMessage(e));
             }
-            SystemBasePlugin.logError(Messages.Lttng_Control_ErrorNewTrace + " (" +  //$NON-NLS-1$
-                    Messages.Lttng_Resource_Trace + ": "  + traceConfig.getTraceName() + ")", sysExp); //$NON-NLS-1$ //$NON-NLS-2$
+            SystemBasePlugin.logError(Messages.Lttng_Control_ErrorNewTrace + " (" + //$NON-NLS-1$
+                    Messages.Lttng_Resource_Trace + ": " + traceConfig.getTraceName() + ")", sysExp); //$NON-NLS-1$ //$NON-NLS-2$
 
             return;
         }

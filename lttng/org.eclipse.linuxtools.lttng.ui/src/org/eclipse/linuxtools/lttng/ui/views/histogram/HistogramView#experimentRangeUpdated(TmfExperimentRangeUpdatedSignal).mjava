@@ -1,0 +1,25 @@
+    @TmfSignalHandler
+    @SuppressWarnings("unchecked")
+    public void experimentRangeUpdated(TmfExperimentRangeUpdatedSignal signal) {
+
+        fCurrentExperiment = (TmfExperiment<LttngEvent>) signal.getExperiment();
+        boolean drawTimeRangeHistogram = fExperimentStartTime == 0;
+        TmfTimeRange fullRange = signal.getRange();
+
+        fExperimentStartTime = fullRange.getStartTime().getValue();
+        fExperimentEndTime = fullRange.getEndTime().getValue();
+
+        fFullTraceHistogram.setFullRange(fExperimentStartTime, fExperimentEndTime);
+        fTimeRangeHistogram.setFullRange(fExperimentStartTime, fExperimentEndTime);
+
+        if (drawTimeRangeHistogram) {
+            fCurrentTimestamp = fExperimentStartTime;
+            fCurrentEventTimeControl.setValue(fCurrentTimestamp);
+            fFullTraceHistogram.setTimeRange(fExperimentStartTime, INITIAL_WINDOW_SPAN);
+            fTimeRangeHistogram.setTimeRange(fExperimentStartTime, INITIAL_WINDOW_SPAN);
+            sendTimeRangeRequest(fExperimentStartTime, fExperimentStartTime + INITIAL_WINDOW_SPAN);
+        }
+
+        sendFullRangeRequest(fullRange);
+    }
+
