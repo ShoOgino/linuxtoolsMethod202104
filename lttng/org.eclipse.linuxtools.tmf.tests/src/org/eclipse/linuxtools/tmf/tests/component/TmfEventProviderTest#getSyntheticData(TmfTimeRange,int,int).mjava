@@ -1,34 +1,35 @@
-	@SuppressWarnings("unchecked")
-	private void getSyntheticData(final TmfTimeRange range, final int nbEvents, final int blockSize) throws InterruptedException {
+    @SuppressWarnings("unchecked")
+    private void getSyntheticData(final TmfTimeRange range, final int nbEvents, final int blockSize) throws InterruptedException {
 
         final Vector<TmfSyntheticEventStub> requestedEvents = new Vector<TmfSyntheticEventStub>();
 
         // Get the event provider
-		ITmfDataProvider<TmfSyntheticEventStub>[] eventProviders = (ITmfDataProvider<TmfSyntheticEventStub>[]) TmfProviderManager.getProviders(TmfSyntheticEventStub.class);
-		ITmfDataProvider<TmfSyntheticEventStub> provider = eventProviders[0];
+        ITmfDataProvider<TmfSyntheticEventStub>[] eventProviders = (ITmfDataProvider<TmfSyntheticEventStub>[]) TmfProviderManager
+                .getProviders(TmfSyntheticEventStub.class);
+        ITmfDataProvider<TmfSyntheticEventStub> provider = eventProviders[0];
 
-        final TmfEventRequest<TmfSyntheticEventStub> request =
-        	new TmfEventRequest<TmfSyntheticEventStub>(TmfSyntheticEventStub.class, range, nbEvents, blockSize) {
-        		@Override
-        		public void handleData(TmfSyntheticEventStub event) {
-            		super.handleData(event);
-        			requestedEvents.add(event);
-        		}
-        	};
+        final TmfEventRequest<TmfSyntheticEventStub> request = new TmfEventRequest<TmfSyntheticEventStub>(TmfSyntheticEventStub.class, range,
+                nbEvents, blockSize) {
+            @Override
+            public void handleData(TmfSyntheticEventStub event) {
+                super.handleData(event);
+                requestedEvents.add(event);
+            }
+        };
         provider.sendRequest(request);
 
         request.waitForCompletion();
-	    if (nbEvents != -1)
-	       	assertEquals("nbEvents", nbEvents, requestedEvents.size());
-	    assertTrue("isCompleted", request.isCompleted());
-	    assertFalse("isCancelled", request.isCancelled());
+        if (nbEvents != -1)
+            assertEquals("nbEvents", nbEvents, requestedEvents.size());
+        assertTrue("isCompleted", request.isCompleted());
+        assertFalse("isCancelled", request.isCancelled());
 
-	    // For each base event, the stub will queue 2 identical synthetic events
-	    // Ensure that the events are queued properly.
-	    // Don't go overboard: we are not validating the stub!
-	    for (int i = 0; i < (nbEvents / 2); i++) {
-	        assertEquals("Distinct events", i+1, requestedEvents.get(2 * i + 0).getTimestamp().getValue());
-	        assertEquals("Distinct events", i+1, requestedEvents.get(2 * i + 1).getTimestamp().getValue());
-	    }
-	}
+        // For each base event, the stub will queue 2 identical synthetic events
+        // Ensure that the events are queued properly.
+        // Don't go overboard: we are not validating the stub!
+        for (int i = 0; i < (nbEvents / 2); i++) {
+            assertEquals("Distinct events", i + 1, requestedEvents.get(2 * i + 0).getTimestamp().getValue());
+            assertEquals("Distinct events", i + 1, requestedEvents.get(2 * i + 1).getTimestamp().getValue());
+        }
+    }
 
