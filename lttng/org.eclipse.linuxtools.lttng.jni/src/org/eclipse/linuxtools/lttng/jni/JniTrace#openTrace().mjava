@@ -24,8 +24,16 @@
 	        // Call the LTT to open the trace
         	// Note that the libraryId is not yet and the pointer
         	long newPtr;
+        	
         	if (isLiveTraceSupported()) {
-        		newPtr = ltt_openTraceLive(newLibraryId, tracepath, printLttDebug);
+        	    try {
+        	        newPtr = ltt_openTraceLive(newLibraryId, tracepath, printLttDebug);
+        	    } catch (UnsatisfiedLinkError e) {
+        	        // JNI library doesn't support live trace read. Set flag for live trace support to false and
+        	        // open trace in offline mode.
+        	        setLiveTraceSupported(false);
+        	        newPtr = ltt_openTrace(newLibraryId, tracepath, printLttDebug);
+        	    }
         	} else {
         		newPtr = ltt_openTrace(newLibraryId, tracepath, printLttDebug);
         	}
