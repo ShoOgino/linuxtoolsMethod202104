@@ -1,63 +1,69 @@
-	protected void queueRequest(final ITmfDataRequest<T> request) {
+    protected void queueRequest(final ITmfDataRequest<T> request) {
 
-	    if (fExecutor.isShutdown()) {
-	        request.cancel();
-	        return;
-	    }
-	    
-		final TmfDataProvider<T> provider = this;
+        if (fExecutor.isShutdown()) {
+            request.cancel();
+            return;
+        }
 
-		// Process the request
-		TmfThread thread = new TmfThread(request.getExecType()) {
+        final TmfDataProvider<T> provider = this;
 
-			@Override
-			public void run() {
+        // Process the request
+        TmfThread thread = new TmfThread(request.getExecType()) {
 
-				if (Tracer.isRequestTraced()) Tracer.trace("Request #" + request.getRequestId() + " is being serviced by " + provider.getName());  //$NON-NLS-1$//$NON-NLS-2$
+            @Override
+            public void run() {
 
-				// Extract the generic information
-				request.start();
-				int nbRequested = request.getNbRequested();
-				int nbRead = 0;
+                if (Tracer.isRequestTraced())
+                    Tracer.trace("Request #" + request.getRequestId() + " is being serviced by " + provider.getName()); //$NON-NLS-1$//$NON-NLS-2$
 
-				// Initialize the execution
-				ITmfContext context = armRequest(request);
-				if (context == null) {
-					request.cancel();
-					return;
-				}
+                // Extract the generic information
+                request.start();
+                int nbRequested = request.getNbRequested();
+                int nbRead = 0;
 
-				try {
-					// Get the ordered events
-					T data = getNext(context);
-					if (Tracer.isRequestTraced()) Tracer.trace("Request #" + request.getRequestId() + " read first event"); //$NON-NLS-1$ //$NON-NLS-2$
-					while (data != null && !isCompleted(request, data, nbRead))
-					{
-						if (fLogData) Tracer.traceEvent(provider, request, data);
-						request.handleData(data);
+                // Initialize the execution
+                ITmfContext context = armRequest(request);
+                if (context == null) {
+                    request.cancel();
+                    return;
+                }
 
-						// To avoid an unnecessary read passed the last data requested
-						if (++nbRead < nbRequested) {
-							data = getNext(context);
-						}
-					}
-					if (Tracer.isRequestTraced()) Tracer.trace("Request #" + request.getRequestId() + " finished");  //$NON-NLS-1$//$NON-NLS-2$
+                try {
+                    // Get the ordered events
+                    T data = getNext(context);
+                    if (Tracer.isRequestTraced())
+                        Tracer.trace("Request #" + request.getRequestId() + " read first event"); //$NON-NLS-1$ //$NON-NLS-2$
+                    while (data != null && !isCompleted(request, data, nbRead)) {
+                        if (fLogData)
+                            Tracer.traceEvent(provider, request, data);
+                        request.handleData(data);
 
-					if (request.isCancelled()) {
-						request.cancel();					    
-					}
-					else {
-						request.done();
-					}
-				}
-				catch (Exception e) {
-					request.fail();
-				}
-			}
-		};
+                        // To avoid an unnecessary read passed the last data
+                        // requested
+                        if (++nbRead < nbRequested) {
+                            data = getNext(context);
+                        }
+                    }
+                    if (Tracer.isRequestTraced())
+                        Tracer.trace("Request #" + request.getRequestId() + " finished"); //$NON-NLS-1$//$NON-NLS-2$
 
-        if (Tracer.isRequestTraced()) Tracer.traceRequest(request, "queued"); //$NON-NLS-1$
-		fExecutor.execute(thread);
+                    if (request.isCancelled()) {
+                        request.cancel();
+                    } else {
+                        request.done();
+                    }
+                } catch (Exception e) {
+                    request.fail();
+                }
 
-	}
+                // Cleanup
+                context.dispose();
+            }
+        };
+
+        if (Tracer.isRequestTraced())
+            Tracer.traceRequest(request, "queued"); //$NON-NLS-1$
+        fExecutor.execute(thread);
+
+    }
 

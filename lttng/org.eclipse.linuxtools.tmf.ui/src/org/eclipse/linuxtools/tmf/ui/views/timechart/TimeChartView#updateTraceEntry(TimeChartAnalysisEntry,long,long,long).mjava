@@ -2,10 +2,10 @@
         ITmfTrace trace = timeAnalysisEntry.getTrace();
         TimeChartDecorationProvider decorationProvider = fDecorationProviders.get(trace);
         if (decorationProvider == null) {
-        	return; // the trace has been closed
+            return; // the trace has been closed
         }
         TmfContext context = null;
-        //TmfTimestamp lastTimestamp = null;
+        // TmfTimestamp lastTimestamp = null;
         boolean done = false;
         while (!done) {
             synchronized (timeAnalysisEntry) {
@@ -14,10 +14,13 @@
                     break;
                 }
                 if (context == null || context.getRank() != timeAnalysisEntry.getLastRank()) {
+                    if (context != null) {
+                        context.dispose();
+                    }
                     if (timeAnalysisEntry.getLastRank() != -1) {
                         context = trace.seekEvent(timeAnalysisEntry.getLastRank());
                     } else {
-                        //context = trace.seekLocation(null);
+                        // context = trace.seekLocation(null);
                         context = trace.seekEvent(0);
                     }
                 }
@@ -28,26 +31,31 @@
                         done = true;
                         break;
                     }
-                    //if (!event.getTimestamp().equals(lastTimestamp)) {
+                    // if (!event.getTimestamp().equals(lastTimestamp)) {
                     TimeChartEvent timeEvent = new TimeChartEvent(timeAnalysisEntry, event, rank, decorationProvider);
                     if (timeEvent.getTime() >= startTime && timeEvent.getTime() <= stopTime) {
                         timeAnalysisEntry.addTraceEvent(timeEvent);
                     }
-                    //lastTimestamp = event.getTimestamp();
-                    //} *** commented out so that color setting priority gets set even if the event has same time
+                    // lastTimestamp = event.getTimestamp();
+                    // } *** commented out so that color setting priority gets
+                    // set even if the event has same time
                     if (context.getRank() == trace.getNbEvents() || context.getRank() == stopRank) {
                         done = true;
                         break;
                     }
                     if (context.getRank() % trace.getCacheSize() == 1) {
-                    	// break for UI refresh
+                        // break for UI refresh
                         break;
                     }
                 }
-                //timeAnalysisEntry.setLastRank(Math.min(trace.getNbEvents(), stopRank));
+                // timeAnalysisEntry.setLastRank(Math.min(trace.getNbEvents(),
+                // stopRank));
                 timeAnalysisEntry.setLastRank(context.getRank());
             }
             refreshViewer(false);
+        }
+        if (context != null) {
+            context.dispose();
         }
     }
 

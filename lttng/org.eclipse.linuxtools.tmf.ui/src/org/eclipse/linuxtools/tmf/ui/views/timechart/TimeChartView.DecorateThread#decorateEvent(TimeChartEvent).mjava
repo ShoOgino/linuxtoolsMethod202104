@@ -1,37 +1,39 @@
         public void decorateEvent(TimeChartEvent timeChartEvent) {
-        	// TODO possible concurrency problem here with ItemizeJob
-        	TimeChartAnalysisEntry timeAnalysisEntry = (TimeChartAnalysisEntry) timeChartEvent.getEntry();
-        	ITmfTrace trace = timeAnalysisEntry.getTrace();
-        	int priority = ColorSettingsManager.PRIORITY_NONE;
-        	boolean isBookmarked = false;
-        	boolean isVisible = false;
-        	boolean isSearchMatch = false;
+            // TODO possible concurrency problem here with ItemizeJob
+            TimeChartAnalysisEntry timeAnalysisEntry = (TimeChartAnalysisEntry) timeChartEvent.getEntry();
+            ITmfTrace trace = timeAnalysisEntry.getTrace();
+            int priority = ColorSettingsManager.PRIORITY_NONE;
+            boolean isBookmarked = false;
+            boolean isVisible = false;
+            boolean isSearchMatch = false;
             synchronized (timeChartEvent.getRankRangeList()) {
-            	for (RankRange range : timeChartEvent.getRankRangeList()) {
-            		if (interrupted) return;
-            		if (fContext == null || fContext.getRank() != range.getFirstRank()) {
-            			fContext = trace.seekEvent(range.getFirstRank());
-            			fContext.setRank(range.getFirstRank());
-            		}
+                for (RankRange range : timeChartEvent.getRankRangeList()) {
+                    if (interrupted)
+                        return;
+                    if (fContext == null || fContext.getRank() != range.getFirstRank()) {
+                        fContext = trace.seekEvent(range.getFirstRank());
+                        fContext.setRank(range.getFirstRank());
+                    }
                     while (true) {
-                		if (interrupted) return;
-                		long rank = fContext.getRank();
+                        if (interrupted)
+                            return;
+                        long rank = fContext.getRank();
                         TmfEvent event = trace.getNextEvent(fContext);
                         if (event == null) {
                             break;
                         }
                         long eventTime = event.getTimestamp().synchronize(0, (byte) -9).getValue();
                         if (eventTime >= timeChartEvent.getTime() && eventTime <= timeChartEvent.getTime() + timeChartEvent.getDuration()) {
-                        	priority = Math.min(priority, ColorSettingsManager.getColorSettingPriority(event));
+                            priority = Math.min(priority, ColorSettingsManager.getColorSettingPriority(event));
                         }
-                        isBookmarked |= fDecorationProvider.isBookmark(rank); 
-                        isVisible |= fDecorationProvider.isVisible(event); 
-                        isSearchMatch |= fDecorationProvider.isSearchMatch(event); 
+                        isBookmarked |= fDecorationProvider.isBookmark(rank);
+                        isVisible |= fDecorationProvider.isVisible(event);
+                        isSearchMatch |= fDecorationProvider.isSearchMatch(event);
                         if (fContext.getRank() > range.getLastRank()) {
-                        	break;
+                            break;
                         }
                     }
-            	}
+                }
             }
             timeChartEvent.setColorSettingPriority(priority);
             timeChartEvent.setIsBookmarked(isBookmarked);
