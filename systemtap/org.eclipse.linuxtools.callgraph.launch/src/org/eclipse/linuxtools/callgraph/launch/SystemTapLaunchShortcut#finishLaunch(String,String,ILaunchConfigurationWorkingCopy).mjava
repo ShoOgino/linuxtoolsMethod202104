@@ -6,25 +6,17 @@
 	 * If scriptPath has not been set, the setScriptPath() method will be
 	 * called.
 	 * 
-	 * @param name
-	 *            : Used to generate the name of the new configuration
-	 * @param bin
-	 *            : Affiliated executable
-	 * @param mode
-	 *            : Mode setting
+	 * @param name : Used to generate the name of the new configuration
+	 * @param bin : Affiliated executable
+	 * @param mode : Mode setting
+	 * @param wc : A working copy of the launch configuration
 	 * @throws Exception
 	 */
-	protected void finishLaunch(String name, String mode) throws Exception {
+	protected void finishLaunch(String name, String mode, ILaunchConfigurationWorkingCopy wc) throws Exception {
 		if (!finishLaunchHelper())
 			return;
 
-		ILaunchConfigurationWorkingCopy wc = null;
-		if (config != null) {
-			try {
-				wc = config.getWorkingCopy(); //$NON-NLS-1$
-			} catch (CoreException e1) {
-				e1.printStackTrace();
-			}
+		if (wc != null) {
 
 			wc.setAttribute(LaunchConfigurationConstants.SCRIPT_PATH,scriptPath);
 
@@ -41,16 +33,20 @@
 			wc.setAttribute(LaunchConfigurationConstants.VIEW_CLASS, viewID);
 			wc.setAttribute(LaunchConfigurationConstants.SECONDARY_VIEW_ID, setSecondaryViewID());
 
-			try {
-				config = wc.doSave();
+			
+			/**
+			 * Enable this to save the default launch configuration
+			 */
+			/*try {
+				if (!existsConfiguration(wc)) {
+					config = wc.doSave();
+				}
 			} catch (CoreException e) {
 				e.printStackTrace();
-			}
-
-			checkForExistingConfiguration();
+			}*/
 
 			if (!testMode)
-				DebugUITools.launch(config, mode);
+				DebugUITools.launch(wc, mode);
 		} else
 			throw new Exception(
 					Messages
