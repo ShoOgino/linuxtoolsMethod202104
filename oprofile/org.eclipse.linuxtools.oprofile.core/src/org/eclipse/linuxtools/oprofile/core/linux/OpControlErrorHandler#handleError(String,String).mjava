@@ -1,0 +1,73 @@
+	/**
+	 * @param stdout Standard output text collected from opcontrol
+	 * @param stderr Standard error text collected from opcontrol
+	 */
+	public OpcontrolException handleError (String stdout, String stderr) {
+		String type = "";
+		String fullErr = "";
+		
+		// Figure out which stream has the error
+		// If both have errors, then stderr takes priority
+		// Set this initially in case we don't match against any errors
+		if (!stderr.trim().equals("")) { //$NON-NLS-1$
+			fullErr = stderr;
+			type = "process.log.stderr"; //$NON-NLS-1$
+		}else if (!stdout.trim().equals("")){ //$NON-NLS-1$
+			fullErr = stdout;
+			type = "process.log.stdout"; //$NON-NLS-1$
+		}else{
+			// The error is unkown
+						return new OpcontrolException(OprofileCorePlugin.createErrorStatus(
+								"opcontrolNonZeroExitCode", null)); //$NON-NLS-1$
+		}
+		
+		// Read in the errors
+		try {
+			String line = "";
+			BufferedReader buff = new BufferedReader(new FileReader(new File(errorFilePath)));
+			
+			// Populate the mapping
+			while ((line = buff.readLine()) != null){
+				String [] parts = line.split("="); //$NON-NLS-1$
+				errorMap.put(parts[0], parts[1]);				
+			}
+			
+			buff.close();
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		String error = null;
+		// Determine if stdout or stderr contains an error pattern
+		for (String key : errorMap.keySet()){
+			if (stderr.contains(key)){
+				fullErr = stderr;
+				type = "process.log.stderr"; //$NON-NLS-1$
+				error = errorMap.get(key);
+				break;
+			}else if (stdout.contains(key)){
+				fullErr = stdout;
+				type = "process.log.stdout"; //$NON-NLS-1$
+				error = errorMap.get(key);
+				break;
+			}
+		}
+		
+		// We have something to log
+		OprofileCorePlugin.log(Status.ERROR, NLS.bind(
+				OprofileProperties.getString(type), "opcontrol", fullErr)); //$NON-NLS-1$
+		
+		if (error != null) {
+			return new OpcontrolException(OprofileCorePlugin.createErrorStatus(
+					error, null));
+		} else {
+			// There is an error, but we did not match anything
+			return new OpcontrolException(OprofileCorePlugin.createErrorStatus(
+					"opcontrolNonZeroExitCodeExtraInfo", null)); //$NON-NLS-1$
+		}
+		
+	}
+
