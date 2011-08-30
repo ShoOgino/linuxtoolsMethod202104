@@ -55,14 +55,26 @@
 				Document doc = builder.parse(is);
 				Element root = (Element) doc.getElementsByTagName(ModelDataAdapter.PROFILE).item(0);
 
+				String eventOrTimerSetup;
+				String eventOrTimerName;
+
+				// Determine if we are in timer-mode or not as the XML will vary
+				if (!InfoAdapter.hasTimerSupport()){
+					eventOrTimerSetup = ModelDataAdapter.EVENT_SETUP;
+					eventOrTimerName = ModelDataAdapter.EVENT_NAME;
+				}else{
+					eventOrTimerSetup = ModelDataAdapter.TIMER_SETUP;
+					eventOrTimerName = ModelDataAdapter.RTC_INTERRUPTS;
+				}
+
 				Element setupTag = (Element) root.getElementsByTagName(ModelDataAdapter.SETUP).item(0);
-				NodeList eventSetupList = setupTag.getElementsByTagName(ModelDataAdapter.EVENT_SETUP);
+				NodeList eventSetupList = setupTag.getElementsByTagName(eventOrTimerSetup);
 
 				// get the event names for the current session
 				ret = new String[eventSetupList.getLength()];
 				for (int i = 0; i < eventSetupList.getLength(); i++) {
 					Element elm = (Element) eventSetupList.item(i);
-					ret[i] = elm.getAttribute(ModelDataAdapter.EVENT_NAME);
+					ret[i] = elm.getAttribute(eventOrTimerName);
 				}
 			}
 		} catch (IOException e) {
