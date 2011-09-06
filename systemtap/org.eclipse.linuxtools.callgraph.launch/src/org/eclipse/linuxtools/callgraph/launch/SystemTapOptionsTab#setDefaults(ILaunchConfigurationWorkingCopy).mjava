@@ -34,5 +34,26 @@
 	
 		configuration.setAttribute(LaunchConfigurationConstants.COMMAND_LIST, ConfigurationOptionsSetter.setOptions(configuration));
 	
+
+		ICElement cElement = null;
+		cElement = getContext(configuration, getPlatform(configuration));
+		if (cElement != null) {
+			initializeCProject(cElement, configuration);
+		} else {
+			// don't want to remember the interim value from before
+			configuration.setMappedResources(null);
+		}
+
+		IBinary bin = null;
+		bin = getBinary(configuration);
+		if (bin != null) {
+			String programName = bin.getResource().getProjectRelativePath().toString();
+			configuration.setAttribute(ICDTLaunchConfigurationConstants.ATTR_PROGRAM_NAME, programName);
+			configuration.setAttribute(ICDTLaunchConfigurationConstants.ATTR_WORKING_DIRECTORY, (String) null);
+
+			LaunchStapGraph launch = new LaunchStapGraph();
+			launch.setTestMode(true); //Do not run callgraph
+			launch.launch(bin, "", configuration); //$NON-NLS-1$
+		}
 	}
 
