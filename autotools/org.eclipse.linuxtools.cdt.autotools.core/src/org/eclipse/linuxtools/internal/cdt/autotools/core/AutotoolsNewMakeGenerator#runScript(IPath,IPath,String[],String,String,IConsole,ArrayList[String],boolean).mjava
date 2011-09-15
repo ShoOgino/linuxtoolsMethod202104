@@ -48,6 +48,10 @@
 							" ", //$NON-NLS-1$
 							IBuildMacroProvider.CONTEXT_CONFIGURATION,
 							cfg);
+				// strip any env-var settings from options
+				// fix for bug #356278
+				if (resolved.charAt(0) != '-')
+					resolved = stripEnvVarsFromOption(resolved, additionalEnvs);
 				configTargets[i] = resolved;
 			} catch (BuildMacroException e) {
 			}
@@ -79,6 +83,20 @@
 			buf.append(System.getProperty("line.separator", "\n")); //$NON-NLS-1$	//$NON-NLS-2$
 			buf.append(System.getProperty("line.separator", "\n")); //$NON-NLS-1$	//$NON-NLS-2$
 
+			// Display command-line environment variables that have been stripped by us
+			// because launch showCommand won't do this.
+			if (additionalEnvs.size() > 0) {
+				buf.append(AutotoolsPlugin
+							.getResourceString("MakeGenerator.commandline.envvars"));
+				buf.append(System.getProperty("line.separator", "\n")); //$NON-NLS-1$	//$NON-NLS-2$
+				buf.append("\t");
+				for (int i = 0; i < additionalEnvs.size(); ++i) {
+					String envvar = additionalEnvs.get(i);
+					buf.append(envvar.replaceFirst("(\\w+=)(.*)"," $1\"$2\""));
+				}
+				buf.append(System.getProperty("line.separator", "\n")); //$NON-NLS-1$	//$NON-NLS-2$
+				buf.append(System.getProperty("line.separator", "\n")); //$NON-NLS-1$	//$NON-NLS-2$
+			}
 			consoleOutStream.write(buf.toString().getBytes());
 			consoleOutStream.flush();
 
