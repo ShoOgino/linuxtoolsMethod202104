@@ -1,6 +1,7 @@
 	private void initConfigOptions() {
 		// Put configure options in hash map.  Ignore categories.
 		ArrayList<Option> tools = new ArrayList<Option>();
+		FlagConfigureOption lastFlag = null;
 		for (int i = 0; i < configOpts.length; ++i) {
 			Option opt = configOpts[i];
 			String defaultValue = opt.getDefaultValue();
@@ -39,6 +40,23 @@
 				break;
 			case IConfigureOption.CATEGORY:
 				configOptions.put(opt.name, new ConfigureOptionCategory(opt.name));
+				break;
+			case IConfigureOption.FLAG:
+				FlagConfigureOption f = new FlagConfigureOption(opt.name, opt.transformedName, this);
+				if (defaultValue != null)
+					f.setValue(defaultValue);
+				lastFlag = f;
+				configOptions.put(opt.name, f);
+				break;
+			case IConfigureOption.FLAGVALUE:
+				FlagValueConfigureOption fv 
+					= new FlagValueConfigureOption(opt.name, opt.transformedName, 
+							this, ConfigureMessages.getParameter(opt.transformedName));
+				if (defaultValue != null)
+					fv.setValue(defaultValue);
+				lastFlag.addChild(opt.name);
+				configOptions.put(opt.name, fv);
+				break;
 			}
 		}
 		toolList = tools.toArray(new Option[tools.size()]);
