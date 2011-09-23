@@ -12,43 +12,19 @@
 		monitor.beginTask(Messages.getString("RPMExportOperation.Starting"), //$NON-NLS-1$
 				totalWork);
 		monitor.worked(1);
-		IOConsole myConsole = findConsole(); 
-		IOConsoleOutputStream out = myConsole.newOutputStream();
-		myConsole.clearConsole();
-		myConsole.activate();
-		switch (exportType) {
-		case ALL:
-			try {
-				monitor.setTaskName(Messages
-						.getString("RPMExportOperation.Executing_RPM_Export")); //$NON-NLS-1$
-				rpmProject.buildAll(out);
-			} catch (CoreException e) {
-				return new Status(IStatus.ERROR, RPMUIPlugin.ID, e.getMessage(), e);
+		BuildThread bt = new BuildThread(exportType, rpmProject);
+		bt.start();
+		while (bt.getState() != Thread.State.TERMINATED) {
+			if (monitor.isCanceled()) {
+				bt.interrupt();
+				return Status.CANCEL_STATUS;
 			}
-			break;
-
-		case BINARY:
-			monitor.setTaskName(Messages
-					.getString("RPMExportOperation.Executing_RPM_Export")); //$NON-NLS-1$
-			try {
-				rpmProject.buildBinaryRPM(out);
-			} catch (CoreException e) {
-				return new Status(IStatus.ERROR, RPMUIPlugin.ID, e.getMessage(), e);
-			}
-			break;
-
-		case SOURCE:
-			monitor.setTaskName(Messages
-					.getString("RPMExportOperation.Executing_SRPM_Export")); //$NON-NLS-1$
-			try {
-				rpmProject.buildSourceRPM(out);
-			} catch (CoreException e) {
-				return new Status(IStatus.ERROR, RPMUIPlugin.ID, e.getMessage(), e);
-			}
-			break;
 		}
 		monitor.worked(1);
 		monitor.done();
+		if (bt.getResult() != null){
+			return bt.getResult();
+		}
 		return Status.OK_STATUS;
 	}
 

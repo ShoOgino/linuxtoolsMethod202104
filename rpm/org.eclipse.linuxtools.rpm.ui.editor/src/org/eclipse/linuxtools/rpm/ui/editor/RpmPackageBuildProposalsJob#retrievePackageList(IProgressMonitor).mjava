@@ -15,7 +15,7 @@
 			monitor.beginTask(Messages.RpmPackageBuildProposalsJob_1,
 					IProgressMonitor.UNKNOWN);
 			if (Utils.fileExist("/bin/sh")) { //$NON-NLS-1$
-				InputStream in = Utils.runCommandToInputStream(
+				BufferedProcessInputStream in = Utils.runCommandToInputStream(
 						"/bin/sh", "-c", rpmListCmd); //$NON-NLS-1$ //$NON-NLS-2$
 				// backup pkg list file
 				File rpmListFile = new File(rpmListFilepath);
@@ -33,6 +33,7 @@
 					monitor.subTask(line);
 					out.write(line + "\n"); //$NON-NLS-1$
 					if (monitor.isCanceled()) {
+						in.destroyProcess();
 						in.close();
 						out.close();
 						// restore backup
@@ -47,6 +48,14 @@
 				in.close();
 				out.close();
 				bkupFile.delete();
+				if (in.getExitValue() != 0){
+					SpecfileLog
+							.log(IStatus.WARNING,
+									in.getExitValue(),
+									NLS.bind(
+											Messages.RpmPackageBuildProposalsJob_NonZeroReturn,
+											in.getExitValue()), null);
+				}
 			}
 		} catch (IOException e) {
 			SpecfileLog.logError(e);
