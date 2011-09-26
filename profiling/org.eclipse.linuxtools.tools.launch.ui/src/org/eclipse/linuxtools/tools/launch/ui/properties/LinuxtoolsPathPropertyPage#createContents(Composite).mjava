@@ -1,0 +1,83 @@
+	@Override
+	protected Control createContents(Composite parent) {
+		initializeDialogUnits(parent);
+
+		result= new Composite(parent, SWT.NONE);
+		GridLayout layout= new GridLayout();
+		layout.marginHeight= convertVerticalDLUsToPixels(IDialogConstants.VERTICAL_MARGIN);
+		layout.marginWidth= 0;
+		layout.numColumns= 1;
+		result.setLayout(layout);
+		String paths[][] = fillPaths();
+
+		//defaults
+		getPreferenceStore().setDefault(LinuxtoolsPathProperty.LINUXTOOLS_PATH_SYSTEM_NAME, LINUXTOOLS_PATH_SYSTEM_DEFAULT);
+		getPreferenceStore().setDefault(LINUXTOOLS_PATH_COMBO_NAME, paths[0][1]);
+
+		// Add radio buttons
+		Composite radios = new Composite(result, SWT.NONE);
+		GridLayout layoutRadios= new GridLayout();
+		layoutRadios.marginWidth= 0;
+		layoutRadios.numColumns= 1;
+		radios.setLayout(layoutRadios);
+		Composite space = new Composite(result, SWT.NONE);
+
+		boolean systemPathSelected = getPreferenceStore().getBoolean(LinuxtoolsPathProperty.LINUXTOOLS_PATH_SYSTEM_NAME);
+		systemEnvButton = new Button(radios, SWT.RADIO);
+		systemEnvButton.setText(Messages.LINUXTOOLS_PATH_SYSTEM_ENV);
+		systemEnvButton.setSelection(systemPathSelected);
+		systemEnvButton.addSelectionListener(new SelectionListener() {
+				@Override
+				public void widgetSelected(SelectionEvent e) {
+					updateOptionsEnable();
+				}
+
+				@Override
+				public void widgetDefaultSelected(SelectionEvent e) {
+				}
+		});
+
+		customButton = new Button(radios, SWT.RADIO);
+		customButton.setText(Messages.LINUXTOOLS_PATH_CUSTOM);
+		customButton.setToolTipText(Messages.LINUXTOOLS_PATH_CUSTOM_TOOLTIP);
+		customButton.setSelection(!systemPathSelected);
+
+		//Add combo box
+		linuxtoolsPathCombo = new ComboFieldEditor(
+									LINUXTOOLS_PATH_COMBO_NAME,
+									Messages.LINUXTOOLS_PATH_COMBO,
+									paths,
+									result);
+		linuxtoolsPathCombo.setPage(this);
+		linuxtoolsPathCombo.setPreferenceStore(getPreferenceStore());
+		linuxtoolsPathCombo.load();
+		linuxtoolsPathCombo.setPropertyChangeListener(new IPropertyChangeListener (){
+			@Override
+			public void propertyChange(PropertyChangeEvent event) {
+				customSelected = event.getNewValue().toString().equals("");
+				if (!customSelected)
+					linuxtoolsPath.setStringValue(event.getNewValue().toString());
+				updateOptionsEnable();
+			}
+		});
+
+		//Add textbox
+		linuxtoolsPath = new StringFieldEditor(
+									LinuxtoolsPathProperty.LINUXTOOLS_PATH_NAME,
+									Messages.LINUXTOOLS_PATH,
+									result);
+
+		linuxtoolsPath.setPage(this);
+		linuxtoolsPath.setPreferenceStore(getPreferenceStore());
+		linuxtoolsPath.getTextControl(result).setToolTipText(Messages.LINUXTOOLS_PATH_TOOLTIP);
+
+		String selected = getPreferenceStore().getString(LINUXTOOLS_PATH_COMBO_NAME);
+		customSelected = selected.equals("");
+		getPreferenceStore().setDefault(LinuxtoolsPathProperty.LINUXTOOLS_PATH_NAME, LinuxtoolsPathProperty.LINUXTOOLS_PATH_DEFAULT);
+		linuxtoolsPath.load();
+
+		Dialog.applyDialogFont(result);
+		updateOptionsEnable();
+		return result;
+	}
+
