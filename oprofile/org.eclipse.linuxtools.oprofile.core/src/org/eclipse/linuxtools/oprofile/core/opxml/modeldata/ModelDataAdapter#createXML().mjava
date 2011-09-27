@@ -31,10 +31,6 @@
 		HashMap<String, HashMap<String, String>> oldSymbolDataListMap = parseDataList (oldSymbolDataList);
 		HashMap<String, NodeList> oldDetailTableListMap = parseDetailTable (oldDetailTableList);
 		
-		// parse the data into HashMaps using just one call to addr2line. (many calls are very slow)
-		HashMap <String, String> addrToFileMap = hashStartingAddresses(binName, oldSymbolDataList);
-		HashMap <String, String> addrToLineMap = hashVMAOffset(binName, oldDetailTableList);
-		
 		// An ArrayList to hold the binary and other modules
 		ArrayList<Element> oldImageList = new ArrayList<Element>();
 		// The first element is the original binary!
@@ -92,16 +88,9 @@
 
 				// get the symboltable entry corresponding to the id of this symbol
 				HashMap<String, String> symbolData = oldSymbolDataListMap.get(idref);
-				// name of the symbol
 				newSymbol.setAttribute(NAME, symbolData.get(NAME));
-				// decode the address with addr2line
-				String symbolFile = addrToFileMap.get(symbolData.get(STARTING_ADDR));
-				symbolFile = (symbolFile != null) ? symbolFile : "??:0"; //$NON-NLS-1$
-				int index = symbolFile.indexOf(':');
-				String symbolLine = symbolFile.substring(index + 1);
-				symbolFile = symbolFile.substring(0, index);
-				newSymbol.setAttribute(FILE, symbolFile);
-				newSymbol.setAttribute(LINE, symbolLine);
+				newSymbol.setAttribute(FILE, symbolData.get(FILE));
+				newSymbol.setAttribute(LINE, symbolData.get(LINE));
 
 				// get the symboldetails entry corresponding to the id of this symbol
 				NodeList detailDataList = oldDetailTableListMap.get(idref);
@@ -113,13 +102,21 @@
 				for (int l = 0; l < detailDataList.getLength(); l++) {
 
 					Element detailData = (Element) detailDataList.item(l);
-					String sampleFile = addrToLineMap.get(detailData.getAttribute(VMA_OFFSET));
-					sampleFile = (sampleFile != null) ? sampleFile : "??:0"; //$NON-NLS-1$
+					String sampleFile = detailData.getAttribute(FILE);
+					String sampleLine = detailData.getAttribute(LINE);
 
-					index = sampleFile.indexOf(':');
-					String sampleLine = sampleFile.substring(index + 1);
-					sampleFile = sampleFile.substring(0, index);
-
+					// The sample has a line number but no file
+					// This means that the file is the same as the symbol (parent)
+					if (sampleFile.equals("") && !sampleLine.equals("")){ //$NON-NLS-1$ $NON-NLS-2$
+						sampleFile = symbolData.get(FILE);
+					}else{
+						if (sampleFile.equals("")){ //$NON-NLS-1$
+							sampleFile = "??"; //$NON-NLS-1$
+						}
+						if (sampleLine.equals("")){ //$NON-NLS-1$
+							sampleLine = "0"; //$NON-NLS-1$
+						}
+					}
 					Element detailDataCount = (Element) detailData.getElementsByTagName(COUNT).item(0);
 					String count = detailDataCount.getTextContent().trim();
 
