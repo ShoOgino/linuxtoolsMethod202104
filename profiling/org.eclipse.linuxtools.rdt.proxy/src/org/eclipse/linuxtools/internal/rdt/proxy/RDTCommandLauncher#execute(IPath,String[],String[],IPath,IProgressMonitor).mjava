@@ -1,0 +1,34 @@
+	/**
+	 * @see org.eclipse.cdt.core.IRemoteCommandLauncher#execute(IPath, String[], String[], IPath, IProgressMonitor)
+	 */
+	public IProcess execute(IPath commandPath, String[] args, String[] env, IPath changeToDirectory, IProgressMonitor monitor) throws CoreException {
+		try {
+			// add platform specific arguments (shell invocation)
+			fCommandArgs = constructCommandArray(commandPath.toOSString(), args);
+			fShowCommand = true;
+			URI uri = fProject.getLocationURI();
+			IRemoteServices services = PTPRemoteCorePlugin.getDefault().getRemoteServices(uri);
+			IRemoteConnection connection = services.getConnectionManager().getConnection(uri);
+			IRemoteFileManager fm = services.getFileManager(connection);
+			IRemoteProcessBuilder builder = services.getProcessBuilder(connection, Arrays.asList(fCommandArgs));
+
+			if (changeToDirectory != null)
+				builder.directory(fm.getResource(changeToDirectory.toString()));
+			
+			Map<String,String> envMap = builder.environment();
+			
+			for (int i = 0; i < env.length; ++i) {
+				String s = env[i];
+				String[] tokens = s.split("=", 2);
+				envMap.put(tokens[0], tokens[1]);
+			}
+			
+			fProcess = builder.start();
+			fErrorMessage = ""; //$NON-NLS-1$
+		} catch (IOException e) {
+			setErrorMessage(e.getMessage());
+			fProcess = null;
+		}
+		return new RDTProcess(fProcess);
+	}
+

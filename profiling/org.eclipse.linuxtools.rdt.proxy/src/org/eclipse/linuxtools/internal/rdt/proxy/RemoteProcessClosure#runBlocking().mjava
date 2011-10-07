@@ -1,0 +1,37 @@
+	public void runBlocking() {
+		runNonBlocking();
+
+		boolean finished = false;
+		while (!finished) {
+			try {
+				fProcess.waitFor();
+			} catch (InterruptedException e) {
+				//System.err.println("Closure exception " +e);
+			}
+			try {
+				fProcess.exitValue();
+				finished = true;
+			} catch (IllegalThreadStateException e) {
+				//System.err.println("Closure exception " +e);
+			}
+		}
+
+		// @@@FIXME: Windows 2000 is screwed; double-check using output threads
+		if (!fOutputReader.finished()) {
+			fOutputReader.waitFor();
+		}
+
+		if (!fErrorReader.finished()) {
+			fErrorReader.waitFor();
+		}
+
+		fOutputReader.close();
+		fErrorReader.close();
+		// it seems that thread termination and stream closing is working
+		// without
+		// any help
+		fProcess = null;
+		fOutputReader = null;
+		fErrorReader = null;
+	}
+
