@@ -1,0 +1,22 @@
+	private IRemoteProxyManager getRemoteManager(String natureID) throws CoreException {
+		IRemoteProxyManager remoteManager = remoteManagers.get(natureID);
+		if (remoteManager == null) {
+			IExtensionPoint extensionPoint = Platform.getExtensionRegistry().getExtensionPoint(ProfileLaunchPlugin.PLUGIN_ID, IRemoteProxyManager.EXTENSION_POINT_ID);
+			IConfigurationElement[] infos = extensionPoint.getConfigurationElements();
+			for(int i = 0; i < infos.length; i++) {
+				IConfigurationElement configurationElement = infos[i];
+				if (configurationElement.getName().equals(IRemoteProxyManager.MANAGER_NAME)) {
+					if (configurationElement.getAttribute(IRemoteProxyManager.NATURE_ID).equals(natureID)) {
+						Object obj = configurationElement.createExecutableExtension(EXT_ATTR_CLASS);
+						if (obj instanceof IRemoteProxyManager) {
+							remoteManager = (IRemoteProxyManager)obj;
+							remoteManagers.put(natureID, remoteManager);
+							break;
+						}
+					}
+				}
+			}
+		}
+		return remoteManager;
+	}
+
