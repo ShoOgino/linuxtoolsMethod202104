@@ -1,0 +1,67 @@
+    /**
+     * Create basic columns to represent the statistics data
+     */
+    public TmfBaseColumnDataProvider() {
+        // List that will be used to create the table.
+        fColumnData = new Vector<TmfBaseColumnData>();
+        fColumnData.add(new TmfBaseColumnData(LEVEL_COLUMN, 200, SWT.LEFT, LEVEL_COLUMN_TIP, new ColumnLabelProvider() {
+            @Override
+            public String getText(Object element) {
+                return ((TmfStatisticsTreeNode) element).getKey();
+            }
+
+            @Override
+            public Image getImage(Object element) {
+                TmfStatisticsTreeNode node = (TmfStatisticsTreeNode) element;
+                if (fFolderLevels.contains(node.getKey())) {
+                    return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_FOLDER);
+                } else {
+                    return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_ELEMENT);
+                }
+            }
+        }, new ViewerComparator() {
+            @Override
+            public int compare(Viewer viewer, Object e1, Object e2) {
+                TmfStatisticsTreeNode n1 = (TmfStatisticsTreeNode) e1;
+                TmfStatisticsTreeNode n2 = (TmfStatisticsTreeNode) e2;
+
+                return n1.getKey().compareTo(n2.getKey());
+            }
+        }, null));
+
+        fColumnData.add(new TmfBaseColumnData(EVENTS_COUNT_COLUMN, 125, SWT.LEFT, EVENTS_COUNT_COLUMN_TIP, new ColumnLabelProvider() {
+            @Override
+            public String getText(Object element) {
+                TmfStatisticsTreeNode node = (TmfStatisticsTreeNode) element;
+                if (!fFolderLevels.contains(node.getKey())) {
+                    return Long.toString(node.getValue().nbEvents);
+                } else {
+                    return ""; //$NON-NLS-1$
+                }
+            }
+        }, new ViewerComparator() {
+            @Override
+            public int compare(Viewer viewer, Object e1, Object e2) {
+                TmfStatisticsTreeNode n1 = (TmfStatisticsTreeNode) e1;
+                TmfStatisticsTreeNode n2 = (TmfStatisticsTreeNode) e2;
+
+                return (int) (n1.getValue().nbEvents - n2.getValue().nbEvents);
+            }
+        }, new ITmfColumnPercentageProvider() {
+
+            @Override
+            public double getPercentage(TmfStatisticsTreeNode node) {
+                TmfStatisticsTreeNode parent = node;
+                do {
+                    parent = parent.getParent();
+                } while (parent != null && parent.getValue().nbEvents == 0);
+
+                if (parent == null) {
+                    return 0;
+                } else {
+                    return (double) node.getValue().nbEvents / parent.getValue().nbEvents;
+                }
+            }
+        }));
+    }
+

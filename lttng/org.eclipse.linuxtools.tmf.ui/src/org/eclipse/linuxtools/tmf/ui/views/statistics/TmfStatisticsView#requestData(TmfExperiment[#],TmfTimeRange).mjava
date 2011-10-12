@@ -1,0 +1,71 @@
+    /**
+     * Perform the request for an experiment and populates the statistics tree with event.
+     * @param experiment experiment for which we need the statistics data.
+     * @param time range to request
+     */
+    @SuppressWarnings("unchecked")
+    protected void requestData(final TmfExperiment<?> experiment, TmfTimeRange timeRange) {
+        if (experiment != null) {
+
+            // Check if update is already ongoing
+            if (checkUpdateBusy(timeRange)) {
+                return;
+            }
+
+            int index = 0;
+            for (TmfStatisticsTreeNode node : ((TmfStatisticsTreeNode) fTreeViewer.getInput()).getChildren()) {
+                index += (int) node.getValue().nbEvents;
+            }
+
+            // Preparation of the event request
+            fRequest = new TmfEventRequest<TmfEvent>(TmfEvent.class, timeRange, index, TmfDataRequest.ALL_DATA, getIndexPageSize(), ExecutionType.BACKGROUND) {
+
+                @Override
+                public void handleData(TmfEvent data) {
+                    super.handleData(data);
+                    if (data != null) {
+                        AbsTmfStatisticsTree statisticsData = TmfStatisticsTreeRootFactory.getStatTree(getTreeID(experiment.getName()));
+                        
+                        final String traceName = data.getParentTrace().getName();
+                        ITmfExtraEventInfo extraInfo = new ITmfExtraEventInfo() {
+                            @Override
+                            public String getTraceName() {
+                                if (traceName == null) {
+                                    return Messages.TmfStatisticsView_UnknownTraceName;
+                                }
+                                return traceName;
+                            }
+                        };
+                        statisticsData.registerEvent(data, extraInfo);
+                        statisticsData.increase(data, extraInfo, 1);
+                        // Refresh View
+                        if ((getNbRead() % getInputChangedRefresh()) == 0) {
+                            modelInputChanged(false);
+                        }
+                    }
+                }
+
+                @Override
+                public void handleSuccess() {
+                    super.handleSuccess();
+                    modelInputChanged(true);
+                    waitCursor(false);
+                }
+
+                @Override
+                public void handleFailure() {
+                    super.handleFailure();
+                    modelIncomplete(experiment.getName());
+                }
+
+                @Override
+                public void handleCancel() {
+                    super.handleCancel();
+                    modelIncomplete(experiment.getName());
+                }
+            };
+            ((TmfExperiment<TmfEvent>) experiment).sendRequest((ITmfDataRequest<TmfEvent>) fRequest);
+            waitCursor(true);
+        }
+    }
+

@@ -1,0 +1,45 @@
+    public void testGetColumnData() {
+        Vector<TmfBaseColumnData> columnsData = provider.getColumnData();
+        assertNotNull("getColumnData", columnsData);
+        assertEquals("getColumnData", 2, columnsData.size());
+
+        TmfStatisticsTreeNode parentNode = fStatsData.get(new TmfFixedArray<String>(fTestName));
+        TmfStatisticsTreeNode treeNode1  = fStatsData.get(new TmfFixedArray<String>(fTestName, Messages.TmfStatisticsData_EventTypes, fEvent1.getType().toString()));
+        TmfStatisticsTreeNode treeNode2  = fStatsData.get(new TmfFixedArray<String>(fTestName, Messages.TmfStatisticsData_EventTypes, fEvent3.getType().toString()));
+        ViewerComparator vComp = null;
+        for (TmfBaseColumnData columnData : columnsData) {
+            assertNotNull("getColumnData", columnData);
+            assertNotNull("getColumnData", columnData.getHeader());
+            assertNotNull("getColumnData", columnData.getTooltip());
+            
+            // Testing labelProvider
+            ColumnLabelProvider labelProvider = columnData.getLabelProvider();
+            if (columnData.getHeader().compareTo(LEVEL_COLUMN) == 0) {
+                assertEquals("getColumnData", 0, labelProvider.getText(treeNode1).compareTo(treeNode1.getKey()));
+            } else if (columnData.getHeader().compareTo(EVENTS_COUNT_COLUMN) == 0) {
+                assertEquals("getColumnData", 0, labelProvider.getText(treeNode1).compareTo(Long.toString(2)));
+            }
+
+            // Testing comparator
+            vComp = columnData.getComparator();
+            if (columnData.getHeader().compareTo(LEVEL_COLUMN) == 0) {
+                assertTrue("getColumnData", vComp.compare(null, treeNode1, treeNode2) < 0);
+                assertTrue("getColumnData", vComp.compare(null, treeNode2, treeNode1) > 0);
+                assertTrue("getColumnData", vComp.compare(null, treeNode1, treeNode1) == 0);
+            } else if (columnData.getHeader().compareTo(EVENTS_COUNT_COLUMN) == 0) {
+                assertTrue("getColumnData", vComp.compare(null, treeNode1, treeNode2) > 0);
+                assertTrue("getColumnData", vComp.compare(null, treeNode2, treeNode1) < 0);
+                assertTrue("getColumnData", vComp.compare(null, treeNode1, treeNode1) == 0);
+            }
+
+            // Testing percentage provider
+            ITmfColumnPercentageProvider percentProvider = columnData.getPercentageProvider();
+            if (columnData.getHeader().compareTo(LEVEL_COLUMN) == 0) {
+                assertNull("getColumnData", percentProvider);
+            } else if (columnData.getHeader().compareTo(EVENTS_COUNT_COLUMN) == 0) {
+                double percentage = (double) treeNode1.getValue().nbEvents / parentNode.getValue().nbEvents;
+                assertEquals("getColumnData", (double) percentage, (double) percentProvider.getPercentage(treeNode1));
+            }
+        }
+    }
+

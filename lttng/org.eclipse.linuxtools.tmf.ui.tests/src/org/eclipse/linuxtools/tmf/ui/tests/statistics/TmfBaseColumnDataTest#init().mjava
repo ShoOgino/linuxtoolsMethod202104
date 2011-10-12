@@ -1,0 +1,48 @@
+    private void init() {
+        fHeader = "test Column1";
+        fWidth = 300;
+        fAlignment = SWT.LEFT;
+        fToolTip = "Tooltip " + fHeader;
+        fLabelProvider = new ColumnLabelProvider() {
+            @Override
+            public String getText(Object element) {
+                return ((TmfStatisticsTreeNode) element).getKey();
+            }
+
+            @Override
+            public Image getImage(Object element) {
+                return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_ELEMENT);
+            }
+        };
+        fComparator = new ViewerComparator() {
+            @Override
+            public int compare(Viewer viewer, Object e1, Object e2) {
+                TmfStatisticsTreeNode n1 = (TmfStatisticsTreeNode) e1;
+                TmfStatisticsTreeNode n2 = (TmfStatisticsTreeNode) e2;
+
+                return n1.getKey().compareTo(n2.getKey());
+            }
+        };
+        fPercentageProvider = new ITmfColumnPercentageProvider() {
+            @Override
+            public double getPercentage(TmfStatisticsTreeNode node) {
+                TmfStatisticsTreeNode parent = node;
+                do {
+                    parent = parent.getParent();
+                } while (parent != null && parent.getValue().nbEvents == 0);
+
+                if (parent == null) {
+                    return 0;
+                } else {
+                    return (double) node.getValue().nbEvents / parent.getValue().nbEvents;
+                }
+            }
+        };
+
+        TmfBaseStatisticsTree baseData = new TmfBaseStatisticsTree();
+        fTraceName = "trace1";
+        fTreeNode = new TmfStatisticsTreeNode(new TmfFixedArray<String>(fTraceName), baseData);
+
+        fBaseColumnData = new TmfBaseColumnData(fHeader, fWidth, fAlignment, fToolTip, fLabelProvider, fComparator, fPercentageProvider);
+    }
+

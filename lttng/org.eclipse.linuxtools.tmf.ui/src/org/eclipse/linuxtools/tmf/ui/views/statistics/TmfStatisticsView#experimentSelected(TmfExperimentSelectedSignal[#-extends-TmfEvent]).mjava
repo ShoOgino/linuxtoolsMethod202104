@@ -1,0 +1,66 @@
+    /**
+     * Handler called when an experiment is selected. Checks if the experiment has changed and requests the selected experiment if it has not yet been
+     * cached.
+     * 
+     * @param signal
+     *            contains the information about the selection.
+     */
+    @TmfSignalHandler
+    public void experimentSelected(TmfExperimentSelectedSignal<? extends TmfEvent> signal) {
+        if (signal != null) {
+            TmfExperiment<?> experiment = signal.getExperiment();
+            String experimentName = experiment.getName();
+
+            if (TmfStatisticsTreeRootFactory.containsTreeRoot(getTreeID(experimentName))) {
+                // The experiment root is already present
+                TmfStatisticsTreeNode experimentTreeNode = TmfStatisticsTreeRootFactory.getStatTreeRoot(getTreeID(experimentName));
+
+                ITmfTrace[] traces = experiment.getTraces();
+
+                // check if there is partial data loaded in the experiment
+                int numTraces = experiment.getTraces().length;
+                int numNodeTraces = experimentTreeNode.getNbChildren();
+
+                if (numTraces == numNodeTraces) {
+                    boolean same = true;
+                    // Detect if the experiment contains the same traces as when
+                    // previously selected
+                    for (int i = 0; i < numTraces; i++) {
+                        String traceName = traces[i].getName();
+                        if (!experimentTreeNode.containsChild(traceName)) {
+                            same = false;
+                            break;
+                        }
+                    }
+
+                    if (same) {
+                        // no need to reload data, all traces are already loaded
+                        fTreeViewer.setInput(experimentTreeNode);
+                        
+                        resetUpdateSynchronization();
+
+                        return;
+                    }
+                    experimentTreeNode.reset();
+                }
+            } else {
+                TmfStatisticsTreeRootFactory.addStatsTreeRoot(getTreeID(experimentName), getStatisticData());
+            }
+
+            resetUpdateSynchronization();
+
+            TmfStatisticsTreeNode treeModelRoot = TmfStatisticsTreeRootFactory.getStatTreeRoot(getTreeID(experiment.getName()));
+
+            // if the model has contents, clear to start over
+            if (treeModelRoot.hasChildren()) {
+                treeModelRoot.reset();
+            }
+
+            // set input to a clean data model
+            fTreeViewer.setInput(treeModelRoot);
+
+            // if the data is not available or has changed, reload it
+            requestData(experiment, experiment.getTimeRange());
+        }
+    }
+

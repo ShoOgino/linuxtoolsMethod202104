@@ -1,0 +1,31 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.linuxtools.tmf.ui.views.statistics.model.TmfStatisticsData#getAllChildren(org.eclipse.linuxtools.tmf.util.TmfFixedArray)
+     */
+    @Override
+    public Collection<TmfStatisticsTreeNode> getAllChildren(TmfFixedArray<String> path) {
+        LinkedList<TmfStatisticsTreeNode> result = new LinkedList<TmfStatisticsTreeNode>();
+
+        if (path.size() % 2 == 0) { // if we are at a Category
+            TmfStatisticsTreeNode current = null;
+            for (String value : getKeys().get(path.get(path.size() - 1))) {
+                current = get(path.append(value));
+                if (current != null)
+                    result.add(current);
+            }
+        } else if (path.size() == 1) { // Special case.
+            if (path.equals(ROOT)) // Asking for the root.
+                for (String value : getKeys().get(ROOT.get(0)))
+                    result.add(getOrCreate(new TmfFixedArray<String>(value)));
+            else
+                // Get value under the root
+                for (String value : getKeys().get(ROOT_NODE_KEY))
+                    result.add(getOrCreate(path.append(value)));
+        } else {// If we are at a value
+            for (String value : getKeys().get(mergeString(path.get(path.size() - 2), NODE)))
+                // Search the parent name + NODE
+                result.add(getOrCreate(path.append(value)));
+        }
+        return result;
+    }
+
