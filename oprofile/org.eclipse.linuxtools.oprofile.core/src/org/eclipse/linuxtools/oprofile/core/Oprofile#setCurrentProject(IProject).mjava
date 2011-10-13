@@ -1,0 +1,24 @@
+	// Reloads oprofile modules by calling 'opcontrol --deinit' and 'opcontrol --init'
+	public static void setCurrentProject(IProject project){
+		
+		if(_currentProject == null){
+			_currentProject = project;
+			initializeOprofileModule();		
+		} else {
+			
+			String currentPath = LinuxtoolsPathProperty.getLinuxtoolsPath(_currentProject);
+			String newPath = LinuxtoolsPathProperty.getLinuxtoolsPath(project);
+			
+			if(!currentPath.equals(newPath)){
+				try {
+					OprofileCorePlugin.getDefault().getOpcontrolProvider().deinitModule();
+					_currentProject = project;
+					OprofileCorePlugin.getDefault().getOpcontrolProvider().initModule();
+				} catch (OpcontrolException e) {
+					OprofileCorePlugin.showErrorDialog("opcontrolProvider", e); //$NON-NLS-1$
+				} 
+				_currentProject = project;
+			}
+		}		
+	}
+
