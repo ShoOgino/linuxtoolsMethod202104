@@ -1,0 +1,46 @@
+    private TmfEventsTable getEventsTable(Composite parent, int cacheSize) {
+        TmfEventsTable eventsTable = null;
+        IConfigurationElement[] config = Platform.getExtensionRegistry().getConfigurationElementsFor(TmfCorePlugin.TMF_TRACE_TYPE_ID);
+        try {
+            String traceType = fResource.getPersistentProperty(TmfTraceElement.TRACETYPE);
+            for (IConfigurationElement ce : config) {
+                if (ce.getAttribute(TmfTraceElement.ID).equals(traceType)) {
+                    IConfigurationElement[] eventsTableTypeCE = ce.getChildren(TmfTraceElement.EVENTS_TABLE_TYPE);
+                    if (eventsTableTypeCE.length != 1) {
+                        break;
+                    }
+                    String eventsTableType = eventsTableTypeCE[0].getAttribute(TmfTraceElement.CLASS);
+                    if (eventsTableType == null || eventsTableType.length() == 0) {
+                        break;
+                    }
+                    Bundle bundle = Platform.getBundle(ce.getContributor().getName());
+                    Class<?> c = bundle.loadClass(eventsTableType);
+                    Class<?>[] constructorArgs = new Class[] { Composite.class, int.class };
+                    Constructor<?> constructor = c.getConstructor(constructorArgs);
+                    Object[] args = new Object[] { parent, cacheSize };
+                    eventsTable = (TmfEventsTable) constructor.newInstance(args);
+                    break;
+                }
+            }
+        } catch (InvalidRegistryObjectException e) {
+            e.printStackTrace();
+        } catch (CoreException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            e.printStackTrace();
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        return eventsTable;
+    }
+

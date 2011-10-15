@@ -1,0 +1,35 @@
+    private IFolder createNewExperiment(String experimentName) {
+
+    	final IFolder experimentFolder = createExperiment(experimentName);
+
+        WorkspaceModifyOperation operation = new WorkspaceModifyOperation() {
+            @Override
+            public void execute(IProgressMonitor monitor) throws CoreException {
+                try {
+                    monitor.beginTask("", 1000); //$NON-NLS-1$
+                    if (monitor.isCanceled()) {
+                        throw new OperationCanceledException();
+                    }
+                    experimentFolder.create(false, true, monitor);
+                    if (monitor.isCanceled()) {
+                        throw new OperationCanceledException();
+                    }
+                } finally {
+                    monitor.done();
+                }
+            }
+        };
+        try {
+            PlatformUI.getWorkbench().getProgressService().busyCursorWhile(operation);
+        } catch (InterruptedException exception) {
+            return null;
+        } catch (InvocationTargetException exception) {
+            MessageDialog.openError(getShell(), "", NLS.bind("", exception.getTargetException().getMessage())); //$NON-NLS-1$ //$NON-NLS-2$
+            return null;
+        } catch (RuntimeException exception) {
+            return null;
+        }
+
+        return experimentFolder;
+    }
+

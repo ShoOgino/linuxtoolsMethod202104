@@ -1,0 +1,31 @@
+    @Override
+    public boolean isEnabled() {
+
+        // Check if we are closing down
+        IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+        if (window == null)
+            return false;
+
+        // Get the selection
+        IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+        IWorkbenchPart part = page.getActivePart();
+        ISelection selection = part.getSite().getSelectionProvider().getSelection();
+
+        // Make sure selection contains only traces
+        fSelection = null;
+        if (selection instanceof TreeSelection) {
+            fSelection = (TreeSelection) selection;
+            @SuppressWarnings("unchecked")
+            Iterator<Object> iterator = fSelection.iterator();
+            while (iterator.hasNext()) {
+                Object element = iterator.next();
+                if (!(element instanceof TmfTraceElement)) {
+                    return false;
+                }
+            }
+        }
+
+        // If we get here, either nothing is selected or everything is a trace
+        return !selection.isEmpty();
+    }
+

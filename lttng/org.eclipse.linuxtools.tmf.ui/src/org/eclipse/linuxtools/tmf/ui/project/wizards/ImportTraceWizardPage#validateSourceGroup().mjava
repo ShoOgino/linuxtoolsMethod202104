@@ -1,0 +1,65 @@
+    @Override
+    public boolean validateSourceGroup() {
+
+        File sourceDirectory = getSourceDirectory();
+        if (sourceDirectory == null) {
+            setMessage(Messages.ImportTraceWizard_SelectTraceSourceEmpty);
+            return false;
+        }
+
+        if (sourceConflictsWithDestination(new Path(sourceDirectory.getPath()))) {
+            setMessage(null);
+            setErrorMessage(getSourceConflictMessage());
+            return false;
+        }
+
+        List<FileSystemElement> resourcesToImport = getSelectedResources();
+        if (resourcesToImport.size() == 0) {
+            setMessage(null);
+            setErrorMessage(Messages.ImportTraceWizard_SelectTraceNoneSelected);
+            return false;
+        }
+
+        IContainer container = getSpecifiedContainer();
+        if (container != null && container.isVirtual()) {
+            if (Platform.getPreferencesService().getBoolean(TmfUiPlugin.PLUGIN_ID,
+                    ResourcesPlugin.PREF_DISABLE_LINKING, false, null)) {
+                setMessage(null);
+                setErrorMessage(Messages.ImportTraceWizard_CannotImportFilesUnderAVirtualFolder);
+                return false;
+            }
+            if (createLinksInWorkspaceButton == null || createLinksInWorkspaceButton.getSelection() == false) {
+                setMessage(null);
+                setErrorMessage(Messages.ImportTraceWizard_HaveToCreateLinksUnderAVirtualFolder);
+                return false;
+            }
+        }
+
+        // Perform trace validation
+        String traceTypeName = fTraceTypes.getText();
+        if (traceTypeName != null && !"".equals(traceTypeName)) { //$NON-NLS-1$
+            List<File> traces = isolateTraces();
+            for (File trace : traces) {
+                IConfigurationElement ce = fTraceAttributes.get(traceTypeName);
+                ITmfTrace<?> tmfTrace = null;
+                try {
+                    tmfTrace = (ITmfTrace<?>) ce.createExecutableExtension(TmfTraceElement.TRACE_TYPE);
+                    if (!tmfTrace.validate(fProject, trace.getAbsolutePath())) {
+                        setMessage(null);
+                        setErrorMessage(Messages.ImportTraceWizard_TraceValidationFailed);
+                        return false;
+                    }
+                    if (tmfTrace != null)
+                        tmfTrace.dispose();
+                } catch (CoreException e) {
+                } finally {
+                    if (tmfTrace != null)
+                        tmfTrace.dispose();
+                }
+            }
+        }
+
+        setErrorMessage(null);
+        return true;
+    }
+

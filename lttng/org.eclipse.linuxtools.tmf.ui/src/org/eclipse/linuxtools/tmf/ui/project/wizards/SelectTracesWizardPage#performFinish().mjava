@@ -1,0 +1,34 @@
+    public boolean performFinish() {
+
+        IFolder experiment = fExperiment.getResource();
+
+        // Add the selected traces to the experiment
+        Set<String> keys = fPreviousTraces.keySet();
+        TmfTraceElement[] traces = getSelection();
+        for (TmfTraceElement trace : traces) {
+            String name = trace.getResource().getName();
+            if (keys.contains(name)) {
+                fPreviousTraces.remove(name);
+            } else {
+                IResource resource = trace.getResource();
+                IPath location = resource.getLocation();
+                createLink(experiment, trace, resource, location);
+            }
+        }
+
+        // Remove traces that were unchecked (thus left in fPreviousTraces)
+        keys = fPreviousTraces.keySet();
+        for (String key : keys) {
+            fExperiment.removeChild(fPreviousTraces.get(key));
+            IResource resource = experiment.findMember(key);
+            try {
+                resource.delete(true, null);
+            } catch (CoreException e) {
+                e.printStackTrace();
+            }
+        }
+        fProject.refresh();
+
+        return true;
+    }
+

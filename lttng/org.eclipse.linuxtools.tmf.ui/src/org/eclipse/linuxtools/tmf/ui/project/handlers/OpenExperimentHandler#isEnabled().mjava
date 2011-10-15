@@ -1,0 +1,28 @@
+    @Override
+    public boolean isEnabled() {
+
+        // Check if we are closing down
+        IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+        if (window == null)
+            return false;
+
+        // Get the selection
+        IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+        IWorkbenchPart part = page.getActivePart();
+        ISelection selection = part.getSite().getSelectionProvider().getSelection();
+
+        // Make sure there is only one selection and that it is an experiment
+        fExperiment = null;
+        if (selection instanceof TreeSelection) {
+            TreeSelection sel = (TreeSelection) selection;
+            // There should be only one item selected as per the plugin.xml
+            Object element = sel.getFirstElement();
+            if (element instanceof TmfExperimentElement) {
+                fExperiment = (TmfExperimentElement) element;
+            }
+        }
+
+        // We only enable opening from the Traces folder for now
+        return (fExperiment != null);
+    }
+

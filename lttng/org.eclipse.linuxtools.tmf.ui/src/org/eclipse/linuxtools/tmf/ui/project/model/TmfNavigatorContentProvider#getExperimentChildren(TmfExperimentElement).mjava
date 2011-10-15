@@ -1,0 +1,35 @@
+    private Object[] getExperimentChildren(TmfExperimentElement tmfExperiment) {
+        // The children structure
+        List<Object> children = new ArrayList<Object>();
+
+        // Get the children from the model
+        Map<String, ITmfProjectModelElement> childrenMap = new HashMap<String, ITmfProjectModelElement>();
+        for (ITmfProjectModelElement element : tmfExperiment.getChildren()) {
+            if (element instanceof TmfTraceElement) {
+                String name = element.getResource().getName();
+                childrenMap.put(name, element);
+            }
+        }
+
+        IFolder folder = tmfExperiment.getResource();
+        try {
+            IResource[] members = folder.members();
+            for (IResource resource : members) {
+                String name = resource.getName();
+                ITmfProjectModelElement trace = childrenMap.get(name);
+                if (trace == null) {
+                    trace = new TmfTraceElement(name, resource, tmfExperiment);
+                }
+                children.add(trace);
+                childrenMap.remove(name);
+            }
+        } catch (CoreException e) {
+        }
+
+        // Remove the leftovers (what was in the model but removed from the
+        // project)
+        cleanupModel(tmfExperiment, childrenMap);
+
+        return children.toArray();
+    }
+

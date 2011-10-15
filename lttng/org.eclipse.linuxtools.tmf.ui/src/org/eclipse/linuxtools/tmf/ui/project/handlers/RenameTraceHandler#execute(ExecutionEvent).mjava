@@ -1,0 +1,64 @@
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        // Check if we are closing down
+        IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+        if (window == null)
+            return null;
+
+        // Fire the Rename Trace dialog
+        Shell shell = window.getShell();
+        TmfTraceFolder traceFolder = (TmfTraceFolder) fTrace.getParent();
+        TmfTraceElement oldTrace = fTrace;
+        RenameTraceDialog dialog = new RenameTraceDialog(shell, fTrace);
+        if (dialog.open() != Window.OK)
+            return null;
+
+        // Locate the new trace object
+        TmfTraceElement newTrace = null;
+        String newTraceName = dialog.getNewTraceName();
+        for (ITmfProjectModelElement element : traceFolder.getChildren()) {
+            if (element instanceof TmfTraceElement) {
+                TmfTraceElement trace = (TmfTraceElement) element;
+                if (trace.getName().equals(newTraceName)) {
+                    newTrace = trace;
+                    break;
+                }
+            }
+        }
+        if (newTrace == null)
+            return null;
+
+        List<WorkspaceModifyOperation> removeOps = new ArrayList<WorkspaceModifyOperation>();
+        TmfExperimentFolder experimentFolder = newTrace.getProject().getExperimentsFolder();
+        for (final ITmfProjectModelElement experiment : experimentFolder.getChildren()) {
+            for (final ITmfProjectModelElement trace : experiment.getChildren()) {
+                if (trace.equals(oldTrace)) {
+                    // Create a link to the renamed trace
+                    createTraceLink(newTrace, experiment);
+                    
+                    // Queue the removal of the old trace link
+                    removeOps.add(new WorkspaceModifyOperation() {
+                        @Override
+                        protected void execute(IProgressMonitor monitor) throws CoreException, InvocationTargetException, InterruptedException {
+                            experiment.removeChild(trace);
+                            trace.getResource().delete(true, null);
+                            experiment.refresh();
+                        }
+                    });
+                }
+            }
+        }
+
+        for (WorkspaceModifyOperation operation : removeOps) {
+            try {
+                PlatformUI.getWorkbench().getProgressService().busyCursorWhile(operation);
+            } catch (InterruptedException exception) {
+            } catch (InvocationTargetException exception) {
+            } catch (RuntimeException exception) {
+            }
+        }
+        
+        return null;
+    }
+

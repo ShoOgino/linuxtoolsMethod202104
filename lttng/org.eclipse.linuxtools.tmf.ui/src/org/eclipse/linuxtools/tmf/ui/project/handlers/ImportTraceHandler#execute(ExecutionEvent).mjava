@@ -1,0 +1,39 @@
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        // Check if we are closing down
+        IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+        if (window == null)
+            return null;
+
+    	// Get the selection
+        IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+        IWorkbenchPart part = page.getActivePart();
+        ISelection selection = part.getSite().getSelectionProvider().getSelection();
+
+        TmfTraceFolder traceFolder = null;
+        if (selection instanceof TreeSelection) {
+            TreeSelection sel = (TreeSelection) selection;
+    		// There should be only one item selected as per the plugin.xml
+            Object element = sel.getFirstElement();
+            if (element instanceof TmfTraceFolder) {
+                traceFolder = (TmfTraceFolder) element;
+            }
+        }
+        if (traceFolder == null)
+            return null;
+
+        // Fire the Import Trace Wizard
+        IWorkbench workbench = PlatformUI.getWorkbench();
+        Shell shell = workbench.getActiveWorkbenchWindow().getShell();
+
+        ImportTraceWizard wizard = new ImportTraceWizard();
+        wizard.init(PlatformUI.getWorkbench(), new StructuredSelection(traceFolder));
+        WizardDialog dialog = new WizardDialog(shell, wizard);
+        dialog.open();
+
+        traceFolder.refresh();
+        
+        return null;
+    }
+

@@ -1,0 +1,35 @@
+    private Object[] getTraceFolderChildren(TmfTraceFolder tmfTraceFolder) {
+        // The children structure
+        List<Object> children = new ArrayList<Object>();
+
+        // Get the children from the model
+        Map<String, ITmfProjectModelElement> childrenMap = new HashMap<String, ITmfProjectModelElement>();
+        for (ITmfProjectModelElement element : tmfTraceFolder.getChildren()) {
+            if (element instanceof TmfTraceElement) {
+                String name = element.getResource().getName();
+                childrenMap.put(name, element);
+            }
+        }
+
+        IFolder folder = tmfTraceFolder.getResource();
+        try {
+            IResource[] members = folder.members();
+            for (IResource resource : members) {
+                String name = resource.getName();
+                ITmfProjectModelElement trace = childrenMap.get(name);
+                if (trace == null) {
+                    trace = new TmfTraceElement(name, resource, tmfTraceFolder);
+                }
+                children.add(trace);
+                childrenMap.remove(name);
+            }
+        } catch (CoreException e) {
+        }
+
+        // Remove the leftovers (what was in the model but removed from the
+        // project)
+        cleanupModel(tmfTraceFolder, childrenMap);
+
+        return children.toArray();
+    }
+

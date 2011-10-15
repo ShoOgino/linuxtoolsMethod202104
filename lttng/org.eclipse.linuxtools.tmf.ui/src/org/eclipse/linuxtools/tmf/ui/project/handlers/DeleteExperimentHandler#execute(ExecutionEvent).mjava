@@ -1,0 +1,43 @@
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        // Check if we are closing down
+        IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+        if (window == null)
+            return null;
+
+        // Confirm the operation
+        Shell shell = window.getShell();
+        MessageBox confirmOperation = new MessageBox(shell, SWT.ICON_QUESTION | SWT.CANCEL | SWT.OK);
+        confirmOperation.setText(Messages.DeleteDialog_Title);
+        confirmOperation.setMessage(Messages.DeleteExperimentHandler_Message);
+        if (confirmOperation.open() != SWT.OK)
+            return null;
+
+        // Get the selection
+        IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+        IWorkbenchPart part = page.getActivePart();
+        ISelection selection = part.getSite().getSelectionProvider().getSelection();
+
+        if (selection instanceof TreeSelection) {
+            TreeSelection sel = (TreeSelection) selection;
+            @SuppressWarnings("unchecked")
+            Iterator<Object> iterator = sel.iterator();
+            while (iterator.hasNext()) {
+                Object element = iterator.next();
+                if (element instanceof TmfExperimentElement) {
+                    TmfExperimentElement experiment = (TmfExperimentElement) element;
+                    IResource resource = experiment.getResource();
+                    try {
+                        resource.delete(true, null);
+                        experiment.getProject().refresh();
+                    } catch (CoreException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+

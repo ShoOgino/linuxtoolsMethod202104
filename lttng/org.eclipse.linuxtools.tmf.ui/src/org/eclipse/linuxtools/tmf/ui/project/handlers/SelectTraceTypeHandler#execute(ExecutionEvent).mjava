@@ -1,0 +1,36 @@
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        // Check if we are closing down
+        IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+        if (window == null)
+            return null;
+
+        boolean ok = true;
+        for (Object element : fSelection.toList()) {
+            TmfTraceElement trace = (TmfTraceElement) element;
+            IResource resource = trace.getResource();
+            if (resource != null) {
+                try {
+                    // Set the properties for this resource
+                    String bundleName = event.getParameter(BUNDLE_PARAMETER);
+                    String traceType = event.getParameter(TYPE_PARAMETER);
+                    String iconUrl = event.getParameter(ICON_PARAMETER);
+                    ok &= propagateProperties(trace, bundleName, traceType, iconUrl);
+                } catch (CoreException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        ((ITmfProjectModelElement) fSelection.getFirstElement()).getProject().refresh();
+
+        if (!ok) {
+            MessageBox mb = new MessageBox(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), SWT.ICON_ERROR);
+            mb.setText(Messages.SelectTraceTypeHandler_Title);
+            mb.setMessage(Messages.SelectTraceTypeHandler_InvalidTraceType);
+            mb.open();
+        }
+
+        return null;
+    }
+

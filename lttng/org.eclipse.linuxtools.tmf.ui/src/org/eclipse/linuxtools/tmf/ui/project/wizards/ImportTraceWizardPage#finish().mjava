@@ -1,0 +1,71 @@
+    public boolean finish() {
+        // Ensure source is valid
+        File sourceDir = new File(getSourceDirectoryName());
+        if (!sourceDir.isDirectory()) {
+            setErrorMessage(Messages.ImportTraceWizard_InvalidTraceDirectory);
+            return false;
+        }
+
+        String sourceDirPath;
+        try {
+            sourceDirPath = sourceDir.getCanonicalPath();
+        } catch (IOException e) {
+            MessageDialog.openInformation(getContainer().getShell(), Messages.ImportTraceWizard_Information,
+                    Messages.ImportTraceWizard_InvalidTraceDirectory);
+            return false;
+        }
+
+        // Save directory for next import operation
+        fRootDirectory = getSourceDirectoryName();
+
+        List<FileSystemElement> selectedResources = getSelectedResources();
+        Iterator<FileSystemElement> resources = selectedResources.iterator();
+
+        // Use a map to end up with unique resources (getSelectedResources() can return duplicates)
+        Map<String, File> fileSystemObjects = new HashMap<String, File>();
+        while (resources.hasNext()) {
+            File file = (File) resources.next().getFileSystemObject();
+            String key = file.getAbsolutePath();
+            fileSystemObjects.put(key, file);
+        }
+
+        if (fileSystemObjects.size() > 0) {
+            boolean ok = importResources(sourceDirPath, fileSystemObjects);
+            String traceType = fTraceTypes.getText();
+            IConfigurationElement ce = fTraceAttributes.get(traceType);
+            if (ok && !traceType.equals("") && ce != null) { //$NON-NLS-1$
+                // Tag the selected traces with their type
+                List<String> files = new ArrayList<String>(fileSystemObjects.keySet());
+                Collections.sort(files);
+                // After sorting, traces correspond to the unique prefixes
+                String prefix = null;
+                for (int i = 0; i < files.size(); i++) {
+                    File file = fileSystemObjects.get(files.get(i));
+                    String name = file.getAbsolutePath();
+                    if (prefix == null || !name.startsWith(prefix)) {
+                        prefix = name; // new prefix
+                        IResource resource = fTargetFolder.findMember(file.getName());
+                        if (resource != null) {
+                            try {
+                                // Set the trace properties for this resource
+                                resource.setPersistentProperty(TmfTraceElement.TRACEBUNDLE, ce.getContributor()
+                                        .getName());
+                                resource.setPersistentProperty(TmfTraceElement.TRACETYPE,
+                                        ce.getAttribute(TmfTraceElement.ID));
+                                resource.setPersistentProperty(TmfTraceElement.TRACEICON,
+                                        ce.getAttribute(TmfTraceElement.ICON));
+                            } catch (CoreException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }
+            }
+            return ok;
+        }
+
+        MessageDialog.openInformation(getContainer().getShell(), Messages.ImportTraceWizard_Information,
+                Messages.ImportTraceWizard_SelectTraceNoneSelected);
+        return false;
+    }
+

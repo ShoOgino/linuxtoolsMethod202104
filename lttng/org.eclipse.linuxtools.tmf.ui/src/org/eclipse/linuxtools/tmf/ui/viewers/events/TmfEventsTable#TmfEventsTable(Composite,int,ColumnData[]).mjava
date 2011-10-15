@@ -1,6 +1,6 @@
     public TmfEventsTable(Composite parent, int cacheSize, ColumnData[] columnData) {
         super("TmfEventsTable"); //$NON-NLS-1$
-        
+
         fComposite = new Composite(parent, SWT.NONE);
         GridLayout gl = new GridLayout(1, false);
         gl.marginHeight = 0;
@@ -10,7 +10,7 @@
 
         fSashForm = new SashForm(fComposite, SWT.HORIZONTAL);
         fSashForm.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-        
+
         // Create a virtual table
         final int style = SWT.H_SCROLL | SWT.V_SCROLL | SWT.SINGLE | SWT.FULL_SELECTION;
         fTable = new TmfVirtualTable(fSashForm, style);
@@ -25,110 +25,110 @@
 
         // Set the columns
         setColumnHeaders(columnData);
-        
+
         // Set the default column field ids if this is not a subclass
-		if (Arrays.equals(columnData, COLUMN_DATA)) {
-			fTable.getColumns()[0].setData(Key.FIELD_ID, TmfEventContent.FIELD_ID_TIMESTAMP);
-			fTable.getColumns()[1].setData(Key.FIELD_ID, TmfEventContent.FIELD_ID_SOURCE);
-			fTable.getColumns()[2].setData(Key.FIELD_ID, TmfEventContent.FIELD_ID_TYPE);
-			fTable.getColumns()[3].setData(Key.FIELD_ID, TmfEventContent.FIELD_ID_REFERENCE);
-			fTable.getColumns()[4].setData(Key.FIELD_ID, TmfEventContent.FIELD_ID_CONTENT);
-		}
+        if (Arrays.equals(columnData, COLUMN_DATA)) {
+            fTable.getColumns()[0].setData(Key.FIELD_ID, TmfEventContent.FIELD_ID_TIMESTAMP);
+            fTable.getColumns()[1].setData(Key.FIELD_ID, TmfEventContent.FIELD_ID_SOURCE);
+            fTable.getColumns()[2].setData(Key.FIELD_ID, TmfEventContent.FIELD_ID_TYPE);
+            fTable.getColumns()[3].setData(Key.FIELD_ID, TmfEventContent.FIELD_ID_REFERENCE);
+            fTable.getColumns()[4].setData(Key.FIELD_ID, TmfEventContent.FIELD_ID_CONTENT);
+        }
 
         // Set the frozen row for header row
         fTable.setFrozenRowCount(1);
 
         // Create the header row cell editor
         createHeaderEditor();
-        
+
         // Handle the table item selection
         fTable.addSelectionListener(new SelectionAdapter() {
             @Override
             public void widgetSelected(SelectionEvent e) {
-        		TableItem[] selection = fTable.getSelection();
-        		if (selection.length > 0) {
-        			TableItem selectedTableItem = selection[0];
-        			if (selectedTableItem != null) {
-        				if (selectedTableItem.getData(Key.RANK) instanceof Long) {
-        					fSelectedRank = (Long) selectedTableItem.getData(Key.RANK);
-        					fRawViewer.selectAndReveal((Long) selectedTableItem.getData(Key.RANK));
-        				}
-        				if (selectedTableItem.getData(Key.TIMESTAMP) instanceof TmfTimestamp) {
-        					TmfTimestamp ts = (TmfTimestamp) selectedTableItem.getData(Key.TIMESTAMP);
-        					broadcast(new TmfTimeSynchSignal(fTable, ts));
-        				}
-        			}
-        		}
+                TableItem[] selection = fTable.getSelection();
+                if (selection.length > 0) {
+                    TableItem selectedTableItem = selection[0];
+                    if (selectedTableItem != null) {
+                        if (selectedTableItem.getData(Key.RANK) instanceof Long) {
+                            fSelectedRank = (Long) selectedTableItem.getData(Key.RANK);
+                            fRawViewer.selectAndReveal((Long) selectedTableItem.getData(Key.RANK));
+                        }
+                        if (selectedTableItem.getData(Key.TIMESTAMP) instanceof TmfTimestamp) {
+                            TmfTimestamp ts = (TmfTimestamp) selectedTableItem.getData(Key.TIMESTAMP);
+                            broadcast(new TmfTimeSynchSignal(fTable, ts));
+                        }
+                    }
+                }
             }
         });
 
         cacheSize = Math.max(cacheSize, Display.getDefault().getBounds().height / fTable.getItemHeight());
         fCache = new TmfEventsCache(cacheSize, this);
 
-        // Handle the table item requests 
+        // Handle the table item requests
         fTable.addListener(SWT.SetData, new Listener() {
 
             @Override
-			public void handleEvent(Event event) {
+            public void handleEvent(Event event) {
 
                 final TableItem item = (TableItem) event.item;
                 int index = event.index - 1; // -1 for the header row
 
                 if (event.index == 0) {
-                	setHeaderRowItemData(item);
+                    setHeaderRowItemData(item);
                     return;
                 }
 
                 if (fTable.getData(Key.FILTER_OBJ) != null) {
-                	if (event.index == 1 || event.index == fTable.getItemCount() - 1) {
-                		setFilterStatusRowItemData(item);
-                		return;
-                	}
-                	index = index - 1; // -1 for top filter status row
+                    if (event.index == 1 || event.index == fTable.getItemCount() - 1) {
+                        setFilterStatusRowItemData(item);
+                        return;
+                    }
+                    index = index - 1; // -1 for top filter status row
                 }
-                
+
                 CachedEvent cachedEvent = fCache.getEvent(index);
                 if (cachedEvent != null) {
                     setItemData(item, cachedEvent.event, cachedEvent.rank);
                     return;
                 }
-                
+
                 // Else, fill the cache asynchronously (and off the UI thread)
                 event.doit = false;
             }
         });
 
         fTable.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseDoubleClick(MouseEvent event) {
-				if (event.button != 1) {
-					return;
-				}
-				// Identify the selected row
-				Point point = new Point(event.x, event.y);
-				TableItem item = fTable.getItem(point);
-            	if (item != null) {
-            		Rectangle imageBounds = item.getImageBounds(0);
-            		imageBounds.width = BOOKMARK_IMAGE.getBounds().width;
-            		if (imageBounds.contains(point)) {
-                		Long rank = (Long) item.getData(Key.RANK);
-                		if (rank != null) {
-                			toggleBookmark(rank);
-                		}
-            		}
-            	}
-			}
+            @Override
+            public void mouseDoubleClick(MouseEvent event) {
+                if (event.button != 1) {
+                    return;
+                }
+                // Identify the selected row
+                Point point = new Point(event.x, event.y);
+                TableItem item = fTable.getItem(point);
+                if (item != null) {
+                    Rectangle imageBounds = item.getImageBounds(0);
+                    imageBounds.width = BOOKMARK_IMAGE.getBounds().width;
+                    if (imageBounds.contains(point)) {
+                        Long rank = (Long) item.getData(Key.RANK);
+                        if (rank != null) {
+                            toggleBookmark(rank);
+                        }
+                    }
+                }
+            }
         });
-        
+
         // Create resources
         createResources();
 
         ColorSettingsManager.addColorSettingsListener(this);
-        
+
         fTable.setItemCount(1); // +1 for header row
-        
+
         fRawViewer = new TmfRawEventViewer(fSashForm, SWT.H_SCROLL | SWT.V_SCROLL);
-        
+
         fRawViewer.addSelectionListener(new SelectionAdapter() {
             @Override
             public void widgetSelected(SelectionEvent e) {
@@ -136,12 +136,12 @@
                     long rank = (Long) e.data;
                     int index = (int) rank;
                     if (fTable.getData(Key.FILTER_OBJ) != null) {
-                    	index = fCache.getFilteredEventIndex(rank) + 1; // +1 for top filter status row
+                        index = fCache.getFilteredEventIndex(rank) + 1; // +1 for top filter status row
                     }
                     fTable.setSelection(index + 1); // +1 for header row
                     fSelectedRank = rank;
                 } else if (e.data instanceof ITmfLocation<?>) {
-                	// DOES NOT WORK: rank undefined in context from seekLocation()
+                    // DOES NOT WORK: rank undefined in context from seekLocation()
 //                    ITmfLocation<?> location = (ITmfLocation<?>) e.data;
 //                    TmfContext context = fTrace.seekLocation(location);
 //                    fTable.setSelection((int) context.getRank());
@@ -153,13 +153,13 @@
                 if (selection != null && selection.length > 0) {
                     TmfTimestamp ts = (TmfTimestamp) fTable.getSelection()[0].getData(Key.TIMESTAMP);
                     if (ts != null) {
-                    	broadcast(new TmfTimeSynchSignal(fTable, ts));
+                        broadcast(new TmfTimeSynchSignal(fTable, ts));
                     }
                 }
             }
         });
 
-        fSashForm.setWeights(new int[] {1, 1});
+        fSashForm.setWeights(new int[] { 1, 1 });
         fRawViewer.setVisible(false);
 
         createPopupMenu();

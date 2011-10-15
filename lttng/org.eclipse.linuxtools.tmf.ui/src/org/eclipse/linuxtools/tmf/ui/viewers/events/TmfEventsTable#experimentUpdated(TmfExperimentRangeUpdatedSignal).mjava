@@ -1,0 +1,27 @@
+    @TmfSignalHandler
+    public void experimentUpdated(TmfExperimentRangeUpdatedSignal signal) {
+        if ((signal.getExperiment() != fTrace) || fTable.isDisposed())
+            return;
+        // Perform the refresh on the UI thread
+        Display.getDefault().asyncExec(new Runnable() {
+            @Override
+            public void run() {
+                if (!fTable.isDisposed() && fTrace != null) {
+                    if (fTable.getData(Key.FILTER_OBJ) == null) {
+                        fTable.setItemCount((int) fTrace.getNbEvents() + 1); // +1 for header row
+                        if (fPendingGotoRank != -1 && fPendingGotoRank + 1 < fTable.getItemCount()) { // +1 for header
+                                                                                                      // row
+                            fTable.setSelection((int) fPendingGotoRank + 1); // +1 for header row
+                            fPendingGotoRank = -1;
+                        }
+                    } else {
+                        startFilterThread();
+                    }
+                }
+                if (!fRawViewer.isDisposed() && fTrace != null) {
+                    fRawViewer.refreshEventCount();
+                }
+            }
+        });
+    }
+

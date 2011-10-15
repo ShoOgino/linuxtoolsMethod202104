@@ -1,38 +1,36 @@
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see org.eclipse.linuxtools.lttng.signal.ILttExperimentSelectedListener#
-	 * experimentSelected(java.lang.Object,
-	 * org.eclipse.linuxtools.tmf.experiment.TmfExperiment)
-	 */
-	@Override
-	public void experimentSelected(Object source,
-			TmfExperiment<LttngEvent> experiment) {
-		// validate
-		if (experiment == null) { 
-			TraceDebug.debug("Received experiment is null"); //$NON-NLS-1$
-			return;
-		}
+    /*
+     * (non-Javadoc)
+     * 
+     * @see org.eclipse.linuxtools.lttng.signal.ILttExperimentSelectedListener# experimentSelected(java.lang.Object,
+     * org.eclipse.linuxtools.tmf.experiment.TmfExperiment)
+     */
+    @Override
+    public void experimentSelected(Object source, TmfExperiment<LttngEvent> experiment) {
+        // validate
+        if (experiment == null) {
+            TraceDebug.debug("Received experiment is null"); //$NON-NLS-1$
+            return;
+        }
 
-		// If previous request is ongoing, cancel it before requesting a new
-		// one.
-		if (fStateCheckPointRequest != null && !fStateCheckPointRequest.isCompleted()) {
-			fStateCheckPointRequest.cancel();
-		}
+        // If previous request is ongoing, cancel it before requesting a new
+        // one.
+        if (fStateCheckPointRequest != null && !fStateCheckPointRequest.isCompleted()) {
+            fStateCheckPointRequest.cancel();
+        }
 
-		synchronized (fCheckPointUpdateSyncObj) {
-			fCheckPointUpdateBusy = true;
-			fCheckPointUpdatePending = false;
-			fCheckPointUpdateIndex = 0;
-		}
+        synchronized (fCheckPointUpdateSyncObj) {
+            fCheckPointUpdateBusy = true;
+            fCheckPointUpdatePending = false;
+            fCheckPointUpdateIndex = 0;
+        }
 
-		// trigger data request to build the state system check points
-		fStateCheckPointRequest = buildCheckPoints(experiment, experiment.getTimeRange(), true);
+        // trigger data request to build the state system check points
+        fStateCheckPointRequest = buildCheckPoints(experiment, experiment.getTimeRange(), true);
 
-		if (fStateCheckPointRequest == null) {
-			synchronized (fCheckPointUpdateSyncObj) {
-				fCheckPointUpdateBusy = false;
-			}
-		}
-	}
+        if (fStateCheckPointRequest == null) {
+            synchronized (fCheckPointUpdateSyncObj) {
+                fCheckPointUpdateBusy = false;
+            }
+        }
+    }
 

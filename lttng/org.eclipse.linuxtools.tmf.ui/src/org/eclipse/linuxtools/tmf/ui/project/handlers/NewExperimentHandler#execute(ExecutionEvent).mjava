@@ -1,0 +1,32 @@
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        // Check if we are closing down
+        IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+        if (window == null)
+            return null;
+
+        // Get the selection
+        IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+        IWorkbenchPart part = page.getActivePart();
+        ISelection selection = part.getSite().getSelectionProvider().getSelection();
+        TmfExperimentFolder experimentFolder = null;
+        if (selection instanceof TreeSelection) {
+            TreeSelection sel = (TreeSelection) selection;
+            Object element = sel.getFirstElement();
+            if (element instanceof TmfExperimentFolder) {
+                experimentFolder = (TmfExperimentFolder) element;
+            }
+        }
+        if (experimentFolder == null) {
+            return null;
+        }
+
+        // Fire the New Experiment dialog
+        Shell shell = window.getShell();
+        NewExperimentDialog dialog = new NewExperimentDialog(shell, experimentFolder);
+        dialog.open();
+
+        return null;
+    }
+

@@ -1,0 +1,59 @@
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        // Check if we are closing down
+        IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+        if (window == null)
+            return null;
+
+        // Confirm the operation
+        Shell shell = window.getShell();
+        MessageBox confirmOperation = new MessageBox(shell, SWT.ICON_QUESTION | SWT.CANCEL | SWT.OK);
+        confirmOperation.setText(Messages.DeleteDialog_Title);
+        confirmOperation.setMessage(Messages.DeleteTraceHandler_Message);
+        if (confirmOperation.open() != SWT.OK)
+            return null;
+
+        @SuppressWarnings("unchecked")
+        Iterator<Object> iterator = fSelection.iterator();
+        while (iterator.hasNext()) {
+            Object element = iterator.next();
+            if (element instanceof TmfTraceElement) {
+                TmfTraceElement trace = (TmfTraceElement) element;
+                IResource resource = trace.getResource();
+                try {
+                    IPath path = resource.getLocation();
+                    if (path != null && (trace.getParent() instanceof TmfTraceFolder)) {
+                        String location = path.toFile().getCanonicalPath();
+                        TmfExperimentFolder experimentFolder = trace.getProject().getExperimentsFolder();
+
+                        // Propagate the removal to traces
+                        for (ITmfProjectModelElement experiment : experimentFolder.getChildren()) {
+                            List<ITmfProjectModelElement> toRemove = new LinkedList<ITmfProjectModelElement>();
+                            for (ITmfProjectModelElement child : experiment.getChildren()) {
+                                if (child.getResource().getLocation().toString().equals(location)) {
+                                    toRemove.add(child);
+                                }
+                            }
+                            for (ITmfProjectModelElement child : toRemove) {
+                                experiment.removeChild(child);
+                                child.getResource().delete(true, null);
+                            }
+                        }
+                    }
+
+                    // Finally, delete the trace
+                    resource.delete(true, new NullProgressMonitor());
+                    trace.getProject().refresh();
+
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                } catch (CoreException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        return null;
+    }
+

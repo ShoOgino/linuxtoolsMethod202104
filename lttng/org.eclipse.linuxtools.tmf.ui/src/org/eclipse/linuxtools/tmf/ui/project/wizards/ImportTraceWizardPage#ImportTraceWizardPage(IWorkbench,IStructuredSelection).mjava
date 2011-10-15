@@ -1,0 +1,31 @@
+    public ImportTraceWizardPage(IWorkbench workbench, IStructuredSelection selection) {
+        this(IMPORT_WIZARD_PAGE, selection);
+        setTitle(Messages.ImportTraceWizard_FileSystemTitle);
+        setDescription(Messages.ImportTraceWizard_ImportTrace);
+
+        // Locate the target trace folder
+        IFolder traceFolder = null;
+        Object element = selection.getFirstElement();
+
+        if (element instanceof TmfTraceFolder) {
+            TmfTraceFolder tmfTraceFolder = (TmfTraceFolder) element;
+            fProject = tmfTraceFolder.getProject().getResource();
+            traceFolder = tmfTraceFolder.getResource();
+        } else if (element instanceof IProject) {
+            IProject project = (IProject) element;
+            try {
+                if (project.hasNature(TmfProjectNature.ID)) {
+                    traceFolder = (IFolder) project.findMember(TmfTraceFolder.TRACE_FOLDER_NAME);
+                }
+            } catch (CoreException e) {
+            }
+        }
+
+        // Set the target trace folder
+        if (traceFolder != null) {
+            fTargetFolder = traceFolder;
+            String path = traceFolder.getFullPath().toOSString();
+            setContainerFieldValue(path);
+        }
+    }
+

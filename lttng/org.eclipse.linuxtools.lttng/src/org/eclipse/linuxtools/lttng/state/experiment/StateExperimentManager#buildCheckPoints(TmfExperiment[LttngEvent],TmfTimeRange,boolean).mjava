@@ -1,150 +1,151 @@
-	private ITmfDataRequest<LttngEvent> buildCheckPoints(final TmfExperiment<LttngEvent> experiment, final TmfTimeRange range, boolean initial) {
-		// validate
-		if (experiment == null) {
-			TraceDebug.debug("Received experiment is null"); //$NON-NLS-1$
-			return null;
-		}
-		
-		LTTngTreeNode experimentNode = getChildByName(experiment.getName());
-		if (experimentNode == null) {
-			TraceDebug.debug("Experiment Node " + experiment.getName() + " does not exist"); //$NON-NLS-1$ //$NON-NLS-2$
-			return null;
-		}
-		
-		final boolean waitForCompletion = fwaitForCompletion;
-		
-		// get the trace manager nodes associated to the experiment
-		LTTngTreeNode[] traceNodes = experimentNode.getChildren();
-		
-		if (initial) {
-			synchronized (this) {
-				ftraceToManagerMap.clear();
-			}
+    private ITmfDataRequest<LttngEvent> buildCheckPoints(final TmfExperiment<LttngEvent> experiment,
+            final TmfTimeRange range, boolean initial) {
+        // validate
+        if (experiment == null) {
+            TraceDebug.debug("Received experiment is null"); //$NON-NLS-1$
+            return null;
+        }
 
-			ITmfTrace trace;
-			for (LTTngTreeNode traceStateManagerNode : traceNodes) {
-				IStateTraceManager traceManager;
-				try {
-					traceManager = (IStateTraceManager) traceStateManagerNode;
-				} catch (ClassCastException e) {
-					System.out.println(e.getStackTrace().toString());
-					return null;
-				}
-			
-				// Clear all previously created check points as preparation to
-				// re-build
-				traceManager.clearCheckPoints();
-			
-				// build the trace to manager mapping for event dispatching
-				trace = traceManager.getTrace();
-				synchronized (this) {
-					ftraceToManagerMap.put(trace, new StateTraceHelper(traceManager));
-				}
-			}
-		}
+        LTTngTreeNode experimentNode = getChildByName(experiment.getName());
+        if (experimentNode == null) {
+            TraceDebug.debug("Experiment Node " + experiment.getName() + " does not exist"); //$NON-NLS-1$ //$NON-NLS-2$
+            return null;
+        }
 
-		// if no trace mapping
-		if (ftraceToManagerMap.size() < 1) {
-			TraceDebug.debug("No traces associated to experiment " + experiment.getName()); //$NON-NLS-1$
-			return null;
-		}
-		
-		fCheckPointNbEventsHandled = 0;
-		
-		// Prepare event data request to build state model
-		ITmfEventRequest<LttngEvent> request = new TmfEventRequest<LttngEvent>(
-				LttngEvent.class, range, fCheckPointUpdateIndex,
-				TmfEventRequest.ALL_DATA, LttngConstants.DEFAULT_BLOCK_SIZE, ITmfDataRequest.ExecutionType.BACKGROUND) {
-		
-			/*
-			 * (non-Javadoc)
-			 * 
-			 * @see
-			 * org.eclipse.linuxtools.tmf.request.TmfDataRequest#handleData()
-			 */
-			@Override
-			public void handleData(LttngEvent event) {
-				super.handleData(event);
-				if (event != null) {
+        final boolean waitForCompletion = fwaitForCompletion;
+
+        // get the trace manager nodes associated to the experiment
+        LTTngTreeNode[] traceNodes = experimentNode.getChildren();
+
+        if (initial) {
+            synchronized (this) {
+                ftraceToManagerMap.clear();
+            }
+
+            ITmfTrace trace;
+            for (LTTngTreeNode traceStateManagerNode : traceNodes) {
+                IStateTraceManager traceManager;
+                try {
+                    traceManager = (IStateTraceManager) traceStateManagerNode;
+                } catch (ClassCastException e) {
+                    System.out.println(e.getStackTrace().toString());
+                    return null;
+                }
+
+                // Clear all previously created check points as preparation to
+                // re-build
+                traceManager.clearCheckPoints();
+
+                // build the trace to manager mapping for event dispatching
+                trace = traceManager.getTrace();
+                synchronized (this) {
+                    ftraceToManagerMap.put(trace, new StateTraceHelper(traceManager));
+                }
+            }
+        }
+
+        // if no trace mapping
+        if (ftraceToManagerMap.size() < 1) {
+            TraceDebug.debug("No traces associated to experiment " + experiment.getName()); //$NON-NLS-1$
+            return null;
+        }
+
+        fCheckPointNbEventsHandled = 0;
+
+        // Prepare event data request to build state model
+        ITmfEventRequest<LttngEvent> request = new TmfEventRequest<LttngEvent>(LttngEvent.class, range,
+                fCheckPointUpdateIndex, TmfEventRequest.ALL_DATA, LttngConstants.DEFAULT_BLOCK_SIZE,
+                ITmfDataRequest.ExecutionType.BACKGROUND) {
+
+            /*
+             * (non-Javadoc)
+             * 
+             * @see org.eclipse.linuxtools.tmf.request.TmfDataRequest#handleData()
+             */
+            @Override
+            public void handleData(LttngEvent event) {
+                super.handleData(event);
+                if (event != null) {
 //					Tracer.trace("Chk: " + event.getTimestamp());
-					fCheckPointNbEventsHandled++;
-					ITmfTrace trace = event.getParentTrace();
+                    fCheckPointNbEventsHandled++;
+                    ITmfTrace trace = event.getParentTrace();
 
-					StateTraceHelper helper = ftraceToManagerMap.get(trace);
+                    StateTraceHelper helper = ftraceToManagerMap.get(trace);
 
-					if (helper != null) {
-						helper.incrementNumberRead();
+                    if (helper != null) {
+                        helper.incrementNumberRead();
 
-						// obtain synthetic event
-						LttngSyntheticEvent synEvent = updateSynEvent(event, helper.getTraceModel());
+                        // obtain synthetic event
+                        LttngSyntheticEvent synEvent = updateSynEvent(event, helper.getTraceModel());
 
-						// update state system, and save check points as needed
-						helper.getStateManager().handleEvent(synEvent, helper.getNumberRead());
-					} else {
-						TraceDebug.debug("StateTraceManager not found for trace" //$NON-NLS-1$
-								+ trace.getName());
-					}
-				}
-			}
+                        // update state system, and save check points as needed
+                        helper.getStateManager().handleEvent(synEvent, helper.getNumberRead());
+                    } else {
+                        TraceDebug.debug("StateTraceManager not found for trace" //$NON-NLS-1$
+                                + trace.getName());
+                    }
+                }
+            }
 
-			/*
-			 * (non-Javadoc)
-			 * 
-			 * @see
-			 * org.eclipse.linuxtools.tmf.request.TmfDataRequest#handleCompleted()
-			 */
-			@Override
-			public void handleCompleted() {
-				super.handleCompleted();
-				printCompletedMessage();
-				
-				if (!waitForCompletion) {
-					synchronized (fCheckPointUpdateSyncObj) {
-						fCheckPointUpdateBusy = false;
-						fCheckPointUpdateIndex += fCheckPointNbEventsHandled;
-						if (fCheckPointUpdatePending) {
-							fCheckPointUpdatePending = false;
-							fCheckPointUpdateBusy = true;
-							buildCheckPoints(experiment, fCheckPointUpdateRange, false);
-						}
-					}
-				}
-			}
+            /*
+             * (non-Javadoc)
+             * 
+             * @see org.eclipse.linuxtools.tmf.request.TmfDataRequest#handleCompleted()
+             */
+            @Override
+            public void handleCompleted() {
+                super.handleCompleted();
+                printCompletedMessage();
 
-			/*
-			/**
-			 * @param header
-			 */
-			private void printCompletedMessage() {
-				if (TraceDebug.isDEBUG()) {
-					TraceDebug.debug("Trace check point building completed, number of events handled: " + fCheckPointNbEventsHandled + "\n\t\t"); //$NON-NLS-1$ //$NON-NLS-2$
-					for (StateTraceHelper helper : ftraceToManagerMap.values()) {
-						TraceDebug.debug(helper.getStateManager().toString() + "\n\t\t"); //$NON-NLS-1$
-					}
-				}
-			}
-		};
+                if (!waitForCompletion) {
+                    synchronized (fCheckPointUpdateSyncObj) {
+                        fCheckPointUpdateBusy = false;
+                        fCheckPointUpdateIndex += fCheckPointNbEventsHandled;
+                        if (fCheckPointUpdatePending) {
+                            fCheckPointUpdatePending = false;
+                            fCheckPointUpdateBusy = true;
+                            buildCheckPoints(experiment, fCheckPointUpdateRange, false);
+                        }
+                    }
+                }
+            }
 
-		// Execute event data request
-		experiment.sendRequest(request);
+            /*
+             * /**
+             * 
+             * @param header
+             */
+            private void printCompletedMessage() {
+                if (TraceDebug.isDEBUG()) {
+                    TraceDebug
+                            .debug("Trace check point building completed, number of events handled: " + fCheckPointNbEventsHandled + "\n\t\t"); //$NON-NLS-1$ //$NON-NLS-2$
+                    for (StateTraceHelper helper : ftraceToManagerMap.values()) {
+                        TraceDebug.debug(helper.getStateManager().toString() + "\n\t\t"); //$NON-NLS-1$
+                    }
+                }
+            }
+        };
 
-		if (waitForCompletion) {
-			try {
-				request.waitForCompletion();
-				synchronized (fCheckPointUpdateSyncObj) {
-					fCheckPointUpdateBusy = false;
-					fCheckPointUpdateIndex += fCheckPointNbEventsHandled;
-					if (fCheckPointUpdatePending) {
-						fCheckPointUpdatePending = false;
-						fCheckPointUpdateBusy = true;
-						buildCheckPoints(experiment, fCheckPointUpdateRange, false);
-					}
-				}
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
+        // Execute event data request
+        experiment.sendRequest(request);
 
-		return request;
-	}
+        if (waitForCompletion) {
+            try {
+                request.waitForCompletion();
+                synchronized (fCheckPointUpdateSyncObj) {
+                    fCheckPointUpdateBusy = false;
+                    fCheckPointUpdateIndex += fCheckPointNbEventsHandled;
+                    if (fCheckPointUpdatePending) {
+                        fCheckPointUpdatePending = false;
+                        fCheckPointUpdateBusy = true;
+                        buildCheckPoints(experiment, fCheckPointUpdateRange, false);
+                    }
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return request;
+    }
 

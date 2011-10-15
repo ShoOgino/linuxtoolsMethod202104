@@ -1,0 +1,29 @@
+	@Override
+	@SuppressWarnings("unchecked")
+	public TmfContext seekLocation(ITmfLocation location) {
+	    fLock.lock();
+        try {
+            if (fTrace != null) {
+                // Position the trace at the requested location and
+                // returns the corresponding context
+                long loc  = 0;
+                long rank = 0;
+                if (location != null) {
+                    loc = ((TmfLocation<Long>) location).getLocation();
+                    rank = ITmfContext.UNKNOWN_RANK;
+                }
+                if (loc != fTrace.getFilePointer()) {
+                    fTrace.seek(loc);
+                }
+                TmfContext context = new TmfContext(getCurrentLocation(), rank);
+                return context;
+            }
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+        finally{
+            fLock.unlock();
+        }
+		return null;
+    }
+

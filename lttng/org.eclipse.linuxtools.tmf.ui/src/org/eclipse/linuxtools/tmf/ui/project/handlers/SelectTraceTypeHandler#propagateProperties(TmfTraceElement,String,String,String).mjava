@@ -1,0 +1,35 @@
+    private boolean propagateProperties(TmfTraceElement trace, String bundleName, String traceType, String iconUrl) throws CoreException {
+
+        IResource svResource = trace.getResource();
+        String svBundleName = svResource.getPersistentProperty(TmfTraceElement.TRACEBUNDLE);
+        String svTraceType = svResource.getPersistentProperty(TmfTraceElement.TRACETYPE);
+        String svIconUrl = svResource.getPersistentProperty(TmfTraceElement.TRACEICON);
+
+        setProperties(trace.getResource(), bundleName, traceType, iconUrl);
+        trace.refreshTraceType();
+        if (!validateTraceType(trace)) {
+            setProperties(trace.getResource(), svBundleName, svTraceType, svIconUrl);
+            trace.refreshTraceType();
+            return false;
+        }
+
+        trace.refreshTraceType();
+
+        if (trace.getParent() instanceof TmfTraceFolder) {
+            TmfExperimentFolder experimentFolder = trace.getProject().getExperimentsFolder();
+            for (final ITmfProjectModelElement experiment : experimentFolder.getChildren()) {
+                for (final ITmfProjectModelElement child : experiment.getChildren()) {
+                    if (child instanceof TmfTraceElement) {
+                        TmfTraceElement linkedTrace = (TmfTraceElement) child;
+                        if (linkedTrace.equals(trace)) {
+                            IResource resource = linkedTrace.getResource();
+                            setProperties(resource, bundleName, traceType, iconUrl);
+                            linkedTrace.refreshTraceType();
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+

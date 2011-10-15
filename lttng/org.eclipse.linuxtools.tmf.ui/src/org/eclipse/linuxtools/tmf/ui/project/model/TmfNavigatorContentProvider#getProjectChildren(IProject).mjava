@@ -1,0 +1,53 @@
+    private Object[] getProjectChildren(IProject project) {
+        // The children structure
+        List<Object> children = new ArrayList<Object>();
+
+        // Get the children from the model
+        Map<String, ITmfProjectModelElement> childrenMap = new HashMap<String, ITmfProjectModelElement>();
+        TmfProjectElement tmfProject = TmfProjectRegistry.getProject(project);
+        for (ITmfProjectModelElement element : tmfProject.getChildren()) {
+            if (element instanceof TmfTraceFolder) {
+                TmfTraceFolder child = (TmfTraceFolder) element;
+                childrenMap.put(child.getResource().getName(), child);
+            }
+            if (element instanceof TmfExperimentFolder) {
+                TmfExperimentFolder child = (TmfExperimentFolder) element;
+                childrenMap.put(child.getResource().getName(), child);
+            }
+        }
+
+        // Add the model folder if the corresponding resource exists and is not
+        // accounted for
+        IFolder folder = project.getFolder(TmfTraceFolder.TRACE_FOLDER_NAME);
+        if (folder != null) {
+            String name = folder.getName();
+            ITmfProjectModelElement element = childrenMap.get(name);
+            if (element == null) {
+                element = new TmfTraceFolder(TmfTraceFolder.TRACE_FOLDER_NAME, folder, tmfProject);
+            }
+            children.add(element);
+            childrenMap.remove(name);
+            getTraceFolderChildren((TmfTraceFolder) element);
+        }
+
+        // Add the model folder if the corresponding resource exists and is not
+        // accounted for
+        folder = project.getFolder(TmfExperimentFolder.EXPER_FOLDER_NAME);
+        if (folder != null) {
+            String name = folder.getName();
+            ITmfProjectModelElement element = childrenMap.get(name);
+            if (element == null) {
+                element = new TmfExperimentFolder(TmfExperimentFolder.EXPER_FOLDER_NAME, folder, tmfProject);
+            }
+            children.add(element);
+            childrenMap.remove(name);
+            getExperimentFolderChildren((TmfExperimentFolder) element);
+        }
+
+        // Remove the leftovers (what was in the model but removed from the
+        // project)
+        cleanupModel(tmfProject, childrenMap);
+
+        return children.toArray();
+    }
+
