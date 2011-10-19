@@ -1,0 +1,43 @@
+    private void initLTTngTrace(String path, Class<LttngEvent> eventType, int cacheSize, boolean indexTrace) throws FileNotFoundException {
+        super.initTrace(path, eventType, indexTrace);
+        try {
+            currentJniTrace = JniTraceFactory.getJniTrace(path, traceLibPath, SHOW_LTT_DEBUG_DEFAULT);
+        } catch (Exception e) {
+            throw new FileNotFoundException(e.getMessage());
+        }
+
+        // Export all the event types from the JNI side
+        traceTypes = new HashMap<Integer, LttngEventType>();
+        traceTypeNames = new Vector<Integer>();
+        initialiseEventTypes(currentJniTrace);
+
+        // Build the re-used event structure
+        eventTimestamp = new LttngTimestamp();
+        eventSource = new LttngEventSource();
+        this.eventType = new LttngEventType();
+        eventContent = new LttngEventContent(currentLttngEvent);
+        eventReference = new LttngEventReference(this.getName());
+
+        // Create the skeleton event
+        currentLttngEvent = new LttngEvent(this, eventTimestamp, eventSource, this.eventType, eventContent,
+                eventReference, null);
+
+        // Create a new current location
+        previousLocation = new LttngLocation();
+
+        // Set the currentEvent to the eventContent
+        eventContent.setEvent(currentLttngEvent);
+
+        // Set the time range of the trace
+        TmfContext context = seekLocation(null);
+        LttngEvent event = getNextEvent(context);
+        LttngTimestamp startTime = new LttngTimestamp(event.getTimestamp());
+        LttngTimestamp endTime = new LttngTimestamp(currentJniTrace.getEndTime().getTime());
+
+        setTimeRange(new TmfTimeRange(startTime, endTime));
+
+        if (currentJniTrace == null) {
+            System.out.println("Problem");
+        }
+    }
+

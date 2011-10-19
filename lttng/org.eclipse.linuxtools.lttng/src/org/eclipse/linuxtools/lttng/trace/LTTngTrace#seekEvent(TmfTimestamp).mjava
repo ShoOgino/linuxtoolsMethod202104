@@ -16,13 +16,14 @@
     @Override
     public synchronized TmfContext seekEvent(TmfTimestamp timestamp) {
 
-        // // [lmcfrch]
-        // lastTime = 0;
-
         if (PrintDebug) {
             System.out.println("seekEvent(timestamp) timestamp -> " + timestamp); //$NON-NLS-1$
         }
 
+        if (currentJniTrace == null) {
+            System.out.println("aie");
+        }
+        
         // Call JNI to seek
         currentJniTrace.seekToTime(new JniTime(timestamp.getValue()));
 
@@ -32,11 +33,6 @@
         // this event
         previousLocation.setLastOperationSeek();
 
-        // *** VERIFY ***
-        // Is that too paranoid?
-        //
-        // We don't trust what upper level could do with our internal location
-        // so we create a new one to return instead
         LttngLocation curLocation = new LttngLocation(previousLocation);
 
         return new TmfContext(curLocation);
