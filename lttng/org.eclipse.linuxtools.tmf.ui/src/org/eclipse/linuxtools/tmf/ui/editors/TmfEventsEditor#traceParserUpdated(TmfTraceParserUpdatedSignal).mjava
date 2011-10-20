@@ -1,8 +1,29 @@
+    @SuppressWarnings("unchecked")
     @TmfSignalHandler
     public void traceParserUpdated(TmfTraceParserUpdatedSignal signal) {
         if (signal.getTraceResource().equals(fResource)) {
             broadcast(new TmfTraceClosedSignal(this, fTrace));
-            fTrace = ParserProviderManager.getTrace(fResource);
+            try {
+                fTrace = null;
+                String traceTypeId = fResource.getPersistentProperty(TmfTraceElement.TRACETYPE);
+                if (traceTypeId != null) {
+                    for (IConfigurationElement ce : TmfTraceType.getTypeElements()) {
+                        if (traceTypeId.equals(ce.getAttribute(TmfTraceType.ID_ATTR))) {
+                            fTrace = (ITmfTrace<?>) ce.createExecutableExtension(TmfTraceType.TRACE_TYPE_ATTR);
+                            TmfEvent event = (TmfEvent) ce.createExecutableExtension(TmfTraceType.EVENT_TYPE_ATTR);
+                            String path = fResource.getLocation().toOSString();
+                            fTrace.initTrace(path, event.getClass(), true);
+                            break;
+                        }
+                    }
+                }
+            } catch (InvalidRegistryObjectException e) {
+                e.printStackTrace();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (CoreException e) {
+                e.printStackTrace();
+            }
             fEventsTable.dispose();
             if (fTrace != null) {
                 fEventsTable = createEventsTable(fParent, fTrace.getCacheSize());

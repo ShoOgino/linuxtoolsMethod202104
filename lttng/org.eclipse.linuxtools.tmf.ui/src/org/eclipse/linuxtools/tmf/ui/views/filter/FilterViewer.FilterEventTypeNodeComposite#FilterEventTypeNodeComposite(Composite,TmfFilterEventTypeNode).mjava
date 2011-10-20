@@ -1,33 +1,62 @@
-		FilterEventTypeNodeComposite(Composite parent, TmfFilterEventTypeNode node) {
-			super(parent);
-			fNode = node;
+        FilterEventTypeNodeComposite(Composite parent, TmfFilterEventTypeNode node) {
+            super(parent);
+            fNode = node;
+            fEventsTypeMap = getEventsTypeMap();
 
-			Label label = new Label(this, SWT.NONE);
-			label.setBackground(Display.getCurrent().getSystemColor(SWT.COLOR_WHITE));
-			label.setText(Messages.FilterViewer_TypeLabel);
-			
-			fTypeCombo = new Combo(this, SWT.DROP_DOWN | SWT.READ_ONLY);
-			fTypeCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-			fTypeCombo.setItems(EVENT_TYPES_MAP.keySet().toArray(new String[0]));
-			if (fNode.getEventType() != null) {
-				for (Entry <String, Entry<String, String>> eventTypeEntry : EVENT_TYPES_MAP.entrySet()) {
-					if (eventTypeEntry.getValue().getValue().equals(fNode.getEventType())) {
-						fTypeCombo.setText(eventTypeEntry.getKey());
-					}
-				}
-			}
-			fTypeCombo.addModifyListener(new ModifyListener() {
-				@Override
+            Label label = new Label(this, SWT.NONE);
+            label.setBackground(Display.getCurrent().getSystemColor(SWT.COLOR_WHITE));
+            label.setText(Messages.FilterViewer_TypeLabel);
+            
+            fTypeCombo = new Combo(this, SWT.DROP_DOWN | SWT.READ_ONLY);
+            fTypeCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
+            fTypeCombo.setItems(fEventsTypeMap.keySet().toArray(new String[0]));
+            if (fNode.getEventType() != null) {
+                for (Entry <String, Object> eventTypeEntry : fEventsTypeMap.entrySet()) {
+                    Object value = eventTypeEntry.getValue();
+                    if (value instanceof IConfigurationElement) {
+                        IConfigurationElement ce = (IConfigurationElement) value;
+                        if (ce.getAttribute(TmfTraceType.EVENT_TYPE_ATTR).equals(fNode.getEventType())) {
+                            fTypeCombo.setText(eventTypeEntry.getKey());
+                        }
+                    } else if (value instanceof CustomTxtTraceDefinition) {
+                        CustomTxtTraceDefinition def = (CustomTxtTraceDefinition) value;
+                        String eventType = CustomTxtEvent.class.getCanonicalName() + ":" + def.definitionName; //$NON-NLS-1$
+                        if (eventType.equals(fNode.getEventType())) {
+                            fTypeCombo.setText(eventTypeEntry.getKey());
+                        }
+                    } else if (value instanceof CustomXmlTraceDefinition) {
+                        CustomXmlTraceDefinition def = (CustomXmlTraceDefinition) value;
+                        String eventType = CustomXmlEvent.class.getCanonicalName() + ":" + def.definitionName; //$NON-NLS-1$
+                        if (eventType.equals(fNode.getEventType())) {
+                            fTypeCombo.setText(eventTypeEntry.getKey());
+                        }
+                    }
+                }
+            }
+            fTypeCombo.addModifyListener(new ModifyListener() {
+                @Override
                 public void modifyText(ModifyEvent e) {
-					for (Entry <String, Entry<String, String>> eventTypeEntry : EVENT_TYPES_MAP.entrySet()) {
-						if (eventTypeEntry.getKey().equals(fTypeCombo.getText())) {
-							fNode.setEventType(eventTypeEntry.getValue().getValue());
-							fNode.setName(eventTypeEntry.getValue().getKey());
-							fViewer.refresh(fNode);
-							break;
-						}
-					}
-				}
-			});
-		}
+                    for (Entry <String, Object> eventTypeEntry : fEventsTypeMap.entrySet()) {
+                        if (eventTypeEntry.getKey().equals(fTypeCombo.getText())) {
+                            Object value = eventTypeEntry.getValue();
+                            if (value instanceof IConfigurationElement) {
+                                IConfigurationElement ce = (IConfigurationElement) value;
+                                fNode.setEventType(ce.getAttribute(TmfTraceType.EVENT_TYPE_ATTR));
+                                fNode.setName(ce.getAttribute(TmfTraceType.NAME_ATTR));
+                            } else if (value instanceof CustomTxtTraceDefinition) {
+                                CustomTxtTraceDefinition def = (CustomTxtTraceDefinition) value;
+                                fNode.setEventType(CustomTxtEvent.class.getCanonicalName() + ":" + def.definitionName); //$NON-NLS-1$
+                                fNode.setName(def.definitionName);
+                            } else if (value instanceof CustomXmlTraceDefinition) {
+                                CustomXmlTraceDefinition def = (CustomXmlTraceDefinition) value;
+                                fNode.setEventType(CustomXmlEvent.class.getCanonicalName() + ":" + def.definitionName); //$NON-NLS-1$
+                                fNode.setName(def.definitionName);
+                            }
+                            fViewer.refresh(fNode);
+                            break;
+                        }
+                    }
+                }
+            });
+        }
 

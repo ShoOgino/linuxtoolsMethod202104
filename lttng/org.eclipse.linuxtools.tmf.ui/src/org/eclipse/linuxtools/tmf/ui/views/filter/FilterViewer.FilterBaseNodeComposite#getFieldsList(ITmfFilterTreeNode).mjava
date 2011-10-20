@@ -1,11 +1,77 @@
-		protected String[] getFieldsList(ITmfFilterTreeNode node) {
-			while (node != null) {
-				if (node instanceof TmfFilterEventTypeNode) {
-					TmfFilterEventTypeNode eventTypeNode = (TmfFilterEventTypeNode) node;
-					return ParserProviderManager.getFieldLabelsForEventType(eventTypeNode.getEventType());
-				}
-				node = node.getParent();
-			}
-			return FIELDS_LIST;
-		}
+        protected String[] getFieldsList(ITmfFilterTreeNode node) {
+            ArrayList<String> fieldsList = new ArrayList<String>();
+            while (node != null) {
+                if (node instanceof TmfFilterEventTypeNode) {
+                    TmfFilterEventTypeNode eventTypeNode = (TmfFilterEventTypeNode) node;
+                    for (IConfigurationElement ce : TmfTraceType.getTypeElements()) {
+                        if (ce.getAttribute(TmfTraceType.EVENT_TYPE_ATTR).equals(eventTypeNode.getEventType())) {
+                            try {
+                                TmfEvent event = (TmfEvent) ce.createExecutableExtension(TmfTraceType.EVENT_TYPE_ATTR);
+                                TmfEventType eventType = event.getType();
+                                if (eventType != null) {
+                                    for (String field : eventType.getLabels()) {
+                                        fieldsList.add(field);
+                                    }
+                                }
+                            } catch (CoreException e) {
+                            }
+                            return fieldsList.toArray(new String[0]);
+                        }
+                    }
+                    if (eventTypeNode.getEventType().startsWith(CustomTxtEvent.class.getCanonicalName())) {
+                        for (CustomTxtTraceDefinition def : CustomTxtTraceDefinition.loadAll()) {
+                            if (eventTypeNode.getEventType().equals(CustomTxtEvent.class.getCanonicalName() + ":" + def.definitionName)) { //$NON-NLS-1$
+                                for (OutputColumn output : def.outputs) {
+                                    fieldsList.add(output.name);
+                                }
+                                return fieldsList.toArray(new String[0]);
+                            }
+                        }
+                    }
+                    if (eventTypeNode.getEventType().startsWith(CustomXmlEvent.class.getCanonicalName())) {
+                        for (CustomXmlTraceDefinition def : CustomXmlTraceDefinition.loadAll()) {
+                            if (eventTypeNode.getEventType().equals(CustomXmlEvent.class.getCanonicalName() + ":" + def.definitionName)) { //$NON-NLS-1$
+                                for (OutputColumn output : def.outputs) {
+                                    fieldsList.add(output.name);
+                                }
+                                return fieldsList.toArray(new String[0]);
+                            }
+                        }
+                    }
+                }
+                node = node.getParent();
+            }
+            for (IConfigurationElement ce : TmfTraceType.getTypeElements()) {
+                try {
+                    TmfEvent event = (TmfEvent) ce.createExecutableExtension(TmfTraceType.EVENT_TYPE_ATTR);
+                    TmfEventType eventType = event.getType();
+                    if (eventType != null) {
+                        fieldsList.add("[" + TmfTraceType.getCategoryName(ce.getAttribute(TmfTraceType.CATEGORY_ATTR)) + //$NON-NLS-1$
+                                " : " + ce.getAttribute(TmfTraceType.NAME_ATTR) + "]"); //$NON-NLS-1$ //$NON-NLS-2$
+                        for (String field : eventType.getLabels()) {
+                            fieldsList.add(field);
+                        }
+                        fieldsList.add(""); //$NON-NLS-1$
+                    }
+                } catch (CoreException e) {
+                }
+            }
+            for (CustomTxtTraceDefinition def : CustomTxtTraceDefinition.loadAll()) {
+                fieldsList.add("[" + CUSTOM_TXT_CATEGORY + //$NON-NLS-1$
+                        " : " + def.definitionName + "]"); //$NON-NLS-1$ //$NON-NLS-2$
+                for (OutputColumn output : def.outputs) {
+                    fieldsList.add(output.name);
+                }
+                fieldsList.add(""); //$NON-NLS-1$
+            }
+            for (CustomXmlTraceDefinition def : CustomXmlTraceDefinition.loadAll()) {
+                fieldsList.add("[" + CUSTOM_XML_CATEGORY + //$NON-NLS-1$
+                        " : " + def.definitionName + "]"); //$NON-NLS-1$ //$NON-NLS-2$
+                for (OutputColumn output : def.outputs) {
+                    fieldsList.add(output.name);
+                }
+                fieldsList.add(""); //$NON-NLS-1$
+            }
+            return fieldsList.toArray(new String[0]);
+        }
 

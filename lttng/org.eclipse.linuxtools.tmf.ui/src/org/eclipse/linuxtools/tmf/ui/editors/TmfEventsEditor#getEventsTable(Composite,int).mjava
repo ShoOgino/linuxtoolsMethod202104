@@ -1,15 +1,20 @@
     private TmfEventsTable getEventsTable(Composite parent, int cacheSize) {
         TmfEventsTable eventsTable = null;
-        IConfigurationElement[] config = Platform.getExtensionRegistry().getConfigurationElementsFor(TmfCorePlugin.TMF_TRACE_TYPE_ID);
         try {
             String traceType = fResource.getPersistentProperty(TmfTraceElement.TRACETYPE);
-            for (IConfigurationElement ce : config) {
-                if (ce.getAttribute(TmfTraceElement.ID).equals(traceType)) {
-                    IConfigurationElement[] eventsTableTypeCE = ce.getChildren(TmfTraceElement.EVENTS_TABLE_TYPE);
+            if (traceType.startsWith(CustomTxtTrace.class.getCanonicalName())) {
+                return new CustomEventsTable(((CustomTxtTrace) fTrace).getDefinition(), parent, cacheSize);
+            }
+            if (traceType.startsWith(CustomXmlTrace.class.getCanonicalName())) {
+                return new CustomEventsTable(((CustomXmlTrace) fTrace).getDefinition(), parent, cacheSize);
+            }
+            for (IConfigurationElement ce : TmfTraceType.getTypeElements()) {
+                if (ce.getAttribute(TmfTraceType.ID_ATTR).equals(traceType)) {
+                    IConfigurationElement[] eventsTableTypeCE = ce.getChildren(TmfTraceType.EVENTS_TABLE_TYPE_ELEM);
                     if (eventsTableTypeCE.length != 1) {
                         break;
                     }
-                    String eventsTableType = eventsTableTypeCE[0].getAttribute(TmfTraceElement.CLASS);
+                    String eventsTableType = eventsTableTypeCE[0].getAttribute(TmfTraceType.CLASS_ATTR);
                     if (eventsTableType == null || eventsTableType.length() == 0) {
                         break;
                     }

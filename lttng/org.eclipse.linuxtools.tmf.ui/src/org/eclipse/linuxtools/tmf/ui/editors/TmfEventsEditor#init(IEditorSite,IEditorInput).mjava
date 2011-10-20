@@ -1,3 +1,4 @@
+    @SuppressWarnings("unchecked")
     @Override
     public void init(IEditorSite site, IEditorInput input) throws PartInitException {
         if (input instanceof TmfEditorInput) {
@@ -5,17 +6,27 @@
             fTrace = ((TmfEditorInput) input).getTrace();
         } else if (input instanceof IFileEditorInput) {
             fResource = ((IFileEditorInput) input).getFile();
-            fTrace = ParserProviderManager.getTrace(fResource);
-            input = new TmfEditorInput(fResource, fTrace);
-        } else if (input instanceof FileStoreEditorInput) {
             try {
-                FileStoreEditorInput fileStoreEditorInput = (FileStoreEditorInput) input;
-                fResource = createLink(fileStoreEditorInput.getURI());
-                fTrace = ParserProviderManager.getTrace(fResource);
-                input = new TmfEditorInput(fResource, fTrace);
+                String traceTypeId = fResource.getPersistentProperty(TmfTraceElement.TRACETYPE);
+                if (traceTypeId != null) {
+                    for (IConfigurationElement ce : TmfTraceType.getTypeElements()) {
+                        if (traceTypeId.equals(ce.getAttribute(TmfTraceType.ID_ATTR))) {
+                            fTrace = (ITmfTrace<?>) ce.createExecutableExtension(TmfTraceType.TRACE_TYPE_ATTR);
+                            TmfEvent event = (TmfEvent) ce.createExecutableExtension(TmfTraceType.EVENT_TYPE_ATTR);
+                            String path = fResource.getLocation().toOSString();
+                            fTrace.initTrace(path, event.getClass(), true);
+                            break;
+                        }
+                    }
+                }
+            } catch (InvalidRegistryObjectException e) {
+                e.printStackTrace();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
             } catch (CoreException e) {
-                throw new PartInitException(e.getMessage());
+                e.printStackTrace();
             }
+            input = new TmfEditorInput(fResource, fTrace);
         } else {
             throw new PartInitException("Invalid IEditorInput: " + input.getClass()); //$NON-NLS-1$
         }

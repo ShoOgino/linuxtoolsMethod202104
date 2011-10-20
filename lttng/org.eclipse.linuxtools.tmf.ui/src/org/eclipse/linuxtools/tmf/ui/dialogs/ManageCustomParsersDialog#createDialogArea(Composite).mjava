@@ -54,12 +54,10 @@
                     editButton.setEnabled(false);
                     deleteButton.setEnabled(false);
                     exportButton.setEnabled(false);
-                    parseButton.setEnabled(false);
                 } else {
                     editButton.setEnabled(true);
                     deleteButton.setEnabled(true);
                     exportButton.setEnabled(true);
-                    parseButton.setEnabled(true);
                 }
             }});
         
@@ -185,59 +183,6 @@
                     }
                     if (def != null) {
                         def.save(path);
-                    }
-                }
-            }});
-
-        parseButton = new Button(buttonContainer, SWT.PUSH);
-        parseButton.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, false, false));
-        parseButton.setText(Messages.ManageCustomParsersDialog_ParseButtonLabel);
-        parseButton.setEnabled(false);
-        parseButton.addSelectionListener(new SelectionListener(){
-            @Override
-			public void widgetDefaultSelected(SelectionEvent e) {}
-            @Override
-			public void widgetSelected(SelectionEvent e) {
-                FileDialog dialog = new FileDialog(Display.getCurrent().getActiveShell(), SWT.OPEN);
-                dialog.setText(Messages.ManageCustomParsersDialog_TraceSelection + parserList.getSelection()[0]);
-                if (xmlButton.getSelection()) {
-                    dialog.setFilterExtensions(new String[] {"*.xml", "*"}); //$NON-NLS-1$ //$NON-NLS-2$
-                }
-                String path = dialog.open();
-                String parser = null;
-                if (path != null) {
-                    CustomTraceDefinition def = null;
-                    if (txtButton.getSelection()) {
-                        def = CustomTxtTraceDefinition.load(parserList.getSelection()[0]);
-                        parser = CustomTxtTrace.class.getCanonicalName() + "." + def.definitionName; //$NON-NLS-1$
-                    } else if (xmlButton.getSelection()) {
-                        def = CustomXmlTraceDefinition.load(parserList.getSelection()[0]);
-                        parser = CustomXmlTrace.class.getCanonicalName() + "." + def.definitionName; //$NON-NLS-1$
-                    }
-                    if (def != null) {
-                        try {
-                            IWorkspace workspace = ResourcesPlugin.getWorkspace();
-                            IPath location = Path.fromOSString(path);
-                            IFile file = workspace.getRoot().getFileForLocation(location);
-                            if (file == null) {
-                                file = createLink(new File(location.toPortableString()).toURI());
-                            }
-                            file.setPersistentProperty(ParserProviderManager.PARSER_PROPERTY, parser);
-                            IEditorInput editorInput = new FileEditorInput(file);
-                            IWorkbench wb = PlatformUI.getWorkbench();
-                            IWorkbenchPage activePage = wb.getActiveWorkbenchWindow().getActivePage();
-          
-                            String editorId = TmfEventsEditor.ID;
-                            IEditorPart editor = activePage.findEditor(editorInput);
-                            if (editor != null && editor instanceof IReusableEditor) {
-                                activePage.reuseEditor((IReusableEditor)editor, editorInput);
-                                activePage.activate(editor);
-                            } else {
-                                editor = activePage.openEditor(editorInput, editorId);
-                            }
-                        } catch (CoreException e1) {
-                            MessageDialog.openError(getShell(), "Parse Error", e1.getMessage()); //$NON-NLS-1$
-                        }
                     }
                 }
             }});
