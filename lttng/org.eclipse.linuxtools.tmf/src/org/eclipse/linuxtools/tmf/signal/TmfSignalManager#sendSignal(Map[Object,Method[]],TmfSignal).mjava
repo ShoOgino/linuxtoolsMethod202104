@@ -1,0 +1,41 @@
+    static private void sendSignal(Map<Object, Method[]> listeners, TmfSignal signal) {
+
+        if (Tracer.isSignalTraced()) Tracer.traceSignal(signal, "(start)"); //$NON-NLS-1$
+
+        // Build the list of listener methods that are registered for this signal
+        Class<?> signalClass = signal.getClass();
+        Map<Object, List<Method>> targets = new HashMap<Object, List<Method>>();
+        targets.clear();
+        for (Map.Entry<Object, Method[]> entry : listeners.entrySet()) {
+            List<Method> matchingMethods = new ArrayList<Method>();
+            for (Method method : entry.getValue()) {
+                if (method.getParameterTypes()[0].isAssignableFrom(signalClass)) {
+                    matchingMethods.add(method);
+                }
+            }
+            if (!matchingMethods.isEmpty()) {
+                targets.put(entry.getKey(), matchingMethods);
+            }
+        }
+
+        // Call the signal handlers 
+        for (Map.Entry<Object, List<Method>> entry : targets.entrySet()) {
+            for (Method method : entry.getValue()) {
+                try {
+                    method.invoke(entry.getKey(), new Object[] { signal });
+                    if (Tracer.isSignalTraced()) {
+                        Object key = entry.getKey();
+                        String hash = String.format("%1$08X", entry.getKey().hashCode()); //$NON-NLS-1$
+                        String target = "[" + hash + "] " + key.getClass().getSimpleName() + ":" + method.getName();   //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$
+                        Tracer.traceSignal(signal, target);                     
+                    }
+                } catch (IllegalArgumentException e) {
+                } catch (IllegalAccessException e) {
+                } catch (InvocationTargetException e) {
+                }
+            }
+        }
+
+        if (Tracer.isSignalTraced()) Tracer.traceSignal(signal, "(end)"); //$NON-NLS-1$
+    }
+
