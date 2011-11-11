@@ -1,8 +1,11 @@
 	public IRemoteFileProxy getFileProxy(IProject project) throws CoreException {
-		if (project.hasNature(RDT_NATURE))
-			return getRemoteManager(RDT_NATURE).getFileProxy(project);
-		else if (project.hasNature(RDT_SYNC_NATURE))
-			return getRemoteManager(RDT_SYNC_NATURE).getFileProxy(project);
+		URI projectURI = project.getLocationURI();
+		String scheme = projectURI.getScheme();
+		if (scheme != null && !LocalHost.equals(projectURI.getHost())) {
+		   IRemoteProxyManager manager = getRemoteManager(scheme);
+		   if (manager != null)
+		      return manager.getFileProxy(project);
+		}
 		return getLocalFileProxy();
 	}
 
