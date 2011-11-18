@@ -1,0 +1,56 @@
+	@Override
+	public void initializeFrom(ILaunchConfiguration config) {
+		//if (PerfPlugin.DEBUG_ON) System.out.println("Initializing eventsTab from previous config.");
+		
+		try {
+			//restore whether things are default event/enabled or not.
+			_chkDefaultEvent.setSelection(config.getAttribute(PerfPlugin.ATTR_DefaultEvent, PerfPlugin.ATTR_DefaultEvent_default));
+			refreshDefaultEnabled();
+			
+			//restore custom hw breakpoints
+			ArrayList<String> hwbps = (ArrayList<String>)config.getAttribute(PerfPlugin.ATTR_HwBreakpointEvents, PerfPlugin.ATTR_HwBreakpointEvents_default);
+			if (hwbps != null) {
+				for (int i = 0; i < _eventTabLists.length; i++) {
+					if (_eventTabItems[i].getText().equals(PerfPlugin.STRINGS_HWBREAKPOINTS)) {
+						_eventTabLists[i].removeAll();
+						for (String e : hwbps) {
+							TableItem x = new TableItem(_eventTabLists[i], SWT.NONE);
+							x.setText(e);
+						}
+					}
+				}
+			}
+			
+			//restore custom raw hw events
+			ArrayList<String> rawhe = (ArrayList<String>)config.getAttribute(PerfPlugin.ATTR_RawHwEvents, PerfPlugin.ATTR_RawHwEvents_default);
+			if (rawhe != null) {
+				for (int i = 0; i < _eventTabLists.length; i++) {
+					if (_eventTabItems[i].getText().equals(PerfPlugin.STRINGS_RAWHWEvents)) {
+						_eventTabLists[i].removeAll();
+						for (String e : rawhe) {
+							TableItem x = new TableItem(_eventTabLists[i], SWT.NONE);
+							x.setText(e);
+						}
+					}
+				}
+			}
+
+			//tick all the boxes that are checked (the events i mean)			
+			//This is a little inefficient, I guess. TODO Check more efficiently?
+			ArrayList<String> selectedEvents = (ArrayList<String>)config.getAttribute(PerfPlugin.ATTR_SelectedEvents, PerfPlugin.ATTR_SelectedEvents_default);
+			if (selectedEvents != null) {
+				for(String s : selectedEvents) {
+					for (int i = 0; i < _eventTabLists.length; i++) {
+						for(TableItem x : _eventTabLists[i].getItems()) {
+							if (x.getText().equals(s))
+								x.setChecked(true);
+						}
+					}
+				}
+			}
+		} catch (CoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+

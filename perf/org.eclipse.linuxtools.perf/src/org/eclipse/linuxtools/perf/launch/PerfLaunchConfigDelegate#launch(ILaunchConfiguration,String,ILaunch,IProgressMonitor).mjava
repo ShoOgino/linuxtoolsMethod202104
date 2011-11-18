@@ -1,0 +1,90 @@
+	@Override
+	public void launch(ILaunchConfiguration config, String mode,
+			ILaunch launch, IProgressMonitor monitor) throws CoreException {
+		//if (PerfPlugin.DEBUG_ON) System.out.println("Launching Perf.");
+		
+		//Find the binary path
+		IPath exePath = CDebugUtils.verifyProgramPath( config );
+		
+		//Get working directory
+		File wd = getWorkingDirectory( config );
+		if ( wd == null ) {
+			wd = new File( System.getProperty( "user.home", "." ) ); //$NON-NLS-1$ //$NON-NLS-2$
+		}
+		
+		//Build the commandline string to run perf recording the given project
+		String arguments[] = getProgramArgumentsArray( config ); //Program args from launch config.
+		ArrayList<String> command = new ArrayList<String>( 4 + arguments.length );
+		command.addAll( Arrays.asList( PerfCore.getRecordString(config).split(" ") ) ); //Get the base commandline string (with flags/options based on config)
+		command.add( exePath.toOSString() ); // Add the path to the executable
+		//Compile string
+		command.addAll( Arrays.asList( arguments ) ); 
+		String[] commandArray = (String[])command.toArray( new String[command.size()] );
+		boolean usePty = config.getAttribute(ICDTLaunchConfigurationConstants.ATTR_USE_TERMINAL, ICDTLaunchConfigurationConstants.USE_TERMINAL_DEFAULT);
+		
+		Process process;
+		try {
+			//Spawn the process
+			process = execute( commandArray, getEnvironment( config ), wd, usePty ); 			
+			createNewProcess( launch, process, commandArray[0] ); //Spawn IProcess using Debug plugin (CDT)
+			
+			/* This commented part is the basic method to run perf record without integrating into eclipse.
+			String binCall = exePath.toOSString();
+			for(String arg : arguments) {
+				binCall.concat(" " + arg);
+			}
+			PerfCore.Run(binCall);*/
+			
+			//Wait for recording to complete.
+			process.waitFor();
+			PrintStream print = null;
+			if (config.getAttribute(IDebugUIConstants.ATTR_CAPTURE_IN_CONSOLE, true)) {
+				//Get the console to output to.
+				//This may not be the best way to accomplish this but it shall do for now.
+				ConsolePlugin plugin = ConsolePlugin.getDefault();
+				IConsoleManager conMan = plugin.getConsoleManager();
+				IConsole[] existing = conMan.getConsoles();
+				IOConsole binaryOutCons = null;
+
+				//Find the console
+				for(IConsole x : existing) {
+					if (x.getName().contains(renderProcessLabel(commandArray[0]))) {
+						binaryOutCons = (IOConsole)x;
+					}
+				}
+				if ((binaryOutCons == null) && (existing.length != 0)) { //if can't be found get the most recent opened, this should probably never happen.
+					if (existing[existing.length - 1] instanceof IOConsole)
+						binaryOutCons = (IOConsole)existing[existing.length - 1];
+				}
+				
+				//Get the printstream via the outputstream.
+				//Get ouput stream
+				OutputStream outputTo;
+				if (binaryOutCons != null) {
+					outputTo = binaryOutCons.newOutputStream();
+				} else { //This probably shouldn't ever happen...
+					outputTo = System.out;
+				}				
+				//Get the printstream for that console
+				print = new PrintStream(outputTo);
+				for (int i = 0; i < commandArray.length; i++) {
+					print.print(commandArray[i] + " ");
+				}
+				
+				//Print Message
+				print.println();
+				print.println("Analysing recorded perf.data, please wait...");
+				//Possibly should pass this (the console reference) on to PerfCore.Report if theres anything we ever want to spit out to user.
+			}
+			
+			//(Only for testing this line..) PerfCore.Report(config, null, null, null, "/home/thavidu/dev/eclipse-oprof2-workspace/org.eclipse.linuxtools.perf.tests/resources/perf.data");
+			PerfCore.Report(config, getEnvironment(config), wd, monitor, null, print);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+

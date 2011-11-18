@@ -1,0 +1,56 @@
+	public void run() {
+		ISelection selection = viewer.getSelection();
+		Object obj = ((IStructuredSelection)selection).getFirstElement();
+		if (obj instanceof PMLineRef) {
+			//Open in editor
+			PMLineRef tmp = (PMLineRef)obj;
+//			showMessage(tmp.getParent().getName().toString());
+			try {
+				ProfileUIUtils.openEditorAndSelect(tmp.getSymbol().getFile().getPath(), Integer.parseInt(tmp.getName()));
+			} catch (PartInitException e) {
+				e.printStackTrace();
+			} catch (BadLocationException e) {
+				e.printStackTrace();
+			}
+		} else if (obj instanceof PMFile) {
+			PMFile tmp = (PMFile)obj;
+			//showMessage(tmp.getName().toString());
+			try {
+				ProfileUIUtils.openEditorAndSelect(tmp.getName(), 1);
+			} catch (PartInitException e) {
+				e.printStackTrace();
+			} catch (BadLocationException e) {
+				e.printStackTrace();
+			}
+		} else if (obj instanceof PMSymbol) {
+			PMSymbol tmpsym = (PMSymbol)obj;
+			if (tmpsym.getFile().getName().equals(PerfPlugin.STRINGS_UnfiledSymbols)) 
+				return; //Don't try to do anything if we don't know where or what the symbol is.
+			String binaryPath = tmpsym.getFile().getDso().getPath();
+			ICProject project;
+			try {
+				project = ProfileUIUtils.findCProjectWithAbsolutePath(binaryPath);
+				HashMap<String, int[]> map = ProfileUIUtils.findFunctionsInProject(project, tmpsym.getFunctionName(), -1, tmpsym.getFile().getPath(), true);
+				boolean bFound = false;
+				for (String loc : map.keySet()) {
+					ProfileUIUtils.openEditorAndSelect(loc, map.get(loc)[0], map.get(loc)[1]);
+					bFound = true;
+				}
+				if (!bFound) {
+					ProfileUIUtils.openEditorAndSelect(tmpsym.getFile().getPath(), 1);
+				}
+			} catch (CoreException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (BadLocationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} else if (obj instanceof PMDso || obj instanceof PMCommand || obj instanceof PMEvent) {
+			//no effect
+		} else {
+			//Shouldn't happen...
+			showMessage("Double-click detected on "+obj.toString()+" "+obj.getClass().toString());
+		}
+	}
+

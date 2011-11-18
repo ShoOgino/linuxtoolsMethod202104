@@ -1,0 +1,26 @@
+	//Generates a perf record command string with the options set in the given config. (If null uses default).
+	public static String getRecordString(ILaunchConfiguration config) {
+		String base = "perf record -f";
+		if (config == null) {
+			return base;
+		} else {
+			String s = base;
+			try {
+				if (config.getAttribute(PerfPlugin.ATTR_Record_Realtime, PerfPlugin.ATTR_Record_Realtime_default))
+					s = s.concat(" -r");
+				if (config.getAttribute(PerfPlugin.ATTR_Record_Verbose, PerfPlugin.ATTR_Record_Verbose_default))
+					s = s.concat(" -v");
+				if (config.getAttribute(PerfPlugin.ATTR_Multiplex, PerfPlugin.ATTR_Multiplex_default))
+					s = s.concat(" -M");
+				ArrayList<String> selE = (ArrayList<String>) config.getAttribute(PerfPlugin.ATTR_SelectedEvents, PerfPlugin.ATTR_SelectedEvents_default);
+				if (!config.getAttribute(PerfPlugin.ATTR_DefaultEvent, PerfPlugin.ATTR_DefaultEvent_default) 
+														&& selE != null) {					
+					for(String e : selE) {
+						s = s.concat(" -e " + e);
+					}
+				}
+			} catch (CoreException e) { }			
+			return s;
+		}
+	}
+

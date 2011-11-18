@@ -1,0 +1,51 @@
+	public static HashMap<String,ArrayList<String>> loadEventList() {
+		HashMap<String,ArrayList<String>> events = new HashMap<String,ArrayList<String>>();
+		Process p = null;
+		BufferedReader input = null;
+		BufferedReader error = null;
+		try {
+			// Alternatively can try with -i flag
+			p = Runtime.getRuntime().exec("perf list"); //(char 1 as -t is a custom field seperator						
+			p.waitFor();
+			input = new BufferedReader(new InputStreamReader(p.getInputStream()));
+			error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+			spitStream(error,"Perf Report (eventsList) STDERR", null);
+		} catch( IOException e ) {
+			e.printStackTrace();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}		
+		String line;
+		try {
+			while (( line = input.readLine()) != null){
+				if (line.contains("[")) {
+					String event;
+					String cat;
+					if (line.contains(PerfPlugin.STRINGS_HWBREAKPOINTS)) {
+						cat = PerfPlugin.STRINGS_HWBREAKPOINTS;
+						event = line.substring(1,line.indexOf("[", PerfPlugin.MagicPerfListNumber)).trim();
+					} else if (line.contains(PerfPlugin.STRINGS_RAWHWEvents)) {
+						cat = PerfPlugin.STRINGS_RAWHWEvents;
+						event = line.substring(1,line.indexOf("[", PerfPlugin.MagicPerfListNumber)).trim();
+					} else {
+						event = line.substring(1,PerfPlugin.MagicPerfListNumber).trim(); //magic number but corresponds with parse-events.c in Perf.
+						if (event.contains("OR")) {
+							event = event.split("OR")[0]; //filter out the abbreviations.
+						}
+						cat = line.substring(PerfPlugin.MagicPerfListNumber + 1).split("\\]")[0].trim();
+					}
+					ArrayList<String> catevs = events.get(cat);
+					if (catevs == null) {
+						catevs = new ArrayList<String>();
+						events.put(cat, catevs);
+					}
+					catevs.add(event.trim());
+				}
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return events;
+	}
+

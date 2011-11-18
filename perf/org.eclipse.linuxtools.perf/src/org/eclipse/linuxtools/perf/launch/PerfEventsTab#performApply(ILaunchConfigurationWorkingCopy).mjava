@@ -1,0 +1,61 @@
+	@Override
+	public void performApply(ILaunchConfigurationWorkingCopy wconfig) {
+		//if (PerfPlugin.DEBUG_ON) System.out.println("Saving eventsTab values.");
+		//Store default event checkbox
+		wconfig.setAttribute(PerfPlugin.ATTR_DefaultEvent, _chkDefaultEvent.getSelection());
+		
+		//Store which events are selected
+		ArrayList<String> selectedEvents = new ArrayList<String>();
+		for (int i = 0; i < _eventTabLists.length; i++) {
+			for(TableItem x : _eventTabLists[i].getItems()) {
+				if (x.getChecked())
+					selectedEvents.add(x.getText());				
+			}
+		}
+		//if (PerfPlugin.DEBUG_ON) System.out.println("Selected events:" + selectedEvents.toString());
+		wconfig.setAttribute(PerfPlugin.ATTR_SelectedEvents, selectedEvents);
+		
+		//Flag for multiple events
+		if ((_chkDefaultEvent.getSelection() == false) && (selectedEvents.size() > 1)) {
+			wconfig.setAttribute(PerfPlugin.ATTR_MultipleEvents, true);
+		} else {
+			wconfig.setAttribute(PerfPlugin.ATTR_MultipleEvents, false);
+		}
+		if (selectedEvents.size() <= 0) {
+			//If they unticked the default box but didn't select any events revert to default.
+			wconfig.setAttribute(PerfPlugin.ATTR_DefaultEvent, true);			
+		}
+		
+		//Store any custom HW BreakPoints they added (even if unchecked).
+		ArrayList<String> hwbps = new ArrayList<String>();
+		for (int i = 0; i < _eventTabLists.length; i++) {
+			if (_eventTabItems[i].getText().equals(PerfPlugin.STRINGS_HWBREAKPOINTS)) {
+				for(TableItem x : _eventTabLists[i].getItems()) {
+					hwbps.add(x.getText());
+				}
+			}
+		}
+		if (hwbps.size() == 0) { hwbps = null; } //to match with default value.
+		wconfig.setAttribute(PerfPlugin.ATTR_HwBreakpointEvents, hwbps);
+		
+		//Store any custom Raw HW Events they added (even if unchecked).
+		ArrayList<String> rawhwe = new ArrayList<String>();
+		for (int i = 0; i < _eventTabLists.length; i++) {
+			if (_eventTabItems[i].getText().equals(PerfPlugin.STRINGS_RAWHWEvents)) {
+				for(TableItem x : _eventTabLists[i].getItems()) {
+					rawhwe.add(x.getText());				
+				}
+			}
+		}
+		if (rawhwe.size() == 0) { rawhwe = null; } //to match with default value.
+		wconfig.setAttribute(PerfPlugin.ATTR_RawHwEvents, rawhwe);
+		
+		try {
+			if (this.canSave())
+				wconfig.doSave();
+		} catch (CoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
