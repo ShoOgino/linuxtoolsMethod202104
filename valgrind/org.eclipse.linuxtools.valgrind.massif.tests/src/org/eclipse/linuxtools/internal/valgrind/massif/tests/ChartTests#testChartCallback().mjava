@@ -9,19 +9,16 @@
 
 		IEditorPart part = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().getActiveEditor();
 		if (part instanceof ChartEditor) {
-			ChartControl control = ((ChartEditor) part).getControl();
-			Event event = new Event();
-			event.button = 1;
-			event.count = 1;
-			event.widget = control;
-			MouseEvent mEvent = new MouseEvent(event);
-			DataPointHints source = new DataPointHints(null, null, null, null, null, null, null, null, null, 4, null, 0, null);
-			control.callback(mEvent, new WrappedStructureSource(source), null);
+			Chart control = ((ChartEditor) part).getControl();
+			ILineSeries lsTotal = (ILineSeries) control.getSeriesSet().getSeries(Messages.getString("HeapChart.Total_Heap"));
+			Point p1 = lsTotal.getPixelCoordinates(4);
 
-			TableViewer viewer = ((MassifViewPart) view.getDynamicView()).getTableViewer();
-			MassifSnapshot[] snapshots = (MassifSnapshot[]) viewer.getInput();
-			MassifSnapshot snapshot = (MassifSnapshot) ((StructuredSelection) viewer.getSelection()).getFirstElement();
-			assertEquals(4, Arrays.asList(snapshots).indexOf(snapshot));
+			HeapChart heapChart = ((ChartEditorInput) ((ChartEditor)part).getEditorInput()).getChart();
+			int x = control.getAxisSet().getXAxis(0).getPixelCoordinate(heapChart.time[4]);
+			int y = control.getAxisSet().getYAxis(0).getPixelCoordinate(heapChart.dataTotal[4]);
+
+			assertEquals(x, p1.x);
+			assertEquals(y, p1.y);
 		} else {
 			fail();
 		}
