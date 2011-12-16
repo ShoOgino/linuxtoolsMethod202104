@@ -1,19 +1,12 @@
 	public void renderSVG(IPath svgPath) {
-		try {
-			RunTimeContext rtc = new RunTimeContext();
-			
-			deviceRenderer = PluginSettings.instance().getDevice("dv.SVG"); //$NON-NLS-1$
-			Generator gr = Generator.instance();
-			Bounds bo = BoundsImpl.create(0, 0, 800, 600);
-			state = gr.build(deviceRenderer.getDisplayServer(), cm, bo, null,
-					rtc, null);
-			deviceRenderer.setProperty(IDeviceRenderer.FILE_IDENTIFIER, svgPath
-					.toOSString());
-			deviceRenderer.setProperty(IDeviceRenderer.UPDATE_NOTIFIER, this);
-
-			gr.render(deviceRenderer, state);
-		} catch (ChartException e) {
-			e.printStackTrace();
-		}
+		Composite comp = cm.getChartControl();
+		Display dsp = Display.getCurrent();
+		GC gc = new GC(comp);
+		Image img = new Image(dsp, comp.getSize().x, comp.getSize().y);
+		gc.copyArea(img, 0, 0);
+		gc.dispose();
+		ImageLoader imageLoader = new ImageLoader();
+		imageLoader.data = new ImageData[] {img.getImageData()};
+		imageLoader.save(svgPath.toOSString(), SWT.IMAGE_PNG);
 	}
 
