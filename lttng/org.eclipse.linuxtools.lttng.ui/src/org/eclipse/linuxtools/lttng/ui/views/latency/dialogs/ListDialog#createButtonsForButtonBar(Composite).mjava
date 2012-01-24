@@ -1,0 +1,96 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.linuxtools.lttng.ui.views.latency.dialogs.AbstractDialog#createButtonsForButtonBar(org.eclipse.swt.widgets.Composite)
+     */
+    @Override
+    protected void createButtonsForButtonBar(Composite parent) {
+        GridData gridData = new GridData();
+        gridData.verticalAlignment = GridData.FILL;
+        gridData.horizontalSpan = 1;
+        gridData.grabExcessHorizontalSpace = true;
+        gridData.grabExcessVerticalSpace = true;
+        gridData.horizontalAlignment = SWT.RIGHT;
+
+        parent.setLayoutData(gridData);
+
+        // Create the "Reset" button
+        Button resetButton = createButton(parent, RESET, Messages.LatencyView_Dialogs_ListEvents_Buttons_Reset, false);
+        resetButton.addListener(SWT.Selection, new Listener() {
+            @Override
+            public void handleEvent(Event event) {
+                boolean confirmDeletion = MessageDialog.openQuestion(getShell(), Messages.LatencyView_Dialogs_ListEvents_Confirm_Title,
+                        Messages.LatencyView_Dialogs_ListEvents_Confirm_Message);
+
+                if (confirmDeletion) {
+                    EventMatcher.getInstance().resetMatches();
+
+                    fTable.removeAll();
+
+                    Vector<String> defaultStarts = new Vector<String>();
+                    Vector<String> defaultEnds = new Vector<String>();
+
+                    defaultStarts.add(EventMatcher.PAGE_FAULT_GET_USER_ENTRY);
+                    defaultEnds.add(EventMatcher.PAGE_FAULT_GET_USER_EXIT);
+                    defaultStarts.add(EventMatcher.TASKLET_LOW_ENTRY);
+                    defaultEnds.add(EventMatcher.TASKLET_LOW_EXIT);
+                    defaultStarts.add(EventMatcher.PAGE_FAULT_ENTRY);
+                    defaultEnds.add(EventMatcher.PAGE_FAULT_EXIT);
+                    defaultStarts.add(EventMatcher.SYSCALL_ENTRY);
+                    defaultEnds.add(EventMatcher.SYSCALL_EXIT);
+                    defaultStarts.add(EventMatcher.IRQ_ENTRY);
+                    defaultEnds.add(EventMatcher.IRQ_EXIT);
+                    defaultStarts.add(EventMatcher.READ);
+                    defaultEnds.add(EventMatcher.WRITE);
+                    defaultStarts.add(EventMatcher.OPEN);
+                    defaultEnds.add(EventMatcher.CLOSE);
+                    defaultStarts.add(EventMatcher.BUFFER_WAIT_START);
+                    defaultEnds.add(EventMatcher.BUFFER_WAIT_END);
+                    defaultStarts.add(EventMatcher.START_COMMIT);
+                    defaultEnds.add(EventMatcher.END_COMMIT);
+                    defaultStarts.add(EventMatcher.WAIT_ON_PAGE_START);
+                    defaultEnds.add(EventMatcher.WAIT_ON_PAGE_END);
+
+                    saveMatchPairs(defaultStarts, defaultEnds);
+
+                    for (int i = 0; i < defaultStarts.size(); i++) {
+                        EventMatcher.getInstance().addMatch(defaultStarts.get(i), defaultEnds.get(i));
+                    }
+
+                    // Get the list of start and end types from the EventMatcher
+                    EventsPair pair = getMatchPairs();
+                    fEventStartTypes = pair.getFirst();
+                    fEventEndTypes = pair.getSecond();
+
+                    for (int i = 0; i < fEventStartTypes.size(); i++) {
+                        TableItem item = new TableItem(fTable, SWT.RIGHT);
+
+                        String max = String.valueOf(fEventStartTypes.size());
+                        String number = formatListNumber(i + 1, max.length());
+
+                        String[] columns = { number, fEventStartTypes.get(i), fEventEndTypes.get(i) };
+
+                        item.setText(columns);
+                    }
+
+                    fTable.setItemCount(fEventStartTypes.size());
+
+                    fRedrawGraphs = true;
+                }
+            }
+        });
+
+        // Create the "Close" button
+        Button closeButton = createButton(parent, CANCEL, Messages.LatencyView_Dialogs_ListEvents_Buttons_Close, false);
+        closeButton.addListener(SWT.Selection, new Listener() {
+            @Override
+            public void handleEvent(Event event) {
+                setReturnCode(CANCEL);
+
+                if (fRedrawGraphs == true)
+                    redrawGraphs();
+
+                close();
+            }
+        });
+    }
+

@@ -1,0 +1,68 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.linuxtools.lttng.ui.views.latency.listeners.AbstractPaintListener#paintVerticalAxisValues(int)
+     */
+    @Override
+    public void paintVerticalAxisValues(int x) {
+        int zoomFactor = 1;
+
+        zoomFactor = fViewer.getZoomFactor();
+
+        if (fYMin >= 0L && fYMax != 0L) {
+            fAxisImage.setForeground(fTextColor);
+            fAxisImage.setBackground(fBackgroundColor);
+
+            // Apply the zoom to the max value of the graph for the next calculations
+            long yMax = fYMax / zoomFactor;
+
+            int nbTicks = ((int)getHeight()) / MAX_HEIGHT_BETWEEN_TICKS + 1;
+
+            Vector<Integer> values = new Vector<Integer>();
+            boolean multipleSameValues = true;
+            while (multipleSameValues) {
+                double valueStep = (double) (yMax - fYMin) / (double) (nbTicks);
+
+                for (int i = 0; i < nbTicks; i++) {
+                    double currentValue = (double) (fYMin + i * valueStep) / (Math.pow(10, fDelta));
+
+                    values.add((int) currentValue);
+                }
+
+                Collections.sort(values);
+                boolean hasRepetition = false;
+                for (int i = 1; i < values.size(); i++) {
+                    if (values.get(i) == values.get(i - 1)) {
+                        hasRepetition = true;
+                        break;
+                    }
+                }
+
+                if (hasRepetition) {
+                    nbTicks--;
+                    values.clear();
+                } else {
+                    multipleSameValues = false;
+
+                    // Draw rectangle over the old values
+                    int height = fViewer.getBounds().height - 2 * fPadding - fPaddingTop - fHorizontalAxisYOffset;
+                    fAxisImage.fillRectangle(0, fPadding + fPaddingTop, fPadding + fVerticalAxisOffset, height);
+
+                    double pixelStep = (getHeight()) / values.size() + 1;
+
+                    for (int i = 0; i < values.size(); i++) {
+                        double currentValue = values.get(i);
+
+                        int y = (int)  (fClientArea.height - fPadding - fHorizontalAxisYOffset -  i * pixelStep);
+                        String currentLabel = formatStringForVerticalAxis((long) currentValue);
+
+                        fAxisImage.setFont(fValuesFont);
+
+                        Point textDimensions = fAxisImage.stringExtent(currentLabel);
+                        fAxisImage.drawText(currentLabel, x - textDimensions.x - 5, y - textDimensions.y / 2);
+                        fAxisImage.drawLine(x - 3, y, x, y);
+                    }
+                }
+            }
+        }
+    }
+
