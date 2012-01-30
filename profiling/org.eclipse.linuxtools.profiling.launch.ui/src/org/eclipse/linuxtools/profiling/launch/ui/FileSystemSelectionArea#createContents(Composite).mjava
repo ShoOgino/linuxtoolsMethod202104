@@ -1,0 +1,73 @@
+	/**
+	 * Create the contents of the receiver in composite.
+	 * @param composite
+	 */
+	public void createContents(Composite composite) {
+
+		fileSystemTitle = new Label(composite, SWT.NONE);
+		fileSystemTitle.setText(ResourceSelectorWidgetMessages.fileSystemSelectionText);
+		fileSystemTitle.setFont(composite.getFont());
+
+		fileSystems = new ComboViewer(composite, SWT.READ_ONLY);
+		fileSystems.getControl().setFont(composite.getFont());
+
+		fileSystems.setLabelProvider(new LabelProvider() {
+			/*
+			 * (non-Javadoc)
+			 *
+			 * @see org.eclipse.jface.viewers.LabelProvider#getText(java.lang.Object)
+			 */
+			public String getText(Object element) {
+				return ((FileSystemElement)element).getSchemeLabel();
+			}
+		});
+
+		fileSystems.setContentProvider(new IStructuredContentProvider() {
+
+			/*
+			 * (non-Javadoc)
+			 *
+			 * @see org.eclipse.jface.viewers.IContentProvider#dispose()
+			 */
+			public void dispose() {
+				// Nothing to do
+			}
+
+			/*
+			 * (non-Javadoc)
+			 *
+			 * @see org.eclipse.jface.viewers.IStructuredContentProvider#getElements(java.lang.Object)
+			 */
+			public Object[] getElements(Object inputElement) {
+				return getSchemes();
+			}
+
+			/*
+			 * (non-Javadoc)
+			 *
+			 * @see org.eclipse.jface.viewers.IContentProvider#inputChanged(org.eclipse.jface.viewers.Viewer,
+			 *      java.lang.Object, java.lang.Object)
+			 */
+			public void inputChanged(org.eclipse.jface.viewers.Viewer viewer,
+					Object oldInput, Object newInput) {
+				// Nothing to do
+			}
+		});
+
+		fileSystems.setInput(this);
+		Iterator<FileSystemElement> fsEltItr = fsElements.iterator();
+		boolean foundDefault = false;
+		while (fsEltItr.hasNext()) {
+			FileSystemElement fsElt = fsEltItr.next();
+			if (fsElt.getIsDefault()) {
+				if (foundDefault) {
+					Activator.log(Status.WARNING, ResourceSelectorWidgetMessages.FileSystemSelectionArea_found_multiple_default_extensions + fsElt.getScheme());
+					// use only the first one we found marked as default
+					continue;
+				}
+				fileSystems.setSelection(new StructuredSelection(fsElt));
+				foundDefault = true;
+			}
+		}
+	}
+
