@@ -1,0 +1,36 @@
+	/**
+	 * Run 'which <b>command</b>' on the remote machine to find where the executable resides.
+	 * Prepend the $PATH variable with the value of <b>toolsPath</b> so that <i>which</i> may find a
+	 * particular version of the command, if it exists.
+	 * @param command the command or tool to locate on the remote system 
+	 * @param toolsPath contains one or more colon-separated paths in which to search for
+	 * for the command, in addition to the default locations in $PATH.
+	 * @return location of command, if found.
+	 * @throws CoreException
+	 */
+	public IPath whichCommand(String command, String toolsPath) throws CoreException {
+		String args[] = new String[1];
+		Map<String,String> envMap = getEnv();
+
+		IPath whichPath = Path.fromOSString(WHICH_CMD);
+		args[0] = command;
+
+		if (envMap.containsKey(PATH_ENV_VAR)) {
+			String pathVal = envMap.get(PATH_ENV_VAR);
+			envMap.put(PATH_ENV_VAR, toolsPath + SEPARATOR + pathVal);
+		} else {
+			envMap.put(PATH_ENV_VAR, toolsPath);
+		}
+		String envArray[] = envMapToEnvArray(envMap);
+
+		ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+		ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+		rmtCmdLauncher.execute(whichPath, args, envArray, null, new NullProgressMonitor());
+		rmtCmdLauncher.waitAndRead(stdout, stderr, new NullProgressMonitor());
+		String outputLines[] = getLines(stdout.toString());
+		// The first line of the read buffer is the command that was executed, in this case
+		// "which <command>", so use the second line, index=1
+		return Path.fromOSString(outputLines[1]);
+	}
+
