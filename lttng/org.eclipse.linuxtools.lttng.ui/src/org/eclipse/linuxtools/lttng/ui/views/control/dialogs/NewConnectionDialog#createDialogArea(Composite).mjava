@@ -1,0 +1,103 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.jface.dialogs.Dialog#createDialogArea(org.eclipse.swt.widgets.Composite)
+     */
+    @Override
+    protected Control createDialogArea(Composite parent) {
+        
+        // Main dialog panel
+        fDialogComposite = new Composite(parent, SWT.NONE);
+        GridLayout layout = new GridLayout(1, true);
+        fDialogComposite.setLayout(layout); 
+
+        // Existing connections group
+        fComboGroup = new Group(fDialogComposite, SWT.SHADOW_NONE);
+        fComboGroup.setText(Messages.TraceControl_NewNodeExistingConnetionsGroupName);
+        layout = new GridLayout(2, true);
+        fComboGroup.setLayout(layout); 
+        GridData data = new GridData(GridData.HORIZONTAL_ALIGN_FILL);
+        fComboGroup.setLayoutData(data);
+        
+        fExistingHostsCombo = new CCombo(fComboGroup, SWT.READ_ONLY);
+        fExistingHostsCombo.setToolTipText(Messages.TraceControl_NewNodeComboToolTip);
+        fExistingHostsCombo.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, false, false, 2, 1));
+
+        String items[] = new String[fExistingHosts.length];
+        for (int i = 0; i < items.length; i++) {
+            items[i] = String.valueOf(fExistingHosts[i].getAliasName() + " - " + fExistingHosts[i].getHostName()); //$NON-NLS-1$
+        }
+
+        fExistingHostsCombo.setItems(items);
+        fExistingHostsCombo.setEnabled(fExistingHosts.length > 0);
+
+        // Node information grop
+        fTextGroup = new Group(fDialogComposite, SWT.SHADOW_NONE);
+        layout = new GridLayout(2, true);
+        fTextGroup.setLayout(layout);
+        data = new GridData(GridData.HORIZONTAL_ALIGN_FILL);
+        fTextGroup.setLayoutData(data);
+        
+        fButton = new Button(fTextGroup, SWT.CHECK);
+        fButton.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, false, false, 2, 1));
+        fButton.setText(Messages.TraceControl_NewNodeEditButtonName);
+        fButton.setEnabled(fExistingHosts.length > 0);
+        
+        Label nodeNameLabel = new Label(fTextGroup, SWT.RIGHT);
+        nodeNameLabel.setText(Messages.TraceControl_NewNodeNameLabel);
+        fNodeNameText = new Text(fTextGroup, SWT.NONE);
+        fNodeNameText.setToolTipText(Messages.TraceControl_NewNodeNameTooltip);
+        fNodeNameText.setEnabled(fExistingHosts.length == 0);
+        
+        Label nodeAddressLabel = new Label(fTextGroup, SWT.RIGHT);
+        nodeAddressLabel.setText(Messages.TraceControl_NewNodeAddressLabel);
+        fNodeAddressText = new Text(fTextGroup, SWT.NONE);
+        fNodeAddressText.setToolTipText(Messages.TraceControl_NewNodeAddressTooltip);
+        fNodeAddressText.setEnabled(fExistingHosts.length == 0);
+
+        fButton.addSelectionListener(new SelectionListener() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                if (fButton.getSelection()) {
+                    fExistingHostsCombo.deselectAll();
+                    fExistingHostsCombo.setEnabled(false);
+                    fNodeNameText.setEnabled(true);
+                    fNodeAddressText.setEnabled(true);
+                } else {
+                    fExistingHostsCombo.setEnabled(true);
+                    fNodeNameText.setEnabled(false);
+                    fNodeAddressText.setEnabled(false);
+                }             
+            }
+
+            @Override
+            public void widgetDefaultSelected(SelectionEvent e) {
+            }
+        });
+
+        fExistingHostsCombo.addSelectionListener(new SelectionListener() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                int index = fExistingHostsCombo.getSelectionIndex();
+                fNodeNameText.setText(fExistingHosts[index].getAliasName());
+                fNodeAddressText.setText(fExistingHosts[index].getHostName());
+            }
+
+            @Override
+            public void widgetDefaultSelected(SelectionEvent e) {
+            }
+        });
+        
+        // layout widgets
+        data = new GridData(GridData.HORIZONTAL_ALIGN_FILL);
+        fNodeAddressText.setText("666.666.666.666"); //$NON-NLS-1$
+        Point minSize = fNodeAddressText.computeSize(SWT.DEFAULT, SWT.DEFAULT, true);
+        data.widthHint = minSize.x + 5;
+        
+        fNodeNameText.setLayoutData(data);
+        fNodeAddressText.setLayoutData(data);
+        
+        fNodeAddressText.setText(""); //$NON-NLS-1$
+        
+        return fDialogComposite;
+    }
+

@@ -1,0 +1,34 @@
+    /**
+     * Retrieves the trace configuration from the target node and populates the information
+     * in the tree model. The execution is done in a own job.
+     * 
+     * @throws ExecutionException
+     */
+    public void getConfigurationFromNode() throws ExecutionException {
+        Job job = new Job(Messages.TraceControl_RetrieveNodeConfigurationJob) {
+            @Override
+            protected IStatus run(IProgressMonitor monitor) {
+
+                try {
+                    // Get provider information from node
+                    TraceProviderGroup providerGroup = new TraceProviderGroup(Messages.TraceControl_ProviderDisplayName, TargetNodeComponent.this);
+                    addChild(providerGroup);
+                    providerGroup.getProviderFromNode(monitor);
+                    
+                    // Get session information from node
+                    TraceSessionGroup sessionGroup = new TraceSessionGroup(Messages.TraceControl_AllSessionsDisplayName, TargetNodeComponent.this);
+                    addChild(sessionGroup);
+                    sessionGroup.getSessionsFromNode(monitor);
+                } catch (ExecutionException e) {
+                    removeAllChildren();
+                    return new Status(Status.ERROR, LTTngUiPlugin.PLUGIN_ID, e.toString());
+                } 
+
+                return Status.OK_STATUS;
+            }
+        };
+        job.setUser(true);
+        job.schedule();
+
+    }
+

@@ -1,0 +1,43 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.linuxtools.lttng.ui.views.control.service.ILttngControlService#getSessionNames(org.eclipse.core.runtime.IProgressMonitor)
+     */
+    @Override
+    public String[] getSessionNames(IProgressMonitor monitor) throws ExecutionException {
+
+      String command = COMMAND_LIST;
+      ICommandResult result = fCommandShell.executeCommand(command, monitor);
+
+      if (isError(result)) {
+          // TODO: no session available shouldn't be an error!
+          if (result.getOutput().length > 0 && result.getOutput()[0].matches(ERROR_PATTERN)) {
+              // no sessions available
+              return new String[0];
+          }
+          throw new ExecutionException(Messages.TraceControl_CommandError + " " + command + "\n" + formatOutput(result.getOutput())); //$NON-NLS-1$ //$NON-NLS-2$
+      }
+
+      // Output:
+      // Available tracing sessions:
+      //   1) mysession1 (/home/user/lttng-traces/mysession1-20120123-083928) [inactive]
+      //   2) mysession (/home/user/lttng-traces/mysession-20120123-083318) [inactive]
+      //
+      // Use lttng list <session_name> for more details 
+      
+      ArrayList<String> retArray = new ArrayList<String>();
+      int index = 0;
+      while (index < result.getOutput().length) {
+          String line = result.getOutput()[index];
+          try {
+              Pattern pattern = Pattern.compile(SESSION_PATTERN);
+              Matcher matcher = pattern.matcher(line);
+              if (matcher.matches()) {
+                  retArray.add(matcher.group(2).trim());
+              }
+          } catch (PatternSyntaxException e) {
+          }
+          index++;
+      }
+      return retArray.toArray(new String[retArray.size()]);
+    }
+

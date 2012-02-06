@@ -1,0 +1,117 @@
+    public void testGetSession1() {
+        try {
+            ILttngControlService service = new LTTngControlService(fShellFactory.getShellForSessionNames());
+            ISessionInfo session = service.getSession("mysession");
+
+            // Verify Session
+            assertNotNull(session);
+            assertEquals("mysession", session.getName());
+            assertEquals("/home/user/lttng-traces/mysession-20120129-084256", session.getSessionPath());
+            assertEquals(TraceSessionState.ACTIVE, session.getSessionState());
+            
+            IDomainInfo[] domains = session.getDomains();
+            assertNotNull(domains);
+            assertEquals(2, domains.length);
+            
+            // Verify Kernel domain
+            assertEquals("Kernel", domains[0].getName());
+            IChannelInfo[] channels =  domains[0].getChannels();
+            assertNotNull(channels);
+            assertEquals(2, channels.length);
+
+            // Verify Kernel's channel0 
+            assertEquals("channel0", channels[0].getName());
+            assertEquals(4, channels[0].getNumberOfSubBuffers());
+            assertEquals("splice()", channels[0].getOutputType());
+            assertEquals(false, channels[0].isOverwriteMode());
+            assertEquals(200, channels[0].getReadTimer());
+            assertEquals(TraceEnablement.ENABLED, channels[0].getState());
+            assertEquals(262144, channels[0].getSubBufferSize());
+            assertEquals(0, channels[0].getSwitchTimer());
+            
+            // Verify event info
+            IEventInfo[] channel0Events = channels[0].getEvents();
+            assertNotNull(channel0Events);
+            assertEquals(2, channel0Events.length);
+            assertEquals("block_rq_remap", channel0Events[0].getName());
+            assertEquals(TraceLogLevel.TRACE_EMERG, channel0Events[0].getLogLevel());
+            assertEquals(TraceEventType.TRACEPOINT, channel0Events[0].getEventType());
+            assertEquals(TraceEnablement.ENABLED, channel0Events[0].getState());
+            
+            assertEquals("block_bio_remap", channel0Events[1].getName());
+            assertEquals(TraceLogLevel.TRACE_EMERG, channel0Events[1].getLogLevel());
+            assertEquals(TraceEventType.TRACEPOINT, channel0Events[1].getEventType());
+            assertEquals(TraceEnablement.DISABLED, channel0Events[1].getState());
+            
+            // Verify Kernel's channel1 
+            assertEquals("channel1", channels[1].getName());
+            assertEquals(4, channels[1].getNumberOfSubBuffers());
+            assertEquals("splice()", channels[1].getOutputType());
+            assertEquals(true, channels[1].isOverwriteMode());
+            assertEquals(400, channels[1].getReadTimer());
+            assertEquals(TraceEnablement.DISABLED, channels[1].getState());
+            assertEquals(524288, channels[1].getSubBufferSize());
+            assertEquals(100, channels[1].getSwitchTimer());
+            
+            // Verify event info
+            IEventInfo[] channel1Events = channels[1].getEvents();
+            assertEquals(0, channel1Events.length);
+            
+            // Verify domain UST global
+            assertEquals("UST global", domains[1].getName());
+            
+            IChannelInfo[] ustChannels =  domains[1].getChannels();
+            
+            // Verify UST global's mychannel1 
+            assertEquals("mychannel1", ustChannels[0].getName());
+            assertEquals(8, ustChannels[0].getNumberOfSubBuffers());
+            assertEquals("mmap()", ustChannels[0].getOutputType());
+            assertEquals(true, ustChannels[0].isOverwriteMode());
+            assertEquals(100, ustChannels[0].getReadTimer());
+            assertEquals(TraceEnablement.DISABLED, ustChannels[0].getState());
+            assertEquals(8192, ustChannels[0].getSubBufferSize());
+            assertEquals(200, ustChannels[0].getSwitchTimer());
+            
+            // Verify event info
+            IEventInfo[] ustEvents = ustChannels[0].getEvents();
+            assertEquals(0, ustEvents.length);
+
+            // Verify UST global's channel0 
+            assertEquals("channel0", ustChannels[1].getName());
+            assertEquals(4, ustChannels[1].getNumberOfSubBuffers());
+            assertEquals("mmap()", ustChannels[1].getOutputType());
+            assertEquals(false, ustChannels[1].isOverwriteMode());
+            assertEquals(200, ustChannels[1].getReadTimer());
+            assertEquals(TraceEnablement.ENABLED, ustChannels[1].getState());
+            assertEquals(4096, ustChannels[1].getSubBufferSize());
+            assertEquals(0, ustChannels[1].getSwitchTimer());
+            
+            // Verify event info
+            ustEvents = ustChannels[1].getEvents();
+            assertEquals(2, ustEvents.length);
+            
+            assertEquals("ust_tests_hello:tptest_sighandler", ustEvents[0].getName());
+            assertEquals(TraceLogLevel.TRACE_DEFAULT, ustEvents[0].getLogLevel());
+            assertEquals(TraceEventType.TRACEPOINT, ustEvents[0].getEventType());
+            assertEquals(TraceEnablement.DISABLED, ustEvents[0].getState());
+            
+            assertEquals("*", ustEvents[1].getName());
+            assertEquals(TraceLogLevel.TRACE_EMERG, ustEvents[1].getLogLevel());
+            assertEquals(TraceEventType.TRACEPOINT, ustEvents[1].getEventType());
+            assertEquals(TraceEnablement.ENABLED, ustEvents[1].getState());
+            
+            // next session (no detailed information available)
+            session = service.getSession("mysession1");
+            assertNotNull(session);
+            assertEquals("mysession1", session.getName());
+            assertEquals("/home/user/lttng-traces/mysession1-20120203-133225", session.getSessionPath());
+            assertEquals(TraceSessionState.INACTIVE, session.getSessionState());
+            
+            domains = session.getDomains();
+            assertNotNull(domains);
+            assertEquals(0, domains.length);
+        } catch (ExecutionException e) {
+            fail(e.toString());
+        }
+    }
+

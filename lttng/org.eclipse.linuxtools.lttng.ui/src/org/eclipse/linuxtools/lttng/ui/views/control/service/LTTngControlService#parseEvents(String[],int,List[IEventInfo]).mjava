@@ -1,0 +1,45 @@
+    /**
+     * Parses the event information within a domain.
+     * 
+     * @param output - a command output array
+     * @param currentIndex - current index in command output array
+     * @param events - list for returning event information
+     * @return the new current index in command output array
+     * @throws PatternSyntaxException
+     */
+    private int parseEvents(String[] output, int currentIndex, List<IEventInfo> events) throws PatternSyntaxException {
+        int index = currentIndex;
+
+        while (index < output.length) {
+            String line = output[index];
+            if (line.matches(CHANNEL_PATTERN)) {
+                // end of channel
+                return index;
+            } else if (line.matches(DOMAIN_KERNEL_PATTERN)) {
+                // end of domain
+                return index;
+            } else if (line.contains(DOMAIN_UST_GLOBAL_PATTERN)) {
+                // end of domain
+                return index;
+            } else if (line.matches(EVENT_PATTERN)) {
+                Pattern pattern = Pattern.compile(EVENT_PATTERN);
+
+                Matcher matcher = pattern.matcher(line);
+
+                if (matcher.matches()) {
+                    IEventInfo eventInfo = new EventInfo(matcher.group(1).trim());
+                    eventInfo.setLogLevel(matcher.group(2).trim());
+                    eventInfo.setEventType(matcher.group(3).trim());
+                    eventInfo.setState(matcher.group(4));
+                    events.add(eventInfo);
+                }
+            }
+//            else if (line.matches(EVENT_NONE_PATTERN)) {
+                // do nothing
+//            } else 
+            index++;
+        }
+
+        return index;
+    }
+

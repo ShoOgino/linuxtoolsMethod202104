@@ -1,0 +1,54 @@
+    public void testGetUstProvider() {
+        try {
+            ILttngControlService service = new LTTngControlService(fShellFactory.getShellForSessionNames());
+            List<IUstProviderInfo> providers = service.getUstProvider();
+
+            // Check all providers
+            assertNotNull(providers);
+            assertEquals(2, providers.size());
+            
+            //Verify first provider
+            assertEquals("/home/user/git/lttng-ust/tests/hello.cxx/.libs/lt-hello", providers.get(0).getName());
+            assertEquals(9379, providers.get(0).getPid());
+            
+            // Verify event info
+            IBaseEventInfo[] events = providers.get(0).getEvents();
+            assertNotNull(events);
+            assertEquals(2, events.length);
+
+            IBaseEventInfo baseEventInfo = (IBaseEventInfo) events[0];
+            assertNotNull(baseEventInfo);
+            assertEquals("ust_tests_hello:tptest_sighandler", baseEventInfo.getName());
+            assertEquals(TraceLogLevel.TRACE_MODULE, baseEventInfo.getLogLevel());
+            assertEquals(TraceEventType.TRACEPOINT, baseEventInfo.getEventType());
+            
+            baseEventInfo = (IBaseEventInfo) events[1];
+            assertEquals("ust_tests_hello:tptest", baseEventInfo.getName());
+            assertEquals(TraceLogLevel.TRACE_INFO, baseEventInfo.getLogLevel());
+            assertEquals(TraceEventType.TRACEPOINT, baseEventInfo.getEventType());
+
+            //Verify second provider
+            assertEquals("/home/user/git/lttng-ust/tests/hello.cxx/.libs/lt-hello", providers.get(1).getName());
+            assertEquals(4852, providers.get(1).getPid());
+            
+            // Verify event info
+            events = providers.get(1).getEvents();
+            assertNotNull(events);
+            assertEquals(2, events.length);
+
+            baseEventInfo = (IBaseEventInfo) events[0];
+            assertNotNull(baseEventInfo);
+            assertEquals("ust_tests_hello:tptest_sighandler", baseEventInfo.getName());
+            assertEquals(TraceLogLevel.TRACE_WARNING, baseEventInfo.getLogLevel());
+            assertEquals(TraceEventType.TRACEPOINT, baseEventInfo.getEventType());
+            
+            baseEventInfo = (IBaseEventInfo) events[1];
+            assertEquals("ust_tests_hello:tptest", baseEventInfo.getName());
+            assertEquals(TraceLogLevel.TRACE_FUNCTION, baseEventInfo.getLogLevel());
+            assertEquals(TraceEventType.TRACEPOINT, baseEventInfo.getEventType());
+
+        } catch (ExecutionException e) {
+            fail(e.toString());
+        }
+    }
+
