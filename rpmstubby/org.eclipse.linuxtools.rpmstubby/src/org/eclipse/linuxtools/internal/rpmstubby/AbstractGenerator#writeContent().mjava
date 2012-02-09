@@ -1,25 +1,18 @@
 	/**
 	 * Writes the given contents to a file with the given fileName in the
 	 * specified project.
-	 * 
-	 * @param projectName
-	 *            The name of the project to put the file into.
-	 * @throws CoreException
-	 *             Thrown when the project doesn't exist.
 	 */
-	public void writeContent(String projectName) throws CoreException {
-		String fileName = model.getPackageName().toLowerCase() + ".spec";
+	public void writeContent() {
 		String contents = generateSpecfile();
 		InputStream contentInputStream = new ByteArrayInputStream(
 				contents.getBytes());
 		IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
 		IResource resource = root.findMember(new Path(projectName));
 		if (!resource.exists() || !(resource instanceof IContainer)) {
-			throwCoreException("Project \"" + projectName
-					+ "\" does not exist.");
+			logCoreException("Project \"" + projectName + "\" does not exist.");
 		}
 		IContainer container = (IContainer) resource;
-		final IFile file = container.getFile(new Path(fileName));
+		final IFile file = container.getFile(new Path(specfileName));
 		try {
 			InputStream stream = contentInputStream;
 			if (file.exists()) {
@@ -29,6 +22,8 @@
 			}
 			stream.close();
 		} catch (IOException e) {
+			StubbyLog.logError(e);
+		} catch (CoreException e) {
 			StubbyLog.logError(e);
 		}
 		StubbyPlugin.getActiveWorkbenchShell().getDisplay()
