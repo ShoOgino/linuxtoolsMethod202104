@@ -1,6 +1,9 @@
     /*
      * (non-Javadoc)
-     * @see org.eclipse.linuxtools.lttng.ui.views.control.service.ILttngControlService#getSession(java.lang.String, org.eclipse.core.runtime.IProgressMonitor)
+     * 
+     * @see
+     * org.eclipse.linuxtools.lttng.ui.views.control.service.ILttngControlService
+     * #getSession(java.lang.String, org.eclipse.core.runtime.IProgressMonitor)
      */
     @Override
     public ISessionInfo getSession(String sessionName, IProgressMonitor monitor) throws ExecutionException {
@@ -14,62 +17,61 @@
         int index = 0;
 
         // Output:
-        //   Tracing session mysession2: [inactive]
-        //   Trace path: /home/eedbhu/lttng-traces/mysession2-20120123-110330
+        // Tracing session mysession2: [inactive]
+        // Trace path: /home/eedbhu/lttng-traces/mysession2-20120123-110330
         ISessionInfo sessionInfo = new SessionInfo(sessionName);
 
-        try {
-            while (index < result.getOutput().length) {
-                //   Tracing session mysession2: [inactive]
-                //   Trace path: /home/eedbhu/lttng-traces/mysession2-20120123-110330
-                //
-                //    === Domain: Kernel ===
-                //
-                String line = result.getOutput()[index];
-                if (line.matches(TRACE_SESSION_PATTERN)) {
-                    Pattern pattern = Pattern.compile(TRACE_SESSION_PATTERN);
-                    Matcher matcher = pattern.matcher(line);
-                    if (matcher.matches()) {
-                        sessionInfo.setSessionState(matcher.group(2));
-                    }
-                    index++;
-                } else if (line.matches(TRACE_SESSION_PATH_PATTERN)) {
-                    Pattern pattern = Pattern.compile(TRACE_SESSION_PATH_PATTERN);
-                    Matcher matcher = pattern.matcher(line);
-                    if (matcher.matches()) {
-                        sessionInfo.setSessionPath(matcher.group(1).trim());
-                    }
-                    index++;
-                }
-                else if (line.matches(DOMAIN_KERNEL_PATTERN)) {
-                    // Create Domain
-                    IDomainInfo domainInfo = new DomainInfo(Messages.TraceControl_KernelDomainDisplayName);
-                    sessionInfo.addDomain(domainInfo);
-
-                    // in domain kernel
-                    ArrayList<IChannelInfo> channels = new ArrayList<IChannelInfo>();
-                    index = parseDomain(result.getOutput(), index, channels);
-
-                    // set channels
-                    domainInfo.setChannels(channels);
-
-                } else if (line.contains(DOMAIN_UST_GLOBAL_PATTERN)) {
-                    IDomainInfo domainInfo = new DomainInfo(Messages.TraceControl_UstGlobalDomainDisplayName);
-                    sessionInfo.addDomain(domainInfo);
-
-                    // in domain kernel
-                    ArrayList<IChannelInfo> channels = new ArrayList<IChannelInfo>();
-                    index = parseDomain(result.getOutput(), index, channels);
-
-                    // set channels
-                    domainInfo.setChannels(channels);
-                } else {
-                    index++;
-                }
+        while (index < result.getOutput().length) {
+            // Tracing session mysession2: [inactive]
+            // Trace path: /home/eedbhu/lttng-traces/mysession2-20120123-110330
+            //
+            // === Domain: Kernel ===
+            //
+            String line = result.getOutput()[index];
+            Matcher matcher = TRACE_SESSION_PATTERN.matcher(line);
+            if (matcher.matches()) {
+                sessionInfo.setSessionState(matcher.group(2));
+                index++;
+                continue;
             }
-        } catch (PatternSyntaxException e) {
-            throw new ExecutionException("Invalid regular expression", e); //$NON-NLS-1$
-        }   
+
+            matcher = TRACE_SESSION_PATH_PATTERN.matcher(line);
+            if (matcher.matches()) {
+                sessionInfo.setSessionPath(matcher.group(1).trim());
+                index++;
+                continue;
+            }
+
+            matcher = DOMAIN_KERNEL_PATTERN.matcher(line);
+            if (matcher.matches()) {
+                // Create Domain
+                IDomainInfo domainInfo = new DomainInfo(Messages.TraceControl_KernelDomainDisplayName);
+                sessionInfo.addDomain(domainInfo);
+
+                // in domain kernel
+                ArrayList<IChannelInfo> channels = new ArrayList<IChannelInfo>();
+                index = parseDomain(result.getOutput(), index, channels);
+
+                // set channels
+                domainInfo.setChannels(channels);
+                continue;
+            }
+
+            matcher = DOMAIN_UST_GLOBAL_PATTERN.matcher(line);
+            if (matcher.matches()) {
+                IDomainInfo domainInfo = new DomainInfo(Messages.TraceControl_UstGlobalDomainDisplayName);
+                sessionInfo.addDomain(domainInfo);
+
+                // in domain kernel
+                ArrayList<IChannelInfo> channels = new ArrayList<IChannelInfo>();
+                index = parseDomain(result.getOutput(), index, channels);
+
+                // set channels
+                domainInfo.setChannels(channels);
+                continue;
+            }
+            index++;
+        }
         return sessionInfo;
     }
 

@@ -1,10 +1,10 @@
     /*
      * (non-Javadoc)
-     * @see org.eclipse.core.commands.IHandler#execute(org.eclipse.core.commands.ExecutionEvent)
+     * @see org.eclipse.core.commands.AbstractHandler#execute(org.eclipse.core.commands.ExecutionEvent)
      */
     @Override
     public Object execute(ExecutionEvent event) throws ExecutionException {
-        assert (fParent != null);
+        assert (fRoot != null);
 
         IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
         if (window == null) {
@@ -20,17 +20,13 @@
         IHost[] hosts = registry.getHostsBySystemType(sysType);
 
         // Open dialog box for the node name and address
-        INewConnectionDialog dialog = new NewConnectionDialog(window.getShell(), fParent, hosts);
+        INewConnectionDialog dialog = new NewConnectionDialog(window.getShell(), fRoot, hosts);
 
         if (dialog.open() == Window.OK) {
 
             String hostName = dialog.getNodeName(); 
             String hostAddress = dialog.getNodeAddress();
 
-//      String hostName = "hallo"; 
-//      String hostAddress = "142.133.166.54";
-//      String hostName = "ha"; 
-//      String hostAddress = "192.168.0.196";
             // get the singleton RSE registry
             IHost host = null;
 
@@ -63,12 +59,12 @@
             if (host != null) {
                 // successful creation of host
                 TargetNodeComponent node = null;
-                if (!fParent.containsChild(hostName)) {
-                    node = new TargetNodeComponent(hostName, fParent, host);
-                    fParent.addChild(node);
+                if (!fRoot.containsChild(hostName)) {
+                    node = new TargetNodeComponent(hostName, fRoot, host);
+                    fRoot.addChild(node);
                 }
                 else {
-                    node = (TargetNodeComponent)fParent.getChild(hostName);
+                    node = (TargetNodeComponent)fRoot.getChild(hostName);
                 }
 
                 node.connect();

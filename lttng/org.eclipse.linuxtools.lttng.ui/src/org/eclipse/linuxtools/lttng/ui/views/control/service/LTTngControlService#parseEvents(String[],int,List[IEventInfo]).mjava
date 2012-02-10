@@ -1,9 +1,12 @@
     /**
      * Parses the event information within a domain.
      * 
-     * @param output - a command output array
-     * @param currentIndex - current index in command output array
-     * @param events - list for returning event information
+     * @param output
+     *            - a command output array
+     * @param currentIndex
+     *            - current index in command output array
+     * @param events
+     *            - list for returning event information
      * @return the new current index in command output array
      * @throws PatternSyntaxException
      */
@@ -12,27 +15,32 @@
 
         while (index < output.length) {
             String line = output[index];
-            if (line.matches(CHANNEL_PATTERN)) {
+            if (CHANNEL_PATTERN.matcher(line).matches()) {
                 // end of channel
                 return index;
-            } else if (line.matches(DOMAIN_KERNEL_PATTERN)) {
+            } else if (DOMAIN_KERNEL_PATTERN.matcher(line).matches()) {
                 // end of domain
                 return index;
-            } else if (line.contains(DOMAIN_UST_GLOBAL_PATTERN)) {
+            } else if (DOMAIN_UST_GLOBAL_PATTERN.matcher(line).matches()) {
                 // end of domain
                 return index;
-            } else if (line.matches(EVENT_PATTERN)) {
-                Pattern pattern = Pattern.compile(EVENT_PATTERN);
+            } 
 
-                Matcher matcher = pattern.matcher(line);
+            Matcher matcher = EVENT_PATTERN.matcher(line);
+            Matcher matcher2 = WILDCARD_EVENT_PATTERN.matcher(line);
 
-                if (matcher.matches()) {
-                    IEventInfo eventInfo = new EventInfo(matcher.group(1).trim());
-                    eventInfo.setLogLevel(matcher.group(2).trim());
-                    eventInfo.setEventType(matcher.group(3).trim());
-                    eventInfo.setState(matcher.group(4));
-                    events.add(eventInfo);
-                }
+            if (matcher.matches()) {
+                IEventInfo eventInfo = new EventInfo(matcher.group(1).trim());
+                eventInfo.setLogLevel(matcher.group(2).trim());
+                eventInfo.setEventType(matcher.group(3).trim());
+                eventInfo.setState(matcher.group(4));
+                events.add(eventInfo);
+            } else if (matcher2.matches()) {
+                IEventInfo eventInfo = new EventInfo(matcher2.group(1).trim());
+                eventInfo.setLogLevel(TraceLogLevel.LEVEL_UNKNOWN);
+                eventInfo.setEventType(matcher2.group(2).trim());
+                eventInfo.setState(matcher2.group(3));
+                events.add(eventInfo);
             }
 //            else if (line.matches(EVENT_NONE_PATTERN)) {
                 // do nothing
