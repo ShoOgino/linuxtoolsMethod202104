@@ -1,49 +1,32 @@
 	/**
-	 * Generates a RPM specfile based on the parsed data from the feature.xml.
+	 * Generates a RPM specfile based on the parsed data from the pom file.
 	 * 
 	 * @return The generated specfile.
 	 */
+	@Override
 	public String generateSpecfile() {
 		StringBuilder buffer = new StringBuilder();
-		String simplePackageName = getPackageName(mainPackage.getName());
-		String packageName = "eclipse-" + simplePackageName;
 		buffer.append("%global eclipse_base   %{_libdir}/eclipse\n");
 		buffer.append("%global install_loc    %{_datadir}/eclipse/dropins/"
-				+ simplePackageName.toLowerCase() + "\n\n");
-		buffer.append("Name:           " + packageName.toLowerCase() + "\n");
-		buffer.append("Version:        "
-				+ mainPackage.getVersion().replaceAll("\\.qualifier", "")
+				+ model.getSimplePackageName() + "\n\n");
+		buffer.append("Name:           " + model.getPackageName().toLowerCase()
 				+ "\n");
+		buffer.append("Version:        " + model.getVersion() + "\n");
 		buffer.append("Release:        1%{?dist}" + "\n");
-		buffer.append("Summary:        " + mainPackage.getSummary() + "\n\n");
+		buffer.append("Summary:        " + model.getSummary() + "\n\n");
 		buffer.append("Group:          Development/Tools\n");
-		buffer.append("License:        " + mainPackage.getLicense() + "\n");
-		buffer.append("URL:            " + mainPackage.getURL() + "\n");
+		buffer.append("License:        " + model.getLicense() + "\n");
+		buffer.append("URL:            " + model.getURL() + "\n");
 		buffer.append("Source0:        #FIXME\n");
 		buffer.append("BuildArch: noarch\n\n");
-		buffer.append("BuildRequires: eclipse-pde >= 1:3.4.0\n");
-		buffer.append("Requires: eclipse-platform >= 3.4.0\n");
-		buffer.append("\n%description\n" + mainPackage.getDescription() + "\n");
-		for (SubPackage subPackage : subPackages) {
-			String subPackageName = getPackageName(subPackage.getName());
-			buffer.append("\n%package  " + subPackageName + "\n");
-			buffer.append("Summary:  " + subPackage.getSummary() + "\n");
-			buffer.append("Requires: %{name} = %{version}-%{release}\n");
-			buffer.append("Group: Development/Tools\n\n");
-			buffer.append("%description " + subPackageName + "\n");
-			buffer.append(subPackage.getDescription() + "\n");
-		}
+		generateRequires(buffer);
+		buffer.append("\n%description\n" + model.getDescription() + "\n");
 		generatePrepSection(buffer);
-
 		generateBuildSection(buffer);
-		buffer.append("%install\n");
-		buffer.append("install -d -m 755 %{buildroot}%{install_loc}\n\n");
-		buffer.append("%{__unzip} -q -d %{buildroot}%{install_loc} \\\n");
-		buffer.append("     build/rpmBuild/" + mainPackage.getName()
-				+ ".zip \n\n");
+		generateInstallSection(buffer);
 		generateFilesSections(buffer);
-		buffer.append("%changelog\n\n");
-		buffer.append("#FIXME\n");
+		generateChangelog(buffer);
+
 		return buffer.toString();
 	}
 

@@ -1,0 +1,42 @@
+	/**
+	 * Writes the given contents to a file with the given fileName in the
+	 * specified project.
+	 */
+	public void writeContent() {
+		String contents = generateSpecfile();
+		InputStream contentInputStream = new ByteArrayInputStream(
+				contents.getBytes());
+		IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+		IResource resource = root.findMember(new Path(projectName));
+		if (!resource.exists() || !(resource instanceof IContainer)) {
+			logCoreException("Project \"" + projectName + "\" does not exist.");
+		}
+		IContainer container = (IContainer) resource;
+		final IFile file = container.getFile(new Path(specfileName));
+		try {
+			InputStream stream = contentInputStream;
+			if (file.exists()) {
+				file.setContents(stream, true, true, null);
+			} else {
+				file.create(stream, true, null);
+			}
+			stream.close();
+		} catch (IOException e) {
+			StubbyLog.logError(e);
+		} catch (CoreException e) {
+			StubbyLog.logError(e);
+		}
+		StubbyPlugin.getActiveWorkbenchShell().getDisplay()
+				.asyncExec(new Runnable() {
+					public void run() {
+						IWorkbenchPage page = PlatformUI.getWorkbench()
+								.getActiveWorkbenchWindow().getActivePage();
+						try {
+							IDE.openEditor(page, file, true);
+						} catch (PartInitException e) {
+							StubbyLog.logError(e);
+						}
+					}
+				});
+	}
+
