@@ -1,0 +1,22 @@
+    @SuppressWarnings("unchecked")
+    @TmfSignalHandler
+    public void experimentSelected(TmfExperimentSelectedSignal<TmfEvent> signal) {
+        // Clear the views
+        fGraphViewer.clear();
+        fHistogramViewer.clear();
+
+        if (fParent != null) {
+            // Update the trace reference
+            fExperiment = (TmfExperiment<LttngEvent>) signal.getExperiment();
+
+            fTimeRange = TmfTimeRange.Null;
+            TmfTimeRange experimentTRange = fExperiment.getTimeRange();
+
+            if (!experimentTRange.equals(TmfTimeRange.Null)) {
+                fTimeRange = new TmfTimeRange(experimentTRange.getStartTime(), 
+                        new TmfTimestamp(experimentTRange.getStartTime().getValue() + INITIAL_WINDOW_SPAN, experimentTRange.getStartTime().getScale(), experimentTRange.getStartTime().getPrecision()));
+                fController.refreshModels(fExperiment, fTimeRange);
+            }
+        }
+    }    
+
