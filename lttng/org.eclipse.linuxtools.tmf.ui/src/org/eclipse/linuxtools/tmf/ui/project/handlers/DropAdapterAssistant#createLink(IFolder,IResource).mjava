@@ -1,0 +1,38 @@
+    /**
+     * Create a link to the actual trace and set the trace type
+     * 
+     * @param parentFolder the parent folder
+     * @param resource the resource
+     */
+    private void createLink(IFolder parentFolder, IResource resource) {
+        IPath location = resource.getLocation();
+        IWorkspace workspace = ResourcesPlugin.getWorkspace();
+        try {
+            Map<QualifiedName, String> properties = resource.getPersistentProperties();
+            String bundleName = properties.get(TmfTraceElement.TRACEBUNDLE);
+            String traceType = properties.get(TmfTraceElement.TRACETYPE);
+            String iconUrl = properties.get(TmfTraceElement.TRACEICON);
+            
+            if (resource instanceof IFolder) {
+                IFolder folder = parentFolder.getFolder(resource.getName());
+                if (workspace.validateLinkLocation(folder, location).isOK()) {
+                    folder.createLink(location, IResource.REPLACE, null);
+                    setProperties(folder, bundleName, traceType, iconUrl);
+
+                } else {
+                    System.out.println("Invalid Trace Location"); //$NON-NLS-1$
+                }
+            } else {
+                IFile file = parentFolder.getFile(resource.getName());
+                if (workspace.validateLinkLocation(file, location).isOK()) {
+                    file.createLink(location, IResource.REPLACE, null);
+                    setProperties(file, bundleName, traceType, iconUrl);
+                } else {
+                    System.out.println("Invalid Trace Location"); //$NON-NLS-1$
+                }
+            }
+        } catch (CoreException e) {
+            displayException(e);
+        }
+    }
+

@@ -1,0 +1,85 @@
+    /* (non-Javadoc)
+     * @see org.eclipse.ui.navigator.CommonDropAdapterAssistant#handleDrop(org.eclipse.ui.navigator.CommonDropAdapter, org.eclipse.swt.dnd.DropTargetEvent, java.lang.Object)
+     */
+    @Override
+    public IStatus handleDrop(CommonDropAdapter aDropAdapter, DropTargetEvent aDropTargetEvent, Object aTarget) {
+        boolean ok = false;
+
+        // If target is a trace, use its parent (either trace folder or experiment)
+        if (aTarget instanceof TmfTraceElement) {
+            aTarget = ((TmfTraceElement) aTarget).getParent();
+        }
+
+        // If target is a project, use its trace folder
+        if (aTarget instanceof IProject) {
+            TmfProjectElement projectElement = TmfProjectRegistry.getProject((IProject) aTarget);
+            if (projectElement != null) {
+                aTarget = projectElement.getTracesFolder();
+            }
+        }
+
+        if (aDropTargetEvent.data instanceof IStructuredSelection) {
+            IStructuredSelection selection = (IStructuredSelection) aDropTargetEvent.data;
+            for (Object source : selection.toArray()) {
+                if (source instanceof IResource) {
+                    // If source resource is a trace, use the trace element
+                    IResource sourceResource = (IResource) source;
+                    TmfProjectElement projectElement = TmfProjectRegistry.getProject(sourceResource.getProject());
+                    if (projectElement != null && projectElement.getTracesFolder() != null) {
+                        for (TmfTraceElement trace : projectElement.getTracesFolder().getTraces()) {
+                            if (trace.getResource().equals(sourceResource)) {
+                                source = trace;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (source instanceof TmfTraceElement) {
+                    TmfTraceElement sourceTrace = (TmfTraceElement) source;
+                    // If source trace is under an experiment, use the original trace from the traces folder
+                    if (sourceTrace.getParent() instanceof TmfExperimentElement) {
+                        for (TmfTraceElement trace : sourceTrace.getProject().getTracesFolder().getTraces()) {
+                            if (trace.getName().equals(sourceTrace.getName())) {
+                                sourceTrace = trace;
+                                break;
+                            }
+                        }
+                    }
+                    IResource sourceResource = sourceTrace.getResource();
+                    if (aTarget instanceof TmfExperimentElement) {
+                        TmfExperimentElement targetExperiment = (TmfExperimentElement) aTarget;
+                        ok |= drop(sourceResource, targetExperiment);
+                    } else if (aTarget instanceof TmfTraceFolder) {
+                        TmfTraceFolder traceFolder = (TmfTraceFolder) aTarget;
+                        ok |= drop(sourceResource, traceFolder);
+                    }
+                } else if (source instanceof IResource) {
+                    IResource sourceResource = (IResource) source;
+                    if (sourceResource.getType() != IResource.FILE && sourceResource.getType() != IResource.FOLDER) {
+                        continue;
+                    }
+                    if (aTarget instanceof TmfExperimentElement) {
+                        TmfExperimentElement targetExperiment = (TmfExperimentElement) aTarget;
+                        ok |= drop(sourceResource, targetExperiment);
+                    } else if (aTarget instanceof TmfTraceFolder) {
+                        TmfTraceFolder traceFolder = (TmfTraceFolder) aTarget;
+                        ok |= drop(sourceResource, traceFolder);
+                    }
+                }
+            }
+        } else if (aDropTargetEvent.data instanceof String[]) {
+            String[] sources = (String[]) aDropTargetEvent.data;
+            for (String source : sources) {
+                Path path = new Path(source);
+                if (aTarget instanceof TmfExperimentElement) {
+                    TmfExperimentElement targetExperiment = (TmfExperimentElement) aTarget;
+                    ok |= drop(path, targetExperiment);
+                } else if (aTarget instanceof TmfTraceFolder) {
+                    TmfTraceFolder traceFolder = (TmfTraceFolder) aTarget;
+                    ok |= drop(path, traceFolder);
+                }
+            }
+        }
+        return (ok ? Status.OK_STATUS : Status.CANCEL_STATUS);
+    }
+
