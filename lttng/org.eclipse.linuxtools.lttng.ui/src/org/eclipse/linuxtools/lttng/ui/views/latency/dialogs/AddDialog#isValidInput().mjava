@@ -1,0 +1,100 @@
+    /**
+     * Validate the list before adding event pairs.
+     * @return "true" if the input is valid, "false" otherwise.
+     */
+    protected boolean isValidInput() {
+        // Remove the previous error message
+        setErrorMessage(null);
+
+        boolean valid = true;
+
+        // Check if an item from the start list is selected
+        TableItem[] items = fStartTable.getItems();
+        fStartType = null;
+        boolean startHasSelectedItem = false;
+        for (int i = 0; i < items.length && !startHasSelectedItem; i++) {
+            if (items[i].getChecked() == true) {
+                fStartType = items[i].getText();
+                startHasSelectedItem = true;
+            }
+        }
+
+        // Check if an item from the end list is selected
+        items = fEndTable.getItems();
+        fEndType = null;
+        boolean endHasSelectedItem = false;
+        for (int i = 0; i < items.length && !endHasSelectedItem; i++) {
+            if (items[i].getChecked() == true) {
+                fEndType = items[i].getText();
+                endHasSelectedItem = true;
+            }
+        }
+
+        // Print error message if needed.
+        if (!startHasSelectedItem && !endHasSelectedItem) {
+            setErrorMessage(Messages.LatencyView_Dialogs_AddEvents_Errors_NoSelection);
+            valid = false;
+        } else if (!startHasSelectedItem) {
+            setErrorMessage(Messages.LatencyView_Dialogs_AddEvents_Errors_StartNotSelected);
+            valid = false;
+        } else if (!endHasSelectedItem) {
+            setErrorMessage(Messages.LatencyView_Dialogs_AddEvents_Errors_EndNotSelected);
+            valid = false;
+        }
+
+        // Check if the same item is selected in both lists
+        if (startHasSelectedItem && endHasSelectedItem) {
+            if (fStartType.equalsIgnoreCase(fEndType)) {
+                setErrorMessage(Messages.LatencyView_Dialogs_AddEvents_Errors_SameSelected);
+                valid = false;
+            }
+        }
+
+        // Check if the selected item is already in the list
+        if (startHasSelectedItem && endHasSelectedItem) {
+            EventsPair pairs = getMatchPairs();
+            Vector<String> startEvents = pairs.getFirst();
+            Vector<String> endEvents = pairs.getSecond();
+
+            boolean startAlreadyUsed = false;
+            boolean endAlreadyUsed = false;
+            boolean startAsEndAlreadyUsed = false;
+            boolean endAsStartAlreadyUsed = false;
+
+            if (startEvents.contains(fStartType)) {
+                startAlreadyUsed = true;
+            }
+            if (endEvents.contains(fEndType)) {
+                endAlreadyUsed = true;
+            }
+            if (startEvents.contains(fEndType)) {
+                endAsStartAlreadyUsed = true;
+            }
+            if (endEvents.contains(fStartType)) {
+                startAsEndAlreadyUsed = true;
+            }
+
+            if (startAlreadyUsed && endAlreadyUsed) {
+                setErrorMessage(Messages.LatencyView_Dialogs_AddEvents_Errors_AlreadyMatched);
+                valid = false;
+            } else if (startAlreadyUsed) {
+                setErrorMessage(Messages.LatencyView_Dialogs_AddEvents_Errors_StartAlreadyMatched);
+                valid = false;
+            } else if (endAlreadyUsed) {
+                setErrorMessage(Messages.LatencyView_Dialogs_AddEvents_Errors_EndAlreadyMatched);
+                valid = false;
+            }
+
+            if (startAsEndAlreadyUsed) {
+                setErrorMessage(Messages.LatencyView_Dialogs_AddEvents_Errors_StartAsEnd);
+                valid = false;
+            }
+            if (endAsStartAlreadyUsed) {
+                setErrorMessage(Messages.LatencyView_Dialogs_AddEvents_Errors_EndAsStart);
+                valid = false;
+            }
+        }
+
+        return valid;
+    }
+

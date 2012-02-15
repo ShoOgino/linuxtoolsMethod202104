@@ -1,0 +1,50 @@
+    public void testScaleTo_7() {
+        // verify scaleTo with barWidth > 1
+        final int nbBuckets = 100;
+        final int maxHeight = 24;
+        final int width = 10;
+        final int barWidth = 4;
+        final int nbEvents = 2 * nbBuckets + 1;
+        
+        // (int)(width / barWith) = 2 
+        // -> 2 bars -> expected result needs two buckets (scaled data) 
+        // 
+        // buckets (in model) per bar = last bucket id / nbBars + 1 (plus 1 to cover all used buckets)
+        // -> buckets per bar = 50 / 2 + 1 = 26 
+        // -> first entry in expected result is 26 * 4 = 104
+        // -> second entry in expected result is 22 * 4 + 9 = 97
+        final int[] expectedResult = new int[] { 104, 97 };
+        
+        HistogramDataModel model = new HistogramDataModel(nbBuckets);
+        for (int i = 0; i < nbEvents; i++) {
+            model.countEvent(i, i);
+        }
+
+        // verify scaled data
+        HistogramScaledData result = model.scaleTo(width, maxHeight, barWidth);
+        
+        assertEquals(4 * 26, result.fBucketDuration);
+        assertEquals(0, result.fCurrentBucket);
+        assertEquals(0, result.fFirstBucketTime);
+        assertEquals(0, result.fFirstEventTime);
+        assertEquals(1, result.fLastBucket);
+        assertEquals(104, result.fMaxValue);
+        assertEquals((double)maxHeight/104, result.fScalingFactor);
+        assertEquals(maxHeight, result.fHeight);
+        assertEquals(width, result.fWidth);
+        assertEquals(barWidth, result.fBarWidth);
+
+        for (int i = 0; i < result.fData.length; i++) {
+            assertEquals(expectedResult[i], result.fData[i]);
+        }
+        
+        // verify model
+        assertEquals(nbEvents, model.getNbEvents());
+        assertEquals(nbBuckets, model.getNbBuckets());
+        assertEquals(4, model.getBucketDuration());
+        assertEquals(0, model.getFirstBucketTime());
+        assertEquals(0, model.getStartTime());
+        assertEquals(nbEvents - 1, model.getEndTime());
+        assertEquals(4 * nbBuckets, model.getTimeLimit());
+    }
+

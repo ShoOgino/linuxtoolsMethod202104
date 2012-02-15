@@ -1,0 +1,46 @@
+    public void testScaleToReverse_2() { 
+        final int nbBuckets = 100;
+        final int maxHeight = 24;
+        final int width = 10;
+        final int barWidth = 1;
+        
+        final int nbEvents = 2 * nbBuckets;
+
+        HistogramDataModel model = new HistogramDataModel(nbBuckets);
+        for (int i = 0; i < nbEvents; i++) {
+            model.countEvent(i, i);
+        }
+
+        HistogramScaledData result = model.scaleTo(width, maxHeight, barWidth);
+
+        model.clear();
+        
+        for (int i = nbEvents -1; i >= 0; i--) {
+            model.countEvent(i, i);
+        }
+        
+        HistogramScaledData revResult = model.scaleTo(width, maxHeight, barWidth);
+        
+        assertEquals(nbEvents, model.getNbEvents());
+        assertEquals(nbBuckets, model.getNbBuckets());
+        assertEquals(2, model.getBucketDuration());
+        assertEquals(0, model.getFirstBucketTime());
+        assertEquals(0, model.getStartTime());
+        assertEquals(nbEvents - 1, model.getEndTime());
+        assertEquals(2 * nbBuckets, model.getTimeLimit());
+        
+        // For the above number of events, result and revResult are exactly the same. 
+        assertEquals(result.fBucketDuration, revResult.fBucketDuration);
+        assertEquals(result.fCurrentBucket, revResult.fCurrentBucket);
+        assertEquals(result.fFirstBucketTime, revResult.fFirstBucketTime);
+        assertEquals(result.fMaxValue, revResult.fMaxValue);
+        assertEquals(result.fScalingFactor, revResult.fScalingFactor);
+        assertEquals(result.fLastBucket, revResult.fLastBucket);
+        assertEquals(result.getBucketEndTime(0), revResult.getBucketEndTime(0));
+        assertEquals(result.getBucketStartTime(0), revResult.getBucketStartTime(0));
+        
+        for (int i = 0; i < result.fData.length; i++) {
+            assertTrue(result.fData[i] == revResult.fData[i]);
+        }
+    }
+
