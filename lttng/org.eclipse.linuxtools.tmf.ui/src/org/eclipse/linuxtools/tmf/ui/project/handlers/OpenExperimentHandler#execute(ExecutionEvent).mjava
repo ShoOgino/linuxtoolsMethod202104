@@ -7,34 +7,69 @@
         if (window == null)
             return false;
 
-        // Close the current experiment, if any
-        TmfExperiment<?> currentExperiment = TmfExperiment.getCurrentExperiment();
-        if (currentExperiment != null) {
-            currentExperiment.dispose();
-        }
-
-        // Instantiate the experiment's traces
-        List<TmfTraceElement> traceEntries = fExperiment.getTraces();
-        int nbTraces = traceEntries.size();
-        int cacheSize = Integer.MAX_VALUE;
-        ITmfTrace<?>[] traces = new ITmfTrace[nbTraces];
-        for (int i = 0; i < nbTraces; i++) {
-            TmfTraceElement element = traceEntries.get(i);
-            ITmfTrace trace = element.instantiateTrace();
-            TmfEvent traceEvent = element.instantiateEvent();
-            try {
-                trace.initTrace(element.getLocation().getPath(), traceEvent.getClass(), false);
-            } catch (FileNotFoundException e) {
-                displayErrorMsg(""); //$NON-NLS-1$
+        try {
+            IFile bookmarksFile = fExperiment.getProject().getExperimentsFolder().getResource().getFile(BOOKMARKS_HIDDEN_FILE);
+            if (!bookmarksFile.exists()) {
+                InputStream source = new ByteArrayInputStream(new byte[0]);
+                bookmarksFile.create(source, true, null);
             }
-            cacheSize = Math.min(cacheSize, trace.getCacheSize());
-            traces[i] = trace;
-        }
+            bookmarksFile.setHidden(true);
 
-        // Create the experiment and signal
-        TmfExperiment experiment = new TmfExperiment(TmfEvent.class, fExperiment.getName(), traces, cacheSize);
-        TmfExperiment.setCurrentExperiment(experiment);
-        TmfSignalManager.dispatchSignal(new TmfExperimentSelectedSignal(this, experiment));
+            IFile file = fExperiment.getResource().getFile(fExperiment.getName() + ' ');
+            if (!file.exists()) {
+                file.createLink(bookmarksFile.getLocation(), IResource.REPLACE, null);
+            }
+            file.setHidden(true);
+            file.setPersistentProperty(TmfTraceElement.TRACETYPE, TmfExperiment.class.getCanonicalName());
+
+            // Instantiate the experiment's traces
+            List<TmfTraceElement> traceEntries = fExperiment.getTraces();
+            int nbTraces = traceEntries.size();
+            int cacheSize = Integer.MAX_VALUE;
+            ITmfTrace<?>[] traces = new ITmfTrace[nbTraces];
+            for (int i = 0; i < nbTraces; i++) {
+                TmfTraceElement element = traceEntries.get(i);
+                ITmfTrace trace = element.instantiateTrace();
+                TmfEvent traceEvent = element.instantiateEvent();
+                if (trace == null || traceEvent == null) {
+                    displayErrorMsg(Messages.OpenExperimentHandler_NoTraceType);
+                    for (int j = 0; j < i; j++) {
+                        traces[j].dispose();
+                    }
+                    return null;
+                }
+                try {
+                    trace.initTrace(element.getLocation().getPath(), traceEvent.getClass(), false);
+                } catch (FileNotFoundException e) {
+                    displayErrorMsg(""); //$NON-NLS-1$
+                }
+                if (trace instanceof TmfTrace) {
+                    ((TmfTrace) trace).setResource(element.getResource());
+                }
+                cacheSize = Math.min(cacheSize, trace.getCacheSize());
+                traces[i] = trace;
+            }
+
+            // Create the experiment and open in editor
+            TmfExperiment experiment = new TmfExperiment(TmfEvent.class, fExperiment.getName(), traces, cacheSize);
+            experiment.setResource(file);
+
+            IEditorInput editorInput = new TmfEditorInput(file, experiment);
+            IWorkbench wb = PlatformUI.getWorkbench();
+            IWorkbenchPage activePage = wb.getActiveWorkbenchWindow().getActivePage();
+
+            String editorId = TmfEventsEditor.ID;
+            IEditorPart editor = activePage.findEditor(editorInput);
+            if (editor != null && editor instanceof IReusableEditor) {
+                activePage.reuseEditor((IReusableEditor) editor, editorInput);
+                activePage.activate(editor);
+            } else {
+                editor = activePage.openEditor(editorInput, editorId);
+                IDE.setDefaultEditor(file, editorId);
+            }
+        } catch (CoreException e) {
+            displayErrorMsg(e.getMessage());
+        }
 
         return null;
     }

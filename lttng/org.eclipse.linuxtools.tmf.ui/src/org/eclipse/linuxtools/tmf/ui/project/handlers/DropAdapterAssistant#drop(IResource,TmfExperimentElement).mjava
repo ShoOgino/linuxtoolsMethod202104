@@ -1,0 +1,48 @@
+    /**
+     * Drop a trace by copying a resource in a target experiment
+     * 
+     * @param sourceResource the source resource
+     * @param targetExperiment the target experiment
+     * @return true if successful
+     */
+    private boolean drop(IResource sourceResource, TmfExperimentElement targetExperiment) {
+        boolean doit = true;
+        TmfProjectElement projectElement = TmfProjectRegistry.getProject(sourceResource.getProject());
+        for (TmfTraceElement trace : targetExperiment.getTraces()) {
+            if (trace.getName().equals(sourceResource.getName())) {
+                doit = false;
+                break;
+            }
+        }
+        if (doit && !targetExperiment.getProject().equals(projectElement)) {
+            for (TmfTraceElement trace : targetExperiment.getProject().getTracesFolder().getTraces()) {
+                if (trace.getName().equals(sourceResource.getName())) {
+                    doit = false;
+                    break;
+                }
+            }
+            if (doit) {
+                try {
+                    IPath destination = targetExperiment.getProject().getTracesFolder().getResource().getFullPath().addTrailingSeparator().append(sourceResource.getName());
+                    sourceResource.copy(destination, false, null);
+                    // use the copied resource for the experiment
+                    if (sourceResource.getType() == IResource.FILE) {
+                        sourceResource = targetExperiment.getProject().getTracesFolder().getResource().getFile(sourceResource.getName());
+                    } else if (sourceResource.getType() == IResource.FOLDER) {
+                        sourceResource = targetExperiment.getProject().getTracesFolder().getResource().getFolder(sourceResource.getName());
+                    }
+                } catch (CoreException e) {
+                    doit = false;
+                    displayException(e);
+                }
+            }
+        }
+        if (doit) {
+            if (sourceResource != null && sourceResource.exists()) {
+                createLink(targetExperiment.getResource(), sourceResource);
+                return true;
+            }
+        }
+        return false;
+    }
+

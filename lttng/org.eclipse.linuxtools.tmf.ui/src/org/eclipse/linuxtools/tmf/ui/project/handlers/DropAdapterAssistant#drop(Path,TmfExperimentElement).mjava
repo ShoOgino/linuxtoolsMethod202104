@@ -1,0 +1,44 @@
+    /**
+     * Drop a trace by importing a path in a target experiment
+     * 
+     * @param path the source path
+     * @param targetExperiment the target experiment
+     * @return true if successful
+     */
+    private boolean drop(Path path, TmfExperimentElement targetExperiment) {
+        boolean doit = true;
+        for (TmfTraceElement trace : targetExperiment.getTraces()) {
+            if (trace.getName().equals(path.lastSegment())) {
+                doit = false;
+                break;
+            }
+        }
+        if (doit && !path.toString().startsWith(targetExperiment.getProject().getResource().getLocation().toString())) {
+            for (TmfTraceElement trace : targetExperiment.getProject().getTracesFolder().getTraces()) {
+                if (trace.getName().equals(path.lastSegment())) {
+                    doit = false;
+                    break;
+                }
+            }
+            if (doit) {
+                importTrace(targetExperiment.getProject().getTracesFolder().getResource(), path);
+                // use the imported trace for the experiment
+                path = new Path(targetExperiment.getProject().getTracesFolder().getResource().getFile(path.lastSegment()).getLocation().toString());
+            }
+        }
+        if (doit) {
+            IResource resource = null;
+            File file = new File(path.toString());
+            if (file.exists() && file.isFile()) {
+                resource = targetExperiment.getProject().getTracesFolder().getResource().getFile(path.lastSegment());
+            } else if (file.exists() && file.isDirectory()) {
+                resource = targetExperiment.getProject().getTracesFolder().getResource().getFolder(path.lastSegment());
+            }
+            if (resource != null && resource.exists()) {
+                createLink(targetExperiment.getResource(), resource);
+                return true;
+            }
+        }
+        return false;
+    }
+

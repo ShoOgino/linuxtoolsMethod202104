@@ -1,4 +1,9 @@
     private synchronized void initializeStreamingMonitor() {
+        if (fInitialized) {
+            return;
+        }
+        fInitialized = true;
+
         if (getStreamingInterval() == 0) {
             TmfContext context = seekLocation(null);
             TmfEvent event = getNext(context);
@@ -6,8 +11,15 @@
                 return;
             }
             TmfTimeRange timeRange = new TmfTimeRange(event.getTimestamp(), TmfTimestamp.BigCrunch);
-            TmfExperimentRangeUpdatedSignal signal = new TmfExperimentRangeUpdatedSignal(this, this, timeRange);
-            broadcast(signal);
+            final TmfExperimentRangeUpdatedSignal signal = new TmfExperimentRangeUpdatedSignal(this, this, timeRange);
+
+            // Broadcast in separate thread to prevent deadlock
+            new Thread() {
+                @Override
+                public void run() {
+                    broadcast(signal);
+                }
+            }.start();
             return;
         }
 
