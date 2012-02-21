@@ -1,0 +1,66 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.core.commands.AbstractHandler#isEnabled()
+     */
+    @Override
+    public boolean isEnabled() {
+        reset();
+
+        // Check if we are closing down
+        IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+        if (window == null) {
+            return false;
+        }
+
+        // Check if we are in the Project View
+        IWorkbenchPage page = window.getActivePage();
+        if (page == null) {
+            return false;
+        }
+
+        IWorkbenchPart part = page.getActivePart();
+        if (!(part instanceof ControlView)) {
+            return false;
+        }
+
+        // Check if one or more session are selected
+        ISelection selection = page.getSelection(ControlView.ID);
+        if (selection instanceof StructuredSelection) {
+            StructuredSelection structered = ((StructuredSelection) selection);
+            String sessionName = null;
+            for (Iterator<?> iterator = structered.iterator(); iterator.hasNext();) {
+                Object element = (Object) iterator.next();
+                 
+                if (element instanceof TraceChannelComponent) {
+                    
+                    // Add only TraceChannelComponents that are disabled
+                    TraceChannelComponent channel = (TraceChannelComponent) element;
+                    if (sessionName == null) {
+                        sessionName = String.valueOf(channel.getSessionName());
+                    }
+
+                    // Enable command only for channels of same session
+                    if (!sessionName.equals(channel.getSessionName())) {
+                        reset();
+                        break;
+                    }
+
+                    if ((channel.getState() != getNewState())) {
+                        if (channel.isKernel()) {
+                            fKernelChannels.add(channel);
+                            if (fKernelDomain == null) {
+                                fKernelDomain = (TraceDomainComponent) channel.getParent();
+                            }
+                        } else {
+                            fUstChannels.add(channel);
+                            if (fUstDomain == null) {
+                                fUstDomain = (TraceDomainComponent) channel.getParent();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return fKernelChannels.size() + fUstChannels.size() > 0;
+    }
+

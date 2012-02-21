@@ -1,0 +1,48 @@
+    public void testCreateSessionErrors() {
+        ILttngControlService service = new LTTngControlService(fShellFactory.getShellForSessionErrors());
+        try {
+            service.createSession("alreadyExist", null, new NullProgressMonitor());
+            fail("No exeption thrown");
+        } catch (ExecutionException e) {
+            // success
+        }
+        
+        try {
+            service.createSession("wrongName", null, new NullProgressMonitor());
+            fail("No exeption thrown");
+        } catch (ExecutionException e) {
+            // success
+        } 
+
+        try {
+            service.createSession("wrongPath", "/home/user/hallo", new NullProgressMonitor());
+            fail("No exeption thrown");
+        } catch (ExecutionException e) {
+            // success
+        } 
+
+        try {
+            ISessionInfo info = service.createSession("session with spaces", null, new NullProgressMonitor());
+            assertNotNull(info);
+            assertEquals("session with spaces", info.getName());
+            assertNotNull(info.getSessionPath());
+            assertTrue(info.getSessionPath().contains("session with spaces"));
+            assertEquals(TraceSessionState.INACTIVE, info.getSessionState());
+            
+        } catch (ExecutionException e) {
+            fail(e.toString());
+        } 
+
+        try {
+            ISessionInfo info = service.createSession("pathWithSpaces", "/home/user/hallo user/here", new NullProgressMonitor());
+            assertNotNull(info);
+            assertEquals("pathWithSpaces", info.getName());
+            assertNotNull(info.getSessionPath());
+            assertTrue(info.getSessionPath().contains("/home/user/hallo user/here"));
+            assertEquals(TraceSessionState.INACTIVE, info.getSessionState());
+            
+        } catch (ExecutionException e) {
+            fail(e.toString());
+        } 
+    }
+

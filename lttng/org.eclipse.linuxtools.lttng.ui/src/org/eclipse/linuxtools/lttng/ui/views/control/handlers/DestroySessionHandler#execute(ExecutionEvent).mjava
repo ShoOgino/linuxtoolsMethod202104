@@ -1,0 +1,42 @@
+    // ------------------------------------------------------------------------
+    // Operations
+    // ------------------------------------------------------------------------
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.core.commands.AbstractHandler#execute(org.eclipse.core.commands.ExecutionEvent)
+     */
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+
+        if (window == null) {
+            return false;
+        }
+        // Get user confirmation
+        if (MessageDialog.openConfirm(window.getShell(), 
+                Messages.TraceControl_DestroyConfirmationTitle, 
+                Messages.TraceControl_DestroyConfirmationMessage)) {
+
+            Job job = new Job(Messages.TraceControl_DestroySessionJob) {
+                @Override
+                protected IStatus run(IProgressMonitor monitor) {
+                    try {
+                        for (Iterator<TraceSessionComponent> iterator = fSessions.iterator(); iterator.hasNext();) {
+                            // Destroy all selected sessions
+                            TraceSessionComponent session = (TraceSessionComponent) iterator.next();
+                            TraceSessionGroup sessionGroup = (TraceSessionGroup)session.getParent();
+                            sessionGroup.destroySession(session.getName(), monitor);
+                        }
+                    } catch (ExecutionException e) {
+                        return new Status(Status.ERROR, LTTngUiPlugin.PLUGIN_ID, e.toString());
+                    }  
+                    return Status.OK_STATUS;
+                }
+            };
+            job.setUser(true);
+            job.schedule();
+        }
+        return null;
+    }
+

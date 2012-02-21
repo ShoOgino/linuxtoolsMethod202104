@@ -1,0 +1,40 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.linuxtools.lttng.ui.views.control.service.ILttngControlService#disableChannel(java.lang.String, java.util.List, org.eclipse.core.runtime.IProgressMonitor)
+     */
+    @Override
+    public void disableChannel(String sessionName, List<String> channelNames, boolean isKernel, IProgressMonitor monitor) throws ExecutionException{
+        
+        // no channels to enable
+        if (channelNames.size() == 0) {
+            return;
+        }
+
+        String newSessionName = formatParameter(sessionName);
+        
+        StringBuffer command = new StringBuffer(COMMAND_DISABLE_CHANNEL);
+
+        for (Iterator<String> iterator = channelNames.iterator(); iterator.hasNext();) {
+            String channel = (String) iterator.next();
+            command.append(channel);
+            if (iterator.hasNext()) {
+                command.append(","); //$NON-NLS-1$
+            }
+        }
+
+        if (isKernel) {
+            command.append(" -k ");
+        } else {
+            command.append(" -u ");
+        }
+
+        command.append(" -s "); //$NON-NLS-1$
+        command.append(newSessionName);
+
+        ICommandResult result = fCommandShell.executeCommand(command.toString(), monitor);
+        
+        if (isError(result)) {
+            throw new ExecutionException(Messages.TraceControl_CommandError + " " + command + "\n" + formatOutput(result.getOutput())); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+    }
+
