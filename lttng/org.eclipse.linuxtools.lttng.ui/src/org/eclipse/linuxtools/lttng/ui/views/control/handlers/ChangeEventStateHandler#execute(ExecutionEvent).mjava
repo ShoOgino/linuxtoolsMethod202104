@@ -1,0 +1,58 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.core.commands.AbstractHandler#execute(org.eclipse.core.commands.ExecutionEvent)
+     */
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+
+        if (window == null) {
+            return false;
+        }
+
+        Job job = new Job(Messages.TraceControl_ChangeChannelStateJob) {
+            @Override
+            protected IStatus run(IProgressMonitor monitor) {
+                String errorString = null;
+
+                TraceSessionComponent session = null;
+
+                try {
+                    if (fChannel != null) {
+                        session = fChannel.getSession();
+                        List<String> channelNames = new ArrayList<String>();
+                        for (Iterator<TraceEventComponent> iterator = fEvents.iterator(); iterator.hasNext();) {
+                            // Enable all selected channels which are disabled
+                            TraceEventComponent channel = (TraceEventComponent) iterator.next();
+                            channelNames.add(channel.getName());
+                        }
+                        
+                        changeState(fChannel, channelNames, monitor);
+
+                        for (Iterator<TraceEventComponent> iterator = fEvents.iterator(); iterator.hasNext();) {
+                            // Enable all selected channels which are disabled
+                            TraceEventComponent channel = (TraceEventComponent) iterator.next();
+                            channel.setState(getNewState());
+                        }
+                    }
+                } catch (ExecutionException e) {
+                    errorString = e.toString() + "\n"; //$NON-NLS-1$
+                }
+
+                // In all cases notify listeners  
+                session.fireComponentChanged(session);
+
+                if (errorString != null) {
+                    return new Status(Status.ERROR, LTTngUiPlugin.PLUGIN_ID, errorString);
+                }
+
+                return Status.OK_STATUS;
+            }
+        };
+        job.setUser(true);
+        job.schedule();
+
+        return null;
+    }
+

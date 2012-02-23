@@ -1,0 +1,90 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.jface.dialogs.Dialog#createDialogArea(org.eclipse.swt.widgets.Composite)
+     */
+    @Override
+    protected Control createDialogArea(Composite parent) {
+        
+        // Main dialog panel
+        fDialogComposite = new Composite(parent, SWT.NONE);
+        GridLayout layout = new GridLayout(1, true);
+        fDialogComposite.setLayout(layout); 
+        Label label = new Label(fDialogComposite, SWT.NONE);
+        // a simple way to make dialog wider :-)
+        label.setText("                                                                                                  "); //$NON-NLS-1$
+        fSessionsGroup = new Group(fDialogComposite, SWT.SHADOW_NONE);
+        fSessionsGroup.setText(Messages.TraceControl_EnableEventsSessionGroupName);
+        layout = new GridLayout(1, true);
+        fSessionsGroup.setLayout(layout); 
+//        GridData data = new GridData(GridData.FILL, GridData.CENTER, true, false, 1, 1);
+        GridData data = new GridData(GridData.FILL_HORIZONTAL);
+        fSessionsGroup.setLayoutData(data);
+
+        fSessionsCombo = new CCombo(fSessionsGroup, SWT.READ_ONLY);
+        fSessionsCombo.setToolTipText(Messages.TraceControl_EnableEventsSessionsTooltip);
+        fSessionsCombo.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+//        fSessionsCombo.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, false, 1, 1));
+        
+        String items[] = new String[fSessions.length];
+        for (int i = 0; i < items.length; i++) {
+            items[i] = String.valueOf(fSessions[i].getName());
+        }
+
+        fSessionsCombo.setItems(items);
+        fSessionsCombo.setEnabled(fSessions.length > 0);
+        
+        fChannelsGroup = new Group(fDialogComposite, SWT.SHADOW_NONE);
+        fChannelsGroup.setText(Messages.TraceControl_EnableEventsChannelGroupName);
+        layout = new GridLayout(1, true);
+        fChannelsGroup.setLayout(layout);
+        data = new GridData(GridData.FILL_HORIZONTAL);
+//        data = new GridData(GridData.FILL, GridData.CENTER, true, false, 1, 1);
+        fChannelsGroup.setLayoutData(data);
+        
+        fChannelsCombo = new CCombo(fChannelsGroup, SWT.READ_ONLY);
+        fChannelsCombo.setToolTipText(Messages.TraceControl_EnableEventsChannelsTooltip);
+//        fChannelsCombo.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, false, 1, 1));
+        fChannelsCombo.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+        fChannelsCombo.setEnabled(false);
+
+        fSessionsCombo.addSelectionListener(new SelectionListener() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                fSessionIndex = fSessionsCombo.getSelectionIndex();
+                
+                if (fSessionIndex >= 0) {
+                    TraceDomainComponent domain = null;
+                    TraceDomainComponent[] domains = fSessions[fSessionIndex].getDomains();
+                    for (int i = 0; i < domains.length; i++) {
+
+                        if (domains[i].isKernel() == fIsKernel) {
+                            domain = domains[i];
+                            break;
+                        }
+                    }
+
+                    if (domain != null) {
+                        fChannels = domain.getChannels();
+                        String items[] = new String[fChannels.length];
+                        for (int i = 0; i < items.length; i++) {
+                            items[i] = String.valueOf(fChannels[i].getName());
+                        }
+                        fChannelsCombo.setItems(items);
+                        fChannelsCombo.setEnabled(fChannels.length > 0);
+                    } else { 
+                        fChannelsCombo.setItems(new String[0]);
+                        fChannelsCombo.setEnabled(false);
+                        fChannels = null;
+                   }
+                   fChannelsCombo.getParent().getParent().layout();
+                }
+            }
+
+            @Override
+            public void widgetDefaultSelected(SelectionEvent e) {
+            }
+        });
+//        label.setText("");
+        return fDialogComposite;
+    }
+

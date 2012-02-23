@@ -1,0 +1,66 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.core.commands.AbstractHandler#execute(org.eclipse.core.commands.ExecutionEvent)
+     */
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+
+        if (window == null) {
+            return false;
+        }
+
+        // Open dialog box to retrieve the session and channel where the events should be enabled in.
+        final IGetEventInfoDialog dialog = new GetEventInfoDialog(window.getShell(), fIsKernel, fSessions);
+
+        if (dialog.open() != Window.OK) {
+            return null;
+        }
+
+        Job job = new Job(Messages.TraceControl_EnableEventsJob) {
+            @Override
+            protected IStatus run(IProgressMonitor monitor) {
+
+                String errorString = null;
+                try {
+                    List<String> eventNames = new ArrayList<String>();
+                    // Create list of event names
+                    for (Iterator<BaseEventComponent> iterator = fEvents.iterator(); iterator.hasNext();) {
+                        BaseEventComponent event = (BaseEventComponent) iterator.next();
+                        eventNames.add(event.getName());
+                    }
+
+                    TraceChannelComponent channel = dialog.getChannel();
+                    if (channel == null) {
+                        // enable events on default channel (which will be created by lttng-tools)
+                        dialog.getSession().enableEvent(eventNames, fIsKernel, monitor);
+                    } else {
+                        channel.enableEvent(eventNames, monitor);
+                    }
+
+                } catch (ExecutionException e) {
+                    errorString = e.toString() + "\n"; //$NON-NLS-1$
+                }
+
+                // get session configuration in all cases
+                try {
+                    dialog.getSession().getConfigurationFromNode(monitor);
+                } catch (ExecutionException e) {
+                    if (errorString == null) {
+                        errorString = new String();
+                    }
+                    errorString += Messages.TraceControl_ListSessionFailure + ": " + e.toString();  //$NON-NLS-1$ 
+                } 
+
+                if (errorString != null) {
+                    return new Status(Status.ERROR, LTTngUiPlugin.PLUGIN_ID, errorString);
+                }
+                return Status.OK_STATUS;
+            }
+        };
+        job.setUser(true);
+        job.schedule();
+        return null;
+    }
+

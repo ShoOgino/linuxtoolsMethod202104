@@ -1,22 +1,21 @@
     /*
      * (non-Javadoc)
-     * @see org.eclipse.linuxtools.lttng.ui.views.control.service.ILttngControlService#disableChannel(java.lang.String, java.util.List, org.eclipse.core.runtime.IProgressMonitor)
+     * @see org.eclipse.linuxtools.lttng.ui.views.control.service.ILttngControlService#disableEvent(java.lang.String, java.lang.String, java.util.List, boolean, org.eclipse.core.runtime.IProgressMonitor)
      */
     @Override
-    public void disableChannel(String sessionName, List<String> channelNames, boolean isKernel, IProgressMonitor monitor) throws ExecutionException {
-        
+    public void disableEvent(String sessionName, String channelName, List<String> eventNames, boolean isKernel, IProgressMonitor monitor) throws ExecutionException {
         // no channels to enable
-        if (channelNames.size() == 0) {
+        if (eventNames.size() == 0) {
             return;
         }
 
         String newSessionName = formatParameter(sessionName);
-        
-        StringBuffer command = new StringBuffer(COMMAND_DISABLE_CHANNEL);
 
-        for (Iterator<String> iterator = channelNames.iterator(); iterator.hasNext();) {
-            String channel = (String) iterator.next();
-            command.append(channel);
+        StringBuffer command = new StringBuffer(COMMAND_DISABLE_EVENT);
+
+        for (Iterator<String> iterator = eventNames.iterator(); iterator.hasNext();) {
+            String event = (String) iterator.next();
+            command.append(event);
             if (iterator.hasNext()) {
                 command.append(","); //$NON-NLS-1$
             }
@@ -30,6 +29,11 @@
 
         command.append(OPTION_SESSION);
         command.append(newSessionName);
+
+        if (channelName != null) {
+            command.append(OPTION_CHANNEL);
+            command.append(channelName);
+        }
 
         ICommandResult result = fCommandShell.executeCommand(command.toString(), monitor);
         

@@ -1,0 +1,69 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.core.commands.AbstractHandler#isEnabled()
+     */
+    @Override
+    public boolean isEnabled() {
+        fEvents.clear();
+        fSessions = null;
+        fIsKernel = null;
+
+        // Check if we are closing down
+        IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+        if (window == null) {
+            return false;
+        }
+
+        // Check if we are in the Project View
+        IWorkbenchPage page = window.getActivePage();
+        if (page == null) {
+            return false;
+        }
+
+        IWorkbenchPart part = page.getActivePart();
+        if (!(part instanceof ControlView)) {
+            return false;
+        }
+
+        // Check if one or more session are selected
+        ISelection selection = page.getSelection(ControlView.ID);
+        if (selection instanceof StructuredSelection) {
+            
+            StructuredSelection structered = ((StructuredSelection) selection);
+            for (Iterator<?> iterator = structered.iterator(); iterator.hasNext();) {
+                Object element = (Object) iterator.next();
+                if (element instanceof BaseEventComponent) {
+                    BaseEventComponent event = (BaseEventComponent) element;
+                    ITraceControlComponent provider = event.getParent();
+                    
+                    // check for kernel or UST provider
+                    boolean temp = false;
+                    if (provider instanceof KernelProviderComponent) {
+                        temp = true;
+                    } else if (provider instanceof UstProviderComponent) {
+                        temp = false;
+                    } else {
+                        return false;
+                    }
+                    if (fIsKernel == null) {
+                        fIsKernel = Boolean.valueOf(temp);
+                    } else {
+                        // don't mix events from Kernel and UST provider
+                        if (fIsKernel.booleanValue() != temp) {
+                            return false;
+                        }
+                    }
+
+                    // Add BaseEventComponents
+                    fEvents.add(event);
+                    
+                    if (fSessions == null) {
+                        TargetNodeComponent  root = (TargetNodeComponent)event.getParent().getParent().getParent();
+                        fSessions = root.getSessions();
+                    }
+                }
+            }
+        }
+        return ((fEvents.size() > 0) && (fSessions != null) && (fSessions.length > 0));
+    }
+

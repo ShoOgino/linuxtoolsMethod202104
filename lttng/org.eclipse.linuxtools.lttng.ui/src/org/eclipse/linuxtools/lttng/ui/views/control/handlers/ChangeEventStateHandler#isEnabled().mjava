@@ -1,0 +1,68 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.core.commands.AbstractHandler#isEnabled()
+     */
+    @Override
+    public boolean isEnabled() {
+        reset();
+
+        // Check if we are closing down
+        IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+        if (window == null) {
+            return false;
+        }
+
+        // Check if we are in the Project View
+        IWorkbenchPage page = window.getActivePage();
+        if (page == null) {
+            return false;
+        }
+
+        IWorkbenchPart part = page.getActivePart();
+        if (!(part instanceof ControlView)) {
+            return false;
+        }
+
+        // Check if one or more session are selected
+        ISelection selection = page.getSelection(ControlView.ID);
+        if (selection instanceof StructuredSelection) {
+            StructuredSelection structered = ((StructuredSelection) selection);
+            String sessionName = null;
+            String channelName = null;
+            
+            for (Iterator<?> iterator = structered.iterator(); iterator.hasNext();) {
+                Object element = (Object) iterator.next();
+                 
+                if (element instanceof TraceEventComponent) {
+                    
+                    // Add only TraceChannelComponents that are disabled
+                    TraceEventComponent channel = (TraceEventComponent) element;
+                    if (sessionName == null) {
+                        sessionName = String.valueOf(channel.getSessionName());
+                    }
+                    
+                    if (fChannel == null) {
+                        fChannel = (TraceChannelComponent)channel.getParent();
+                    }
+
+                    if (channelName == null) {
+                        channelName = channel.getChannelName();
+                    }
+                    
+                    // Enable command only for events of same session, same channel and domain
+                    if ((!sessionName.equals(channel.getSessionName())) ||
+                        (!channelName.equals(channel.getChannelName())) ||
+                        (fChannel.isKernel() != channel.isKernel())) {
+                        reset();
+                        break;
+                    }
+
+                    if ((channel.getState() != getNewState())) {
+                        fEvents.add(channel);
+                    }
+                }
+            }
+        }
+        return fEvents.size() > 0;
+    }
+
