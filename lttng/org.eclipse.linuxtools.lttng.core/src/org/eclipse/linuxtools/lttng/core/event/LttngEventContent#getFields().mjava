@@ -9,11 +9,13 @@
      */
     @Override
     public synchronized LttngEventField[] getFields() {
-        if ( fFieldsMap.size() < fParentEvent.getType().getNbFields() ) {
+        int nbFields = fParentEvent.getType().getFieldNames().length;
+        
+        if (fFieldsMap.size() < nbFields) {
         	LttngEventField tmpField = null;
         	LttngEventType tmpType = (LttngEventType)fParentEvent.getType();
         	
-	        for ( int pos=0; pos<tmpType.getNbFields(); pos++ ) {
+	        for (int pos=0; pos < nbFields; pos++) {
 	            String name = null;
 	            LttngEvent lttngTmpEvent = (LttngEvent)getEvent(); //added for easier debugging
 				JniEvent tmpEvent = (lttngTmpEvent).convertEventTmfToJni();
@@ -21,16 +23,16 @@
 				// tmpEvent == null probably mean there is a discrepancy between Eclipse and C library
 				// An error was probably printed in convertEventTmfToJni() already, but keep in mind this is SERIOUS
 				if ( tmpEvent != null ) {
-					try {
-						name = tmpType.getLabel(pos);
+//					try {
+						name = tmpType.getFieldName(pos);
 					
 						Object newValue = tmpEvent.parseFieldByName(name);
-						tmpField = new LttngEventField(this, name, newValue );
+                        tmpField = new LttngEventField(name, newValue, null);
 						fFieldsMap.put(name, tmpField);
-					}
-					catch (TmfNoSuchFieldException e) {
-						System.out.println("Invalid field position requested : " + pos + ", ignoring (getFields).");  //$NON-NLS-1$//$NON-NLS-2$
-					}
+//					}
+//					catch (TmfNoSuchFieldException e) {
+//						System.out.println("Invalid field position requested : " + pos + ", ignoring (getFields).");  //$NON-NLS-1$//$NON-NLS-2$
+//					}
 	            }
 	        }
         }

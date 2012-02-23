@@ -1,0 +1,40 @@
+    /* (non-Javadoc)
+     * @see org.eclipse.linuxtools.tmf.core.event.ITmfTimestamp#normalize(long, int)
+     */
+    @Override
+    public ITmfTimestamp normalize(long offset, int scale) throws ArithmeticException {
+
+        long value = fValue;
+        int precision = fPrecision;
+
+        // Handle the trivial case
+        if (fScale == scale && offset == 0)
+            return new TmfTimestamp(this);
+
+        // First, scale the timestamp
+        if (fScale != scale) {
+            int scaleDiff = Math.abs(fScale - scale);
+            if (scaleDiff >= scalingFactors.length) {
+                throw new ArithmeticException("Scaling exception"); //$NON-NLS-1$
+            }
+
+            long scalingFactor = scalingFactors[scaleDiff];
+            if (scale < fScale) {
+                value *= scalingFactor;
+                precision *= scalingFactor;
+            } else {
+                value /= scalingFactor;
+                precision /= scalingFactor;
+            }
+        }
+
+        // Then, apply the offset
+        if (offset < 0) {
+            value = (value < Long.MIN_VALUE - offset) ? Long.MIN_VALUE : value + offset;
+        } else {
+            value = (value > Long.MAX_VALUE - offset) ? Long.MAX_VALUE : value + offset;
+        }
+
+        return new TmfTimestamp(value, scale, precision);
+    }
+

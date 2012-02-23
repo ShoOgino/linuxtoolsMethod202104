@@ -32,8 +32,8 @@
 
 //            long indexingStart = System.nanoTime();
 
-            TmfTimestamp startTime = (fTimeRange == TmfTimeRange.Null) ? null : fTimeRange.getStartTime();
-            TmfTimestamp lastTime = (fTimeRange == TmfTimeRange.Null) ? null : fTimeRange.getEndTime();
+            ITmfTimestamp startTime = (fTimeRange == TmfTimeRange.Null) ? null : fTimeRange.getStartTime();
+            ITmfTimestamp lastTime = (fTimeRange == TmfTimeRange.Null) ? null : fTimeRange.getEndTime();
             long initialNbEvents = fNbEvents;
 
             @Override
@@ -45,10 +45,10 @@
             public void handleData(TmfEvent event) {
                 super.handleData(event);
                 if (event != null) {
-                    TmfTimestamp ts = event.getTimestamp();
+                    ITmfTimestamp ts = event.getTimestamp();
                     if (startTime == null)
-                        startTime = new TmfTimestamp(ts);
-                    lastTime = new TmfTimestamp(ts);
+                        startTime = ts.clone();
+                    lastTime = ts.clone();
                     if ((getNbRead() % fIndexPageSize) == 1 && getNbRead() != 1) {
                         updateExperiment();
                     }
@@ -89,7 +89,7 @@
             private void updateExperiment() {
                 int nbRead = getNbRead();
                 if (startTime != null) {
-                    fTimeRange = new TmfTimeRange(startTime, new TmfTimestamp(lastTime));
+                    fTimeRange = new TmfTimeRange(startTime, lastTime.clone());
                 }
                 if (nbRead != 0) {
 //					updateTimeRange();

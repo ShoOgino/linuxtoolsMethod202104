@@ -1,0 +1,40 @@
+    /* (non-Javadoc)
+     * @see org.eclipse.linuxtools.tmf.core.event.ITmfTimestamp#compareTo(org.eclipse.linuxtools.tmf.core.event.ITmfTimestamp, boolean)
+     */
+    @Override
+    public int compareTo(ITmfTimestamp ts, boolean withinPrecision) {
+
+        // Check the corner cases (we can't use equals() because it uses compareTo()...)
+        if (this == ts || (fValue == ts.getValue() && fScale == ts.getScale()))
+            return 0;
+        if ((fValue == BigBang.getValue() && fScale == BigBang.getScale()) || (ts.getValue() == BigCrunch.getValue() && ts.getScale() == BigCrunch.getScale()))
+            return -1;
+        if ((fValue == BigCrunch.getValue() && fScale == BigCrunch.getScale()) || (ts.getValue() == BigBang.getValue() && ts.getScale() == BigBang.getScale()))
+            return 1;
+        
+        try {
+            ITmfTimestamp nts = ts.normalize(0, fScale);
+            long delta = fValue - nts.getValue();
+            if ((delta == 0) || (withinPrecision && (Math.abs(delta) <= (fPrecision + nts.getPrecision())))) {
+                return 0;
+            }
+            return (delta > 0) ? 1 : -1;
+        }
+        catch (ArithmeticException e) {
+            // Scaling error. We can figure it out nonetheless.
+
+            // First, look at the sign of the mantissa
+            long value = ts.getValue();
+            if (fValue == 0 && value == 0)
+                return 0;
+            if (fValue  < 0 && value >= 0)
+                return -1;
+            if (fValue >= 0 && value < 0)
+                return 1;
+
+            // Otherwise, just compare the scales
+            int scale = ts.getScale();
+            return (fScale > scale) ? (fValue >= 0) ? 1 : -1 : (fValue >= 0) ? -1 : 1;  
+        }
+    }
+
