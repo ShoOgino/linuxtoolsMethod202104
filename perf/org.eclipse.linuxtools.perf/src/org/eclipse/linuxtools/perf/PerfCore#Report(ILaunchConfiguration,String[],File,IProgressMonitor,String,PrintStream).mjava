@@ -83,6 +83,7 @@
 						//if (PerfPlugin.DEBUG_ON) System.out.println("Event is " + tmp[tmp.length - 1]);
 						invisibleRoot.addChild(currentEvent);
 						currentCommand = null;
+						currentDso = null;
 					} else if (line.contains("Samples:")) { //"samples" was used instead of events in an older version, some incompatibilities may arise.
 						if (print != null) { print.println("WARNING: You are running an older version of Perf, please update if you can. The plugin may produce unpredictable results."); }
 						invisibleRoot.addChild(new PMEvent("WARNING: You are running an older version of Perf, the plugin may produce unpredictable results."));
@@ -91,10 +92,10 @@
 					items = line.trim().split(""+(char)1); // using custom field separator. for default whitespace use " +"
 					if (items.length != 5) { if (!line.trim().equals("")) { System.err.println("Err INVALID: " + line + "//length:" + items.length); }; continue; }
 					percent = Float.parseFloat(items[0].substring(0, items[0].length() - 1)); //percent column
-					samples = Double.parseDouble(items[1]); //samples column
-					comm = items[2]; //command column
-					dso = items[3]; //dso column
-					symbol = items[4]; //symbol column 
+					samples = Double.parseDouble(items[1].trim()); //samples column
+					comm = items[2].trim(); //command column
+					dso = items[3].trim(); //dso column
+					symbol = items[4].trim(); //symbol column 
 					kernelFlag = (""+symbol.charAt(1)).equals("k");			
 					
 					//if (PerfPlugin.DEBUG_ON) System.out.println(percent + "//" + samples + "//" + comm + "//" + dso + "//" + kernelFlag + "//" + symbol);
@@ -245,10 +246,13 @@
 			}
 		}
 
-		if (hasProfileData)
-			print.println("Profile data loaded into Perf Profile View.");
-		else
-			print.println("No profile data generated to be displayed.");
+		if (print != null) {
+			if (hasProfileData) {
+				print.println("Profile data loaded into Perf Profile View.");
+			} else {
+				print.println("No profile data generated to be displayed.");
+			}
+		}
 		RefreshView();
     }
 
