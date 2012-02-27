@@ -1,0 +1,37 @@
+    /* (non-Javadoc)
+     * @see org.eclipse.core.expressions.IPropertyTester#test(java.lang.Object, java.lang.String, java.lang.Object[], java.lang.Object)
+     */
+    @Override
+    public boolean test(Object receiver, String property, Object[] args, Object expectedValue) {
+
+        // Check if the selected elements are in the trace folder
+        if (isInTraceFolder.equals(property)) {
+            if (receiver != null && receiver instanceof IStructuredSelection) {
+                Iterator<?> iter = ((IStructuredSelection) receiver).iterator();
+                while (iter.hasNext()) {
+                    Object item = iter.next();
+                    if (item instanceof TmfTraceElement) {
+                        TmfTraceElement trace = (TmfTraceElement) item;
+                        if (!(trace.getParent() instanceof TmfTraceFolder)) {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                }
+                return true;
+            }
+        }
+
+        // Check if the parent of a trace element is an experiment
+        if (isExperimentTrace.equals(property)) {
+            if (receiver != null && receiver instanceof TmfTraceElement) {
+            TmfTraceElement trace = (TmfTraceElement) receiver;
+                return trace.getParent() instanceof TmfExperimentElement;
+            }
+            return false;
+        }
+
+        return false;
+    }
+
