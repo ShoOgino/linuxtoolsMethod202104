@@ -1,0 +1,103 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.core.commands.AbstractHandler#execute(org.eclipse.core.commands.ExecutionEvent)
+     */
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        final IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+
+        if (window == null) {
+            return false;
+        }
+
+        TargetNodeComponent node = fSession.getTargetNode();
+        List<ITraceControlComponent> providers = node.getChildren(TraceProviderGroup.class);
+        List<ITraceControlComponent> kernelProvider =  providers.get(0).getChildren(KernelProviderComponent.class);
+
+        final IEnableKernelEventsDialog dialog = new EnableKernelEventDialog(window.getShell(), (KernelProviderComponent)kernelProvider.get(0));
+
+        if (dialog.open() != Window.OK) {
+            return null;
+        }
+
+        Job job = new Job(Messages.TraceControl_ChangeEventStateJob) {
+            @Override
+            protected IStatus run(IProgressMonitor monitor) {
+                String errorString = null;
+
+                // Enable tracepoint events
+                try {
+                    if (dialog.isAllTracePoints()) {
+                        enableEvents(null, monitor);
+                    } else {
+                        List<String> eventNames = dialog.getEventNames();
+                        if (eventNames.size() > 0) {
+                            enableEvents(eventNames, monitor);
+                        }
+                    }
+                } catch (ExecutionException e) {
+                    if (errorString == null) {
+                        errorString = new String();
+                    } 
+                    errorString += e.toString() + "\n"; //$NON-NLS-1$
+                }
+
+                // Enable syscall events
+                try {
+                    if (dialog.isAllSysCalls()) {
+                        enableSyscalls(monitor);
+                    } 
+                } catch (ExecutionException e) {
+                    if (errorString == null) {
+                        errorString = new String();
+                    } 
+                    errorString += e.toString() + "\n"; //$NON-NLS-1$
+                }
+                
+                // Enable dynamic probe 
+                try {
+                    if ((dialog.getProbeEventName() != null && dialog.getProbeName() != null)) {
+                        enableProbe(dialog.getProbeEventName(), dialog.getProbeName(), monitor);
+                    } 
+                } catch (ExecutionException e) {
+                    if (errorString == null) {
+                        errorString = new String();
+                    } 
+                    errorString += e.toString() + "\n"; //$NON-NLS-1$
+                }
+                
+                // Enable dynamic function probe
+                try {
+                    if ((dialog.getFunctionEventName() != null) && (dialog.getFunction() != null)) {
+                        fSession.enableFunctionProbe(dialog.getFunctionEventName(), dialog.getFunction(), monitor);
+                    } 
+                } catch (ExecutionException e) {
+                    if (errorString == null) {
+                        errorString = new String();
+                    } 
+                    errorString += e.toString() + "\n"; //$NON-NLS-1$
+                }
+
+                // get session configuration in all cases
+                try {
+                    fSession.getConfigurationFromNode(monitor);
+                } catch (ExecutionException e) {
+                    if (errorString == null) {
+                        errorString = new String();
+                    }
+                    errorString += Messages.TraceControl_ListSessionFailure + ": " + e.toString();  //$NON-NLS-1$ 
+                } 
+
+                if (errorString != null) {
+                    return new Status(Status.ERROR, LTTngUiPlugin.PLUGIN_ID, errorString);
+                }
+                return Status.OK_STATUS;
+            }
+        };
+        job.setUser(true);
+        job.schedule();
+
+        return null;
+    }
+

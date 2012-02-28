@@ -1,0 +1,161 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.jface.dialogs.Dialog#createDialogArea(org.eclipse.swt.widgets.Composite)
+     */
+    @Override
+    protected Control createDialogArea(Composite parent) {
+        
+        // Main dialog panel
+        fDialogComposite = new Composite(parent, SWT.NONE);
+        GridLayout layout = new GridLayout(1, true);
+        fDialogComposite.setLayout(layout);
+        fDialogComposite.setLayoutData(new GridData(GridData.FILL_BOTH));
+
+        // ------------------------------------------------------------------------
+        // Tracepoints Group 
+        // ------------------------------------------------------------------------
+        fTracepointsGroup = new Group(fDialogComposite, SWT.SHADOW_NONE);
+        fTracepointsGroup.setText(Messages.TraceControl_EnableEventsTracepointGroupName);
+        layout = new GridLayout(1, true);
+        fTracepointsGroup.setLayout(layout);
+        GridData data = new GridData(GridData.FILL_BOTH);
+        fTracepointsGroup.setLayoutData(data);
+        
+        fTracepointsViewer = new CheckboxTreeViewer(fTracepointsGroup, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL);
+        fTracepointsViewer.getTree().setToolTipText(Messages.TraceControl_EnableEventsTracepointTreeTooltip);
+        fTracepointsViewer.setContentProvider(new TraceControlContentProvider() {
+            @Override
+            public Object[] getChildren(Object parentElement) {
+                if (parentElement instanceof TraceProviderGroup) {
+                    List<ITraceControlComponent> children = ((ITraceControlComponent)parentElement).getChildren(KernelProviderComponent.class);
+                    return (ITraceControlComponent[]) children.toArray(new ITraceControlComponent[children.size()]);
+                }
+                if (parentElement instanceof ITraceControlComponent) {
+                    return ((ITraceControlComponent)parentElement).getChildren();
+                }
+                return new Object[0];
+            }
+        });
+
+        fTracepointsViewer.setLabelProvider(new TraceControlLabelProvider() {
+            @Override
+            public Image getImage(Object element) {
+                return null;
+            }
+            @Override
+            public String getText(Object element) {
+                if ((element != null) && (element instanceof KernelProviderComponent)) {
+                    return Messages.TraceControl_EnableEventsTracepointTreeAllLabel;
+                }
+                return super.getText(element);
+            }
+        });
+        
+        fTracepointsViewer.addCheckStateListener(new ICheckStateListener() {
+            @Override
+            public void checkStateChanged(CheckStateChangedEvent event) {
+              if (event.getChecked()) {
+                  if (event.getElement() instanceof KernelProviderComponent) {
+                      fTracepointsViewer.setSubtreeChecked(event.getElement(), true);
+                  } 
+              } else { 
+                  if (event.getElement() instanceof KernelProviderComponent) {
+                      fTracepointsViewer.setSubtreeChecked(event.getElement(), false);
+                  } else {
+                      ITraceControlComponent component = (ITraceControlComponent) event.getElement();
+                      fTracepointsViewer.setChecked(component.getParent(), false);
+                  }
+              }
+            }
+          });
+
+        fTracepointsViewer.setInput(fKernelProvider.getParent());
+        fTracepointsViewer.getTree().setLayoutData(new GridData(GridData.FILL_BOTH));
+
+        // ------------------------------------------------------------------------
+        // Syscalls Group 
+        // ------------------------------------------------------------------------
+        fSyscallGroup = new Group(fDialogComposite, SWT.SHADOW_NONE);
+        layout = new GridLayout(4, true);
+        fSyscallGroup.setLayout(layout);
+        fSyscallGroup.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+
+        fSyscallButton = new Button(fSyscallGroup, SWT.CHECK);
+        fSyscallButton.setText(Messages.TraceControl_EnableEventsSyscallName);
+        fSyscallButton.setToolTipText(Messages.TraceControl_EnableEventsSyscallTooltip);
+        data = new GridData(GridData.FILL_BOTH);
+        data.horizontalSpan = 4;
+        fSyscallButton.setLayoutData(data);
+
+        // ------------------------------------------------------------------------
+        // Dynamic Probe Group 
+        // ------------------------------------------------------------------------
+        fProbeGroup = new Group(fDialogComposite, SWT.SHADOW_NONE);
+        fProbeGroup.setText(Messages.TraceControl_EnableEventsProbeGroupName);
+        layout = new GridLayout(4, true);
+        fProbeGroup.setLayout(layout);
+        fProbeGroup.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+
+        Label probeNameLabel = new Label(fProbeGroup, SWT.LEFT);
+        probeNameLabel.setText(Messages.TraceControl_EnableEventsProbeEventNameLabel);
+        data = new GridData(GridData.FILL_BOTH);
+        data.horizontalSpan = 1;
+        probeNameLabel.setLayoutData(data);
+        
+        fProbeEventNameText = new Text(fProbeGroup, SWT.LEFT);
+        fProbeEventNameText.setToolTipText(Messages.TraceControl_EnableEventsProbeEventNameTooltip);
+        
+        data = new GridData(GridData.FILL_BOTH);
+        data.horizontalSpan = 3;
+        fProbeEventNameText.setLayoutData(data);
+        
+        Label probeLabel = new Label(fProbeGroup, SWT.LEFT);
+        probeLabel.setText(Messages.TraceControl_EnableEventsProbeNameLabel);
+        data = new GridData(GridData.FILL_BOTH);
+        data.horizontalSpan = 1;
+        probeLabel.setLayoutData(data);
+        
+        fProbeText = new Text(fProbeGroup, SWT.LEFT);
+        fProbeText.setToolTipText(Messages.TraceControl_EnableEventsProbeNameTooltip);
+        data = new GridData(GridData.FILL_BOTH);
+        data.horizontalSpan = 3;
+        fProbeText.setLayoutData(data);
+
+        // ------------------------------------------------------------------------
+        // Dynamic Function Probe Group 
+        // ------------------------------------------------------------------------
+        fFunctionGroup = new Group(fDialogComposite, SWT.SHADOW_NONE);
+        fFunctionGroup.setText(Messages.TraceControl_EnableEventsFucntionGroupName);
+        layout = new GridLayout(4, true);
+        fFunctionGroup.setLayout(layout);
+        fFunctionGroup.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+
+        Label functionNameLabel = new Label(fFunctionGroup, SWT.LEFT);
+        functionNameLabel.setText(Messages.TraceControl_EnableEventsProbeEventNameLabel);
+        data = new GridData(GridData.FILL_BOTH);
+        data.horizontalSpan = 1;
+        functionNameLabel.setLayoutData(data);
+
+        fFunctionEventNameText = new Text(fFunctionGroup, SWT.LEFT);
+        fFunctionEventNameText.setToolTipText(Messages.TraceControl_EnableEventsFunctionEventNameTooltip);
+        data = new GridData(GridData.FILL_BOTH);
+        data.horizontalSpan = 3;
+        fFunctionEventNameText.setLayoutData(data);
+        
+        Label functionLabel = new Label(fFunctionGroup, SWT.LEFT);
+        functionLabel.setText(Messages.TraceControl_EnableEventsFunctionNameLabel);
+        data = new GridData(GridData.FILL_BOTH);
+        data.horizontalSpan = 1;
+        functionLabel.setLayoutData(data);
+
+        fFunctionText = new Text(fFunctionGroup, SWT.LEFT);
+        fFunctionText.setToolTipText(Messages.TraceControl_EnableEventsProbeNameTooltip);
+        data = new GridData(GridData.FILL_BOTH);
+        data.horizontalSpan = 3;
+        fFunctionText.setLayoutData(data);
+        
+        fDialogComposite.layout();
+        
+        return fDialogComposite;
+    }
+

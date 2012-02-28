@@ -1,0 +1,32 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.core.commands.AbstractHandler#isEnabled()
+     */
+    @Override
+    public boolean isEnabled() {
+        // Get workbench page for the Control View
+        IWorkbenchPage page = getWorkbenchPage();
+        if (page == null) {
+            return false;
+        }
+
+        fSession = null;
+
+        // Check if one session is selected
+        ISelection selection = page.getSelection(ControlView.ID);
+        if (selection instanceof StructuredSelection) {
+            StructuredSelection structered = ((StructuredSelection) selection);
+            for (Iterator<?> iterator = structered.iterator(); iterator.hasNext();) {
+                Object element = (Object) iterator.next();
+                if (element instanceof TraceSessionComponent) {
+                    // Add only TraceSessionComponents is inactive and not destroyed
+                    TraceSessionComponent session = (TraceSessionComponent) element; 
+                    if(session.getSessionState() == TraceSessionState.INACTIVE && !session.isDestroyed()) {
+                        fSession = session;
+                    }
+                }
+            }
+        }
+        return fSession != null;
+    }
+
