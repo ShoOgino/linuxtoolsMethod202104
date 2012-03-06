@@ -1,0 +1,122 @@
+	public void solveGraphFnctn() {
+		ArrayList<Block> fnctnBlcks = this.functionBlocks;
+		ArrayList<Block> validBlocks = new ArrayList<Block>();
+		ArrayList<Block> invalidBlocks = new ArrayList<Block>();
+
+		
+		// Function should contain at least one block
+		if (fnctnBlcks.size() >= 2){			
+			if (fnctnBlcks.get(0).getNumPreds() == 0)
+				fnctnBlcks.get(0).setNumPreds(50000);
+			if (fnctnBlcks.get(fnctnBlcks.size() - 1).getNumSuccs() == 0)
+				fnctnBlcks.get(fnctnBlcks.size() - 1).setNumSuccs(50000);
+		}
+		
+
+		for (int i = 0; i < fnctnBlcks.size(); i++) {
+			Block b = fnctnBlcks.get(i);
+			b.setInvalidChain(true);
+			invalidBlocks.add(b);
+		}
+
+		while (validBlocks.isEmpty() == false
+				|| invalidBlocks.isEmpty() == false) {
+
+			if (invalidBlocks.isEmpty() == false) {
+				for (int i = invalidBlocks.size() - 1; i >= 0; i--) {
+					Block invb = invalidBlocks.get(i);
+					long total = 0;
+					invalidBlocks.remove(i);
+					invb.setInvalidChain(false);
+
+					if (invb.getNumSuccs() == 0) {
+						ArrayList<Arc> extArcs = invb.getExitArcs();
+						for (Arc arc : extArcs)
+							total += arc.getCount();
+					} else if (invb.getNumPreds() == 0) {
+						ArrayList<Arc> entrArcs = invb.getEntryArcs();
+						for (Arc arc : entrArcs)
+							total += arc.getCount();
+					} else
+						continue;
+
+					invb.setCount(total);
+					invb.setCountValid(true);
+					invb.setValidChain(true);
+					validBlocks.add(invb);
+				}
+			}/*else
+				System.out.println("NO, invalid blocks = 0");
+			*/	
+			while (validBlocks.isEmpty() == false) {
+				int last = validBlocks.size() - 1;
+				Block vb = validBlocks.get(last);
+				Arc invarc = null;
+				int total = 0;
+				validBlocks.remove(last);
+
+				vb.setValidChain(false);
+
+				if (vb.getNumSuccs() == 1) {
+					Block blcksdst;
+					total = (int) vb.getCount();
+
+					for (Arc extAr : vb.getExitArcs()) {
+						total -= extAr.getCount();
+						if (extAr.isCountValid() == false)
+							invarc = extAr;
+					}
+					blcksdst = invarc.getDstnatnBlock();
+					invarc.setCountValid(true);
+					invarc.setCount(total);
+					vb.decNumSuccs();
+					blcksdst.decNumPreds();
+
+					if (blcksdst.isCountValid() == true) {
+						if (blcksdst.getNumPreds() == 1
+								&& blcksdst.isValidChain() == false) {
+							blcksdst.setValidChain(true);
+							validBlocks.add(blcksdst);
+						}
+					} else {
+						if (blcksdst.getNumPreds() == 0
+								&& blcksdst.isInvalidChain() == false) {
+							blcksdst.setInvalidChain(true);
+							invalidBlocks.add(blcksdst);
+						}
+					}
+				}
+
+				if (vb.getNumPreds() == 1) {
+					Block blcksrc;
+					total = (int) vb.getCount();
+					invarc = null;
+
+					for (Arc entrAr: vb.getEntryArcs()) {
+						total -= entrAr.getCount();
+						if (entrAr.isCountValid() == false)
+							invarc = entrAr;
+					}
+
+					blcksrc = invarc.getSrcBlock();
+					invarc.setCountValid(true);
+					invarc.setCount(total);
+					vb.decNumPreds();
+					blcksrc.decNumSuccs();
+
+					if (blcksrc.isCountValid() == true) {
+						if (blcksrc.getNumSuccs() == 1
+								&& blcksrc.isInvalidChain() == false) {
+							blcksrc.setValidChain(true);
+							validBlocks.add(blcksrc);
+						}
+					} else if (blcksrc.getNumSuccs() == 0
+							&& blcksrc.isInvalidChain() == false) {
+						blcksrc.setInvalidChain(true);
+						invalidBlocks.add(blcksrc);
+					}
+				}
+			}
+		}
+	}
+

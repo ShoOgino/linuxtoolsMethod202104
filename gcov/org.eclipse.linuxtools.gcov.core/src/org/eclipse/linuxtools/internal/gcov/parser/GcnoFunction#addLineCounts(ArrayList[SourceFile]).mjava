@@ -1,0 +1,31 @@
+	public void addLineCounts(ArrayList<SourceFile> srcs) {
+		for (int i = 0; i != numBlocks; i++) {
+			Block blk = functionBlocks.get(i);
+			SourceFile fileSrc = null;
+			if ((blk.getCount() != 0) && (i != 0) && (i + 1 != numBlocks))
+				blocksExecuted++;
+
+			long[] enc = blk.getEncoding();
+			for (int j = 0, k = 0; j != blk.getLineNum(); j++, k++) {
+				if (enc[k] == 0) {
+					int srcn = (int) enc[++k];
+					for (SourceFile sf : srcs) {
+						if (sf.getIndex() == srcn) {
+							fileSrc = sf;
+							break;
+						}
+					}
+					j++;
+				} else if ((fileSrc != null) && enc[k] < fileSrc.getLines().size()) {
+					Line line = fileSrc.getLines().get((int) enc[k]);
+					if (line.isExists() == false)
+						cvrge.incLinesInstrumented();
+					if ((line.getCount() == 0) && (blk.getCount() != 0))
+						cvrge.incLinesExecuted();
+					line.setExists(true);
+					line.setCount(line.getCount()+ blk.getCount());
+				}
+			}
+		}
+	}
+
