@@ -1,18 +1,18 @@
     @SuppressWarnings("unchecked")
     @TmfSignalHandler
     public void traceParserUpdated(TmfTraceParserUpdatedSignal signal) {
-        if (signal.getTraceResource().equals(fResource)) {
+        if (signal.getTraceResource().equals(fFile)) {
             broadcast(new TmfTraceClosedSignal(this, fTrace));
             try {
                 String name = fTrace.getName();
                 fTrace = null;
-                String traceTypeId = fResource.getPersistentProperty(TmfTraceElement.TRACETYPE);
+                String traceTypeId = fFile.getPersistentProperty(TmfTraceElement.TRACETYPE);
                 if (traceTypeId != null) {
                     for (IConfigurationElement ce : TmfTraceType.getTypeElements()) {
                         if (traceTypeId.equals(ce.getAttribute(TmfTraceType.ID_ATTR))) {
                             fTrace = (ITmfTrace<?>) ce.createExecutableExtension(TmfTraceType.TRACE_TYPE_ATTR);
                             TmfEvent event = (TmfEvent) ce.createExecutableExtension(TmfTraceType.EVENT_TYPE_ATTR);
-                            String path = fResource.getLocationURI().getPath();
+                            String path = fFile.getLocationURI().getPath();
                             fTrace.initTrace(name, path, event.getClass(), true);
                             break;
                         }
@@ -29,7 +29,7 @@
             if (fTrace != null) {
                 fEventsTable = createEventsTable(fParent, fTrace.getCacheSize());
                 fEventsTable.setTrace(fTrace, true);
-                broadcast(new TmfTraceOpenedSignal(this, fTrace, fResource, fEventsTable));
+                broadcast(new TmfTraceOpenedSignal(this, fTrace, fFile, fEventsTable));
             } else {
                 fEventsTable = new TmfEventsTable(fParent, 0);
             }

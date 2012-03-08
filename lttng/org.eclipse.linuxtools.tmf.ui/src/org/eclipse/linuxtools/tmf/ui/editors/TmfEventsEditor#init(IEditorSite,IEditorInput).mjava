@@ -2,28 +2,29 @@
     @Override
     public void init(IEditorSite site, IEditorInput input) throws PartInitException {
         if (input instanceof TmfEditorInput) {
-            fResource = ((TmfEditorInput) input).getResource();
+            fFile = ((TmfEditorInput) input).getFile();
             fTrace = ((TmfEditorInput) input).getTrace();
+            input = new FileEditorInput(fFile);
         } else if (input instanceof IFileEditorInput) {
-            fResource = ((IFileEditorInput) input).getFile();
-            if (fResource == null) {
+            fFile = ((IFileEditorInput) input).getFile();
+            if (fFile == null) {
                 throw new PartInitException("Invalid IFileEditorInput: " + input); //$NON-NLS-1$
             }
             try {
-                String traceTypeId = fResource.getPersistentProperty(TmfTraceElement.TRACETYPE);
+                String traceTypeId = fFile.getPersistentProperty(TmfTraceElement.TRACETYPE);
                 if (traceTypeId == null) {
                     throw new PartInitException(Messages.OpenTraceHandler_NoTraceType);
                 }
                 if (traceTypeId.equals(TmfExperiment.class.getCanonicalName())) {
                     // Special case: experiment bookmark resource
                     TmfNavigatorContentProvider ncp = new TmfNavigatorContentProvider();
-                    ncp.getChildren(fResource.getProject()); // force the model to be populated
-                    TmfProjectElement project = TmfProjectRegistry.getProject(fResource.getProject());
+                    ncp.getChildren(fFile.getProject()); // force the model to be populated
+                    TmfProjectElement project = TmfProjectRegistry.getProject(fFile.getProject());
                     if (project == null) {
                         throw new PartInitException(Messages.OpenExperimentHandler_NoTraceType);
                     }
                     for (ITmfProjectModelElement projectElement : project.getExperimentsFolder().getChildren()) {
-                        String traceName = fResource.getParent().getName();
+                        String traceName = fFile.getParent().getName();
                         if (projectElement.getName().equals(traceName)) {
                             TmfExperimentElement experimentElement = (TmfExperimentElement) projectElement;
                             // Instantiate the experiment's traces
@@ -45,14 +46,12 @@
                                     trace.initTrace(traceElement.getName(), traceElement.getLocation().getPath(), traceEvent.getClass(), false);
                                 } catch (FileNotFoundException e) {
                                 }
-                                if (trace instanceof TmfTrace) {
-                                    ((TmfTrace) trace).setResource(traceElement.getResource());
-                                }
+                                trace.setResource(traceElement.getResource());
                                 cacheSize = Math.min(cacheSize, trace.getCacheSize());
                                 traces[i] = trace;
                             }
                             TmfExperiment experiment = new TmfExperiment(TmfEvent.class, experimentElement.getName(), traces, cacheSize);
-                            experiment.setResource(fResource);
+                            experiment.setBookmarksFile(fFile);
                             fTrace = experiment;
                             experiment.initTrace(null, null, null, true);
                             break;
@@ -61,10 +60,10 @@
                 } else if (traceTypeId.equals(TmfTrace.class.getCanonicalName())) {
                     // Special case: trace bookmark resource
                     TmfNavigatorContentProvider ncp = new TmfNavigatorContentProvider();
-                    ncp.getChildren(fResource.getProject()); // force the model to be populated
-                    TmfProjectElement project = TmfProjectRegistry.getProject(fResource.getProject());
+                    ncp.getChildren(fFile.getProject()); // force the model to be populated
+                    TmfProjectElement project = TmfProjectRegistry.getProject(fFile.getProject());
                     for (ITmfProjectModelElement projectElement : project.getTracesFolder().getChildren()) {
-                        String traceName = fResource.getParent().getName();
+                        String traceName = fFile.getParent().getName();
                         if (projectElement.getName().equals(traceName)) {
                             TmfTraceElement traceElement = (TmfTraceElement) projectElement;
                             // Instantiate the trace
@@ -77,19 +76,17 @@
                                 trace.initTrace(traceElement.getName(), traceElement.getLocation().getPath(), traceEvent.getClass(), true);
                             } catch (FileNotFoundException e) {
                             }
-                            if (trace instanceof TmfTrace) {
-                                ((TmfTrace) trace).setResource(traceElement.getResource());
-                            }
+                            trace.setResource(traceElement.getResource());
                             fTrace = trace;
                             break;
                         }
                     }
                 } else {
                     TmfNavigatorContentProvider ncp = new TmfNavigatorContentProvider();
-                    ncp.getChildren(fResource.getProject()); // force the model to be populated
-                    TmfProjectElement project = TmfProjectRegistry.getProject(fResource.getProject());
+                    ncp.getChildren(fFile.getProject()); // force the model to be populated
+                    TmfProjectElement project = TmfProjectRegistry.getProject(fFile.getProject());
                     for (ITmfProjectModelElement projectElement : project.getTracesFolder().getChildren()) {
-                        if (projectElement.getResource().equals(fResource)) {
+                        if (projectElement.getResource().equals(fFile)) {
                             TmfTraceElement traceElement = (TmfTraceElement) projectElement;
                             // Instantiate the trace
                             ITmfTrace trace = traceElement.instantiateTrace();
@@ -116,12 +113,11 @@
             } catch (CoreException e) {
                 e.printStackTrace();
             }
-            input = new TmfEditorInput(fResource, fTrace);
         } else {
             throw new PartInitException("Invalid IEditorInput: " + input.getClass()); //$NON-NLS-1$
         }
         if (fTrace == null) {
-            throw new PartInitException("Invalid IEditorInput: " + fResource.getName()); //$NON-NLS-1$
+            throw new PartInitException("Invalid IEditorInput: " + fFile.getName()); //$NON-NLS-1$
         }
         super.setSite(site);
         super.setInput(input);
