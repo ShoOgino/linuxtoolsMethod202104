@@ -1,0 +1,28 @@
+	/**
+	 * Import a remote SRPM into this RPM project, by downloading the file
+	 * and calling {@link RPMProject#importSourceRPM(File)}.
+	 * 
+	 * @param remoteFile URI to the remote SRPM file.
+	 * @param monitor The progress monitor.
+	 * @throws CoreException Thrown if the import failed.
+	 */
+	public void importSourceRPM(URL remoteFile, IProgressMonitor monitor) throws CoreException {
+		URLConnection content;
+		try {
+			content = remoteFile.openConnection();
+		} catch (IOException e) {
+			Status status = new Status(IStatus.ERROR, RPMCorePlugin.ID,
+					e.getMessage(), e);
+			throw new CoreException(status);
+		}
+		File tempFile = new File(
+				System.getProperty("java.io.tmpdir"), remoteFile.toString().substring(remoteFile.toString().lastIndexOf('/') + 1)); //$NON-NLS-1$
+		if (tempFile.exists()) {
+			tempFile.delete();
+		}
+		final FileDownloadJob downloadJob = new FileDownloadJob(tempFile,
+				content);
+		downloadJob.run(monitor);
+		importSourceRPM(tempFile);
+	}
+
