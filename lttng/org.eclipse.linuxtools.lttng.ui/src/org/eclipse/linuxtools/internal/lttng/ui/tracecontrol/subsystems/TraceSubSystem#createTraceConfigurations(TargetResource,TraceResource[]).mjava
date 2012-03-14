@@ -1,0 +1,118 @@
+    /*
+     * Retrieves the trace configurations for the given trace from the remote system.
+     */
+    private void createTraceConfigurations(final TargetResource target, TraceResource[] traces) throws SystemMessageException {
+        if (!target.isUst() && (traces.length > 0)) {
+            // get active traces 
+            String[] activeTraceNames;
+            try {
+                final ILttControllerService service = getControllerService();
+                activeTraceNames = new TCFTask<String[]>() {
+                    @Override
+                    public void run() {
+                        // Get targets using Lttng controller service proxy
+                        service.getActiveTraces(target.getParent().getName(), target.getName(), new ILttControllerService.DoneGetActiveTraces() {
+
+                            @Override
+                            public void doneGetActiveTraces(IToken token, Exception error, String[] str) {
+                                if (error != null) {
+                                    // Notify with error
+                                    error(error);
+                                    return;
+                                }
+
+                                // Notify with active trace list
+                                done(str);
+                            }
+                        });
+                    }}.get(TraceControlConstants.DEFAULT_TCF_TASK_TIMEOUT, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                if (e instanceof SystemMessageException) throw (SystemMessageException)e;
+                throw new SystemMessageException(Activator.getDefault().getMessage(e));
+            }
+            
+            // get active trace information
+            for (int j = 0; j < activeTraceNames.length; j++) {
+                final TraceResource trace = target.getTrace(activeTraceNames[j]);
+                if (trace != null) {
+                    // get trace info
+                    TraceConfig traceConfig;
+
+                    try {
+                        final ILttControllerService service = getControllerService();
+                        traceConfig = new TCFTask<TraceConfig>() {
+                            @Override
+                            public void run() {
+                                // Get targets using Lttng controller service proxy
+                                service.getActiveTraceInfo(target.getParent().getName(), target.getName(), trace.getName(), new ILttControllerService.DoneGetActiveTraceInfo() {
+
+                                    @Override
+                                    public void doneGetActiveTraceInfo(IToken token, Exception error, String[] strArray) {
+                                        if (error != null) {
+                                            // Notify with error
+                                            error(error);
+                                            return;
+                                        }
+
+                                        TraceConfig config = new TraceConfig();
+                                        config.setTraceName(trace.getName());
+                                        config.setTraceTransport(TraceControlConstants.Lttng_Trace_Transport_Relay); 
+                                        config.setIsAppend(false); 
+                                        for (String pair : strArray) {
+                                            String[] pairArray = pair.split(LttngConstants.Lttng_Control_GetActiveTraceInfoSeparator);
+                                            if (pairArray.length != 2) {
+                                                continue;
+                                            }
+                                            String param = pairArray[0];
+                                            String value = pairArray[1];
+                                            if (param.equals(TraceControlConstants.ACTIVE_TRACE_INFO_PARAM_DESTINATION)) {
+                                                if (value.startsWith(TraceControlConstants.ACTIVE_TRACE_INFO_DESTINATION_PREFIX_LOCAL)) {
+                                                    config.setNetworkTrace(false);
+                                                    config.setTracePath(value.substring(TraceControlConstants.ACTIVE_TRACE_INFO_DESTINATION_PREFIX_LOCAL.length()));
+                                                } else if (value.startsWith(TraceControlConstants.ACTIVE_TRACE_INFO_DESTINATION_PREFIX_NETWORK)) {
+                                                    config.setNetworkTrace(true);
+                                                    config.setTracePath(value.substring(TraceControlConstants.ACTIVE_TRACE_INFO_DESTINATION_PREFIX_NETWORK.length()));
+                                                }
+                                            } else if (param.equals(TraceControlConstants.ACTIVE_TRACE_INFO_PARAM_NUM_THREAD)) {
+                                                config.setNumChannel(Integer.valueOf(value));
+                                            } else if (param.equals(TraceControlConstants.ACTIVE_TRACE_INFO_PARAM_NORMAL_ONLY)) {
+                                                if (value.equals(Boolean.toString(true))) {
+                                                    config.setMode(TraceConfig.NORMAL_MODE);
+                                                }
+                                            } else if (param.equals(TraceControlConstants.ACTIVE_TRACE_INFO_PARAM_FLIGHT_ONLY)) {
+                                                if (value.equals(Boolean.toString(true))) {
+                                                    config.setMode(TraceConfig.FLIGHT_RECORDER_MODE);
+                                                }
+                                            } else if (param.equals(TraceControlConstants.ACTIVE_TRACE_INFO_PARAM_ENABLED)) {
+                                                if (value.equals(Boolean.toString(true))) {
+                                                    trace.setTraceState(TraceState.STARTED);
+                                                } else {
+                                                    trace.setTraceState(TraceState.PAUSED);  
+                                                }
+                                            }
+                                        }
+
+                                        // Notify with active trace list
+                                        done(config);
+                                    }
+                                });
+                            }}.get(TraceControlConstants.DEFAULT_TCF_TASK_TIMEOUT, TimeUnit.SECONDS);
+                        trace.setTraceConfig(traceConfig);
+                        if (traceConfig != null) {
+                            if (traceConfig.isNetworkTrace()) {
+                                // stop and restart the network transfer since TCF channel may be different
+                                if (fProviders == null) { // do this only on startup, not on refresh
+                                    restartTraceNetwork(service, trace, traceConfig);
+                                }
+                                LiveTraceManager.setLiveTrace(traceConfig.getTracePath(), true);
+                            }
+                        }
+                    } catch (Exception e) {
+                        if (e instanceof SystemMessageException) throw (SystemMessageException)e;
+                        throw new SystemMessageException(Activator.getDefault().getMessage(e));
+                    }
+                }
+            }
+        }
+    }
+
