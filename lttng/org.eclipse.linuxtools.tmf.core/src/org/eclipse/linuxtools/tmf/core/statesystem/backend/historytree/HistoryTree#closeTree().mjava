@@ -1,0 +1,56 @@
+    /**
+     * "Save" the tree to disk. This method will cause the treeIO object to
+     * commit all nodes to disk and then return the RandomAccessFile descriptor
+     * so the Tree object can save its configuration into the header of the
+     * file.
+     * 
+     * @param requestedEndTime
+     */
+    void closeTree() {
+        FileChannel fc;
+        ByteBuffer buffer;
+        int i, res;
+
+        /* Close off the latest branch of the tree */
+        for (i = 0; i < latestBranch.size(); i++) {
+            latestBranch.get(i).closeThisNode(treeEnd);
+            treeIO.writeNode(latestBranch.get(i));
+        }
+
+        /* Only use this for debugging purposes, it's VERY slow! */
+        // this.checkIntegrity();
+
+        fc = treeIO.getFcOut();
+        buffer = ByteBuffer.allocate(getTreeHeaderSize());
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        buffer.clear();
+
+        /* Save the config of the tree to the header of the file */
+        try {
+            fc.position(0);
+
+            buffer.putInt(HISTORY_FILE_MAGIC_NUMBER);
+
+            buffer.putInt(MAJOR_VERSION);
+            buffer.putInt(MINOR_VERSION);
+
+            buffer.putInt(config.blockSize);
+            buffer.putInt(config.maxChildren);
+
+            buffer.putInt(nodeCount);
+
+            /* root node seq. nb */
+            buffer.putInt(latestBranch.firstElement().getSequenceNumber());
+
+            buffer.flip();
+            res = fc.write(buffer);
+            assert (res <= getTreeHeaderSize());
+            /* done writing the file header */
+
+        } catch (IOException e) {
+            /* We should have any problems at this point... */
+            e.printStackTrace();
+        }
+        return;
+    }
+

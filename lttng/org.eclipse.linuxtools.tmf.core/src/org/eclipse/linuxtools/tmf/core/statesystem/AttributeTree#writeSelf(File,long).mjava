@@ -1,0 +1,58 @@
+    /**
+     * Tell the Attribute Tree to write itself somewhere. The passed
+     * FileOutputStream defines where (which file/position).
+     * 
+     * @param fos
+     *            Where to write. Make sure it's seeked at the right position
+     *            you want.
+     * @return The total number of bytes written.
+     */
+    int writeSelf(File file, long pos) {
+        RandomAccessFile raf;
+        int total = 0;
+        byte[] curByteArray;
+
+        try {
+            raf = new RandomAccessFile(file, "rw"); //$NON-NLS-1$
+            raf.seek(pos);
+
+            /* Write the almost-magic number */
+            raf.writeInt(ATTRIB_TREE_MAGIC_NUMBER);
+
+            /* Placeholder for the total size of the section... */
+            raf.writeInt(-8000);
+
+            /* Write the number of entries */
+            raf.writeInt(this.attributeList.size());
+            total += 12;
+
+            /* Write the attributes themselves */
+            for (Attribute entry : this.attributeList) {
+                curByteArray = entry.getFullAttributeName().getBytes();
+                if (curByteArray.length > Byte.MAX_VALUE) {
+                    throw new IOException("Attribute with name \"" //$NON-NLS-1$
+                            + Arrays.toString(curByteArray) + "\" is too long."); //$NON-NLS-1$
+                }
+                /* Write the first byte = size of the array */
+                raf.writeByte((byte) curByteArray.length);
+
+                /* Write the array itself */
+                raf.write(curByteArray);
+
+                /* Write the 0'ed byte */
+                raf.writeByte((byte) 0);
+
+                total += curByteArray.length + 2;
+            }
+
+            /* Now go back and write the actual size of this section */
+            raf.seek(pos + 4);
+            raf.writeInt(total);
+
+            raf.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return total;
+    }
+

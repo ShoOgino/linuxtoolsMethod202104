@@ -1,0 +1,52 @@
+    private int getStartIndexFor(long t) throws TimeRangeException {
+        HTInterval dummy;
+        int index;
+
+        /*
+         * Since the intervals are sorted by end time, we can skip all the ones
+         * at the beginning whose end times are smaller than 't'. Java does
+         * provides a .binarySearch method, but its API is quite weird...
+         */
+        dummy = new HTInterval(0, t, 0, TmfStateValue.nullValue());
+        index = Collections.binarySearch(intervals, dummy);
+
+        if (index < 0) {
+            /*
+             * .binarySearch returns a negative number if the exact value was
+             * not found. Here we just want to know where to start searching, we
+             * don't care if the value is exact or not.
+             */
+            index = -index - 1;
+
+        }
+
+        /* Sometimes binarySearch yields weird stuff... */
+        if (index < 0) {
+            index = 0;
+        }
+        if (index >= intervals.size()) {
+            index = intervals.size() - 1;
+        }
+
+        /*
+         * Another API quirkiness, the returned index is the one of the *last*
+         * element of a series of equal endtimes, which happens sometimes. We
+         * want the *first* element of such a series, to read through them
+         * again.
+         */
+        while (index > 0
+                && intervals.get(index - 1).compareTo(intervals.get(index)) == 0) {
+            index--;
+        }
+        // FIXME F*ck all this, just do our own binary search in a saner way...
+
+        // //checks to make sure startIndex works how I think it does
+        // if ( startIndex > 0 ) { assert ( intervals.get(startIndex-1).getEnd()
+        // < t ); }
+        // assert ( intervals.get(startIndex).getEnd() >= t );
+        // if ( startIndex < intervals.size()-1 ) { assert (
+        // intervals.get(startIndex+1).getEnd() >= t ); }
+
+        return index;
+    }
+

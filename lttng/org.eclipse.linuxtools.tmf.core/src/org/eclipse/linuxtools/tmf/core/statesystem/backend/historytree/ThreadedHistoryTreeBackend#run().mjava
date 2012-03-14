@@ -1,0 +1,30 @@
+    @Override
+    public void run() {
+        if (intervalQueue == null) {
+            System.err.println("Cannot start the storage backend without its interval queue."); //$NON-NLS-1$
+            return;
+        }
+        HTInterval currentInterval;
+        try {
+            currentInterval = intervalQueue.take();
+            while (currentInterval.getStartTime() != -1) {
+                /* Send the interval to the History Tree */
+                sht.insertInterval(currentInterval);
+                currentInterval = intervalQueue.take();
+            }
+            assert (currentInterval.getAttribute() == -1);
+            /*
+             * We've been told we're done, let's write down everything and quit
+             */
+            sht.closeTree();
+            return;
+        } catch (InterruptedException e) {
+            /* We've been interrupted abnormally */
+            System.out.println("State History Tree interrupted!"); //$NON-NLS-1$
+            e.printStackTrace();
+        } catch (TimeRangeException e) {
+            /* This also should not happen */
+            e.printStackTrace();
+        }
+    }
+

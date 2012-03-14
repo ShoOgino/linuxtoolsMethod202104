@@ -1,0 +1,83 @@
+    /**
+     * Reader constructor. Builds the interval using an already-allocated
+     * ByteBuffer, which normally comes from a NIO FileChannel.
+     * 
+     * @param buffer
+     *            The ByteBuffer from which to read the information
+     * @throws IOException
+     */
+    final static HTInterval readFrom(ByteBuffer buffer) throws IOException {
+        HTInterval interval;
+        long intervalStart, intervalEnd;
+        int attribute;
+        TmfStateValue value;
+        int valueOrOffset, valueSize, res;
+        byte valueType;
+        byte array[];
+
+        /* Read the Data Section entry */
+        intervalStart = buffer.getLong();
+        intervalEnd = buffer.getLong();
+        attribute = buffer.getInt();
+
+        /* Read the 'type' of the value, then react accordingly */
+        valueType = buffer.get();
+        if (valueType <= 0) {
+            /* the type of ValueOrOffset is 'value' */
+            valueOrOffset = buffer.getInt();
+            if (valueOrOffset == -1) {
+                /* Null value */
+                value = TmfStateValue.nullValue();
+            } else {
+                /* Normal integer value */
+                value = TmfStateValue.newValueInt(valueOrOffset);
+            }
+
+        } else { // valueType > 0
+            /* the type is 'offset' */
+            valueOrOffset = buffer.getInt();
+
+            /*
+             * Go read the corresponding entry in the Strings section of the
+             * block
+             */
+            buffer.mark();
+            buffer.position(valueOrOffset);
+
+            /* the first byte = the size to read */
+            valueSize = buffer.get();
+
+            /*
+             * Careful though, 'valueSize' is the total size of the entry,
+             * including the 'size' byte at the start and end (0'ed) byte at the
+             * end. Here we want 'array' to only contain the real payload of the
+             * value.
+             */
+            array = new byte[valueSize - 2];
+            buffer.get(array);
+            value = TmfStateValue.newValueString(new String(array));
+
+            /* Confirm the 0'ed byte at the end */
+            res = buffer.get();
+            if (res != 0) {
+                throw new IOException(
+                        "Invalid interval data. Maybe your file is corrupt?"); //$NON-NLS-1$
+            }
+
+            /*
+             * Restore the file pointer's position (so we can read the next
+             * interval)
+             */
+            buffer.reset();
+        }
+
+        try {
+            interval = new HTInterval(intervalStart, intervalEnd, attribute,
+                    value);
+        } catch (TimeRangeException e) {
+            throw new IOException(
+                    "Invalid interval data. Maybe your file is corrupt?"); //$NON-NLS-1$
+        }
+        return interval;
+    }
+

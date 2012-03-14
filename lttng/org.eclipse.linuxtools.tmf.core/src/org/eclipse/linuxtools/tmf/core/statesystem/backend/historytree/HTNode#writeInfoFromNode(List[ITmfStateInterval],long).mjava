@@ -1,0 +1,34 @@
+    /**
+     * The method to fill up the stateInfo (passed on from the Current State
+     * Tree when it does a query on the SHT). We'll replace the data in that
+     * vector with whatever relevant we can find from this node
+     * 
+     * @param stateInfo
+     *            The same stateInfo that comes from SHT's doQuery()
+     * @param t
+     *            The timestamp for which the query is for. Only return
+     *            intervals that intersect t.
+     * @throws TimeRangeException
+     */
+    void writeInfoFromNode(List<ITmfStateInterval> stateInfo, long t)
+            throws TimeRangeException {
+        assert (this.isDone); // not sure this will always be the case...
+        int startIndex;
+
+        if (intervals.size() == 0) {
+            return;
+        }
+        startIndex = getStartIndexFor(t);
+
+        for (int i = startIndex; i < intervals.size(); i++) {
+            /*
+             * Now we only have to compare the Start times, since we now the End
+             * times necessarily fit
+             */
+            if (intervals.get(i).getStartTime() <= t) {
+                stateInfo.set(intervals.get(i).getAttribute(), intervals.get(i));
+            }
+        }
+        return;
+    }
+

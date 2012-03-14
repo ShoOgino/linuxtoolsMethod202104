@@ -1,0 +1,44 @@
+    /**
+     * Inner method to find in which node we should add the interval.
+     * 
+     * @param interval
+     *            The interval to add to the tree
+     * @param indexOfNode
+     *            The index *in the latestBranch* where we are trying the
+     *            insertion
+     */
+    private void tryInsertAtNode(HTInterval interval, int indexOfNode) {
+        HTNode targetNode = latestBranch.get(indexOfNode);
+
+        /* Verify if there is enough room in this node to store this interval */
+        if (interval.getIntervalSize() > targetNode.getNodeFreeSpace()) {
+            /* Nope, not enough room. Insert in a new sibling instead. */
+            addSiblingNode(indexOfNode);
+            tryInsertAtNode(interval, latestBranch.size() - 1);
+            return;
+        }
+
+        /* Make sure the interval time range fits this node */
+        if (interval.getStartTime() < targetNode.getNodeStart()) {
+            /*
+             * No, this interval starts before the startTime of this node. We
+             * need to check recursively in parents if it can fit.
+             */
+            assert (indexOfNode >= 1);
+            tryInsertAtNode(interval, indexOfNode - 1);
+            return;
+        }
+
+        /*
+         * Ok, there is room, and the interval fits in this time slot. Let's add
+         * it.
+         */
+        targetNode.addInterval(interval);
+
+        /* Update treeEnd if needed */
+        if (interval.getEndTime() > this.treeEnd) {
+            this.treeEnd = interval.getEndTime();
+        }
+        return;
+    }
+

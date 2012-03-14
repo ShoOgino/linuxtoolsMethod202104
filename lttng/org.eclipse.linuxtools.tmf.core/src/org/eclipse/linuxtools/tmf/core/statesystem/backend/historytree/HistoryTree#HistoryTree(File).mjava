@@ -1,0 +1,81 @@
+    /**
+     * "Reader" constructor : instantiate a SHTree from an existing tree file on
+     * disk
+     * 
+     * @param existingFileName
+     *            Path/filename of the history-file we are to open
+     * @throws IOException
+     */
+    HistoryTree(File existingStateFile) throws IOException {
+        /*
+         * Open the file ourselves, get the tree header information we need,
+         * then pass on the descriptor to the TreeIO object.
+         */
+        int rootNodeSeqNb, res;
+        int bs, maxc;
+        long ts;
+
+        /* Java I/O mumbo jumbo... */
+        if ((!existingStateFile.exists()) || existingStateFile.length() <= 0) {
+            throw new IOException("Invalid state file selected"); //$NON-NLS-1$
+        }
+
+        FileInputStream fis = new FileInputStream(existingStateFile);
+        ByteBuffer buffer = ByteBuffer.allocate(getTreeHeaderSize());
+        FileChannel fc = fis.getChannel();
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        buffer.clear();
+        fc.read(buffer);
+        buffer.flip();
+
+        /*
+         * Check the magic number,to make sure we're opening the right type of
+         * file
+         */
+        res = buffer.getInt();
+        if (res != HISTORY_FILE_MAGIC_NUMBER) {
+            throw new IOException("Selected file does not look like a History Tree file"); //$NON-NLS-1$
+        }
+
+        res = buffer.getInt(); /* Major version number */
+        if (res != MAJOR_VERSION) {
+            throw new IOException("Select History Tree file is of an older " //$NON-NLS-1$
+                    + "format. Please use a previous version of " //$NON-NLS-1$
+                    + "the parser to open it."); //$NON-NLS-1$
+        }
+
+        res = buffer.getInt(); /* Minor version number */
+
+        bs = buffer.getInt(); /* Block Size */
+        maxc = buffer.getInt(); /* Max nb of children per node */
+
+        this.nodeCount = buffer.getInt();
+        rootNodeSeqNb = buffer.getInt();
+
+        /* Go read the start time, which is also the root node's start time */
+        // TODO maybe make this part less ugly, as we need treeStart to build
+        // the SHTConfig object, but we need that object for new SHT_IO()
+        // and rebuildLatestBranch() ...
+        fc.position(getTreeHeaderSize() + (long) rootNodeSeqNb * bs);
+        buffer = ByteBuffer.allocate(8);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        buffer.clear();
+        res = fc.read(buffer);
+        assert (res == 8);
+        buffer.flip();
+        ts = buffer.getLong();
+
+        this.config = new HTConfig(existingStateFile, bs, maxc, ts);
+        fis.close();
+        /*
+         * FIXME We close fis here and the TreeIO will then reopen the same
+         * file, not extremely elegant. But how to pass the information here to
+         * the SHT otherwise?
+         */
+        this.treeIO = new HT_IO(this, false);
+
+        rebuildLatestBranch(rootNodeSeqNb);
+        ts = latestBranch.firstElement().getNodeStart();
+        this.treeEnd = latestBranch.firstElement().getNodeEnd();
+    }
+

@@ -1,0 +1,51 @@
+    /**
+     * This is the lower-level method that will be called by the
+     * StateHistorySystem (with already-built StateValues and timestamps)
+     * 
+     * @param index
+     *            The index in the vectors (== the quark of the attribute)
+     * @param value
+     *            The new StateValue associated to this attribute
+     * @param eventTime
+     *            The timestamp associated with this state change
+     * @throws TimeRangeException
+     * @throws AttributeNotFoundException
+     */
+    synchronized void processStateChange(long eventTime,
+            ITmfStateValue value, int index) throws TimeRangeException,
+            AttributeNotFoundException {
+        assert (this.isActive);
+        checkValidAttribute(index);
+
+        if (latestTime < eventTime) {
+            latestTime = eventTime;
+        }
+
+        if (ongoingStateInfo.get(index).equals(value)) {
+            /*
+             * This is the case where the new value and the one already present
+             * in the Builder are the same. We do not need to create an
+             * interval, we'll just keep the current one going.
+             */
+            return;
+        }
+
+        if (backend != null && ongoingStateStartTimes.get(index) < eventTime) {
+            /*
+             * These two conditions are necessary to create an interval and
+             * update ongoingStateInfo.
+             */
+            backend.insertPastState(ongoingStateStartTimes.get(index), /*
+                                                                        * Start
+                                                                        * Time
+                                                                        */
+                    eventTime - 1, /* End Time */
+                    index, /* attribute quark */
+                    ongoingStateInfo.get(index)); /* StateValue */
+
+            ongoingStateStartTimes.set(index, eventTime);
+        }
+        ongoingStateInfo.set(index, value);
+        return;
+    }
+

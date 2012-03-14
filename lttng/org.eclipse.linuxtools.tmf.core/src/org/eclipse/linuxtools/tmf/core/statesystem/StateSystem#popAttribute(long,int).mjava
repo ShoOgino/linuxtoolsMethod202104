@@ -1,0 +1,60 @@
+    /**
+     * Antagonist of the pushAttribute(), pops the top-most attribute on the
+     * stack-attribute. If this brings it back to depth = 0, the attribute is
+     * kept with depth = 0. If the value is already 0, or if the attribute
+     * doesn't exist, nothing is done.
+     * 
+     * @param t
+     *            Timestamp of the state change
+     * @param attributeQuark
+     *            Quark of the stack-attribute to pop
+     * @throws AttributeNotFoundException
+     *             If the attribute is invalid
+     * @throws TimeRangeException
+     *             If the timestamp is invalid
+     * @throws StateValueTypeException
+     *             If the target attribute already exists, but its state value
+     *             type is invalid (not an integer)
+     */
+    public void popAttribute(long t, int attributeQuark)
+            throws AttributeNotFoundException, TimeRangeException,
+            StateValueTypeException {
+        assert (attributeQuark >= 0);
+        Integer stackDepth;
+        int subAttributeQuark;
+        ITmfStateValue previousSV = transState.getOngoingStateValue(attributeQuark);
+
+        if (previousSV.isNull()) {
+            /*
+             * If the StateValue was null, this means this is the first time we
+             * use this attribute.
+             */
+            stackDepth = 0;
+        } else {
+            assert (previousSV.getType() == 0);
+            stackDepth = previousSV.unboxInt();
+        }
+
+        if (stackDepth == 0) {
+            /*
+             * Trying to pop an empty stack. This often happens at the start of
+             * traces, for example when we see a syscall_exit, without having
+             * the corresponding syscall_entry in the trace. Just ignore
+             * silently.
+             */
+            return;
+        } else if (stackDepth < 0) {
+            /* This on the other hand should not happen... */
+            assert (false);
+        }
+
+        /* The attribute should already exist... */
+        subAttributeQuark = getQuarkRelative(attributeQuark,
+                stackDepth.toString());
+
+        stackDepth--;
+        modifyAttribute(t, TmfStateValue.newValueInt(stackDepth),
+                attributeQuark);
+        removeAttribute(t, subAttributeQuark);
+    }
+

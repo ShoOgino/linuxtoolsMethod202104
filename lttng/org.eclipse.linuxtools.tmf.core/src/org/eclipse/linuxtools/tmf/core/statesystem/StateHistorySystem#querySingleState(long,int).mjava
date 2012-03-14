@@ -1,0 +1,31 @@
+    /**
+     * Alternative, singular version of the "queryState" method. This one does
+     * not update the whole stateInfo vector, like loadStateAtTimes does. It
+     * only searches for one specific entry in the state history.
+     * 
+     * It should be used when you only want very few entries, instead of the
+     * whole state (or many entries, but all at different timestamps). If you do
+     * request many entries all at the same time, you should use the
+     * conventional loadStateAtTime() + queryState() method.
+     * 
+     * @param t
+     *            The timestamp at which we want the state
+     * @param attributeQuark
+     *            Which attribute we want to get the state of
+     * @return The StateInterval representing the state
+     * @throws TimeRangeException
+     * @throws AttributeNotFoundException
+     */
+    public ITmfStateInterval querySingleState(long t, int attributeQuark)
+            throws AttributeNotFoundException, TimeRangeException {
+        ITmfStateInterval ret;
+
+        if (transState.hasInfoAboutStateOf(t, attributeQuark)) {
+            ret = transState.getOngoingInterval(attributeQuark);
+        } else {
+            ret = backend.doSingularQuery(t, attributeQuark);
+        }
+        assert (ret != null);
+        return ret;
+    }
+
