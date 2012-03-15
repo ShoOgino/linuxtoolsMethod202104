@@ -1,0 +1,34 @@
+    /**
+     * Seeks to a given timestamp It will go to the event just after the
+     * timestamp or the timestamp itself. if a if a trace is 10 20 30 40 and
+     * you're looking for 19, it'll give you 20, it you want 20, you'll get 20,
+     * if you want 21, you'll get 30. You want -inf, you'll get the first
+     * element, you want +inf, you'll get the end of the file with no events.
+     *
+     * @param timestamp
+     *            the timestamp to seek to
+     * @return
+     */
+    public boolean seek(long timestamp) {
+        /*
+         * Remove all the trace readers from the priority queue
+         */
+        this.prio.clear();
+
+        for (StreamInputReader streamInputReader : this.streamInputReaders) {
+            /*
+             * Seek the trace reader.
+             */
+            streamInputReader.seek(timestamp);
+
+            /*
+             * Add it to the priority queue if there is a current event.
+             */
+            if (streamInputReader.getCurrentEvent() != null) {
+                this.prio.add(streamInputReader);
+            }
+        }
+
+        return hasMoreEvents();
+    }
+

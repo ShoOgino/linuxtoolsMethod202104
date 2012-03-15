@@ -1,0 +1,96 @@
+    /**
+     * Reads a metadata packet from the given metadata FileChannel, do some
+     * basic validation and append the text to the StringBuffer.
+     *
+     * @param metadataFileChannel
+     *            Metadata FileChannel
+     * @param metadataText
+     *            StringBuffer to which the metadata text will be appended.
+     * @return A structure describing the header of the metadata packet, or null
+     *         if the end of the file is reached.
+     * @throws CTFReaderException
+     */
+    private MetadataPacketHeader readMetadataPacket(
+            FileChannel metadataFileChannel, StringBuffer metadataText)
+            throws CTFReaderException {
+        /* Allocate a ByteBuffer for the header */
+        ByteBuffer headerByteBuffer = ByteBuffer.allocate(METADATA_PACKET_HEADER_SIZE);
+
+        /* Read the header */
+        int nbBytesRead;
+        try {
+            nbBytesRead = metadataFileChannel.read(headerByteBuffer);
+        } catch (IOException e) {
+            throw new CTFReaderException("Error reading the metadata header."); //$NON-NLS-1$
+        }
+
+        /* Return null if EOF */
+        if (nbBytesRead < 0) {
+            return null;
+        }
+
+        /* Set ByteBuffer's position to 0 */
+        headerByteBuffer.position(0);
+
+        /* Use byte order that was detected with the magic number */
+        headerByteBuffer.order(detectedByteOrder);
+
+        assert (nbBytesRead == METADATA_PACKET_HEADER_SIZE);
+
+        MetadataPacketHeader header = new MetadataPacketHeader();
+
+        /* Read from the ByteBuffer */
+        header.magic = headerByteBuffer.getInt();
+        headerByteBuffer.get(header.uuid);
+        header.checksum = headerByteBuffer.getInt();
+        header.contentSize = headerByteBuffer.getInt();
+        header.packetSize = headerByteBuffer.getInt();
+        header.compressionScheme = headerByteBuffer.get();
+        header.encryptionScheme = headerByteBuffer.get();
+        header.checksumScheme = headerByteBuffer.get();
+        header.ctfMajorVersion = headerByteBuffer.get();
+        header.ctfMinorVersion = headerByteBuffer.get();
+
+        /* Check TSDL magic number */
+        if (header.magic != Utils.TSDL_MAGIC) {
+            throw new CTFReaderException("TSDL magic number does not match"); //$NON-NLS-1$
+        }
+
+        /* Check UUID */
+        UUID uuid = Utils.makeUUID(header.uuid);
+        if (!trace.UUIDIsSet()) {
+            trace.setUUID(uuid);
+        } else {
+            if (!trace.getUUID().equals(uuid)) {
+                throw new CTFReaderException("UUID mismatch"); //$NON-NLS-1$
+            }
+        }
+
+        /* Extract the text from the packet */
+        int payloadSize = ((header.contentSize / 8) - METADATA_PACKET_HEADER_SIZE);
+        int skipSize = (header.packetSize - header.contentSize) / 8;
+
+        /* Read the payload + the padding in a ByteBuffer */
+        ByteBuffer payloadByteBuffer = ByteBuffer.allocateDirect(payloadSize
+                + skipSize);
+        try {
+            metadataFileChannel.read(payloadByteBuffer);
+        } catch (IOException e) {
+            throw new CTFReaderException(
+                    "Error reading metadata packet payload."); //$NON-NLS-1$
+        }
+        payloadByteBuffer.rewind();
+
+        /* Read only the payload from the ByteBuffer into a byte array */
+        byte payloadByteArray[] = new byte[payloadByteBuffer.remaining()];
+        payloadByteBuffer.get(payloadByteArray, 0, payloadSize);
+
+        /* Convert the byte array to a String */
+        String str = new String(payloadByteArray, 0, payloadSize);
+
+        /* Append it to the existing metadata */
+        metadataText.append(str);
+
+        return header;
+    }
+

@@ -1,0 +1,38 @@
+    /**
+     * Go to the next event.
+     *
+     * @return True if an event was read.
+     */
+    public boolean advance() {
+        /*
+         * Remove the reader from the top of the priority queue.
+         */
+        StreamInputReader top = this.prio.poll();
+
+        /*
+         * If the queue was empty.
+         */
+        if (top == null) {
+            return false;
+        }
+
+        /*
+         * Read the next event of this reader.
+         */
+        if (top.readNextEvent()) {
+            /*
+             * Add it back in the queue.
+             */
+            this.prio.add(top);
+            final long topEnd = top.getCurrentEvent().timestamp;
+            this.endTime = Math.max(topEnd, this.endTime);
+            this.eventCountPerTraceFile[top.getName()]++;
+        }
+
+        /*
+         * If there is no reader in the queue, it means the trace reader reached
+         * the end of the trace.
+         */
+        return hasMoreEvents();
+    }
+

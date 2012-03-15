@@ -1,0 +1,75 @@
+    /**
+     * Parses the alias part of a typealias. It parses the underlying specifier
+     * list and declarator and creates the string representation that will be
+     * used to register the type.
+     *
+     * @param alias
+     *            A TYPEALIAS_ALIAS node.
+     * @return The string representation of the alias.
+     * @throws ParseException
+     */
+    private static String parseTypealiasAlias(CommonTree alias)
+            throws ParseException {
+        assert (alias.getType() == CTFParser.TYPEALIAS_ALIAS);
+
+        List<CommonTree> children = alias.getChildren();
+        assert (children != null);
+
+        CommonTree typeSpecifierList = null;
+        CommonTree typeDeclaratorList = null;
+        CommonTree typeDeclarator = null;
+        List<CommonTree> pointers = new LinkedList<CommonTree>();
+
+        for (CommonTree child : children) {
+            switch (child.getType()) {
+            case CTFParser.TYPE_SPECIFIER_LIST:
+                assert (typeSpecifierList == null);
+                typeSpecifierList = child;
+                break;
+            case CTFParser.TYPE_DECLARATOR_LIST:
+                assert (typeDeclaratorList == null);
+                typeDeclaratorList = child;
+                break;
+            default:
+                childTypeError(child);
+                break;
+            }
+        }
+
+        /* If there is a type declarator list, extract the pointers */
+        if (typeDeclaratorList != null) {
+            /*
+             * Only allow one declarator
+             *
+             * eg: "typealias uint8_t := puint8_t *, **;" is not permitted.
+             */
+            if (typeDeclaratorList.getChildCount() != 1) {
+                throw new ParseException(
+                        "Only one type declarator is allowed in the typealias alias"); //$NON-NLS-1$
+            }
+
+            typeDeclarator = (CommonTree) typeDeclaratorList.getChild(0);
+
+            List<CommonTree> typeDeclaratorChildren = typeDeclarator
+                    .getChildren();
+            assert (typeDeclaratorChildren != null);
+
+            for (CommonTree child : typeDeclaratorChildren) {
+                switch (child.getType()) {
+                case CTFParser.POINTER:
+                    pointers.add(child);
+                    break;
+                case CTFParser.IDENTIFIER:
+                    throw new ParseException("Identifier (" + child.getText() //$NON-NLS-1$
+                            + ") not expected in the typealias target"); //$NON-NLS-1$
+                    /* break; */
+                default:
+                    childTypeError(child);
+                    break;
+                }
+            }
+        }
+
+        return createTypeDeclarationString(typeSpecifierList, pointers);
+    }
+

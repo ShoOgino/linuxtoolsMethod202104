@@ -1,0 +1,50 @@
+    /**
+     * Parses a typealias node. It parses the target, the alias, and registers
+     * the type in the current scope.
+     *
+     * @param typealias
+     *            A TYPEALIAS node.
+     * @throws ParseException
+     */
+    private void parseTypealias(CommonTree typealias) throws ParseException {
+        assert (typealias.getType() == CTFParser.TYPEALIAS);
+
+        List<CommonTree> children = typealias.getChildren();
+        assert (children != null);
+
+        CommonTree target = null;
+        CommonTree alias = null;
+
+        for (CommonTree child : children) {
+            switch (child.getType()) {
+            case CTFParser.TYPEALIAS_TARGET:
+                assert (target == null);
+                target = child;
+                break;
+            case CTFParser.TYPEALIAS_ALIAS:
+                assert (alias == null);
+                alias = child;
+                break;
+            default:
+                childTypeError(child);
+                break;
+            }
+        }
+
+        assert (target != null);
+        assert (alias != null);
+
+        IDeclaration targetDeclaration = parseTypealiasTarget(target);
+
+        if (targetDeclaration instanceof VariantDeclaration) {
+            if (((VariantDeclaration) targetDeclaration).isTagged()) {
+                throw new ParseException(
+                        "Typealias of untagged variant is not permitted"); //$NON-NLS-1$
+            }
+        }
+
+        String aliasString = parseTypealiasAlias(alias);
+
+        getCurrentScope().registerType(aliasString, targetDeclaration);
+    }
+

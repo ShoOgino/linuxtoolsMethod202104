@@ -1,0 +1,72 @@
+    /**
+     * Parses an enumerator node and adds an enumerator declaration to an
+     * enumeration declaration.
+     *
+     * The high value of the range of the last enumerator is needed in case the
+     * current enumerator does not specify its value.
+     *
+     * @param enumerator
+     *            An ENUM_ENUMERATOR node.
+     * @param enumDeclaration
+     *            en enumeration declaration to which will be added the
+     *            enumerator.
+     * @param lastHigh
+     *            The high value of the range of the last enumerator
+     * @return The high value of the value range of the current enumerator.
+     * @throws ParseException
+     */
+    private static long parseEnumEnumerator(CommonTree enumerator,
+            EnumDeclaration enumDeclaration, long lastHigh)
+            throws ParseException {
+        assert (enumerator.getType() == CTFParser.ENUM_ENUMERATOR);
+
+        List<CommonTree> children = enumerator.getChildren();
+        assert (children != null);
+
+        long low = 0, high = 0;
+        boolean valueSpecified = false;
+        String label = null;
+
+        for (CommonTree child : children) {
+            if (isUnaryString(child)) {
+                label = parseUnaryString(child);
+            } else if (child.getType() == CTFParser.ENUM_VALUE) {
+                assert (child.getChildCount() == 1);
+                assert (isUnaryInteger((CommonTree) child.getChild(0)));
+
+                valueSpecified = true;
+
+                low = parseUnaryInteger((CommonTree) child.getChild(0));
+                high = low;
+            } else if (child.getType() == CTFParser.ENUM_VALUE_RANGE) {
+                assert (child.getChildCount() == 2);
+                assert (isUnaryInteger((CommonTree) child.getChild(0)));
+                assert (isUnaryInteger((CommonTree) child.getChild(1)));
+
+                valueSpecified = true;
+
+                low = parseUnaryInteger((CommonTree) child.getChild(0));
+                high = parseUnaryInteger((CommonTree) child.getChild(1));
+            } else {
+                childTypeError(child);
+            }
+        }
+
+        assert (label != null);
+
+        if (!valueSpecified) {
+            low = lastHigh + 1;
+            high = low;
+        }
+
+        if (low > high) {
+            throw new ParseException("enum low value greater than high value"); //$NON-NLS-1$
+        }
+
+        if (!enumDeclaration.add(low, high, label)) {
+            throw new ParseException("enum declarator values overlap."); //$NON-NLS-1$
+        }
+
+        return high;
+    }
+

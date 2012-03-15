@@ -1,0 +1,112 @@
+    private VariantDeclaration parseVariant(CommonTree variant)
+            throws ParseException {
+        assert (variant.getType() == CTFParser.VARIANT);
+
+        List<CommonTree> children = variant.getChildren();
+        VariantDeclaration variantDeclaration = null;
+
+        boolean hasName = false;
+        String variantName = null;
+
+        boolean hasBody = false;
+        CommonTree variantBody = null;
+
+        boolean hasTag = false;
+        String variantTag = null;
+
+        for (CommonTree child : children) {
+            switch (child.getType()) {
+            case CTFParser.VARIANT_NAME:
+                assert (variantName == null);
+
+                hasName = true;
+
+                assert (child.getChildCount() == 1);
+                CommonTree variantNameIdentifier = (CommonTree) child
+                        .getChild(0);
+
+                assert (variantNameIdentifier.getType() == CTFParser.IDENTIFIER);
+                variantName = variantNameIdentifier.getText();
+
+                break;
+            case CTFParser.VARIANT_TAG:
+                assert (variantTag == null);
+
+                hasTag = true;
+
+                assert (child.getChildCount() == 1);
+                CommonTree variantTagIdentifier = (CommonTree) child
+                        .getChild(0);
+
+                assert (variantTagIdentifier.getType() == CTFParser.IDENTIFIER);
+                variantTag = variantTagIdentifier.getText();
+
+                break;
+            case CTFParser.VARIANT_BODY:
+                assert (variantBody == null);
+
+                hasBody = true;
+
+                variantBody = child;
+
+                break;
+            default:
+                childTypeError(child);
+                break;
+            }
+        }
+
+        if (hasBody) {
+            /*
+             * If variant has a name, check if already defined in the current
+             * scope.
+             */
+            if (hasName
+                    && (getCurrentScope().lookupVariant(variantName) != null)) {
+                throw new ParseException("variant " + variantName //$NON-NLS-1$
+                        + " already defined."); //$NON-NLS-1$
+            }
+
+            /* Create the declaration */
+            variantDeclaration = new VariantDeclaration();
+
+            /* Parse the body */
+            parseVariantBody(variantBody, variantDeclaration);
+
+            /* If variant has name, add it to the current scope. */
+            if (hasName) {
+                getCurrentScope().registerVariant(variantName,
+                        variantDeclaration);
+            }
+        } else /* !hasBody */{
+            if (hasName) {
+                /* Name and !body */
+
+                /* Lookup the name in the current scope. */
+                variantDeclaration = getCurrentScope().rlookupVariant(
+                        variantName);
+
+                /*
+                 * If not found, it means that a struct with such name has not
+                 * been defined
+                 */
+                if (variantDeclaration == null) {
+                    throw new ParseException("variant " + variantName //$NON-NLS-1$
+                            + " is not defined"); //$NON-NLS-1$
+                }
+            } else {
+                /* !Name and !body */
+
+                /* We can't do anything with that. */
+                throw new ParseException("variant with no name and no body"); //$NON-NLS-1$
+            }
+        }
+
+        if (hasTag) {
+            variantDeclaration.setTag(variantTag);
+        }
+
+        assert (variantDeclaration != null);
+        return variantDeclaration;
+    }
+

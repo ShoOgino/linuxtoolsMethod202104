@@ -1,0 +1,31 @@
+    /**
+     * Changes the location of the trace file reader so that the current event
+     * is the first event with a timestamp greater than the given timestamp.
+     *
+     * @param timestamp
+     *            The timestamp to seek to.
+     */
+    public void seek(long timestamp) {
+        /*
+         * Search in the index for the packet to search in.
+         */
+        this.packetIndexIt = this.streamInput.getIndex().search(timestamp);
+
+        /*
+         * Switch to this packet.
+         */
+        goToNextPacket();
+
+        /*
+         * Advance until A. we reached the end of the trace file (which means
+         * the given timestamp is after the last event), or B. we found the
+         * first event with a timestamp greater than the given timestamp.
+         */
+        readNextEvent();
+        boolean done = (this.getCurrentEvent() == null);
+        while (!done && (this.getCurrentEvent().timestamp < timestamp)) {
+            readNextEvent();
+            done = (this.getCurrentEvent() == null);
+        }
+    }
+

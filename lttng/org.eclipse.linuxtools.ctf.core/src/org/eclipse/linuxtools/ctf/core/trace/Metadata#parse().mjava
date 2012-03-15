@@ -1,0 +1,86 @@
+    /**
+     * Parse the metadata file.
+     *
+     * @throws CTFReaderException
+     */
+    public void parse() throws CTFReaderException {
+        /* Open the file and get the FileChannel */
+        FileChannel metadataFileChannel;
+        try {
+            metadataFileChannel = new FileInputStream(metadataFile).getChannel();
+        } catch (FileNotFoundException e) {
+            throw new CTFReaderException("Cannot find metadata file!"); //$NON-NLS-1$
+        }
+
+        /*
+         * Reader. It will contain a StringReader if we are using packet-based
+         * metadata and it will contain a FileReader if we have text-based
+         * metadata.
+         */
+        Reader metadataTextInput = null;
+
+        /* Check if metadata is packet-based */
+        if (isPacketBased(metadataFileChannel)) {
+            /* Create StringBuffer to receive metadata text */
+            StringBuffer metadataText = new StringBuffer();
+
+            /*
+             * Read metadata packet one by one, appending the text to the
+             * StringBuffer
+             */
+            MetadataPacketHeader packetHeader = readMetadataPacket(
+                    metadataFileChannel, metadataText);
+            while (packetHeader != null) {
+                packetHeader = readMetadataPacket(metadataFileChannel,
+                        metadataText);
+            }
+
+            /* Wrap the metadata string with a StringReader */
+            metadataTextInput = new StringReader(metadataText.toString());
+        } else {
+            /* Wrap the metadata file with a FileReader */
+            try {
+                metadataTextInput = new FileReader(metadataFile);
+            } catch (FileNotFoundException e) {
+                /*
+                 * We've already checked for this earlier. Why does StringReader
+                 * not throw this too??
+                 */
+                throw new CTFReaderException(e);
+            }
+        }
+
+        /* Create an ANTLR reader */
+        ANTLRReaderStream antlrStream;
+        try {
+            antlrStream = new ANTLRReaderStream(metadataTextInput);
+        } catch (IOException e) {
+            /* This would indicate a problem with the ANTLR library... */
+            throw new CTFReaderException(e);
+        }
+
+        /* Parse the metadata text and get the AST */
+        CTFLexer ctfLexer = new CTFLexer(antlrStream);
+        CommonTokenStream tokens = new CommonTokenStream(ctfLexer);
+        CTFParser ctfParser = new CTFParser(tokens, false);
+        parse_return ret;
+        try {
+            ret = ctfParser.parse();
+        } catch (RecognitionException e) {
+            /*
+             * We don't want to expose this ANTLR-specific exception type to the
+             * outside..
+             */
+            throw new CTFReaderException(e);
+        }
+        CommonTree tree = (CommonTree) ret.getTree();
+
+        /* Generate IO structures (declarations) */
+        IOStructGen gen = new IOStructGen(tree, trace);
+        try {
+            gen.generate();
+        } catch (ParseException e) {
+            throw new CTFReaderException(e);
+        }
+    }
+
