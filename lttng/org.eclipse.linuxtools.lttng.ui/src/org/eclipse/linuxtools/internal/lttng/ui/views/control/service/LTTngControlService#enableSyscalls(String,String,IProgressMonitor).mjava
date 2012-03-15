@@ -1,0 +1,30 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.linuxtools.internal.lttng.ui.views.control.service.ILttngControlService#enableSyscalls(java.lang.String, java.lang.String, org.eclipse.core.runtime.IProgressMonitor)
+     */
+    @Override
+    public void enableSyscalls(String sessionName, String channelName, IProgressMonitor monitor) throws ExecutionException {
+        String newSessionName = formatParameter(sessionName);
+        
+        StringBuffer command = new StringBuffer(COMMAND_ENABLE_EVENT);
+
+        command.append(OPTION_ALL);
+        command.append(OPTION_KERNEL);
+
+        command.append(OPTION_SESSION);
+        command.append(newSessionName);
+
+        if (channelName != null) {
+            command.append(OPTION_CHANNEL);
+            command.append(channelName);
+        }
+        
+        command.append(OPTION_SYSCALL);
+        
+        ICommandResult result = fCommandShell.executeCommand(command.toString(), monitor);
+        
+        if (isError(result)) {
+            throw new ExecutionException(Messages.TraceControl_CommandError + " " + command + "\n" + formatOutput(result.getOutput())); //$NON-NLS-1$ //$NON-NLS-2$
+        }        
+    }
+

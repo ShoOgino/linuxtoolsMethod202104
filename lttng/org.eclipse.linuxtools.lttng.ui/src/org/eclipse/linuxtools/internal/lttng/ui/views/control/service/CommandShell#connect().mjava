@@ -1,0 +1,24 @@
+    // ------------------------------------------------------------------------
+    // Operations
+    // ------------------------------------------------------------------------
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.linuxtools.internal.lttng.ui.views.control.service.ICommandShell#connect()
+     */
+    @Override
+    public void connect() throws ExecutionException {
+        IShellService shellService = fProxy.getShellService();
+        Process p = null;
+        try {
+            fHostShell = shellService.launchShell("", new String[0], new NullProgressMonitor()); //$NON-NLS-1$
+            p = new HostShellProcessAdapter(fHostShell);
+        } catch (Exception e) {
+            throw new ExecutionException(Messages.TraceControl_CommandShellError, e);
+        }
+        fBufferReader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+        fIsConnected = true;
+
+        // Flush Login messages
+        executeCommand(" ", new NullProgressMonitor(), false); //$NON-NLS-1$
+    }
+

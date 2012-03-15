@@ -1,0 +1,55 @@
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * org.eclipse.linuxtools.internal.lttng.ui.views.control.service.ILttngControlService
+     * #getUstProvider(org.eclipse.core.runtime.IProgressMonitor)
+     */
+    @Override
+    public List<IUstProviderInfo> getUstProvider(IProgressMonitor monitor) throws ExecutionException {
+        String command = COMMAND_LIST_UST;
+        ICommandResult result = fCommandShell.executeCommand(command, monitor);
+
+        if (isError(result)) {
+            throw new ExecutionException(Messages.TraceControl_CommandError + " " + command + "\n" + formatOutput(result.getOutput())); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+
+        // UST events:
+        // -------------
+        //
+        // PID: 3635 - Name:
+        // /home/user/git/lttng-ust/tests/hello.cxx/.libs/lt-hello
+        // ust_tests_hello:tptest_sighandler (loglevel: TRACE_EMERG0) (type:
+        // tracepoint)
+        // ust_tests_hello:tptest (loglevel: TRACE_EMERG0) (type: tracepoint)
+        //
+        // PID: 6459 - Name:
+        // /home/user/git/lttng-ust/tests/hello.cxx/.libs/lt-hello
+        // ust_tests_hello:tptest_sighandler (loglevel: TRACE_EMERG0) (type:
+        // tracepoint)
+        // ust_tests_hello:tptest (loglevel: TRACE_EMERG0) (type: tracepoint)
+
+        List<IUstProviderInfo> allProviders = new ArrayList<IUstProviderInfo>();
+        IUstProviderInfo provider = null;
+
+        int index = 0;
+        while (index < result.getOutput().length) {
+            String line = result.getOutput()[index];
+            Matcher matcher = UST_PROVIDER_PATTERN.matcher(line);
+            if (matcher.matches()) {
+
+                provider = new UstProviderInfo(matcher.group(2).trim());
+                provider.setPid(Integer.valueOf(matcher.group(1).trim()));
+                List<IBaseEventInfo> events = new ArrayList<IBaseEventInfo>();
+                index = getProviderEventInfo(result.getOutput(), ++index, events);
+                provider.setEvents(events);
+                allProviders.add(provider);
+
+            } else {
+                index++;
+            }
+
+        }
+        return allProviders;
+    }
+

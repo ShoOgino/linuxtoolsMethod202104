@@ -1,0 +1,38 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.core.commands.AbstractHandler#execute(org.eclipse.core.commands.ExecutionEvent)
+     */
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+
+        if (window == null) {
+            return false;
+        }
+
+        Job job = new Job(Messages.TraceControl_StartSessionJob) {
+            @Override
+            protected IStatus run(IProgressMonitor monitor) {
+                try {
+                    for (Iterator<TraceSessionComponent> iterator = fSessions.iterator(); iterator.hasNext();) {
+
+                        // Start all selected sessions
+                        TraceSessionComponent session = (TraceSessionComponent) iterator.next();
+                        changeState(session, monitor);
+
+                        // Set Session state
+                        session.setSessionState(getNewState());
+                        session.fireComponentChanged(session);
+                    }
+                } catch (ExecutionException e) {
+                    return new Status(Status.ERROR, Activator.PLUGIN_ID, e.toString());
+                }  
+                return Status.OK_STATUS;
+            }
+        };
+        job.setUser(true);
+        job.schedule();
+        return null;
+    }
+
