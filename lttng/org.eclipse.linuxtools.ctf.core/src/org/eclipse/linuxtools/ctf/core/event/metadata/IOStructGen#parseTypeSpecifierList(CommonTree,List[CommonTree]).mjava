@@ -1,0 +1,68 @@
+    /**
+     * Parses a type specifier list and returns the corresponding declaration.
+     *
+     * @param typeSpecifierList
+     *            A TYPE_SPECIFIER_LIST node.
+     * @param pointerList
+     *            A list of POINTER nodes that apply to the specified type.
+     * @return The corresponding declaration.
+     * @throws ParseException
+     *             If the type has not been defined or if there is an error
+     *             creating the declaration.
+     */
+    private IDeclaration parseTypeSpecifierList(CommonTree typeSpecifierList,
+            List<CommonTree> pointerList) throws ParseException {
+        assert (typeSpecifierList.getType() == CTFParser.TYPE_SPECIFIER_LIST);
+        IDeclaration declaration = null;
+
+        /*
+         * By looking at the first element of the type specifier list, we can
+         * determine which type it belongs to.
+         */
+        CommonTree firstChild = (CommonTree) typeSpecifierList.getChild(0);
+        assert (firstChild != null); /* grammar */
+
+        switch (firstChild.getType()) {
+        case CTFParser.FLOATING_POINT:
+            CtfCorePlugin
+                    .getDefault()
+                    .log("parseTypeSpecifierList: floating_point not implemented yet"); //$NON-NLS-1$
+            break;
+        case CTFParser.INTEGER:
+            declaration = parseInteger(firstChild);
+            break;
+        case CTFParser.STRING:
+            declaration = parseString(firstChild);
+            break;
+        case CTFParser.STRUCT:
+            declaration = parseStruct(firstChild);
+            break;
+        case CTFParser.VARIANT:
+            declaration = parseVariant(firstChild);
+            break;
+        case CTFParser.ENUM:
+            declaration = parseEnum(firstChild);
+            break;
+        case CTFParser.IDENTIFIER:
+        case CTFParser.FLOATTOK:
+        case CTFParser.INTTOK:
+        case CTFParser.LONGTOK:
+        case CTFParser.SHORTTOK:
+        case CTFParser.SIGNEDTOK:
+        case CTFParser.UNSIGNEDTOK:
+        case CTFParser.CHARTOK:
+        case CTFParser.DOUBLETOK:
+        case CTFParser.VOIDTOK:
+        case CTFParser.BOOLTOK:
+        case CTFParser.COMPLEXTOK:
+        case CTFParser.IMAGINARYTOK:
+            declaration = parseTypeDeclaration(typeSpecifierList, pointerList);
+            break;
+        default:
+            childTypeError(firstChild);
+        }
+
+        assert (declaration != null);
+        return declaration;
+    }
+

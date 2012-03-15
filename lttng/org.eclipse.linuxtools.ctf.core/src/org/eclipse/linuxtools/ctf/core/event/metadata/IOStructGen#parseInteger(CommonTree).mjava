@@ -1,0 +1,101 @@
+    /**
+     * Parses an integer declaration node.
+     *
+     * @param integer
+     *            An INTEGER node.
+     * @return The corresponding integer declaration.
+     * @throws ParseException
+     */
+    private IntegerDeclaration parseInteger(CommonTree integer)
+            throws ParseException {
+        assert (integer.getType() == CTFParser.INTEGER);
+
+        List<CommonTree> children = integer.getChildren();
+
+        /*
+         * If the integer has no attributes, then it is missing the size
+         * attribute which is required
+         */
+        if (children == null) {
+            throw new ParseException("integer: missing size attribute"); //$NON-NLS-1$
+        }
+
+        /* The return value */
+        IntegerDeclaration integerDeclaration = null;
+        boolean signed = false;
+        ByteOrder byteOrder = trace.getByteOrder();
+        long size = 0;
+        long alignment = 0;
+        int base = 10;
+        @SuppressWarnings("unused")
+        String clock;
+
+        Encoding encoding = Encoding.NONE;
+
+        /* Iterate on all integer children */
+        for (CommonTree child : children) {
+            switch (child.getType()) {
+            case CTFParser.CTF_EXPRESSION_VAL:
+                /*
+                 * An assignment expression must have 2 children, left and right
+                 */
+                assert (child.getChildCount() == 2);
+
+                CommonTree leftNode = (CommonTree) child.getChild(0);
+                assert (leftNode.getType() == CTFParser.CTF_LEFT);
+                CommonTree rightNode = (CommonTree) child.getChild(1);
+                assert (rightNode.getType() == CTFParser.CTF_RIGHT);
+
+                List<CommonTree> leftStrings = leftNode.getChildren();
+                assert (leftStrings != null);
+
+                if (!isUnaryString(leftStrings.get(0))) {
+                    throw new ParseException(
+                            "Left side of ctf expression must be a string"); //$NON-NLS-1$
+                }
+                String left = concatenateUnaryStrings(leftStrings);
+
+                if (left.equals("signed")) { //$NON-NLS-1$
+                    signed = getSigned(rightNode);
+                } else if (left.equals("byte_order")) { //$NON-NLS-1$
+                    byteOrder = getByteOrder(rightNode);
+                } else if (left.equals("size")) { //$NON-NLS-1$
+                    size = getSize(rightNode);
+                } else if (left.equals("align")) { //$NON-NLS-1$
+                    alignment = getAlignment(rightNode);
+                } else if (left.equals("base")) { //$NON-NLS-1$
+                    base = getBase(rightNode);
+                } else if (left.equals("encoding")) { //$NON-NLS-1$
+                    encoding = getEncoding(rightNode);
+                } else if (left.equals("map")) { //$NON-NLS-1$
+                    clock = getClock(rightNode);
+                } else {
+                    throw new ParseException("Integer: unknown attribute " + left); //$NON-NLS-1$
+                }
+
+                break;
+            default:
+                childTypeError(child);
+                break;
+            }
+        }
+
+        if (size == 0) {
+            throw new ParseException("Integer missing size attribute"); //$NON-NLS-1$
+        }
+
+        if (alignment == 0) {
+            if ((size % 8) == 0) {
+                alignment = 1;
+            } else {
+                alignment = 8;
+            }
+        }
+
+        integerDeclaration = new IntegerDeclaration((int) size, signed, base,
+                byteOrder, encoding);
+
+        assert (integerDeclaration != null);
+        return integerDeclaration;
+    }
+

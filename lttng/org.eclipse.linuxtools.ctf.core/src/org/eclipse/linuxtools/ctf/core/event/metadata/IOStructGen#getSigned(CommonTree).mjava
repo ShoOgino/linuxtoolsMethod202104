@@ -1,0 +1,50 @@
+    /**
+     * Gets the value of a "signed" integer attribute.
+     *
+     * @param rightNode
+     *            A CTF_RIGHT node.
+     * @return The "signed" value as a boolean.
+     * @throws ParseException
+     */
+    private static boolean getSigned(CommonTree rightNode)
+            throws ParseException {
+        assert (rightNode.getType() == CTFParser.CTF_RIGHT);
+        assert (rightNode.getChildCount() > 0);
+
+        boolean ret = false;
+        CommonTree firstChild = (CommonTree) rightNode.getChild(0);
+
+        if (isUnaryString(firstChild)) {
+            String strval = concatenateUnaryStrings(rightNode.getChildren());
+
+            if (strval.equals("true") || strval.equals("TRUE")) { //$NON-NLS-1$ //$NON-NLS-2$
+                ret = true;
+            } else if (strval.equals("false") || strval.equals("FALSE")) { //$NON-NLS-1$ //$NON-NLS-2$
+                ret = false;
+            } else {
+                throw new ParseException("Invalid boolean value " //$NON-NLS-1$
+                        + firstChild.getChild(0).getText());
+            }
+        } else if (isUnaryInteger(firstChild)) {
+            /* Happens if the value is something like "1234.hello" */
+            if (rightNode.getChildCount() > 1) {
+                throw new ParseException("Invalid boolean value"); //$NON-NLS-1$
+            }
+
+            long intval = parseUnaryInteger(firstChild);
+
+            if (intval == 1) {
+                ret = true;
+            } else if (intval == 0) {
+                ret = false;
+            } else {
+                throw new ParseException("Invalid boolean value " //$NON-NLS-1$
+                        + firstChild.getChild(0).getText());
+            }
+        } else {
+            throw new ParseException();
+        }
+
+        return ret;
+    }
+

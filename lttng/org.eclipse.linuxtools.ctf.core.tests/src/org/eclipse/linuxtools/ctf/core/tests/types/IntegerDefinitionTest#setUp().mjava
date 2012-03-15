@@ -1,0 +1,29 @@
+    /**
+     * Perform pre-test initialization. We know the structDef won't be null (or
+     * else the tests will fail), so we can safely suppress the warning.
+     */
+    @Before
+    public void setUp() {
+        CTFTrace trace = TestParams.createTrace();
+        CTFTraceReader tr = new CTFTraceReader(trace);
+        String name = ""; //$NON-NLS-1$
+        StructDefinition structDef = null;
+        boolean found = false;
+
+        while (tr.hasMoreEvents() && !found) {
+            tr.advance();
+            EventDefinition ed = tr.getCurrentEventDef();
+            for (String key : ed.fields.getDefinitions().keySet()) {
+                structDef = ed.fields;
+                Definition d = structDef.lookupDefinition(key);
+                if (d instanceof IntegerDefinition) {
+                    found = true;
+                    name = key;
+                    break;
+                }
+            }
+        }
+        assert (structDef != null);
+        fixture = structDef.lookupInteger(name);
+    }
+

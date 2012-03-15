@@ -1,0 +1,43 @@
+    /**
+     * Parses a struct body, adding the fields to specified structure
+     * declaration.
+     *
+     * @param structBody
+     *            A STRUCT_BODY node.
+     * @param structDeclaration
+     *            The struct declaration.
+     * @throws ParseException
+     */
+    private void parseStructBody(CommonTree structBody,
+            StructDeclaration structDeclaration) throws ParseException {
+        assert (structBody.getType() == CTFParser.STRUCT_BODY);
+
+        List<CommonTree> structDeclarations = structBody.getChildren();
+
+        /*
+         * If structDeclaration is null, structBody has no children and the
+         * struct body is empty.
+         */
+        if (structDeclarations != null) {
+            pushScope();
+
+            for (CommonTree declarationNode : structDeclarations) {
+                switch (declarationNode.getType()) {
+                case CTFParser.TYPEALIAS:
+                    parseTypealias(declarationNode);
+                    break;
+                case CTFParser.TYPEDEF:
+                    parseTypedef(declarationNode);
+                    break;
+                case CTFParser.SV_DECLARATION:
+                    parseStructDeclaration(declarationNode, structDeclaration);
+                    break;
+                default:
+                    childTypeError(declarationNode);
+                    break;
+                }
+            }
+            popScope();
+        }
+    }
+

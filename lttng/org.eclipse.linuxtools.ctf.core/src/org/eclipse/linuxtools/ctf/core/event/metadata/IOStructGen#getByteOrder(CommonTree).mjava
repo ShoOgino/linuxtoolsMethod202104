@@ -1,0 +1,30 @@
+    /**
+     * Gets the value of a "byte_order" integer attribute.
+     *
+     * @param rightNode
+     *            A CTF_RIGHT node.
+     * @return The "byte_order" value.
+     * @throws ParseException
+     */
+    private ByteOrder getByteOrder(CommonTree rightNode) throws ParseException {
+        assert (rightNode.getType() == CTFParser.CTF_RIGHT);
+        assert (rightNode.getChildCount() > 0);
+
+        CommonTree firstChild = (CommonTree) rightNode.getChild(0);
+
+        if (isUnaryString(firstChild)) {
+            String strval = concatenateUnaryStrings(rightNode.getChildren());
+
+            if (strval.equals("le")) { //$NON-NLS-1$
+                return ByteOrder.LITTLE_ENDIAN;
+            } else if (strval.equals("be") || strval.equals("network")) { //$NON-NLS-1$ //$NON-NLS-2$
+                return ByteOrder.BIG_ENDIAN;
+            } else if (strval.equals("native")) { //$NON-NLS-1$
+                return trace.getByteOrder();
+            } else {
+                throw new ParseException("Invalid value for byte order"); //$NON-NLS-1$
+            }
+        }
+        throw new ParseException("Invalid value for byte order"); //$NON-NLS-1$
+    }
+

@@ -1,0 +1,93 @@
+    private void parseTraceDeclaration(CommonTree traceDecl)
+            throws ParseException {
+        assert ((traceDecl.getType() == CTFParser.CTF_EXPRESSION_TYPE) || (traceDecl
+                .getType() == CTFParser.CTF_EXPRESSION_VAL));
+
+        /* There should be a left and right */
+        assert (traceDecl.getChildCount() == 2);
+
+        CommonTree leftNode = (CommonTree) traceDecl.getChild(0);
+        assert (leftNode.getType() == CTFParser.CTF_LEFT);
+        CommonTree rightNode = (CommonTree) traceDecl.getChild(1);
+        assert (rightNode.getType() == CTFParser.CTF_RIGHT);
+
+        List<CommonTree> leftStrings = leftNode.getChildren();
+        assert (leftStrings != null);
+
+        if (!isUnaryString(leftStrings.get(0))) {
+            throw new ParseException(
+                    "Left side of CTF assignment must be a string"); //$NON-NLS-1$
+        }
+
+        String left = concatenateUnaryStrings(leftStrings);
+
+        if (left.equals("major")) { //$NON-NLS-1$
+            if (trace.majortIsSet()) {
+                throw new ParseException("major is already set"); //$NON-NLS-1$
+            }
+
+            trace.setMajor(getMajorOrMinor(rightNode));
+        } else if (left.equals("minor")) { //$NON-NLS-1$
+            if (trace.minorIsSet()) {
+                throw new ParseException("minor is already set"); //$NON-NLS-1$
+            }
+
+            trace.setMinor(getMajorOrMinor(rightNode));
+        } else if (left.equals("uuid")) { //$NON-NLS-1$
+            UUID uuid = getUUID(rightNode);
+
+            /*
+             * If uuid was already set by a metadata packet, compare it to see
+             * if it matches
+             */
+            if (trace.UUIDIsSet()) {
+                if (trace.getUUID().compareTo(uuid) != 0) {
+                    throw new ParseException("UUID mismatch. Packet says " //$NON-NLS-1$
+                            + trace.getUUID() + " but metadata says " + uuid); //$NON-NLS-1$
+                }
+            } else {
+                trace.setUUID(uuid);
+            }
+
+        } else if (left.equals("byte_order")) { //$NON-NLS-1$
+            ByteOrder byteOrder = getByteOrder(rightNode);
+
+            /*
+             * If byte order was already set by a metadata packet, compare it to
+             * see if it matches
+             */
+            if (trace.getByteOrder() != null) {
+                if (trace.getByteOrder() != byteOrder) {
+                    throw new ParseException(
+                            "Endianness mismatch. Magic number says " //$NON-NLS-1$
+                                    + trace.getByteOrder()
+                                    + " but metadata says " + byteOrder); //$NON-NLS-1$
+                }
+            } else {
+                trace.setByteOrder(byteOrder);
+            }
+        } else if (left.equals("packet.header")) { //$NON-NLS-1$
+            if (trace.packetHeaderIsSet()) {
+                throw new ParseException("packet.header already defined"); //$NON-NLS-1$
+            }
+
+            CommonTree typeSpecifier = (CommonTree) rightNode.getChild(0);
+
+            if (typeSpecifier.getType() != CTFParser.TYPE_SPECIFIER_LIST) {
+                throw new ParseException(
+                        "packet.header expects a type specifier"); //$NON-NLS-1$
+            }
+
+            IDeclaration packetHeaderDecl = parseTypeSpecifierList(
+                    typeSpecifier, null);
+
+            if (!(packetHeaderDecl instanceof StructDeclaration)) {
+                throw new ParseException("packet.header expects a struct"); //$NON-NLS-1$
+            }
+
+            trace.setPacketHeader((StructDeclaration) packetHeaderDecl);
+        } else {
+            throw new ParseException("Unknown trace attribute : " + left); //$NON-NLS-1$
+        }
+    }
+

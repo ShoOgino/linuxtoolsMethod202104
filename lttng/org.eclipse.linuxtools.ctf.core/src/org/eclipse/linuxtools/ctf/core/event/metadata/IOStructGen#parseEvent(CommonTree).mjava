@@ -1,0 +1,68 @@
+    private void parseEvent(CommonTree eventNode) throws ParseException {
+        assert (eventNode.getType() == CTFParser.EVENT);
+
+        List<CommonTree> children = eventNode.getChildren();
+        if (children == null) {
+            throw new ParseException("Empty event block"); //$NON-NLS-1$
+        }
+
+        EventDeclaration event = new EventDeclaration();
+
+        pushScope();
+
+        for (CommonTree child : children) {
+            switch (child.getType()) {
+            case CTFParser.TYPEALIAS:
+                parseTypealias(child);
+                break;
+            case CTFParser.TYPEDEF:
+                parseTypedef(child);
+                break;
+            case CTFParser.CTF_EXPRESSION_TYPE:
+            case CTFParser.CTF_EXPRESSION_VAL:
+                parseEventDeclaration(child, event);
+                break;
+            default:
+                childTypeError(child);
+                break;
+            }
+        }
+
+        if (!event.nameIsSet()) {
+            throw new ParseException("Event name not set"); //$NON-NLS-1$
+        }
+
+        /*
+         * If the event did not specify a stream, then the trace must be single
+         * stream
+         */
+        if (!event.streamIsSet()) {
+            if (trace.nbStreams() > 1) {
+                throw new ParseException(
+                        "Event without stream_id with more than one stream"); //$NON-NLS-1$
+            }
+
+            /*
+             * If the event did not specify a stream, the only existing stream
+             * must not have an id. Note: That behavior could be changed, it
+             * could be possible to just get the only existing stream, whatever
+             * is its id.
+             */
+            Stream stream = trace.getStream(null);
+
+            if (stream != null) {
+                event.setStream(stream);
+            } else {
+                throw new ParseException(
+                        "Event without stream_id, but there is no stream without id"); //$NON-NLS-1$
+            }
+        }
+
+        /*
+         * Add the event to the stream.
+         */
+        event.getStream().addEvent(event);
+
+        popScope();
+    }
+

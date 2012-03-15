@@ -1,0 +1,92 @@
+    /**
+     * Tries to open the given file, reads the first packet header of the file
+     * and check its validity.
+     *
+     * @param streamFile
+     *            A trace file in the trace directory.
+     * @throws CTFReaderException
+     */
+    private void openStreamInput(File streamFile) throws CTFReaderException {
+        FileChannel streamFileChannel;
+        MappedByteBuffer byteBuffer;
+        BitBuffer streamBitBuffer;
+
+        if (!streamFile.canRead()) {
+            throw new CTFReaderException("Unreadable file : " //$NON-NLS-1$
+                    + streamFile.getPath());
+        }
+
+        try {
+            /* Open the file and get the FileChannel */
+            streamFileChannel = new FileInputStream(streamFile).getChannel();
+
+            /* Map one memory page of 4 kiB */
+            byteBuffer = streamFileChannel.map(MapMode.READ_ONLY, 0, 4096);
+        } catch (IOException e) {
+            /* Shouldn't happen at this stage if every other check passed */
+            throw new CTFReaderException();
+        }
+
+        /* Create a BitBuffer with this mapping and the trace byte order */
+        streamBitBuffer = new BitBuffer(byteBuffer, this.getByteOrder());
+
+        if (packetHeaderDef != null) {
+            /* Read the packet header */
+            packetHeaderDef.read(streamBitBuffer);
+
+            /* Check the magic number */
+            IntegerDefinition magicDef = (IntegerDefinition) packetHeaderDef.lookupDefinition("magic"); //$NON-NLS-1$
+            int magic = (int) magicDef.getValue();
+            if (magic != Utils.CTF_MAGIC) {
+                throw new CTFReaderException("CTF magic mismatch"); //$NON-NLS-1$
+            }
+
+            /* Check UUID */
+            ArrayDefinition uuidDef = (ArrayDefinition) packetHeaderDef.lookupDefinition("uuid"); //$NON-NLS-1$
+            assert ((uuidDef != null) && (uuidDef.getDeclaration().getLength() == Utils.UUID_LEN));
+            if (uuidDef != null) {
+                byte[] uuidArray = new byte[Utils.UUID_LEN];
+
+                for (int i = 0; i < Utils.UUID_LEN; i++) {
+                    IntegerDefinition uuidByteDef = (IntegerDefinition) uuidDef.getElem(i);
+                    uuidArray[i] = (byte) uuidByteDef.getValue();
+                }
+
+                UUID otheruuid = Utils.makeUUID(uuidArray);
+
+                if (!this.uuid.equals(otheruuid)) {
+                    throw new CTFReaderException("UUID mismatch"); //$NON-NLS-1$
+                }
+            }
+
+            /* Read stream ID */
+            // TODO: it hasn't been checked that the stream_id field exists and
+            // is an unsigned
+            // integer
+            IntegerDefinition streamIDDef = (IntegerDefinition) packetHeaderDef.lookupDefinition("stream_id"); //$NON-NLS-1$
+            assert (streamIDDef != null);
+
+            long streamID = streamIDDef.getValue();
+
+            /* Get the stream to which this trace file belongs to */
+            Stream stream = streams.get(streamID);
+
+            /* Create the stream input */
+            StreamInput streamInput = new StreamInput(stream,
+                    streamFileChannel, streamFile);
+
+            /* Add a reference to the streamInput in the stream */
+            stream.addInput(streamInput);
+        } else {
+            /* No packet header, we suppose there is only one stream */
+            Stream stream = streams.get(null);
+
+            /* Create the stream input */
+            StreamInput streamInput = new StreamInput(stream,
+                    streamFileChannel, streamFile);
+
+            /* Add a reference to the streamInput in the stream */
+            stream.addInput(streamInput);
+        }
+    }
+

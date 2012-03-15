@@ -1,0 +1,58 @@
+    /**
+     * Changes the current packet to the given one.
+     *
+     * @param currentPacket
+     *            The index entry of the packet to switch to.
+     */
+    public void setCurrentPacket(StreamInputPacketIndexEntry currentPacket) {
+        this.currentPacket = currentPacket;
+
+        if (this.currentPacket != null) {
+            /*
+             * Change the map of the BitBuffer.
+             */
+            MappedByteBuffer bb = null;
+            try {
+                bb = getStreamInputReader().getStreamInput().getFileChannel().map(
+                        MapMode.READ_ONLY, this.currentPacket.offsetBytes,
+                        (this.currentPacket.packetSizeBits + 7) / 8);
+            } catch (IOException e) {
+                /*
+                 * The streamInputReader object is already allocated, so this
+                 * shouldn't fail bar some very bad kernel or RAM errors...
+                 */
+                e.printStackTrace();
+            }
+
+            getBitBuffer().setByteBuffer(bb);
+
+            /*
+             * Read trace packet header.
+             */
+            if (getTracePacketHeaderDef() != null) {
+                getTracePacketHeaderDef().read(getBitBuffer());
+            }
+
+            /*
+             * Read stream packet context.
+             */
+            if (getStreamPacketContextDef() != null) {
+                getStreamPacketContextDef().read(getBitBuffer());
+                Definition cpuiddef = getStreamPacketContextDef().lookupDefinition("cpu_id"); //$NON-NLS-1$
+                if (cpuiddef instanceof IntegerDefinition) {
+                    currentCpu = (int) ((IntegerDefinition) cpuiddef).getValue();
+                }
+            }
+
+            /*
+             * Use the timestamp begin of the packet as the reference for the
+             * timestamp reconstitution.
+             */
+            lastTimestamp = currentPacket.timestampBegin;
+        } else {
+            getBitBuffer().setByteBuffer(null);
+
+            lastTimestamp = 0;
+        }
+    }
+

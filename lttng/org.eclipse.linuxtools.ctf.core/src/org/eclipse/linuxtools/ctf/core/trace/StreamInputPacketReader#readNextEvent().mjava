@@ -1,0 +1,99 @@
+    /**
+     * Reads the next event of the packet into the right event definition.
+     *
+     * @return The event definition containing the event data that was just
+     *         read.
+     * @throws CTFReaderException
+     */
+    public EventDefinition readNextEvent() throws CTFReaderException {
+        /* WARNING: This is very LTTng-specific. */
+
+        Long eventID = null;
+        long timestamp = 0;
+
+        /*
+         * Read thestream event header.
+         */
+        if (getStreamEventHeaderDef() != null) {
+            getStreamEventHeaderDef().read(getBitBuffer());
+
+            /*
+             * Check for an event id.
+             */
+            EnumDefinition idEnumDef = (EnumDefinition) getStreamEventHeaderDef().lookupDefinition("id"); //$NON-NLS-1$
+            assert (idEnumDef != null);
+
+            eventID = idEnumDef.getIntegerValue();
+
+            /*
+             * Check for the variant v.
+             */
+            VariantDefinition variantDef = (VariantDefinition) getStreamEventHeaderDef().lookupDefinition("v"); //$NON-NLS-1$
+            assert (variantDef != null);
+
+            /*
+             * Get the variant current field
+             */
+            StructDefinition variantCurrentField = (StructDefinition) variantDef.getCurrentField();
+            assert (variantCurrentField != null);
+
+            /*
+             * Try to get the id field in the current field of the variant. If
+             * it is present, it overrides the previously read event id.
+             */
+            IntegerDefinition idIntegerDef = (IntegerDefinition) variantCurrentField.lookupDefinition("id"); //$NON-NLS-1$
+            if (idIntegerDef != null) {
+                eventID = idIntegerDef.getValue();
+
+            }
+
+            /*
+             * Get the timestamp.
+             */
+            IntegerDefinition timestampDef = (IntegerDefinition) variantCurrentField.lookupDefinition("timestamp"); //$NON-NLS-1$
+            assert (timestampDef != null);
+
+            /*
+             * Calculate the event timestamp.
+             */
+            timestamp = calculateTimestamp(timestampDef);
+        }
+
+        /*
+         * Read the stream event context.
+         */
+        if (getStreamEventContextDef() != null) {
+            getStreamEventContextDef().read(getBitBuffer());
+        }
+
+        /*
+         * Get the right event definition using the event id.
+         */
+        EventDefinition eventDef = events.get(eventID);
+        if (eventDef == null) {
+            throw new CTFReaderException("Incorrect event id : " + eventID); //$NON-NLS-1$
+        }
+
+        /*
+         * Read the event context.
+         */
+        if (eventDef.context != null) {
+            eventDef.context.read(getBitBuffer());
+        }
+
+        /*
+         * Read the event fields.
+         */
+        if (eventDef.fields != null) {
+            eventDef.fields.read(getBitBuffer());
+        }
+
+        /*
+         * Set the event timestamp using the timestamp calculated by
+         * updateTimestamp.
+         */
+        eventDef.timestamp = timestamp;
+
+        return eventDef;
+    }
+

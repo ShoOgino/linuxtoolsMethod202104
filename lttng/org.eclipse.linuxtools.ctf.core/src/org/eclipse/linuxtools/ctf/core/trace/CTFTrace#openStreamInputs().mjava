@@ -1,0 +1,46 @@
+    /**
+     * Tries to open every file in the trace directory (except metadata).
+     *
+     * @throws CTFReaderException
+     */
+    private void openStreamInputs() throws CTFReaderException {
+        /* Create the definitions needed to read things from the files */
+        createDefinitions();
+
+        /* List files not called metadata and not hidden. */
+        File[] files = path.listFiles(new FileFilter() {
+
+            @Override
+            public boolean accept(File pathname) {
+
+                if (pathname.isDirectory()) {
+                    return false;
+                }
+
+                if (pathname.isHidden()) {
+                    return false;
+                }
+
+                if (pathname.getName().equals("metadata")) { //$NON-NLS-1$
+                    return false;
+                }
+
+                return true;
+            }
+        });
+        Arrays.sort(files, new Comparator<File>() {
+
+            @Override
+            public int compare(File o1, File o2) {
+
+                return o1.getName().compareTo(o2.getName());
+
+            }
+        });
+
+        /* Try to open each file */
+        for (File s : files) {
+            openStreamInput(s);
+        }
+    }
+

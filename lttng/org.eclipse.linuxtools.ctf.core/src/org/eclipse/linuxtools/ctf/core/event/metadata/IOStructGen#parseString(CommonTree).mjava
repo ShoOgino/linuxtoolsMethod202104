@@ -1,0 +1,54 @@
+    private static StringDeclaration parseString(CommonTree string)
+            throws ParseException {
+        assert (string.getType() == CTFParser.STRING);
+
+        List<CommonTree> children = string.getChildren();
+        StringDeclaration stringDeclaration = null;
+
+        if (children == null) {
+            stringDeclaration = new StringDeclaration();
+        } else {
+            Encoding encoding = Encoding.UTF8;
+            for (CommonTree child : children) {
+                switch (child.getType()) {
+                case CTFParser.CTF_EXPRESSION_VAL:
+                    /*
+                     * An assignment expression must have 2 children, left and
+                     * right
+                     */
+                    assert (child.getChildCount() == 2);
+
+                    CommonTree leftNode = (CommonTree) child.getChild(0);
+                    assert (leftNode.getType() == CTFParser.CTF_LEFT);
+                    CommonTree rightNode = (CommonTree) child.getChild(1);
+                    assert (rightNode.getType() == CTFParser.CTF_RIGHT);
+
+                    List<CommonTree> leftStrings = leftNode.getChildren();
+                    assert (leftStrings != null);
+
+                    if (!isUnaryString(leftStrings.get(0))) {
+                        throw new ParseException(
+                                "Left side of ctf expression must be a string"); //$NON-NLS-1$
+                    }
+                    String left = concatenateUnaryStrings(leftStrings);
+
+                    if (left.equals("encoding")) { //$NON-NLS-1$
+                        encoding = getEncoding(rightNode);
+                    } else {
+                        throw new ParseException("String: unknown attribute " //$NON-NLS-1$
+                                + left);
+                    }
+
+                    break;
+                default:
+                    childTypeError(child);
+                    break;
+                }
+            }
+
+            stringDeclaration = new StringDeclaration(encoding);
+        }
+
+        return stringDeclaration;
+    }
+

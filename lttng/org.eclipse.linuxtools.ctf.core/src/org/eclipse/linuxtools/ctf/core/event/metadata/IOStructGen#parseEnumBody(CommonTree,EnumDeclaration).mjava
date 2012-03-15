@@ -1,0 +1,35 @@
+    /**
+     * Parses an enum body, adding the enumerators to the specified enum
+     * declaration.
+     *
+     * @param enumBody
+     *            An ENUM_BODY node.
+     * @param enumDeclaration
+     *            The enum declaration.
+     * @throws ParseException
+     */
+    private void parseEnumBody(CommonTree enumBody,
+            EnumDeclaration enumDeclaration) throws ParseException {
+        assert (enumBody.getType() == CTFParser.ENUM_BODY);
+
+        List<CommonTree> enumerators = enumBody.getChildren();
+        /* enum body can't be empty (unlike struct). */
+        assert (enumerators != null);
+
+        pushScope();
+
+        /*
+         * Start at -1, so that if the first enumrator has no explicit value, it
+         * will choose 0
+         */
+        long lastHigh = -1;
+
+        for (CommonTree enumerator : enumerators) {
+            lastHigh = parseEnumEnumerator(enumerator, enumDeclaration,
+                    lastHigh);
+        }
+
+        popScope();
+
+    }
+
