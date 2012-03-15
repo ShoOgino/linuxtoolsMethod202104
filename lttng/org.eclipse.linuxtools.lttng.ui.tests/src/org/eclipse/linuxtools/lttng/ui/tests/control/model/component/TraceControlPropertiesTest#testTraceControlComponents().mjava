@@ -6,6 +6,11 @@
         
         TestRemoteSystemProxy proxy = new TestRemoteSystemProxy();
 
+        URL location = FileLocator.find(LTTngUITestPlugin.getDefault().getBundle(), new Path(DIRECTORY + File.separator + TEST_STREAM), null);
+        File testfile = new File(FileLocator.toFileURL(location).toURI());
+        proxy.setTestFile(testfile.getAbsolutePath());
+        proxy.setScenario(SCEN_LIST_INFO_TEST);
+            
         ITraceControlComponent root = TraceControlTestFacility.getInstance().getControlView().getTraceControlRoot();
 
         @SuppressWarnings("restriction")
@@ -167,7 +172,7 @@
         // ------------------------------------------------------------------------
         ITraceControlComponent[] channel0Events = channel.getChildren();
         assertNotNull(channel0Events);
-        assertEquals(2, channel0Events.length);
+        assertEquals(5, channel0Events.length);
         assertTrue(channel0Events[0] instanceof TraceEventComponent);
         
         TraceEventComponent event = (TraceEventComponent) channel0Events[0];
@@ -183,5 +188,44 @@
         assertEquals(TraceLogLevel.TRACE_EMERG.name(), eventSource.getPropertyValue(TraceEventPropertySource.TRACE_EVENT_LOGLEVEL_PROPERTY_ID));
         assertEquals(TraceEventType.TRACEPOINT.name(), eventSource.getPropertyValue(TraceEventPropertySource.TRACE_EVENT_TYPE_PROPERTY_ID));
         assertEquals(TraceEnablement.ENABLED.name(), eventSource.getPropertyValue(TraceEventPropertySource.TRACE_EVENT_STATE_PROPERTY_ID));
+        
+        // ------------------------------------------------------------------------
+        // Verify Probe Event Properties (adapter)
+        // ------------------------------------------------------------------------
+        assertTrue(channel0Events[2] instanceof TraceProbeEventComponent);
+        
+        TraceProbeEventComponent probeEvent = (TraceProbeEventComponent) channel0Events[2];
+        
+        adapter = probeEvent.getAdapter(IPropertySource.class);
+        assertNotNull(adapter);
+        assertTrue(adapter instanceof TraceProbeEventPropertySource);
+
+        TraceProbeEventPropertySource probeEventSource = (TraceProbeEventPropertySource)adapter;
+        assertNotNull(probeEventSource.getPropertyDescriptors());
+        assertEquals(4, probeEventSource.getPropertyDescriptors().length);
+        
+        assertEquals("myevent2", probeEventSource.getPropertyValue(TraceEventPropertySource.TRACE_EVENT_NAME_PROPERTY_ID));
+        assertEquals(TraceEventType.PROBE.name(), probeEventSource.getPropertyValue(TraceEventPropertySource.TRACE_EVENT_TYPE_PROPERTY_ID));
+        assertEquals(TraceEnablement.ENABLED.name(), probeEventSource.getPropertyValue(TraceEventPropertySource.TRACE_EVENT_STATE_PROPERTY_ID));
+        assertEquals("0xc0101340", probeEventSource.getPropertyValue(TraceProbeEventPropertySource.TRACE_EVENT_PROBE_ADDRESS_PROPERTY_ID));
+        
+        assertTrue(channel0Events[3] instanceof TraceProbeEventComponent);
+        
+        probeEvent = (TraceProbeEventComponent) channel0Events[3];
+        
+        adapter = probeEvent.getAdapter(IPropertySource.class);
+        assertNotNull(adapter);
+        assertTrue(adapter instanceof TraceProbeEventPropertySource);
+
+        probeEventSource = (TraceProbeEventPropertySource)adapter;
+        assertNotNull(probeEventSource.getPropertyDescriptors());
+        assertEquals(5, probeEventSource.getPropertyDescriptors().length);
+        
+        assertEquals("myevent0", probeEventSource.getPropertyValue(TraceEventPropertySource.TRACE_EVENT_NAME_PROPERTY_ID));
+        assertEquals(TraceEventType.PROBE.name(), probeEventSource.getPropertyValue(TraceEventPropertySource.TRACE_EVENT_TYPE_PROPERTY_ID));
+        assertEquals(TraceEnablement.ENABLED.name(), probeEventSource.getPropertyValue(TraceEventPropertySource.TRACE_EVENT_STATE_PROPERTY_ID));
+        assertEquals("0x0", probeEventSource.getPropertyValue(TraceProbeEventPropertySource.TRACE_EVENT_PROBE_OFFSET_PROPERTY_ID));
+        assertEquals("init_post", probeEventSource.getPropertyValue(TraceProbeEventPropertySource.TRACE_EVENT_PROBE_SYMBOL_PROPERTY_ID));
+        
     }
 

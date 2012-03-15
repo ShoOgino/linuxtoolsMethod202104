@@ -34,17 +34,69 @@
                 eventInfo.setEventType(matcher.group(3).trim());
                 eventInfo.setState(matcher.group(4));
                 events.add(eventInfo);
+                index++;
             } else if (matcher2.matches()) {
                 IEventInfo eventInfo = new EventInfo(matcher2.group(1).trim());
                 eventInfo.setLogLevel(TraceLogLevel.LEVEL_UNKNOWN);
                 eventInfo.setEventType(matcher2.group(2).trim());
                 eventInfo.setState(matcher2.group(3));
-                events.add(eventInfo);
+                
+                if (eventInfo.getEventType() == TraceEventType.PROBE) {
+                    IProbeEventInfo probeEvent = new ProbeEventInfo(eventInfo.getName());
+                    probeEvent.setLogLevel(eventInfo.getLogLevel());
+                    probeEvent.setEventType(eventInfo.getEventType());
+                    probeEvent.setState(eventInfo.getState());
+
+                    // Overwrite eventinfo
+                    eventInfo = probeEvent;
+
+                    // myevent2 (type: probe) [enabled]
+                    // addr: 0xc0101340
+                    // myevent0 (type: probe) [enabled]
+                    // offset: 0x0
+                    // symbol: init_post
+                    index++;
+                    while (index < output.length) {
+                        String probeLine = output[index];
+                        // parse probe
+                        Matcher addrMatcher = PROBE_ADDRESS_PATTERN.matcher(probeLine);
+                        Matcher offsetMatcher = PROBE_OFFSET_PATTERN.matcher(probeLine);
+                        Matcher symbolMatcher = PROBE_SYMBOL_PATTERN.matcher(probeLine);
+                        if (addrMatcher.matches()) {
+                            String addr = addrMatcher.group(2).trim();
+                            probeEvent.setAddress(addr);
+                        } else if (offsetMatcher.matches()) {
+                            String offset = offsetMatcher.group(2).trim();
+                            probeEvent.setOffset(offset);
+                        } else if (symbolMatcher.matches()) {
+                            String symbol = symbolMatcher.group(2).trim();
+                            probeEvent.setSymbol(symbol);
+                        } else if ((EVENT_PATTERN.matcher(probeLine).matches()) || (WILDCARD_EVENT_PATTERN.matcher(probeLine).matches())) {
+                            break;
+                        } else if (CHANNEL_PATTERN.matcher(probeLine).matches()) {
+                            break;
+                        } else if (DOMAIN_KERNEL_PATTERN.matcher(probeLine).matches()) {
+                            // end of domain
+                            break;
+                        } else if (DOMAIN_UST_GLOBAL_PATTERN.matcher(probeLine).matches()) {
+                            // end of domain
+                            break;
+                        }
+                        index++;
+                    }
+                    events.add(eventInfo);
+                } else {
+                    events.add(eventInfo);
+                    index++;
+                    continue;
+                }
+            } else {
+                index++;
             }
 //            else if (line.matches(EVENT_NONE_PATTERN)) {
                 // do nothing
 //            } else 
-            index++;
+
         }
 
         return index;

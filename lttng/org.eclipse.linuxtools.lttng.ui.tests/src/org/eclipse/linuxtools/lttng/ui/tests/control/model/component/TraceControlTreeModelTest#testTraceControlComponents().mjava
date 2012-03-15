@@ -4,15 +4,16 @@
     public void testTraceControlComponents()
         throws Exception {
         
-        TestRemoteSystemProxy proxy = new TestRemoteSystemProxy();
-
+        fProxy.setTestFile(fTestFile);
+        fProxy.setScenario(SCEN_LIST_INFO_TEST);
+        
         ITraceControlComponent root = TraceControlTestFacility.getInstance().getControlView().getTraceControlRoot();
 
         @SuppressWarnings("restriction")
         IHost host = new Host(new SystemProfile("myProfile", true));
         host.setHostName("127.0.0.1");
 
-        TargetNodeComponent node = new TargetNodeComponent("myNode", root, host, proxy);
+        TargetNodeComponent node = new TargetNodeComponent("myNode", root, host, fProxy);
 
         root.addChild(node);
         node.connect();
@@ -194,9 +195,12 @@
         // ------------------------------------------------------------------------
         ITraceControlComponent[] channel0Events = channel.getChildren();
         assertNotNull(channel0Events);
-        assertEquals(2, channel0Events.length);
+        assertEquals(5, channel0Events.length);
         assertTrue(channel0Events[0] instanceof TraceEventComponent);
         assertTrue(channel0Events[1] instanceof TraceEventComponent);
+        assertTrue(channel0Events[2] instanceof TraceProbeEventComponent);
+        assertTrue(channel0Events[3] instanceof TraceProbeEventComponent);
+        assertTrue(channel0Events[4] instanceof TraceEventComponent);
         
         TraceEventComponent event = (TraceEventComponent) channel0Events[0];
         assertEquals("block_rq_remap", event.getName());
@@ -210,6 +214,30 @@
         assertEquals(TraceEventType.TRACEPOINT, event.getEventType());
         assertEquals(TraceEnablement.DISABLED, event.getState());
 
+        TraceProbeEventComponent probeEvent = (TraceProbeEventComponent) channel0Events[2];
+        assertEquals("myevent2", probeEvent.getName());
+        assertEquals(TraceLogLevel.LEVEL_UNKNOWN, probeEvent.getLogLevel());
+        assertEquals(TraceEventType.PROBE, probeEvent.getEventType());
+        assertEquals(TraceEnablement.ENABLED, probeEvent.getState());
+        assertEquals("0xc0101340", probeEvent.getAddress());
+        assertNull(probeEvent.getOffset());
+        assertNull(probeEvent.getSymbol());
+
+        probeEvent = (TraceProbeEventComponent) channel0Events[3];
+        assertEquals("myevent0", probeEvent.getName());
+        assertEquals(TraceLogLevel.LEVEL_UNKNOWN, probeEvent.getLogLevel());
+        assertEquals(TraceEventType.PROBE, probeEvent.getEventType());
+        assertEquals(TraceEnablement.ENABLED, probeEvent.getState());
+        assertNull(probeEvent.getAddress());
+        assertEquals("0x0", probeEvent.getOffset());
+        assertEquals("init_post", probeEvent.getSymbol());
+        
+        event = (TraceEventComponent) channel0Events[4];
+        assertEquals("syscalls", event.getName());
+        assertEquals(TraceLogLevel.LEVEL_UNKNOWN, event.getLogLevel());
+        assertEquals(TraceEventType.SYSCALL, event.getEventType());
+        assertEquals(TraceEnablement.ENABLED, event.getState());
+        
         // ------------------------------------------------------------------------
         // Verify Kernel's channel1
         // ------------------------------------------------------------------------
