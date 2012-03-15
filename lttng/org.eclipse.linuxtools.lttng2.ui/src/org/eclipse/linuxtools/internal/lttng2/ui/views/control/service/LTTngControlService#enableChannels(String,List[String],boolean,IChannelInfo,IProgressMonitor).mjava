@@ -1,0 +1,66 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.linuxtools.internal.lttng2.ui.views.control.service.ILttngControlService#enableChannel(java.lang.String, java.util.List, boolean, org.eclipse.linuxtools.internal.lttng2.ui.views.control.model.IChannelInfo, org.eclipse.core.runtime.IProgressMonitor)
+     */
+    @Override
+    public void enableChannels(String sessionName, List<String> channelNames, boolean isKernel, IChannelInfo info, IProgressMonitor monitor) throws ExecutionException {
+
+        // no channels to enable
+        if (channelNames.size() == 0) {
+            return;
+        }
+
+        String newSessionName = formatParameter(sessionName);
+        
+        StringBuffer command = new StringBuffer(COMMAND_ENABLE_CHANNEL);
+
+        for (Iterator<String> iterator = channelNames.iterator(); iterator.hasNext();) {
+            String channel = (String) iterator.next();
+            command.append(channel);
+            if (iterator.hasNext()) {
+                command.append(","); //$NON-NLS-1$
+            }
+        }
+
+        if (isKernel) {
+            command.append(OPTION_KERNEL);
+        } else {
+            command.append(OPTION_UST);
+        }
+
+        command.append(OPTION_SESSION);
+        command.append(newSessionName);
+
+        if (info != null) {
+//            --discard            Discard event when buffers are full (default)
+
+//            --overwrite          Flight recorder mode
+            if (info.isOverwriteMode()) {
+                command.append(OPTION_OVERWRITE);
+            }
+//            --subbuf-size SIZE   Subbuffer size in bytes
+//                                     (default: 4096, kernel default: 262144)
+            command.append(OPTION_SUB_BUFFER_SIZE);
+            command.append(String.valueOf(info.getSubBufferSize()));
+
+//            --num-subbuf NUM     Number of subbufers
+//                                     (default: 8, kernel default: 4)
+            command.append(OPTION_NUM_SUB_BUFFERS);
+            command.append(String.valueOf(info.getNumberOfSubBuffers()));
+            
+//            --switch-timer USEC  Switch timer interval in usec (default: 0)
+            command.append(OPTION_SWITCH_TIMER);
+            command.append(String.valueOf(info.getSwitchTimer()));
+
+//            --read-timer USEC    Read timer interval in usec (default: 200)
+            command.append(OPTION_READ_TIMER);
+            command.append(String.valueOf(info.getReadTimer()));
+        } 
+
+        ICommandResult result = fCommandShell.executeCommand(command.toString(), monitor);
+        
+        if (isError(result)) {
+            throw new ExecutionException(Messages.TraceControl_CommandError + " " + command + "\n" + formatOutput(result.getOutput())); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+    }
+

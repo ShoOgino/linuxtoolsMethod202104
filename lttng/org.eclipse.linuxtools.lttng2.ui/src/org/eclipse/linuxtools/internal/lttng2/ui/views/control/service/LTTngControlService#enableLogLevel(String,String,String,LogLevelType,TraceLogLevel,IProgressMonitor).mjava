@@ -1,0 +1,38 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.linuxtools.internal.lttng2.ui.views.control.service.ILttngControlService#enableLogLevel(java.lang.String, java.lang.String, java.lang.String, org.eclipse.linuxtools.internal.lttng2.ui.views.control.model.LogLevelType, org.eclipse.linuxtools.internal.lttng2.ui.views.control.model.TraceLogLevel, org.eclipse.core.runtime.IProgressMonitor)
+     */
+    @Override
+    public void enableLogLevel(String sessionName, String channelName, String eventName, LogLevelType logLevelType, TraceLogLevel level, IProgressMonitor monitor) throws ExecutionException {
+        String newSessionName = formatParameter(sessionName);
+        
+        StringBuffer command = new StringBuffer(COMMAND_ENABLE_EVENT);
+
+        command.append(eventName);
+        command.append(OPTION_UST);
+
+        command.append(OPTION_SESSION);
+        command.append(newSessionName);
+
+        if (channelName != null) {
+            command.append(OPTION_CHANNEL);
+            command.append(channelName);
+        }
+        
+        if (logLevelType == LogLevelType.LOGLEVEL) {
+            command.append(OPTION_LOGLEVEL);
+        } else if (logLevelType == LogLevelType.LOGLEVEL_ONLY) {
+            command.append(OPTION_LOGLEVEL_ONLY);
+            
+        } else {
+            return;
+        }
+        command.append(level.getInName());
+        
+        ICommandResult result = fCommandShell.executeCommand(command.toString(), monitor);
+        
+        if (isError(result)) {
+            throw new ExecutionException(Messages.TraceControl_CommandError + " " + command + "\n" + formatOutput(result.getOutput())); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+    }
+
