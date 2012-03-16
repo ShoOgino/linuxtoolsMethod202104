@@ -10,10 +10,12 @@
             return false;
         }
 
-        reset();
-
         // Check if one or more session are selected
         ISelection selection = page.getSelection(ControlView.ID);
+        
+        TraceChannelComponent channel = null;
+        List<TraceEventComponent> events = new ArrayList<TraceEventComponent>();
+
         if (selection instanceof StructuredSelection) {
             StructuredSelection structered = ((StructuredSelection) selection);
             String sessionName = null;
@@ -29,8 +31,8 @@
                         sessionName = String.valueOf(event.getSessionName());
                     }
                     
-                    if (fChannel == null) {
-                        fChannel = (TraceChannelComponent)event.getParent();
+                    if (channel == null) {
+                        channel = (TraceChannelComponent)event.getParent();
                     }
 
                     if (channelName == null) {
@@ -40,17 +42,28 @@
                     // Enable command only for events of same session, same channel and domain
                     if ((!sessionName.equals(event.getSessionName())) ||
                         (!channelName.equals(event.getChannelName())) ||
-                        (fChannel.isKernel() != event.isKernel())) {
-                        reset();
+                        (channel.isKernel() != event.isKernel())) {
+                        events.clear();
                         break;
                     }
 
                     if ((event.getState() != getNewState())) {
-                        fEvents.add(event);
+                        events.add(event);
                     }
                 }
             }
         }
-        return fEvents.size() > 0;
+        boolean isEnabled = !events.isEmpty();
+
+        fLock.lock();
+        try {
+            fParam = null;
+            if (isEnabled) {
+                fParam = new Parameter(channel, events);
+            }
+        } finally {
+            fLock.unlock();
+        }
+        return isEnabled;
     }
 

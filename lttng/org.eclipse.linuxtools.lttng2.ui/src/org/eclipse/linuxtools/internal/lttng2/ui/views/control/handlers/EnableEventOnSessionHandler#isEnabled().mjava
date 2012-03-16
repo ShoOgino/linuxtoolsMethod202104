@@ -10,8 +10,7 @@
             return false;
         }
 
-        fSession = null;
-
+        TraceSessionComponent session = null;
         // Check if one session is selected
         ISelection selection = page.getSelection(ControlView.ID);
         if (selection instanceof StructuredSelection) {
@@ -20,13 +19,23 @@
                 Object element = (Object) iterator.next();
                 if (element instanceof TraceSessionComponent) {
                     // Add only if corresponding TraceSessionComponents is inactive and not destroyed
-                    TraceSessionComponent session = (TraceSessionComponent) element; 
-                    if(session.getSessionState() == TraceSessionState.INACTIVE && !session.isDestroyed()) {
-                        fSession = session;
+                    TraceSessionComponent tmpSession = (TraceSessionComponent) element; 
+                    if(tmpSession.getSessionState() == TraceSessionState.INACTIVE && !tmpSession.isDestroyed()) {
+                        session = tmpSession;
                     }
                 }
             }
         }
-        return fSession != null;
+        boolean isEnabled = (session != null);
+        fLock.lock();
+        try {
+            fParam = null;
+            if(isEnabled) {
+                fParam = new CommandParameter(session);
+            }
+        } finally {
+            fLock.unlock();
+        }
+        return isEnabled;
     }
 

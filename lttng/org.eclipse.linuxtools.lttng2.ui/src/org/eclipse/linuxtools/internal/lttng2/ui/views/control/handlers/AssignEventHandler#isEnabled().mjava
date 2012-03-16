@@ -4,11 +4,11 @@
      */
     @Override
     public boolean isEnabled() {
-        fEvents.clear();
-        fSessions = null;
-        fIsKernel = null;
+        ArrayList<BaseEventComponent> events = new ArrayList<BaseEventComponent>();
+        TraceSessionComponent[] sessions = null;
+        Boolean isKernel = null;
 
-     // Get workbench page for the Control View
+        // Get workbench page for the Control View
         IWorkbenchPage page = getWorkbenchPage();
         if (page == null) {
             return false;
@@ -34,25 +34,36 @@
                     } else {
                         return false;
                     }
-                    if (fIsKernel == null) {
-                        fIsKernel = Boolean.valueOf(temp);
+                    if (isKernel == null) {
+                        isKernel = Boolean.valueOf(temp);
                     } else {
                         // don't mix events from Kernel and UST provider
-                        if (fIsKernel.booleanValue() != temp) {
+                        if (isKernel.booleanValue() != temp) {
                             return false;
                         }
                     }
 
                     // Add BaseEventComponents
-                    fEvents.add(event);
+                    events.add(event);
                     
-                    if (fSessions == null) {
+                    if (sessions == null) {
                         TargetNodeComponent  root = (TargetNodeComponent)event.getParent().getParent().getParent();
-                        fSessions = root.getSessions();
+                        sessions = root.getSessions();
                     }
                 }
             }
         }
-        return ((fEvents.size() > 0) && (fSessions != null) && (fSessions.length > 0));
+
+        boolean isEnabled = ((!events.isEmpty()) && (sessions != null) && (sessions.length > 0));
+        fLock.lock();
+        try {
+            fParam = null;
+            if(isEnabled) {
+                fParam = new Parameter(sessions, events, isKernel);
+            }
+        } finally {
+            fLock.unlock();
+        }
+        return isEnabled;
     }
 

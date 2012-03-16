@@ -4,13 +4,17 @@
      */
     @Override
     public boolean isEnabled() {
-        reset();
 
         // Get workbench page for the Control View
         IWorkbenchPage page = getWorkbenchPage();
         if (page == null) {
             return false;
         }
+
+        TraceDomainComponent kernelDomain = null;
+        TraceDomainComponent ustDomain = null;
+        List<TraceChannelComponent> kernelChannels = new ArrayList<TraceChannelComponent>();
+        List<TraceChannelComponent> ustChannels = new ArrayList<TraceChannelComponent>();
         
         // Check if one or more session are selected
         ISelection selection = page.getSelection(ControlView.ID);
@@ -30,26 +34,38 @@
 
                     // Enable command only for channels of same session
                     if (!sessionName.equals(channel.getSessionName())) {
-                        reset();
+                        kernelChannels.clear();
+                        ustChannels.clear();
                         break;
                     }
 
                     if ((channel.getState() != getNewState())) {
                         if (channel.isKernel()) {
-                            fKernelChannels.add(channel);
-                            if (fKernelDomain == null) {
-                                fKernelDomain = (TraceDomainComponent) channel.getParent();
+                            kernelChannels.add(channel);
+                            if (kernelDomain == null) {
+                                kernelDomain = (TraceDomainComponent) channel.getParent();
                             }
                         } else {
-                            fUstChannels.add(channel);
-                            if (fUstDomain == null) {
-                                fUstDomain = (TraceDomainComponent) channel.getParent();
+                            ustChannels.add(channel);
+                            if (ustDomain == null) {
+                                ustDomain = (TraceDomainComponent) channel.getParent();
                             }
                         }
                     }
                 }
             }
         }
-        return fKernelChannels.size() + fUstChannels.size() > 0;
+        
+        boolean isEnabled = (!kernelChannels.isEmpty() || !ustChannels.isEmpty());
+        fLock.lock();
+        try {
+            if (isEnabled) {
+                fParam = new Parameter(kernelDomain, ustDomain, kernelChannels, ustChannels);
+            }
+        } finally {
+            fLock.unlock();
+        }
+        
+        return isEnabled;
     }
 

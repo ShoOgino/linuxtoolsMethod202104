@@ -10,7 +10,7 @@
             return false;
         }
 
-        fSessions.clear();
+        List<TraceSessionComponent> sessions = new ArrayList<TraceSessionComponent>(0);
 
         // Check if one or more session are selected
         ISelection selection = page.getSelection(ControlView.ID);
@@ -22,11 +22,21 @@
                     // Add only TraceSessionComponents that are inactive and not destroyed
                     TraceSessionComponent session = (TraceSessionComponent) element;
                     if ((session.getSessionState() != getNewState()) && (!session.isDestroyed())) {
-                        fSessions.add((TraceSessionComponent)element);
+                        sessions.add(session);
                     }
                 }
             }
         }
-        return fSessions.size() > 0;
+        boolean isEnabled = !sessions.isEmpty();
+        fLock.lock();
+        try {
+            fSessions = null;
+            if (isEnabled) {
+                fSessions = sessions;
+            }
+        } finally {
+            fLock.unlock();
+        }
+        return isEnabled;
     }
 

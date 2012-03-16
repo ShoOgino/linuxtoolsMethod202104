@@ -11,12 +11,24 @@
             return false;
         }
 
-        fRoot = null;
+        ITraceControlComponent root = null;
 
         // no need to verify part because it has been already done in getWorkbenchPage()
         IWorkbenchPart part = page.getActivePart(); 
-        fRoot = ((ControlView) part).getTraceControlRoot();
+        root = ((ControlView) part).getTraceControlRoot();
         
-        return (fRoot != null);
+        boolean isEnabled = root != null;
+        
+        fLock.lock();
+        try {
+            fRoot = null;
+            if (isEnabled) {
+                fRoot = root;
+            }
+        } finally {
+            fLock.unlock();
+        }
+        
+        return isEnabled;
     }
 

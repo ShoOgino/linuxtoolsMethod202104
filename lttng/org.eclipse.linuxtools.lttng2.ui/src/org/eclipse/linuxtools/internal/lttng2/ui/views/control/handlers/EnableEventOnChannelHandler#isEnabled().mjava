@@ -10,7 +10,8 @@
             return false;
         }
 
-        fChannel = null;
+        TraceChannelComponent channel = null;
+        TraceSessionComponent session = null;
         ISelection selection = page.getSelection(ControlView.ID);
         if (selection instanceof StructuredSelection) {
             StructuredSelection structered = ((StructuredSelection) selection);
@@ -18,15 +19,25 @@
                 Object element = (Object) iterator.next();
                 if (element instanceof TraceChannelComponent) {
                     // Add only if corresponding TraceSessionComponents is inactive and not destroyed
-                    TraceChannelComponent channel = (TraceChannelComponent) element; 
-                    TraceSessionComponent session = channel.getSession();
+                    TraceChannelComponent tmpChannel = (TraceChannelComponent) element; 
+                    session = tmpChannel.getSession();
                     if(session.getSessionState() == TraceSessionState.INACTIVE && !session.isDestroyed()) {
-                        fChannel = channel;
-                        fSession = session;
+                        channel = tmpChannel;
                     }
                 }
             }
         }
-        return fChannel != null;
+        
+        boolean isEnabled = (channel != null);
+        fLock.lock();
+        try {
+            fParam = null;
+            if(isEnabled) {
+                fParam = new ChannelCommandParameter(session, channel);
+            }
+        } finally {
+            fLock.unlock();
+        }
+        return isEnabled;
     }
 

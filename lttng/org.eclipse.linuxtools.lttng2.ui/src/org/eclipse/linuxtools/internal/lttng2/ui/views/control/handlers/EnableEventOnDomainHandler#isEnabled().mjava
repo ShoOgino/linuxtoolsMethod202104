@@ -10,7 +10,8 @@
             return false;
         }
 
-        fDomain = null;
+        TraceDomainComponent domain = null;
+        TraceSessionComponent session = null;
         ISelection selection = page.getSelection(ControlView.ID);
         if (selection instanceof StructuredSelection) {
             StructuredSelection structered = ((StructuredSelection) selection);
@@ -18,15 +19,25 @@
                 Object element = (Object) iterator.next();
                 if (element instanceof TraceDomainComponent) {
                     // Add only if corresponding TraceSessionComponents is inactive and not destroyed
-                    TraceDomainComponent domain = (TraceDomainComponent) element; 
-                    TraceSessionComponent session = domain.getSession();
+                    TraceDomainComponent tmpDomain = (TraceDomainComponent) element; 
+                    session = tmpDomain.getSession();
                     if(session.getSessionState() == TraceSessionState.INACTIVE && !session.isDestroyed()) {
-                        fDomain = domain;
-                        fSession = session;
+                        domain = tmpDomain;
                     }
                 }
             }
         }
-        return fDomain != null;
+        
+        boolean isEnabled = (domain != null);
+        fLock.lock();
+        try {
+            fParam = null;
+            if(isEnabled) {
+                fParam = new DomainCommandParameter(session, domain);
+            }
+        } finally {
+            fLock.unlock();
+        }
+        return isEnabled;
     }
 

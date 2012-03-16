@@ -10,98 +10,95 @@
         if (window == null) {
             return false;
         }
+        fLock.lock();
+        try {
+            // Make a copy for thread safety
+            final CommandParameter param = fParam.clone();
 
-        TargetNodeComponent node = fSession.getTargetNode();
-        List<ITraceControlComponent> providers = node.getChildren(TraceProviderGroup.class);
+            TargetNodeComponent node = param.getSession().getTargetNode();
+            List<ITraceControlComponent> providers = node.getChildren(TraceProviderGroup.class);
 
-        final IEnableEventsDialog dialog = TraceControlDialogFactory.getInstance().getEnableEventsDialog();
-        dialog.setTraceProviderGroup((TraceProviderGroup)providers.get(0));
-        dialog.setTraceDomainComponent(getDomain());
+            final IEnableEventsDialog dialog = TraceControlDialogFactory.getInstance().getEnableEventsDialog();
+            dialog.setTraceProviderGroup((TraceProviderGroup)providers.get(0));
+            dialog.setTraceDomainComponent(getDomain(param));
 
-        if (dialog.open() != Window.OK) {
-            return null;
-        }
+            if (dialog.open() != Window.OK) {
+                return null;
+            }
 
-        Job job = new Job(Messages.TraceControl_ChangeEventStateJob) {
-            @Override
-            protected IStatus run(IProgressMonitor monitor) {
-                String errorString = null;
+            Job job = new Job(Messages.TraceControl_ChangeEventStateJob) {
+                @Override
+                protected IStatus run(IProgressMonitor monitor) {
+                    StringBuffer errorString = new StringBuffer();
 
-                try {
-                    // Enable tracepoint events
-                    if (dialog.isTracepoints()) {
-                        if (dialog.isAllTracePoints()) {
-                            enableEvents(null, dialog.isKernel(), monitor);
-                        } else {
-                            List<String> eventNames = dialog.getEventNames();
-                            if (eventNames.size() > 0) {
-                                enableEvents(eventNames, dialog.isKernel(), monitor);
+                    try {
+                        // Enable tracepoint events
+                        if (dialog.isTracepoints()) {
+                            if (dialog.isAllTracePoints()) {
+                                enableEvents(param, null, dialog.isKernel(), monitor);
+                            } else {
+                                List<String> eventNames = dialog.getEventNames();
+                                if (!eventNames.isEmpty()) {
+                                    enableEvents(param, eventNames, dialog.isKernel(), monitor);
+                                }
                             }
                         }
-                    }
 
-                    // Enable syscall events
-                    if (dialog.isAllSysCalls()) {
+                        // Enable syscall events
                         if (dialog.isAllSysCalls()) {
-                            enableSyscalls(monitor);
-                        } 
-                    }
-
-                    // Enable dynamic probe
-                    if (dialog.isDynamicProbe()) {
-                        if ((dialog.getProbeEventName() != null && dialog.getProbeName() != null)) {
-                            enableProbe(dialog.getProbeEventName(), false, dialog.getProbeName(), monitor);
-                        } 
-                    }
-
-                    // Enable dynamic function probe
-                    if (dialog.isDynamicFunctionProbe()) {
-                        if ((dialog.getFunctionEventName() != null) && (dialog.getFunction() != null)) {
-                            enableProbe(dialog.getFunctionEventName(), true, dialog.getFunction(), monitor);
-                        } 
-                    }
-
-                    // Enable event using a wildcard
-                    if (dialog.isWildcard()) {
-                        List<String> eventNames = dialog.getEventNames();
-                        eventNames.add(dialog.getWildcard());
-
-                        if (eventNames.size() > 0) {
-                            enableEvents(eventNames, dialog.isKernel(), monitor);
+                            enableSyscalls(param, monitor);
                         }
-                    }
-                    
-                    // Enable events using log level
-                    if (dialog.isLogLevel()) {
-                        enableLogLevel(dialog.getLogLevelEventName(), dialog.getLogLevelType(), dialog.getLogLevel(), monitor);
+
+                        // Enable dynamic probe
+                        if (dialog.isDynamicProbe() && (dialog.getProbeEventName() != null) && (dialog.getProbeName() != null)) {
+                            enableProbe(param, dialog.getProbeEventName(), false, dialog.getProbeName(), monitor);
+                        }
+
+                        // Enable dynamic function probe
+                        if (dialog.isDynamicFunctionProbe() && (dialog.getFunctionEventName() != null) && (dialog.getFunction() != null)) {
+                            enableProbe(param, dialog.getFunctionEventName(), true, dialog.getFunction(), monitor);
+                        }
+
+                        // Enable event using a wildcard
+                        if (dialog.isWildcard()) {
+                            List<String> eventNames = dialog.getEventNames();
+                            eventNames.add(dialog.getWildcard());
+
+                            if (!eventNames.isEmpty()) {
+                                enableEvents(param, eventNames, dialog.isKernel(), monitor);
+                            }
+                        }
+
+                        // Enable events using log level
+                        if (dialog.isLogLevel()) {
+                            enableLogLevel(param, dialog.getLogLevelEventName(), dialog.getLogLevelType(), dialog.getLogLevel(), monitor);
+                        }
+
+                    } catch (ExecutionException e) {
+                        errorString.append(e.toString());
+                        errorString.append('\n');
                     }
 
-                } catch (ExecutionException e) {
-                    if (errorString == null) {
-                        errorString = new String();
+                    // get session configuration in all cases
+                    try {
+                        param.getSession().getConfigurationFromNode(monitor);
+                    } catch (ExecutionException e) {
+                        errorString.append(Messages.TraceControl_ListSessionFailure);
+                        errorString.append(": "); //$NON-NLS-1$
+                        errorString.append(e.toString());
                     } 
-                    errorString += e.toString() + "\n"; //$NON-NLS-1$
-                }
 
-                // get session configuration in all cases
-                try {
-                    fSession.getConfigurationFromNode(monitor);
-                } catch (ExecutionException e) {
-                    if (errorString == null) {
-                        errorString = new String();
+                    if (errorString.length() > 0) {
+                        return new Status(Status.ERROR, Activator.PLUGIN_ID, errorString.toString());
                     }
-                    errorString += Messages.TraceControl_ListSessionFailure + ": " + e.toString();  //$NON-NLS-1$ 
-                } 
-
-                if (errorString != null) {
-                    return new Status(Status.ERROR, Activator.PLUGIN_ID, errorString);
+                    return Status.OK_STATUS;
                 }
-                return Status.OK_STATUS;
-            }
-        };
-        job.setUser(true);
-        job.schedule();
-
+            };
+            job.setUser(true);
+            job.schedule();
+        } finally {
+            fLock.unlock();
+        }
         return null;
     }
 
