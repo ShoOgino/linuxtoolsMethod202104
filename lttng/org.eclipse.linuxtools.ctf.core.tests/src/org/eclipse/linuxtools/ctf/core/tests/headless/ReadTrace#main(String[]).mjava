@@ -1,0 +1,43 @@
+    /**
+     * @param args
+     */
+    @SuppressWarnings("nls")
+    public static void main(String[] args) {
+        final String TRACE_PATH = "Tests/traces/trace20m";
+
+        // Change this to enable text output
+        final boolean USE_TEXT = false;
+
+        // Work variables
+        Long nbEvent = 0L;
+        CTFTrace trace = null;
+        try {
+            trace = new CTFTrace(TRACE_PATH);
+        } catch (CTFReaderException e) {
+
+            nbEvent = (long) -1;
+        }
+        long start, stop;
+        start = System.nanoTime();
+        if (nbEvent != -1) {
+            CTFTraceReader traceReader = new CTFTraceReader(trace);
+
+            start = System.nanoTime();
+            while (traceReader.hasMoreEvents()) {
+                EventDefinition ed = traceReader.getCurrentEventDef();
+                nbEvent++;
+                if (USE_TEXT) {
+                    String output = formatDate(ed.timestamp + trace.getOffset());
+                    System.out.println("Event " + nbEvent + " Time " + output
+                            + " type " + ed.getDeclaration().getName()
+                            + " on CPU " + ed.getCPU());
+                }
+                traceReader.advance();
+            }
+        }
+        stop = System.nanoTime();
+        System.out.println("Time taken for " + nbEvent + " " + (stop - start)
+                + "ns ");
+        System.out.println(((stop - start) / nbEvent) + "ns/event ");
+    }
+
