@@ -1,0 +1,37 @@
+    /**
+     * Similar to the previous method, except here we rebuild a completely new
+     * latestBranch
+     */
+    private void addNewRootNode() {
+        int i, depth;
+        CoreNode oldRootNode, newRootNode, newNode, prevNode;
+        long splitTime = this.treeEnd;
+
+        oldRootNode = latestBranch.firstElement();
+        newRootNode = initNewCoreNode(-1, config.treeStart);
+
+        /* Tell the old root node that it isn't root anymore */
+        oldRootNode.setParentSequenceNumber(newRootNode.getSequenceNumber());
+
+        /* Close off the whole current latestBranch */
+        for (i = 0; i < latestBranch.size(); i++) {
+            latestBranch.get(i).closeThisNode(splitTime);
+            treeIO.writeNode(latestBranch.get(i));
+        }
+
+        /* Link the new root to its first child (the previous root node) */
+        newRootNode.linkNewChild(oldRootNode);
+
+        /* Rebuild a new latestBranch */
+        depth = latestBranch.size();
+        latestBranch = new Vector<CoreNode>();
+        latestBranch.add(newRootNode);
+        for (i = 1; i < depth + 1; i++) {
+            prevNode = latestBranch.get(i - 1);
+            newNode = initNewCoreNode(prevNode.getParentSequenceNumber(),
+                    splitTime + 1);
+            prevNode.linkNewChild(newNode);
+            latestBranch.add(newNode);
+        }
+    }
+

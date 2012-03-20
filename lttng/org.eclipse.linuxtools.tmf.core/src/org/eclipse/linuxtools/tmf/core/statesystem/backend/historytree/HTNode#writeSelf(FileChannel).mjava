@@ -1,0 +1,52 @@
+    final void writeSelf(FileChannel fc) throws IOException {
+        int res, size;
+        int curStringsEntryEndPos = ownerTree.config.blockSize;
+
+        ByteBuffer buffer = ByteBuffer.allocate(ownerTree.config.blockSize);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        buffer.clear();
+
+        /* Write the common header part */
+        buffer.put(this.getNodeType());
+        buffer.putLong(nodeStart);
+        buffer.putLong(nodeEnd);
+        buffer.putInt(sequenceNumber);
+        buffer.putInt(parentSequenceNumber);
+        buffer.putInt(intervals.size());
+        buffer.putInt(stringSectionOffset);
+        buffer.put(boolToByte(isDone));
+
+        /* Now call the inner method to write the specific header part */
+        this.writeSpecificHeader(buffer);
+
+        /* Back to us, we write the intervals */
+        for (HTInterval interval : intervals) {
+            size = interval.writeInterval(buffer, curStringsEntryEndPos);
+            curStringsEntryEndPos -= size;
+        }
+
+        /*
+         * Write padding between the end of the Data section and the start of
+         * the Strings section (needed to fill the node in case there is no
+         * Strings section)
+         */
+        while (buffer.position() < stringSectionOffset) {
+            buffer.put((byte) 0);
+        }
+
+        /*
+         * If the offsets were right, the size of the Strings section should be
+         * == to the expected size
+         */
+        assert (curStringsEntryEndPos == stringSectionOffset);
+
+        /* Finally, write everything in the Buffer to disk */
+
+        // if we don't do this, flip() will lose what's after.
+        buffer.position(ownerTree.config.blockSize);
+
+        buffer.flip();
+        res = fc.write(buffer);
+        assert (res == ownerTree.config.blockSize);
+    }
+

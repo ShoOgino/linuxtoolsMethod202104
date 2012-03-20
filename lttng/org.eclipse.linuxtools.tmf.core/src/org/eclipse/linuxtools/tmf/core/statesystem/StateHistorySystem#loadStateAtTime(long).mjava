@@ -1,0 +1,36 @@
+    /**
+     * Load the state information at time 't' as the Current State. You can then
+     * use the queryState() method to query the value of different attributes,
+     * as they were at time 't'.
+     * 
+     * On average if you need around 10 or more queries for the same timestamps,
+     * use this. If you need less than 10 (for example, running many queries for
+     * the same attributes but at different timestamps), you might be better
+     * using the querySingleState() methods instead.
+     * 
+     * @param t
+     *            We will recreate the state information to what it was at time
+     *            t.
+     * @throws TimeRangeException
+     */
+    public synchronized void loadStateAtTime(long t) throws TimeRangeException {
+        /* Empty the currentStateInfo */
+        currentStateInfo = new ArrayList<ITmfStateInterval>(
+                attributeTree.getNbAttributes());
+        for (int i = 0; i < attributeTree.getNbAttributes(); i++) {
+            currentStateInfo.add(null);
+        }
+
+        backend.doQuery(currentStateInfo, t);
+
+        if (transState.isActive()) {
+            transState.doQuery(currentStateInfo, t);
+        }
+        // We should have previously inserted an interval for every attribute
+        // for all possible timestamps (and those could contain 'nullValues').
+        // There should be no 'null' objects at this point.
+        for (ITmfStateInterval interval : currentStateInfo) {
+            assert (interval != null);
+        }
+    }
+

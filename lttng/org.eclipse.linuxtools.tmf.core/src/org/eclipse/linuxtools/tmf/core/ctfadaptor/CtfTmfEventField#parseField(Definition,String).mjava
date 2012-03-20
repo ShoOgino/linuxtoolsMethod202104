@@ -1,0 +1,56 @@
+    public static CtfTmfEventField parseField(Definition fieldDef,
+            String fieldName) {
+        CtfTmfEventField field = null;
+
+        /* Determine the Definition type */
+        if (fieldDef instanceof IntegerDefinition) {
+            field = new CTFIntegerField(
+                    ((IntegerDefinition) fieldDef).getValue(), fieldName);
+
+        } else if (fieldDef instanceof StringDefinition) {
+            field = new CTFStringField(
+                    ((StringDefinition) fieldDef).getValue(), fieldName);
+
+        } else if (fieldDef instanceof ArrayDefinition) {
+            ArrayDefinition arrayDef = (ArrayDefinition) fieldDef;
+            ArrayDeclaration arrayDecl = arrayDef.getDeclaration();
+
+            if (arrayDef.isString()) {
+                /* This is an array of UTF-8 bytes, a.k.a. a String! */
+                field = new CTFStringField(fieldDef.toString(), fieldName);
+
+            } else if (arrayDecl.getElementType() instanceof IntegerDeclaration) {
+                /* This is a an array of CTF Integers */
+                long[] values = new long[arrayDecl.getLength()];
+                for (int i = 0; i < arrayDecl.getLength(); i++) {
+                    values[i] = ((IntegerDefinition) arrayDef.getElem(i)).getValue();
+                }
+                field = new CTFIntegerArrayField(values, fieldName);
+            }
+            /* Add other types of arrays here */
+
+        } else if (fieldDef instanceof SequenceDefinition) {
+            SequenceDefinition seqDef = (SequenceDefinition) fieldDef;
+            SequenceDeclaration seqDecl = seqDef.getDeclaration();
+
+            if (seqDef.getLength() == 0) {
+                /* Some sequences have length = 0. Simply use an empty string */
+                field = new CTFStringField("", fieldName); //$NON-NLS-1$
+            } else if (seqDef.isString()) {
+                /* Interpret this sequence as a String */
+                field = new CTFStringField(seqDef.toString(), fieldName);
+            } else if (seqDecl.getElementType() instanceof IntegerDeclaration) {
+                /* Sequence of integers => CTFIntegerArrayField */
+                long[] values = new long[seqDef.getLength()];
+                for (int i = 0; i < seqDef.getLength(); i++) {
+                    values[i] = ((IntegerDefinition) seqDef.getElem(i)).getValue();
+                }
+                field = new CTFIntegerArrayField(values, fieldName);
+            }
+            /* Add other Sequence types here */
+        }
+        /* Add other field types here */
+
+        return field;
+    }
+

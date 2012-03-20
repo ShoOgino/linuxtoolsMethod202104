@@ -1,0 +1,26 @@
+    /**
+     * General constructor
+     * 
+     * @param backend
+     *            The "state history storage" backend to use.
+     * @param newFile
+     *            Put true if this is a new history started from scratch. It is
+     *            used to tell the state system where to get its attribute tree.
+     * @throws IOException
+     */
+    public StateHistorySystem(IStateHistoryBackend backend, boolean newFile)
+            throws IOException {
+        this.backend = backend;
+        transState = new TransientState(backend);
+        currentStateInfo = new ArrayList<ITmfStateInterval>();
+
+        if (newFile) {
+            attributeTree = new AttributeTree(this);
+        } else {
+            /* We're opening an existing file */
+            FileInputStream attributeTreeInput = backend.supplyAttributeTreeReader();
+            this.attributeTree = new AttributeTree(this, attributeTreeInput);
+            transState.setInactive();
+        }
+    }
+

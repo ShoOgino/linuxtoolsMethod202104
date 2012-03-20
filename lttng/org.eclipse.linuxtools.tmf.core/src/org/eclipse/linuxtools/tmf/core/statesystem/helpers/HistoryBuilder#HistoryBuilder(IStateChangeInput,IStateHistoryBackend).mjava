@@ -1,0 +1,30 @@
+    /**
+     * Instantiate a new HistoryBuilder helper.
+     * 
+     * @param stateChangeInput
+     *            The input plugin to use. This is required.
+     * @param backend
+     *            The backend storage to use. Use "null" here if you want a
+     *            state system with no history.
+     * @throws IOException
+     *             Is thrown if anything went wrong (usually with the storage
+     *             backend)
+     */
+    public HistoryBuilder(IStateChangeInput stateChangeInput,
+            IStateHistoryBackend backend) throws IOException {
+        assert (stateChangeInput != null);
+        /* "backend" can be null, this implies no history */
+        sci = stateChangeInput;
+
+        if (backend == null) {
+            hb = null;
+            ss = new StateSystem();
+        } else {
+            hb = backend;
+            ss = new StateHistorySystem(hb, true);
+        }
+
+        sci.assignTargetStateSystem(ss);
+        siThread = new Thread(sci, "Input Plugin"); //$NON-NLS-1$
+    }
+

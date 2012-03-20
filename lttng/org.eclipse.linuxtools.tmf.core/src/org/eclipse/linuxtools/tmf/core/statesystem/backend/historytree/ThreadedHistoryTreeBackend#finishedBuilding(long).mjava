@@ -1,0 +1,23 @@
+    @Override
+    public void finishedBuilding(long endTime) throws TimeRangeException {
+        /*
+         * We need to commit everything in the History Tree and stop the
+         * standalone thread before returning to the StateHistorySystem. (SHS
+         * will then write the Attribute Tree to the file, that must not happen
+         * at the same time we are writing the last nodes!)
+         */
+
+        /*
+         * Send the "poison pill" in the queue, then wait for the HT to finish
+         * its closeTree()
+         */
+        try {
+            intervalQueue.put(new HTInterval(-1, endTime, -1,
+                    TmfStateValue.nullValue()));
+            shtThread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return;
+    }
+

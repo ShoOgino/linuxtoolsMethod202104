@@ -1,0 +1,37 @@
+    /**
+     * Inner method to select the next child of the current node intersecting
+     * the given timestamp. Useful for moving down the tree following one
+     * branch.
+     * 
+     * @param currentNode
+     * @param t
+     * @return The child node intersecting t
+     */
+    HTNode selectNextChild(CoreNode currentNode, long t) {
+        assert (currentNode.getNbChildren() > 0);
+        int potentialNextSeqNb = currentNode.getSequenceNumber();
+
+        for (int i = 0; i < currentNode.getNbChildren(); i++) {
+            if (t >= currentNode.getChildStart(i)) {
+                potentialNextSeqNb = currentNode.getChild(i);
+            } else {
+                break;
+            }
+        }
+        /*
+         * Once we exit this loop, we should have found a children to follow. If
+         * we didn't, there's a problem.
+         */
+        assert (potentialNextSeqNb != currentNode.getSequenceNumber());
+
+        /*
+         * Since this code path is quite performance-critical, avoid iterating
+         * through the whole latestBranch array if we know for sure the next
+         * node has to be on disk
+         */
+        if (currentNode.isDone()) {
+            return treeIO.readNodeFromDisk(potentialNextSeqNb);
+        }
+        return treeIO.readNode(potentialNextSeqNb);
+    }
+

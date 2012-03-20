@@ -1,0 +1,59 @@
+    /**
+     * "Push" helper method. This uses the given integer attribute as a stack:
+     * The value of that attribute will represent the stack depth (always >= 1).
+     * Sub-attributes will be created, their base-name will be the position in
+     * the stack (1, 2, etc.) and their value will be the state value 'value'
+     * that was pushed to this position.
+     * 
+     * @param t
+     *            Timestamp of the state change
+     * @param value
+     *            State value to assign to this stack position.
+     * @param attributeQuark
+     *            The base attribute to use as a stack. If it does not exist if
+     *            will be created (with depth = 1)
+     * @throws TimeRangeException
+     *             If the requested timestamp is invalid
+     * @throws AttributeNotFoundException
+     *             If the attribute is invalid
+     * @throws StateValueTypeException
+     *             If the attribute 'attributeQuark' already exists, but is not
+     *             of integer type.
+     */
+    public void pushAttribute(long t, ITmfStateValue value, int attributeQuark)
+            throws TimeRangeException, AttributeNotFoundException,
+            StateValueTypeException {
+        assert (attributeQuark >= 0);
+        Integer stackDepth = 0;
+        int subAttributeQuark;
+        ITmfStateValue previousSV = transState.getOngoingStateValue(attributeQuark);
+
+        if (previousSV.isNull()) {
+            /*
+             * If the StateValue was null, this means this is the first time we
+             * use this attribute. Leave stackDepth at 0.
+             */
+        } else if (previousSV.getType() == 0) {
+            /* Previous value was an integer, all is good, use it */
+            stackDepth = previousSV.unboxInt();
+            if (stackDepth >= 10) {
+                /*
+                 * Limit stackDepth to 10, to avoid having Attribute Trees grow
+                 * out of control due to buggy insertions
+                 */
+                assert (false);
+            }
+        } else {
+            /* Previous state of this attribute was another type? Not good! */
+            assert (false);
+        }
+
+        stackDepth++;
+        subAttributeQuark = getQuarkRelativeAndAdd(attributeQuark,
+                stackDepth.toString());
+
+        modifyAttribute(t, TmfStateValue.newValueInt(stackDepth),
+                attributeQuark);
+        transState.processStateChange(t, value, subAttributeQuark);
+    }
+

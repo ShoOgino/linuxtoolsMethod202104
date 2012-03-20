@@ -1,0 +1,46 @@
+    /**
+     * Return a list of state intervals, containing the "history" of a given
+     * attribute between timestamps t1 and t2. The list will be ordered by
+     * ascending time.
+     * 
+     * @param attributeQuark
+     *            Which attribute this query is interested in
+     * @param t1
+     *            Start time of the range query
+     * @param t2
+     *            End time of the query
+     * @return The List of state intervals that happened between t1 and t2
+     * @throws TimeRangeException
+     * @throws AttributeNotFoundException
+     */
+    public List<ITmfStateInterval> queryHistoryRange(int attributeQuark, long t1,
+            long t2) throws TimeRangeException, AttributeNotFoundException {
+
+        List<ITmfStateInterval> intervals;
+        ITmfStateInterval currentInterval;
+        long ts;
+        
+        if ( !(backend.checkValidTime(t1) && backend.checkValidTime(t2)) ) {
+            /* 
+             * One of the two timestamps is out of range, don't bother
+             * with the requests
+             */
+            throw new TimeRangeException();
+        }
+
+        /* Get the initial state at time T1 */
+        intervals = new ArrayList<ITmfStateInterval>();
+        currentInterval = querySingleState(t1, attributeQuark);
+        intervals.add(currentInterval);
+
+        /* Get the following state changes */
+        ts = currentInterval.getEndTime();
+        while (ts != -1 && ts <= t2) {
+            ts++; /* To "jump over" to the next state in the history */
+            currentInterval = querySingleState(ts, attributeQuark);
+            intervals.add(currentInterval);
+            ts = currentInterval.getEndTime();
+        }
+        return intervals;
+    }
+

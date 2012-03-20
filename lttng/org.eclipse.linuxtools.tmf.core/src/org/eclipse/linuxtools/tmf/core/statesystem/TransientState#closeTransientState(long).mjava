@@ -1,0 +1,40 @@
+    /**
+     * Close off the Transient State, used for example when we are done reading a
+     * static trace file. All the information currently contained in it will be
+     * converted to intervals and "flushed" to the State History.
+     */
+    void closeTransientState(long endTime) {
+        assert (this.isActive);
+
+        for (int i = 0; i < ongoingStateInfo.size(); i++) {
+            if (ongoingStateStartTimes.get(i) == endTime) {
+                /*
+                 * Handle this rare case where trace end == timetamp of last
+                 * state change
+                 */
+                continue;
+            }
+            try {
+                backend.insertPastState(ongoingStateStartTimes.get(i), /*
+                                                                        * Start
+                                                                        * Time
+                                                                        */
+                        endTime, /* End Time */
+                        i, /* attribute quark */
+                        ongoingStateInfo.get(i)); /* StateValue */
+
+            } catch (TimeRangeException e) {
+                /*
+                 * This shouldn't happen, since we control where the interval's
+                 * start time comes from
+                 */
+                e.printStackTrace();
+            }
+        }
+
+        ongoingStateInfo.clear();
+        ongoingStateStartTimes.clear();
+        this.isActive = false;
+        return;
+    }
+

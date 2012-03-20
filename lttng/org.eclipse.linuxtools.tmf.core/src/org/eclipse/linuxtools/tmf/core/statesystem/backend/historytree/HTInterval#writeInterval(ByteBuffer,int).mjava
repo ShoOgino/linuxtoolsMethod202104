@@ -1,0 +1,66 @@
+    /**
+     * Antagonist of the previous constructor, write the Data entry
+     * corresponding to this interval in a ByteBuffer (mapped to a block in the
+     * history-file, hopefully)
+     * 
+     * @param buffer
+     *            The already-allocated ByteBuffer corresponding to a SHT Node
+     * @param endPosOfStringEntry
+     *            The initial (before calling this function for this interval)
+     *            position of the Strings Entry for this node. This will change
+     *            from one call to the other if we're writing String
+     *            StateValues.
+     * @return The size of the Strings Entry that was written, if any.
+     */
+    int writeInterval(ByteBuffer buffer, int endPosOfStringEntry) {
+        int sizeOfStringEntry;
+        byte[] byteArrayToWrite;
+
+        buffer.putLong(start);
+        buffer.putLong(end);
+        buffer.putInt(attribute);
+        buffer.put(sv.getType());
+
+        byteArrayToWrite = sv.toByteArray();
+
+        if (byteArrayToWrite == null) {
+            /* We write the 'valueOffset' field as a straight value */
+            if (sv.isNull()) {
+                buffer.putInt(0);
+            } else {
+                try {
+                    buffer.putInt(sv.unboxInt());
+                } catch (StateValueTypeException e) {
+                    /*
+                     * This should not happen, since the value told us it was of
+                     * type Integer (corrupted value?)
+                     */
+                    e.printStackTrace();
+                }
+            }
+            return 0; /* we didn't use a Strings section entry */
+
+        }
+        /*
+         * Size to write (+2 = +1 for size at the start, +1 for the 0 at the
+         * end)
+         */
+        sizeOfStringEntry = byteArrayToWrite.length + 2;
+
+        /* we use the valueOffset as an offset. */
+        buffer.putInt(endPosOfStringEntry - sizeOfStringEntry);
+        buffer.mark();
+        buffer.position(endPosOfStringEntry - sizeOfStringEntry);
+
+        /*
+         * write the Strings entry (1st byte = size, then the bytes, then
+         * the 0)
+         */
+        buffer.put((byte) sizeOfStringEntry);
+        buffer.put(byteArrayToWrite);
+        buffer.put((byte) 0);
+        assert (buffer.position() == endPosOfStringEntry);
+        buffer.reset();
+        return sizeOfStringEntry;
+    }
+

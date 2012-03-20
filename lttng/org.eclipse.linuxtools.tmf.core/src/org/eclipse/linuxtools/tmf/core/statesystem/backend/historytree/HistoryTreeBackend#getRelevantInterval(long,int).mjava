@@ -1,0 +1,31 @@
+    /**
+     * Inner method to find the interval in the tree containing the requested
+     * key/timestamp pair, wherever in which node it is.
+     * 
+     * @param t
+     * @param key
+     * @return The node containing the information we want
+     */
+    private HTInterval getRelevantInterval(long t, int key)
+            throws TimeRangeException {
+        if (!checkValidTime(t)) {
+            throw new TimeRangeException();
+        }
+
+        // FIXME using CoreNode for now, we'll have to redo this part to handle
+        // different node types
+        CoreNode currentNode = sht.latestBranch.firstElement();
+        HTInterval interval = currentNode.getRelevantInterval(key, t);
+
+        while (interval == null && currentNode.getNbChildren() > 0) {
+            currentNode = (CoreNode) sht.selectNextChild(currentNode, t);
+            interval = currentNode.getRelevantInterval(key, t);
+        }
+        /*
+         * Since we should now have intervals at every attribute/timestamp
+         * combination, it should NOT be null here.
+         */
+        assert (interval != null);
+        return interval;
+    }
+
