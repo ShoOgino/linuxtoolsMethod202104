@@ -1,4 +1,4 @@
-    private IResource copyTrace(String newName) {
+    private IResource copyTrace(final String newName) {
 
         IPath oldPath = fTrace.getResource().getFullPath();
         final IPath newPath = oldPath.append("../" + newName); //$NON-NLS-1$
@@ -12,6 +12,15 @@
                         throw new OperationCanceledException();
                     }
                     fTrace.getResource().copy(newPath, IResource.FORCE | IResource.SHALLOW, null);
+                    // Delete any bookmarks file found in copied trace folder
+                    IFolder folder = fTraceFolder.getFolder(newName);
+                    if (folder.exists()) {
+                        for (IResource member : folder.members()) {
+                            if (TmfTrace.class.getCanonicalName().equals(member.getPersistentProperty(TmfTraceElement.TRACETYPE))) {
+                                member.delete(true, null);
+                            }
+                        }
+                    }
                     if (monitor.isCanceled()) {
                         throw new OperationCanceledException();
                     }
