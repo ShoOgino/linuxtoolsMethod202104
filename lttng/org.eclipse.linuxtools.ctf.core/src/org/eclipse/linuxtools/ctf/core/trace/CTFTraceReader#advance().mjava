@@ -5,6 +5,9 @@
      */
     public boolean advance() {
         /*
+         * Index the
+         */
+        /*
          * Remove the reader from the top of the priority queue.
          */
         StreamInputReader top = this.prio.poll();
@@ -28,7 +31,21 @@
             this.endTime = Math.max(topEnd, this.endTime);
             this.eventCountPerTraceFile[top.getName()]++;
         }
-
+        if(hasMoreEvents())
+        {
+            /*
+             * increment the index
+             */
+            index++;
+            StreamInputPacketReader packetReader = top.getPacketReader();
+            if (packetReader.hasMoreEvents() == false) {
+                StreamInputPacketIndexEntry currentPacket = packetReader
+                        .getCurrentPacket();
+                currentPacket.indexBegin = startIndex;
+                currentPacket.rankEnd = index;
+                startIndex = index + 1;
+            }
+        }
         /*
          * If there is no reader in the queue, it means the trace reader reached
          * the end of the trace.

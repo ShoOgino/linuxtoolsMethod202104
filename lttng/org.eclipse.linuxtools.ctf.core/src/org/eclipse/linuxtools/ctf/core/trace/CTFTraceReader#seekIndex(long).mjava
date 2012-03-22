@@ -1,0 +1,28 @@
+    public boolean seekIndex( long index )
+    {
+        this.prio.clear();
+        this.index = index;
+        long tempIndex = Long.MAX_VALUE;
+        for (StreamInputReader streamInputReader : this.streamInputReaders) {
+            /*
+             * Seek the trace reader.
+             */
+            tempIndex = Math.min(tempIndex, streamInputReader.seekBeforeIndex(index));
+
+            /*
+             * Add it to the priority queue if there is a current event.
+             */
+            if (streamInputReader.getCurrentEvent() != null) {
+                this.prio.add(streamInputReader);
+            }
+        }
+        /*
+         *  advance for offset
+         */
+        for( long pos = tempIndex; (pos < index) && hasMoreEvents(); pos++){
+            this.advance();
+        }
+
+        return hasMoreEvents();
+    }
+
