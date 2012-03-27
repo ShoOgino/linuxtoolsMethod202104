@@ -1,0 +1,91 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.core.commands.AbstractHandler#execute(org.eclipse.core.commands.ExecutionEvent)
+     */
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        fLock.lock();
+        try {
+            IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+
+            if (window == null) {
+                return false;
+            }
+
+            final Parameter param = new Parameter(fParam);
+
+            Job job = new Job(Messages.TraceControl_ChangeChannelStateJob) {
+                @Override
+                protected IStatus run(IProgressMonitor monitor) {
+                    String errorString = null;
+
+                    TraceSessionComponent session = null;
+
+                    try {
+                        TraceDomainComponent kernelDomain = param.getKernelDomain();
+                        List<TraceChannelComponent> kernelChannels = param.getKernelChannels();
+
+                        if (kernelDomain != null) {
+                            session = (TraceSessionComponent)kernelDomain.getParent();
+                            List<String> channelNames = new ArrayList<String>();
+                            for (Iterator<TraceChannelComponent> iterator = kernelChannels.iterator(); iterator.hasNext();) {
+                                // Enable all selected channels which are disabled
+                                TraceChannelComponent channel = (TraceChannelComponent) iterator.next();
+                                channelNames.add(channel.getName());
+                            }
+
+                            changeState(kernelDomain, channelNames, monitor);
+
+                            for (Iterator<TraceChannelComponent> iterator = kernelChannels.iterator(); iterator.hasNext();) {
+                                // Enable all selected channels which are disabled
+                                TraceChannelComponent channel = (TraceChannelComponent) iterator.next();
+                                channel.setState(getNewState());
+                            }
+                        }
+
+                        TraceDomainComponent ustDomain = param.getUstDomain();
+                        List<TraceChannelComponent> ustChannels = param.getUstChannels();
+                        if (ustDomain != null) {
+                            if (session == null) {
+                                session = (TraceSessionComponent)ustDomain.getParent();
+                            }
+
+                            List<String> channelNames = new ArrayList<String>();
+                            for (Iterator<TraceChannelComponent> iterator = ustChannels.iterator(); iterator.hasNext();) {
+                                // Enable all selected channels which are disabled
+                                TraceChannelComponent channel = (TraceChannelComponent) iterator.next();
+                                channelNames.add(channel.getName());
+                            }
+
+                            changeState(ustDomain, channelNames, monitor);
+
+                            for (Iterator<TraceChannelComponent> iterator = ustChannels.iterator(); iterator.hasNext();) {
+                                // Enable all selected channels which are disabled
+                                TraceChannelComponent channel = (TraceChannelComponent) iterator.next();
+                                channel.setState(getNewState());
+                            }
+                        }
+                    } catch (ExecutionException e) {
+                        errorString = e.toString() + "\n"; //$NON-NLS-1$
+                    }
+
+                    // In all cases notify listeners  
+                    session.fireComponentChanged(session);
+
+                    if (errorString != null) {
+                        return new Status(Status.ERROR, Activator.PLUGIN_ID, errorString);
+                    }
+
+                    return Status.OK_STATUS;
+                }
+            };
+            job.setUser(true);
+            job.schedule();
+        } finally {
+            fLock.unlock();
+        }
+
+        return null;
+    }
+

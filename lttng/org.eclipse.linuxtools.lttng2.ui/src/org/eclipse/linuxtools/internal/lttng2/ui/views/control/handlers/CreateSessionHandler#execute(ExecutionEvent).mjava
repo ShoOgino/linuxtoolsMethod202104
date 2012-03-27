@@ -1,0 +1,44 @@
+    // ------------------------------------------------------------------------
+    // Operations
+    // ------------------------------------------------------------------------
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.core.commands.AbstractHandler#execute(org.eclipse.core.commands.ExecutionEvent)
+     */
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        fLock.lock();
+        try {
+            final TraceSessionGroup sessionGroup = fSessionGroup; 
+                    
+            // Open dialog box for the node name and address
+            ICreateSessionDialog dialog = TraceControlDialogFactory.getInstance().getCreateSessionDialog();
+            dialog.setTraceSessionGroup(sessionGroup);
+
+            if (dialog.open() != Window.OK) {
+                return null;
+            }
+
+            final String sessionName = dialog.getSessionName();
+            final String sessionPath = dialog.isDefaultSessionPath() ? null : dialog.getSessionPath();
+
+            Job job = new Job(Messages.TraceControl_CreateSessionJob) {
+                @Override
+                protected IStatus run(IProgressMonitor monitor) {
+                    try {
+                        sessionGroup.createSession(sessionName, sessionPath, monitor);
+                    } catch (ExecutionException e) {
+                        return new Status(Status.ERROR, Activator.PLUGIN_ID, e.toString());
+                    } 
+                    return Status.OK_STATUS;
+                }
+            };
+            job.setUser(true);
+            job.schedule();
+        } finally {
+            fLock.unlock();
+        }
+        return null;
+    }
+

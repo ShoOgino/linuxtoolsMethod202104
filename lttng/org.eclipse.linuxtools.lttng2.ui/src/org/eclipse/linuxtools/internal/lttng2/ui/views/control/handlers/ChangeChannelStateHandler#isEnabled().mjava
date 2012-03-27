@@ -1,0 +1,71 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.core.commands.AbstractHandler#isEnabled()
+     */
+    @Override
+    public boolean isEnabled() {
+
+        // Get workbench page for the Control View
+        IWorkbenchPage page = getWorkbenchPage();
+        if (page == null) {
+            return false;
+        }
+
+        TraceDomainComponent kernelDomain = null;
+        TraceDomainComponent ustDomain = null;
+        List<TraceChannelComponent> kernelChannels = new ArrayList<TraceChannelComponent>();
+        List<TraceChannelComponent> ustChannels = new ArrayList<TraceChannelComponent>();
+        
+        // Check if one or more session are selected
+        ISelection selection = page.getSelection(ControlView.ID);
+        if (selection instanceof StructuredSelection) {
+            StructuredSelection structered = ((StructuredSelection) selection);
+            String sessionName = null;
+            for (Iterator<?> iterator = structered.iterator(); iterator.hasNext();) {
+                Object element = (Object) iterator.next();
+                 
+                if (element instanceof TraceChannelComponent) {
+                    
+                    // Add only TraceChannelComponents that are disabled
+                    TraceChannelComponent channel = (TraceChannelComponent) element;
+                    if (sessionName == null) {
+                        sessionName = String.valueOf(channel.getSessionName());
+                    }
+
+                    // Enable command only for channels of same session
+                    if (!sessionName.equals(channel.getSessionName())) {
+                        kernelChannels.clear();
+                        ustChannels.clear();
+                        break;
+                    }
+
+                    if ((channel.getState() != getNewState())) {
+                        if (channel.isKernel()) {
+                            kernelChannels.add(channel);
+                            if (kernelDomain == null) {
+                                kernelDomain = (TraceDomainComponent) channel.getParent();
+                            }
+                        } else {
+                            ustChannels.add(channel);
+                            if (ustDomain == null) {
+                                ustDomain = (TraceDomainComponent) channel.getParent();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        boolean isEnabled = (!kernelChannels.isEmpty() || !ustChannels.isEmpty());
+        fLock.lock();
+        try {
+            if (isEnabled) {
+                fParam = new Parameter(kernelDomain, ustDomain, kernelChannels, ustChannels);
+            }
+        } finally {
+            fLock.unlock();
+        }
+        
+        return isEnabled;
+    }
+

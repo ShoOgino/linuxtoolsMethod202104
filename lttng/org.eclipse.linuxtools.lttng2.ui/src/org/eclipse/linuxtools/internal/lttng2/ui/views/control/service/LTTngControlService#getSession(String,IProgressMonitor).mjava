@@ -1,0 +1,84 @@
+    /*
+     * (non-Javadoc)
+     * 
+     * @see
+     * org.eclipse.linuxtools.internal.lttng2.ui.views.control.service.ILttngControlService
+     * #getSession(java.lang.String, org.eclipse.core.runtime.IProgressMonitor)
+     */
+    @Override
+    public ISessionInfo getSession(String sessionName, IProgressMonitor monitor) throws ExecutionException {
+        
+        String command = COMMAND_LIST + sessionName;
+        ICommandResult result = fCommandShell.executeCommand(command, monitor);
+
+        if (isError(result)) {
+            throw new ExecutionException(Messages.TraceControl_CommandError + " " + command + "\n" + formatOutput(result.getOutput())); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+
+        int index = 0;
+
+        // Output:
+        // Tracing session mysession2: [inactive]
+        // Trace path: /home/eedbhu/lttng-traces/mysession2-20120123-110330
+        ISessionInfo sessionInfo = new SessionInfo(sessionName);
+
+        while (index < result.getOutput().length) {
+            // Tracing session mysession2: [inactive]
+            // Trace path: /home/eedbhu/lttng-traces/mysession2-20120123-110330
+            //
+            // === Domain: Kernel ===
+            //
+            String line = result.getOutput()[index];
+            Matcher matcher = TRACE_SESSION_PATTERN.matcher(line);
+            if (matcher.matches()) {
+                sessionInfo.setSessionState(matcher.group(2));
+                index++;
+                continue;
+            }
+
+            matcher = TRACE_SESSION_PATH_PATTERN.matcher(line);
+            if (matcher.matches()) {
+                sessionInfo.setSessionPath(matcher.group(1).trim());
+                index++;
+                continue;
+            }
+
+            matcher = DOMAIN_KERNEL_PATTERN.matcher(line);
+            if (matcher.matches()) {
+                // Create Domain
+                IDomainInfo domainInfo = new DomainInfo(Messages.TraceControl_KernelDomainDisplayName);
+                sessionInfo.addDomain(domainInfo);
+
+                // in domain kernel
+                ArrayList<IChannelInfo> channels = new ArrayList<IChannelInfo>();
+                index = parseDomain(result.getOutput(), index, channels);
+
+                // set channels
+                domainInfo.setChannels(channels);
+                
+                // set kernel flag
+                domainInfo.setIsKernel(true);
+                continue;
+            }
+
+            matcher = DOMAIN_UST_GLOBAL_PATTERN.matcher(line);
+            if (matcher.matches()) {
+                IDomainInfo domainInfo = new DomainInfo(Messages.TraceControl_UstGlobalDomainDisplayName);
+                sessionInfo.addDomain(domainInfo);
+
+                // in domain UST
+                ArrayList<IChannelInfo> channels = new ArrayList<IChannelInfo>();
+                index = parseDomain(result.getOutput(), index, channels);
+
+                // set channels
+                domainInfo.setChannels(channels);
+                
+                // set kernel flag
+                domainInfo.setIsKernel(false);
+                continue;
+            }
+            index++;
+        }
+        return sessionInfo;
+    }
+

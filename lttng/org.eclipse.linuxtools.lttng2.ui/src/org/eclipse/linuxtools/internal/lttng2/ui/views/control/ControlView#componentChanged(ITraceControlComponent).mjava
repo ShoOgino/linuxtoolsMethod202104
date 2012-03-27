@@ -1,0 +1,31 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.linuxtools.internal.lttng2.ui.views.control.model.ITraceControlComponentChangedListener#componentChanged(org.eclipse.linuxtools.internal.lttng2.ui.views.control.model.ITraceControlComponent)
+     */
+    @Override
+    public void componentChanged(final ITraceControlComponent component) {
+        if (fTreeViewer.getTree().isDisposed()) {
+            return;
+        }
+
+        UIJob myJob = new UIJob("Refresh") { //$NON-NLS-1$
+            @Override
+            public IStatus runInUIThread(IProgressMonitor monitor) {
+                if (fTreeViewer.getTree().isDisposed()) {
+                    return Status.OK_STATUS;
+                }
+                
+                fTreeViewer.refresh(component);
+
+                // Change selection needed 
+                final ISelection sel = fTreeViewer.getSelection();
+                fTreeViewer.setSelection(null);
+                fTreeViewer.setSelection(sel);
+
+                return Status.OK_STATUS;
+            }
+        };
+        myJob.setUser(false);
+        myJob.schedule();
+    }
+

@@ -1,0 +1,104 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.core.commands.AbstractHandler#execute(org.eclipse.core.commands.ExecutionEvent)
+     */
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        final IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+
+        if (window == null) {
+            return false;
+        }
+        fLock.lock();
+        try {
+            // Make a copy for thread safety
+            final CommandParameter param = fParam.clone();
+
+            TargetNodeComponent node = param.getSession().getTargetNode();
+            List<ITraceControlComponent> providers = node.getChildren(TraceProviderGroup.class);
+
+            final IEnableEventsDialog dialog = TraceControlDialogFactory.getInstance().getEnableEventsDialog();
+            dialog.setTraceProviderGroup((TraceProviderGroup)providers.get(0));
+            dialog.setTraceDomainComponent(getDomain(param));
+
+            if (dialog.open() != Window.OK) {
+                return null;
+            }
+
+            Job job = new Job(Messages.TraceControl_ChangeEventStateJob) {
+                @Override
+                protected IStatus run(IProgressMonitor monitor) {
+                    StringBuffer errorString = new StringBuffer();
+
+                    try {
+                        // Enable tracepoint events
+                        if (dialog.isTracepoints()) {
+                            if (dialog.isAllTracePoints()) {
+                                enableEvents(param, null, dialog.isKernel(), monitor);
+                            } else {
+                                List<String> eventNames = dialog.getEventNames();
+                                if (!eventNames.isEmpty()) {
+                                    enableEvents(param, eventNames, dialog.isKernel(), monitor);
+                                }
+                            }
+                        }
+
+                        // Enable syscall events
+                        if (dialog.isAllSysCalls()) {
+                            enableSyscalls(param, monitor);
+                        }
+
+                        // Enable dynamic probe
+                        if (dialog.isDynamicProbe() && (dialog.getProbeEventName() != null) && (dialog.getProbeName() != null)) {
+                            enableProbe(param, dialog.getProbeEventName(), false, dialog.getProbeName(), monitor);
+                        }
+
+                        // Enable dynamic function probe
+                        if (dialog.isDynamicFunctionProbe() && (dialog.getFunctionEventName() != null) && (dialog.getFunction() != null)) {
+                            enableProbe(param, dialog.getFunctionEventName(), true, dialog.getFunction(), monitor);
+                        }
+
+                        // Enable event using a wildcard
+                        if (dialog.isWildcard()) {
+                            List<String> eventNames = dialog.getEventNames();
+                            eventNames.add(dialog.getWildcard());
+
+                            if (!eventNames.isEmpty()) {
+                                enableEvents(param, eventNames, dialog.isKernel(), monitor);
+                            }
+                        }
+
+                        // Enable events using log level
+                        if (dialog.isLogLevel()) {
+                            enableLogLevel(param, dialog.getLogLevelEventName(), dialog.getLogLevelType(), dialog.getLogLevel(), monitor);
+                        }
+
+                    } catch (ExecutionException e) {
+                        errorString.append(e.toString());
+                        errorString.append('\n');
+                    }
+
+                    // get session configuration in all cases
+                    try {
+                        param.getSession().getConfigurationFromNode(monitor);
+                    } catch (ExecutionException e) {
+                        errorString.append(Messages.TraceControl_ListSessionFailure);
+                        errorString.append(": "); //$NON-NLS-1$
+                        errorString.append(e.toString());
+                    } 
+
+                    if (errorString.length() > 0) {
+                        return new Status(Status.ERROR, Activator.PLUGIN_ID, errorString.toString());
+                    }
+                    return Status.OK_STATUS;
+                }
+            };
+            job.setUser(true);
+            job.schedule();
+        } finally {
+            fLock.unlock();
+        }
+        return null;
+    }
+

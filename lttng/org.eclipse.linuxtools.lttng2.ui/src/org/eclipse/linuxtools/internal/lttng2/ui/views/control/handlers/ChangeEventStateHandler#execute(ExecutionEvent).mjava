@@ -1,0 +1,82 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.core.commands.AbstractHandler#execute(org.eclipse.core.commands.ExecutionEvent)
+     */
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+
+        if (window == null) {
+            return false;
+        }
+
+        fLock.lock();
+        try {
+            
+            final Parameter param = new Parameter(fParam);
+
+            Job job = new Job(Messages.TraceControl_ChangeChannelStateJob) {
+                @Override
+                protected IStatus run(IProgressMonitor monitor) {
+                    StringBuffer errorString = new StringBuffer();
+
+                    TraceSessionComponent session = null;
+
+                    try {
+                        boolean isAll = false;
+                        if (param.getChannel() != null) {
+                            session = param.getChannel().getSession();
+                            List<String> eventNames = new ArrayList<String>();
+                            List<TraceEventComponent> events = param.getEvents();
+                            
+                            for (Iterator<TraceEventComponent> iterator = events.iterator(); iterator.hasNext();) {
+                                // Enable/disable all selected channels which are disabled
+                                TraceEventComponent event = (TraceEventComponent) iterator.next();
+
+                                // Workaround for wildcard handling in lttng-tools
+                                if ("*".equals(event.getName())) { //$NON-NLS-1$
+                                    isAll = true;
+                                } else { 
+                                    eventNames.add(event.getName());
+                                }
+                            }
+                            if (isAll) {
+                                changeState(param.getChannel(), null, monitor);
+                            }
+
+                            if (!eventNames.isEmpty()) {
+                                changeState(param.getChannel(), eventNames, monitor);
+                            }
+
+                            for (Iterator<TraceEventComponent> iterator = events.iterator(); iterator.hasNext();) {
+                                // Enable all selected channels which are disabled
+                                TraceEventComponent ev = (TraceEventComponent) iterator.next();
+                                ev.setState(getNewState());
+                            }
+                        }
+                    } catch (ExecutionException e) {
+                        errorString.append(e.toString());
+                        errorString.append('\n');
+                    }
+
+                    if (session != null) {
+                        // In all cases notify listeners  
+                        session.fireComponentChanged(session);
+                    }
+
+                    if (errorString.length() > 0) {
+                        return new Status(Status.ERROR, Activator.PLUGIN_ID, errorString.toString());
+                    }
+
+                    return Status.OK_STATUS;
+                }
+            };
+            job.setUser(true);
+            job.schedule();
+        } finally {
+            fLock.unlock();
+        }
+        return null;
+    }
+

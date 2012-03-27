@@ -1,0 +1,72 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.core.commands.AbstractHandler#execute(org.eclipse.core.commands.ExecutionEvent)
+     */
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        fLock.lock();
+        try {
+            // Make a copy for thread safety
+            final Parameter param = new Parameter(fParam);
+
+            // Open dialog box to retrieve the session and channel where the events should be enabled in.
+            final IGetEventInfoDialog dialog = TraceControlDialogFactory.getInstance().getGetEventInfoDialog();
+            dialog.setIsKernel(param.isKernel());
+            dialog.setSessions(param.getSessions());
+
+            if (dialog.open() != Window.OK) {
+                return null;
+            }
+
+            Job job = new Job(Messages.TraceControl_EnableEventsJob) {
+                @Override
+                protected IStatus run(IProgressMonitor monitor) {
+
+                    StringBuffer errorString = new StringBuffer();
+                    try {
+                        List<String> eventNames = new ArrayList<String>();
+                        List<BaseEventComponent> events = param.getEvents();
+                        // Create list of event names
+                        for (Iterator<BaseEventComponent> iterator = events.iterator(); iterator.hasNext();) {
+                            BaseEventComponent event = (BaseEventComponent) iterator.next();
+                            eventNames.add(event.getName());
+                        }
+
+                        TraceChannelComponent channel = dialog.getChannel();
+                        if (channel == null) {
+                            // enable events on default channel (which will be created by lttng-tools)
+                            dialog.getSession().enableEvents(eventNames, param.isKernel(), monitor);
+                        } else {
+                            channel.enableEvents(eventNames, monitor);
+                        }
+
+                    } catch (ExecutionException e) {
+                        errorString.append(e.toString());
+                        errorString.append('\n');
+                    }
+
+                    // get session configuration in all cases
+                    try {
+                        dialog.getSession().getConfigurationFromNode(monitor);
+                    } catch (ExecutionException e) {
+                        errorString.append(Messages.TraceControl_ListSessionFailure);
+                        errorString.append(": "); //$NON-NLS-1$
+                        errorString.append(e.toString());
+                    } 
+
+                    if (errorString.length() > 0) {
+                        return new Status(Status.ERROR, Activator.PLUGIN_ID, errorString.toString());
+                    }
+                    return Status.OK_STATUS;
+                }
+            };
+            job.setUser(true);
+            job.schedule();
+        } finally {
+            fLock.unlock();
+        }
+
+        return null;
+    }
+

@@ -1,0 +1,83 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.jface.dialogs.Dialog#createDialogArea(org.eclipse.swt.widgets.Composite)
+     */
+    @Override
+    protected Control createDialogArea(Composite parent) {
+        
+        // Main dialog panel
+        fDialogComposite = new Composite(parent, SWT.NONE);
+        GridLayout layout = new GridLayout(1, true);
+        fDialogComposite.setLayout(layout);
+        fDialogComposite.setLayoutData(new GridData(GridData.FILL_BOTH));
+
+        // ------------------------------------------------------------------------
+        // Domain Group 
+        // ------------------------------------------------------------------------
+        Group domainGroup = new Group(fDialogComposite, SWT.SHADOW_NONE);
+        domainGroup.setText(Messages.TraceControl_DomainDisplayName);
+        layout = new GridLayout(2, true);
+        domainGroup.setLayout(layout); 
+        
+        fKernelButton = new Button(domainGroup, SWT.RADIO);
+        fKernelButton.setText(Messages.TraceControl_KernelDomainDisplayName);
+        fKernelButton.setSelection(fIsKernel);
+        fUstButton = new Button(domainGroup, SWT.RADIO);
+        fUstButton.setText(Messages.TraceControl_UstDisplayName);
+        fUstButton.setSelection(!fIsKernel);
+
+        if (fDomain != null) {
+            fKernelButton.setEnabled(false);
+            fUstButton.setEnabled(false);
+        }
+
+        // layout widgets
+        GridData data = new GridData(GridData.FILL_HORIZONTAL);
+        domainGroup.setLayoutData(data);
+
+        data = new GridData(SWT.BEGINNING, SWT.BEGINNING, true, true);
+        fKernelButton.setLayoutData(data);
+        data = new GridData(SWT.BEGINNING, SWT.BEGINNING, true, true);
+        fUstButton.setLayoutData(data);
+
+        // ------------------------------------------------------------------------
+        // Kernel or UST event data group 
+        // ------------------------------------------------------------------------
+        fUstComposite = null;
+        fKernelComposite = null;
+        if (fIsKernel) {
+            createKernelComposite();
+            fUstComposite = null;
+        } else {
+            createUstComposite();
+        }
+        
+        fKernelButton.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                if (fKernelButton.getSelection()) {
+                    disposeUstComposite();
+                    createKernelComposite();
+                    fDialogComposite.layout();
+                }
+            }
+        });
+
+        fUstButton.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                if (fUstButton.getSelection()) {
+                    disposeKernelComposite();
+                    createUstComposite();
+                    fDialogComposite.layout();
+                }
+            }
+        });
+        
+        fDialogComposite.layout();
+        
+        getShell().setMinimumSize(new Point(500, 650));
+        
+        return fDialogComposite;
+    }
+

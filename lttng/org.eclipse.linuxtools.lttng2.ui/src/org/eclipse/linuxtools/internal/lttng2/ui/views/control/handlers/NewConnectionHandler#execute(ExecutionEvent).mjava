@@ -1,0 +1,82 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.core.commands.AbstractHandler#execute(org.eclipse.core.commands.ExecutionEvent)
+     */
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+        assert (fRoot != null);
+
+        IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+        if (window == null) {
+            return false;
+        }
+
+        ISystemRegistry registry = RSECorePlugin.getTheSystemRegistry();
+        
+        // get system type definition for LTTng 2.x connection
+        IRSESystemType sysType = RSECorePlugin.getTheCoreRegistry().getSystemTypeById(TRACE_CONTROL_SYSTEM_TYPE);
+        
+        // get all hosts for this system type
+        IHost[] hosts = registry.getHostsBySystemType(sysType);
+
+        // Open dialog box for the node name and address
+        final INewConnectionDialog dialog = TraceControlDialogFactory.getInstance().getNewConnectionDialog();
+        dialog.setTraceControlParent(fRoot);
+        dialog.setHosts(hosts);
+
+        if (dialog.open() != Window.OK) {
+            return null;
+        }
+
+        String hostName = dialog.getConnectionName(); 
+        String hostAddress = dialog.getHostName();
+
+        // get the singleton RSE registry
+        IHost host = null;
+
+        for (int i = 0; i < hosts.length; i++) {
+            if (hosts[i].getAliasName().equals(hostName)) {
+                host = hosts[i];
+                break;
+            }
+        }
+
+        if (host == null) {
+            // if there's no host then we will create it
+            try {
+                // create the host object as an SSH Only connection
+                host = registry.createHost(
+                        sysType,       //System Type Name
+                        hostName,      //Connection name
+                        hostAddress,   //IP Address        
+                        "Connection to Host"); //description //$NON-NLS-1$
+            }
+            catch (Exception e) {
+                MessageDialog.openError(window.getShell(),
+                        Messages.TraceControl_EclipseCommandFailure,
+                        Messages.TraceControl_NewNodeCreationFailure + " (" + hostName + ", " + hostAddress + ")" + ":\n" + e.toString());  //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+                return null;
+            }
+        }
+        
+        if (host != null) {
+            fLock.lock();
+            try {
+                // successful creation of host
+                TargetNodeComponent node = null;
+                if (!fRoot.containsChild(hostName)) {
+                    node = new TargetNodeComponent(hostName, fRoot, host);
+                    fRoot.addChild(node);
+                }
+                else {
+                    node = (TargetNodeComponent)fRoot.getChild(hostName);
+                }
+
+                node.connect();
+            } finally {
+                fLock.unlock();
+            }
+        }
+        return null;
+    }
+

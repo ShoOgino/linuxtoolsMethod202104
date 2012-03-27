@@ -1,0 +1,36 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.jface.dialogs.Dialog#okPressed()
+     */
+    @Override
+    protected void okPressed() {
+        // Set channel information
+        fChannelInfo = new ChannelInfo(fChannelNameText.getText());
+        fChannelInfo.setSubBufferSize(Long.parseLong(fSubBufferSizeText.getText()));
+        fChannelInfo.setNumberOfSubBuffers(Integer.parseInt(fNumberOfSubBuffersText.getText()));
+        fChannelInfo.setSwitchTimer(Long.parseLong(fSwitchTimerText.getText()));
+        fChannelInfo.setReadTimer(Long.parseLong(fReadTimerText.getText()));
+        fChannelInfo.setOverwriteMode(fOverwriteModeButton.getSelection());
+
+        fIsKernel = fKernelButton.getSelection();
+
+        // Check for invalid names
+        if (!fChannelInfo.getName().matches("^[a-zA-Z0-9\\-\\_]{1,}$")) { //$NON-NLS-1$
+            MessageDialog.openError(getShell(),
+                  Messages.TraceControl_EnableChannelDialogTitle,
+                  Messages.TraceControl_InvalidChannelNameError + " (" + fChannelInfo.getName() + ") \n");  //$NON-NLS-1$ //$NON-NLS-2$
+            return;
+        }
+
+        // Check for duplicate names
+        if (fDomain != null && fDomain.containsChild(fChannelInfo.getName())) {
+            MessageDialog.openError(getShell(),
+                    Messages.TraceControl_EnableChannelDialogTitle,
+                    Messages.TraceControl_ChannelAlreadyExistsError + " (" + fChannelInfo.getName() + ") \n");  //$NON-NLS-1$ //$NON-NLS-2$
+            return;
+        }
+
+        // validation successful -> call super.okPressed()
+        super.okPressed();
+    }
+

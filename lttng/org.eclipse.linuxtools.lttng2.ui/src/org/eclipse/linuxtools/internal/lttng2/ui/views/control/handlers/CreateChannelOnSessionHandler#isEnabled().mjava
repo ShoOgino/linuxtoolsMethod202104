@@ -1,0 +1,43 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.core.commands.AbstractHandler#isEnabled()
+     */
+    @Override
+    public boolean isEnabled() {
+        // Get workbench page for the Control View
+        IWorkbenchPage page = getWorkbenchPage();
+        if (page == null) {
+            return false;
+        }
+
+        TraceSessionComponent session = null;
+        // Check if one session is selected
+        ISelection selection = page.getSelection(ControlView.ID);
+        if (selection instanceof StructuredSelection) {
+            StructuredSelection structered = ((StructuredSelection) selection);
+            for (Iterator<?> iterator = structered.iterator(); iterator.hasNext();) {
+                Object element = (Object) iterator.next();
+                if (element instanceof TraceSessionComponent) {
+                    // Add only TraceSessionComponents that are inactive and not destroyed
+                    TraceSessionComponent tmpSession = (TraceSessionComponent) element;
+                    if ((tmpSession.getSessionState() == TraceSessionState.INACTIVE) && (!tmpSession.isDestroyed())) {
+                        session = tmpSession;
+                    }
+                }
+            }
+        }
+        boolean isEnabled = session != null;
+        
+        fLock.lock();
+        try {
+            fParam = null;
+            if (isEnabled) {
+                fParam = new CommandParameter(session);
+            }
+        } finally {
+            fLock.unlock();
+        }
+        
+        return isEnabled;
+    }
+
