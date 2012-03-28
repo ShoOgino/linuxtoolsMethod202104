@@ -1,28 +1,38 @@
-    public boolean seekIndex( long index )
-    {
+    public boolean seekIndex(long index) {
         this.prio.clear();
-        this.index = index;
-        long tempIndex = Long.MAX_VALUE;
+
+        long tempIndex = Long.MIN_VALUE;
+        long tempTimestamp = Long.MIN_VALUE;
         for (StreamInputReader streamInputReader : this.streamInputReaders) {
             /*
              * Seek the trace reader.
              */
-            tempIndex = Math.min(tempIndex, streamInputReader.seekBeforeIndex(index));
+            final long streamIndex = streamInputReader.seekIndex(index);
+            tempIndex = Math.max(tempIndex, streamIndex);
+            tempTimestamp = Math.max(tempTimestamp, streamInputReader.getCurrentEvent().timestamp);
 
+        }
+        for (StreamInputReader streamInputReader : this.streamInputReaders) {
             /*
              * Add it to the priority queue if there is a current event.
              */
+
             if (streamInputReader.getCurrentEvent() != null) {
                 this.prio.add(streamInputReader);
             }
         }
         /*
-         *  advance for offset
+         * advance for offset
          */
-        for( long pos = tempIndex; (pos < index) && hasMoreEvents(); pos++){
+        while( (prio.peek().getCurrentEvent().timestamp < tempTimestamp) && hasMoreEvents() )
+        {
             this.advance();
         }
-
+        long pos = tempIndex;
+        for (pos = tempIndex; (pos < index) && hasMoreEvents(); pos++) {
+            this.advance();
+        }
+        this.index = pos;
         return hasMoreEvents();
     }
 
