@@ -16,8 +16,8 @@
             }
         } catch (CTFReaderException e) {
             /*
-             * Important, if it failed, it's because it's not yet indexed,
-             * so we have to manually advance to the right value.
+             * Important, if it failed, it's because it's not yet indexed, so we
+             * have to manually advance to the right value.
              */
             for (StreamInputReader streamInputReader : this.streamInputReaders) {
                 /*
@@ -36,16 +36,22 @@
                 this.prio.add(streamInputReader);
             }
         }
-        /*
-         * advance for offset
-         */
-        while ((prio.peek().getCurrentEvent().timestamp < tempTimestamp)
-                && hasMoreEvents()) {
-            this.advance();
+        if (tempIndex == Long.MAX_VALUE) {
+            tempIndex = 0;
         }
         long pos = tempIndex;
-        for (pos = tempIndex; (pos < index) && hasMoreEvents(); pos++) {
-            this.advance();
+        if (index > tempIndex) {
+            /*
+             * advance for offset
+             */
+            while ((prio.peek().getCurrentEvent().timestamp < tempTimestamp)
+                    && hasMoreEvents()) {
+                this.advance();
+            }
+
+            for (pos = tempIndex; (pos < index) && hasMoreEvents(); pos++) {
+                this.advance();
+            }
         }
         this.index = pos;
         return hasMoreEvents();
