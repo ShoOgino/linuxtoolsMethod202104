@@ -4,14 +4,14 @@
          * 1. The job must exist
          * 2. It must be running (i.e. not completed)
          * 3. The requested index must be within the cache range
-         * 
+         *
          * If the job meets these conditions, we simply exit.
          * Otherwise, we create a new job but we might have to cancel
          * an existing job for an obsolete range.
          */
         if (job != null) {
             if (job.getState() != Job.NONE) {
-                if (index >= fCacheStartIndex && index < (fCacheStartIndex + fCache.length)) {
+                if ((index >= fCacheStartIndex) && (index < (fCacheStartIndex + fCache.length))) {
                     return;
                 }
                 // The new index is out of the requested range
@@ -19,7 +19,7 @@
                 job.cancel();
             }
         }
-        
+
         fCacheStartIndex = index;
         fCacheEndIndex   = index;
 
@@ -41,12 +41,12 @@
             			skipCount = index - (i * fCache.length);
             		}
             	}
-            	
-                TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(TmfEvent.class, startIndex, nbRequested) {
+
+                TmfDataRequest<ITmfEvent> request = new TmfDataRequest<ITmfEvent>(ITmfEvent.class, startIndex, nbRequested) {
                     private int count = 0;
                     private long rank = startIndex;
                     @Override
-                    public void handleData(TmfEvent event) {
+                    public void handleData(ITmfEvent event) {
                         // If the job is canceled, cancel the request so waitForCompletion() will unlock
                         if (monitor.isCanceled()) {
                             cancel();
@@ -54,7 +54,7 @@
                         }
                         super.handleData(event);
                         if (event != null) {
-                        	if ((fFilter == null || fFilter.matches(event)) && skipCount-- <= 0) {
+                        	if (((fFilter == null) || fFilter.matches(event)) && (skipCount-- <= 0)) {
                         		synchronized (TmfEventsCache.this) {
                         			fCache[count] = new CachedEvent(event.clone(), rank);
                         			count++;
@@ -67,14 +67,14 @@
                         }
                         if (count >= fCache.length) {
                         	cancel();
-                        } else if (fFilter != null && count >= fTable.getTable().getItemCount() - 3) { // -1 for header row, -2 for top and bottom filter status rows
+                        } else if ((fFilter != null) && (count >= (fTable.getTable().getItemCount() - 3))) { // -1 for header row, -2 for top and bottom filter status rows
                         	cancel();
                         }
                         rank++;
                     }
                 };
 
-                ((ITmfDataProvider<TmfEvent>) fTrace).sendRequest(request);
+                ((ITmfDataProvider<ITmfEvent>) fTrace).sendRequest(request);
                 try {
                     request.waitForCompletion();
                 } catch (InterruptedException e) {
@@ -82,7 +82,7 @@
                 }
 
                 fTable.cacheUpdated(true);
-                
+
                 // Flag the UI thread that the cache is ready
                 if (monitor.isCanceled()) {
                 	return Status.CANCEL_STATUS;
