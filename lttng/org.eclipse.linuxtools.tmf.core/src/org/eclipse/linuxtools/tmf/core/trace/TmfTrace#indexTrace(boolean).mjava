@@ -2,6 +2,7 @@
     @SuppressWarnings({ "unchecked" })
     public void indexTrace(boolean waitForCompletion) {
 
+        // The monitoring job
         final Job job = new Job("Indexing " + getName() + "...") { //$NON-NLS-1$ //$NON-NLS-2$
             @Override
             protected IStatus run(IProgressMonitor monitor) {
@@ -18,10 +19,14 @@
         };
         job.schedule();
 
+        // Clear the checkpoints
         fCheckpoints.clear();
-        ITmfEventRequest<ITmfEvent> request = new TmfEventRequest<ITmfEvent>(ITmfEvent.class, TmfTimeRange.ETERNITY, TmfDataRequest.ALL_DATA,
-                fIndexPageSize, ITmfDataRequest.ExecutionType.BACKGROUND) {
 
+        // Build a background request for all the trace data. The index is
+        // updated as we go by getNextEvent().
+        ITmfEventRequest<ITmfEvent> request = new TmfEventRequest<ITmfEvent>(ITmfEvent.class, TmfTimeRange.ETERNITY,
+                TmfDataRequest.ALL_DATA, fIndexPageSize, ITmfDataRequest.ExecutionType.BACKGROUND)
+        {
             ITmfTimestamp startTime = null;
             ITmfTimestamp lastTime = null;
 
@@ -29,20 +34,21 @@
             public void handleData(ITmfEvent event) {
                 super.handleData(event);
                 if (event != null) {
-                    ITmfTimestamp ts = event.getTimestamp();
+                    ITmfTimestamp timestamp = event.getTimestamp();
                     if (startTime == null)
-                        startTime = ts.clone();
-                    lastTime = ts.clone();
+                        startTime = timestamp.clone();
+                    lastTime = timestamp.clone();
 
+                    // Update the trace status at regular intervals
                     if ((getNbRead() % fIndexPageSize) == 0) {
-                        updateTrace();
+                        updateTraceStatus();
                     }
                 }
             }
 
             @Override
             public void handleSuccess() {
-                updateTrace();
+                updateTraceStatus();
             }
 
             @Override
@@ -51,7 +57,7 @@
                 super.handleCompleted();
             }
 
-            private synchronized void updateTrace() {
+            private synchronized void updateTraceStatus() {
                 int nbRead = getNbRead();
                 if (nbRead != 0) {
                     fStartTime = startTime;
@@ -62,12 +68,12 @@
             }
         };
 
+        // Submit the request and wait for completion if required
         sendRequest((ITmfDataRequest<T>) request);
         if (waitForCompletion)
             try {
                 request.waitForCompletion();
             } catch (InterruptedException e) {
-//                e.printStackTrace();
             }
     }
 
