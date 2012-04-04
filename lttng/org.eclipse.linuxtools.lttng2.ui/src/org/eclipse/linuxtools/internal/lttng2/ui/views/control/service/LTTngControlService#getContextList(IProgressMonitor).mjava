@@ -1,0 +1,42 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.linuxtools.internal.lttng2.ui.views.control.service.ILttngControlService#getContexts(org.eclipse.core.runtime.IProgressMonitor)
+     */
+    @Override
+    public List<String> getContextList(IProgressMonitor monitor) throws ExecutionException {
+
+        String command = COMMAND_ADD_CONTEXT + OPTION_HELP;
+
+        ICommandResult result = fCommandShell.executeCommand(command, monitor);
+
+        if (isError(result)) {
+            throw new ExecutionException(Messages.TraceControl_CommandError + " " + command + "\n" + formatOutput(result.getOutput())); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+
+        String[] output = result.getOutput(); 
+        
+        List<String> contexts = new ArrayList<String>(0);
+        
+        int index = 0;
+        boolean inList = false;
+        while (index < output.length) {
+            String line = result.getOutput()[index];
+            
+            Matcher startMatcher = ADD_CONTEXT_HELP_CONTEXTS_INTRO.matcher(line);
+            Matcher endMatcher = ADD_CONTEXT_HELP_CONTEXTS_END_LINE.matcher(line);
+
+            if (startMatcher.matches()) {
+                inList = true;
+            } else if (endMatcher.matches()) {
+                break;
+            } else if (inList == true) {
+                String[] tmp = line.split(","); //$NON-NLS-1$
+                for (int i = 0; i < tmp.length; i++) {
+                    contexts.add(tmp[i].trim());
+                }
+            }
+            index++;
+        }
+        return contexts;
+    }
+

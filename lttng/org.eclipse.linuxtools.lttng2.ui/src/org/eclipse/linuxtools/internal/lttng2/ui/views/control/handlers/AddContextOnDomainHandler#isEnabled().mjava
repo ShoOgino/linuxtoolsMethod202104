@@ -1,0 +1,49 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.core.commands.AbstractHandler#isEnabled()
+     */
+    @Override
+    public boolean isEnabled() {
+        
+        // Get workbench page for the Control View
+        IWorkbenchPage page = getWorkbenchPage();
+        if (page == null) {
+            return false;
+        }
+        
+        TraceDomainComponent domain = null;
+        TraceSessionComponent session = null;
+        
+        // Check if one domain is selected
+        ISelection selection = page.getSelection(ControlView.ID);
+        if (selection instanceof StructuredSelection) {
+            StructuredSelection structered = ((StructuredSelection) selection);
+            for (Iterator<?> iterator = structered.iterator(); iterator.hasNext();) {
+                Object element = (Object) iterator.next();
+                if (element instanceof TraceDomainComponent) {
+                    TraceDomainComponent tmpDomain = (TraceDomainComponent) element;
+                    session = (TraceSessionComponent) tmpDomain.getParent();
+                    
+                    // Add only TraceDomainComponent whose TraceSessionComponent parent is inactive and not destroyed
+                    if ((session.getSessionState() == TraceSessionState.INACTIVE) && (!session.isDestroyed())) {
+                        domain = tmpDomain;
+                    }
+                }
+            }
+        }
+        
+        boolean isEnabled = domain != null;
+        
+        fLock.lock();
+        try {
+            fParam = null;
+            if (isEnabled) {
+                fParam = new DomainCommandParameter(session, domain);
+            }
+        } finally {
+            fLock.unlock();
+        }
+
+        return isEnabled;
+    }
+

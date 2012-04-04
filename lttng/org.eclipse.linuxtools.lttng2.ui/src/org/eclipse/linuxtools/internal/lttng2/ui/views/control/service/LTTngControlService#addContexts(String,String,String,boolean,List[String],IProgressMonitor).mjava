@@ -1,0 +1,42 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.linuxtools.internal.lttng2.ui.views.control.service.ILttngControlService#addContexts(java.lang.String, java.lang.String, java.lang.String, boolean, java.util.List, org.eclipse.core.runtime.IProgressMonitor)
+     */
+    @Override
+    public void addContexts(String sessionName, String channelName, String eventName, boolean isKernel, List<String> contextNames, IProgressMonitor monitor) throws ExecutionException {
+        
+        String newSessionName = formatParameter(sessionName);
+        StringBuffer command = new StringBuffer(COMMAND_ADD_CONTEXT);
+
+        command.append(OPTION_SESSION);
+        command.append(newSessionName);
+        
+        if (channelName != null) {
+            command.append(OPTION_CHANNEL);
+            command.append(channelName);
+        }
+
+        if (eventName != null) {
+            command.append(OPTION_EVENT);
+            command.append(eventName);
+        }
+
+        if (isKernel) {
+            command.append(OPTION_KERNEL);
+        } else {
+            command.append(OPTION_UST);
+        }
+        
+        for (Iterator<String> iterator = contextNames.iterator(); iterator.hasNext();) {
+            String context = (String) iterator.next();
+            command.append(OPTION_CONTEXT_TYPE);
+            command.append(context);
+        }
+
+        ICommandResult result = fCommandShell.executeCommand(command.toString(), monitor);
+        
+        if (isError(result)) {
+            throw new ExecutionException(Messages.TraceControl_CommandError + " " + command + "\n" + formatOutput(result.getOutput())); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+    }
+
