@@ -1,15 +1,34 @@
 	public Object execute(ExecutionEvent event) throws ExecutionException {
-	
-		IAction exampleAction = new PrepareCommitAction() {
-			@Override
-			public void run() {
-				//setSelection(new StructuredSelection(rm));
-				doRun();
+
+		IRunnableWithProgress code = new IRunnableWithProgress() {
+
+			public void run(IProgressMonitor monitor)
+					throws InvocationTargetException, InterruptedException {
+				// monitor.beginTask("Loading Clipboard", 1000);
+				loadClipboard(monitor);
+				// monitor.done();
 			}
 		};
 
-		exampleAction.run();
-		
+		ProgressMonitorDialog pd = new ProgressMonitorDialog(PlatformUI
+				.getWorkbench().getActiveWorkbenchWindow().getShell());
+
+		try {
+			pd.run(false /* fork */, false /* cancelable */, code);
+		} catch (InvocationTargetException e) {
+			ChangelogPlugin
+					.getDefault()
+					.getLog()
+					.log(new Status(IStatus.ERROR, ChangelogPlugin.PLUGIN_ID,
+							IStatus.ERROR, e.getMessage(), e));
+		} catch (InterruptedException e) {
+			ChangelogPlugin
+					.getDefault()
+					.getLog()
+					.log(new Status(IStatus.ERROR, ChangelogPlugin.PLUGIN_ID,
+							IStatus.ERROR, e.getMessage(), e));
+		}
+
 		return null;
 	}
 
