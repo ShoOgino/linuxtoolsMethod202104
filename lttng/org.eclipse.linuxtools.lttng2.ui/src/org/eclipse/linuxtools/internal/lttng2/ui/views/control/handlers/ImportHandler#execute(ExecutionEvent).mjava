@@ -1,0 +1,50 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.core.commands.AbstractHandler#execute(org.eclipse.core.commands.ExecutionEvent)
+     */
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+
+        if (window == null) {
+            return false;
+        }
+
+        fLock.lock();
+        try {
+            final CommandParameter param = fParam.clone();
+            
+            final IImportDialog dialog = TraceControlDialogFactory.getInstance().getImportDialog();
+            dialog.setSession(param.getSession());
+
+            if (dialog.open() != Window.OK) {
+                return null;
+            }
+
+            Job job = new Job(Messages.TraceControl_ImportJob) {
+                @Override
+                protected IStatus run(IProgressMonitor monitor) {
+                    try {
+                        List<ImportFileInfo> traces = dialog.getTracePathes();
+                        IProject project = dialog.getProject();
+                        
+                        for (Iterator<ImportFileInfo> iterator = traces.iterator(); iterator.hasNext();) {
+                            ImportFileInfo remoteFile = (ImportFileInfo) iterator.next();
+                            downloadTrace(remoteFile, project);
+                        }
+
+                    } catch (ExecutionException e) {
+                        return new Status(Status.ERROR, Activator.PLUGIN_ID, e.toString());
+                    }  
+                    return Status.OK_STATUS;
+                }
+            };
+            job.setUser(true);
+            job.schedule();
+        } finally {
+            fLock.unlock();
+        }
+        return null;
+    }
+

@@ -1,0 +1,46 @@
+    // ------------------------------------------------------------------------
+    // Helper methods
+    // ------------------------------------------------------------------------
+    /**
+     * Downloads a trace from the remote host to the given project.
+     * @param trace - trace information of trace to import
+     * @param project - project to import to
+     * @throws ExecutionException
+     */
+    private void downloadTrace(ImportFileInfo trace, IProject project) throws ExecutionException {
+        try {
+            IRemoteFileSubSystem fsss = trace.getImportFile().getParentRemoteFileSubSystem();
+            
+            IFolder traceFolder = project.getFolder(TmfTraceFolder.TRACE_FOLDER_NAME);
+            if (!traceFolder.exists()) {
+                throw new ExecutionException(Messages.TraceControl_ImportDialogInvalidTracingProject + " (" + TmfTraceFolder.TRACE_FOLDER_NAME + ")");  //$NON-NLS-1$//$NON-NLS-2$
+            }
+
+            String traceName = trace.getLocalTraceName();
+            IFolder folder = traceFolder.getFolder(traceName);
+            if (folder.exists()) {
+                if(!trace.isOverwrite()) {
+                    throw new ExecutionException(Messages.TraceControl_ImportDialogTraceAlreadyExistError + ": " + traceName); //$NON-NLS-1$
+                }
+            } else {
+                folder.create(true, true, null);
+            }
+
+            IRemoteFile[] sources = fsss.list(trace.getImportFile(), IFileService.FILE_TYPE_FILES, new NullProgressMonitor());
+
+            String[] destinations = new String[sources.length];
+            String[] encodings = new String[sources.length];
+            for (int i = 0; i < sources.length; i++) {
+                destinations[i] = folder.getLocation().addTrailingSeparator().append(sources[i].getName()).toString();
+                encodings[i] = null;
+            }
+            
+            fsss.downloadMultiple(sources, destinations, encodings, new NullProgressMonitor());
+            
+        } catch (SystemMessageException e) {
+            throw new ExecutionException(e.fillInStackTrace().toString());
+        } catch (CoreException e) {
+            throw new ExecutionException(e.fillInStackTrace().toString());
+        }
+    }
+
