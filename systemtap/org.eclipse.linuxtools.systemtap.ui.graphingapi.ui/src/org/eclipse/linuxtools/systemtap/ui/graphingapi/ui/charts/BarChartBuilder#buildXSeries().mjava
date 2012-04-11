@@ -1,0 +1,33 @@
+	/**
+	 * Builds X series.
+	 */
+	protected void buildXSeries() {
+		Object data[][] = adapter.getData();
+		if (data == null || data.length == 0)
+			return;
+
+		double[] valx = new double[data.length];
+		double[][] valy = new double[data[0].length-1][data.length];
+
+
+		for (int i = 0; i < data.length; i++)
+			for (int j = 0; j < data[i].length; j++) {
+				if (j == 0)
+					valx[i] = getDoubleValue(data[i][j]);
+				else
+					valy[j-1][i] = getDoubleValue(data[i][j]);
+			}
+
+		for (int i = 0; i < valy.length; i++) {
+			final IBarSeries series = (IBarSeries) chart.getSeriesSet().
+				createSeries(SeriesType.BAR, adapter.getLabels()[i+1]); //$NON-NLS-1$);
+			series.setXSeries(valx);
+			series.setYSeries(valy[i]);
+		}
+
+		IAxis yAxis = this.chart.getAxisSet().getYAxis(0);
+		yAxis.setRange(new Range(adapter.getYMin().doubleValue(), adapter.getYMax().doubleValue()));
+		IAxis xAxis = this.chart.getAxisSet().getXAxis(0);
+		xAxis.setRange(new Range(adapter.getXMin().doubleValue(), adapter.getXMax().doubleValue()));
+	}
+
