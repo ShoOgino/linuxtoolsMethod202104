@@ -1,0 +1,31 @@
+    @Override
+    public void widgetSelected(SelectionEvent e) {
+        if (e.widget == getVerticalBar()) {
+            _topItem = getVerticalBar().getSelection();
+            if (_topItem < 0)
+                _topItem = 0;
+            redraw();
+        } else if (e.widget == getHorizontalBar() && null != _timeProvider) {
+            int start = getHorizontalBar().getSelection();
+            long time0 = _timeProvider.getTime0();
+            long time1 = _timeProvider.getTime1();
+            long timeMin = _timeProvider.getMinTime();
+            long timeMax = _timeProvider.getMaxTime();
+            long delta = timeMax - timeMin;
+
+            long range = time1 - time0;
+            // _timeRangeFixed = true;
+            time0 = timeMin + (long) (delta * ((double) start / H_SCROLLBAR_MAX));
+            time1 = time0 + range;
+
+            // TODO: Follow-up with Bug 310310
+            // In Linux SWT.DRAG is the only value received
+            // https://bugs.eclipse.org/bugs/show_bug.cgi?id=310310
+            if (e.detail == SWT.DRAG) {
+                _timeProvider.setStartFinishTime(time0, time1);
+            } else {
+                _timeProvider.setStartFinishTimeNotify(time0, time1);
+            }
+        }
+    }
+

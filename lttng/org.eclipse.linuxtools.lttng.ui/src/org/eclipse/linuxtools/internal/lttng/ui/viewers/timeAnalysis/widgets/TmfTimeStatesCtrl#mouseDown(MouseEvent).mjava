@@ -1,0 +1,48 @@
+    @Override
+    public void mouseDown(MouseEvent e) {
+        if (null == _timeProvider)
+            return;
+        int idx;
+        if (1 == e.button) {
+            int namewidth = _timeProvider.getNameSpace();
+            if (namewidth != 0) {
+                idx = hitSplitTest(e.x, e.y);
+                if (idx > 0) {
+                    _dragState = DRAG_SPLIT_LINE;
+                    _dragX = _dragX0 = e.x;
+                    _hitIdx = _timeProvider.getNameSpace();
+                    ;
+                    _time0bak = _timeProvider.getTime0();
+                    _time1bak = _timeProvider.getTime1();
+                    redraw();
+                    return;
+                }
+            }
+
+            idx = hitTest(e.x, e.y);
+            if (idx >= 0) {
+                if (_data._items[idx] instanceof TraceItem) {
+                    long hitTime = hitTimeTest(e.x);
+                    if (hitTime >= 0) {
+                        // _timeProvider.setSelectedTimeInt(hitTime, false);
+                        setCapture(true);
+                        _dragState = DRAG_TRACE_ITEM;
+                        _dragX = _dragX0 = e.x - _timeProvider.getNameSpace();
+                        _hitIdx = idx;
+                        _time0bak = _timeProvider.getTime0();
+                        _time1bak = _timeProvider.getTime1();
+                        return;
+                    }
+                } else if (_data._items[idx] instanceof GroupItem) {
+                    _dragX0 = e.x;
+                    _dragState = DRAG_GROUP_ITEM;
+                }
+                selectItem(idx, false);
+                fireSelectionChanged();
+            } else {
+                selectItem(idx, false); // clear selection
+                redraw();
+            }
+        }
+    }
+

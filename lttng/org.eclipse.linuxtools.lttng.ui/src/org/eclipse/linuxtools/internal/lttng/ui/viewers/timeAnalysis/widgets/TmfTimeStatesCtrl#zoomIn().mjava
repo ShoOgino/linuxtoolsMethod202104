@@ -1,0 +1,33 @@
+    /**
+     * zoom in using single click
+     */
+    public void zoomIn() {
+        long _time0 = _timeProvider.getTime0();
+        long _time1 = _timeProvider.getTime1();
+        long _range = _time1 - _time0;
+        long selTime = _timeProvider.getSelectedTime();
+        if (selTime <= _time0 || selTime >= _time1) {
+            selTime = (_time0 + _time1) / 2;
+        }
+        long time0 = selTime - (long) ((selTime - _time0) / zoomCoeff);
+        long time1 = selTime + (long) ((_time1 - selTime) / zoomCoeff);
+
+        long inaccuracy = (_timeProvider.getMaxTime() - _timeProvider.getMinTime()) - (time1 - time0);
+
+        // Trace.debug("selTime:" + selTime + " time0:" + time0 + " time1:"
+        // + time1 + " inaccuracy:" + inaccuracy);
+
+        if (inaccuracy > 0 && inaccuracy < 100) {
+            _timeProvider.setStartFinishTimeNotify(_timeProvider.getMinTime(), _timeProvider.getMaxTime());
+            return;
+        }
+
+        long m = _timeProvider.getMinTimeInterval();
+        if ((time1 - time0) < m) {
+            time0 = selTime - (long) ((selTime - _time0) * m / _range);
+            time1 = time0 + m;
+        }
+
+        _timeProvider.setStartFinishTimeNotify(time0, time1);
+    }
+
