@@ -3,12 +3,27 @@
          * Search in the index for the packet to search in.
          */
         int len = this.streamInput.getIndex().getEntries().size();
-        StreamInputPacketIndexEntry entry = this.streamInput.getIndex().getEntries().get(len-1);
-        seek(entry.getTimestampEnd() - 1 );
+        int back = 0;
+        long desired_timestamp = -1;
+        do {
+            back++;
+            StreamInputPacketIndexEntry entry = this.streamInput.getIndex()
+                    .getEntries().get(len - back);
+            desired_timestamp = entry.getTimestampBegin() + 1;
+            seek(desired_timestamp);
+
+        } while (!this.packetReader.hasMoreEvents());
         /*
          * Go until the end of that packet
          */
+
+        int packet_size = 0;
         while (this.packetReader.hasMoreEvents()) {
+            this.packetReader.readNextEvent();
+            packet_size++;
+        }
+        seek(desired_timestamp);
+        for (int i = 0; i < (packet_size - 1); i++) {
             this.packetReader.readNextEvent();
         }
     }
