@@ -1,18 +1,17 @@
     @Override
     @SuppressWarnings({ "unchecked" })
-    public void indexTrace(boolean waitForCompletion) {
+    public void indexTrace(final boolean waitForCompletion) {
 
         // The monitoring job
         final Job job = new Job("Indexing " + getName() + "...") { //$NON-NLS-1$ //$NON-NLS-2$
             @Override
-            protected IStatus run(IProgressMonitor monitor) {
-                while (!monitor.isCanceled()) {
+            protected IStatus run(final IProgressMonitor monitor) {
+                while (!monitor.isCanceled())
                     try {
                         Thread.sleep(100);
-                    } catch (InterruptedException e) {
+                    } catch (final InterruptedException e) {
                         return Status.OK_STATUS;
                     }
-                }
                 monitor.done();
                 return Status.OK_STATUS;
             }
@@ -24,25 +23,24 @@
 
         // Build a background request for all the trace data. The index is
         // updated as we go by getNextEvent().
-        ITmfEventRequest<ITmfEvent> request = new TmfEventRequest<ITmfEvent>(ITmfEvent.class, TmfTimeRange.ETERNITY,
+        final ITmfEventRequest<ITmfEvent> request = new TmfEventRequest<ITmfEvent>(ITmfEvent.class, TmfTimeRange.ETERNITY,
                 TmfDataRequest.ALL_DATA, fIndexPageSize, ITmfDataRequest.ExecutionType.BACKGROUND)
-        {
+                {
             ITmfTimestamp startTime = null;
             ITmfTimestamp lastTime = null;
 
             @Override
-            public void handleData(ITmfEvent event) {
+            public void handleData(final ITmfEvent event) {
                 super.handleData(event);
                 if (event != null) {
-                    ITmfTimestamp timestamp = event.getTimestamp();
+                    final ITmfTimestamp timestamp = event.getTimestamp();
                     if (startTime == null)
                         startTime = timestamp.clone();
                     lastTime = timestamp.clone();
 
                     // Update the trace status at regular intervals
-                    if ((getNbRead() % fIndexPageSize) == 0) {
+                    if ((getNbRead() % fIndexPageSize) == 0)
                         updateTraceStatus();
-                    }
                 }
             }
 
@@ -58,7 +56,7 @@
             }
 
             private synchronized void updateTraceStatus() {
-                int nbRead = getNbRead();
+                final int nbRead = getNbRead();
                 if (nbRead != 0) {
                     fStartTime = startTime;
                     fEndTime = lastTime;
@@ -66,14 +64,14 @@
                     notifyListeners();
                 }
             }
-        };
+                };
 
-        // Submit the request and wait for completion if required
-        sendRequest((ITmfDataRequest<T>) request);
-        if (waitForCompletion)
-            try {
-                request.waitForCompletion();
-            } catch (InterruptedException e) {
-            }
+                // Submit the request and wait for completion if required
+                sendRequest((ITmfDataRequest<T>) request);
+                if (waitForCompletion)
+                    try {
+                        request.waitForCompletion();
+                    } catch (final InterruptedException e) {
+                    }
     }
 
