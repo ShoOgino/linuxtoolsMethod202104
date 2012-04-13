@@ -1,10 +1,10 @@
     /**
      * Position the trace to the event at the given position (rank).
      * <p>
-     * NOTE : Seeking by position is very slow in LTTng, consider seeking by timestamp.
+     * NOTE : Seeking by position is very slow in LTTng, consider seeking by
+     * timestamp.
      * 
-     * @param position
-     *            Position (or rank) of the event in the trace, starting at 0.
+     * @param rank Position (or rank) of the event in the trace, starting at 0.
      * 
      * @return The TmfContext that point to this event
      * 
@@ -12,29 +12,24 @@
      * @see org.eclipse.linuxtools.tmf.core.trace.TmfContext
      */
     @Override
-    public synchronized TmfContext seekEvent(long position) {
+    public synchronized TmfContext seekEvent(final long rank) {
 
-        if (PRINT_DEBUG) {
-            System.out.println("seekEvent(position) position -> " + position); //$NON-NLS-1$
-        }
+        if (PRINT_DEBUG)
+            System.out.println("seekEvent(rank) rank -> " + rank); //$NON-NLS-1$
 
         ITmfTimestamp timestamp = null;
-        long index = position / getIndexPageSize();
+        long index = rank / getIndexPageSize();
 
         // Get the timestamp of the closest check point to the given position
         if (fCheckpoints.size() > 0) {
-            if (index >= fCheckpoints.size()) {
+            if (index >= fCheckpoints.size())
                 index = fCheckpoints.size() - 1;
-            }
             timestamp = fCheckpoints.elementAt((int) index).getTimestamp();
-        }
-        // If none, take the start time of the trace
-        else {
+        } else
             timestamp = getStartTime();
-        }
 
         // Seek to the found time
-        TmfContext tmpContext = seekEvent(timestamp);
+        final TmfContext tmpContext = seekEvent(timestamp);
         tmpContext.setRank((index + 1) * fIndexPageSize);
         previousLocation = (LttngLocation) tmpContext.getLocation();
 
@@ -48,15 +43,14 @@
         // Now that we are positionned at the checkpoint,
         // we need to "readNext" (Position - CheckpointPosition) times or until
         // trace "run out"
-        while ((tmpJniEvent != null) && (currentPosition < position)) {
+        while ((tmpJniEvent != null) && (currentPosition < rank)) {
             tmpJniEvent = currentJniTrace.readNextEvent();
             currentPosition++;
         }
 
         // If we found our event, save its timestamp
-        if (tmpJniEvent != null) {
+        if (tmpJniEvent != null)
             lastTimeValueRead = tmpJniEvent.getEventTime().getTime();
-        }
 
         // Set the operation marker as seek, to be able to detect we did "seek"
         // this event
@@ -69,8 +63,8 @@
         //
         // We don't trust what upper level could do with our internal location
         // so we create a new one to return instead
-        LttngLocation curLocation = new LttngLocation(previousLocation);
+        final LttngLocation curLocation = new LttngLocation(previousLocation);
 
-        return new TmfContext(curLocation);
+        return new TmfContext(curLocation, rank);
     }
 

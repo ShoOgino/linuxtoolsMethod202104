@@ -1,20 +1,19 @@
     private synchronized void initializeStreamingMonitor() {
-        if (fInitialized) {
+        if (fInitialized)
             return;
-        }
         fInitialized = true;
 
         if (getStreamingInterval() == 0) {
-            TmfContext context = seekLocation(null);
-            ITmfEvent event = getNext(context);
-            if (event == null) {
+            final TmfContext context = seekLocation(null);
+            final ITmfEvent event = getNext(context);
+            if (event == null)
                 return;
-            }
-            TmfTimeRange timeRange = new TmfTimeRange(event.getTimestamp().clone(), TmfTimestamp.BIG_CRUNCH);
+            final TmfTimeRange timeRange = new TmfTimeRange(event.getTimestamp().clone(), TmfTimestamp.BIG_CRUNCH);
             final TmfExperimentRangeUpdatedSignal signal = new TmfExperimentRangeUpdatedSignal(this, this, timeRange);
 
             // Broadcast in separate thread to prevent deadlock
             new Thread() {
+
                 @Override
                 public void run() {
                     broadcast(signal);
@@ -24,6 +23,7 @@
         }
 
         final Thread thread = new Thread("Streaming Monitor for experiment " + getName()) { //$NON-NLS-1$
+
             ITmfTimestamp safeTimestamp = null;
             TmfTimeRange timeRange = null;
 
@@ -33,29 +33,27 @@
                     if (!isIndexingBusy()) {
                         ITmfTimestamp startTimestamp = TmfTimestamp.BIG_CRUNCH;
                         ITmfTimestamp endTimestamp = TmfTimestamp.BIG_BANG;
-                        for (ITmfTrace<T> trace : fTraces) {
-                            if (trace.getStartTime().compareTo(startTimestamp) < 0) {
+                        for (final ITmfTrace<T> trace : fTraces) {
+                            if (trace.getStartTime().compareTo(startTimestamp) < 0)
                                 startTimestamp = trace.getStartTime();
-                            }
-                            if (trace.getStreamingInterval() != 0 && trace.getEndTime().compareTo(endTimestamp) > 0) {
+                            if (trace.getStreamingInterval() != 0 && trace.getEndTime().compareTo(endTimestamp) > 0)
                                 endTimestamp = trace.getEndTime();
-                            }
                         }
-                        if (safeTimestamp != null && safeTimestamp.compareTo(getTimeRange().getEndTime(), false) > 0) {
+                        if (safeTimestamp != null && safeTimestamp.compareTo(getTimeRange().getEndTime(), false) > 0)
                             timeRange = new TmfTimeRange(startTimestamp, safeTimestamp);
-                        } else {
+                        else
                             timeRange = null;
-                        }
                         safeTimestamp = endTimestamp;
                         if (timeRange != null) {
-                            TmfExperimentRangeUpdatedSignal signal =
-                                    new TmfExperimentRangeUpdatedSignal(TmfExperiment.this, TmfExperiment.this, timeRange);
+                            final TmfExperimentRangeUpdatedSignal signal =
+                                    new TmfExperimentRangeUpdatedSignal(TmfExperiment.this, TmfExperiment.this,
+                                            timeRange);
                             broadcast(signal);
                         }
                     }
                     try {
                         Thread.sleep(getStreamingInterval());
-                    } catch (InterruptedException e) {
+                    } catch (final InterruptedException e) {
                         e.printStackTrace();
                     }
                 }

@@ -1,16 +1,17 @@
     /*
      * (non-Javadoc)
      * 
-     * @see org.eclipse.linuxtools.tmf.trace.ITmfTrace#seekEvent(org.eclipse.linuxtools .tmf.event.TmfTimestamp)
+     * @see
+     * org.eclipse.linuxtools.tmf.trace.ITmfTrace#seekEvent(org.eclipse.linuxtools
+     * .tmf.event.TmfTimestamp)
      */
     @Override
     public synchronized TmfExperimentContext seekEvent(ITmfTimestamp timestamp) {
 
 //		Tracer.trace("Ctx: seekEvent(TS) - start");
 
-        if (timestamp == null) {
+        if (timestamp == null)
             timestamp = TmfTimestamp.BIG_BANG;
-        }
 
         // First, find the right checkpoint
         int index = Collections.binarySearch(fCheckpoints, new TmfCheckpoint(timestamp, null));
@@ -18,24 +19,21 @@
         // In the very likely case that the checkpoint was not found, bsearch
         // returns its negated would-be location (not an offset...). From that
         // index, we can then position the stream and get the event.
-        if (index < 0) {
+        if (index < 0)
             index = Math.max(0, -(index + 2));
-        }
 
         // Position the experiment at the checkpoint
         ITmfLocation<?> location;
         synchronized (fCheckpoints) {
             if (fCheckpoints.size() > 0) {
-                if (index >= fCheckpoints.size()) {
+                if (index >= fCheckpoints.size())
                     index = fCheckpoints.size() - 1;
-                }
                 location = fCheckpoints.elementAt(index).getLocation();
-            } else {
+            } else
                 location = null;
-            }
         }
 
-        TmfExperimentContext context = seekLocation(location);
+        final TmfExperimentContext context = seekLocation(location);
         context.setRank((long) index * fIndexPageSize);
 
         // And locate the event

@@ -1,23 +1,22 @@
     @SuppressWarnings("unchecked")
-    private void indexExperiment(boolean waitForCompletion, final int index, final TmfTimeRange timeRange) {
+    private void indexExperiment(final boolean waitForCompletion, final int index, final TmfTimeRange timeRange) {
 
         synchronized (fCheckpoints) {
-            if (fIndexing) {
+            if (fIndexing)
                 return;
-            }
             fIndexing = true;
         }
 
         final Job job = new Job("Indexing " + getName() + "...") { //$NON-NLS-1$ //$NON-NLS-2$
+
             @Override
-            protected IStatus run(IProgressMonitor monitor) {
-                while (!monitor.isCanceled()) {
+            protected IStatus run(final IProgressMonitor monitor) {
+                while (!monitor.isCanceled())
                     try {
                         Thread.sleep(100);
-                    } catch (InterruptedException e) {
+                    } catch (final InterruptedException e) {
                         return Status.OK_STATUS;
                     }
-                }
                 monitor.done();
                 return Status.OK_STATUS;
             }
@@ -27,8 +26,10 @@
 //		fEventLog = openLogFile("TraceEvent.log");
 //        System.out.println(System.currentTimeMillis() + ": Experiment indexing started");
 
-        ITmfEventRequest<ITmfEvent> request = new TmfEventRequest<ITmfEvent>(ITmfEvent.class, timeRange, index, TmfDataRequest.ALL_DATA,
-                fIndexPageSize, ITmfDataRequest.ExecutionType.BACKGROUND) { // PATA FOREGROUND
+        final ITmfEventRequest<ITmfEvent> request = new TmfEventRequest<ITmfEvent>(ITmfEvent.class, timeRange, index,
+                TmfDataRequest.ALL_DATA,
+                fIndexPageSize, ITmfDataRequest.ExecutionType.BACKGROUND) { // PATA
+                                                                            // FOREGROUND
 
 //            long indexingStart = System.nanoTime();
 
@@ -42,16 +43,15 @@
             }
 
             @Override
-            public void handleData(ITmfEvent event) {
+            public void handleData(final ITmfEvent event) {
                 super.handleData(event);
                 if (event != null) {
-                    ITmfTimestamp ts = event.getTimestamp();
+                    final ITmfTimestamp ts = event.getTimestamp();
                     if (startTime == null)
                         startTime = ts.clone();
                     lastTime = ts.clone();
-                    if ((getNbRead() % fIndexPageSize) == 1 && getNbRead() != 1) {
+                    if ((getNbRead() % fIndexPageSize) == 1 && getNbRead() != 1)
                         updateExperiment();
-                    }
                 }
             }
 
@@ -59,11 +59,12 @@
             public void handleSuccess() {
 //                long indexingEnd = System.nanoTime();
 
-                // if the end time is a real value then it is the streaming safe time stamp
-                // set the last time to the safe time stamp to prevent unnecessary indexing requests
-                if (getRange().getEndTime() != TmfTimestamp.BIG_CRUNCH) {
+                // if the end time is a real value then it is the streaming safe
+                // time stamp
+                // set the last time to the safe time stamp to prevent
+                // unnecessary indexing requests
+                if (getRange().getEndTime() != TmfTimestamp.BIG_CRUNCH)
                     lastTime = getRange().getEndTime();
-                }
                 updateExperiment();
 //                System.out.println(System.currentTimeMillis() + ": Experiment indexing completed");
 
@@ -89,10 +90,9 @@
             }
 
             private void updateExperiment() {
-                int nbRead = getNbRead();
-                if (startTime != null) {
+                final int nbRead = getNbRead();
+                if (startTime != null)
                     fTimeRange = new TmfTimeRange(startTime, lastTime.clone());
-                }
                 if (nbRead != 0) {
 //					updateTimeRange();
 //					updateNbEvents();
@@ -106,7 +106,7 @@
         if (waitForCompletion)
             try {
                 request.waitForCompletion();
-            } catch (InterruptedException e) {
+            } catch (final InterruptedException e) {
                 e.printStackTrace();
             }
     }
