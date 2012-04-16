@@ -1,0 +1,50 @@
+    @Override
+    @SuppressWarnings("unchecked")
+    public void createPartControl(Composite parent) {
+        fParent = parent;
+        TableItem ti[];
+        // If an experiment is already selected, update the table
+        TmfExperiment<ITmfEvent> experiment = (TmfExperiment<ITmfEvent>) TmfExperiment
+                .getCurrentExperiment();
+        if (experiment == null) {
+            return;
+        }
+        fTable = new Table(parent, SWT.BORDER|SWT.FILL);
+
+
+        ArrayList<Pair> tableData = new ArrayList<Pair>();
+        for (ITmfTrace trace : experiment.getTraces()) {
+            Pair traceEntry = new Pair(trace.getName());
+            tableData.add(traceEntry);
+            if (trace instanceof CtfTmfTrace) {
+                CtfTmfTrace ctfTrace = (CtfTmfTrace) trace;
+                for (String varName : ctfTrace
+                        .getEnvNames()) {
+                    tableData.add(new Pair( varName, ctfTrace.getEnvValue(varName)));
+                }
+            }
+        }
+        TableColumn nameCol = new TableColumn(fTable, SWT.NONE, 0);
+        TableColumn valueCol = new TableColumn(fTable, SWT.NONE, 1);
+        nameCol.setText("Environment Variable"); //$NON-NLS-1$
+        valueCol.setText("Value"); //$NON-NLS-1$
+
+        final int tableSize = tableData.size();
+
+        fTable.setItemCount(tableSize);
+        ti = fTable.getItems();
+        for(int i = 0; i < tableSize; i++){
+            final Pair currentPair = tableData.get(i);
+            ti[i].setText(0, currentPair.getKey());
+            ti[i].setText(1, currentPair.getValue());
+        }
+
+        fTable.setHeaderVisible(true);
+        nameCol.pack();
+        valueCol.pack();
+        fTable.pack();
+
+        parent.layout();
+
+    }
+

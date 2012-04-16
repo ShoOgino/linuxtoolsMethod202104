@@ -1,0 +1,85 @@
+    /**
+     * @param args
+     */
+    @SuppressWarnings("nls")
+    public static void main(String[] args) {
+        final String TRACE_PATH = "Tests/traces/trace20m1";
+
+        // Change this to enable text output
+        final boolean USE_TEXT = false;
+
+        final int LOOP_COUNT = 1;
+
+        // Work variables
+        Long nbEvent = 0L;
+        Vector<Double> benchs = new Vector<Double>();
+        CTFTrace trace = null;
+        long start, stop;
+        for (int loops = 0; loops < LOOP_COUNT; loops++) {
+            try {
+                nbEvent = 0L;
+                trace = new CTFTrace(TRACE_PATH);
+            } catch (CTFReaderException e) {
+                // do nothing
+            }
+            long prev = -1;
+            start = System.nanoTime();
+            if (USE_TEXT) {
+                System.out.println("Event, " + " Time, " + " type, " + " CPU ");
+            }
+            if (trace != null) {
+                CTFTraceReader traceReader = new CTFTraceReader(trace);
+
+                start = System.nanoTime();
+
+                while (traceReader.hasMoreEvents()) {
+                    EventDefinition ed = traceReader.getCurrentEventDef();
+                    nbEvent++;
+                    if (prev == traceReader.getIndex()) {
+                        System.out.println("Error on events " + prev);
+                    }
+                    prev = traceReader.getIndex();
+                    if (USE_TEXT) {
+                        String output = formatDate(ed.timestamp
+                                + trace.getOffset());
+                        System.out.println(traceReader.getIndex() + ", "
+                                + output + ", " + ed.getDeclaration().getName()
+                                + ", " + ed.getCPU());
+                    }
+
+                    traceReader.advance();
+                }
+            }
+            stop = System.nanoTime();
+            System.out.print('.');
+            double time = (stop - start) / (double) nbEvent;
+            benchs.add(time);
+        }
+        System.out.println("");
+        double avg = 0;
+        for (Double val : benchs) {
+            avg += val;
+        }
+        avg /= benchs.size();
+        System.out.println("Time to read " + nbEvent + " events = " + avg
+                + " events/ns");
+        for (Double val : benchs) {
+            System.out.print(val);
+            System.out.print(", ");
+        }
+        try {
+            testSeekIndex(trace);
+        } catch (CTFReaderException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        try {
+            testSeekIndex(trace);
+        } catch (CTFReaderException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+    }
+

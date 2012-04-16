@@ -1,0 +1,34 @@
+    /**
+     * Usual CTFEvent constructor, where we read an event from the trace (via
+     * the StreamInputReader).
+     *
+     * @param eventDef
+     * @param top
+     */
+    public CtfTmfEvent(EventDefinition eventDef, String fileName,
+            CtfTmfTrace originTrace) {
+        this.fTrace = originTrace;
+
+        if (eventDef == null) {
+            this.timestamp = -1;
+            this.sourceCPU = -1;
+            this.typeId = -1;
+            this.fileName = NO_STREAM;
+            this.eventName = EMPTY_CTF_EVENT_NAME;
+            this.fContent = null;
+            return;
+        }
+
+        /* Read the base event info */
+        Long offset = originTrace.getCTFTrace().getOffset();
+        this.timestamp = eventDef.timestamp + offset;
+        this.sourceCPU = eventDef.getCPU();
+        this.typeId = eventDef.getDeclaration().getId();
+        this.eventName = eventDef.getDeclaration().getName();
+        this.fileName =  fileName;
+
+        /* Read the fields */
+        this.fContent = new CtfTmfContent(ITmfEventField.ROOT_FIELD_ID,
+                parseFields(eventDef));
+    }
+

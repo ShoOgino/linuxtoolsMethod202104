@@ -1,0 +1,59 @@
+    public boolean seekIndex(long index) {
+        this.prio.clear();
+
+        long tempIndex = Long.MIN_VALUE;
+        long tempTimestamp = Long.MIN_VALUE;
+        try {
+            for (StreamInputReader streamInputReader : this.streamInputReaders) {
+                /*
+                 * Seek the trace reader.
+                 */
+                final long streamIndex = streamInputReader.seekIndex(index);
+                tempIndex = Math.max(tempIndex, streamIndex);
+                tempTimestamp = Math.max(tempTimestamp,
+                        streamInputReader.getCurrentEvent().timestamp);
+
+            }
+        } catch (CTFReaderException e) {
+            /*
+             * Important, if it failed, it's because it's not yet indexed, so we
+             * have to manually advance to the right value.
+             */
+            for (StreamInputReader streamInputReader : this.streamInputReaders) {
+                /*
+                 * Seek the trace reader.
+                 */
+                streamInputReader.seek(0);
+            }
+            tempIndex = 0;
+        }
+        for (StreamInputReader streamInputReader : this.streamInputReaders) {
+            /*
+             * Add it to the priority queue if there is a current event.
+             */
+
+            if (streamInputReader.getCurrentEvent() != null) {
+                this.prio.add(streamInputReader);
+            }
+        }
+        if (tempIndex == Long.MAX_VALUE) {
+            tempIndex = 0;
+        }
+        long pos = tempIndex;
+        if (index > tempIndex) {
+            /*
+             * advance for offset
+             */
+            while ((prio.peek().getCurrentEvent().timestamp < tempTimestamp)
+                    && hasMoreEvents()) {
+                this.advance();
+            }
+
+            for (pos = tempIndex; (pos < index) && hasMoreEvents(); pos++) {
+                this.advance();
+            }
+        }
+        this.index = pos;
+        return hasMoreEvents();
+    }
+
