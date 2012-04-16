@@ -1,0 +1,41 @@
+    public void testAddContext() {
+        try {
+            // 1) session name, channel = null, 3 event names, kernel
+            String sessionName = "mysession2";
+            String channelName = "mychannel";
+            String eventName = "ust_tests_hello:tptest_sighandler";
+            List<String> contexts = new ArrayList<String>();
+            contexts.add("prio");
+            contexts.add("pid");
+
+            fShell.setScenario(SCEN_CONTEXT_HANDLING);
+
+            List<String> availContexts = fService.getContextList(new NullProgressMonitor());
+            assertNotNull(availContexts);
+            assertEquals(12, availContexts.size());
+
+            // A very "hard-coded" way to verify but it works ...  
+            Set<String> expectedContexts = new HashSet<String>();
+            expectedContexts.add("pid");
+            expectedContexts.add("procname");
+            expectedContexts.add("prio");
+            expectedContexts.add("nice");
+            expectedContexts.add("vpid");
+            expectedContexts.add("tid");
+            expectedContexts.add("pthread_id");
+            expectedContexts.add("vtid");
+            expectedContexts.add("ppid");
+            expectedContexts.add("vppid");
+            expectedContexts.add("perf:cpu-cycles");
+            expectedContexts.add("perf:cycles");
+            
+            assertTrue(expectedContexts.containsAll(availContexts));
+            
+            // 1) session name, channel = null, event name, loglevel-only, TRACE_DEBUG
+            fService.addContexts(sessionName, channelName, eventName, false, contexts, new NullProgressMonitor());
+
+        } catch (ExecutionException e) {
+            fail(e.toString());
+        }
+    }
+
