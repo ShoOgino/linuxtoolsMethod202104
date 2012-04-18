@@ -1,40 +1,37 @@
     @Override
-    public TmfEvent parseEvent(ITmfContext tmfContext) {
-        if (!(tmfContext instanceof CustomXmlTraceContext)) {
+    public TmfEvent parseEvent(final ITmfContext tmfContext) {
+        if (!(tmfContext instanceof CustomXmlTraceContext))
             return null;
-        }
-        
-        CustomXmlTraceContext context = (CustomXmlTraceContext) tmfContext;
-        if (!(context.getLocation().getLocation() instanceof Long) || NULL_LOCATION.equals(context.getLocation())) {
+
+        final CustomXmlTraceContext context = (CustomXmlTraceContext) tmfContext;
+        if (!(context.getLocation().getLocation() instanceof Long) || NULL_LOCATION.equals(context.getLocation()))
             return null;
-        }
 
         synchronized (context.raFile) {
             CustomXmlEvent event = null;
             try {
-                if (context.raFile.getFilePointer() != (Long)context.getLocation().getLocation() + 1) {
+                if (context.raFile.getFilePointer() != (Long)context.getLocation().getLocation() + 1)
                     context.raFile.seek((Long)context.getLocation().getLocation() + 1); // +1 is for the <
-                }
-                StringBuffer elementBuffer = new StringBuffer("<"); //$NON-NLS-1$
+                final StringBuffer elementBuffer = new StringBuffer("<"); //$NON-NLS-1$
                 readElement(elementBuffer, context.raFile);
-                Element element = parseElementBuffer(elementBuffer);
-                
+                final Element element = parseElementBuffer(elementBuffer);
+
                 event = extractEvent(element, fRecordInputElement);
                 ((StringBuffer) event.getContent().getValue()).append(elementBuffer);
-                
+
                 String line;
-                String recordElementStart = "<" + fRecordInputElement.elementName; //$NON-NLS-1$
+                final String recordElementStart = "<" + fRecordInputElement.elementName; //$NON-NLS-1$
                 long rawPos = context.raFile.getFilePointer();
-                
+
                 while ((line = context.raFile.getNextLine()) != null) {
-                    int idx = line.indexOf(recordElementStart); 
+                    final int idx = line.indexOf(recordElementStart);
                     if (idx != -1) {
                         context.setLocation(new TmfLocation<Long>(rawPos + idx));
                         return event;
                     }
                     rawPos = context.raFile.getFilePointer();
                 }
-            } catch (IOException e) {
+            } catch (final IOException e) {
                 e.printStackTrace();
             }
             context.setLocation(NULL_LOCATION);

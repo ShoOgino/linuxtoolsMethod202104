@@ -7,66 +7,58 @@
      * @param cacheSize the event table cache size
      * @return an events table of the appropriate type
      */
-    private TmfEventsTable getExperimentEventsTable(TmfExperiment<?> experiment, Composite parent, int cacheSize) {
+    private TmfEventsTable getExperimentEventsTable(final TmfExperiment<?> experiment, final Composite parent, final int cacheSize) {
         TmfEventsTable eventsTable = null;
         String commonTraceType = null;
         try {
-            for (ITmfTrace<?> trace : experiment.getTraces()) {
-                IResource resource = trace.getResource();
-                if (resource == null) {
+            for (final ITmfTrace<?> trace : experiment.getTraces()) {
+                final IResource resource = trace.getResource();
+                if (resource == null)
                     return null;
-                }
-                String traceType = resource.getPersistentProperty(TmfTraceElement.TRACETYPE);
-                if ((commonTraceType != null) && !commonTraceType.equals(traceType)) {
+                final String traceType = resource.getPersistentProperty(TmfTraceElement.TRACETYPE);
+                if ((commonTraceType != null) && !commonTraceType.equals(traceType))
                     return null;
-                }
                 commonTraceType = traceType;
             }
-            if (commonTraceType == null) {
+            if (commonTraceType == null)
                 return null;
-            }
-            if (commonTraceType.startsWith(CustomTxtTrace.class.getCanonicalName())) {
+            if (commonTraceType.startsWith(CustomTxtTrace.class.getCanonicalName()))
                 return new CustomEventsTable(((CustomTxtTrace) experiment.getTraces()[0]).getDefinition(), parent, cacheSize);
-            }
-            if (commonTraceType.startsWith(CustomXmlTrace.class.getCanonicalName())) {
+            if (commonTraceType.startsWith(CustomXmlTrace.class.getCanonicalName()))
                 return new CustomEventsTable(((CustomXmlTrace) experiment.getTraces()[0]).getDefinition(), parent, cacheSize);
-            }
-            for (IConfigurationElement ce : TmfTraceType.getTypeElements()) {
+            for (final IConfigurationElement ce : TmfTraceType.getTypeElements())
                 if (ce.getAttribute(TmfTraceType.ID_ATTR).equals(commonTraceType)) {
-                    IConfigurationElement[] eventsTableTypeCE = ce.getChildren(TmfTraceType.EVENTS_TABLE_TYPE_ELEM);
-                    if (eventsTableTypeCE.length != 1) {
+                    final IConfigurationElement[] eventsTableTypeCE = ce.getChildren(TmfTraceType.EVENTS_TABLE_TYPE_ELEM);
+                    if (eventsTableTypeCE.length != 1)
                         break;
-                    }
-                    String eventsTableType = eventsTableTypeCE[0].getAttribute(TmfTraceType.CLASS_ATTR);
-                    if ((eventsTableType == null) || (eventsTableType.length() == 0)) {
+                    final String eventsTableType = eventsTableTypeCE[0].getAttribute(TmfTraceType.CLASS_ATTR);
+                    if ((eventsTableType == null) || (eventsTableType.length() == 0))
                         break;
-                    }
-                    Bundle bundle = Platform.getBundle(ce.getContributor().getName());
-                    Class<?> c = bundle.loadClass(eventsTableType);
-                    Class<?>[] constructorArgs = new Class[] { Composite.class, int.class };
-                    Constructor<?> constructor = c.getConstructor(constructorArgs);
-                    Object[] args = new Object[] { parent, cacheSize };
+                    final Bundle bundle = Platform.getBundle(ce.getContributor().getName());
+                    final Class<?> c = bundle.loadClass(eventsTableType);
+                    final Class<?>[] constructorArgs = new Class[] { Composite.class, int.class };
+                    final Constructor<?> constructor = c.getConstructor(constructorArgs);
+                    final Object[] args = new Object[] { parent, cacheSize };
                     eventsTable = (TmfEventsTable) constructor.newInstance(args);
                     break;
                 }
-            }
-        } catch (CoreException e) {
+        } catch (final CoreException e) {
             e.printStackTrace();
-        } catch (InvalidRegistryObjectException e) {
+        } catch (final InvalidRegistryObjectException e) {
             e.printStackTrace();
-        } catch (SecurityException e) {
+        } catch (final SecurityException e) {
             e.printStackTrace();
-        } catch (IllegalArgumentException e) {
+        } catch (final IllegalArgumentException e) {
             e.printStackTrace();
-        } catch (ClassNotFoundException e) {
+        } catch (final ClassNotFoundException e) {
             e.printStackTrace();
-        } catch (NoSuchMethodException e) {
+        } catch (final NoSuchMethodException e) {
             e.printStackTrace();
-        } catch (InstantiationException e) {
+        } catch (final InstantiationException e) {
             e.printStackTrace();
-        } catch (IllegalAccessException e) {
+        } catch (final IllegalAccessException e) {
             e.printStackTrace();
-        } catch (InvocationTargetException e) {
+        } catch (final InvocationTargetException e) {
             e.printStackTrace();
         }
         return eventsTable;

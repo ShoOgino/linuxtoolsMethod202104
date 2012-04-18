@@ -1,29 +1,27 @@
     @SuppressWarnings("unchecked")
     @TmfSignalHandler
-    public void traceParserUpdated(TmfTraceParserUpdatedSignal signal) {
+    public void traceParserUpdated(final TmfTraceParserUpdatedSignal signal) {
         if (signal.getTraceResource().equals(fFile)) {
             broadcast(new TmfTraceClosedSignal(this, fTrace));
             try {
-                String name = fTrace.getName();
+                fTrace.getName();
                 fTrace = null;
-                String traceTypeId = fFile.getPersistentProperty(TmfTraceElement.TRACETYPE);
-                if (traceTypeId != null) {
-                    for (IConfigurationElement ce : TmfTraceType.getTypeElements()) {
+                final String traceTypeId = fFile.getPersistentProperty(TmfTraceElement.TRACETYPE);
+                if (traceTypeId != null)
+                    for (final IConfigurationElement ce : TmfTraceType.getTypeElements())
                         if (traceTypeId.equals(ce.getAttribute(TmfTraceType.ID_ATTR))) {
                             fTrace = (ITmfTrace<?>) ce.createExecutableExtension(TmfTraceType.TRACE_TYPE_ATTR);
-                            TmfEvent event = (TmfEvent) ce.createExecutableExtension(TmfTraceType.EVENT_TYPE_ATTR);
-                            String path = fFile.getLocationURI().getPath();
-                            fTrace.initTrace(name, path, event.getClass());
+                            final TmfEvent event = (TmfEvent) ce.createExecutableExtension(TmfTraceType.EVENT_TYPE_ATTR);
+                            final String path = fFile.getLocationURI().getPath();
+                            fTrace.initTrace(null, path, event.getClass());
                             fTrace.indexTrace(false);
                             break;
                         }
-                    }
-                }
-            } catch (InvalidRegistryObjectException e) {
+            } catch (final InvalidRegistryObjectException e) {
                 e.printStackTrace();
-            } catch (FileNotFoundException e) {
+            } catch (final FileNotFoundException e) {
                 e.printStackTrace();
-            } catch (CoreException e) {
+            } catch (final CoreException e) {
                 e.printStackTrace();
             }
             fEventsTable.dispose();
@@ -31,9 +29,8 @@
                 fEventsTable = createEventsTable(fParent, fTrace.getIndexPageSize());
                 fEventsTable.setTrace(fTrace, true);
                 broadcast(new TmfTraceOpenedSignal(this, fTrace, fFile, fEventsTable));
-            } else {
+            } else
                 fEventsTable = new TmfEventsTable(fParent, 0);
-            }
             fParent.layout();
         }
     }

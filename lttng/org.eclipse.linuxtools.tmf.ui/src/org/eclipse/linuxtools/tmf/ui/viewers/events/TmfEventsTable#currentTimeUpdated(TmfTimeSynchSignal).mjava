@@ -14,45 +14,40 @@
                 TmfTimestamp ts = new TmfTimestamp(signal.getCurrentTime());
 
                 @Override
-                public void handleData(TmfEvent event) {
+                public void handleData(final TmfEvent event) {
                     super.handleData(event);
                 }
 
                 @Override
                 public void handleCompleted() {
                     super.handleCompleted();
-                    if (fTrace == null) {
+                    if (fTrace == null)
                         return;
-                    }
 
                     // Verify if the event is within the trace range and adjust if necessary
                     ITmfTimestamp timestamp = ts;
-                    if (timestamp.compareTo(fTrace.getStartTime(), true) == -1) {
+                    if (timestamp.compareTo(fTrace.getStartTime(), true) == -1)
                         timestamp = fTrace.getStartTime();
-                    }
-                    if (timestamp.compareTo(fTrace.getEndTime(), true) == 1) {
+                    if (timestamp.compareTo(fTrace.getEndTime(), true) == 1)
                         timestamp = fTrace.getEndTime();
-                    }
 
                     // Get the rank of the selected event in the table
-                    final long rank = fTrace.getRank(timestamp);
+                    final ITmfContext context = fTrace.seekEvent(timestamp);
+                    final long rank = context.getRank();
                     fSelectedRank = rank;
 
                     fTable.getDisplay().asyncExec(new Runnable() {
                         @Override
                         public void run() {
                             // Return if table is disposed
-                            if (fTable.isDisposed()) {
+                            if (fTable.isDisposed())
                                 return;
-                            }
 
                             int index = (int) rank;
-                            if (fTable.isDisposed()) {
+                            if (fTable.isDisposed())
                                 return;
-                            }
-                            if (fTable.getData(Key.FILTER_OBJ) != null) {
+                            if (fTable.getData(Key.FILTER_OBJ) != null)
                                 index = fCache.getFilteredEventIndex(rank) + 1; // +1 for top filter status row
-                            }
                             fTable.setSelection(index + 1); // +1 for header row
                             fRawViewer.selectAndReveal(rank);
                         }

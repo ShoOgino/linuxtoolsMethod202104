@@ -12,12 +12,11 @@
             TableItem item;
 
             @Override
-            public void mouseDown(MouseEvent event) {
-                if (event.button != 1) {
+            public void mouseDown(final MouseEvent event) {
+                if (event.button != 1)
                     return;
-                }
                 // Identify the selected row
-                Point point = new Point(event.x, event.y);
+                final Point point = new Point(event.x, event.y);
                 item = fTable.getItem(point);
 
                 // Header row selected
@@ -25,11 +24,10 @@
 
                     // Icon selected
                     if (item.getImageBounds(0).contains(point)) {
-                        if (fHeaderState == HeaderState.SEARCH) {
+                        if (fHeaderState == HeaderState.SEARCH)
                             fHeaderState = HeaderState.FILTER;
-                        } else if (fHeaderState == HeaderState.FILTER) {
+                        else if (fHeaderState == HeaderState.FILTER)
                             fHeaderState = HeaderState.SEARCH;
-                        }
                         fTable.refresh();
                         return;
                     }
@@ -37,50 +35,45 @@
                     // Identify the selected column
                     columnIndex = -1;
                     for (int i = 0; i < fTable.getColumns().length; i++) {
-                        Rectangle rect = item.getBounds(i);
+                        final Rectangle rect = item.getBounds(i);
                         if (rect.contains(point)) {
                             columnIndex = i;
                             break;
                         }
                     }
 
-                    if (columnIndex == -1) {
+                    if (columnIndex == -1)
                         return;
-                    }
 
                     column = fTable.getColumns()[columnIndex];
 
                     String txtKey = null;
-                    if (fHeaderState == HeaderState.SEARCH) {
+                    if (fHeaderState == HeaderState.SEARCH)
                         txtKey = Key.SEARCH_TXT;
-                    } else if (fHeaderState == HeaderState.FILTER) {
+                    else if (fHeaderState == HeaderState.FILTER)
                         txtKey = Key.FILTER_TXT;
-                    }
 
                     // The control that will be the editor must be a child of the Table
                     final Text newEditor = (Text) fTable.createTableEditorControl(Text.class);
-                    String headerString = (String) column.getData(txtKey);
-                    if (headerString != null) {
+                    final String headerString = (String) column.getData(txtKey);
+                    if (headerString != null)
                         newEditor.setText(headerString);
-                    }
                     newEditor.addFocusListener(new FocusAdapter() {
                         @Override
-                        public void focusLost(FocusEvent e) {
-                            boolean changed = updateHeader(newEditor.getText());
-                            if (changed) {
+                        public void focusLost(final FocusEvent e) {
+                            final boolean changed = updateHeader(newEditor.getText());
+                            if (changed)
                                 applyHeader();
-                            }
                         }
                     });
                     newEditor.addKeyListener(new KeyAdapter() {
                         @Override
-                        public void keyPressed(KeyEvent e) {
+                        public void keyPressed(final KeyEvent e) {
                             if (e.character == SWT.CR) {
                                 updateHeader(newEditor.getText());
                                 applyHeader();
-                            } else if (e.character == SWT.ESC) {
+                            } else if (e.character == SWT.ESC)
                                 tableEditor.getEditor().dispose();
-                            }
                         }
                     });
                     newEditor.selectAll();
@@ -92,7 +85,7 @@
             /*
              * returns true is value was changed
              */
-            private boolean updateHeader(String text) {
+            private boolean updateHeader(final String text) {
                 String objKey = null;
                 String txtKey = null;
                 if (fHeaderState == HeaderState.SEARCH) {
@@ -102,30 +95,29 @@
                     objKey = Key.FILTER_OBJ;
                     txtKey = Key.FILTER_TXT;
                 }
-                if (text.trim().length() > 0) {
+                if (text.trim().length() > 0)
                     try {
-                        String regex = TmfFilterMatchesNode.regexFix(text);
+                        final String regex = TmfFilterMatchesNode.regexFix(text);
                         Pattern.compile(regex);
                         if (regex.equals(column.getData(txtKey))) {
                             tableEditor.getEditor().dispose();
                             return false;
                         }
-                        TmfFilterMatchesNode filter = new TmfFilterMatchesNode(null);
+                        final TmfFilterMatchesNode filter = new TmfFilterMatchesNode(null);
                         String fieldId = (String) column.getData(Key.FIELD_ID);
-                        if (fieldId == null) {
+                        if (fieldId == null)
                             fieldId = column.getText();
-                        }
                         filter.setField(fieldId);
                         filter.setRegex(regex);
                         column.setData(objKey, filter);
                         column.setData(txtKey, regex);
-                    } catch (PatternSyntaxException ex) {
+                    } catch (final PatternSyntaxException ex) {
                         tableEditor.getEditor().dispose();
                         MessageDialog.openError(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(),
                                 ex.getDescription(), ex.getMessage());
                         return false;
                     }
-                } else {
+                else {
                     if (column.getData(txtKey) == null) {
                         tableEditor.getEditor().dispose();
                         return false;
@@ -140,11 +132,10 @@
                 stopSearchThread();
                 if (fHeaderState == HeaderState.SEARCH) {
                     final TmfFilterAndNode filter = new TmfFilterAndNode(null);
-                    for (TableColumn column : fTable.getColumns()) {
-                        Object filterObj = column.getData(Key.SEARCH_OBJ);
-                        if (filterObj instanceof ITmfFilterTreeNode) {
+                    for (final TableColumn column : fTable.getColumns()) {
+                        final Object filterObj = column.getData(Key.SEARCH_OBJ);
+                        if (filterObj instanceof ITmfFilterTreeNode)
                             filter.addChild((ITmfFilterTreeNode) filterObj);
-                        }
                     }
                     if (filter.getChildrenCount() > 0) {
                         fTable.setData(Key.SEARCH_OBJ, filter);
@@ -160,12 +151,11 @@
                     stopFilterThread();
                     fFilterMatchCount = 0;
                     fFilterCheckCount = 0;
-                    TmfFilterAndNode filter = new TmfFilterAndNode(null);
-                    for (TableColumn column : fTable.getColumns()) {
-                        Object filterObj = column.getData(Key.FILTER_OBJ);
-                        if (filterObj instanceof ITmfFilterTreeNode) {
+                    final TmfFilterAndNode filter = new TmfFilterAndNode(null);
+                    for (final TableColumn column : fTable.getColumns()) {
+                        final Object filterObj = column.getData(Key.FILTER_OBJ);
+                        if (filterObj instanceof ITmfFilterTreeNode)
                             filter.addChild((ITmfFilterTreeNode) filterObj);
-                        }
                     }
                     if (filter.getChildrenCount() > 0) {
                         fCache.applyFilter(filter);
@@ -179,11 +169,10 @@
                         stopFilterThread();
                         fTable.clearAll();
                         fTable.setData(Key.FILTER_OBJ, null);
-                        if (fTrace != null) {
+                        if (fTrace != null)
                             fTable.setItemCount((int) fTrace.getNbEvents() + 1); // +1 for header row
-                        } else {
+                        else
                             fTable.setItemCount(1); // +1 for header row
-                        }
                         fireFilterApplied(null);
                     }
                 }
@@ -194,7 +183,7 @@
 
         fTable.addKeyListener(new KeyAdapter() {
             @Override
-            public void keyPressed(KeyEvent e) {
+            public void keyPressed(final KeyEvent e) {
                 e.doit = false;
                 if (e.character == SWT.ESC) {
                     stopFilterThread();
@@ -204,23 +193,20 @@
                     stopFilterThread();
                     stopSearchThread();
                     if (fHeaderState == HeaderState.SEARCH) {
-                        for (TableColumn column : fTable.getColumns()) {
+                        for (final TableColumn column : fTable.getColumns()) {
                             column.setData(Key.SEARCH_OBJ, null);
                             column.setData(Key.SEARCH_TXT, null);
                         }
                         fTable.setData(Key.SEARCH_OBJ, null);
                         fTable.refresh();
                         fireSearchApplied(null);
-                    } else if (fHeaderState == HeaderState.FILTER) {
+                    } else if (fHeaderState == HeaderState.FILTER)
                         clearFilters();
-                    }
-                } else if (e.character == SWT.CR) {
-                    if ((e.stateMask & SWT.SHIFT) == 0) {
+                } else if (e.character == SWT.CR)
+                    if ((e.stateMask & SWT.SHIFT) == 0)
                         searchNext();
-                    } else {
+                    else
                         searchPrevious();
-                    }
-                }
             }
         });
     }

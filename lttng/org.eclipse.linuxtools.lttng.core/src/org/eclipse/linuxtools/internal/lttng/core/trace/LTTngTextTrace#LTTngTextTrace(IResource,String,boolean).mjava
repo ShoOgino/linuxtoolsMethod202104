@@ -1,0 +1,41 @@
+    public LTTngTextTrace(final IResource resource, final String path, final boolean skipIndexing) throws Exception {
+        super(null, LttngEvent.class, path, 1, !skipIndexing);
+
+        tracepath = path;
+        traceTypes      = new HashMap<String, LttngEventType>();
+
+        eventTimestamp        = new LttngTimestamp();
+        eventSource           = "Kernel Core"; //$NON-NLS-1$
+        eventType             = new LttngEventType();
+        eventContent          = new TextLttngEventContent(currentLttngEvent);
+        eventReference        = getName();
+
+        currentLttngEvent = new TextLttngEvent(this, eventTimestamp, eventSource, eventType, eventContent, eventReference);
+        eventContent.setEvent(currentLttngEvent);
+
+        if ( positionToFirstEvent() == false )
+            throw new IOException("Fail to position to the beginning of the trace"); //$NON-NLS-1$
+        else {
+            fIndexPageSize = 1000;
+
+            // Skip indexing if asked
+            //        	if ( skipIndexing == true ) {
+            fCheckpoints.add(new TmfCheckpoint(new LttngTimestamp(0L), new TmfLocation<Long>(0L)));
+            //        	}
+            //        	else {
+            //        		indexTrace(true);
+            //        	}
+
+            final Long endTime = currentLttngEvent.getTimestamp().getValue();
+            positionToFirstEvent();
+
+            getNextEvent(new TmfContext(null, 0));
+            final Long starTime = currentLttngEvent.getTimestamp().getValue();
+            positionToFirstEvent();
+
+            setTimeRange( new TmfTimeRange( new LttngTimestamp(starTime),
+                    new LttngTimestamp(endTime)
+                    ) );
+        }
+    }
+

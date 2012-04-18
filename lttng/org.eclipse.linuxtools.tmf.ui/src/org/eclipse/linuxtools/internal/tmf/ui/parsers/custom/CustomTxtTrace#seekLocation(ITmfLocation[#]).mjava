@@ -1,20 +1,18 @@
     @Override
-    public TmfContext seekLocation(ITmfLocation<?> location) {
-        CustomTxtTraceContext context = new CustomTxtTraceContext(NULL_LOCATION, ITmfContext.INITIAL_RANK);
-        if (NULL_LOCATION.equals(location) || !new File(getPath()).isFile()) {
+    public TmfContext seekLocation(final ITmfLocation<?> location) {
+        final CustomTxtTraceContext context = new CustomTxtTraceContext(NULL_LOCATION, ITmfContext.INITIAL_RANK);
+        if (NULL_LOCATION.equals(location) || !new File(getPath()).isFile())
             return context;
-        }
-        BufferedRandomAccessFile raFile = null; 
+        BufferedRandomAccessFile raFile = null;
         try {
-			raFile = new BufferedRandomAccessFile(getPath(), "r"); //$NON-NLS-1$
-            if (location != null && location.getLocation() instanceof Long) {
+            raFile = new BufferedRandomAccessFile(getPath(), "r"); //$NON-NLS-1$
+            if (location != null && location.getLocation() instanceof Long)
                 raFile.seek((Long)location.getLocation());
-            }
             String line;
             long rawPos = raFile.getFilePointer();
             while ((line = raFile.getNextLine()) != null) {
-                for (InputLine input : getFirstLines()) {
-                    Matcher matcher = input.getPattern().matcher(line);
+                for (final InputLine input : getFirstLines()) {
+                    final Matcher matcher = input.getPattern().matcher(line);
                     if (matcher.find()) {
                         context.setLocation(new TmfLocation<Long>(rawPos));
                         context.raFile = raFile;
@@ -28,20 +26,19 @@
                 rawPos = raFile.getFilePointer();
             }
             return context;
-        } catch (FileNotFoundException e) {
+        } catch (final FileNotFoundException e) {
             e.printStackTrace();
             return context;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             e.printStackTrace();
             return context;
         } finally {
-        	if (raFile != null) {
-        		try {
-					raFile.close();
-				} catch (IOException e) {
-				}
-        	}
+            if (raFile != null)
+                try {
+                    raFile.close();
+                } catch (final IOException e) {
+                }
         }
-        
+
     }
 
