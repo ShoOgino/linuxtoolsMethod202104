@@ -1,51 +1,33 @@
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * org.eclipse.linuxtools.tmf.core.trace.ITmfTrace#seekEvent(org.eclipse
-     * .linuxtools.tmf.core.event.ITmfTimestamp)
+    /* (non-Javadoc)
+     * @see org.eclipse.linuxtools.tmf.core.trace.ITmfTrace#seekEvent(org.eclipse.linuxtools.tmf.core.event.ITmfTimestamp)
      */
     @Override
-    public ITmfContext seekEvent(final ITmfTimestamp ts) {
+    public ITmfContext seekEvent(final ITmfTimestamp timestamp) {
 
-        ITmfTimestamp timestamp = ts;
+        // A null timestamp indicates to seek the first event
         if (timestamp == null)
-            timestamp = TmfTimestamp.BIG_BANG;
+            return seekLocation(null);
 
-        // First, find the right checkpoint
+        // Find the checkpoint at or before the requested timestamp.
+        // In the very likely event that the timestamp is not at a checkpoint
+        // boundary, bsearch will return index = (- (insertion point + 1)).
+        // It is then trivial to compute the index of the previous checkpoint.
         int index = Collections.binarySearch(fCheckpoints, new TmfCheckpoint(timestamp, null));
-
-        // In the very likely case that the checkpoint was not found, bsearch
-        // returns its negated would-be location (not an offset...). From that
-        // index, we can then position the stream and get the event.
-        if (index < 0)
+        if (index < 0) {
             index = Math.max(0, -(index + 2));
-
-        // Position the stream at the checkpoint
-        ITmfLocation<?> location;
-        synchronized (fCheckpoints) {
-            if (!fCheckpoints.isEmpty()) {
-                if (index >= fCheckpoints.size())
-                    index = fCheckpoints.size() - 1;
-                location = fCheckpoints.elementAt(index).getLocation();
-            } else
-                location = null;
         }
-        final ITmfContext context = seekLocation(location);
-        context.setRank(index * fIndexPageSize);
 
-        // And locate the event
-        final ITmfContext nextEventContext = context.clone(); // Must use
-        // clone() to get
-        // the right
-        // subtype...
+        // Position the trace at the checkpoint
+        final ITmfContext context = seekCheckpoint(index);
+
+        // And locate the requested event context
+        final ITmfContext nextEventContext = context.clone(); // Must use clone() to get the right subtype...
         ITmfEvent event = getNextEvent(nextEventContext);
         while (event != null && event.getTimestamp().compareTo(timestamp, false) < 0) {
             context.setLocation(nextEventContext.getLocation().clone());
             context.increaseRank();
             event = getNextEvent(nextEventContext);
         }
-
         return context;
     }
 

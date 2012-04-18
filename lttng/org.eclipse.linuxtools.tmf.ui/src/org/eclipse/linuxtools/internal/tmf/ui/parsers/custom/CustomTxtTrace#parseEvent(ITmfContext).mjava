@@ -18,13 +18,14 @@
 
         synchronized (context.raFile) {
             try {
-                if (context.raFile.getFilePointer() != context.nextLineLocation)
+                if (context.raFile.getFilePointer() != context.nextLineLocation) {
                     context.raFile.seek(context.nextLineLocation);
+                }
                 String line;
                 long rawPos = context.raFile.getFilePointer();
                 while ((line = context.raFile.getNextLine()) != null) {
                     boolean processed = false;
-                    if (currentInput == null)
+                    if (currentInput == null) {
                         for (final InputLine input : getFirstLines()) {
                             final Matcher matcher = input.getPattern().matcher(line);
                             if (matcher.find()) {
@@ -36,10 +37,10 @@
                                 return event;
                             }
                         }
-                    else {
+                    } else {
                         if (countMap.get(currentInput) >= currentInput.getMinCount()) {
                             final List<InputLine> nextInputs = currentInput.getNextInputs(countMap);
-                            if (nextInputs.size() == 0 || nextInputs.get(nextInputs.size() - 1).getMinCount() == 0)
+                            if (nextInputs.size() == 0 || nextInputs.get(nextInputs.size() - 1).getMinCount() == 0) {
                                 for (final InputLine input : getFirstLines()) {
                                     final Matcher matcher = input.getPattern().matcher(line);
                                     if (matcher.find()) {
@@ -51,20 +52,23 @@
                                         return event;
                                     }
                                 }
+                            }
                             for (final InputLine input : nextInputs) {
                                 final Matcher matcher = input.getPattern().matcher(line);
                                 if (matcher.find()) {
                                     event.processGroups(input, matcher);
                                     currentInput = input;
-                                    if (countMap.get(currentInput) == null)
+                                    if (countMap.get(currentInput) == null) {
                                         countMap.put(currentInput, 1);
-                                    else
+                                    } else {
                                         countMap.put(currentInput, countMap.get(currentInput) + 1);
+                                    }
                                     Iterator<InputLine> iter = countMap.keySet().iterator();
                                     while (iter.hasNext()) {
                                         final InputLine inputLine = iter.next();
-                                        if (inputLine.level > currentInput.level)
+                                        if (inputLine.level > currentInput.level) {
                                             iter.remove();
+                                        }
                                     }
                                     if (currentInput.childrenInputs != null && currentInput.childrenInputs.size() > 0) {
                                         currentInput = currentInput.childrenInputs.get(0);
@@ -72,16 +76,19 @@
                                     } else if (countMap.get(currentInput) >= currentInput.getMaxCount())
                                         if (currentInput.getNextInputs(countMap).size() > 0) {
                                             currentInput = currentInput.getNextInputs(countMap).get(0);
-                                            if (countMap.get(currentInput) == null)
+                                            if (countMap.get(currentInput) == null) {
                                                 countMap.put(currentInput, 0);
+                                            }
                                             iter = countMap.keySet().iterator();
                                             while (iter.hasNext()) {
                                                 final InputLine inputLine = iter.next();
-                                                if (inputLine.level > currentInput.level)
+                                                if (inputLine.level > currentInput.level) {
                                                     iter.remove();
+                                                }
                                             }
-                                        } else
+                                        } else {
                                             currentInput = null;
+                                        }
                                     processed = true;
                                     break;
                                 }
@@ -98,16 +105,19 @@
                                 } else if (countMap.get(currentInput) >= currentInput.getMaxCount())
                                     if (currentInput.getNextInputs(countMap).size() > 0) {
                                         currentInput = currentInput.getNextInputs(countMap).get(0);
-                                        if (countMap.get(currentInput) == null)
+                                        if (countMap.get(currentInput) == null) {
                                             countMap.put(currentInput, 0);
+                                        }
                                         final Iterator<InputLine> iter = countMap.keySet().iterator();
                                         while (iter.hasNext()) {
                                             final InputLine inputLine = iter.next();
-                                            if (inputLine.level > currentInput.level)
+                                            if (inputLine.level > currentInput.level) {
                                                 iter.remove();
+                                            }
                                         }
-                                    } else
+                                    } else {
                                         currentInput = null;
+                                    }
                             }
                             ((StringBuffer) event.getContent().getValue()).append("\n").append(line); //$NON-NLS-1$
                         }
@@ -119,8 +129,9 @@
             }
         }
         for(final Entry<InputLine, Integer> entry : countMap.entrySet())
-            if (entry.getValue() < entry.getKey().getMinCount())
+            if (entry.getValue() < entry.getKey().getMinCount()) {
                 event = null;
+            }
         context.setLocation(NULL_LOCATION);
         return event;
     }
