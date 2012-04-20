@@ -1,12 +1,12 @@
     /**
      * Spawns a request to index the experiment (checkpoints creation) as well as it fills
      * the first page.
-     * 
+     *
      * @param signal The experiment selected signal
      */
     @SuppressWarnings("unchecked")
     @TmfSignalHandler
-    public void experimentSelected(TmfExperimentSelectedSignal<TmfEvent> signal) {
+    public void experimentSelected(TmfExperimentSelectedSignal<ITmfEvent> signal) {
 
         final Job job = new Job("Indexing " + getName() + "...") { //$NON-NLS-1$ //$NON-NLS-2$
             @Override
@@ -25,10 +25,10 @@
         job.setUser(false);
         job.schedule();
 
-        fLock.lock(); 
+        fLock.lock();
         try {
             // Update the trace reference
-            TmfExperiment<TmfEvent> exp = (TmfExperiment<TmfEvent>) signal.getExperiment();
+            TmfExperiment<ITmfEvent> exp = (TmfExperiment<ITmfEvent>) signal.getExperiment();
             if (!exp.equals(fExperiment)) {
                 fExperiment = exp;
             }
@@ -36,15 +36,15 @@
             // TmfTimeRange window = getInitTRange(fExperiment.getTimeRange());
             TmfTimeRange window = TmfTimeRange.ETERNITY;
 
-            fIndexRequest = new TmfEventRequest<TmfEvent>(TmfEvent.class, window, TmfDataRequest.ALL_DATA, DEFAULT_BLOCK_SIZE, ITmfDataRequest.ExecutionType.BACKGROUND) {
+            fIndexRequest = new TmfEventRequest<ITmfEvent>(ITmfEvent.class, window, TmfDataRequest.ALL_DATA, DEFAULT_BLOCK_SIZE, ITmfDataRequest.ExecutionType.BACKGROUND) {
 
                 private ITmfTimestamp fFirstTime = null;
                 private ITmfTimestamp fLastTime = null;
                 private int fNbSeqEvents = 0;
-                private List<ITmfSyncSequenceDiagramEvent> fSdEvents = new ArrayList<ITmfSyncSequenceDiagramEvent>(MAX_NUM_OF_MSG);
+                private final List<ITmfSyncSequenceDiagramEvent> fSdEvents = new ArrayList<ITmfSyncSequenceDiagramEvent>(MAX_NUM_OF_MSG);
 
                 @Override
-                public void handleData(TmfEvent event) {
+                public void handleData(ITmfEvent event) {
                     super.handleData(event);
 
                     ITmfSyncSequenceDiagramEvent sdEvent = getSequnceDiagramEvent(event);
@@ -69,7 +69,7 @@
                                 fLock.unlock();
                             }
                             fFirstTime = null;
-                            
+
                         }
 
                         if (fNbSeqEvents > MAX_NUM_OF_MSG) {
@@ -119,10 +119,10 @@
                 }
             };
 
-            ((TmfExperiment<TmfEvent>) fExperiment).sendRequest((ITmfDataRequest<TmfEvent>) fIndexRequest);
+            fExperiment.sendRequest(fIndexRequest);
         } finally {
             fLock.unlock();
         }
-    
+
     }
 
