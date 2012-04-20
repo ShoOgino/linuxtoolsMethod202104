@@ -2,23 +2,14 @@
      * @see org.eclipse.linuxtools.tmf.core.trace.ITmfTrace#seekEvent(org.eclipse.linuxtools.tmf.core.event.ITmfTimestamp)
      */
     @Override
-    public ITmfContext seekEvent(final ITmfTimestamp timestamp) {
+    public synchronized ITmfContext seekEvent(final ITmfTimestamp timestamp) {
 
         // A null timestamp indicates to seek the first event
         if (timestamp == null)
             return seekLocation(null);
 
-        // Find the checkpoint at or before the requested timestamp.
-        // In the very likely event that the timestamp is not at a checkpoint
-        // boundary, bsearch will return index = (- (insertion point + 1)).
-        // It is then trivial to compute the index of the previous checkpoint.
-        int index = Collections.binarySearch(fCheckpoints, new TmfCheckpoint(timestamp, null));
-        if (index < 0) {
-            index = Math.max(0, -(index + 2));
-        }
-
         // Position the trace at the checkpoint
-        final ITmfContext context = seekCheckpoint(index);
+        final ITmfContext context = fIndexer.seekIndex(timestamp);
 
         // And locate the requested event context
         final ITmfContext nextEventContext = context.clone(); // Must use clone() to get the right subtype...

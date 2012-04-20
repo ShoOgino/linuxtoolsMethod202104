@@ -2,38 +2,22 @@
      * @see org.eclipse.linuxtools.tmf.core.trace.ITmfTraceIndexer#seekIndex(org.eclipse.linuxtools.tmf.core.event.ITmfTimestamp)
      */
     @Override
-    public ITmfContext seekIndex(final ITmfTimestamp timestamp) {
-        // Adjust the timestamp if needed
-        ITmfTimestamp ts = timestamp;
-        if (ts == null) {
-            ts = TmfTimestamp.BIG_BANG;
-        }
+    public synchronized ITmfContext seekIndex(final ITmfTimestamp timestamp) {
 
-        // First, find the right checkpoint
-        int index = Collections.binarySearch(fTraceIndex, new TmfCheckpoint(ts, null));
+        // A null timestamp indicates to seek the first event
+        if (timestamp == null)
+            return fTrace.seekLocation(null);
 
-        // In the very likely case that the checkpoint was not found, bsearch
-        // returns its negated would-be location (not an offset...). From that
-        // index, we can then position the stream and get figure out the context.
+        // Find the checkpoint at or before the requested timestamp.
+        // In the very likely event that the timestamp is not at a checkpoint
+        // boundary, bsearch will return index = (- (insertion point + 1)).
+        // It is then trivial to compute the index of the previous checkpoint.
+        int index = Collections.binarySearch(fTraceIndex, new TmfCheckpoint(timestamp, null));
         if (index < 0) {
             index = Math.max(0, -(index + 2));
         }
 
         // Position the trace at the checkpoint
-        ITmfLocation<?> location;
-        synchronized (fTraceIndex) {
-            if (!fTraceIndex.isEmpty()) {
-                if (index >= fTraceIndex.size()) {
-                    index = fTraceIndex.size() - 1;
-                }
-                location = fTraceIndex.elementAt(index).getLocation();
-            } else {
-                location = null;
-            }
-        }
-        final ITmfContext context = fTrace.seekLocation(location);
-        context.setRank(index * fCheckpointInterval);
-
-        return context;
+        return seekCheckpoint(index);
     }
 

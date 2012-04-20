@@ -2,15 +2,14 @@
      * @see org.eclipse.linuxtools.tmf.core.trace.ITmfTrace#seekEvent(long)
      */
     @Override
-    public ITmfContext seekEvent(final long rank) {
+    public synchronized ITmfContext seekEvent(final long rank) {
 
         // A rank <= 0 indicates to seek the first event
         if (rank <= 0)
             return seekLocation(null);
 
-        // Find the checkpoint at or before the requested rank.
-        final int index = (int) rank / fCacheSize;
-        final ITmfContext context = seekCheckpoint(index);
+        // Position the trace at the checkpoint
+        final ITmfContext context = fIndexer.seekIndex(rank);
 
         // And locate the requested event context
         long pos = context.getRank();

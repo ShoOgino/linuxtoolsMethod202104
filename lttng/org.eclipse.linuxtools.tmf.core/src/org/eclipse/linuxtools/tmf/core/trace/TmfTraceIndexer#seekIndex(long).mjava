@@ -1,24 +1,17 @@
+    /* (non-Javadoc)
+     * @see org.eclipse.linuxtools.tmf.core.trace.ITmfTraceIndexer#seekIndex(long)
+     */
     @Override
     public ITmfContext seekIndex(final long rank) {
 
-        // Position the stream at the previous checkpoint
-        int index = (int) rank / fCheckpointInterval;
-        ITmfLocation<?> location;
-        synchronized (fTraceIndex) {
-            if (fTraceIndex.isEmpty()) {
-                location = null;
-            } else {
-                if (index >= fTraceIndex.size()) {
-                    index = fTraceIndex.size() - 1;
-                }
-                location = fTraceIndex.elementAt(index).getLocation();
-            }
-        }
+      // A rank <= 0 indicates to seek the first event
+      if (rank <= 0)
+          return fTrace.seekLocation(null);
 
-        final ITmfContext context = fTrace.seekLocation(location);
-        final long pos = index * fCheckpointInterval;
-        context.setRank(pos);
+      // Find the checkpoint at or before the requested rank.
+      final int index = (int) rank / fCheckpointInterval;
 
-        return context;
+      // Position the trace at the checkpoint
+      return seekCheckpoint(index);
     }
 
