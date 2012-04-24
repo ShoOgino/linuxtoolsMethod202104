@@ -6,18 +6,18 @@
 
         // A null timestamp indicates to seek the first event
         if (timestamp == null)
-            return seekLocation(null);
+            return seekEvent(0);
 
         // Position the trace at the checkpoint
         final ITmfContext context = fIndexer.seekIndex(timestamp);
 
         // And locate the requested event context
         final ITmfContext nextEventContext = context.clone(); // Must use clone() to get the right subtype...
-        ITmfEvent event = getNextEvent(nextEventContext);
+        ITmfEvent event = readEvent(nextEventContext);
         while (event != null && event.getTimestamp().compareTo(timestamp, false) < 0) {
             context.setLocation(nextEventContext.getLocation().clone());
             context.increaseRank();
-            event = getNextEvent(nextEventContext);
+            event = readEvent(nextEventContext);
         }
         return context;
     }

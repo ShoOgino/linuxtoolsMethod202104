@@ -1,0 +1,53 @@
+    @Override
+    public synchronized LttngEvent readEvent(final ITmfContext context) {
+
+        if (PRINT_DEBUG)
+            System.out.println("getNextEvent(context) context.getLocation() -> " //$NON-NLS-1$
+                    + context.getLocation());
+
+        LttngEvent returnedEvent = null;
+        LttngLocation curLocation = null;
+
+        curLocation = (LttngLocation) context.getLocation();
+        // If the location in context is null, create a new one
+        if (curLocation == null)
+            curLocation = getCurrentLocation(context);
+
+        // *** Positioning trick :
+        // GetNextEvent only read the trace if :
+        // 1- The last operation was NOT a ParseEvent --> A read is required
+        // OR
+        // 2- The time of the previous location is different from the current
+        // one --> A seek + a read is required
+        if ((!(curLocation.isLastOperationParse()))
+                || (previousLocation.getOperationTimeValue() != curLocation.getOperationTimeValue())) {
+            if (previousLocation.getOperationTimeValue() != curLocation.getOperationTimeValue()) {
+                if (PRINT_DEBUG)
+                    System.out.println("\t\tSeeking in getNextEvent. [ LastTime : " //$NON-NLS-1$
+                            + previousLocation.getOperationTimeValue() + " CurrentTime" //$NON-NLS-1$
+                            + curLocation.getOperationTimeValue() + " ]"); //$NON-NLS-1$
+                seekEvent(curLocation.getOperationTime());
+            }
+            // Read the next event from the trace. The last one will NO LONGER
+            // BE VALID.
+            returnedEvent = readNextEvent(curLocation);
+
+        } else {
+            // No event was read, just return the one currently loaded (the last
+            // one we read)
+            returnedEvent = currentLttngEvent;
+
+            // Set the operation marker as read to both locations, to be able to
+            // detect we need to read the next event
+            previousLocation.setLastOperationReadNext();
+            curLocation.setLastOperationReadNext();
+        }
+
+        // If we read an event, set it's time to the locations (both previous
+        // and current)
+        if (returnedEvent != null)
+            setPreviousAndCurrentTimes(context, returnedEvent, curLocation);
+
+        return returnedEvent;
+    }
+

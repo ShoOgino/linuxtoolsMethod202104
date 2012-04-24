@@ -1,0 +1,28 @@
+    @SuppressWarnings("unchecked")
+    public void testProcessDataRequestForSomeEvents() throws Exception {
+        final int startIndex = 100;
+        final int NB_EVENTS  = 1000;
+        final Vector<TmfEvent> requestedEvents = new Vector<TmfEvent>();
+
+        final TmfDataRequest<TmfEvent> request = new TmfDataRequest<TmfEvent>(TmfEvent.class, startIndex, NB_EVENTS) {
+            @Override
+            public void handleData(final TmfEvent event) {
+                super.handleData(event);
+                requestedEvents.add(event);
+            }
+        };
+        final ITmfDataProvider<TmfEvent>[] providers = (ITmfDataProvider<TmfEvent>[]) TmfProviderManager.getProviders(TmfEvent.class, TmfTraceStub.class);
+        providers[0].sendRequest(request);
+        request.waitForCompletion();
+
+        assertEquals("nbEvents", NB_EVENTS, requestedEvents.size());
+        assertTrue("isCompleted",  request.isCompleted());
+        assertFalse("isCancelled", request.isCancelled());
+
+        // Ensure that we have distinct events.
+        // Don't go overboard: we are not validating the stub!
+        for (int i = 0; i < NB_EVENTS; i++) {
+            assertEquals("Distinct events", startIndex + 1 + i, requestedEvents.get(i).getTimestamp().getValue());
+        }
+    }
+

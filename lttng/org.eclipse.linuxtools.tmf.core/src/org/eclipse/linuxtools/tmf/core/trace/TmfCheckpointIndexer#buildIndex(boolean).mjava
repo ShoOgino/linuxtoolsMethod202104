@@ -1,0 +1,85 @@
+    /* (non-Javadoc)
+     * @see org.eclipse.linuxtools.tmf.core.trace.ITmfTrace#indexTrace(boolean)
+     * 
+     * The index is a list of contexts that point to events at regular interval
+     * (rank-wise) in the trace. After it is built, the index can be used to
+     * quickly access any event by rank or timestamp (using seekIndex()).
+     * 
+     * The index is built simply by reading the trace
+     */
+    @Override
+    public void buildIndex(final boolean waitForCompletion) {
+
+        // The monitoring job
+        final Job job = new Job("Indexing " + fTrace.getName() + "...") { //$NON-NLS-1$ //$NON-NLS-2$
+            @Override
+            protected IStatus run(final IProgressMonitor monitor) {
+                while (!monitor.isCanceled()) {
+                    try {
+                        Thread.sleep(100);
+                    } catch (final InterruptedException e) {
+                        return Status.OK_STATUS;
+                    }
+                }
+                monitor.done();
+                return Status.OK_STATUS;
+            }
+        };
+        job.schedule();
+
+        // Clear the checkpoints
+        fTraceIndex.clear();
+
+        // Build a background request for all the trace data. The index is
+        // updated as we go by getNextEvent().
+        final ITmfEventRequest<ITmfEvent> request = new TmfEventRequest<ITmfEvent>(ITmfEvent.class, TmfTimeRange.ETERNITY,
+                TmfDataRequest.ALL_DATA, fCheckpointInterval, ITmfDataRequest.ExecutionType.BACKGROUND)
+        {
+            ITmfTimestamp startTime = null;
+            ITmfTimestamp lastTime = null;
+
+            @Override
+            public void handleData(final ITmfEvent event) {
+                super.handleData(event);
+                if (event != null) {
+                    final ITmfTimestamp timestamp = event.getTimestamp();
+                    if (startTime == null) {
+                        startTime = timestamp.clone();
+                    }
+                    lastTime = timestamp.clone();
+
+                    // Update the trace status at regular intervals
+                    if ((getNbRead() % fCheckpointInterval) == 0) {
+                        updateTraceStatus();
+                    }
+                }
+            }
+
+            @Override
+            public void handleSuccess() {
+                updateTraceStatus();
+            }
+
+            @Override
+            public void handleCompleted() {
+                job.cancel();
+                super.handleCompleted();
+            }
+
+            private void updateTraceStatus() {
+                if (getNbRead() != 0) {
+                    signalNewTimeRange(startTime, lastTime);
+                }
+            }
+        };
+
+        // Submit the request and wait for completion if required
+        fTrace.sendRequest(request);
+        if (waitForCompletion) {
+            try {
+                request.waitForCompletion();
+            } catch (final InterruptedException e) {
+            }
+        }
+    }
+
