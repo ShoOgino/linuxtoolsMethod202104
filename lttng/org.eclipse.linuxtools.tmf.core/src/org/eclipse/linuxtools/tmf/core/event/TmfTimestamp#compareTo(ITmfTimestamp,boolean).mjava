@@ -4,22 +4,26 @@
     @Override
     public int compareTo(final ITmfTimestamp ts, final boolean withinPrecision) {
 
-        if (ts == null)
-            return 1;
-
         // Check the corner cases (we can't use equals() because it uses compareTo()...)
-        if (this == ts || (fValue == ts.getValue() && fScale == ts.getScale()))
-            return 0;
-        if ((fValue == BIG_BANG.getValue() && fScale == BIG_BANG.getScale()) || (ts.getValue() == BIG_CRUNCH.getValue() && ts.getScale() == BIG_CRUNCH.getScale()))
-            return -1;
-        if ((fValue == BIG_CRUNCH.getValue() && fScale == BIG_CRUNCH.getScale()) || (ts.getValue() == BIG_BANG.getValue() && ts.getScale() == BIG_BANG.getScale()))
+        if (ts == null) {
             return 1;
+        }
+        if (this == ts || (fValue == ts.getValue() && fScale == ts.getScale())) {
+            return 0;
+        }
+        if ((fValue == BIG_BANG.getValue() && fScale == BIG_BANG.getScale()) || (ts.getValue() == BIG_CRUNCH.getValue() && ts.getScale() == BIG_CRUNCH.getScale())) {
+            return -1;
+        }
+        if ((fValue == BIG_CRUNCH.getValue() && fScale == BIG_CRUNCH.getScale()) || (ts.getValue() == BIG_BANG.getValue() && ts.getScale() == BIG_BANG.getScale())) {
+            return 1;
+        }
 
         try {
             final ITmfTimestamp nts = ts.normalize(0, fScale);
             final long delta = fValue - nts.getValue();
-            if ((delta == 0) || (withinPrecision && (Math.abs(delta) <= (fPrecision + nts.getPrecision()))))
+            if ((delta == 0) || (withinPrecision && (Math.abs(delta) <= (fPrecision + nts.getPrecision())))) {
                 return 0;
+            }
             return (delta > 0) ? 1 : -1;
         }
         catch (final ArithmeticException e) {
@@ -27,12 +31,15 @@
 
             // First, look at the sign of the mantissa
             final long value = ts.getValue();
-            if (fValue == 0 && value == 0)
+            if (fValue == 0 && value == 0) {
                 return 0;
-            if (fValue  < 0 && value >= 0)
+            }
+            if (fValue < 0 && value >= 0) {
                 return -1;
-            if (fValue >= 0 && value < 0)
+            }
+            if (fValue >= 0 && value < 0) {
                 return 1;
+            }
 
             // Otherwise, just compare the scales
             final int scale = ts.getScale();
