@@ -11,17 +11,33 @@
 			IProject project = root.getProject(projectName);
 			IProjectDescription description = ResourcesPlugin.getWorkspace()
 					.newProjectDescription(project.getName());
+			String parsedIPathString = null;
 			if (!Platform.getLocation().equals(projectPath))
-				description.setLocation(projectPath);
-			description
-					.setNatureIds(new String[] { IRPMConstants.RPM_NATURE_ID });
+					parsedIPathString = projectPath.toString().replaceFirst(":/", "://"); //$NON-NLS-1$ //$NON-NLS-2$
+					try {
+						description.setLocationURI(new URI(parsedIPathString));
+					} catch (URISyntaxException e) {
+						throw new CoreException(new Status(IStatus.ERROR, IRPMConstants.RPM_CORE_ID,
+								e.getMessage(), e));
+					}
+
+
+			description.setNatureIds(new String[] { IRPMConstants.RPM_NATURE_ID });
 			project.create(description, monitor);
+
 			monitor.worked(10);
 			project.open(monitor);
-			if (layout.equals(RPMProjectLayout.RPMBUILD)) {
-				createDirs(monitor, project);
+			if (projectPath.toString().indexOf(':')!=-1) {
+				if (layout.equals(RPMProjectLayout.RPMBUILD)) {
+					createDirsRemote(monitor, project, parsedIPathString);
+				}
+			} else {
+				if (layout.equals(RPMProjectLayout.RPMBUILD)) {
+					createDirs(monitor, project);
+				}
 			}
 			latest=project;
+
 		} catch (CoreException e) {
 			e.printStackTrace();
 		}
