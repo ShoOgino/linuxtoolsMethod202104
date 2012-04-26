@@ -7,6 +7,7 @@
      * 
      * @throws FileNotFoundException
      */
+    @SuppressWarnings("unchecked")
     protected void initialize(final IResource resource, final String path, final Class<T> type) throws TmfTraceException {
         if (path == null)
             throw new TmfTraceException("Invalid trace path"); //$NON-NLS-1$
@@ -18,8 +19,13 @@
             final int sep = path.lastIndexOf(Path.SEPARATOR);
             traceName = (sep >= 0) ? path.substring(sep + 1) : path;
         }
-        if (fParser == null && !(this instanceof ITmfEventParser))
-            throw new TmfTraceException("Invalid trace parser"); //$NON-NLS-1$
+        if (fParser == null) {
+            if (this instanceof ITmfEventParser) {
+                fParser = (ITmfEventParser<T>) this;
+            } else {
+                throw new TmfTraceException("Invalid trace parser"); //$NON-NLS-1$
+            }
+        }
         super.init(traceName, type);
     }
 
