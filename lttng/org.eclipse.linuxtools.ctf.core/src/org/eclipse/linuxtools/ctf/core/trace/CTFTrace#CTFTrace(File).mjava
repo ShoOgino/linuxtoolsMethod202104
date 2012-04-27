@@ -1,20 +1,52 @@
     /**
      * Trace constructor.
-     *
+     * 
      * @param path
      *            Filesystem path of the trace directory.
      * @throws CTFReaderException
      */
-    @SuppressWarnings("unqualified-field-access")
     public CTFTrace(File path) throws CTFReaderException {
         this.path = path;
-
-        metadata = new Metadata(this);
+        this.metadata = new Metadata(this);
 
         if (!this.path.isDirectory()) {
             throw new CTFReaderException("Path must be a valid directory"); //$NON-NLS-1$
         }
+        
+        /* Set up the internal containers for this trace */
+        streams = new HashMap<Long, Stream>();
+        environment = new HashMap<String, String>();
+        clocks = new HashMap<String, CTFClock>();
 
-        this.open();
+        /* Open and parse the metadata file */
+        metadata.parse();
+
+        if (Activator.getDefault() != null) {
+            Activator.getDefault().log(metadata.toString());
+        }
+
+        /* Open all the trace files */
+        /* Create the definitions needed to read things from the files */
+        if (packetHeaderDecl != null) {
+            packetHeaderDef = packetHeaderDecl.createDefinition(this,
+                    "packet.header"); //$NON-NLS-1$
+        }
+
+        /* List files not called metadata and not hidden. */
+        File[] files = path.listFiles(metadataFileFilter);
+        Arrays.sort(files, metadataComparator);
+
+        /* Try to open each file */
+        for (File s : files) {
+            openStreamInput(s);
+        }
+
+        /* Create their index */
+        for (Map.Entry<Long, Stream> stream : streams.entrySet()) {
+            Set<StreamInput> inputs = stream.getValue().getStreamInputs();
+            for (StreamInput s : inputs) {
+                s.createIndex();
+            }
+        }
     }
 
