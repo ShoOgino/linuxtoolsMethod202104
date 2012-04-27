@@ -23,7 +23,6 @@
     public void pushAttribute(long t, ITmfStateValue value, int attributeQuark)
             throws TimeRangeException, AttributeNotFoundException,
             StateValueTypeException {
-        assert (attributeQuark >= 0);
         Integer stackDepth = 0;
         int subAttributeQuark;
         ITmfStateValue previousSV = transState.getOngoingStateValue(attributeQuark);
@@ -36,16 +35,18 @@
         } else if (previousSV.getType() == 0) {
             /* Previous value was an integer, all is good, use it */
             stackDepth = previousSV.unboxInt();
-            if (stackDepth >= 10) {
-                /*
-                 * Limit stackDepth to 10, to avoid having Attribute Trees grow
-                 * out of control due to buggy insertions
-                 */
-                assert (false);
-            }
         } else {
             /* Previous state of this attribute was another type? Not good! */
-            assert (false);
+            throw new StateValueTypeException();
+        }
+
+        if (stackDepth >= 10) {
+            /*
+             * Limit stackDepth to 10, to avoid having Attribute Trees grow out
+             * of control due to buggy insertions
+             */
+            String message = "Stack limit reached, not pushing"; //$NON-NLS-1$
+            throw new AttributeNotFoundException(message);
         }
 
         stackDepth++;
@@ -54,6 +55,6 @@
 
         modifyAttribute(t, TmfStateValue.newValueInt(stackDepth),
                 attributeQuark);
-        transState.processStateChange(t, value, subAttributeQuark);
+        modifyAttribute(t, value, subAttributeQuark);
     }
 

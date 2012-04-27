@@ -19,21 +19,23 @@
     public void popAttribute(long t, int attributeQuark)
             throws AttributeNotFoundException, TimeRangeException,
             StateValueTypeException {
-        assert (attributeQuark >= 0);
         Integer stackDepth;
         int subAttributeQuark;
         ITmfStateValue previousSV = transState.getOngoingStateValue(attributeQuark);
 
         if (previousSV.isNull()) {
-            /*
-             * If the StateValue was null, this means this is the first time we
-             * use this attribute.
-             */
-            stackDepth = 0;
-        } else {
-            assert (previousSV.getType() == 0);
-            stackDepth = previousSV.unboxInt();
+            /* Same as if stackDepth == 0, see below */
+            return;
         }
+        if (previousSV.getType() != 0) {
+            /*
+             * The existing value was a string, this doesn't look like a valid
+             * stack attribute.
+             */
+            throw new StateValueTypeException();
+        }
+
+        stackDepth = previousSV.unboxInt();
 
         if (stackDepth == 0) {
             /*
@@ -43,9 +45,13 @@
              * silently.
              */
             return;
-        } else if (stackDepth < 0) {
+        }
+
+        if (stackDepth < 0) {
             /* This on the other hand should not happen... */
-            assert (false);
+            String message = "A top-level stack attribute " + //$NON-NLS-1$
+                    "cannot have a negative integer value."; //$NON-NLS-1$
+            throw new StateValueTypeException(message);
         }
 
         /* The attribute should already exist... */
