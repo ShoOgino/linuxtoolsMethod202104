@@ -1,0 +1,48 @@
+    /**
+     * Return the state history of a given attribute, but with at most one
+     * update per "resolution". This can be useful for populating views (where
+     * it's useless to have more than one query per pixel, for example).
+     * 
+     * @param attributeQuark
+     *            Which attribute this query is interested in
+     * @param t1
+     *            Start time of the range query
+     * @param t2
+     *            End time of the query
+     * @param resolution
+     *            The "step" of this query
+     * @return The List of states that happened between t1 and t2
+     * @throws TimeRangeException
+     *             If one of the timestamps is invalid
+     * @throws AttributeNotFoundException
+     *             If the attribute doesn't exist
+     */
+    public List<ITmfStateInterval> queryHistoryRange(int attributeQuark,
+            long t1, long t2, long resolution) throws TimeRangeException,
+            AttributeNotFoundException {
+        List<ITmfStateInterval> intervals;
+        ITmfStateInterval currentInterval;
+        long ts;
+
+        checkValidTimeRange(t1, t2);
+
+        /* Get the initial state at time T1 */
+        intervals = new ArrayList<ITmfStateInterval>();
+        currentInterval = querySingleState(t1, attributeQuark);
+        intervals.add(currentInterval);
+
+        /*
+         * Iterate over the "resolution points". We skip unneeded queries in the
+         * case the current interval is longer than the resolution.
+         */
+        for (ts = currentInterval.getStartTime(); (currentInterval.getEndTime() != -1)
+                && (ts <= t2); ts += resolution) {
+            if (ts <= currentInterval.getEndTime()) {
+                continue;
+            }
+            currentInterval = querySingleState(ts, attributeQuark);
+            intervals.add(currentInterval);
+        }
+        return intervals;
+    }
+
