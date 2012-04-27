@@ -1,36 +1,48 @@
     /**
-     * Load the state information at time 't' as the Current State. You can then
-     * use the queryState() method to query the value of different attributes,
-     * as they were at time 't'.
+     * Load the complete state information at time 't' into the returned List.
+     * You can then get the intervals for single attributes by using
+     * List.get(n), where 'n' is the quark of the attribute.
      * 
      * On average if you need around 10 or more queries for the same timestamps,
-     * use this. If you need less than 10 (for example, running many queries for
-     * the same attributes but at different timestamps), you might be better
-     * using the querySingleState() methods instead.
+     * use this method. If you need less than 10 (for example, running many
+     * queries for the same attributes but at different timestamps), you might
+     * be better using the querySingleState() methods instead.
      * 
      * @param t
      *            We will recreate the state information to what it was at time
      *            t.
      * @throws TimeRangeException
+     *             If the 't' parameter is outside of the range of the state
+     *             history.
      */
-    public synchronized void loadStateAtTime(long t) throws TimeRangeException {
-        /* Empty the currentStateInfo */
-        currentStateInfo = new ArrayList<ITmfStateInterval>(
+    public synchronized List<ITmfStateInterval> loadStateAtTime(long t)
+            throws TimeRangeException {
+        List<ITmfStateInterval> stateInfo = new ArrayList<ITmfStateInterval>(
                 attributeTree.getNbAttributes());
+
+        /* Bring the size of the array to the current number of attributes */
         for (int i = 0; i < attributeTree.getNbAttributes(); i++) {
-            currentStateInfo.add(null);
+            stateInfo.add(null);
         }
 
-        backend.doQuery(currentStateInfo, t);
+        /* Query the storage backend */
+        backend.doQuery(stateInfo, t);
 
+        /*
+         * If we are currently building the history, also query the "ongoing"
+         * states for stuff that might not yet be written to the history.
+         */
         if (transState.isActive()) {
-            transState.doQuery(currentStateInfo, t);
+            transState.doQuery(stateInfo, t);
         }
         // We should have previously inserted an interval for every attribute
         // for all possible timestamps (and those could contain 'nullValues').
         // There should be no 'null' objects at this point.
-        for (ITmfStateInterval interval : currentStateInfo) {
-            assert (interval != null);
+        for (int i = 0; i < stateInfo.size(); i++) {
+            if (stateInfo.get(i) == null) {
+                assert (false);
+            }
         }
+        return stateInfo;
     }
 
