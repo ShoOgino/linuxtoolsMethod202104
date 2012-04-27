@@ -4,10 +4,13 @@
      * 
      * @param streamFile
      *            A trace file in the trace directory.
+     * @param index
+     *            Which index in the class' streamFileChannel array this file
+     *            must use
      * @throws CTFReaderException
      */
-    private void openStreamInput(File streamFile) throws CTFReaderException {
-        FileChannel streamFileChannel;
+    private void openStreamInput(File streamFile, int index)
+            throws CTFReaderException {
         MappedByteBuffer byteBuffer;
         BitBuffer streamBitBuffer;
 
@@ -18,10 +21,11 @@
 
         try {
             /* Open the file and get the FileChannel */
-            streamFileChannel = new FileInputStream(streamFile).getChannel();
+            streamFileChannels[index] = new FileInputStream(streamFile).getChannel();
 
             /* Map one memory page of 4 kiB */
-            byteBuffer = streamFileChannel.map(MapMode.READ_ONLY, 0, 4096);
+            byteBuffer = streamFileChannels[index].map(MapMode.READ_ONLY, 0,
+                    4096);
         } catch (IOException e) {
             /* Shouldn't happen at this stage if every other check passed */
             throw new CTFReaderException();
@@ -73,7 +77,7 @@
 
             /* Create the stream input */
             StreamInput streamInput = new StreamInput(stream,
-                    streamFileChannel, streamFile);
+                    streamFileChannels[index], streamFile);
 
             /* Add a reference to the streamInput in the stream */
             stream.addInput(streamInput);
@@ -83,7 +87,7 @@
 
             /* Create the stream input */
             StreamInput streamInput = new StreamInput(stream,
-                    streamFileChannel, streamFile);
+                    streamFileChannels[index], streamFile);
 
             /* Add a reference to the streamInput in the stream */
             stream.addInput(streamInput);
