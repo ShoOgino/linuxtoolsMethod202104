@@ -1,0 +1,33 @@
+    @Override
+    protected void buildStateSystem() throws TmfTraceException {
+        /* Set up the path to the history tree file we'll use */
+        final String htPath = this.getPath() + ".ht";
+        final File htFile = new File(htPath);
+
+        IStateHistoryBackend htBackend;
+        IStateChangeInput htInput;
+        HistoryBuilder builder;
+
+        /* If the target file already exists, do not rebuild it uselessly */
+        // TODO for now we assume it's complete. Might be a good idea to check
+        // at least if its range matches the trace's range.
+        try {
+            if (htFile.exists()) {
+                /* Load an existing history */
+                htBackend = new HistoryTreeBackend(htFile);
+                this.ss = new StateHistorySystem(htBackend, false);
+            } else {
+                /* Create a new state history from scratch */
+                htInput = new CTFKernelStateInput(this);
+                htBackend = new HistoryTreeBackend(htFile,
+                        htInput.getStartTime());
+                builder = new HistoryBuilder(htInput, htBackend);
+
+                // TODO this is blocking for now...
+                builder.run();
+            }
+        } catch (IOException e) {
+            throw new TmfTraceException(e.getMessage());
+        }
+    }
+
