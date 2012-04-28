@@ -1,20 +1,20 @@
     /**
-     * Test a range query with a resolution
+     * Range query, but with a t2 far off the end of the trace.
+     * The result should still be valid.
      */
     @Test
-    public void testRangeQuery2() throws AttributeNotFoundException,
-            TimeRangeException, StateValueTypeException {
+    public void testRangeQuery2() throws TimeRangeException,
+            AttributeNotFoundException {
 
-        long time1 = interestingTimestamp1;
-        long time2 = time1 + 1L * CtfTestFiles.NANOSECS_PER_SEC;
-        long resolution = 1000000; /* One query every millisecond */
-        int quark;
         List<ITmfStateInterval> intervals;
+        
+        int quark = shs.getQuarkAbsolute("CPUs", "0", "IRQ_stack");
+        long ts1 = shs.getHistoryBackend().getStartTime(); /* start of the trace */
+        long ts2 = CtfTestFiles.startTime + 20L * CtfTestFiles.NANOSECS_PER_SEC; /* invalid, but ignored */
 
-        quark = shs.getQuarkAbsolute("CPUs", "0", "Current_thread");
-        intervals = shs.queryHistoryRange(quark, time1, time2, resolution);
-        assertEquals(129, intervals.size()); /* Number of context switches! */
-        assertEquals(1452, intervals.get(50).getStateValue().unboxInt());
-        assertEquals(1331668248784789238L, intervals.get(100).getEndTime());
+        intervals = shs.queryHistoryRange(quark, ts1, ts2);
+
+        /* Nb of IRQs on CPU 0 during the whole trace */
+        assertEquals(1653, intervals.size());
     }
 
