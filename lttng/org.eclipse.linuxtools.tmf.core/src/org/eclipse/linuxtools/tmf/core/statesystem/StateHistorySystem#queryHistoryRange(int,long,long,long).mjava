@@ -8,12 +8,14 @@
      * @param t1
      *            Start time of the range query
      * @param t2
-     *            End time of the query
+     *            Target end time of the query. If t2 is greater than the end of
+     *            the trace, we will return what we have up to the end of the
+     *            history.
      * @param resolution
      *            The "step" of this query
      * @return The List of states that happened between t1 and t2
      * @throws TimeRangeException
-     *             If one of the timestamps is invalid
+     *             If t1 is invalid, or if t2 <= t1
      * @throws AttributeNotFoundException
      *             If the attribute doesn't exist
      */
@@ -24,7 +26,10 @@
         ITmfStateInterval currentInterval;
         long ts;
 
-        checkValidTimeRange(t1, t2);
+        /* Make sure the time range makes sense */
+        if (t2 <= t1) {
+            throw new TimeRangeException();
+        }
 
         /* Get the initial state at time T1 */
         intervals = new ArrayList<ITmfStateInterval>();
@@ -36,11 +41,18 @@
          * case the current interval is longer than the resolution.
          */
         for (ts = currentInterval.getStartTime(); (currentInterval.getEndTime() != -1)
-                && (ts <= t2); ts += resolution) {
+                && (ts < t2); ts += resolution) {
             if (ts <= currentInterval.getEndTime()) {
                 continue;
             }
-            currentInterval = querySingleState(ts, attributeQuark);
+
+            try {
+                currentInterval = querySingleState(ts, attributeQuark);
+            } catch (TimeRangeException e) {
+                /* Stop the queries, return the intervals we have so far. */
+                break;
+            }
+
             intervals.add(currentInterval);
         }
         return intervals;
