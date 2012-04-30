@@ -1,21 +1,23 @@
     /**
      * Rebuild independently so we can benchmark it. Too bad JUnit doesn't allow
      * us to @Test the @BeforeClass...
+     * 
+     * @throws IOException 
+     * @throws TmfTraceException 
      */
     @Test
-    public void testBuild() {
+    public void testBuild() throws IOException, TmfTraceException {
         HistoryBuilder zebuilder;
         IStateChangeInput zeinput;
-        IStateHistoryBackend zehp;
+        IStateHistoryBackend zehp = null;
 
-        try {
-            zeinput = new CtfKernelStateInput(CtfTestFiles.getTestTrace());
-            zehp = new HistoryTreeBackend(stateFileBenchmark,
-                    zeinput.getStartTime());
-            zebuilder = new HistoryBuilder(zeinput, zehp);
-            zebuilder.run();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        zeinput = new CtfKernelStateInput(CtfTestFiles.getTestTrace());
+        zehp = new HistoryTreeBackend(stateFileBenchmark, zeinput.getStartTime());
+        zebuilder = new HistoryBuilder(zeinput, zehp);
+        zebuilder.run();
+        zebuilder.close();
+
+        assertEquals(CtfTestFiles.startTime, zehp.getStartTime());
+        assertEquals(CtfTestFiles.endTime, zehp.getEndTime());
     }
 
