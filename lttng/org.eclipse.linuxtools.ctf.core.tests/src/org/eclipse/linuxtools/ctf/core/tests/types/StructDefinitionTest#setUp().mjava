@@ -5,9 +5,30 @@
      */
     @Before
     public void setUp() throws CTFReaderException {
-        CTFTrace c = TestParams.createTrace();
-        CTFTraceReader tr = new CTFTraceReader(c);
-        EventDefinition ed = tr.getCurrentEventDef();
-        fixture = ed.fields;
+        StructDeclaration sDec = new StructDeclaration(12);
+        IntegerDeclaration id = new IntegerDeclaration(32, false, 32, ByteOrder.BIG_ENDIAN, Encoding.NONE, null, 8);
+        IntegerDeclaration lenDec = new IntegerDeclaration(8, false, 8, ByteOrder.BIG_ENDIAN, Encoding.NONE, null, 8);
+        StringDeclaration sd = new StringDeclaration();
+        EnumDeclaration ed = new EnumDeclaration(id);
+        SequenceDeclaration seqDec = new SequenceDeclaration(LENGTH_SEQ, id);
+        VariantDeclaration varDec = new VariantDeclaration();
+        EnumDeclaration tagDec = new EnumDeclaration(id);
+        tagDec.add(0, 1, ENUM_1);
+        tagDec.add(2, 3, ENUM_2);
+        varDec.addField(ENUM_2, id);
+        varDec.addField(ENUM_1, sd);
+        varDec.setTag(TAG_ID);
+        sDec.addField(INT_ID, id);
+        sDec.addField(STRING_ID, sd);
+        sDec.addField(ENUM_ID, ed);
+        sDec.addField(TAG_ID, tagDec);
+        sDec.addField(LENGTH_SEQ, lenDec);
+        sDec.addField(SEQUENCE_ID, seqDec);
+        sDec.addField(VAR_FIELD_NAME, varDec);
+        fixture = sDec.createDefinition(null, TEST_STRUCT_ID);
+        EnumDefinition eDef = tagDec.createDefinition(fixture, TAG_ID);
+        VariantDefinition vd = varDec.createDefinition(fixture,VAR_FIELD_NAME );
+        vd.setTagDefinition(eDef);
+
     }
 

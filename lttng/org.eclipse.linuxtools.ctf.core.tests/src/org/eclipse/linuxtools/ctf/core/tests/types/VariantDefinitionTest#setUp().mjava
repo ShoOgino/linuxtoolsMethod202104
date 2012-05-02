@@ -6,31 +6,46 @@
      * @throws CTFReaderException
      */
     @Before
-    public void setUp() throws CTFReaderException {
-        VariantDeclaration vDecl1, vDecl2, vDecl3;
-        VariantDefinition vDef1, vDef2;
-        StructDefinition sDef1, sDef2;
-        EnumDefinition eDef;
-        String fName = ""; //$NON-NLS-1$
+    public void setUp() {
+        StructDeclaration sDec = new StructDeclaration(12);
+        StructDeclaration smallStruct = new StructDeclaration(8);
+        IntegerDeclaration iDec = new IntegerDeclaration(32, false, 32, ByteOrder.BIG_ENDIAN, Encoding.NONE, null, 8);
+        IntegerDeclaration lenDec = new IntegerDeclaration(8, false, 8, ByteOrder.BIG_ENDIAN, Encoding.NONE, null, 8);
+        StringDeclaration strDec = new StringDeclaration();
+        EnumDeclaration enDec = new EnumDeclaration(iDec);
+//        SequenceDeclaration seqDec = new SequenceDeclaration(LENGTH_SEQ, iDec);
+        VariantDeclaration varDec = new VariantDeclaration();
+        EnumDeclaration tagDec = new EnumDeclaration(iDec);
+        ArrayDeclaration arrDec = new ArrayDeclaration(2, iDec);
+        FloatDeclaration fDec = new FloatDeclaration(8, 24, ByteOrder.BIG_ENDIAN, Encoding.NONE, 8);
+        tagDec.add(0, 1, ENUM_1);
+        tagDec.add(2, 3, ENUM_2);
+        tagDec.add(4, 5, ENUM_3);
+        //tagDec.add(6, 7, ENUM_4); // this should not work
+        tagDec.add(8, 9, ENUM_5);
+        tagDec.add(10, 11, ENUM_6);
+        tagDec.add(12, 13, ENUM_7);
+        varDec.addField(ENUM_4, lenDec);
+        varDec.addField(ENUM_7, fDec);
+        varDec.addField(ENUM_6, smallStruct);
+        varDec.addField(ENUM_5, enDec);
+        //varDec.addField(ENUM_4, seqDec);// this should not work
+        varDec.addField(ENUM_3, arrDec);
+        varDec.addField(ENUM_2, iDec);
+        varDec.addField(ENUM_1, strDec);
 
-        vDecl1 = new VariantDeclaration();
-        vDecl2 = new VariantDeclaration();
-        vDecl3 = new VariantDeclaration();
-        vDecl1.setTag(fName);
-        vDecl2.setTag(fName);
-        vDecl3.setTag(fName);
+        sDec.addField(TAG_ID, tagDec);
+        sDec.addField(LENGTH_SEQ, lenDec);
+//        sDec.addField(SEQUENCE_ID, seqDec);
 
-        vDef1 = new VariantDefinition(vDecl2, TestParams.createTrace(), fName);
-        vDef2 = new VariantDefinition(vDecl3, TestParams.createTrace(), fName);
+        sDec.addField(VAR_FIELD_NAME, varDec);
+        varDec.setTag(TAG_ID);
 
-        sDef1 = new StructDefinition(new StructDeclaration(1L), vDef1, fName);
-        sDef2 = new StructDefinition(new StructDeclaration(1L), vDef2, fName);
+        structDefinition = sDec.createDefinition(null, TEST_STRUCT_ID);
 
-        eDef = new EnumDefinition(new EnumDeclaration(new IntegerDeclaration(1,
-                true, 1, ByteOrder.BIG_ENDIAN, Encoding.ASCII, fName, 8)), sDef2, fName);
-
-        fixture = new VariantDefinition(vDecl1, sDef1, fName);
+        EnumDefinition eDef = tagDec.createDefinition(structDefinition, TAG_ID);
+        fixture = varDec.createDefinition(structDefinition,VAR_FIELD_NAME );
         fixture.setTagDefinition(eDef);
-        fixture.setCurrentField(fName);
+
     }
 
