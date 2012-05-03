@@ -1,0 +1,47 @@
+    @SuppressWarnings("unchecked")
+    private void selectExperiment(TmfExperiment<?> experiment) {
+        fStartTime = Long.MAX_VALUE;
+        fEndTime = Long.MIN_VALUE;
+        fSelectedExperiment = (TmfExperiment<ITmfEvent>) experiment;
+        fEntryList = new ArrayList<ITimeGraphEntry>();
+        for (ITmfTrace<?> trace : experiment.getTraces()) {
+            GroupEntry groupEntry = new GroupEntry(null, trace.getPath());
+            fEntryList.add(groupEntry);
+            refresh();
+            if (trace instanceof CtfKernelTrace) {
+                CtfKernelTrace ctfKernelTrace = (CtfKernelTrace) trace;
+                IStateSystemQuerier ssq = ctfKernelTrace.getStateSystem();
+                long start = ssq.getStartTime();
+                long end = ssq.getCurrentEndTime();
+                fStartTime = Math.min(fStartTime, start);
+                fEndTime = Math.max(fEndTime, end);
+                List<Integer> cpuQuarks = ssq.getQuarks(Attributes.CPUS, "*"); //$NON-NLS-1$
+                for (int cpuQuark : cpuQuarks) {
+                    String cpuName = "CPU " + ssq.getAttributeName(cpuQuark);
+                    ResourcesEntry entry = new ResourcesEntry(groupEntry, ctfKernelTrace, cpuName);
+                    try {
+                        int currentThreadQuark = ssq.getQuarkRelative(cpuQuark, Attributes.CURRENT_THREAD);
+                        long resolution = (end - start) / fDisplayWidth;
+                        List<ITmfStateInterval> currentThreadIntervals = ssq.queryHistoryRange(currentThreadQuark, start, end, resolution);
+                        for (ITmfStateInterval currentThreadInterval : currentThreadIntervals) {
+                            if (!currentThreadInterval.getStateValue().isNull() && currentThreadInterval.getStateValue().getType() == 0) {
+                                int currentThread = currentThreadInterval.getStateValue().unboxInt();
+                                long startTime = currentThreadInterval.getStartTime();
+                                long endTime = currentThreadInterval.getEndTime();
+                                entry.addTraceEvent(new TimeEvent(entry, startTime, endTime - startTime));
+                            }
+                        }
+                    } catch (AttributeNotFoundException e) {
+                        e.printStackTrace();
+                    } catch (TimeRangeException e) {
+                        e.printStackTrace();
+                    } catch (StateValueTypeException e) {
+                        e.printStackTrace();
+                    }
+                    groupEntry.addChild(entry);
+                    refresh();
+                }
+            }
+        }
+    }
+
