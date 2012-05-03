@@ -1,0 +1,89 @@
+    void drawName(TimeGraphItem item, Rectangle bounds, GC gc) {
+        boolean group = item._trace.getTimeEventsIterator() == null;
+        if (group) {
+            gc.setBackground(_colors.getBkColorGroup(item._selected, _isInFocus));
+            gc.fillRectangle(bounds);
+            if (item._selected && _isInFocus) {
+                gc.setForeground(_colors.getBkColor(item._selected, _isInFocus, false));
+                gc.drawRectangle(bounds.x, bounds.y, bounds.width - 1, bounds.height - 1);
+            }
+        } else {
+            gc.setBackground(_colors.getBkColor(item._selected, _isInFocus, true));
+            gc.setForeground(_colors.getFgColor(item._selected, _isInFocus));
+            gc.fillRectangle(bounds);
+        }
+
+        // No name to be drawn
+        if (_timeProvider.getNameSpace() == 0) {
+            return;
+        }
+
+        int leftMargin = MARGIN + item.level * EXPAND_SIZE;
+        if (item._hasChildren) {
+            gc.setForeground(_colors.getFgColorGroup(false, false));
+            gc.setBackground(_colors.getBkColor(false, false, false));
+            Rectangle rect = Utils.clone(bounds);
+            rect.x += leftMargin;
+            rect.y += (bounds.height - EXPAND_SIZE) / 2;
+            rect.width = EXPAND_SIZE;
+            rect.height = EXPAND_SIZE;
+            gc.fillRectangle(rect);
+            gc.drawRectangle(rect.x, rect.y, rect.width - 1, rect.height - 1);
+            int midy = rect.y + rect.height / 2;
+            gc.drawLine(rect.x + 2, midy, rect.x + rect.width - 3, midy);
+            if (!item._expanded) {
+                int midx = rect.x + rect.width / 2;
+                gc.drawLine(midx, rect.y + 2, midx, rect.y + rect.height - 3);
+            }
+        }
+        leftMargin += EXPAND_SIZE + MARGIN;
+
+        Image img = fTimeGraphProvider.getItemImage(item._trace);
+        if (img != null) {
+            // draw icon
+            int imgHeight = img.getImageData().height;
+            int imgWidth = img.getImageData().width;
+            int x = leftMargin;
+            int y = bounds.y + (bounds.height - imgHeight) / 2;
+            gc.drawImage(img, x, y);
+            leftMargin += imgWidth + MARGIN;
+        }
+        String name = item._name;
+        Point size = gc.stringExtent(name);
+        if (_idealNameSpace < leftMargin + size.x + MARGIN) {
+            _idealNameSpace = leftMargin + size.x + MARGIN;
+        }
+        if (!group) {
+            // cut long string with "..."
+            int width = bounds.width - leftMargin;
+            int cuts = 0;
+            while (size.x > width && name.length() > 1) {
+                cuts++;
+                name = name.substring(0, name.length() - 1);
+                size = gc.stringExtent(name + "..."); //$NON-NLS-1$
+            }
+            if (cuts > 0) {
+                name += "..."; //$NON-NLS-1$
+            }
+        }
+        Rectangle rect = Utils.clone(bounds);
+        rect.x += leftMargin;
+        rect.width -= leftMargin;
+        // draw text
+        if (rect.width > 0) {
+            rect.y += 2;
+            int textWidth = Utils.drawText(gc, name, rect, true);
+            leftMargin += textWidth + MARGIN;
+            rect.y -= 2;
+
+            if (!group) {
+                // draw middle line
+                int x = bounds.x + leftMargin;
+                int width = bounds.width - x;
+                int midy = bounds.y + bounds.height / 2;
+                gc.setForeground(_colors.getColor(TimeGraphColorScheme.MID_LINE));
+                gc.drawLine(x, midy, x + width, midy);
+            }
+        }
+    }
+

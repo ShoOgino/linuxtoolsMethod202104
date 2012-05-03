@@ -1,0 +1,176 @@
+    public TimeGraphCombo(Composite parent, int style) {
+        super(parent, style);
+        setLayout(new FillLayout());
+
+        final SashForm sash = new SashForm(this, SWT.NONE);
+
+        fTreeViewer = new TreeViewer(sash, SWT.FULL_SELECTION | SWT.H_SCROLL);
+        final Tree tree = fTreeViewer.getTree();
+        tree.setHeaderVisible(true);
+        tree.setLinesVisible(true);
+
+        fTimeGraphViewer = new TimeGraphViewer(sash, SWT.NONE);
+        fTimeGraphViewer.setItemHeight(tree.getItemHeight() + getTreeItemHeightAdjustement());
+        fTimeGraphViewer.setHeaderHeight(tree.getHeaderHeight());
+        fTimeGraphViewer.setBorderWidth(tree.getBorderWidth());
+        fTimeGraphViewer.setNameWidthPref(0);
+
+        fTreeViewer.addTreeListener(new ITreeViewerListener() {
+            @Override
+            public void treeCollapsed(TreeExpansionEvent event) {
+                fTimeGraphViewer.setExpandedState((ITimeGraphEntry) event.getElement(), false);
+            }
+
+            @Override
+            public void treeExpanded(TreeExpansionEvent event) {
+                fTimeGraphViewer.setExpandedState((ITimeGraphEntry) event.getElement(), true);
+            }
+        });
+
+        fTimeGraphViewer.addTreeListener(new ITimeGraphTreeListener() {
+            @Override
+            public void treeCollapsed(TimeGraphTreeExpansionEvent event) {
+                fTreeViewer.setExpandedState(event.getEntry(), false);
+            }
+
+            @Override
+            public void treeExpanded(TimeGraphTreeExpansionEvent event) {
+                fTreeViewer.setExpandedState(event.getEntry(), true);
+            }
+        });
+
+        // prevent mouse button from selecting a filler tree item
+        tree.addListener(SWT.MouseDown, new Listener() {
+            @Override
+            public void handleEvent(Event event) {
+                TreeItem treeItem = tree.getItem(new Point(event.x, event.y));
+                if (treeItem == null || treeItem.getData() == FILLER) {
+                    event.doit = false;
+                    ArrayList<TreeItem> treeItems = getVisibleExpandedItems(tree);
+                    if (treeItems.size() == 0) {
+                        return;
+                    }
+                    // this prevents from scrolling up when selecting
+                    // the partially visible tree item at the bottom
+                    tree.select(treeItems.get(treeItems.size() - 1));
+                    fTreeViewer.setSelection(new StructuredSelection());
+                    fTimeGraphViewer.setSelection(null);
+                }
+            }
+        });
+
+        tree.addListener(SWT.MouseWheel, new Listener() {
+            @Override
+            public void handleEvent(Event event) {
+                event.doit = false;
+                Slider scrollBar = fTimeGraphViewer.getVerticalBar();
+                fTimeGraphViewer.setTopIndex(scrollBar.getSelection() - event.count);
+                ArrayList<TreeItem> treeItems = getVisibleExpandedItems(tree);
+                if (treeItems.size() == 0) {
+                    return;
+                }
+                TreeItem treeItem = treeItems.get(fTimeGraphViewer.getTopIndex());
+                tree.setTopItem(treeItem);
+            }
+        });
+
+        // prevent key stroke from selecting a filler tree item
+        tree.addListener(SWT.KeyDown, new Listener() {
+            @Override
+            public void handleEvent(Event event) {
+                ArrayList<TreeItem> treeItems = getVisibleExpandedItems(tree);
+                if (treeItems.size() == 0) {
+                    return;
+                }
+                if (event.keyCode == SWT.ARROW_DOWN) {
+                    int index = Math.min(fTimeGraphViewer.getSelectionIndex() + 1, treeItems.size() - 1);
+                    fTimeGraphViewer.setSelection((ITimeGraphEntry) treeItems.get(index).getData());
+                    event.doit = false;
+                } else if (event.keyCode == SWT.PAGE_DOWN) {
+                    int height = tree.getSize().y - tree.getHeaderHeight() - tree.getHorizontalBar().getSize().y;
+                    int countPerPage = height / (tree.getItemHeight() + getTreeItemHeightAdjustement());
+                    int index = Math.min(fTimeGraphViewer.getSelectionIndex() + countPerPage - 1, treeItems.size() - 1);
+                    fTimeGraphViewer.setSelection((ITimeGraphEntry) treeItems.get(index).getData());
+                    event.doit = false;
+                } else if (event.keyCode == SWT.END) {
+                    fTimeGraphViewer.setSelection((ITimeGraphEntry) treeItems.get(treeItems.size() - 1).getData());
+                    event.doit = false;
+                }
+                TreeItem treeItem = treeItems.get(fTimeGraphViewer.getTopIndex());
+                tree.setTopItem(treeItem);
+                if (fTimeGraphViewer.getSelectionIndex() >= 0) {
+                    fTreeViewer.setSelection(new StructuredSelection(fTimeGraphViewer.getSelection()));
+                } else {
+                    fTreeViewer.setSelection(new StructuredSelection());
+                }
+            }
+        });
+
+        fTimeGraphViewer.getTimeGraphControl().addControlListener(new ControlAdapter() {
+            @Override
+            public void controlResized(ControlEvent e) {
+                ArrayList<TreeItem> treeItems = getVisibleExpandedItems(tree);
+                if (treeItems.size() == 0) {
+                    return;
+                }
+                TreeItem treeItem = treeItems.get(fTimeGraphViewer.getTopIndex());
+                tree.setTopItem(treeItem);
+            }
+        });
+
+        fTreeViewer.addSelectionChangedListener(new ISelectionChangedListener() {
+            @Override
+            public void selectionChanged(SelectionChangedEvent event) {
+                if (fInhibitTreeSelection) {
+                    return;
+                }
+                if (event.getSelection() instanceof IStructuredSelection) {
+                    Object selection = ((IStructuredSelection) event.getSelection()).getFirstElement();
+                    ArrayList<TreeItem> treeItems = getVisibleExpandedItems(tree);
+                    if (selection instanceof ITimeGraphEntry) {
+                        fTimeGraphViewer.setSelection((ITimeGraphEntry) selection);
+                    }
+                    TreeItem treeItem = treeItems.get(fTimeGraphViewer.getTopIndex());
+                    tree.setTopItem(treeItem);
+                }
+            }
+        });
+
+        fTimeGraphViewer.addSelectionListener(new ITimeGraphSelectionListener() {
+            @Override
+            public void selectionChanged(TimeGraphSelectionEvent event) {
+                ITimeGraphEntry entry = fTimeGraphViewer.getSelection();
+                fInhibitTreeSelection = true; // block the tree selection changed listener
+                if (entry != null) {
+                    StructuredSelection selection = new StructuredSelection(entry);
+                    fTreeViewer.setSelection(selection);
+                } else {
+                    fTreeViewer.setSelection(new StructuredSelection());
+                }
+                fInhibitTreeSelection = false;
+                ArrayList<TreeItem> treeItems = getVisibleExpandedItems(tree);
+                if (treeItems.size() == 0) {
+                    return;
+                }
+                TreeItem treeItem = treeItems.get(fTimeGraphViewer.getTopIndex());
+                tree.setTopItem(treeItem);
+            }
+        });
+
+        fTimeGraphViewer.getVerticalBar().addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                ArrayList<TreeItem> treeItems = getVisibleExpandedItems(tree);
+                if (treeItems.size() == 0) {
+                    return;
+                }
+                TreeItem treeItem = treeItems.get(fTimeGraphViewer.getTopIndex());
+                tree.setTopItem(treeItem);
+            }
+        });
+
+        fNumFillerRows = Display.getDefault().getBounds().height / (tree.getItemHeight() + getTreeItemHeightAdjustement());
+
+        sash.setWeights(new int[] { 1, 1 });
+    }
+

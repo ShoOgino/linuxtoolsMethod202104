@@ -1,0 +1,48 @@
+    @Override
+    public void setSelectedTimeInt(long time, boolean ensureVisible) {
+        // Trace.debug("currentTime:" + _selectedTime + " new time:" + time);
+        if (time > _endTime) {
+            _endTime = time;
+            _time1_ = time;
+        }
+        if (time < _beginTime) {
+            _beginTime = time;
+            _time0_ = time;
+        }
+        long time0 = _time0;
+        long time1 = _time1;
+        if (ensureVisible) {
+            double timeSpace = (_time1 - _time0) * .02;
+            double timeMid = (_time1 - _time0) * .1;
+            if (time < _time0 + timeSpace) {
+                long dt = (long) (_time0 - time + timeMid);
+                _time0 -= dt;
+                _time1 -= dt;
+            } else if (time > _time1 - timeSpace) {
+                long dt = (long) (time - _time1 + timeMid);
+                _time0 += dt;
+                _time1 += dt;
+            }
+            if (_time0 < _time0_) {
+                _time1 = Math.min(_time1_, _time1 + (_time0_ - _time0));
+                _time0 = _time0_;
+            } else if (_time1 > _time1_) {
+                _time0 = Math.max(_time0_, _time0 - (_time1 - _time1_));
+                _time1 = _time1_;
+            }
+        }
+        if (_time1 - _time0 < _minTimeInterval) {
+            _time1 = _time0 + _minTimeInterval;
+        }
+        _stateCtrl.adjustScrolls();
+        _stateCtrl.redraw();
+        _timeScaleCtrl.redraw();
+        if (time0 != _time0 || time1 != _time1) {
+            notifyRangeListeners(_time0, _time1);
+        }
+        if (time != _selectedTime) {
+            _selectedTime = time;
+            notifyTimeListeners(_selectedTime);
+        }
+    }
+

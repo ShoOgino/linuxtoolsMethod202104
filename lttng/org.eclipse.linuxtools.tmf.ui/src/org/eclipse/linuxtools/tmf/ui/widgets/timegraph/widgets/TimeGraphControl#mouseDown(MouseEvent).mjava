@@ -1,0 +1,44 @@
+    @Override
+    public void mouseDown(MouseEvent e) {
+        if (null == _timeProvider)
+            return;
+        int idx;
+        if (1 == e.button) {
+            int nameSpace = _timeProvider.getNameSpace();
+            if (nameSpace != 0) {
+                if (isOverSplitLine(e.x)) {
+                    _dragState = DRAG_SPLIT_LINE;
+                    _dragX = _dragX0 = e.x;
+                    _time0bak = _timeProvider.getTime0();
+                    _time1bak = _timeProvider.getTime1();
+                    redraw();
+                    return;
+                }
+            }
+
+            idx = getItemIndexAtY(e.y);
+            if (idx >= 0) {
+                TimeGraphItem item = _data._expandedItems[idx];
+                if (item._hasChildren && e.x < nameSpace && e.x < MARGIN + (item.level + 1) * EXPAND_SIZE) {
+                    toggle(idx);
+                } else {
+                    long hitTime = getTimeAtX(e.x);
+                    if (hitTime >= 0) {
+                        // _timeProvider.setSelectedTimeInt(hitTime, false);
+                        setCapture(true);
+                        _dragState = DRAG_TRACE_ITEM;
+                        _dragX = _dragX0 = e.x - nameSpace;
+                        _time0bak = _timeProvider.getTime0();
+                        _time1bak = _timeProvider.getTime1();
+                    }
+                }
+                selectItem(idx, false);
+                fireSelectionChanged();
+            } else {
+                selectItem(idx, false); // clear selection
+                redraw();
+                fireSelectionChanged();
+            }
+        }
+    }
+
