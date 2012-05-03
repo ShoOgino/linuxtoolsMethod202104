@@ -9,24 +9,24 @@
     public SDWidget(Composite c, int s) {
         super(c, s | SWT.NO_BACKGROUND, true);
         setOverviewEnabled(true);
-        selectedNodeList = new ArrayList<GraphNode>();
-        selProvider = new SDWidgetSelectionProvider();
+        fSelectedNodeList = new ArrayList<GraphNode>();
+        fSelProvider = new SDWidgetSelectionProvider();
         SDViewPref.getInstance().addPropertyChangeListener(this);
-        toolTip = new DiagramToolTip(getViewControl());
+        fToolTip = new DiagramToolTip(getViewControl());
         super.addDisposeListener(this);
 
-        scrollToolTip = new DiagramToolTip(c);
+        fScrollToolTip = new DiagramToolTip(c);
         getVerticalBar().addListener(SWT.MouseUp, new Listener() {
 
             @Override
             public void handleEvent(Event event) {
-                scrollToolTip.hideToolTip();
+                fScrollToolTip.hideToolTip();
             }
 
         });
-        accessible = getViewControl().getAccessible();
+        fAccessible = getViewControl().getAccessible();
 
-        accessible.addAccessibleListener(new AccessibleAdapter() {
+        fAccessible.addAccessibleListener(new AccessibleAdapter() {
             /*
              * (non-Javadoc)
              * @see org.eclipse.swt.accessibility.AccessibleAdapter#getName(org.eclipse.swt.accessibility.AccessibleEvent)
@@ -35,12 +35,12 @@
             public void getName(AccessibleEvent e) {
                 // Case toolTip
                 if (e.childID == 0) {
-                    if (toolTipNode != null) {
-                        if (toolTipNode instanceof Lifeline) {
-                            Lifeline lifeline = (Lifeline) toolTipNode;
+                    if (fToolTipNode != null) {
+                        if (fToolTipNode instanceof Lifeline) {
+                            Lifeline lifeline = (Lifeline) fToolTipNode;
                             e.result = lifeline.getToolTipText();
                         } else {
-                            e.result = toolTipNode.getName() + getPostfixForTooltip(true);
+                            e.result = fToolTipNode.getName() + getPostfixForTooltip(true);
                         }
                     }
                 } else {
@@ -71,17 +71,17 @@
             }
         });
 
-        accessible.addAccessibleControlListener(new AccessibleControlAdapter() {
+        fAccessible.addAccessibleControlListener(new AccessibleControlAdapter() {
             /*
              * (non-Javadoc)
              * @see org.eclipse.swt.accessibility.AccessibleControlAdapter#getFocus(org.eclipse.swt.accessibility.AccessibleControlEvent)
              */
             @Override
             public void getFocus(AccessibleControlEvent e) {
-                if (focusedWidget == -1) {
+                if (fFocusedWidget == -1) {
                     e.childID = ACC.CHILDID_SELF;
                 } else {
-                    e.childID = focusedWidget;
+                    e.childID = fFocusedWidget;
                 }
             }
 
@@ -101,6 +101,8 @@
                 case 1:
                     e.detail = ACC.ROLE_LABEL;
                     break;
+                default:
+                    break;
                 }
             }
 
@@ -115,19 +117,19 @@
                     e.detail |= ACC.STATE_FOCUSED;
                 } else {
                     e.detail |= ACC.STATE_SELECTABLE;
-                    if (e.childID == focusedWidget)
+                    if (e.childID == fFocusedWidget)
                         e.detail |= ACC.STATE_FOCUSED | ACC.STATE_SELECTED | ACC.STATE_CHECKED;
                 }
             }
         });
 
-        insertionCartet = new Caret((Canvas) getViewControl(), SWT.NONE);
-        insertionCartet.setVisible(false);
+        fInsertionCartet = new Caret((Canvas) getViewControl(), SWT.NONE);
+        fInsertionCartet.setVisible(false);
 
-        collapaseCaretImg = TmfUiPlugin.getDefault().getImageFromPath(ITmfImageConstants.IMG_UI_ARROW_COLLAPSE_OBJ);
-        arrowUpCaretImg = TmfUiPlugin.getDefault().getImageFromPath(ITmfImageConstants.IMG_UI_ARROW_UP_OBJ);
+        fCollapaseCaretImg = TmfUiPlugin.getDefault().getImageFromPath(ITmfImageConstants.IMG_UI_ARROW_COLLAPSE_OBJ);
+        fArrowUpCaretImg = TmfUiPlugin.getDefault().getImageFromPath(ITmfImageConstants.IMG_UI_ARROW_UP_OBJ);
 
-        reorderList = new ArrayList<Lifeline[]>();
+        fReorderList = new ArrayList<Lifeline[]>();
         getViewControl().addTraverseListener(new TraverseListener() {
 
             /*
@@ -168,8 +170,8 @@
             public void focusGained(FocusEvent e) {
                 // TODO Auto-generated method stub
                 SDViewPref.getInstance().setNoFocusSelection(false);
-                ctrlSelection = false;
-                shiftSelection = false;
+                fCtrlSelection = false;
+                fShiftSelection = false;
                 redraw();
             }
 

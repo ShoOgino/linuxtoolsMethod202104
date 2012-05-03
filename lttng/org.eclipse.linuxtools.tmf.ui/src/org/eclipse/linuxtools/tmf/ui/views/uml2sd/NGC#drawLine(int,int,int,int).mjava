@@ -4,17 +4,22 @@
      */
     @Override
     public void drawLine(int x1, int y1, int x2, int y2) {
-        x1 = Math.round(x1 * view.zoomValue);
-        y1 = Math.round(y1 * view.zoomValue);
-        x2 = Math.round(x2 * view.zoomValue);
-        y2 = Math.round(y2 * view.zoomValue);
-        x1 = view.contentsToViewX(x1);
-        y1 = view.contentsToViewY(y1);
-        x2 = view.contentsToViewX(x2);
-        y2 = view.contentsToViewY(y2);
+        int localX1 = x1; 
+        int localY1 = y1; 
+        int localX2 = x2;
+        int localY2 = y2;
+        
+        localX1 = Math.round(localX1 * fView.fZoomValue);
+        localY1 = Math.round(localY1 * fView.fZoomValue);
+        localX2 = Math.round(localX2 * fView.fZoomValue);
+        localY2 = Math.round(localY2 * fView.fZoomValue);
+        localX1 = fView.contentsToViewX(localX1);
+        localY1 = fView.contentsToViewY(localY1);
+        localX2 = fView.contentsToViewX(localX2);
+        localY2 = fView.contentsToViewY(localY2);
 
-        byte code1 = code(x1, y1);
-        byte code2 = code(x2, y2);
+        byte code1 = code(localX1, localY1);
+        byte code2 = code(localX2, localY2);
         byte codex;
         boolean draw = false;
         boolean end = false;
@@ -29,33 +34,33 @@
             } else {
                 codex = (code1 != 0) ? code1 : code2;
                 if ((codex & 0x01) != 0) { // top
-                    x = x1 + ((x2 - x1) * (yx - y1)) / (y2 - y1);
+                    x = localX1 + ((localX2 - localX1) * (yx - localY1)) / (localY2 - localY1);
                     y = yx;
                 } else if ((codex & 0x02) != 0) { // bottom
-                    x = x1 + ((x2 - x1) * (y_ - y1)) / (y2 - y1);
-                    y = y_;
+                    x = localX1 + ((localX2 - localX1) * (fVisibleY - localY1)) / (localY2 - localY1);
+                    y = fVisibleY;
                 } else if ((codex & 0x04) != 0) { // right
-                    y = y1 + ((y2 - y1) * (xx - x1)) / (x2 - x1);
+                    y = localY1 + ((localY2 - localY1) * (xx - localX1)) / (localX2 - localX1);
                     x = xx;
                 } else if ((codex & 0x08) != 0) { // left
-                    y = y1 + ((y2 - y1) * (x_ - x1)) / (x2 - x1);
-                    x = x_;
+                    y = localY1 + ((localY2 - localY1) * (fVisibleX - localX1)) / (localX2 - localX1);
+                    x = fVisibleX;
                 }
 
                 if (codex == code1) {
-                    x1 = x;
-                    y1 = y;
-                    code1 = code(x1, y1);
+                    localX1 = x;
+                    localY1 = y;
+                    code1 = code(localX1, localY1);
                 } else {
-                    x2 = x;
-                    y2 = y;
-                    code2 = code(x2, y2);
+                    localX2 = x;
+                    localY2 = y;
+                    code2 = code(localX2, localY2);
                 }
             }
         } while (!end);
 
         if (draw) {
-            context.drawLine(x1, y1, x2, y2);
+            fContext.drawLine(localX1, localY1, localX2, localY2);
         }
     }
 

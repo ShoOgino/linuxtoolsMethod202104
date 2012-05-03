@@ -7,23 +7,21 @@
         if (!(isFocusControl() || getViewControl().isFocusControl())) {
             Control[] child = getParent().getChildren();
             for (int i = 0; i < child.length; i++) {
-                if (child[i].isFocusControl()) {
-                    if (!(child[i] instanceof ScrollView)) {
-                        getViewControl().setFocus();
-                        break;
-                    }
+                if ((child[i].isFocusControl())&& (!(child[i] instanceof ScrollView))) {
+                    getViewControl().setFocus();
+                    break;
                 }
             }
         }
         setFocus(-1);
 
         if (event.keyCode == SWT.CTRL) {
-            ctrlSelection = true;
+            fCtrlSelection = true;
         }
         if (event.keyCode == SWT.SHIFT) {
-            shiftSelection = true;
-            prevList = new ArrayList<GraphNode>();
-            prevList.addAll(getSelection());
+            fShiftSelection = true;
+            fPrevList = new ArrayList<GraphNode>();
+            fPrevList.addAll(getSelection());
         }
 
         GraphNode prevNode = getFocusNode();
@@ -52,26 +50,26 @@
             traverseEnd();
         }
 
-        if ((!shiftSelection) && (!ctrlSelection)) {
-            listStart = currentGraphNode;
+        if ((!fShiftSelection) && (!fCtrlSelection)) {
+            fListStart = fCurrentGraphNode;
         }
 
         if (event.character == ' ') {
-            performSelection(currentGraphNode);
-            if (!shiftSelection)
-                listStart = currentGraphNode;
+            performSelection(fCurrentGraphNode);
+            if (!fShiftSelection)
+                fListStart = fCurrentGraphNode;
         }
 
-        if ((shiftSelection) && (prevNode != getFocusNode())) {
+        if ((fShiftSelection) && (prevNode != getFocusNode())) {
             clearSelection();
-            addSelection(prevList);
-            addSelection(frame.getNodeList(listStart, getFocusNode()));
+            addSelection(fPrevList);
+            addSelection(fFrame.getNodeList(fListStart, getFocusNode()));
             if (getFocusNode() instanceof Lifeline) {
                 ensureVisible(getFocusNode().getX(), getFocusNode().getY(), getFocusNode().getWidth(), getFocusNode().getHeight(), SWT.CENTER | SWT.VERTICAL, true);
             } else { 
                 ensureVisible(getFocusNode());
             }
-        } else if ((!ctrlSelection) && (!shiftSelection)) {
+        } else if ((!fCtrlSelection) && (!fShiftSelection)) {
 
             clearSelection();
             if (getFocusNode() != null) {
@@ -85,26 +83,26 @@
             }
         }
 
-        if (currentGraphNode != null) {
-            currentGraphNode.setFocused(true);
+        if (fCurrentGraphNode != null) {
+            fCurrentGraphNode.setFocused(true);
         }
         redraw();
 
-        if ((event.character == ' ') && ((zoomInMode) || (zoomOutMode))) {
-            int cx = Math.round((getContentsX() + getVisibleWidth() / 2) / zoomValue);
-            int cy = Math.round((getContentsY() + getVisibleHeight() / 2) / zoomValue);
-            if (zoomInMode) {
-                if (zoomValue < 64) {
-                    zoomValue = zoomValue * (float) 1.25;
+        if ((event.character == ' ') && ((fZoomInMode) || (fZoomOutMode))) {
+            int cx = Math.round((getContentsX() + getVisibleWidth() / 2) / fZoomValue);
+            int cy = Math.round((getContentsY() + getVisibleHeight() / 2) / fZoomValue);
+            if (fZoomInMode) {
+                if (fZoomValue < 64) {
+                    fZoomValue = fZoomValue * (float) 1.25;
                 }
             } else {
-                zoomValue = zoomValue / (float) 1.25;
+                fZoomValue = fZoomValue / (float) 1.25;
             }
-            int x = Math.round(cx * zoomValue - getVisibleWidth() / (float) 2);
-            int y = Math.round(cy * zoomValue - getVisibleHeight() / (float) 2);
+            int x = Math.round(cx * fZoomValue - getVisibleWidth() / (float) 2);
+            int y = Math.round(cy * fZoomValue - getVisibleHeight() / (float) 2);
             setContentsPos(x, y);
-            if (timeBar != null) {
-                timeBar.setZoom(zoomValue);
+            if (fTimeBar != null) {
+                fTimeBar.setZoom(fZoomValue);
             }
             // redraw also resize the scrollView content
             redraw();

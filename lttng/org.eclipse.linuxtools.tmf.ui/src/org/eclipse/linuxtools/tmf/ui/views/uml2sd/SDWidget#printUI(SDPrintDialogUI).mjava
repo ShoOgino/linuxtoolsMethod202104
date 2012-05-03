@@ -6,19 +6,19 @@
     public void printUI(SDPrintDialogUI sdPrintDialog) {
         PrinterData data = sdPrintDialog.getPrinterData();
 
-        if ((data == null) || (frame == null)) {
+        if ((data == null) || (fFrame == null)) {
             return;
         }
         
-        printer = new Printer(data);
+        fPrinter = new Printer(data);
         
-        String jobName = MessageFormat.format(SDMessages._116, new Object[] { String.valueOf(site.getContentDescription()), String.valueOf(frame.getName()) });
-        printer.startJob(jobName);
+        String jobName = MessageFormat.format(SDMessages._116, new Object[] { String.valueOf(fSite.getContentDescription()), String.valueOf(fFrame.getName()) });
+        fPrinter.startJob(jobName);
         
-        GC gc = new GC(printer);
+        GC gc = new GC(fPrinter);
         Frame.setUserPref(SDViewPref.getInstance());
 
-        float lastZoom = zoomValue;
+        float lastZoom = fZoomValue;
 
         Rectangle area = getClientArea();
         GC gcim = null;
@@ -54,8 +54,8 @@
         Metrics.setMessageFontHeight(messageFontHeight);
         context.setFont(SDViewPref.getInstance().getFont(SDViewPref.PREF_LIFELINE));
 
-        int width = Math.round((frame.getWidth() + 2 * Metrics.FRAME_H_MARGIN) * zoomValue);
-        int height = Math.round((frame.getHeight() + 2 * Metrics.FRAME_V_MARGIN) * zoomValue);
+        int width = Math.round((fFrame.getWidth() + 2 * Metrics.FRAME_H_MARGIN) * fZoomValue);
+        int height = Math.round((fFrame.getHeight() + 2 * Metrics.FRAME_V_MARGIN) * fZoomValue);
         if (width < area.width) {
             width = area.width;
         }
@@ -66,29 +66,26 @@
 
         context.setBackground(Frame.getUserPref().getBackGroundColor(ISDPreferences.PREF_FRAME));
         context.fillRectangle(0, 0, getContentsWidth(), Metrics.FRAME_V_MARGIN);
-        context.fillRectangle(0, 0, frame.getX(), getContentsHeight());
-        context.fillRectangle(frame.getX() + frame.getWidth() + 1, 0, getContentsWidth() - (frame.getX() + frame.getWidth() + 1), getContentsHeight());
-        context.fillRectangle(0, frame.getY() + frame.getHeight() + 1, getContentsWidth(), getContentsHeight() - (frame.getY() + frame.getHeight() + 1));
+        context.fillRectangle(0, 0, fFrame.getX(), getContentsHeight());
+        context.fillRectangle(fFrame.getX() + fFrame.getWidth() + 1, 0, getContentsWidth() - (fFrame.getX() + fFrame.getWidth() + 1), getContentsHeight());
+        context.fillRectangle(0, fFrame.getY() + fFrame.getHeight() + 1, getContentsWidth(), getContentsHeight() - (fFrame.getY() + fFrame.getHeight() + 1));
         gcim.setLineWidth(1);
 
-        printer.startPage();
-        zoomValue = lastZoom;
+        fPrinter.startPage();
+        fZoomValue = lastZoom;
 
         int restoreX = getContentsX();
         int restoreY = getContentsY();
 
-        float zh = getContentsHeight();
-        float zw = getContentsWidth();
+        float zh = sdPrintDialog.getStepY() * sdPrintDialog.getZoomFactor();
+        float zw = sdPrintDialog.getStepX() * sdPrintDialog.getZoomFactor();
 
-        zh = sdPrintDialog.getStepY() * sdPrintDialog.getZoomFactor();
-        zw = sdPrintDialog.getStepX() * sdPrintDialog.getZoomFactor();
-
-        float zoomValueH = printer.getClientArea().height / zh;
-        float zoomValueW = printer.getClientArea().width / zw;
+        float zoomValueH = fPrinter.getClientArea().height / zh;
+        float zoomValueW = fPrinter.getClientArea().width / zw;
         if (zoomValueH > zoomValueW) {
-            printerZoom = zoomValueH;
+            fPrinterZoom = zoomValueH;
         } else {
-            printerZoom = zoomValueW;
+            fPrinterZoom = zoomValueW;
         }
 
         if (sdPrintDialog.printSelection()) {
@@ -109,14 +106,14 @@
             }
         }
 
-        printer.endJob();
-        printing = false;
+        fPrinter.endJob();
+        fIsPrinting = false;
 
         gc.dispose();
         context.dispose();
 
-        zoomValue = lastZoom;
-        printer.dispose();
+        fZoomValue = lastZoom;
+        fPrinter.dispose();
         setContentsPos(restoreX, restoreY);
     }
 

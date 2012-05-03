@@ -9,28 +9,28 @@
     public ScrollView(Composite c, int style, boolean mouseWheel) {
         super(c, SWT.NONE); // style&(~(SWT.H_SCROLL|SWT.V_SCROLL)));
 
-        horzsb_ = new Canvas(this, SWT.H_SCROLL);
+        fHorScrollBar = new Canvas(this, SWT.H_SCROLL);
         if (mouseWheel) {
             // force scroll bar to get mouse wheel, those scrollbar will be hidden
-            viewcontrol_ = new Canvas(this, style | SWT.H_SCROLL | SWT.V_SCROLL);
+            fViewControl = new Canvas(this, style | SWT.H_SCROLL | SWT.V_SCROLL);
         } else {
-            viewcontrol_ = new Canvas(this, style);
+            fViewControl = new Canvas(this, style);
         }
-        viewcontrol_.setBackground(getBackground());
-        // hide scroll bar as their are replaced by vertsb_ and horzsb_.
+        fViewControl.setBackground(getBackground());
+        // hide scroll bar as their are replaced by fHorScrollBar and fVertScrollBar.
         if (mouseWheel) {
-            viewcontrol_.getVerticalBar().setVisible(false);
-            viewcontrol_.getHorizontalBar().setVisible(false);
+            fViewControl.getVerticalBar().setVisible(false);
+            fViewControl.getHorizontalBar().setVisible(false);
         }
-        vertsb_ = new Canvas(this, SWT.V_SCROLL);
-        // make vertsb_ able to receive mouse wheel
-        // doesnot help as we can't set a MouseListener on vertsb_.getVerticalBar()
+        fVertScrollBar = new Canvas(this, SWT.V_SCROLL);
+        // make fVerScrollBar able to receive mouse wheel
+        // does not help as we can't set a MouseListener on fVerScrollBar.getVerticalBar()
         // to set focus on viewcontrol_
-        // vertsb_.addKeyListener( new KeyAdapter() {});
+        // fVerScrollBar.addKeyListener( new KeyAdapter() {});
 
         setLayout(new SVLayout());
 
-        localPaintListener = new PaintListener() {
+        fLocalPaintListener = new PaintListener() {
             @Override
             public void paintControl(PaintEvent event) {
                 // use clipping, to reduce cost of paint.
@@ -40,9 +40,9 @@
                 drawContents(event.gc, cx, cy, r.width, r.height);
             }
         };
-        viewcontrol_.addPaintListener(localPaintListener);
+        fViewControl.addPaintListener(fLocalPaintListener);
 
-        localMouseMoveListener = new MouseMoveListener() {
+        fLocalMouseMoveListener = new MouseMoveListener() {
             @Override
             public void mouseMove(MouseEvent e) {
                 int ox = e.x, oy = e.y;
@@ -54,7 +54,7 @@
             }
         };
 
-        viewcontrol_.addMouseMoveListener(localMouseMoveListener);
+        fViewControl.addMouseMoveListener(fLocalMouseMoveListener);
 
         MouseTrackListener localMouseTrackListener = new MouseTrackListener() {
             @Override
@@ -89,9 +89,9 @@
 
         };
 
-        viewcontrol_.addMouseTrackListener(localMouseTrackListener);
+        fViewControl.addMouseTrackListener(localMouseTrackListener);
 
-        localMouseListener = new MouseListener() {
+        fLocalMouseListener = new MouseListener() {
             @Override
             public void mouseDoubleClick(MouseEvent e) {
                 int ox = e.x, oy = e.y;
@@ -105,8 +105,8 @@
             @Override
             public void mouseDown(MouseEvent e) {
                 int ox = e.x, oy = e.y;
-                e.x = mouse_down_x_ = viewToContentsX(e.x);
-                e.y = mouse_down_y_ = viewToContentsY(e.y);
+                e.x = fMouseDownX = viewToContentsX(e.x);
+                e.y = fMousDownY = viewToContentsY(e.y);
                 contentsMouseDownEvent(e);
                 e.x = ox;
                 e.y = oy;
@@ -121,12 +121,12 @@
                 e.x = ox;
                 e.y = oy;
                 // here because class extenting me can catch mouse Up and want to scroll...
-                mouse_down_x_ = mouse_down_y_ = -1;
+                fMouseDownX = fMousDownY = -1;
             }
         };
-        viewcontrol_.addMouseListener(localMouseListener);
+        fViewControl.addMouseListener(fLocalMouseListener);
 
-        localKeyListener = new KeyListener() {
+        fLocalKeyListener = new KeyListener() {
             @Override
             public void keyPressed(KeyEvent e) {
                 keyPressedEvent(e);
@@ -138,16 +138,16 @@
             }
         };
 
-        viewcontrol_.addKeyListener(localKeyListener);
+        fViewControl.addKeyListener(fLocalKeyListener);
 
         getVerticalBar().addSelectionListener(new SelectionListener() {
             @Override
             public void widgetSelected(SelectionEvent e) {
-                setContentsPos(contents_x_, getVerticalBar().getSelection());
+                setContentsPos(fContentsX, getVerticalBar().getSelection());
                 // need to change "hidden" vertical bar value ?
-                // force focus on viewcontrol_ so we got future mouse wheel's scroll events
-                if (!viewcontrol_.isFocusControl()) {
-                    viewcontrol_.setFocus();
+                // force focus on fViewControl so we got future mouse wheel's scroll events
+                if (!fViewControl.isFocusControl()) {
+                    fViewControl.setFocus();
                 }
             }
 
@@ -156,13 +156,13 @@
             }
         });
 
-        if (viewcontrol_.getVerticalBar() != null)
-            // add viewcontrol hidden scrollbar listener to get mouse wheel ...
-            viewcontrol_.getVerticalBar().addSelectionListener(new SelectionListener() {
+        if (fViewControl.getVerticalBar() != null)
+            // add fViewControl hidden scrollbar listener to get mouse wheel ...
+            fViewControl.getVerticalBar().addSelectionListener(new SelectionListener() {
                 @Override
                 public void widgetSelected(SelectionEvent e) {
-                    ScrollBar b = viewcontrol_.getVerticalBar();
-                    setContentsPos(contents_x_, b.getSelection());
+                    ScrollBar b = fViewControl.getVerticalBar();
+                    setContentsPos(fContentsX, b.getSelection());
                     // change "real" vertical bar selection too
                     getVerticalBar().setSelection(b.getSelection());
                 }
@@ -174,11 +174,11 @@
         getHorizontalBar().addSelectionListener(new SelectionListener() {
             @Override
             public void widgetSelected(SelectionEvent e) {
-                setContentsPos(getHorizontalBar().getSelection(), contents_y_);
+                setContentsPos(getHorizontalBar().getSelection(), fContentsY);
                 // need to change "real" horizontal bar too ?
-                // force focus on viewcontrol_ so we got future mouse wheel's scroll events
-                if (!viewcontrol_.isFocusControl()) {
-                    viewcontrol_.setFocus();
+                // force focus on fViewControl so we got future mouse wheel's scroll events
+                if (!fViewControl.isFocusControl()) {
+                    fViewControl.setFocus();
                 }
             }
 
@@ -186,12 +186,12 @@
             public void widgetDefaultSelected(SelectionEvent e) {
             }
         });
-        if (viewcontrol_.getHorizontalBar() != null)
-            viewcontrol_.getHorizontalBar().addSelectionListener(new SelectionListener() {
+        if (fViewControl.getHorizontalBar() != null)
+            fViewControl.getHorizontalBar().addSelectionListener(new SelectionListener() {
                 @Override
                 public void widgetSelected(SelectionEvent e) {
-                    ScrollBar b = viewcontrol_.getHorizontalBar();
-                    setContentsPos(b.getSelection(), contents_y_);
+                    ScrollBar b = fViewControl.getHorizontalBar();
+                    setContentsPos(b.getSelection(), fContentsY);
                     // change "real" vertical bar selection too
                     getHorizontalBar().setSelection(b.getSelection());
                 }
