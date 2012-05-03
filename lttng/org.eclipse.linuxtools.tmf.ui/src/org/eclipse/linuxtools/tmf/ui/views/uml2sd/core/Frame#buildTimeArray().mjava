@@ -4,54 +4,50 @@
      */
     @Override
     protected List<SDTimeEvent> buildTimeArray() {
+
         if (!fHasChilden) {
-            return null;
+            return new ArrayList<SDTimeEvent>();
         }
-        try {
-            List<SDTimeEvent> timeArray = super.buildTimeArray();
-            fExecutionOccurrencesWithTime = null;
-            if (getLifelines() != null) {
-                for (int i = 0; i < ((List<GraphNode>) fNodes.get(Lifeline.LIFELINE_TAG)).size(); i++) {
-                    Lifeline l = (Lifeline) ((List<GraphNode>) fNodes.get(Lifeline.LIFELINE_TAG)).get(i);
-                    if (l.hasTimeInfo() && l.getExecutions() != null) {
-                        for (Iterator<GraphNode> j = l.getExecutions().iterator(); j.hasNext();) {
-                            GraphNode o = j.next();
-                            if (o instanceof ExecutionOccurrence) {
-                                ExecutionOccurrence eo = (ExecutionOccurrence) o;
-                                if (eo.hasTimeInfo()) {
-                                    int event = eo.getStartOccurrence();
-                                    ITmfTimestamp time = eo.getStartTime();
-                                    SDTimeEvent f = new SDTimeEvent(time, event, eo);
-                                    timeArray.add(f);
-                                    if (fExecutionOccurrencesWithTime == null) {
-                                        fExecutionOccurrencesWithTime = new ArrayList<SDTimeEvent>();
-                                    }
-                                    fExecutionOccurrencesWithTime.add(f);
-                                    event = eo.getEndOccurrence();
-                                    time = eo.getEndTime();
-                                    f = new SDTimeEvent(time, event, eo);
-                                    timeArray.add(f);
-                                    fExecutionOccurrencesWithTime.add(f);
+
+        List<SDTimeEvent> timeArray = super.buildTimeArray();
+        fExecutionOccurrencesWithTime = null;
+        if (getLifelines() != null) {
+            for (int i = 0; i < ((List<GraphNode>) fNodes.get(Lifeline.LIFELINE_TAG)).size(); i++) {
+                Lifeline lifeline = (Lifeline) ((List<GraphNode>) fNodes.get(Lifeline.LIFELINE_TAG)).get(i);
+                if (lifeline.hasTimeInfo() && lifeline.getExecutions() != null) {
+                    for (Iterator<GraphNode> j = lifeline.getExecutions().iterator(); j.hasNext();) {
+                        GraphNode o = j.next();
+                        if (o instanceof ExecutionOccurrence) {
+                            ExecutionOccurrence eo = (ExecutionOccurrence) o;
+                            if (eo.hasTimeInfo()) {
+                                int event = eo.getStartOccurrence();
+                                ITmfTimestamp time = eo.getStartTime();
+                                SDTimeEvent f = new SDTimeEvent(time, event, eo);
+                                timeArray.add(f);
+                                if (fExecutionOccurrencesWithTime == null) {
+                                    fExecutionOccurrencesWithTime = new ArrayList<SDTimeEvent>();
                                 }
+                                fExecutionOccurrencesWithTime.add(f);
+                                event = eo.getEndOccurrence();
+                                time = eo.getEndTime();
+                                f = new SDTimeEvent(time, event, eo);
+                                timeArray.add(f);
+                                fExecutionOccurrencesWithTime.add(f);
                             }
                         }
                     }
                 }
             }
-
-            if (fExecutionOccurrencesWithTime != null) {
-                SDTimeEvent[] temp = fExecutionOccurrencesWithTime.toArray(new SDTimeEvent[fExecutionOccurrencesWithTime.size()]);
-                Arrays.sort(temp, new TimeEventComparator());
-                fExecutionOccurrencesWithTime = Arrays.asList(temp);
-            }
-            SDTimeEvent[] temp = timeArray.toArray(new SDTimeEvent[timeArray.size()]);
-            Arrays.sort(temp, new TimeEventComparator());
-            timeArray = Arrays.asList(temp);
-            return timeArray;
-        } catch (Exception e) {
-            TmfUiPlugin.getDefault().getLog().log(new Status(IStatus.ERROR, TmfUiPlugin.PLUGIN_ID, "Error building time array", e )); //$NON-NLS-1$
-            return null;
         }
 
+        if (fExecutionOccurrencesWithTime != null) {
+            SDTimeEvent[] temp = fExecutionOccurrencesWithTime.toArray(new SDTimeEvent[fExecutionOccurrencesWithTime.size()]);
+            Arrays.sort(temp, new TimeEventComparator());
+            fExecutionOccurrencesWithTime = Arrays.asList(temp);
+        }
+        SDTimeEvent[] temp = timeArray.toArray(new SDTimeEvent[timeArray.size()]);
+        Arrays.sort(temp, new TimeEventComparator());
+        timeArray = Arrays.asList(temp);
+        return timeArray;
     }
 
