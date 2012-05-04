@@ -9,14 +9,15 @@
         this.path = path;
         this.metadata = new Metadata(this);
 
-        if (!this.path.isDirectory()) {
-            throw new CTFReaderException("Path must be a valid directory"); //$NON-NLS-1$
-        }
-
         /* Set up the internal containers for this trace */
         streams = new HashMap<Long, Stream>();
         environment = new HashMap<String, String>();
         clocks = new HashMap<String, CTFClock>();
+        streamFileChannels = new LinkedList<FileChannel>();
+
+        if (!this.path.isDirectory()) {
+            throw new CTFReaderException("Path must be a valid directory"); //$NON-NLS-1$
+        }
 
         /* Open and parse the metadata file */
         metadata.parse();
@@ -37,9 +38,8 @@
         Arrays.sort(files, metadataComparator);
 
         /* Try to open each file */
-        streamFileChannels = new FileChannel[files.length];
-        for (int i = 0; i < files.length; i++) {
-            openStreamInput(files[i], i);
+        for (File streamFile : files) {
+            openStreamInput(streamFile);
         }
 
         /* Create their index */

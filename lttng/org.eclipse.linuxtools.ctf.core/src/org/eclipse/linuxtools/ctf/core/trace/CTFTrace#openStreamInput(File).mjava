@@ -9,10 +9,12 @@
      *            must use
      * @throws CTFReaderException
      */
-    private void openStreamInput(File streamFile, int index)
+    private void openStreamInput(File streamFile)
             throws CTFReaderException {
         MappedByteBuffer byteBuffer;
         BitBuffer streamBitBuffer;
+        Stream stream;
+        FileChannel fc;
 
         if (!streamFile.canRead()) {
             throw new CTFReaderException("Unreadable file : " //$NON-NLS-1$
@@ -21,11 +23,11 @@
 
         try {
             /* Open the file and get the FileChannel */
-            streamFileChannels[index] = new FileInputStream(streamFile).getChannel();
+            fc = new FileInputStream(streamFile).getChannel();
+            streamFileChannels.add(fc);
 
             /* Map one memory page of 4 kiB */
-            byteBuffer = streamFileChannels[index].map(MapMode.READ_ONLY, 0,
-                    4096);
+            byteBuffer = fc.map(MapMode.READ_ONLY, 0, 4096);
         } catch (IOException e) {
             /* Shouldn't happen at this stage if every other check passed */
             throw new CTFReaderException();
@@ -73,24 +75,16 @@
             long streamID = streamIDDef.getValue();
 
             /* Get the stream to which this trace file belongs to */
-            Stream stream = streams.get(streamID);
-
-            /* Create the stream input */
-            StreamInput streamInput = new StreamInput(stream,
-                    streamFileChannels[index], streamFile);
-
-            /* Add a reference to the streamInput in the stream */
-            stream.addInput(streamInput);
+            stream = streams.get(streamID);
         } else {
             /* No packet header, we suppose there is only one stream */
-            Stream stream = streams.get(null);
-
-            /* Create the stream input */
-            StreamInput streamInput = new StreamInput(stream,
-                    streamFileChannels[index], streamFile);
-
-            /* Add a reference to the streamInput in the stream */
-            stream.addInput(streamInput);
+            stream = streams.get(null);
         }
+
+        /* Create the stream input */
+        StreamInput streamInput = new StreamInput(stream, fc, streamFile);
+
+        /* Add a reference to the streamInput in the stream */
+        stream.addInput(streamInput);
     }
 
