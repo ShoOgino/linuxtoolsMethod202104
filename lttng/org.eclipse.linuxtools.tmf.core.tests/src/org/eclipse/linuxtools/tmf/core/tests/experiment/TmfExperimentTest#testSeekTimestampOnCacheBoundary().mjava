@@ -1,0 +1,29 @@
+    public void testSeekTimestampOnCacheBoundary() throws Exception {
+
+        long cacheSize = fExperiment.getCacheSize();
+
+        // Position trace at event rank 0
+        ITmfContext context = fExperiment.seekEvent(new TmfTimestamp(1, SCALE, 0));
+        assertEquals("Context rank", 0, context.getRank());
+
+        ITmfEvent event = fExperiment.readNextEvent(context);
+        assertEquals("Event timestamp", 1, event.getTimestamp().getValue());
+        assertEquals("Context rank", 1, context.getRank());
+
+        // Position trace at event rank [cacheSize]
+        context = fExperiment.seekEvent(new TmfTimestamp(cacheSize + 1, SCALE, 0));
+        assertEquals("Event rank", cacheSize, context.getRank());
+
+        event = fExperiment.readNextEvent(context);
+        assertEquals("Event timestamp", cacheSize + 1, event.getTimestamp().getValue());
+        assertEquals("Context rank", cacheSize + 1, context.getRank());
+
+        // Position trace at event rank [4 * cacheSize]
+        context = fExperiment.seekEvent(new TmfTimestamp(4 * cacheSize + 1, SCALE, 0));
+        assertEquals("Context rank", 4 * cacheSize, context.getRank());
+
+        event = fExperiment.readNextEvent(context);
+        assertEquals("Event timestamp", 4 * cacheSize + 1, event.getTimestamp().getValue());
+        assertEquals("Context rank", 4 * cacheSize + 1, context.getRank());
+    }
+

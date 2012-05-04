@@ -5,12 +5,14 @@
         assertTrue("Checkpoints exist", checkpoints != null);
 
         // Validate that each checkpoint points to the right event
-        for (int i = 0; i < checkpoints.size(); i++) {
-            final TmfCheckpoint checkpoint = checkpoints.get(i);
+        long expectedTS = 1;
+        for (TmfCheckpoint checkpoint : checkpoints) {
             final TmfExperimentContext context = fExperiment.seekEvent(checkpoint.getLocation());
-            final ITmfEvent event = fExperiment.parseEvent(context);
-            assertEquals("Event rank", i * pageSize, context.getRank());
+            final ITmfEvent event = fExperiment.readNextEvent(context);
+            assertEquals("Event rank", ITmfContext.UNKNOWN_RANK, context.getRank());
             assertTrue("Timestamp", (checkpoint.getTimestamp().compareTo(event.getTimestamp(), false) == 0));
+            assertEquals("Timestamp", expectedTS, checkpoint.getTimestamp().getValue());
+            expectedTS += pageSize;
         }
     }
 
