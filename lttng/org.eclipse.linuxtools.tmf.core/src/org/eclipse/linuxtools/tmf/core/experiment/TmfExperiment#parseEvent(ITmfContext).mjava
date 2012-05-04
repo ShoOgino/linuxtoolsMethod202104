@@ -3,19 +3,19 @@
      */
     @SuppressWarnings("unchecked")
     @Override
-    public T parseEvent(final ITmfContext context) {
+    public T parseEvent(ITmfContext context) {
 
         // Validate the context
         if (!(context instanceof TmfExperimentContext))
             return null; // Throw an exception?
 
-        if (!context.equals(fExperimentContext))
-            // Tracer.trace("Ctx: Restoring context");
-            fExperimentContext = seekEvent(context.getLocation());
+//        if (!context.equals(fExperimentContext))
+//            // Tracer.trace("Ctx: Restoring context");
+//            fExperimentContext = seekEvent(context.getLocation());
 
-        final TmfExperimentContext expContext = (TmfExperimentContext) context;
+        TmfExperimentContext expContext = (TmfExperimentContext) context;
 
-        // If an event was consumed previously, get the next one from that trace
+        // If an event was consumed previously, first get the next one from that trace
         final int lastTrace = expContext.getLastTrace();
         if (lastTrace != TmfExperimentContext.NO_TRACE) {
             final ITmfContext traceContext = expContext.getContexts()[lastTrace];
@@ -37,7 +37,15 @@
                 }
             }
         }
-        fExperimentContext.setLastTrace(trace);
+
+        T event = null;
+        if (trace != TmfExperimentContext.NO_TRACE)
+            event = (T) expContext.getEvents()[trace];
+
+//        TmfExperimentLocation location = (TmfExperimentLocation) fExperimentContext.getLocation();
+//        location.getLocation().getLocations()[trace] = fTraces[trace].getCurrentLocation();
+        expContext.setLastTrace(trace);
+        return event;
 
 //      // Scan the candidate events and identify the "next" trace to read from
 //      final ITmfEvent eventArray[] = expContext.getEvents();
@@ -89,10 +97,5 @@
 //
 //      return event;
 
-        T event = null;
-        if (trace != TmfExperimentContext.NO_TRACE)
-            event = (T) expContext.getEvents()[trace];
-
-        return event;
     }
 
