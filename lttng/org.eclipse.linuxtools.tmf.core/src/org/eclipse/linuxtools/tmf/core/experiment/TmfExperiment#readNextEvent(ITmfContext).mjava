@@ -1,0 +1,23 @@
+    /* (non-Javadoc)
+     * @see org.eclipse.linuxtools.tmf.core.trace.ITmfTrace#readNextEvent(org.eclipse.linuxtools.tmf.core.trace.ITmfContext)
+     */
+    @Override
+    public synchronized ITmfEvent readNextEvent(final ITmfContext context) {
+        // parseEvent() does not update the context
+        final ITmfEvent event = parseEvent(context);
+        if (event != null) {
+            updateAttributes(context, event.getTimestamp());
+
+            TmfExperimentContext expContext = (TmfExperimentContext) context;
+            int trace = expContext.getLastTrace();
+            if (trace != TmfExperimentContext.NO_TRACE) {
+                TmfExperimentLocation location = (TmfExperimentLocation) expContext.getLocation();
+                location.getLocation().getLocations()[trace] = expContext.getContexts()[trace].getLocation();
+            }
+            
+            context.increaseRank();
+            processEvent(event);
+        }
+        return event;
+    }
+
