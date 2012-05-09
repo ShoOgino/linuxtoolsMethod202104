@@ -1,0 +1,24 @@
+    /**
+     * When we want to set a process back to a "running" state, first check
+     * its current System_call attribute. If there is a system call active, we
+     * put the process back in the syscall state. If not, we put it back in
+     * user mode state.
+     */
+    private void setProcessToRunning(long ts, int currentThreadNode)
+            throws AttributeNotFoundException, TimeRangeException,
+            StateValueTypeException {
+        int quark;
+        ITmfStateValue value;
+
+        quark = ss.getQuarkRelative(currentThreadNode, Attributes.SYSTEM_CALL);
+        if (ss.queryOngoingState(quark).isNull()) {
+            /* We were in user mode before the interruption */
+            value = TmfStateValue.newValueInt(Attributes.STATUS_RUN_USERMODE);
+        } else {
+            /* We were previously in kernel mode */
+            value = TmfStateValue.newValueInt(Attributes.STATUS_RUN_SYSCALL);
+        }
+        quark = ss.getQuarkRelativeAndAdd(currentThreadNode, Attributes.STATUS);
+        ss.modifyAttribute(ts, value, quark);
+    }
+

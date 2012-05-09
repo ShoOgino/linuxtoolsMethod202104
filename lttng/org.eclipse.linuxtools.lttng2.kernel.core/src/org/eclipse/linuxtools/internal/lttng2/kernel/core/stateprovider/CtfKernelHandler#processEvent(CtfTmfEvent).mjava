@@ -40,6 +40,11 @@
                 quark = ss.getQuarkRelativeAndAdd(currentThreadNode, Attributes.SYSTEM_CALL);
                 value = TmfStateValue.nullValue();
                 ss.modifyAttribute(ts, value, quark);
+
+                /* Put the process' status back to user mode */
+                quark = ss.getQuarkRelativeAndAdd(currentThreadNode, Attributes.STATUS);
+                value = TmfStateValue.newValueInt(Attributes.STATUS_RUN_USERMODE);
+                ss.modifyAttribute(ts, value, quark);
             }
                 break;
 
@@ -72,9 +77,7 @@
                 ss.modifyAttribute(ts, value, quark);
 
                 /* Set the previous process back to running */
-                quark = ss.getQuarkRelativeAndAdd(currentThreadNode, Attributes.STATUS);
-                value = TmfStateValue.newValueInt(Attributes.STATUS_RUN);
-                ss.modifyAttribute(ts, value, quark);
+                setProcessToRunning(ts, currentThreadNode);
             }
                 break;
 
@@ -107,9 +110,7 @@
                 ss.modifyAttribute(ts, value, quark);
 
                 /* Set the previous process back to running */
-                quark = ss.getQuarkRelativeAndAdd(currentThreadNode, Attributes.STATUS);
-                value = TmfStateValue.newValueInt(Attributes.STATUS_RUN);
-                ss.modifyAttribute(ts, value, quark);
+                setProcessToRunning(ts, currentThreadNode);
             }
                 break;
 
@@ -121,7 +122,7 @@
                 /* Mark this SoftIRQ as *raised* in the resource tree.
                  * State value = -2 */
                 quark = ss.getQuarkRelativeAndAdd(softIrqsNode, softIrqId.toString());
-                value = TmfStateValue.newValueInt(-2);
+                value = TmfStateValue.newValueInt(Attributes.SOFT_IRQ_RAISED);
                 ss.modifyAttribute(ts, value, quark);
             }
                 break;
@@ -134,7 +135,7 @@
             {
 
                 Integer prevTid = ((Long) content.getField(LttngStrings.PREV_TID).getValue()).intValue();
-                Long prevState = (Long) content.getField(LttngStrings.PREV_STATE).getValue();
+                //Long prevState = (Long) content.getField(LttngStrings.PREV_STATE).getValue();
 
                 String nextProcessName = (String) content.getField(LttngStrings.NEXT_COMM).getValue();
                 Integer nextTid = ((Long) content.getField(LttngStrings.NEXT_TID).getValue()).intValue();
@@ -145,9 +146,7 @@
                 currentThreadNodes.set(eventCpu, newCurrentThreadNode);
 
                 /* Set the status of the new scheduled process */
-                quark = ss.getQuarkRelative(newCurrentThreadNode, Attributes.STATUS);
-                value = TmfStateValue.newValueInt(Attributes.STATUS_RUN);
-                ss.modifyAttribute(ts, value, quark);
+                setProcessToRunning(ts, newCurrentThreadNode);
 
                 /* Set the exec name of the new process */
                 quark = ss.getQuarkRelative(newCurrentThreadNode, Attributes.EXEC_NAME);
@@ -156,7 +155,7 @@
 
                 /* Set the status of the process that got scheduled out */
                 quark = ss.getQuarkRelativeAndAdd(threadsNode, prevTid.toString(), Attributes.STATUS);
-                value = TmfStateValue.newValueInt(prevState.intValue());
+                value = TmfStateValue.newValueInt(Attributes.STATUS_WAIT);
                 ss.modifyAttribute(ts, value, quark);
 
                 /* Set the current scheduled process on the relevant CPU */
@@ -244,6 +243,11 @@
                     /* Assign the new system call to the process */
                     quark = ss.getQuarkRelativeAndAdd(currentThreadNode, Attributes.SYSTEM_CALL);
                     value = TmfStateValue.newValueString(eventName);
+                    ss.modifyAttribute(ts, value, quark);
+
+                    /* Put the process in system call mode */
+                    quark = ss.getQuarkRelativeAndAdd(currentThreadNode, Attributes.STATUS);
+                    value = TmfStateValue.newValueInt(Attributes.STATUS_RUN_SYSCALL);
                     ss.modifyAttribute(ts, value, quark);
                 }
             }
