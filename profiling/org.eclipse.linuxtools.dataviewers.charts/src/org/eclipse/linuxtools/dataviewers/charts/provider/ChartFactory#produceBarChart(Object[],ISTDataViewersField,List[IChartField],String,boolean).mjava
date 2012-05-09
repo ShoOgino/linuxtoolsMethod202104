@@ -10,89 +10,74 @@
 	
 	public static final Chart produceBarChart( Object[] objects, final ISTDataViewersField nameField, List<IChartField> valFields, String title,boolean horizontal)
 	{
-		ChartWithAxes cwaBar = ChartWithAxesImpl.create( );
+		ChartView view;
+		try {
+			
+			final Color WHITE = new Color(Display.getDefault(), 255, 255, 255);
+			final Color BLACK = new Color(Display.getDefault(), 0, 0, 0);
+			final Color GRAD = new Color(Display.getDefault(), 225, 225, 225);
+			
+			view = (ChartView)PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().showView(ChartView.VIEW_ID, ""+(ChartView.getSecId()), IWorkbenchPage.VIEW_ACTIVATE);
+			Chart chart = new Chart(view.getParent(), SWT.NONE);
 
-		// Plot
-		cwaBar.getBlock( ).setBackground( ColorDefinitionImpl.WHITE( ) );
-		Plot p = cwaBar.getPlot( );
-		p.getClientArea( )
-				.setBackground( GradientImpl.create( ColorDefinitionImpl.create( 225,
-						225,
-						255 ),
-						ColorDefinitionImpl.create( 255, 255, 225 ),
-						-35,
-						false ) );
-		p.getOutline( ).setVisible( true );
+			chart.setBackground(WHITE);
+			chart.setBackgroundInPlotArea(GRAD);
 
-		// Title
-		cwaBar.getTitle( ).getLabel( ).getCaption( ).setValue(title);
-		cwaBar.getTitle( ).getOutline( ).setVisible( true );
-		
-		//Orientation
-		if (horizontal) cwaBar.setTransposed(true);
+			chart.getTitle().setText(title);
+			chart.getTitle().setForeground(BLACK);
 
-		// Legend
-		Legend lg = cwaBar.getLegend( );
-		lg.getText( ).getFont( ).setSize( 16 );
+			// this is correct (refers to orientation of x-axis, not bars)
+			if (horizontal){
+				chart.setOrientation(SWT.VERTICAL);
+			}else{
+				chart.setOrientation(SWT.HORIZONTAL);
+			}
 
-		// X-Axis
-		Axis xAxisPrimary = cwaBar.getPrimaryBaseAxes( )[0];
-		xAxisPrimary.getTitle( ).setVisible( true );
-		xAxisPrimary.setTitlePosition( Position.BELOW_LITERAL );
-		xAxisPrimary.setType( AxisType.TEXT_LITERAL );
-		xAxisPrimary.getMajorGrid( ).setTickStyle( TickStyle.BELOW_LITERAL );
-		xAxisPrimary.getOrigin( ).setType( IntersectionType.VALUE_LITERAL );
-		xAxisPrimary.setLabelPosition( Position.BELOW_LITERAL );
-		xAxisPrimary.getTitle().getCaption( ).setValue(nameField.getColumnHeaderText());
-
-		// Y-Axis
-		Axis yAxisPrimary = cwaBar.getPrimaryOrthogonalAxis( xAxisPrimary );
-		yAxisPrimary.getMajorGrid( ).setTickStyle( TickStyle.LEFT_LITERAL );
-
-
-		double max = -1D;
-		List<String> textLabels = new ArrayList<String>();
-		for (Object obj : objects) {
-			String label = nameField.getValue(obj);
-			textLabels.add(label);
-		}
-		TextDataSet categoryValues = TextDataSetImpl.create(textLabels );
-		SeriesDefinition sdY = SeriesDefinitionImpl.create( );
-		sdY.getSeriesPalette( ).shift( -1 );
-
-		yAxisPrimary.getSeriesDefinitions( ).add( sdY );
-	
-		// Data Set
-		for (IChartField field : valFields) {
-			List<Double> doubleValues = new ArrayList<Double>();
-			for (Object obj : objects) {
-
-				Number num = field.getNumber(obj);
-				double longVal = num.doubleValue();
-				max = longVal > max ? longVal : max;
-				doubleValues.add(longVal);
+			chart.getLegend().setPosition(SWT.RIGHT);
+			
+			String [] textLabels = new String [objects.length];
+			for (int i = 0; i < objects.length; i++) {
+				textLabels[i] = nameField.getValue(objects[i]);
 			}
 			
-			NumberDataSet orthoValues = NumberDataSetImpl.create(doubleValues);
-			// Y-Series
-			BarSeries bs = (BarSeries) BarSeriesImpl.create( );
-			bs.setSeriesIdentifier( field.getColumnHeaderText() );
-			bs.setDataSet( orthoValues );
-			bs.setRiserOutline( null );
+			// x-axis
+			IAxis xAxis = chart.getAxisSet().getXAxis(0);
+			xAxis.getGrid().setStyle(LineStyle.NONE);
+			xAxis.getTick().setForeground(BLACK);
+			ITitle xTitle = xAxis.getTitle();
+			xTitle.setForeground(BLACK);
+			xTitle.setText(nameField.getColumnHeaderText());
+			xAxis.setCategorySeries(textLabels);
+			xAxis.enableCategory(true);
 
-			//Mouse over the Serie to Show Tooltips
-			setTriggering(bs);
-			
-			sdY.getSeries( ).add( bs );
+			// y-axis
+			IAxis yAxis = chart.getAxisSet().getYAxis(0);
+			yAxis.getGrid().setStyle(LineStyle.NONE);
+			yAxis.getTick().setForeground(BLACK);
+			yAxis.getTitle().setVisible(false);
+
+			// data
+			for (IChartField field : valFields) {
+				final IBarSeries bs = (IBarSeries) chart.getSeriesSet().
+						createSeries(SeriesType.BAR, field.getColumnHeaderText());
+				bs.setBarColor(new Color(Display.getDefault(), getRC(), getRC(), getRC()));
+				double [] doubleValues = new double [objects.length];
+
+				for (int i = 0; i < objects.length; i++) {
+					Number num = field.getNumber(objects[i]);
+					double longVal = num.doubleValue();
+					doubleValues[i] = longVal;
+				}
+
+				bs.setYSeries(doubleValues);
+			}
+
+			chart.getAxisSet().adjustRange();
+
+			return chart;
+		} catch (PartInitException e) {
+			e.printStackTrace();
 		}
-
-		// X-Series
-		Series seCategory = SeriesImpl.create( );
-		seCategory.setDataSet( categoryValues );
-		SeriesDefinition sdX = SeriesDefinitionImpl.create( );
-		xAxisPrimary.getSeriesDefinitions( ).add( sdX );
-		sdX.getSeries( ).add( seCategory );
-
-		return cwaBar;
+		return null;
 	}
 
