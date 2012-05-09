@@ -41,11 +41,26 @@
         for (File streamFile : files) {
             openStreamInput(streamFile);
         }
-
+        events = new HashMap<Long, EventDeclaration>();
         /* Create their index */
         for (Map.Entry<Long, Stream> stream : streams.entrySet()) {
             Set<StreamInput> inputs = stream.getValue().getStreamInputs();
             for (StreamInput s : inputs) {
+                /*
+                 * Copy the events
+                 */
+                Iterator<Entry<Long, EventDeclaration>> it = s.getStream()
+                        .getEvents().entrySet().iterator();
+                while (it.hasNext()) {
+                    Map.Entry<Long, EventDeclaration> pairs = it.next();
+                    Long eventNum = pairs.getKey();
+                    EventDeclaration eventDec = pairs.getValue();
+                    events.put(eventNum, eventDec);
+                }
+
+                /*
+                 * index the trace
+                 */
                 s.createIndex();
             }
         }
