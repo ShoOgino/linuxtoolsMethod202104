@@ -2,9 +2,18 @@
 	protected boolean preExec(LaunchOptions options, OprofileDaemonEvent[] daemonEvents) {
 		//set up and launch the oprofile daemon
 		try {
+			IProject project = getProject();
+
+			//check if user has NOPASSWD sudo permission for opcontrol
+			//if the Linux Tools Path property was changed
+			if(project != null && !LinuxtoolsPathProperty.getInstance().getLinuxtoolsPath(project).equals("")){
+				if(!hasPermissions(project)){
+					throw new OpcontrolException(OprofileCorePlugin.createErrorStatus("opcontrolSudo", null));
+				}
+			}
 			// Set current project to allow using the oprofile path that
 			// was chosen for the project 
-			Oprofile.setCurrentProject(getProject());
+			Oprofile.OprofileProject.setProject(project);
 			
 			if (!oprofileStatus())
 				return false;
