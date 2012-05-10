@@ -1,0 +1,51 @@
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        // Check if we are closing down
+        IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+        if (window == null) {
+            return null;
+        }
+
+        // Get the selection
+        IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+        IWorkbenchPart part = page.getActivePart();
+        ISelectionProvider selectionProvider = part.getSite().getSelectionProvider();
+        if (selectionProvider == null) {
+            return false;
+        }
+
+        ISelection selection = selectionProvider.getSelection();
+
+        // Make sure there is only selection and that it is an experiment
+        if (selection instanceof TreeSelection) {
+            TreeSelection sel = (TreeSelection) selection;
+            // There should be only one item selected as per the plugin.xml
+            Object element = sel.getFirstElement();
+            if (element instanceof TmfExperimentElement) {
+
+                TmfExperimentElement trace = (TmfExperimentElement) element;
+
+                for (TmfTraceElement aTrace : trace.getTraces()) {
+                    
+                    // If trace is under an experiment, use the original trace from the traces folder
+                    aTrace = aTrace.getElementUnderTraceFolder();
+                    
+                    aTrace.deleteSupplementaryFiles();
+                }
+
+                IResource resource = trace.getProject().getResource();
+                if (resource != null) {
+                    try {
+                        if (resource != null) {
+                            resource.refreshLocal(IResource.DEPTH_INFINITE, null);
+                        }
+                    } catch (CoreException e) {
+                        TmfUiPlugin.getDefault().getLog().log(new Status(IStatus.ERROR, TmfUiPlugin.PLUGIN_ID, "Error refreshing resource " + resource, e)); //$NON-NLS-1$
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
