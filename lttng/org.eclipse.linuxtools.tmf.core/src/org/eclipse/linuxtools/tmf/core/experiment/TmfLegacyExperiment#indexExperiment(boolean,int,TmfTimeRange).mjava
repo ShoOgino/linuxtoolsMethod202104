@@ -1,0 +1,113 @@
+    @SuppressWarnings("unchecked")
+    private void indexExperiment(final boolean waitForCompletion, final int index, final TmfTimeRange timeRange) {
+
+        synchronized (fCheckpoints) {
+            if (fIndexing)
+                return;
+            fIndexing = true;
+        }
+
+        final Job job = new Job("Indexing " + getName() + "...") { //$NON-NLS-1$ //$NON-NLS-2$
+
+            @Override
+            protected IStatus run(final IProgressMonitor monitor) {
+                while (!monitor.isCanceled())
+                    try {
+                        Thread.sleep(100);
+                    } catch (final InterruptedException e) {
+                        return Status.OK_STATUS;
+                    }
+                monitor.done();
+                return Status.OK_STATUS;
+            }
+        };
+        job.schedule();
+
+        //		fEventLog = openLogFile("TraceEvent.log");
+        //        System.out.println(System.currentTimeMillis() + ": Experiment indexing started");
+
+        final ITmfEventRequest<ITmfEvent> request = new TmfEventRequest<ITmfEvent>(ITmfEvent.class, timeRange, index,
+                TmfDataRequest.ALL_DATA,
+                getCacheSize(), ITmfDataRequest.ExecutionType.BACKGROUND) { // PATA
+            // FOREGROUND
+
+            //            long indexingStart = System.nanoTime();
+
+            ITmfTimestamp startTime = (fTimeRange == TmfTimeRange.NULL_RANGE) ? null : fTimeRange.getStartTime();
+            ITmfTimestamp lastTime = (fTimeRange == TmfTimeRange.NULL_RANGE) ? null : fTimeRange.getEndTime();
+            long initialNbEvents = fNbEvents;
+
+            @Override
+            public void handleStarted() {
+                super.handleStarted();
+            }
+
+            @Override
+            public void handleData(final ITmfEvent event) {
+                super.handleData(event);
+                if (event != null) {
+                    final ITmfTimestamp ts = event.getTimestamp();
+                    if (startTime == null)
+                        startTime = ts.clone();
+                    lastTime = ts.clone();
+                }
+                if ((getNbRead() % getCacheSize()) == 1 && getNbRead() != 1)
+                    updateExperiment();
+            }
+
+            @Override
+            public void handleSuccess() {
+                //                long indexingEnd = System.nanoTime();
+
+                // if the end time is a real value then it is the streaming safe
+                // time stamp
+                // set the last time to the safe time stamp to prevent
+                // unnecessary indexing requests
+                if (getRange().getEndTime() != TmfTimestamp.BIG_CRUNCH)
+                    lastTime = getRange().getEndTime();
+                updateExperiment();
+                //                System.out.println(System.currentTimeMillis() + ": Experiment indexing completed");
+
+                //                long average = (indexingEnd - indexingStart) / fNbEvents;
+                //                System.out.println(getName() + ": start=" + startTime + ", end=" + lastTime + ", elapsed="
+                //                        + (indexingEnd * 1.0 - indexingStart) / 1000000000);
+                //                System.out.println(getName() + ": nbEvents=" + fNbEvents + " (" + (average / 1000) + "."
+                //                        + (average % 1000) + " us/evt)");
+                super.handleSuccess();
+            }
+
+            @Override
+            public void handleCompleted() {
+                job.cancel();
+                super.handleCompleted();
+                synchronized (fCheckpoints) {
+                    fIndexing = false;
+                    if (fIndexingPendingRange != TmfTimeRange.NULL_RANGE) {
+                        indexExperiment(false, (int) fNbEvents, fIndexingPendingRange);
+                        fIndexingPendingRange = TmfTimeRange.NULL_RANGE;
+                    }
+                }
+            }
+
+            private void updateExperiment() {
+                final int nbRead = getNbRead();
+                if (startTime != null)
+                    fTimeRange = new TmfTimeRange(startTime, lastTime.clone());
+                if (nbRead != 0) {
+                    //					updateTimeRange();
+                    //					updateNbEvents();
+                    fNbEvents = initialNbEvents + nbRead;
+                    notifyListeners();
+                }
+            }
+        };
+
+        sendRequest((ITmfDataRequest<T>) request);
+        if (waitForCompletion)
+            try {
+                request.waitForCompletion();
+            } catch (final InterruptedException e) {
+                e.printStackTrace();
+            }
+    }
+

@@ -1,0 +1,52 @@
+    // Returns a brand new context based on the location provided
+    // and initializes the event queues
+    @Override
+    public synchronized TmfExperimentContext seekEvent(final ITmfLocation<?> location) {
+        // Validate the location
+        if (location != null && !(location instanceof TmfExperimentLocation))
+            return null; // Throw an exception?
+
+        if (fTraces == null)
+            return null;
+
+        // Instantiate the location
+        final TmfExperimentLocation expLocation = (location == null) ? new TmfExperimentLocation(new TmfLocationArray(
+                new ITmfLocation<?>[fTraces.length])) : (TmfExperimentLocation) location.clone();
+
+        // Create and populate the context's traces contexts
+        final TmfExperimentContext context = new TmfExperimentContext(new ITmfContext[fTraces.length]);
+        // Tracer.trace("Ctx: SeekLocation - start");
+
+        long rank = 0;
+        for (int i = 0; i < fTraces.length; i++) {
+            // Get the relevant trace attributes
+            final ITmfLocation<?> traceLocation = expLocation.getLocation().getLocations()[i];
+//            final long traceRank = expLocation.getRanks()[i];
+
+            // Set the corresponding sub-context
+            context.getContexts()[i] = fTraces[i].seekEvent(traceLocation);
+//            context.getContexts()[i].setRank(traceRank);
+//            rank += traceRank;
+
+            // Set the trace location and read the corresponding event
+            /*
+             * The (TmfContext) cast should be safe since we created 'context'
+             * ourselves higher up.
+             */
+            expLocation.getLocation().getLocations()[i] = context.getContexts()[i].getLocation().clone();
+            context.getEvents()[i] = fTraces[i].getNext(context.getContexts()[i]);
+        }
+
+        // Tracer.trace("Ctx: SeekLocation - done");
+
+        // Finalize context
+        context.setLocation(expLocation);
+        context.setLastTrace(TmfExperimentContext.NO_TRACE);
+//        context.setRank(rank);
+        context.setRank(ITmfContext.UNKNOWN_RANK);
+
+        fExperimentContext = context;
+
+        return context;
+    }
+

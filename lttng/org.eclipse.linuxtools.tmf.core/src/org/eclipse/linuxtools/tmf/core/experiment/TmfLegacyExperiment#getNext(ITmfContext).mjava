@@ -1,0 +1,80 @@
+    /**
+     * Scan the next events from all traces and return the next one in
+     * chronological order.
+     * 
+     * @param context the trace context
+     * @return the next event
+     */
+    @Override
+    public synchronized T getNext(final ITmfContext context) {
+
+        // Validate the context
+        if (!(context instanceof TmfExperimentContext))
+            return null; // Throw an exception?
+
+        if (!context.equals(fExperimentContext))
+            // Tracer.trace("Ctx: Restoring context");
+            fExperimentContext = seekEvent(context.getLocation());
+
+        final TmfExperimentContext expContext = (TmfExperimentContext) context;
+
+        //		dumpContext(expContext, true);
+
+        // If an event was consumed previously, get the next one from that trace
+        final int lastTrace = expContext.getLastTrace();
+        if (lastTrace != TmfExperimentContext.NO_TRACE) {
+            final ITmfContext traceContext = expContext.getContexts()[lastTrace];
+            expContext.getEvents()[lastTrace] = fTraces[lastTrace].getNext(traceContext);
+            expContext.setLastTrace(TmfExperimentContext.NO_TRACE);
+        }
+
+        // Scan the candidate events and identify the "next" trace to read from
+        final ITmfEvent eventArray[] = expContext.getEvents();
+        if (eventArray == null)
+            return null;
+        int trace = TmfExperimentContext.NO_TRACE;
+        ITmfTimestamp timestamp = TmfTimestamp.BIG_CRUNCH;
+        if (eventArray.length == 1) {
+            if (eventArray[0] != null) {
+                timestamp = eventArray[0].getTimestamp();
+                trace = 0;
+            }
+        } else
+            for (int i = 0; i < eventArray.length; i++) {
+                final ITmfEvent event = eventArray[i];
+                if (event != null && event.getTimestamp() != null) {
+                    final ITmfTimestamp otherTS = event.getTimestamp();
+                    if (otherTS.compareTo(timestamp, true) < 0) {
+                        trace = i;
+                        timestamp = otherTS;
+                    }
+                }
+            }
+        // Update the experiment context and set the "next" event
+        T event = null;
+        if (trace != TmfExperimentContext.NO_TRACE) {
+            updateIndex(expContext, timestamp);
+
+            final ITmfContext traceContext = expContext.getContexts()[trace];
+            final TmfExperimentLocation expLocation = (TmfExperimentLocation) expContext.getLocation();
+            //	        expLocation.getLocation()[trace] = traceContext.getLocation().clone();
+            expLocation.getLocation().getLocations()[trace] = traceContext.getLocation().clone();
+
+            //	        updateIndex(expContext, timestamp);
+
+//            expLocation.getRanks()[trace] = traceContext.getRank();
+            expContext.setLastTrace(trace);
+            expContext.increaseRank();
+            event = (T) expContext.getEvents()[trace];
+            fExperimentContext = expContext;
+        }
+
+        //		if (event != null) {
+        //    		Tracer.trace("Exp: " + (expContext.getRank() - 1) + ": " + event.getTimestamp().toString());
+        //    		dumpContext(expContext, false);
+        //    		Tracer.trace("Ctx: Event returned= " + event.getTimestamp().toString());
+        //		}
+
+        return event;
+    }
+
