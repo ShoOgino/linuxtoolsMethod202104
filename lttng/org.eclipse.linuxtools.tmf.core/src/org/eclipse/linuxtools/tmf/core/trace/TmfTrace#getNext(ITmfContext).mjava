@@ -1,11 +1,16 @@
     /* (non-Javadoc)
-     * @see org.eclipse.linuxtools.tmf.core.component.TmfDataProvider#getNext(org.eclipse.linuxtools.tmf.core.trace.ITmfContext)
+     * @see org.eclipse.linuxtools.tmf.core.trace.ITmfTrace#readNextEvent(org.eclipse.linuxtools.tmf.core.trace.ITmfContext)
      */
     @Override
-    @SuppressWarnings("unchecked")
-    public T getNext(final ITmfContext context) {
-        if (context instanceof TmfContext)
-            return (T) readNextEvent(context);
-        return null;
+    public synchronized T getNext(final ITmfContext context) {
+        // parseEvent() does not update the context
+        final T event = fParser.parseEvent(context);
+        if (event != null) {
+            updateAttributes(context, event.getTimestamp());
+            context.setLocation(getCurrentLocation());
+            context.increaseRank();
+            processEvent(event);
+        }
+        return event;
     }
 

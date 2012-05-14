@@ -1,21 +1,18 @@
     @Override
     public ITmfContext armRequest(final ITmfDataRequest<T> request) {
-        //		Tracer.trace("Ctx: Arming request - start");
         ITmfTimestamp timestamp = (request instanceof ITmfEventRequest<?>) ? ((ITmfEventRequest<T>) request).getRange().getStartTime() : null;
-        if (TmfTimestamp.BIG_BANG.equals(timestamp) || request.getIndex() > 0)
-            timestamp = null; // use request index
-        TmfExperimentContext context = null;
-        if (timestamp != null) {
-            // seek by timestamp
+        if (TmfTimestamp.BIG_BANG.equals(timestamp) || request.getIndex() > 0) {
+            timestamp = null;
+        }
+
+        ITmfContext context = null;
+        if (timestamp != null) { // Seek by timestamp
             context = seekEvent(timestamp);
             ((ITmfEventRequest<T>) request).setStartIndex((int) context.getRank());
-        } else // Seek by rank
-            if ((fExperimentContext != null) && fExperimentContext.getRank() == request.getIndex())
-                // We are already at the right context -> no need to seek
-                context = fExperimentContext;
-            else
-                context = seekEvent(request.getIndex());
-        // Tracer.trace("Ctx: Arming request - done");
+        } else { // Seek by rank
+            context = seekEvent(request.getIndex());
+        }
+
         return context;
     }
 
