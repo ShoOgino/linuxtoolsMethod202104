@@ -13,6 +13,7 @@
         if (selectionProvider == null) {
             return false;
         }
+
         ISelection selection = selectionProvider.getSelection();
 
         // Make sure there is only selection and that it is an experiment
@@ -24,9 +25,20 @@
                 TmfTraceElement trace = (TmfTraceElement) element;
                 // If trace is under an experiment, use the original trace from the traces folder
                 trace = trace.getElementUnderTraceFolder();
-                trace.deleteSupplementaryFiles();
-                // Refresh folder
-                IResource resource = trace.getParent().getResource();
+
+                // Delete the selected resources
+                IResource[] resources = trace.getSupplementaryResources();
+                
+                SelectSupplementaryResourcesDialog dialog = new SelectSupplementaryResourcesDialog(window.getShell(), resources);
+                if (dialog.open() != Window.OK) {
+                    return null;
+                }
+
+                trace.deleteSupplementaryResources(dialog.getResources());
+
+                // Refresh project
+                IResource resource = trace.getProject().getResource();
+
                 if (resource != null) {
                     try {
                         if (resource != null) {
