@@ -33,9 +33,9 @@
 
             //            long indexingStart = System.nanoTime();
 
-            ITmfTimestamp startTime = (fTimeRange == TmfTimeRange.NULL_RANGE) ? null : fTimeRange.getStartTime();
-            ITmfTimestamp lastTime = (fTimeRange == TmfTimeRange.NULL_RANGE) ? null : fTimeRange.getEndTime();
-            long initialNbEvents = fNbEvents;
+            ITmfTimestamp startTime = (getTimeRange().equals(TmfTimeRange.NULL_RANGE)) ? null : getStartTime();
+            ITmfTimestamp lastTime = (getTimeRange().equals(TmfTimeRange.NULL_RANGE)) ? null : getEndTime();
+            long initialNbEvents = getNbEvents();
 
             @Override
             public void handleStarted() {
@@ -82,8 +82,8 @@
                 super.handleCompleted();
                 synchronized (fCheckpoints) {
                     fIndexing = false;
-                    if (fIndexingPendingRange != TmfTimeRange.NULL_RANGE) {
-                        indexExperiment(false, (int) fNbEvents, fIndexingPendingRange);
+                    if (!(fIndexingPendingRange.equals(TmfTimeRange.NULL_RANGE))) {
+                        indexExperiment(false, (int) getNbEvents(), fIndexingPendingRange);
                         fIndexingPendingRange = TmfTimeRange.NULL_RANGE;
                     }
                 }
@@ -91,12 +91,13 @@
 
             private void updateExperiment() {
                 final int nbRead = getNbRead();
-                if (startTime != null)
-                    fTimeRange = new TmfTimeRange(startTime, lastTime.clone());
+                if (startTime != null) {
+                    setTimeRange(new TmfTimeRange(startTime, lastTime.clone()));
+                }
                 if (nbRead != 0) {
                     //					updateTimeRange();
                     //					updateNbEvents();
-                    fNbEvents = initialNbEvents + nbRead;
+                    setNbEvents(initialNbEvents + nbRead);
                     notifyListeners();
                 }
             }
