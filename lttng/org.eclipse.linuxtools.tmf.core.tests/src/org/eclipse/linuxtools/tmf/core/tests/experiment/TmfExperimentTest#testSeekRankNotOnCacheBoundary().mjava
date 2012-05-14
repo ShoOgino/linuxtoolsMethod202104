@@ -1,0 +1,37 @@
+    public void testSeekRankNotOnCacheBoundary() throws Exception {
+
+        long cacheSize = fExperiment.getCacheSize();
+
+        // Position trace at event rank 9
+        ITmfContext context = fExperiment.seekEvent(9);
+        assertEquals("Context rank", 9, context.getRank());
+
+        ITmfEvent event = fExperiment.getNext(context);
+        assertEquals("Event timestamp", 10, event.getTimestamp().getValue());
+        assertEquals("Context rank", 10, context.getRank());
+
+        // Position trace at event rank [cacheSize - 1]
+        context = fExperiment.seekEvent(cacheSize - 1);
+        assertEquals("Context rank", cacheSize - 1, context.getRank());
+
+        event = fExperiment.getNext(context);
+        assertEquals("Event timestamp", cacheSize, event.getTimestamp().getValue());
+        assertEquals("Context rank", cacheSize, context.getRank());
+
+        // Position trace at event rank [cacheSize + 1]
+        context = fExperiment.seekEvent(cacheSize + 1);
+        assertEquals("Context rank", cacheSize + 1, context.getRank());
+
+        event = fExperiment.getNext(context);
+        assertEquals("Event timestamp", cacheSize + 2, event.getTimestamp().getValue());
+        assertEquals("Context rank", cacheSize + 2, context.getRank());
+
+        // Position trace at event rank 4500
+        context = fExperiment.seekEvent(4500);
+        assertEquals("Context rank", 4500, context.getRank());
+
+        event = fExperiment.getNext(context);
+        assertEquals("Event timestamp", 4501, event.getTimestamp().getValue());
+        assertEquals("Context rank", 4501, context.getRank());
+    }
+
