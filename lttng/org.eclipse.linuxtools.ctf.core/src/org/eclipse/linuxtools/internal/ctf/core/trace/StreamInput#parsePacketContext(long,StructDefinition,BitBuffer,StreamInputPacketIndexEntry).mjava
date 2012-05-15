@@ -1,0 +1,57 @@
+    /**
+     * @param fileSizeBytes
+     * @param streamPacketContextDef
+     * @param bitBuffer
+     * @param packetIndex
+     */
+    private void parsePacketContext(long fileSizeBytes,
+            StructDefinition streamPacketContextDef, BitBuffer bitBuffer,
+            StreamInputPacketIndexEntry packetIndex) {
+        streamPacketContextDef.read(bitBuffer);
+
+        /*
+         * Read the content size in bits
+         */
+        IntegerDefinition contentSizeDef = (IntegerDefinition) streamPacketContextDef
+                .lookupDefinition("content_size"); //$NON-NLS-1$
+        if (contentSizeDef != null) {
+            packetIndex.setContentSizeBits((int) contentSizeDef.getValue());
+        } else {
+            packetIndex.setContentSizeBits((int) (fileSizeBytes * 8));
+        }
+
+        /*
+         * Read the packet size in bits
+         */
+        IntegerDefinition packetSizeDef = (IntegerDefinition) streamPacketContextDef
+                .lookupDefinition("packet_size"); //$NON-NLS-1$
+        if (packetSizeDef != null) {
+            packetIndex.setPacketSizeBits((int) packetSizeDef.getValue());
+        } else {
+            if (packetIndex.getContentSizeBits() != 0) {
+                packetIndex.setPacketSizeBits(packetIndex.getContentSizeBits());
+            } else {
+                packetIndex.setPacketSizeBits((int) (fileSizeBytes * 8));
+            }
+        }
+
+        /*
+         * Read the begin timestamp
+         */
+        IntegerDefinition timestampBeginDef = (IntegerDefinition) streamPacketContextDef
+                .lookupDefinition("timestamp_begin"); //$NON-NLS-1$
+        if (timestampBeginDef != null) {
+            packetIndex.setTimestampBegin(timestampBeginDef.getValue());
+        }
+
+        /*
+         * Read the end timestamp
+         */
+        IntegerDefinition timestampEndDef = (IntegerDefinition) streamPacketContextDef
+                .lookupDefinition("timestamp_end"); //$NON-NLS-1$
+        if (timestampEndDef != null) {
+            packetIndex.setTimestampEnd(timestampEndDef.getValue());
+            setTimestampEnd(packetIndex.getTimestampEnd());
+        }
+    }
+

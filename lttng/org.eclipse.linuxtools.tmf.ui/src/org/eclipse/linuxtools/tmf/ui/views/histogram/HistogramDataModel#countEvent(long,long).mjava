@@ -1,31 +1,31 @@
     /**
      * Add event to the correct bucket, compacting the if needed.
-     * 
+     *
      * @param timestamp the timestamp of the event to count
      */
     @Override
     public void countEvent(long eventCount, long timestamp) {
-        
+
         // Validate
         if (timestamp < 0) {
             return;
         }
-        
+
         // Set the start/end time if not already done
-        if (fLastBucket == 0 && fBuckets[0] == 0 && timestamp > 0) {
+        if ((fLastBucket == 0) && (fBuckets[0] == 0) && (timestamp > 0)) {
             fFirstBucketTime = timestamp;
             fFirstEventTime = timestamp;
             updateEndTime();
         }
-        
+
         if (timestamp < fFirstEventTime) {
             fFirstEventTime = timestamp;
         }
-        
+
         if (fLastEventTime < timestamp) {
             fLastEventTime = timestamp;
         }
-        
+
         if (timestamp >= fFirstBucketTime) {
 
             // Compact as needed
@@ -34,31 +34,32 @@
             }
 
         } else {
-            
+
             // get offset for adjustment
             int offset = getOffset(timestamp);
 
             // Compact as needed
-            while(fLastBucket + offset >= fNbBuckets) {
+            while((fLastBucket + offset) >= fNbBuckets) {
                 mergeBuckets();
                 offset = getOffset(timestamp);
             }
-            
+
             moveBuckets(offset);
 
             fLastBucket = fLastBucket + offset;
 
-            fFirstBucketTime = fFirstBucketTime - offset*fBucketDuration;
+            fFirstBucketTime = fFirstBucketTime - (offset*fBucketDuration);
             updateEndTime();
         }
-        
+
         // Increment the right bucket
         int index = (int) ((timestamp - fFirstBucketTime) / fBucketDuration);
         fBuckets[index]++;
         fNbEvents++;
-        if (fLastBucket < index)
+        if (fLastBucket < index) {
             fLastBucket = index;
-        
+        }
+
         fireModelUpdateNotification(eventCount);
     }
 

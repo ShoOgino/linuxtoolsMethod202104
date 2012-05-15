@@ -19,24 +19,6 @@
             return false;
         }
         /*
-         * index if needed
-         */
-        if (hasMoreEvents()) {
-            StreamInputPacketReader packetReader = top.getPacketReader();
-            boolean packetHasMoreEvents = packetReader.hasMoreEvents();
-            StreamInputPacketIndexEntry currentPacket = packetReader
-                    .getCurrentPacket();
-            if (!packetHasMoreEvents) {
-                int n = this.streamInputReaders.indexOf(top);
-                if (!startIndex.containsKey(n)) {
-                    startIndex.put(n, 0L);
-                }
-                currentPacket.setIndexBegin(startIndex.get(n));
-                currentPacket.setIndexEnd(fIndex);
-                startIndex.put(n, fIndex + 1);
-            }
-        }
-        /*
          * Read the next event of this reader.
          */
         if (top.readNextEvent()) {
@@ -50,14 +32,16 @@
             /*
              * increment the index
              */
-            fIndex++;
-        }
-        boolean hasMoreEvents = hasMoreEvents();
 
+            if (top.getCurrentEvent() != null) {
+                this.endTime = Math.max(top.getCurrentEvent().getTimestamp(),
+                        this.endTime);
+            }
+        }
         /*
          * If there is no reader in the queue, it means the trace reader reached
          * the end of the trace.
          */
-        return hasMoreEvents;
+        return hasMoreEvents();
     }
 

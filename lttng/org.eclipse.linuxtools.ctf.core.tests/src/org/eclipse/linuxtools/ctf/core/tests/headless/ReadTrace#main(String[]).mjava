@@ -6,7 +6,7 @@
         final String TRACE_PATH = "traces/kernel";
 
         // Change this to enable text output
-        final boolean USE_TEXT = true;
+        final boolean USE_TEXT = false;
 
         final int LOOP_COUNT = 1;
 
@@ -35,22 +35,21 @@
                 while (traceReader.hasMoreEvents()) {
                     EventDefinition ed = traceReader.getCurrentEventDef();
                     nbEvent++;
-                    if (prev == traceReader.getIndex()) {
-                        System.out.println("Error on events " + prev);
-                    }
-                    prev = traceReader.getIndex();
                     if (USE_TEXT) {
                         String output = formatDate(ed.getTimestamp()
                                 + trace.getOffset());
-                        System.out.println(traceReader.getIndex() + ", "
+                        System.out.println(nbEvent + ", "
                                 + output + ", " + ed.getDeclaration().getName()
                                 + ", " + ed.getCPU() + ed.getFields().toString()) ;
                     }
-
+                    long endTime = traceReader.getEndTime();
+                    long timestamp = traceReader.getCurrentEventDef().getTimestamp();
                     traceReader.advance();
                 }
+                Map<Long, Stream> streams = traceReader.getTrace().getStreams();
             }
             stop = System.nanoTime();
+
             System.out.print('.');
             double time = (stop - start) / (double) nbEvent;
             benchs.add(time);
@@ -62,12 +61,10 @@
         }
         avg /= benchs.size();
         System.out.println("Time to read " + nbEvent + " events = " + avg
-                + " events/ns");
+                + " ns/event");
         for (Double val : benchs) {
             System.out.print(val);
             System.out.print(", ");
         }
-        testSeekIndex(trace);
-        testSeekIndex(trace);
     }
 

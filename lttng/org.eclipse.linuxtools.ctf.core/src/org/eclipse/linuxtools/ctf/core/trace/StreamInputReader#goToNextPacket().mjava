@@ -2,11 +2,22 @@
      * Change the current packet of the packet reader to the next one.
      */
     private void goToNextPacket() {
-        if (getPacketIndexIt().hasNext()) {
-            StreamInputPacketIndexEntry nextPacket = getPacketIndexIt().next();
-            this.packetReader.setCurrentPacket(nextPacket);
+        packetIndex++;
+        if (getPacketSize() >= (packetIndex + 1)) {
+            this.packetReader.setCurrentPacket(getPacket());
         } else {
-            this.packetReader.setCurrentPacket(null);
+            try {
+                if (this.streamInput.addPacketHeaderIndex()) {
+                    packetIndex = getPacketSize() - 1;
+                    this.packetReader.setCurrentPacket(getPacket());
+
+                } else {
+                    this.packetReader.setCurrentPacket(null);
+                }
+
+            } catch (CTFReaderException e) {
+                this.packetReader.setCurrentPacket(null);
+            }
         }
     }
 
