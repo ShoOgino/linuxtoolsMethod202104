@@ -1,15 +1,22 @@
-    public TmfExperiment(final Class<T> type, final String id, final ITmfTrace<T>[] traces, final ITmfTimestamp epoch,
-            final int indexPageSize, final boolean preIndexExperiment) {
-        super(id, type);
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public TmfExperiment(final Class<T> type, final String path, final ITmfTrace<T>[] traces, final ITmfTimestamp epoch,
+            final int indexPageSize, final boolean preIndexExperiment)
+    {
+        setCacheSize(indexPageSize);
+        setStreamingInterval(0);
+        setIndexer(new TmfCheckpointIndexer(this, indexPageSize));
+        setParser(this);
+        try {
+            super.initialize(null, path, type);
+        } catch (TmfTraceException e) {
+            e.printStackTrace();
+        }
 
         fTraces = traces;
-        fEpoch = epoch;
-        fIndexPageSize = indexPageSize;
-        fTimeRange = TmfTimeRange.NULL_RANGE;
+        setTimeRange(TmfTimeRange.NULL_RANGE);
 
         if (preIndexExperiment) {
-            indexExperiment(true, 0, TmfTimeRange.ETERNITY);
-            updateTimeRange();
+            getIndexer().buildIndex(true);
         }
     }
 
