@@ -2,72 +2,84 @@
 	 * 
 	 * Operations for actually running rpmbuild binary
 	 * 
-	 * @param specFile The specfile used by rpmbuild
-	 * @param outStream The stream to write the output to.
-	 * @param buildParameter rpmbuild parameters
+	 * @param specFile
+	 *            The specfile used by rpmbuild
+	 * @param outStream
+	 *            The stream to write the output to.
+	 * @param buildParameter
+	 *            rpmbuild parameters
 	 * @return The return code of the build job.
-	 * @throws CoreException if the operation fails
+	 * @throws CoreException
+	 *             if the operation fails
 	 * @since 0.4
 	 */
-	public int build(IResource specFile, OutputStream outStream, String buildParameter) throws CoreException {
+	public int build(IResource specFile, OutputStream outStream,
+			String buildParameter) throws CoreException {
 		List<String> command = new ArrayList<String>();
 		IRemoteProxyManager rmtProxyMgr;
 		IRemoteCommandLauncher rmtCmdLauncher = null;
-		command.addAll(Arrays.asList(macroDefines));
+		command.addAll(macroDefines);
 		command.add(buildParameter);
 		String remoteSpec = ""; //$NON-NLS-1$
-		if (specFile.getLocation()==null) {
+		if (specFile.getLocation() == null) {
 			rmtProxyMgr = RemoteProxyManager.getInstance();
 			try {
 				rmtCmdLauncher = rmtProxyMgr.getLauncher(new URI(buildFolder));
 			} catch (URISyntaxException e1) {
-				throw new CoreException(new Status(IStatus.ERROR, IRPMConstants.RPM_CORE_ID,
-						e1.getMessage(), e1));
+				throw new CoreException(new Status(IStatus.ERROR,
+						IRPMConstants.RPM_CORE_ID, e1.getMessage(), e1));
 
 			}
 			String host = specFile.getLocationURI().getHost();
-			int startIndex = buildFolder.indexOf(host)+host.length();
-			remoteSpec = specFile.getLocationURI().toString().substring(startIndex);
+			int startIndex = buildFolder.indexOf(host) + host.length();
+			remoteSpec = specFile.getLocationURI().toString()
+					.substring(startIndex);
 			command.add(remoteSpec);
 			String empty[] = new String[0];
-			Process pProxy = rmtCmdLauncher.execute(Path.fromOSString(rpmBuildCmd), command.toArray(new String[command.size()]), empty, null, new NullProgressMonitor());
+			Process pProxy = rmtCmdLauncher.execute(
+					Path.fromOSString(rpmBuildCmd),
+					command.toArray(new String[command.size()]), empty, null,
+					new NullProgressMonitor());
 			MessageConsole console = new MessageConsole("rpmbuild", null); //$NON-NLS-1$
 			console.activate();
-			ConsolePlugin.getDefault().getConsoleManager().addConsoles(new IConsole[]{ console });
+			ConsolePlugin.getDefault().getConsoleManager()
+					.addConsoles(new IConsole[] { console });
 			MessageConsoleStream stream = console.newMessageStream();
 
-			if (pProxy != null){
-				BufferedReader error = new BufferedReader(new InputStreamReader(pProxy.getErrorStream()));
+			if (pProxy != null) {
+				BufferedReader error = new BufferedReader(
+						new InputStreamReader(pProxy.getErrorStream()));
 				String err;
 				try {
 					err = error.readLine();
-					while(err != null){
+					while (err != null) {
 						stream.println(err);
 						err = error.readLine();
 					}
 					error.close();
-					BufferedReader reader = new BufferedReader(new InputStreamReader(pProxy.getInputStream()));
+					BufferedReader reader = new BufferedReader(
+							new InputStreamReader(pProxy.getInputStream()));
 					String readLine = reader.readLine();
-					while (readLine!=null) {
+					while (readLine != null) {
 						stream.println(readLine);
-						readLine=reader.readLine();
+						readLine = reader.readLine();
 					}
 					reader.close();
 				} catch (IOException e) {
-					throw new CoreException(new Status(IStatus.ERROR, IRPMConstants.RPM_CORE_ID,
-							e.getMessage(), e));
-				} 
+					throw new CoreException(new Status(IStatus.ERROR,
+							IRPMConstants.RPM_CORE_ID, e.getMessage(), e));
+				}
 			}
 			return Status.OK_STATUS.getCode();
 
-		} else{
+		} else {
 			command.add(specFile.getLocation().toString());
 			try {
-				return Utils.runCommand(outStream, command
-						.toArray(new String[command.size()]));
+				return Utils.runCommand(outStream,
+						command.toArray(new String[command.size()]));
 			} catch (IOException e) {
-				throw new CoreException(new Status(IStatus.ERROR, IRPMConstants.RPM_CORE_ID,
-						e.getMessage(), e));
+				throw new CoreException(new Status(IStatus.ERROR,
+						IRPMConstants.RPM_CORE_ID, e.getMessage(), e));
 			}
 		}
 	}
