@@ -7,10 +7,10 @@
      * @param nameSpace the name space
      * @param gc
      */
-    protected void drawItem(TimeGraphItem item, Rectangle bounds, ITimeDataProvider timeProvider, int i, int nameSpace, GC gc) {
-        ITimeGraphEntry entry = item._trace;
+    public void drawItem(TimeGraphItem item, Rectangle bounds, ITimeDataProvider timeProvider, int i, int nameSpace, GC gc) {
         long time0 = timeProvider.getTime0();
         long time1 = timeProvider.getTime1();
+        long endTime = timeProvider.getEndTime();
         long selectedTime = timeProvider.getSelectedTime();
 
         Rectangle nameRect = getNameRect(bounds, i, nameSpace);
@@ -26,14 +26,11 @@
             drawName(item, nameRect, gc);
         }
         Rectangle rect = getStatesRect(bounds, i, nameSpace);
-        if (rect.isEmpty()) {
-            fTimeGraphProvider.postDrawEntry(entry, bounds, gc);
+        if (rect.isEmpty())
             return;
-        }
         if (time1 <= time0) {
             gc.setBackground(_colors.getBkColor(false, false, false));
             gc.fillRectangle(rect);
-            fTimeGraphProvider.postDrawEntry(entry, bounds, gc);
             return;
         }
 
@@ -45,41 +42,95 @@
 
         boolean group = item._trace.getTimeEventsIterator() == null;
 
-        if (!group) {
-            fillSpace(rect, gc, selected);
+        if (group) {
+            // gc.setBackground(_colors.getBkColorGroup(selected, _isInFocus));
+            // gc.fillRectangle(rect);
+        } else {
+            ITimeGraphEntry trace = item._trace;
+
+            double x0 = rect.x;
+            long maxDuration = (timeProvider.getTimeSpace() == 0) ? Long.MAX_VALUE : 1 * (time1 - time0) / timeProvider.getTimeSpace();
+            Iterator<ITimeEvent> iterator = trace.getTimeEventsIterator(time0, time1, maxDuration);
             // Drawing rectangle is smaller than reserved space
             stateRect.y += 3;
             stateRect.height -= 6;
 
-            long maxDuration = (timeProvider.getTimeSpace() == 0) ? Long.MAX_VALUE : 1 * (time1 - time0) / timeProvider.getTimeSpace();
-            Iterator<ITimeEvent> iterator = entry.getTimeEventsIterator(time0, time1, maxDuration);
+            // Clean up to empty line to draw on top
+            int xEnd = rect.x + rect.width;
+            fillSpace(rect, gc, selected);
+            if (iterator.hasNext()) {
+                ITimeEvent currEvent = iterator.next();
+                ITimeEvent nextEvent = null;
+                long currEventTime = currEvent.getTime();
+                long currEventDuration = currEvent.getDuration();
+                // initial value
+                long nextEventTime = currEventTime;
+                // x0 - Points to the beginning of the event being drawn
+                double step = (double) ((currEventTime - time0) * pixelsPerNanoSec);
+                x0 = rect.x + step;
+                // xEnd - Points to the end of the events rectangle
+                double x1 = -1;
+                double xNext = 0;
 
-            int lastX = -1;
-            while (iterator.hasNext()) {
-                ITimeEvent event = iterator.next();
-                int x = rect.x + (int) ((event.getTime() - time0) * pixelsPerNanoSec);
-                int xEnd = rect.x + (int) ((event.getTime() + event.getDuration() - time0) * pixelsPerNanoSec);
-                if (x >= rect.x + rect.width || xEnd < rect.x) {
-                    // event is out of bounds
-                    continue;
-                }
-                xEnd = Math.min(rect.x + rect.width, xEnd);
-                stateRect.x = Math.max(rect.x, x);
-                stateRect.width = Math.max(0, xEnd - stateRect.x + 1);
-                if (stateRect.x == lastX) {
-                    stateRect.width -= 1;
-                    if (stateRect.width > 0) {
-                        gc.setForeground(Display.getDefault().getSystemColor(SWT.COLOR_BLACK));
-                        gc.drawPoint(stateRect.x, stateRect.y - 2);
-                        stateRect.x += 1;
+                // draw event states
+                while (/* x0 <= xEnd && */null != currEvent) {
+                    boolean stopped = false;// currEvent instanceof
+                    // refresh current event duration as the loop moves
+                    currEventDuration = currEvent.getDuration();
+                    // TsfTmTraceDeadEvent;
+                    if (iterator.hasNext()) {
+                        nextEvent = iterator.next();
+                        nextEventTime = nextEvent.getTime();
+                    } else if (stopped) {
+                        nextEvent = null;
+                        nextEventTime = time1;
+                    } else {
+                        nextEvent = null;
+                        nextEventTime = endTime;
                     }
-                } else {
-                    lastX = x;
+
+                    // Calculate position to next event
+                    xNext = rect.x + (double) ((nextEventTime - time0) * pixelsPerNanoSec);
+
+                    // Calculate end position of current event
+                    if (currEventDuration < 0) {
+                        x1 = rect.x + (double) ((nextEventTime - time0) * pixelsPerNanoSec);
+                    } else if (currEventDuration == 0) {
+                        x1 = x0;
+                    } else {
+                        x1 = x0 + (double) ((currEventDuration) * pixelsPerNanoSec);
+                    }
+
+                    // If event end position x1 further away than start position
+                    // of next event, cut width till next event
+                    if (currEventDuration != 0) {
+                        x1 = x1 > xNext ? xNext : x1;
+                    }
+                    // if event end boundary is within time range
+                    if (x1 >= rect.x && x0 <= xEnd) {
+                        if (currEventDuration != 0) {
+                            x0 = (double) (x0 >= rect.x ? x0 : rect.x);
+                            stateRect.width = (int) ((x1 <= xEnd ? x1 : xEnd) - x0);
+                        } else {
+                            stateRect.width = 1;
+                        }
+                        stateRect.width = Math.max(getMinimumItemWidth(), stateRect.width);
+                        stateRect.x = (int) x0;
+                        boolean timeSelected = currEventTime <= selectedTime && selectedTime < nextEventTime;
+                        fTimeGraphProvider.drawState(_colors, currEvent, stateRect, gc, selected, false, timeSelected);
+                        // Advance rectangle to next start position and Fill
+                        // with space until next event
+                        stateRect.x += stateRect.width;
+                        x0 = stateRect.x;
+                    }
+
+                    // lastEvent = currEvent;
+                    currEvent = nextEvent;
+                    currEventTime = nextEventTime;
+                    // Move x0 to the beginning of next event
+                    x0 = rect.x + (double) ((nextEventTime - time0) * pixelsPerNanoSec);
                 }
-                boolean timeSelected = selectedTime >= event.getTime() && selectedTime < event.getTime() + event.getDuration();
-                drawState(_colors, event, stateRect, gc, selected, timeSelected);
             }
         }
-        fTimeGraphProvider.postDrawEntry(entry, bounds, gc);
     }
 
