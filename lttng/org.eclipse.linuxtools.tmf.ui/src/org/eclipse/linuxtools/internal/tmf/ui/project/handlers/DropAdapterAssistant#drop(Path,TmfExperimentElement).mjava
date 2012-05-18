@@ -7,32 +7,36 @@
      */
     private boolean drop(Path path, TmfExperimentElement targetExperiment) {
         boolean doit = true;
+        
+        // Use local variable to avoid parameter assignment
+        Path pathToUse = path;
+
         for (TmfTraceElement trace : targetExperiment.getTraces()) {
-            if (trace.getName().equals(path.lastSegment())) {
+            if (trace.getName().equals(pathToUse.lastSegment())) {
                 doit = false;
                 break;
             }
         }
-        if (doit && !path.toString().startsWith(targetExperiment.getProject().getResource().getLocation().toString())) {
+        if (doit && !pathToUse.toString().startsWith(targetExperiment.getProject().getResource().getLocation().toString())) {
             for (TmfTraceElement trace : targetExperiment.getProject().getTracesFolder().getTraces()) {
-                if (trace.getName().equals(path.lastSegment())) {
+                if (trace.getName().equals(pathToUse.lastSegment())) {
                     doit = false;
                     break;
                 }
             }
             if (doit) {
-                importTrace(targetExperiment.getProject().getTracesFolder().getResource(), path);
+                importTrace(targetExperiment.getProject().getTracesFolder().getResource(), pathToUse);
                 // use the imported trace for the experiment
-                path = new Path(targetExperiment.getProject().getTracesFolder().getResource().getFile(path.lastSegment()).getLocation().toString());
+                pathToUse = new Path(targetExperiment.getProject().getTracesFolder().getResource().getFile(pathToUse.lastSegment()).getLocation().toString());
             }
         }
         if (doit) {
             IResource resource = null;
-            File file = new File(path.toString());
+            File file = new File(pathToUse.toString());
             if (file.exists() && file.isFile()) {
-                resource = targetExperiment.getProject().getTracesFolder().getResource().getFile(path.lastSegment());
+                resource = targetExperiment.getProject().getTracesFolder().getResource().getFile(pathToUse.lastSegment());
             } else if (file.exists() && file.isDirectory()) {
-                resource = targetExperiment.getProject().getTracesFolder().getResource().getFolder(path.lastSegment());
+                resource = targetExperiment.getProject().getTracesFolder().getResource().getFolder(pathToUse.lastSegment());
             }
             if (resource != null && resource.exists()) {
                 createLink(targetExperiment.getResource(), resource);

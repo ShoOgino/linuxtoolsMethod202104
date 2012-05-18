@@ -5,16 +5,19 @@
     public IStatus handleDrop(CommonDropAdapter aDropAdapter, DropTargetEvent aDropTargetEvent, Object aTarget) {
         boolean ok = false;
 
+        // Use local variable to avoid parameter assignment
+        Object targetToUse = aTarget;
+
         // If target is a trace, use its parent (either trace folder or experiment)
-        if (aTarget instanceof TmfTraceElement) {
-            aTarget = ((TmfTraceElement) aTarget).getParent();
+        if (targetToUse instanceof TmfTraceElement) {
+            targetToUse = ((TmfTraceElement) targetToUse).getParent();
         }
 
         // If target is a project, use its trace folder
-        if (aTarget instanceof IProject) {
-            TmfProjectElement projectElement = TmfProjectRegistry.getProject((IProject) aTarget);
+        if (targetToUse instanceof IProject) {
+            TmfProjectElement projectElement = TmfProjectRegistry.getProject((IProject) targetToUse);
             if (projectElement != null) {
-                aTarget = projectElement.getTracesFolder();
+                targetToUse = projectElement.getTracesFolder();
             }
         }
 
@@ -45,11 +48,11 @@
                             }
                         }
                     }
-                    if (aTarget instanceof TmfExperimentElement) {
-                        TmfExperimentElement targetExperiment = (TmfExperimentElement) aTarget;
+                    if (targetToUse instanceof TmfExperimentElement) {
+                        TmfExperimentElement targetExperiment = (TmfExperimentElement) targetToUse;
                         ok |= drop(sourceTrace, targetExperiment);
-                    } else if (aTarget instanceof TmfTraceFolder) {
-                        TmfTraceFolder traceFolder = (TmfTraceFolder) aTarget;
+                    } else if (targetToUse instanceof TmfTraceFolder) {
+                        TmfTraceFolder traceFolder = (TmfTraceFolder) targetToUse;
                         ok |= drop(sourceTrace, traceFolder);
                     }
                 } else if (source instanceof IResource) {
@@ -57,11 +60,11 @@
                     if (sourceResource.getType() != IResource.FILE && sourceResource.getType() != IResource.FOLDER) {
                         continue;
                     }
-                    if (aTarget instanceof TmfExperimentElement) {
-                        TmfExperimentElement targetExperiment = (TmfExperimentElement) aTarget;
+                    if (targetToUse instanceof TmfExperimentElement) {
+                        TmfExperimentElement targetExperiment = (TmfExperimentElement) targetToUse;
                         ok |= drop(sourceResource, targetExperiment);
-                    } else if (aTarget instanceof TmfTraceFolder) {
-                        TmfTraceFolder traceFolder = (TmfTraceFolder) aTarget;
+                    } else if (targetToUse instanceof TmfTraceFolder) {
+                        TmfTraceFolder traceFolder = (TmfTraceFolder) targetToUse;
                         ok |= drop(sourceResource, traceFolder);
                     }
                 }
@@ -70,11 +73,11 @@
             String[] sources = (String[]) aDropTargetEvent.data;
             for (String source : sources) {
                 Path path = new Path(source);
-                if (aTarget instanceof TmfExperimentElement) {
-                    TmfExperimentElement targetExperiment = (TmfExperimentElement) aTarget;
+                if (targetToUse instanceof TmfExperimentElement) {
+                    TmfExperimentElement targetExperiment = (TmfExperimentElement) targetToUse;
                     ok |= drop(path, targetExperiment);
-                } else if (aTarget instanceof TmfTraceFolder) {
-                    TmfTraceFolder traceFolder = (TmfTraceFolder) aTarget;
+                } else if (targetToUse instanceof TmfTraceFolder) {
+                    TmfTraceFolder traceFolder = (TmfTraceFolder) targetToUse;
                     ok |= drop(path, traceFolder);
                 }
             }

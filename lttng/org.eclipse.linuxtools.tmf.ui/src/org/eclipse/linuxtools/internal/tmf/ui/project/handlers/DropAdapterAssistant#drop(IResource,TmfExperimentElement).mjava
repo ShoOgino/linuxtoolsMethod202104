@@ -7,30 +7,34 @@
      */
     private boolean drop(IResource sourceResource, TmfExperimentElement targetExperiment) {
         boolean doit = true;
-        TmfProjectElement projectElement = TmfProjectRegistry.getProject(sourceResource.getProject());
+
+        //Use local variable to avoid parameter assignment
+        IResource sourceResourceToUse = sourceResource;
+
+        TmfProjectElement projectElement = TmfProjectRegistry.getProject(sourceResourceToUse.getProject());
         for (TmfTraceElement trace : targetExperiment.getTraces()) {
-            if (trace.getName().equals(sourceResource.getName())) {
+            if (trace.getName().equals(sourceResourceToUse.getName())) {
                 doit = false;
                 break;
             }
         }
         if (doit && !targetExperiment.getProject().equals(projectElement)) {
             for (TmfTraceElement trace : targetExperiment.getProject().getTracesFolder().getTraces()) {
-                if (trace.getName().equals(sourceResource.getName())) {
+                if (trace.getName().equals(sourceResourceToUse.getName())) {
                     doit = false;
                     break;
                 }
             }
             if (doit) {
                 try {
-                    IPath destination = targetExperiment.getProject().getTracesFolder().getResource().getFullPath().addTrailingSeparator().append(sourceResource.getName());
-                    sourceResource.copy(destination, false, null);
+                    IPath destination = targetExperiment.getProject().getTracesFolder().getResource().getFullPath().addTrailingSeparator().append(sourceResourceToUse.getName());
+                    sourceResourceToUse.copy(destination, false, null);
                     cleanupBookmarks(destination);
                     // use the copied resource for the experiment
-                    if (sourceResource.getType() == IResource.FILE) {
-                        sourceResource = targetExperiment.getProject().getTracesFolder().getResource().getFile(sourceResource.getName());
-                    } else if (sourceResource.getType() == IResource.FOLDER) {
-                        sourceResource = targetExperiment.getProject().getTracesFolder().getResource().getFolder(sourceResource.getName());
+                    if (sourceResourceToUse.getType() == IResource.FILE) {
+                        sourceResourceToUse = targetExperiment.getProject().getTracesFolder().getResource().getFile(sourceResourceToUse.getName());
+                    } else if (sourceResourceToUse.getType() == IResource.FOLDER) {
+                        sourceResourceToUse = targetExperiment.getProject().getTracesFolder().getResource().getFolder(sourceResourceToUse.getName());
                     }
                 } catch (CoreException e) {
                     doit = false;
@@ -39,8 +43,8 @@
             }
         }
         if (doit) {
-            if (sourceResource != null && sourceResource.exists()) {
-                createLink(targetExperiment.getResource(), sourceResource);
+            if (sourceResourceToUse != null && sourceResourceToUse.exists()) {
+                createLink(targetExperiment.getResource(), sourceResourceToUse);
                 return true;
             }
         }

@@ -3,13 +3,11 @@
         fStartTime = Long.MAX_VALUE;
         fEndTime = Long.MIN_VALUE;
         fSelectedExperiment = (TmfExperiment<ITmfEvent>) experiment;
-        HashMap<String, ITimeGraphEntry> traces = new HashMap<String, ITimeGraphEntry>();
-        fEntryList = new ArrayList<ITimeGraphEntry>();
+        fEntryList = new ArrayList<ControlFlowEntry>();
         for (ITmfTrace<?> trace : experiment.getTraces()) {
             if (trace instanceof CtfKernelTrace) {
                 CtfKernelTrace ctfKernelTrace = (CtfKernelTrace) trace;
                 IStateSystemQuerier ssq = ctfKernelTrace.getStateSystem();
-                ControlFlowEntry swapperEntry = null;
                 long start = ssq.getStartTime();
                 long end = ssq.getCurrentEndTime();
                 fStartTime = Math.min(fStartTime, start);
@@ -23,6 +21,9 @@
                     } catch (NumberFormatException e1) {
                         continue;
                     }
+                    if (threadId == 0) { // ignore the swapper thread
+                        continue;
+                    }
                     int execNameQuark = -1;
                     try {
                         try {
@@ -32,28 +33,25 @@
                         }
                         int ppidQuark = ssq.getQuarkRelative(threadQuark, Attributes.PPID);
                         List<ITmfStateInterval> execNameIntervals = ssq.queryHistoryRange(execNameQuark, start, end);
+                        long birthTime = -1;
                         for (ITmfStateInterval execNameInterval : execNameIntervals) {
                             if (!execNameInterval.getStateValue().isNull() && execNameInterval.getStateValue().getType() == 1) {
                                 String execName = execNameInterval.getStateValue().unboxStr();
                                 long startTime = execNameInterval.getStartTime();
-                                long endTime = execNameInterval.getEndTime();
+                                long endTime = execNameInterval.getEndTime() + 1;
+                                if (birthTime == -1) {
+                                    birthTime = startTime;
+                                }
                                 int ppid = -1;
                                 if (ppidQuark != -1) {
                                     ITmfStateInterval ppidInterval = ssq.querySingleState(startTime, ppidQuark);
                                     ppid = ppidInterval.getStateValue().unboxInt();
                                 }
-                                ControlFlowEntry entry;
-                                if (threadId == 0) {
-                                    if (swapperEntry == null) {
-                                        swapperEntry = new ControlFlowEntry(ctfKernelTrace, "swapper", threadId, ppid, startTime, endTime);
-                                        fEntryList.add(swapperEntry);
-                                    }
-                                    entry = swapperEntry;
-                                } else {
-                                    entry = new ControlFlowEntry(ctfKernelTrace, execName, threadId, ppid, startTime, endTime);
-                                    fEntryList.add(entry);
-                                }
-                                entry.addTraceEvent(new TimeEvent(entry, startTime, endTime - startTime));
+                                ControlFlowEntry entry = new ControlFlowEntry(threadQuark, ctfKernelTrace, execName, threadId, ppid, birthTime, startTime, endTime);
+                                fEntryList.add(entry);
+                                entry.addEvent(new TimeEvent(entry, startTime, endTime - startTime));
+                            } else {
+                                birthTime = -1;
                             }
                         }
                     } catch (AttributeNotFoundException e) {
@@ -65,7 +63,13 @@
                     }
                 }
             }
+            buildTree();
             refresh();
+            ControlFlowEntry[] entries = fEntryList.toArray(new ControlFlowEntry[0]);
+            Arrays.sort(entries);
+            for (ControlFlowEntry entry : entries) {
+                buildStatusEvents(entry);
+            }
         }
     }
 
