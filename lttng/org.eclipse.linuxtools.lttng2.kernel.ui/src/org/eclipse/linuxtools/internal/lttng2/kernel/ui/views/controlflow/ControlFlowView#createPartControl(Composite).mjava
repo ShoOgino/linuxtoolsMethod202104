@@ -9,30 +9,66 @@
 
         fTimeGraphCombo.setTreeLabelProvider(new TreeLabelProvider());
 
-        fTimeGraphCombo.setTimeGraphProvider(new TimeGraphProvider() {
-            @Override
-            public String getTraceClassName(ITimeGraphEntry trace) {
-                return "trace class"; //$NON-NLS-1$
+        fTimeGraphCombo.setTimeGraphProvider(new TimeGraphPresentationProvider() {
+            private static final String UNKNOWN = "UNKNOWN"; //$NON-NLS-1$
+            private static final String WAIT = "WAIT"; //$NON-NLS-1$
+            private static final String USERMODE = "USERMODE"; //$NON-NLS-1$
+            private static final String SYSCALL = "SYSCALL"; //$NON-NLS-1$
+            private static final String INTERRUPTED = "INTERRUPTED"; //$NON-NLS-1$
+
+            @Override 
+            public String getStateTypeName() {
+                return Messages.ControlFlowView_stateTypeName;
             }
             
             @Override
-            public String getStateName(StateColor color) {
-                return "state name"; //$NON-NLS-1$
+            public StateItem[] getStateTable() {
+                return new StateItem[] {
+                        new StateItem(new RGB(100, 100, 100), UNKNOWN),
+                        new StateItem(new RGB(150, 150, 0), WAIT),
+                        new StateItem(new RGB(0, 200, 0), USERMODE),
+                        new StateItem(new RGB(0, 0, 200), SYSCALL),
+                        new StateItem(new RGB(200, 100, 100), INTERRUPTED)
+                };
             }
-            
+
             @Override
-            public String getEventName(ITimeEvent event, boolean upper, boolean extInfo) {
-                return "event name"; //$NON-NLS-1$
+            public int getEventTableIndex(ITimeEvent event) {
+                if (event instanceof ControlFlowEvent) {
+                    int status = ((ControlFlowEvent) event).getStatus();
+                    if (status == Attributes.STATUS_WAIT) {
+                        return 1;
+                    } else if (status == Attributes.STATUS_RUN_USERMODE) {
+                        return 2;
+                    } else if (status == Attributes.STATUS_RUN_SYSCALL) {
+                        return 3;
+                    } else if (status == Attributes.STATUS_INTERRUPTED) {
+                        return 4;
+                    }
+                }
+                return 0;
+            }
+
+            @Override
+            public String getEventName(ITimeEvent event) {
+                if (event instanceof ControlFlowEvent) {
+                    int status = ((ControlFlowEvent) event).getStatus();
+                    if (status == Attributes.STATUS_WAIT) {
+                        return WAIT;
+                    } else if (status == Attributes.STATUS_RUN_USERMODE) {
+                        return USERMODE;
+                    } else if (status == Attributes.STATUS_RUN_SYSCALL) {
+                        return SYSCALL;
+                    } else if (status == Attributes.STATUS_INTERRUPTED) {
+                        return INTERRUPTED;
+                    }
+                }
+                return UNKNOWN;
             }
             
             @Override
             public Map<String, String> getEventHoverToolTipInfo(ITimeEvent event) {
                 return new HashMap<String, String>();
-            }
-            
-            @Override
-            public StateColor getEventColor(ITimeEvent event) {
-                return StateColor.BLACK;
             }
         });
 
@@ -41,9 +77,16 @@
         fTimeGraphCombo.getTimeGraphViewer().addRangeListener(new ITimeGraphRangeListener() {
             @Override
             public void timeRangeUpdated(TimeGraphRangeUpdateEvent event) {
-                long startTime = event.getStartTime();
-                long endTime = event.getEndTime();
-                System.out.println("timeRangeUpdated: startTime="+startTime+" endTime="+endTime);
+                final long startTime = event.getStartTime();
+                final long endTime = event.getEndTime();
+                TmfTimeRange range = new TmfTimeRange(new CtfTmfTimestamp(startTime), new CtfTmfTimestamp(endTime));
+                TmfTimestamp time = new CtfTmfTimestamp(fTimeGraphCombo.getTimeGraphViewer().getSelectedTime());
+                broadcast(new TmfRangeSynchSignal(ControlFlowView.this, range, time));
+                if (fZoomThread != null) {
+                    fZoomThread.cancel();
+                }
+                fZoomThread = new ZoomThread(startTime, endTime);
+                fZoomThread.start();
             }
         });
 
@@ -51,19 +94,20 @@
             @Override
             public void timeSelected(TimeGraphTimeEvent event) {
                 long time = event.getTime();
-                System.out.println("timeSelected: time="+time);
+                broadcast(new TmfTimeSynchSignal(ControlFlowView.this, new CtfTmfTimestamp(time)));
             }
         });
 
         fTimeGraphCombo.addSelectionListener(new ITimeGraphSelectionListener() {
             @Override
             public void selectionChanged(TimeGraphSelectionEvent event) {
-                ITimeGraphEntry selection = event.getSelection();
-                System.out.println("selectionChanged: source="+event.getSource()+" selection="+ (selection == null ? selection : selection.getName()));
+                //ITimeGraphEntry selection = event.getSelection();
             }
         });
 
-        final Thread thread = new Thread() {
+        fTimeGraphCombo.getTimeGraphViewer().setTimeCalendarFormat(true);
+
+        final Thread thread = new Thread("ControlFlowView build") { //$NON-NLS-1$
             @Override
             public void run() {
                 if (TmfExperiment.getCurrentExperiment() != null) {
@@ -72,5 +116,9 @@
             }
         };
         thread.start();
+        
+        // View Action Handling
+        makeActions();
+        contributeToActionBars();
     }
 
