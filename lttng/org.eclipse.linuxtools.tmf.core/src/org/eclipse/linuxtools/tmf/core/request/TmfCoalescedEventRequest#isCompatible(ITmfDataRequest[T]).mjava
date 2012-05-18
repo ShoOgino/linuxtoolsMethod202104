@@ -1,20 +1,22 @@
 	@Override
 	public boolean isCompatible(ITmfDataRequest<T> request) {
-		if (request instanceof ITmfEventRequest<?>) {
-			boolean ok = getNbRequested() == request.getNbRequested();
-			ok &= getIndex() == request.getIndex();
-			ok &= getExecType() == request.getExecType();
-            //ok &= getDataType() == request.getDataType();
-			if (ok) {
-				ITmfTimestamp startTime = ((ITmfEventRequest<T>) request).getRange().getStartTime();
-				ITmfTimestamp endTime   = ((ITmfEventRequest<T>) request).getRange().getEndTime();
-				if (!fRange.contains(startTime))
-					fRange = new TmfTimeRange(startTime, fRange.getEndTime());
-				if (!fRange.contains(endTime))
-					fRange = new TmfTimeRange(fRange.getStartTime(), endTime);
-			}
-			return ok;
-		}
-		return false;
+	    if (request instanceof ITmfEventRequest<?>) {
+	        boolean ok = super.isCompatible(request);
+	        if (ok) {
+	            ITmfTimestamp startTime = ((ITmfEventRequest<T>) request).getRange().getStartTime();
+	            ITmfTimestamp endTime   = ((ITmfEventRequest<T>) request).getRange().getEndTime();
+	            ok &= (startTime.compareTo(endTime) <= 0) && (fRange.getStartTime().compareTo(fRange.getEndTime()) <= 0);
+	            if (ok) {
+	                if (!fRange.contains(startTime) && fRange.getStartTime().compareTo(startTime) > 0) {
+	                    fRange = new TmfTimeRange(startTime, fRange.getEndTime());
+	                }
+	                if (!fRange.contains(endTime) && fRange.getEndTime().compareTo(endTime) < 0) {
+	                    fRange = new TmfTimeRange(fRange.getStartTime(), endTime);
+	                }
+	            }
+	        }
+	        return ok;
+	    }
+	    return false;
 	}
 

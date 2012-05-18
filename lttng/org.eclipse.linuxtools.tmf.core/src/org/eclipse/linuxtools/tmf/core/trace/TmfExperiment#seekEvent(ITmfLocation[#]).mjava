@@ -1,0 +1,41 @@
+    /* (non-Javadoc)
+     *
+     * Returns a brand new context based on the location provided and 
+     * initializes the event queues
+     * 
+     * @see org.eclipse.linuxtools.tmf.core.trace.ITmfTrace#seekEvent(org.eclipse.linuxtools.tmf.core.trace.ITmfLocation)
+     */
+    @Override
+    public synchronized ITmfContext seekEvent(final ITmfLocation<?> location) {
+        // Validate the location
+        if (location != null && !(location instanceof TmfExperimentLocation)) {
+            return null; // Throw an exception?
+        }
+        // Make sure we have something to read from
+        if (fTraces == null) {
+            return null;
+        }
+
+        // Instantiate the location
+        final TmfExperimentLocation expLocation = (location == null)
+                ? new TmfExperimentLocation(new TmfLocationArray(new ITmfLocation<?>[fTraces.length])) 
+                : (TmfExperimentLocation) location.clone();
+
+        // Create and populate the context's traces contexts
+        final TmfExperimentContext context = new TmfExperimentContext(new ITmfContext[fTraces.length]);
+
+        for (int i = 0; i < fTraces.length; i++) {
+            // Get the relevant trace attributes
+            final ITmfLocation<?> traceLocation = expLocation.getLocation().getLocations()[i];
+            context.getContexts()[i] = fTraces[i].seekEvent(traceLocation);
+            expLocation.getLocation().getLocations()[i] = context.getContexts()[i].getLocation().clone();
+            context.getEvents()[i] = fTraces[i].getNext(context.getContexts()[i]);
+        }
+
+        // Finalize context
+        context.setLocation(expLocation);
+        context.setLastTrace(TmfExperimentContext.NO_TRACE);
+        context.setRank(ITmfContext.UNKNOWN_RANK);
+        return (ITmfContext) context;
+    }
+
