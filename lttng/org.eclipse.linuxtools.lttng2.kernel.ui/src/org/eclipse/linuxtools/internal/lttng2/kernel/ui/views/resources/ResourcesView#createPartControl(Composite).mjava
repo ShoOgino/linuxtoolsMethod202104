@@ -5,41 +5,20 @@
     public void createPartControl(Composite parent) {
         fTimeGraphViewer = new TimeGraphViewer(parent, SWT.NONE);
 
-        fTimeGraphViewer.setTimeGraphProvider(new TimeGraphPresentationProvider() {
-            private static final String UNKNOWN = "UNKNOWN"; //$NON-NLS-1$
-            private static final String IDLE = "IDLE"; //$NON-NLS-1$
-            private static final String BUSY = "BUSY"; //$NON-NLS-1$
-            private static final String INTERRUPTED = "INTERRUPTED"; //$NON-NLS-1$
-            private static final String RAISED = "RAISED"; //$NON-NLS-1$
-            private static final String ACTIVE = "ACTIVE"; //$NON-NLS-1$
-
-            @Override 
-            public String getStateTypeName() {
-                return Messages.ResourcesView_stateTypeName;
+        fTimeGraphViewer.setTimeGraphProvider(new TimeGraphProvider() {
+            @Override
+            public String getTraceClassName(ITimeGraphEntry trace) {
+                return "trace class"; //$NON-NLS-1$
             }
             
             @Override
-            public String getEventName(ITimeEvent event) {
-                if (event instanceof ResourcesEvent) {
-                    ResourcesEvent resourcesEvent = (ResourcesEvent) event;
-                    if (resourcesEvent.getType() == Type.CPU) {
-                        int currentThread = resourcesEvent.getValue();
-                        if (currentThread == 0) {
-                            return IDLE;
-                        } else {
-                            return BUSY;
-                        }
-                    } else if (resourcesEvent.getType() == Type.IRQ || resourcesEvent.getType() == Type.SOFT_IRQ) {
-                        int cpu = resourcesEvent.getValue();
-                        if (cpu == Attributes.SOFT_IRQ_RAISED) {
-                            return RAISED;
-                        }
-                        return ACTIVE;
-                    } else {
-                        return null;
-                    }
-                }
-                return UNKNOWN;
+            public String getStateName(StateColor color) {
+                return "state name"; //$NON-NLS-1$
+            }
+            
+            @Override
+            public String getEventName(ITimeEvent event, boolean upper, boolean extInfo) {
+                return "event name"; //$NON-NLS-1$
             }
             
             @Override
@@ -48,69 +27,16 @@
             }
             
             @Override
-            public StateItem[] getStateTable() {
-                return new StateItem[] {
-                        new StateItem(new RGB(100, 100, 100), UNKNOWN),
-                        new StateItem(new RGB(200, 200, 200), IDLE),
-                        new StateItem(new RGB(0, 200, 0), BUSY),
-                        new StateItem(new RGB(200, 100, 100), INTERRUPTED),
-                        new StateItem(new RGB(200, 200, 0), RAISED),
-                        new StateItem(new RGB(200, 100, 100), ACTIVE)
-                };
-            }
-
-            @Override
-            public int getEventTableIndex(ITimeEvent event) {
-                if (event instanceof ResourcesEvent) {
-                    ResourcesEvent resourcesEvent = (ResourcesEvent) event;
-                    if (resourcesEvent.getType() == Type.CPU) {
-                        int currentThread = resourcesEvent.getValue();
-                        if (currentThread == 0) {
-                            return 1; // IDLE
-                        } else {
-                            return 2; // BUSY
-                        }
-                    } else if (resourcesEvent.getType() == Type.IRQ || resourcesEvent.getType() == Type.SOFT_IRQ) {
-                        int cpu = resourcesEvent.getValue();
-                        if (cpu == Attributes.SOFT_IRQ_RAISED) {
-                            return 4; // RAISED
-                        }
-                        return 5; // ACTIVE
-                    } else {
-                        return -1; // NULL
-                    }
+            public StateColor getEventColor(ITimeEvent event) {
+                if (event.getTime() % 2 == 0) {
+                    return StateColor.BLACK;
+                } else {
+                    return StateColor.GRAY;
                 }
-                return 0; // UNKNOWN
             }
         });
 
-        fTimeGraphViewer.setTimeCalendarFormat(true);
-
-        fTimeGraphViewer.addRangeListener(new ITimeGraphRangeListener() {
-            @Override
-            public void timeRangeUpdated(TimeGraphRangeUpdateEvent event) {
-                long startTime = event.getStartTime();
-                long endTime = event.getEndTime();
-                TmfTimeRange range = new TmfTimeRange(new CtfTmfTimestamp(startTime), new CtfTmfTimestamp(endTime));
-                TmfTimestamp time = new CtfTmfTimestamp(fTimeGraphViewer.getSelectedTime());
-                broadcast(new TmfRangeSynchSignal(ResourcesView.this, range, time));
-                if (fZoomThread != null) {
-                    fZoomThread.cancel();
-                }
-                fZoomThread = new ZoomThread(startTime, endTime);
-                fZoomThread.start();
-            }
-        });
-
-        fTimeGraphViewer.addTimeListener(new ITimeGraphTimeListener() {
-            @Override
-            public void timeSelected(TimeGraphTimeEvent event) {
-                long time = event.getTime();
-                broadcast(new TmfTimeSynchSignal(ResourcesView.this, new CtfTmfTimestamp(time)));
-            }
-        });
-
-        final Thread thread = new Thread("ResourcesView build") { //$NON-NLS-1$
+        final Thread thread = new Thread() {
             @Override
             public void run() {
                 if (TmfExperiment.getCurrentExperiment() != null) {
@@ -119,9 +45,5 @@
             }
         };
         thread.start();
-        
-        // View Action Handling
-        makeActions();
-        contributeToActionBars();
     }
 
