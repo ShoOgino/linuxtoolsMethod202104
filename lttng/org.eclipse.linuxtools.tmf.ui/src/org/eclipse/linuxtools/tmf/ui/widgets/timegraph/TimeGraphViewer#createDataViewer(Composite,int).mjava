@@ -1,7 +1,13 @@
     protected Control createDataViewer(Composite parent, int style) {
         loadOptions();
         _colors = new TimeGraphColorScheme();
-        _dataViewer = new Composite(parent, style);
+        _dataViewer = new Composite(parent, style) {
+            @Override
+            public void redraw() {
+                _stateCtrl.redraw();
+                super.redraw();
+            }
+        };
         GridLayout gl = new GridLayout(2, false);
         gl.marginHeight = borderWidth;
         gl.marginWidth = 0;
@@ -29,6 +35,18 @@
         _stateCtrl.setTimeProvider(this);
         _stateCtrl.addSelectionListener(this);
         _stateCtrl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 1, 2));
+        _stateCtrl.addMouseWheelListener(new MouseWheelListener() {
+            @Override
+            public void mouseScrolled(MouseEvent e) {
+                adjustVerticalScrollBar();
+            }
+        });
+        _stateCtrl.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                adjustVerticalScrollBar();
+            }
+        });
 
         Composite filler = new Composite(_dataViewer, SWT.NONE);
         GridData gd = new GridData(SWT.DEFAULT, SWT.DEFAULT, false, false);
