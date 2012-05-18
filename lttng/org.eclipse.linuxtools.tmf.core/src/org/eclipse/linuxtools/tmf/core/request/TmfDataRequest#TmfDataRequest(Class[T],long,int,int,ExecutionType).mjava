@@ -1,0 +1,36 @@
+    /**
+     * Request 'n' events of a given type from the given index (given priority).
+     * Events are returned in blocks of the given size.
+     * 
+     * @param dataType the requested data type
+     * @param index the index of the first event to retrieve
+     * @param nbRequested the number of events requested
+     * @param blockSize the number of events per block
+     * @param priority the requested execution priority
+     */
+    public TmfDataRequest(Class<T> dataType, long index, int nbRequested, int blockSize, ExecutionType priority) {
+        fRequestId = fRequestNumber++;
+        fDataType = dataType;
+        fIndex = index;
+        fNbRequested = nbRequested;
+        fBlockSize = blockSize;
+        fExecType = priority;
+        fNbRead = 0;
+
+        fRequestRunning = false;
+        fRequestCompleted = false;
+        fRequestFailed = false;
+        fRequestCanceled = false;
+
+        if (!(this instanceof ITmfEventRequest) && Tracer.isRequestTraced()) {
+            String type = getClass().getName();
+            type = type.substring(type.lastIndexOf('.') + 1);
+            @SuppressWarnings("nls")
+            String message = "CREATED " 
+                    + (getExecType() == ITmfDataRequest.ExecutionType.BACKGROUND ? "(BG)" : "(FG)") 
+                    + " Type=" + type + " Index=" + getIndex() + " NbReq=" + getNbRequested()
+                    + " DataType=" + getDataType().getSimpleName();
+            Tracer.traceRequest(this, message);
+        }
+    }
+
