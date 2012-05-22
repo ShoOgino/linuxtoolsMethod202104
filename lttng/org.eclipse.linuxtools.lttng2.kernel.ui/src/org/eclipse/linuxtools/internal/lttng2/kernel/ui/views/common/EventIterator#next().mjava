@@ -1,0 +1,33 @@
+    @Override
+    public ITimeEvent next() {
+        if (hasNext()) {
+            if (fZoomedNext != null && (fNext == null || fZoomedNext.getTime() <= fNext.getTime())) {
+                if (fNext != null && fNext.getTime() == fZoomedNext.getTime()) {
+                    long duration = fNext.getTime() + fNext.getDuration() - fZoomedEndTime;
+                    if (duration > 0) {
+                        fNext = new TimeEvent(fNext.getEntry(), fZoomedEndTime, duration);
+                    } else {
+                        fNext = null;
+                    }
+                }
+                ITimeEvent event = fZoomedNext;
+                fZoomedNext = null;
+                return event;
+            }
+            if (fNext.getTime() < fZoomedEndTime && fNext.getTime() + fNext.getDuration() > fZoomedStartTime) {
+                ITimeEvent event = new TimeEvent(fNext.getEntry(), fNext.getTime(), fZoomedStartTime - fNext.getTime());
+                long duration = fNext.getTime() + fNext.getDuration() - fZoomedEndTime;
+                if (duration > 0) {
+                    fNext = new TimeEvent(fNext.getEntry(), fZoomedEndTime, duration);
+                } else {
+                    fNext = null;
+                }
+                return event;
+            }
+            ITimeEvent event = fNext;
+            fNext = null;
+            return event;
+        }
+        throw new NoSuchElementException();
+    }
+
