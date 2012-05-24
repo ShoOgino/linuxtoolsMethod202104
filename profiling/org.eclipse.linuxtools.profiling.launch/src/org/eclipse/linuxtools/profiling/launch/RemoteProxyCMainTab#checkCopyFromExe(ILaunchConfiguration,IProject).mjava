@@ -1,0 +1,99 @@
+	private boolean checkCopyFromExe(ILaunchConfiguration config, IProject project) {
+		if (!enableCopyFromExeButton.getSelection()) {
+			setErrorMessage(null);
+			return true;
+		}
+
+		String name = copyFromExeText.getText().trim();
+		if (name.length() == 0) {
+			setErrorMessage(ProxyLaunchMessages.copy_from_exe_is_not_specified);
+			return false;
+		}
+		// Avoid constantly checking the binary if nothing relevant has
+		// changed (binary or project name). See bug 277663.
+		if (name.equals(fPreviouslyCheckedCopyFromExe)) {
+			if (fPreviouslyCheckedCopyFromExeErrorMsg != null) {
+				setErrorMessage(fPreviouslyCheckedCopyFromExeErrorMsg);
+			}
+			return fPreviouslyCheckedCopyFromExeIsValid;
+		}
+		fPreviouslyCheckedCopyFromExe = name;
+		fPreviouslyCheckedCopyFromExeIsValid = true; // we'll flip this below if
+												// not true
+		fPreviouslyCheckedCopyFromExeErrorMsg = null; // we'll set this below if
+												// there's an error
+		IPath exePath;
+		URI exeURI = null;
+		boolean passed = false;
+
+		try {
+			exeURI = new URI(name);
+			String exePathStr = exeURI.getPath();
+			if (exePathStr == null) {
+				setErrorMessage(fPreviouslyCheckedCopyFromExeErrorMsg = ProxyLaunchMessages.uri_of_copy_from_exe_is_invalid);
+				fPreviouslyCheckedCopyFromExeIsValid = false;
+				return false;
+			}
+			exePath = Path.fromOSString(exeURI.getPath());
+			if (!exePath.isAbsolute() && exeURI != null && !exeURI.isAbsolute()) {
+				URI projectURI = project.getLocationURI();
+				exeURI = new URI(projectURI.getScheme(),
+						projectURI.getAuthority(), projectURI.getRawPath() + "/"
+								+ exePath.toString(), EMPTY_STRING);
+			}
+			if (exeURI != null) {
+				passed = true;
+			}
+		} catch (URISyntaxException e) {
+			setErrorMessage(fPreviouslyCheckedCopyFromExeErrorMsg = ProxyLaunchMessages.uri_of_copy_from_exe_is_invalid);
+			fPreviouslyCheckedCopyFromExeIsValid = false;
+			return false;
+		}
+
+		if (!passed) {
+			setErrorMessage(fPreviouslyCheckedCopyFromExeErrorMsg = ProxyLaunchMessages.copy_from_exe_does_not_exist);
+			fPreviouslyCheckedCopyFromExeIsValid = false;
+			return false;
+		}
+
+		passed = false;
+		try {
+			IRemoteFileProxy exeFileProxy;
+			exeFileProxy = RemoteProxyManager.getInstance().getFileProxy(exeURI);
+			if (exeFileProxy != null) {
+				String exeFilePath = exeURI.getPath();
+				IFileStore exeFS = exeFileProxy
+						.getResource(exeFilePath);
+				if (exeFS != null) {
+					IFileInfo exeFI = exeFS.fetchInfo();
+					if (exeFI != null) {
+						if (exeFI.exists()) {
+							if (exeFI.getAttribute(EFS.ATTRIBUTE_EXECUTABLE) &&
+								!exeFI.isDirectory()) {
+								passed = true;
+							} else {
+								setErrorMessage(fPreviouslyCheckedCopyFromExeErrorMsg = ProxyLaunchMessages.copy_from_exe_does_not_have_execution_rights);
+							}
+						} else {
+							setErrorMessage(fPreviouslyCheckedCopyFromExeErrorMsg = ProxyLaunchMessages.copy_from_exe_does_not_exist);
+						}
+					} else {
+						setErrorMessage(fPreviouslyCheckedCopyFromExeErrorMsg = ProxyLaunchMessages.error_accessing_copy_from_exe);
+					}
+				} else {
+					setErrorMessage(fPreviouslyCheckedCopyFromExeErrorMsg = ProxyLaunchMessages.error_accessing_copy_from_exe);
+				}
+			} else {
+				setErrorMessage(fPreviouslyCheckedCopyFromExeErrorMsg = ProxyLaunchMessages.scheme_error_in_copy_from_exe);
+			}
+		} catch (CoreException e) {
+			setErrorMessage(fPreviouslyCheckedCopyFromExeErrorMsg = ProxyLaunchMessages.connection_of_copy_from_exe_cannot_be_opened);
+		}
+		if (!passed) {
+			fPreviouslyCheckedCopyFromExeIsValid = false;
+			return false;
+		}
+		setErrorMessage(null);
+		return true;
+	}
+

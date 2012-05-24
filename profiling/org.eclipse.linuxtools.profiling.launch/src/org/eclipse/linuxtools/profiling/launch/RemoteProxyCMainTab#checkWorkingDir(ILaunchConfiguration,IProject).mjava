@@ -1,0 +1,93 @@
+	private boolean checkWorkingDir(ILaunchConfiguration config, IProject project) {
+		String name = workingDirText.getText().trim();
+		if (name.length() == 0) {
+			return true;  // an empty working directory means, "use the default"
+		}
+		// Avoid constantly checking the working dir if nothing relevant has
+		// changed (project).
+		if (name.equals(fPreviouslyCheckedWorkingDir)) {
+			if (fPreviouslyCheckedWorkingDirErrorMsg != null) {
+				setErrorMessage(fPreviouslyCheckedWorkingDirErrorMsg);
+			}
+			return fPreviouslyCheckedWorkingDirIsValid;
+		}
+		fPreviouslyCheckedWorkingDir = name;
+		fPreviouslyCheckedWorkingDirIsValid = true; // we'll flip this below if
+												// not true
+		fPreviouslyCheckedWorkingDirErrorMsg = null; // we'll set this below if
+												// there's an error
+		IPath wdPath;
+		URI wdURI = null;
+		boolean passed = false;
+
+		try {
+			wdURI = new URI(name);
+			String wdPathStr = wdURI.getPath();
+			if (wdPathStr == null) {
+				setErrorMessage(fPreviouslyCheckedWorkingDirErrorMsg = ProxyLaunchMessages.uri_of_working_directory_is_invalid);
+				fPreviouslyCheckedWorkingDirIsValid = false;
+				return false;
+			}
+
+			wdPath = Path.fromOSString(wdURI.getPath());
+			if (!wdPath.isAbsolute() && wdURI != null && !wdURI.isAbsolute()) {
+				URI projectURI = project.getLocationURI();
+				wdURI = new URI(projectURI.getScheme(),
+						projectURI.getAuthority(), projectURI.getRawPath() + "/"
+								+ wdPath.toString(), EMPTY_STRING);
+			}
+			if (wdURI != null) {
+				passed = true;
+			}
+		} catch (URISyntaxException e) {
+			setErrorMessage(fPreviouslyCheckedWorkingDirErrorMsg = ProxyLaunchMessages.uri_of_working_directory_is_invalid);
+			fPreviouslyCheckedWorkingDirIsValid = false;
+			return false;
+		}
+
+		if (!passed) {
+			setErrorMessage(fPreviouslyCheckedWorkingDirErrorMsg = ProxyLaunchMessages.working_directory_does_not_exist);
+			fPreviouslyCheckedWorkingDirIsValid = false;
+			return false;
+		}
+
+		passed = false;
+		IRemoteFileProxy wdFileProxy;
+		try {
+			wdFileProxy = RemoteProxyManager.getInstance().getFileProxy(wdURI);
+			if (wdFileProxy != null) {
+				IFileStore wdFS = wdFileProxy
+						.getResource(wdURI.getPath());
+				if (wdFS != null) {
+					IFileInfo wdFI = wdFS.fetchInfo();
+					if (wdFI != null) {
+						if (wdFI.exists()) {
+							if (wdFI.isDirectory()) {
+								passed = true;
+							} else {
+								setErrorMessage(fPreviouslyCheckedWorkingDirErrorMsg = ProxyLaunchMessages.working_directory_is_not_a_directory);
+							}
+						} else {
+							setErrorMessage(fPreviouslyCheckedWorkingDirErrorMsg = ProxyLaunchMessages.working_directory_does_not_exist);
+						}
+					} else {
+						setErrorMessage(fPreviouslyCheckedWorkingDirErrorMsg = ProxyLaunchMessages.error_accessing_working_directory);
+					}
+				} else {
+					setErrorMessage(fPreviouslyCheckedWorkingDirErrorMsg = ProxyLaunchMessages.error_accessing_working_directory);
+				}
+			} else {
+				setErrorMessage(fPreviouslyCheckedWorkingDirErrorMsg = ProxyLaunchMessages.scheme_error_in_working_directory);
+			}
+		} catch (CoreException e) {
+			setErrorMessage(fPreviouslyCheckedWorkingDirErrorMsg = ProxyLaunchMessages.connection_of_working_directory_cannot_be_opened);
+		}
+
+		if (!passed) {
+			fPreviouslyCheckedWorkingDirIsValid = false;
+			return false;
+		}
+		setErrorMessage(null);
+		return true;
+	}
+

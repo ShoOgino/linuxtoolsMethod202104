@@ -1,0 +1,50 @@
+	/*
+	 * (non-Javadoc)
+	 *
+	 * @see
+	 * org.eclipse.debug.ui.ILaunchConfigurationTab#setDefaults(org.eclipse.
+	 * debug.core.ILaunchConfigurationWorkingCopy)
+	 */
+	public void setDefaults(ILaunchConfigurationWorkingCopy config) {
+		// We set empty attributes for project & program so that when one config
+		// is
+		// compared to another, the existence of empty attributes doesn't cause
+		// an
+		// incorrect result (the performApply() method can result in empty
+		// values
+		// for these attributes being set on a config if there is nothing in the
+		// corresponding text boxes)
+		// plus getContext will use this to base context from if set.
+		config.setAttribute(ICDTLaunchConfigurationConstants.ATTR_PROJECT_NAME,
+				EMPTY_STRING);
+		config.setAttribute(
+				ICDTLaunchConfigurationConstants.ATTR_PROJECT_BUILD_CONFIG_ID,
+				EMPTY_STRING);
+		config.setAttribute(
+				ICDTLaunchConfigurationConstants.ATTR_COREFILE_PATH,
+				EMPTY_STRING);
+
+		// Set the auto choose build configuration to true for new
+		// configurations.
+		// Existing configurations created before this setting was introduced
+		// will have this disabled.
+		config.setAttribute(
+				ICDTLaunchConfigurationConstants.ATTR_PROJECT_BUILD_CONFIG_AUTO,
+				true);
+
+		ICElement cElement = null;
+		cElement = getContext(config, getPlatform(config));
+		if (cElement != null) {
+			initializeCProject(cElement, config);
+			initializeProgramName(cElement, config);
+		} else {
+			// don't want to remember the interim value from before
+			config.setMappedResources(null);
+		}
+		if (wantsTerminalOption()) {
+			config.setAttribute(
+					ICDTLaunchConfigurationConstants.ATTR_USE_TERMINAL,
+					ICDTLaunchConfigurationConstants.USE_TERMINAL_DEFAULT);
+		}
+	}
+

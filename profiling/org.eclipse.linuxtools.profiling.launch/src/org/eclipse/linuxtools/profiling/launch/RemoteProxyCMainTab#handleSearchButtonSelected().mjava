@@ -1,0 +1,78 @@
+	/**
+	 * Show a dialog that lists all main types
+	 */
+	protected void handleSearchButtonSelected() {
+		if (getCProject() == null) {
+			MessageDialog
+					.openInformation(
+							getShell(),
+							LaunchMessages.CMainTab_Project_required,
+							LaunchMessages.CMainTab_Enter_project_before_searching_for_program);
+			return;
+		}
+
+		ILabelProvider programLabelProvider = new CElementLabelProvider() {
+
+			@Override
+			public String getText(Object element) {
+				if (element instanceof IBinary) {
+					IBinary bin = (IBinary) element;
+					StringBuffer name = new StringBuffer();
+					name.append(bin.getPath().lastSegment());
+					return name.toString();
+				}
+				return super.getText(element);
+			}
+
+			@Override
+			public Image getImage(Object element) {
+				if (!(element instanceof ICElement)) {
+					return super.getImage(element);
+				}
+				ICElement celement = (ICElement) element;
+
+				if (celement.getElementType() == ICElement.C_BINARY) {
+					IBinary belement = (IBinary) celement;
+					if (belement.isExecutable()) {
+						return DebugUITools
+								.getImage(IDebugUIConstants.IMG_ACT_RUN);
+					}
+				}
+
+				return super.getImage(element);
+			}
+		};
+
+		ILabelProvider qualifierLabelProvider = new CElementLabelProvider() {
+
+			@Override
+			public String getText(Object element) {
+				if (element instanceof IBinary) {
+					IBinary bin = (IBinary) element;
+					StringBuffer name = new StringBuffer();
+					name.append(bin.getCPU()
+							+ (bin.isLittleEndian() ? "le" : "be")); //$NON-NLS-1$ //$NON-NLS-2$
+					name.append(" - "); //$NON-NLS-1$
+					name.append(bin.getPath().toString());
+					return name.toString();
+				}
+				return super.getText(element);
+			}
+		};
+
+		TwoPaneElementSelector dialog = new TwoPaneElementSelector(getShell(),
+				programLabelProvider, qualifierLabelProvider);
+		dialog.setElements(getBinaryFiles(getCProject()));
+		dialog.setMessage(LaunchMessages.CMainTab_Choose_program_to_run);
+		dialog.setTitle(LaunchMessages.CMainTab_Program_Selection);
+		dialog.setUpperListLabel(LaunchMessages.Launch_common_BinariesColon);
+		dialog.setLowerListLabel(LaunchMessages.Launch_common_QualifierColon);
+		dialog.setMultipleSelection(false);
+		// dialog.set
+		if (dialog.open() == Window.OK) {
+			IBinary binary = (IBinary) dialog.getFirstResult();
+			fProgText.setText(binary.getResource().getProjectRelativePath()
+					.toString());
+		}
+	}
+
