@@ -1,0 +1,34 @@
+	@Override
+	public String[] childNames(int options, IProgressMonitor monitor)
+			throws CoreException {
+		if (monitor == null)
+			monitor = new NullProgressMonitor();
+		try {
+			monitor.beginTask(Messages.SSHFileStore_childNamesMonitor, 100);
+			ChannelSftp channel = proxy.getChannelSftp();
+			monitor.worked(25);
+			Vector<?> v = channel.ls(uri.getPath());
+			monitor.worked(50);
+			LinkedList<String> childs = new LinkedList<String>();
+
+			boolean isDir = false;
+			for (int i=0; i < v.size(); i++) {
+				ChannelSftp.LsEntry entry  = (ChannelSftp.LsEntry) v.get(i);
+				if (!entry.getFilename().equals(".") && !entry.getFilename().equals("..")) //$NON-NLS-1$ //$NON-NLS-2$
+					childs.add(entry.getFilename());
+				else
+					isDir = true;
+			}
+			if (!isDir)
+				throw new CoreException(new Status(IStatus.ERROR, Activator.PLUGIN_ID,
+					MessageFormat.format(Messages.SSHFileStore_childNamesFailedDirectory, getName())));
+
+			monitor.worked(100);
+			monitor.done();
+			return childs.toArray(new String[0]);
+		} catch (SftpException e) {
+			throw new CoreException(new Status(IStatus.ERROR, Activator.PLUGIN_ID, Messages.SSHFileStore_childNamesFailed + e.getMessage()));
+
+		}
+	}
+

@@ -1,0 +1,33 @@
+	private Session loadSession() throws CoreException {
+		if (session == null || !session.isConnected()) {
+			try {
+				session=jsch.getSession(uri.getUserInfo(), uri.getHost());
+			} catch (JSchException e) {
+				throw new CoreException(new Status(IStatus.ERROR, Activator.PLUGIN_ID, Messages.SSHBase_CreateSessionFailed + e.getMessage()));
+			}
+
+			Properties config = new Properties();
+			config.put("StrictHostKeyChecking", "no");  //$NON-NLS-1$,  //$NON-NLS-2$
+			session.setConfig(config);
+
+			if (password != null) {
+				session.setPassword(password);
+				try {
+					session.connect();
+					return session;
+				} catch (JSchException e) {
+					//Nothing to do. It will try again in next command
+				}
+			}
+
+			password = askPassword();
+			session.setPassword(password);
+			try {
+				session.connect();
+			} catch (JSchException e) {
+				throw new CoreException(new Status(IStatus.ERROR, Activator.PLUGIN_ID, Messages.SSHBase_CreateSessionFailed + e.getMessage()));
+			}
+		}
+		return session;
+	}
+

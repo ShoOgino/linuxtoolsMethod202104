@@ -1,0 +1,27 @@
+	public IFileStore mkdir(int options, IProgressMonitor monitor)
+			throws CoreException {
+		if (monitor == null)
+			monitor = new NullProgressMonitor();
+		monitor.beginTask(Messages.SSHFileStore_mkdirMonitor, 100);
+		ChannelSftp channel = proxy.getChannelSftp();
+		monitor.worked(25);
+
+		IPath new_path = Path.ROOT;
+		if ((options & EFS.SHALLOW) == 0) {
+			for (String segment : path.segments()) {
+				new_path = new_path.append(segment);
+				try {
+					channel.stat(new_path.toString());
+				} catch (SftpException e) {
+					//Path doesn't exist
+					createDir(channel, new_path.toString());
+				}
+			}
+		} else
+			createDir(channel, uri.getPath());
+
+		monitor.worked(100);
+		monitor.done();
+		return this;
+	}
+

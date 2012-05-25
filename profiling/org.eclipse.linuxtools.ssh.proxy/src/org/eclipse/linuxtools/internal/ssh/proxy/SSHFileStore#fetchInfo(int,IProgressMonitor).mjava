@@ -1,0 +1,19 @@
+	@Override
+	public IFileInfo fetchInfo(int options, IProgressMonitor monitor)
+			throws CoreException {
+		if (monitor == null)
+			monitor = new NullProgressMonitor();
+		try {
+			monitor.beginTask(Messages.SSHFileStore_attrMonitor, 100);
+			ChannelSftp channel = proxy.getChannelSftp();
+			monitor.worked(25);
+
+			SftpATTRS attrs = channel.stat(uri.getPath());
+			monitor.worked(100);
+			monitor.done();
+			return createFileInfo(attrs);
+		} catch (SftpException e) {
+			throw new CoreException(new Status(IStatus.ERROR, Activator.PLUGIN_ID, Messages.SSHFileStore_attrFailed + e.getMessage()));
+		}
+	}
+
