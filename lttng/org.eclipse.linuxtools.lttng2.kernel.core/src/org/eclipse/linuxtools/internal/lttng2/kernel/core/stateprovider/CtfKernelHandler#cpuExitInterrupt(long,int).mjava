@@ -1,0 +1,25 @@
+    /**
+     * Similar logic as above, but to set the CPU's status when it's coming out
+     * of an interruption.
+     * @throws AttributeNotFoundException 
+     * @throws StateValueTypeException 
+     * @throws TimeRangeException 
+     */
+    private void cpuExitInterrupt(long ts, int currentCpuNode)
+            throws StateValueTypeException, AttributeNotFoundException,
+            TimeRangeException {
+        int quark;
+        ITmfStateValue value;
+
+        quark = ss.getQuarkRelativeAndAdd(currentCpuNode, Attributes.CURRENT_THREAD);
+        if (ss.queryOngoingState(quark).unboxInt() > 0) {
+            /* There was a process on the CPU */
+            value = TmfStateValue.newValueInt(Attributes.CPU_STATUS_BUSY);
+        } else {
+            /* There was no real process scheduled, CPU was idle */
+            value = TmfStateValue.newValueInt(Attributes.CPU_STATUS_IDLE);
+        }
+        quark = ss.getQuarkRelativeAndAdd(currentCpuNode, Attributes.STATUS);
+        ss.modifyAttribute(ts, value, quark);
+    }
+

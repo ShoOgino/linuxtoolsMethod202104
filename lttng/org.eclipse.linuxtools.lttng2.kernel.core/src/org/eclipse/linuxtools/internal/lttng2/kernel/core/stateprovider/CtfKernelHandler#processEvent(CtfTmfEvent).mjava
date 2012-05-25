@@ -63,6 +63,11 @@
                 quark = ss.getQuarkRelativeAndAdd(currentThreadNode, Attributes.STATUS);
                 value = TmfStateValue.newValueInt(Attributes.STATUS_INTERRUPTED);
                 ss.modifyAttribute(ts, value, quark);
+
+                /* Change the status of the CPU to interrupted */
+                quark = ss.getQuarkRelativeAndAdd(currentCPUNode, Attributes.STATUS);
+                value = TmfStateValue.newValueInt(Attributes.CPU_STATUS_INTERRUPTED);
+                ss.modifyAttribute(ts, value, quark);
             }
                 break;
 
@@ -78,6 +83,9 @@
 
                 /* Set the previous process back to running */
                 setProcessToRunning(ts, currentThreadNode);
+
+                /* Set the CPU status back to "busy" or "idle" */
+                cpuExitInterrupt(ts, currentCPUNode);
             }
                 break;
 
@@ -96,6 +104,11 @@
                 quark = ss.getQuarkRelativeAndAdd(currentThreadNode, Attributes.STATUS);
                 value = TmfStateValue.newValueInt(Attributes.STATUS_INTERRUPTED);
                 ss.modifyAttribute(ts, value, quark);
+
+                /* Change the status of the CPU to interrupted */
+                quark = ss.getQuarkRelativeAndAdd(currentCPUNode, Attributes.STATUS);
+                value = TmfStateValue.newValueInt(Attributes.CPU_STATUS_INTERRUPTED);
+                ss.modifyAttribute(ts, value, quark);
             }
                 break;
 
@@ -111,6 +124,9 @@
 
                 /* Set the previous process back to running */
                 setProcessToRunning(ts, currentThreadNode);
+
+                /* Set the CPU status back to "busy" or "idle" */
+                cpuExitInterrupt(ts, currentCPUNode);
             }
                 break;
 
@@ -182,6 +198,15 @@
                 /* Set the current scheduled process on the relevant CPU */
                 quark = ss.getQuarkRelativeAndAdd(currentCPUNode, Attributes.CURRENT_THREAD);
                 value = TmfStateValue.newValueInt(nextTid);
+                ss.modifyAttribute(ts, value, quark);
+
+                /* Set the status of the CPU itself */
+                quark = ss.getQuarkRelativeAndAdd(currentCPUNode, Attributes.STATUS);
+                if (nextTid > 0) {
+                    value = TmfStateValue.newValueInt(Attributes.CPU_STATUS_BUSY);
+                } else {
+                    value = TmfStateValue.newValueInt(Attributes.CPU_STATUS_IDLE);
+                }
                 ss.modifyAttribute(ts, value, quark);
             }
                 break;
