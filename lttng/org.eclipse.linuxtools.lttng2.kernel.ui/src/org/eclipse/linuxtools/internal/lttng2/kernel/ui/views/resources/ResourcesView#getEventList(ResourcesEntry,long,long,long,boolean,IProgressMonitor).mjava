@@ -7,23 +7,27 @@
         int quark = entry.getQuark();
         try {
             if (entry.getType().equals(Type.CPU)) {
-                int currentThreadQuark = ssq.getQuarkRelative(quark, Attributes.CURRENT_THREAD);
-                List<ITmfStateInterval> currentThreadIntervals = ssq.queryHistoryRange(currentThreadQuark, startTime, endTime - 1, resolution);
-                eventList = new ArrayList<ITimeEvent>(currentThreadIntervals.size());
+                int statusQuark = ssq.getQuarkRelative(quark, Attributes.STATUS);
+                List<ITmfStateInterval> statusIntervals = ssq.queryHistoryRange(statusQuark, startTime, endTime - 1, resolution);
+                eventList = new ArrayList<ITimeEvent>(statusIntervals.size());
                 long lastEndTime = -1;
-                for (ITmfStateInterval currentThreadInterval : currentThreadIntervals) {
+                for (ITmfStateInterval statusInterval : statusIntervals) {
                     if (monitor.isCanceled()) {
                         return null;
                     }
-                    if (!currentThreadInterval.getStateValue().isNull()) {
-                        int currentThread = currentThreadInterval.getStateValue().unboxInt();
-                        long time = currentThreadInterval.getStartTime();
-                        long duration = currentThreadInterval.getEndTime() - time + 1;
+                    int status = statusInterval.getStateValue().unboxInt();
+                    long time = statusInterval.getStartTime();
+                    long duration = statusInterval.getEndTime() - time + 1;
+                    if (!statusInterval.getStateValue().isNull()) {
                         if (lastEndTime != time && lastEndTime != -1) {
                             eventList.add(new TimeEvent(entry, lastEndTime, time - lastEndTime));
                         }
-                        eventList.add(new ResourcesEvent(entry, time, duration, currentThread));
+                        eventList.add(new ResourcesEvent(entry, time, duration, status));
                         lastEndTime = time + duration;
+                    } else {
+                        if (includeNull) {
+                            eventList.add(new ResourcesEvent(entry, time, duration));
+                        }
                     }
                 }
             } else if (entry.getType().equals(Type.IRQ)) {

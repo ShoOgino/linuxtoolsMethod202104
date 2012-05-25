@@ -1,0 +1,27 @@
+    @Override
+    public Map<String, String> getEventHoverToolTipInfo(ITimeEvent event) {
+        Map<String, String> retMap = new HashMap<String, String>();
+        if (event instanceof ControlFlowEvent) {
+            int status = ((ControlFlowEvent) event).getStatus();
+            if (status == Attributes.STATUS_RUN_SYSCALL) {
+                ControlFlowEntry entry = (ControlFlowEntry) event.getEntry();
+                IStateSystemQuerier ssq = entry.getTrace().getStateSystem();
+                try {
+                    int syscallQuark = ssq.getQuarkRelative(entry.getThreadQuark(), Attributes.SYSTEM_CALL);
+                    ITmfStateInterval value = ssq.querySingleState(event.getTime(), syscallQuark);
+                    if (!value.getStateValue().isNull()) {
+                        ITmfStateValue state = value.getStateValue();
+                        retMap.put(Messages.ControlFlowView_attributeSyscallName, state.toString());
+                    }
+
+                } catch (AttributeNotFoundException e) {
+                    e.printStackTrace();
+                } catch (TimeRangeException e) {
+                    e.printStackTrace();
+                }
+            } 
+        }
+
+        return retMap;
+    }
+
