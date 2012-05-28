@@ -66,7 +66,7 @@
 
                 /* Change the status of the CPU to interrupted */
                 quark = ss.getQuarkRelativeAndAdd(currentCPUNode, Attributes.STATUS);
-                value = TmfStateValue.newValueInt(StateValues.CPU_STATUS_INTERRUPTED);
+                value = TmfStateValue.newValueInt(StateValues.CPU_STATUS_IRQ);
                 ss.modifyAttribute(ts, value, quark);
             }
                 break;
@@ -84,8 +84,8 @@
                 /* Set the previous process back to running */
                 setProcessToRunning(ts, currentThreadNode);
 
-                /* Set the CPU status back to "busy" or "idle" */
-                cpuExitInterrupt(ts, currentCPUNode);
+                /* Set the CPU status back to running or "idle" */
+                cpuExitInterrupt(ts, currentCPUNode, currentThreadNode);
             }
                 break;
 
@@ -107,7 +107,7 @@
 
                 /* Change the status of the CPU to interrupted */
                 quark = ss.getQuarkRelativeAndAdd(currentCPUNode, Attributes.STATUS);
-                value = TmfStateValue.newValueInt(StateValues.CPU_STATUS_INTERRUPTED);
+                value = TmfStateValue.newValueInt(StateValues.CPU_STATUS_SOFTIRQ);
                 ss.modifyAttribute(ts, value, quark);
             }
                 break;
@@ -126,7 +126,7 @@
                 setProcessToRunning(ts, currentThreadNode);
 
                 /* Set the CPU status back to "busy" or "idle" */
-                cpuExitInterrupt(ts, currentCPUNode);
+                cpuExitInterrupt(ts, currentCPUNode, currentThreadNode);
             }
                 break;
 
@@ -201,12 +201,18 @@
                 ss.modifyAttribute(ts, value, quark);
 
                 /* Set the status of the CPU itself */
-                quark = ss.getQuarkRelativeAndAdd(currentCPUNode, Attributes.STATUS);
                 if (nextTid > 0) {
-                    value = TmfStateValue.newValueInt(StateValues.CPU_STATUS_BUSY);
+                    /* Check if the entering process is in kernel or user mode */
+                    quark = ss.getQuarkRelativeAndAdd(newCurrentThreadNode, Attributes.SYSTEM_CALL);
+                    if (ss.queryOngoingState(quark).isNull()) {
+                        value = TmfStateValue.newValueInt(StateValues.CPU_STATUS_RUN_USERMODE);
+                    } else {
+                        value = TmfStateValue.newValueInt(StateValues.CPU_STATUS_RUN_SYSCALL);
+                    }
                 } else {
                     value = TmfStateValue.newValueInt(StateValues.CPU_STATUS_IDLE);
                 }
+                quark = ss.getQuarkRelativeAndAdd(currentCPUNode, Attributes.STATUS);
                 ss.modifyAttribute(ts, value, quark);
             }
                 break;
