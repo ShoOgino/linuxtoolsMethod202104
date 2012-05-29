@@ -15,10 +15,17 @@
                                 }
                             } catch (CoreException e) {
                             }
+                            if (fieldsList.size() == 0) {
+                                fieldsList.add(ITmfEvent.EVENT_FIELD_TIMESTAMP);
+                                fieldsList.add(ITmfEvent.EVENT_FIELD_SOURCE);
+                                fieldsList.add(ITmfEvent.EVENT_FIELD_TYPE);
+                                fieldsList.add(ITmfEvent.EVENT_FIELD_REFERENCE);
+                                fieldsList.add(ITmfEvent.EVENT_FIELD_CONTENT);
+                            }
                             return fieldsList.toArray(new String[0]);
                         }
                     }
-                    if (eventTypeNode.getEventType().startsWith(CustomTxtEvent.class.getCanonicalName())) {
+                    if (eventTypeNode.getEventType() != null && eventTypeNode.getEventType().startsWith(CustomTxtEvent.class.getCanonicalName())) {
                         for (CustomTxtTraceDefinition def : CustomTxtTraceDefinition.loadAll()) {
                             if (eventTypeNode.getEventType().equals(CustomTxtEvent.class.getCanonicalName() + ":" + def.definitionName)) { //$NON-NLS-1$
                                 for (OutputColumn output : def.outputs) {
@@ -28,7 +35,7 @@
                             }
                         }
                     }
-                    if (eventTypeNode.getEventType().startsWith(CustomXmlEvent.class.getCanonicalName())) {
+                    if (eventTypeNode.getEventType() != null && eventTypeNode.getEventType().startsWith(CustomXmlEvent.class.getCanonicalName())) {
                         for (CustomXmlTraceDefinition def : CustomXmlTraceDefinition.loadAll()) {
                             if (eventTypeNode.getEventType().equals(CustomXmlEvent.class.getCanonicalName() + ":" + def.definitionName)) { //$NON-NLS-1$
                                 for (OutputColumn output : def.outputs) {
@@ -41,11 +48,20 @@
                 }
                 node = node.getParent();
             }
+
+            fieldsList.add(Messages.FilterViewer_CommonCategory);
+            fieldsList.add(ITmfEvent.EVENT_FIELD_TIMESTAMP);
+            fieldsList.add(ITmfEvent.EVENT_FIELD_SOURCE);
+            fieldsList.add(ITmfEvent.EVENT_FIELD_TYPE);
+            fieldsList.add(ITmfEvent.EVENT_FIELD_REFERENCE);
+            fieldsList.add(ITmfEvent.EVENT_FIELD_CONTENT);
+            fieldsList.add(""); //$NON-NLS-1$
+
             for (IConfigurationElement ce : TmfTraceType.getTypeElements()) {
                 try {
                     ITmfEvent event = (ITmfEvent) ce.createExecutableExtension(TmfTraceType.EVENT_TYPE_ATTR);
                     ITmfEventType eventType = event.getType();
-                    if (eventType != null) {
+                    if (eventType != null && eventType.getFieldNames().length > 0) {
                         fieldsList.add("[" + TmfTraceType.getCategoryName(ce.getAttribute(TmfTraceType.CATEGORY_ATTR)) + //$NON-NLS-1$
                                 " : " + ce.getAttribute(TmfTraceType.NAME_ATTR) + "]"); //$NON-NLS-1$ //$NON-NLS-2$
                         for (String field : eventType.getFieldNames()) {
@@ -57,20 +73,24 @@
                 }
             }
             for (CustomTxtTraceDefinition def : CustomTxtTraceDefinition.loadAll()) {
-                fieldsList.add("[" + CUSTOM_TXT_CATEGORY + //$NON-NLS-1$
-                        " : " + def.definitionName + "]"); //$NON-NLS-1$ //$NON-NLS-2$
-                for (OutputColumn output : def.outputs) {
-                    fieldsList.add(output.name);
+                if (def.outputs.size() > 0) {
+                    fieldsList.add("[" + CUSTOM_TXT_CATEGORY + //$NON-NLS-1$
+                            " : " + def.definitionName + "]"); //$NON-NLS-1$ //$NON-NLS-2$
+                    for (OutputColumn output : def.outputs) {
+                        fieldsList.add(output.name);
+                    }
+                    fieldsList.add(""); //$NON-NLS-1$
                 }
-                fieldsList.add(""); //$NON-NLS-1$
             }
             for (CustomXmlTraceDefinition def : CustomXmlTraceDefinition.loadAll()) {
-                fieldsList.add("[" + CUSTOM_XML_CATEGORY + //$NON-NLS-1$
-                        " : " + def.definitionName + "]"); //$NON-NLS-1$ //$NON-NLS-2$
-                for (OutputColumn output : def.outputs) {
-                    fieldsList.add(output.name);
+                if (def.outputs.size() > 0) {
+                    fieldsList.add("[" + CUSTOM_XML_CATEGORY + //$NON-NLS-1$
+                            " : " + def.definitionName + "]"); //$NON-NLS-1$ //$NON-NLS-2$
+                    for (OutputColumn output : def.outputs) {
+                        fieldsList.add(output.name);
+                    }
+                    fieldsList.add(""); //$NON-NLS-1$
                 }
-                fieldsList.add(""); //$NON-NLS-1$
             }
             return fieldsList.toArray(new String[0]);
         }
