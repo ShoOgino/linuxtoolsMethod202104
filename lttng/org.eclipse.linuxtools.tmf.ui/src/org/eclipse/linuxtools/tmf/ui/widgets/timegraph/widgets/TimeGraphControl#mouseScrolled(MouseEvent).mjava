@@ -3,14 +3,29 @@
         if ((mouseScrollFilterListener == null) || _dragState != DRAG_NONE) {
             return;
         }
-        if (e.x < _timeProvider.getNameSpace() || e.x > getSize().x) {
-            setTopIndex(getTopIndex() - e.count);
-        } else if (_timeProvider.getTime0() != _timeProvider.getTime1()) {
+        boolean zoomScroll = false;
+        Point p = getParent().toControl(getDisplay().getCursorLocation());
+        Point parentSize = getParent().getSize();
+        if (p.x >= 0 && p.x < parentSize.x && p.y >= 0 && p.y < parentSize.y) {
+            // over the parent control
+            if (e.x > getCtrlSize().x) {
+                // over the horizontal scroll bar
+                zoomScroll = false;
+            } else if (e.y >= 0 && e.y < getCtrlSize().y && e.x < _timeProvider.getNameSpace()) {
+                // over the name space
+                zoomScroll = false;
+            } else {
+                zoomScroll = true;
+            }
+        }
+        if (zoomScroll && _timeProvider.getTime0() != _timeProvider.getTime1()) {
             if (e.count > 0) {
                 zoom(true);
             } else if (e.count < 0) {
                 zoom(false);
             }
+        } else {
+            setTopIndex(getTopIndex() - e.count);
         }
     }
 
