@@ -7,16 +7,22 @@
     @Override
     public ITmfContext seekEvent(final ITmfLocation<?> location) {
         CtfLocation currentLocation = (CtfLocation) location;
+        CtfIterator context = new CtfIterator(this);
+        /*
+         * The rank is set to 0 if the iterator seeks the beginning. If not, it
+         * will be set to UNKNOWN_RANK, since CTF traces don't support seeking
+         * by rank for now.
+         */
         if (currentLocation == null) {
             currentLocation = new CtfLocation(0L);
+            context.setRank(0);
         }
-        CtfIterator context = new CtfIterator(this);
-
         if (currentLocation.getLocation() == CtfLocation.INVALID_LOCATION) {
             ((CtfTmfTimestamp) getEndTime()).setType(TimestampType.NANOS);
             currentLocation.setLocation(getEndTime().getValue() + 1);
         }
         context.setLocation(currentLocation);
+        if(context.getRank() != 0)
         context.setRank(ITmfContext.UNKNOWN_RANK);
         return context;
     }
