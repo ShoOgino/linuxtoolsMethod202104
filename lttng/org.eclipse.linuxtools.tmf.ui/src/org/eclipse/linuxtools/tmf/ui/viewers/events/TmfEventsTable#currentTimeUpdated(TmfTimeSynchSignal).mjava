@@ -3,13 +3,10 @@
     public void currentTimeUpdated(final TmfTimeSynchSignal signal) {
         if ((signal.getSource() != this) && (fTrace != null) && (!fTable.isDisposed())) {
 
-            // Create a request for one event that will be queued after other ongoing requests. When this request is
-            // completed
-            // do the work to select the actual event with the timestamp specified in the signal. This procedure
-            // prevents
+            // Create a request for one event that will be queued after other ongoing requests. When this request is completed
+            // do the work to select the actual event with the timestamp specified in the signal. This procedure prevents
             // the method fTrace.getRank() from interfering and delaying ongoing requests.
-            final TmfDataRequest<ITmfEvent> subRequest = new TmfDataRequest<ITmfEvent>(ITmfEvent.class, 0, 1,
-                    ExecutionType.FOREGROUND) {
+            final TmfDataRequest<ITmfEvent> subRequest = new TmfDataRequest<ITmfEvent>(ITmfEvent.class, 0, 1, ExecutionType.FOREGROUND) {
 
                 TmfTimestamp ts = new TmfTimestamp(signal.getCurrentTime());
 
@@ -21,15 +18,18 @@
                 @Override
                 public void handleCompleted() {
                     super.handleCompleted();
-                    if (fTrace == null)
+                    if (fTrace == null) {
                         return;
+                    }
 
                     // Verify if the event is within the trace range and adjust if necessary
                     ITmfTimestamp timestamp = ts;
-                    if (timestamp.compareTo(fTrace.getStartTime(), true) == -1)
+                    if (timestamp.compareTo(fTrace.getStartTime(), true) == -1) {
                         timestamp = fTrace.getStartTime();
-                    if (timestamp.compareTo(fTrace.getEndTime(), true) == 1)
+                    }
+                    if (timestamp.compareTo(fTrace.getEndTime(), true) == 1) {
                         timestamp = fTrace.getEndTime();
+                    }
 
                     // Get the rank of the selected event in the table
                     final ITmfContext context = fTrace.seekEvent(timestamp);
@@ -40,14 +40,18 @@
                         @Override
                         public void run() {
                             // Return if table is disposed
-                            if (fTable.isDisposed())
+                            if (fTable.isDisposed()) {
                                 return;
+                            }
 
                             int index = (int) rank;
-                            if (fTable.isDisposed())
+                            if (fTable.isDisposed()) {
                                 return;
+                            }
                             if (fTable.getData(Key.FILTER_OBJ) != null)
+                             {
                                 index = fCache.getFilteredEventIndex(rank) + 1; // +1 for top filter status row
+                            }
                             fTable.setSelection(index + 1); // +1 for header row
                             fRawViewer.selectAndReveal(rank);
                         }

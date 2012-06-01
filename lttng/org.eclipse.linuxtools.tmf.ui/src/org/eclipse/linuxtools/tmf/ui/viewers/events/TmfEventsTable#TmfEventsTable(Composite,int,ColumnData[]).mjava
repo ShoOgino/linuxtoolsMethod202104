@@ -102,8 +102,9 @@
         fTable.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseDoubleClick(final MouseEvent event) {
-                if (event.button != 1)
+                if (event.button != 1) {
                     return;
+                }
                 // Identify the selected row
                 final Point point = new Point(event.x, event.y);
                 final TableItem item = fTable.getItem(point);
@@ -112,47 +113,57 @@
                     imageBounds.width = BOOKMARK_IMAGE.getBounds().width;
                     if (imageBounds.contains(point)) {
                         final Long rank = (Long) item.getData(Key.RANK);
-                        if (rank != null)
+                        if (rank != null) {
                             toggleBookmark(rank);
+                        }
                     }
                 }
             }
         });
 
-        final Listener bookmarkListener = new Listener () {
+        final Listener tooltipListener = new Listener () {
             Shell tooltipShell = null;
             @Override
             public void handleEvent(final Event event) {
                 switch (event.type) {
                     case SWT.MouseHover:
                         final TableItem item = fTable.getItem(new Point(event.x, event.y));
-                        if (item == null)
+                        if (item == null) {
                             return;
+                        }
+                        final Long rank = (Long) item.getData(Key.RANK);
+                        if (rank == null) {
+                            return;
+                        }
                         final String tooltipText = (String) item.getData(Key.BOOKMARK);
-                        if (tooltipText == null)
-                            return;;
-                            final Rectangle bounds = item.getImageBounds(0);
-                            if (!bounds.contains(event.x,event.y))
-                                return;
-                            if ((tooltipShell != null) && !tooltipShell.isDisposed())
-                                tooltipShell.dispose();
-                            tooltipShell = new Shell(fTable.getShell(), SWT.ON_TOP | SWT.NO_FOCUS | SWT.TOOL);
-                            tooltipShell.setBackground(PlatformUI.getWorkbench().getDisplay().getSystemColor(SWT.COLOR_INFO_BACKGROUND));
-                            final FillLayout layout = new FillLayout();
-                            layout.marginWidth = 2;
-                            tooltipShell.setLayout(layout);
-                            final Label label = new Label(tooltipShell, SWT.WRAP);
-                            label.setForeground(PlatformUI.getWorkbench().getDisplay().getSystemColor(SWT.COLOR_INFO_FOREGROUND));
-                            label.setBackground(PlatformUI.getWorkbench().getDisplay().getSystemColor(SWT.COLOR_INFO_BACKGROUND));
-                            label.setText(tooltipText);
-                            label.addListener(SWT.MouseExit, this);
-                            label.addListener(SWT.MouseDown, this);
-                            label.addListener(SWT.MouseWheel, this);
-                            final Point size = tooltipShell.computeSize(SWT.DEFAULT, SWT.DEFAULT);
-                            final Point pt = fTable.toDisplay(event.x, event.y);
-                            tooltipShell.setBounds(pt.x, pt.y, size.x, size.y);
-                            tooltipShell.setVisible(true);
-                            break;
+                        final Rectangle bounds = item.getImageBounds(0);
+                        bounds.width = BOOKMARK_IMAGE.getBounds().width;
+                        if (!bounds.contains(event.x,event.y)) {
+                            return;
+                        }
+                        if ((tooltipShell != null) && !tooltipShell.isDisposed()) {
+                            tooltipShell.dispose();
+                        }
+                        tooltipShell = new Shell(fTable.getShell(), SWT.ON_TOP | SWT.NO_FOCUS | SWT.TOOL);
+                        tooltipShell.setBackground(PlatformUI.getWorkbench().getDisplay().getSystemColor(SWT.COLOR_INFO_BACKGROUND));
+                        final FillLayout layout = new FillLayout();
+                        layout.marginWidth = 2;
+                        tooltipShell.setLayout(layout);
+                        final Label label = new Label(tooltipShell, SWT.WRAP);
+                        String text = rank.toString() + (tooltipText != null ? ": " + tooltipText : ""); //$NON-NLS-1$ //$NON-NLS-2$
+                        label.setForeground(PlatformUI.getWorkbench().getDisplay().getSystemColor(SWT.COLOR_INFO_FOREGROUND));
+                        label.setBackground(PlatformUI.getWorkbench().getDisplay().getSystemColor(SWT.COLOR_INFO_BACKGROUND));
+                        label.setText(text);
+                        label.addListener(SWT.MouseExit, this);
+                        label.addListener(SWT.MouseDown, this);
+                        label.addListener(SWT.MouseWheel, this);
+                        final Point size = tooltipShell.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+                        Point pt = fTable.toDisplay(event.x, event.y);
+                        pt.x += BOOKMARK_IMAGE.getBounds().width;
+                        pt.y += size.y;
+                        tooltipShell.setBounds(pt.x, pt.y, size.x, size.y);
+                        tooltipShell.setVisible(true);
+                        break;
                     case SWT.Dispose:
                     case SWT.KeyDown:
                     case SWT.MouseMove:
@@ -168,13 +179,13 @@
             }
         };
 
-        fTable.addListener(SWT.MouseHover, bookmarkListener);
-        fTable.addListener(SWT.Dispose, bookmarkListener);
-        fTable.addListener(SWT.KeyDown, bookmarkListener);
-        fTable.addListener(SWT.MouseMove, bookmarkListener);
-        fTable.addListener(SWT.MouseExit, bookmarkListener);
-        fTable.addListener(SWT.MouseDown, bookmarkListener);
-        fTable.addListener(SWT.MouseWheel, bookmarkListener);
+        fTable.addListener(SWT.MouseHover, tooltipListener);
+        fTable.addListener(SWT.Dispose, tooltipListener);
+        fTable.addListener(SWT.KeyDown, tooltipListener);
+        fTable.addListener(SWT.MouseMove, tooltipListener);
+        fTable.addListener(SWT.MouseExit, tooltipListener);
+        fTable.addListener(SWT.MouseDown, tooltipListener);
+        fTable.addListener(SWT.MouseWheel, tooltipListener);
 
         // Create resources
         createResources();
@@ -191,23 +202,26 @@
                 if (e.data instanceof Long) {
                     final long rank = (Long) e.data;
                     int index = (int) rank;
-                    if (fTable.getData(Key.FILTER_OBJ) != null)
+                    if (fTable.getData(Key.FILTER_OBJ) != null) {
                         index = fCache.getFilteredEventIndex(rank) + 1; // +1 for top filter status row
+                    }
                     fTable.setSelection(index + 1); // +1 for header row
                     fSelectedRank = rank;
-                } else if (e.data instanceof ITmfLocation<?>)
+                } else if (e.data instanceof ITmfLocation<?>) {
                     // DOES NOT WORK: rank undefined in context from seekLocation()
-                    //                    ITmfLocation<?> location = (ITmfLocation<?>) e.data;
-                    //                    TmfContext context = fTrace.seekLocation(location);
-                    //                    fTable.setSelection((int) context.getRank());
+                    // ITmfLocation<?> location = (ITmfLocation<?>) e.data;
+                    // TmfContext context = fTrace.seekLocation(location);
+                    // fTable.setSelection((int) context.getRank());
                     return;
-                else
+                } else {
                     return;
+                }
                 final TableItem[] selection = fTable.getSelection();
                 if ((selection != null) && (selection.length > 0)) {
                     final TmfTimestamp ts = (TmfTimestamp) fTable.getSelection()[0].getData(Key.TIMESTAMP);
-                    if (ts != null)
+                    if (ts != null) {
                         broadcast(new TmfTimeSynchSignal(TmfEventsTable.this, ts));
+                    }
                 }
             }
         });

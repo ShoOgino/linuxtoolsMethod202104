@@ -1,26 +1,30 @@
         @SuppressWarnings("unchecked")
         @Override
         public void run() {
-            if (fTrace == null)
+            if (fTrace == null) {
                 return;
+            }
             final int nbRequested = (int) (fTrace.getNbEvents() - fFilterCheckCount);
-            if (nbRequested <= 0)
+            if (nbRequested <= 0) {
                 return;
+            }
             request = new TmfEventRequest<ITmfEvent>(ITmfEvent.class, TmfTimeRange.ETERNITY, (int) fFilterCheckCount,
                     nbRequested, fTrace.getCacheSize(), ExecutionType.BACKGROUND) {
                 @Override
                 public void handleData(final ITmfEvent event) {
                     super.handleData(event);
-                    if (request.isCancelled())
+                    if (request.isCancelled()) {
                         return;
+                    }
                     if (filter.matches(event)) {
                         final long rank = fFilterCheckCount;
                         final int index = (int) fFilterMatchCount;
                         fFilterMatchCount++;
                         fCache.storeEvent(event.clone(), rank, index);
                         refreshTable();
-                    } else if ((fFilterCheckCount % 100) == 0)
+                    } else if ((fFilterCheckCount % 100) == 0) {
                         refreshTable();
+                    }
                     fFilterCheckCount++;
                 }
             };

@@ -1,163 +1,163 @@
-	/**
-	 * @param parent
-	 * @param style
-	 */
-	public TmfVirtualTable(Composite parent, int style) {
-		super(parent, style & (~SWT.H_SCROLL) & (~SWT.V_SCROLL) & (~SWT.SINGLE) & (~SWT.FULL_SELECTION) & (~SWT.HIDE_SELECTION) & (~SWT.CHECK));
+    /**
+     * @param parent
+     * @param style
+     */
+    public TmfVirtualTable(Composite parent, int style) {
+        super(parent, style & (~SWT.H_SCROLL) & (~SWT.V_SCROLL) & (~SWT.SINGLE) & (~SWT.FULL_SELECTION) & (~SWT.HIDE_SELECTION) & (~SWT.CHECK));
 
-		// Create the controls
-		createTable(style & (SWT.H_SCROLL | SWT.SINGLE | SWT.FULL_SELECTION | SWT.HIDE_SELECTION | SWT.CHECK));
-		createSlider(style & SWT.V_SCROLL);
-		
-		// Prevent the slider from being traversed
-		setTabList(new Control[] { fTable });
+        // Create the controls
+        createTable(style & (SWT.H_SCROLL | SWT.SINGLE | SWT.FULL_SELECTION | SWT.HIDE_SELECTION | SWT.CHECK));
+        createSlider(style & SWT.V_SCROLL);
 
-		// Set the layout
-		GridLayout gridLayout = new GridLayout();
-		gridLayout.numColumns = 2;
-		gridLayout.horizontalSpacing = 0;
-		gridLayout.verticalSpacing   = 0;
-		gridLayout.marginWidth  = 0;
-		gridLayout.marginHeight = 0;
-		setLayout(gridLayout);
-		
-		GridData tableGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
-		fTable.setLayoutData(tableGridData);
+        // Prevent the slider from being traversed
+        setTabList(new Control[] { fTable });
 
-		GridData sliderGridData = new GridData(SWT.FILL, SWT.FILL, false, true);
-		fSlider.setLayoutData(sliderGridData);
+        // Set the layout
+        GridLayout gridLayout = new GridLayout();
+        gridLayout.numColumns = 2;
+        gridLayout.horizontalSpacing = 0;
+        gridLayout.verticalSpacing   = 0;
+        gridLayout.marginWidth  = 0;
+        gridLayout.marginHeight = 0;
+        setLayout(gridLayout);
 
-		// Add the listeners
-		fTable.addMouseWheelListener(new MouseWheelListener() {
-			@Override
-			public void mouseScrolled(MouseEvent event) {
-				if (fTableItemCount <= fFullyVisibleRows) {
-					return;
-				}
-				fTableTopEventRank -= event.count;
-				if (fTableTopEventRank < 0) {
-					fTableTopEventRank = 0;
-				}
-				int latestFirstRowOffset = fTableItemCount - fFullyVisibleRows;
-				if (fTableTopEventRank > latestFirstRowOffset) {
-					fTableTopEventRank = latestFirstRowOffset;
-				}
+        GridData tableGridData = new GridData(SWT.FILL, SWT.FILL, true, true);
+        fTable.setLayoutData(tableGridData);
 
-				fSlider.setSelection(fTableTopEventRank);
-				refreshTable();
-			}
-		});
+        GridData sliderGridData = new GridData(SWT.FILL, SWT.FILL, false, true);
+        fSlider.setLayoutData(sliderGridData);
 
-		fTable.addListener(SWT.MouseWheel, new Listener() {
-			// disable mouse scroll of horizontal scroll bar
-			@Override
+        // Add the listeners
+        fTable.addMouseWheelListener(new MouseWheelListener() {
+            @Override
+            public void mouseScrolled(MouseEvent event) {
+                if (fTableItemCount <= fFullyVisibleRows) {
+                    return;
+                }
+                fTableTopEventRank -= event.count;
+                if (fTableTopEventRank < 0) {
+                    fTableTopEventRank = 0;
+                }
+                int latestFirstRowOffset = fTableItemCount - fFullyVisibleRows;
+                if (fTableTopEventRank > latestFirstRowOffset) {
+                    fTableTopEventRank = latestFirstRowOffset;
+                }
+
+                fSlider.setSelection(fTableTopEventRank);
+                refreshTable();
+            }
+        });
+
+        fTable.addListener(SWT.MouseWheel, new Listener() {
+            // disable mouse scroll of horizontal scroll bar
+            @Override
             public void handleEvent(Event event) {
-				event.doit = false;
-			}
-		});
+                event.doit = false;
+            }
+        });
 
-		fTable.addControlListener(new ControlAdapter() {
-			@Override
-			public void controlResized(ControlEvent event) {
-				int tableHeight = Math.max(0, fTable.getClientArea().height - fTable.getHeaderHeight());
-				fFullyVisibleRows = tableHeight / getItemHeight();
-				if (fTableItemCount > 0) {
-					fSlider.setThumb(Math.max(1, Math.min(fTableRows, fFullyVisibleRows)));
-				}
-			}
-		});
-		// Implement a "fake" tooltip
-		final String TOOLTIP_DATA_KEY = "_TABLEITEM"; //$NON-NLS-1$
-		final Listener labelListener = new Listener () {
-			@Override
+        fTable.addControlListener(new ControlAdapter() {
+            @Override
+            public void controlResized(ControlEvent event) {
+                int tableHeight = Math.max(0, fTable.getClientArea().height - fTable.getHeaderHeight());
+                fFullyVisibleRows = tableHeight / getItemHeight();
+                if (fTableItemCount > 0) {
+                    fSlider.setThumb(Math.max(1, Math.min(fTableRows, fFullyVisibleRows)));
+                }
+            }
+        });
+        // Implement a "fake" tooltip
+        final String TOOLTIP_DATA_KEY = "_TABLEITEM"; //$NON-NLS-1$
+        final Listener labelListener = new Listener () {
+            @Override
             public void handleEvent (Event event) {
-				Label label = (Label)event.widget;
-				Shell shell = label.getShell ();
-				switch (event.type) {
-				case SWT.MouseDown:
-					Event e = new Event ();
-					e.item = (TableItem) label.getData (TOOLTIP_DATA_KEY);
-					// Assuming table is single select, set the selection as if
-					// the mouse down event went through to the table
-					fTable.setSelection (new TableItem [] {(TableItem) e.item});
-					fTable.notifyListeners (SWT.Selection, e);
-					shell.dispose ();
-					fTable.setFocus();
-					break;
-				case SWT.MouseExit:
-				case SWT.MouseWheel:
-					shell.dispose ();
-					break;
-				}
-			}
-		};
+                Label label = (Label)event.widget;
+                Shell shell = label.getShell ();
+                switch (event.type) {
+                case SWT.MouseDown:
+                    Event e = new Event ();
+                    e.item = (TableItem) label.getData (TOOLTIP_DATA_KEY);
+                    // Assuming table is single select, set the selection as if
+                    // the mouse down event went through to the table
+                    fTable.setSelection (new TableItem [] {(TableItem) e.item});
+                    fTable.notifyListeners (SWT.Selection, e);
+                    shell.dispose ();
+                    fTable.setFocus();
+                    break;
+                case SWT.MouseExit:
+                case SWT.MouseWheel:
+                    shell.dispose ();
+                    break;
+                }
+            }
+        };
 
-		Listener tableListener = new Listener () {
-			Shell tip = null;
-			Label label = null;
-			@Override
+        Listener tableListener = new Listener () {
+            Shell tip = null;
+            Label label = null;
+            @Override
             public void handleEvent (Event event) {
-				switch (event.type) {
-				case SWT.Dispose:
-				case SWT.KeyDown:
-				case SWT.MouseMove: {
-					if (tip == null) break;
-					tip.dispose ();
-					tip = null;
-					label = null;
-					break;
-				}
-				case SWT.MouseHover: {
-					TableItem item = fTable.getItem (new Point(event.x, event.y));
-					if (item != null) {
-						for(int i=0;i<fTable.getColumnCount();i++){
-							Rectangle bounds = item.getBounds(i);
-							if (bounds.contains(event.x,event.y)){
-								if (tip != null  && !tip.isDisposed()) tip.dispose();
-								if (tooltipProvider == null) {
-									return;
-								} else {
-									String tooltipText = tooltipProvider.getTooltip(i, item.getData());
-									if (tooltipText == null) return;
-									tip = new Shell(fTable.getShell(), SWT.ON_TOP | SWT.NO_FOCUS | SWT.TOOL);
-									tip.setBackground(PlatformUI.getWorkbench().getDisplay().getSystemColor(SWT.COLOR_INFO_BACKGROUND));
-									FillLayout layout = new FillLayout();
-									layout.marginWidth = 2;
-									tip.setLayout(layout);
-									label = new Label(tip, SWT.WRAP);
-									label.setForeground(PlatformUI.getWorkbench().getDisplay().getSystemColor(SWT.COLOR_INFO_FOREGROUND));
-									label.setBackground(PlatformUI.getWorkbench().getDisplay().getSystemColor(SWT.COLOR_INFO_BACKGROUND));
-									label.setData(TOOLTIP_DATA_KEY, item);
-									label.setText(tooltipText);
+                switch (event.type) {
+                case SWT.Dispose:
+                case SWT.KeyDown:
+                case SWT.MouseMove: {
+                    if (tip == null) break;
+                    tip.dispose ();
+                    tip = null;
+                    label = null;
+                    break;
+                }
+                case SWT.MouseHover: {
+                    TableItem item = fTable.getItem (new Point(event.x, event.y));
+                    if (item != null) {
+                        for(int i=0;i<fTable.getColumnCount();i++){
+                            Rectangle bounds = item.getBounds(i);
+                            if (bounds.contains(event.x,event.y)){
+                                if (tip != null  && !tip.isDisposed()) tip.dispose();
+                                if (tooltipProvider == null) {
+                                    return;
+                                } else {
+                                    String tooltipText = tooltipProvider.getTooltip(i, item.getData());
+                                    if (tooltipText == null) return;
+                                    tip = new Shell(fTable.getShell(), SWT.ON_TOP | SWT.NO_FOCUS | SWT.TOOL);
+                                    tip.setBackground(PlatformUI.getWorkbench().getDisplay().getSystemColor(SWT.COLOR_INFO_BACKGROUND));
+                                    FillLayout layout = new FillLayout();
+                                    layout.marginWidth = 2;
+                                    tip.setLayout(layout);
+                                    label = new Label(tip, SWT.WRAP);
+                                    label.setForeground(PlatformUI.getWorkbench().getDisplay().getSystemColor(SWT.COLOR_INFO_FOREGROUND));
+                                    label.setBackground(PlatformUI.getWorkbench().getDisplay().getSystemColor(SWT.COLOR_INFO_BACKGROUND));
+                                    label.setData(TOOLTIP_DATA_KEY, item);
+                                    label.setText(tooltipText);
 
-									label.addListener(SWT.MouseExit, labelListener);
-									label.addListener(SWT.MouseDown, labelListener);
-									label.addListener(SWT.MouseWheel, labelListener);
-									Point size = tip.computeSize(SWT.DEFAULT, SWT.DEFAULT);
-									Point pt = fTable.toDisplay(bounds.x, bounds.y);
-									tip.setBounds(pt.x, pt.y, size.x, size.y);
-									tip.setVisible(true);
-								}
-								break;
-							}
-						}
-					}
-				}
-				}
-			}
-		};
-		fTable.addListener(SWT.Dispose, tableListener);
-		fTable.addListener(SWT.KeyDown, tableListener);
-		fTable.addListener(SWT.MouseMove, tableListener);
-		fTable.addListener(SWT.MouseHover, tableListener);
-		addControlListener(new ControlAdapter() {
-			@Override
-			public void controlResized(ControlEvent event) {
-				resize();
-			}
-		});
+                                    label.addListener(SWT.MouseExit, labelListener);
+                                    label.addListener(SWT.MouseDown, labelListener);
+                                    label.addListener(SWT.MouseWheel, labelListener);
+                                    Point size = tip.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+                                    Point pt = fTable.toDisplay(bounds.x, bounds.y);
+                                    tip.setBounds(pt.x, pt.y, size.x, size.y);
+                                    tip.setVisible(true);
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+                }
+            }
+        };
+        fTable.addListener(SWT.Dispose, tableListener);
+        fTable.addListener(SWT.KeyDown, tableListener);
+        fTable.addListener(SWT.MouseMove, tableListener);
+        fTable.addListener(SWT.MouseHover, tableListener);
+        addControlListener(new ControlAdapter() {
+            @Override
+            public void controlResized(ControlEvent event) {
+                resize();
+            }
+        });
 
-		// And display
-		refresh();
-	}
+        // And display
+        refresh();
+    }
 
