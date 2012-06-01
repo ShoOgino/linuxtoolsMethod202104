@@ -20,10 +20,11 @@
      * @throws TmfTraceException
      */
     public static IStateSystemQuerier loadStateHistory(File htFile,
-            IStateChangeInput htInput) throws TmfTraceException {
+            IStateChangeInput htInput, boolean waitForCompletion)
+            throws TmfTraceException {
         IStateSystemQuerier ss;
         IStateHistoryBackend htBackend;
-        
+
         /* If the target file already exists, do not rebuild it uselessly */
         // TODO for now we assume it's complete. Might be a good idea to check
         // at least if its range matches the trace's range.
@@ -44,6 +45,7 @@
 
         /* Create a new state history from scratch */
         HistoryBuilder builder;
+
         if (htInput == null) {
             return null;
         }
@@ -51,14 +53,14 @@
             htBackend = new ThreadedHistoryTreeBackend(htFile,
                     htInput.getStartTime(), QUEUE_SIZE);
             builder = new HistoryBuilder(htInput, htBackend);
-            builder.run(); //FIXME
         } catch (IOException e) {
-            /* 
-             * If it fails here however, it means there was a problem writing
-             * to the disk, so throw a real exception this time.
+            /*
+             * If it fails here however, it means there was a problem writing to
+             * the disk, so throw a real exception this time.
              */
             throw new TmfTraceException(e.toString(), e);
         }
+        startBuilderJob(builder, htInput.getTrace(), waitForCompletion);
         return builder.getStateSystemQuerier();
     }
 
