@@ -1,5 +1,5 @@
     private static void startBuilderJob(final HistoryBuilder builder,
-            ITmfTrace<?> trace, boolean waitForCompletion) {
+            final ITmfTrace<?> trace, boolean waitForCompletion) {
 
         final Job job = new Job("Building state history for " +
                 trace.getName() + "...") { //$NON-NLS-1$
@@ -7,7 +7,11 @@
             protected IStatus run(final IProgressMonitor monitor) {
                 builder.run();
                 monitor.done();
-                // send signal here?
+
+                /* Broadcast the signal saying the history is done building */
+                TmfSignalManager.dispatchSignal(new TmfStateSystemBuildCompleted(
+                        this, trace));
+
                 return Status.OK_STATUS;
             }
         };
