@@ -1,7 +1,7 @@
     @Override
     protected void buildStateSystem() throws TmfTraceException {
         /* Set up the path to the history tree file we'll use */
-        IResource resource = getResource();
+        IResource resource = this.getResource();
         String supplDirectory = null; 
 
         try {
@@ -12,44 +12,8 @@
         }
 
         final File htFile = new File(supplDirectory + File.separator + HISTORY_TREE_FILE_NAME);
+        final IStateChangeInput htInput = new CtfKernelStateInput(this);
 
-        IStateHistoryBackend htBackend;
-        IStateChangeInput htInput;
-        HistoryBuilder builder;
-
-        /* If the target file already exists, do not rebuild it uselessly */
-        // TODO for now we assume it's complete. Might be a good idea to check
-        // at least if its range matches the trace's range.
-        if (htFile.exists()) {
-            /* Load an existing history */
-            try {
-                htBackend = new HistoryTreeBackend(htFile);
-                this.ss = HistoryBuilder.openExistingHistory(htBackend);
-                return;
-            } catch (IOException e) {
-                /*
-                 * There was an error opening the existing file. Perhaps it was
-                 * corrupted, perhaps it's an old version? We'll just
-                 * fall-through and try to build a new one from scratch instead.
-                 */
-            }
-        }
-
-        /* Create a new state history from scratch */
-        htInput = new CtfKernelStateInput(this);
-
-        try {
-            htBackend = new ThreadedHistoryTreeBackend(htFile,
-                    htInput.getStartTime(), QUEUE_SIZE);
-            builder = new HistoryBuilder(htInput, htBackend);
-        } catch (IOException e) {
-            /* 
-             * If it fails here however, it means there was a problem writing
-             * to the disk, so throw a real exception this time.
-             */
-            throw new TmfTraceException(e.toString(), e);
-        }
-
-        this.ss = builder.getStateSystemQuerier();
+        this.ss = StateSystemManager.loadStateHistory(htFile, htInput);
     }
 
