@@ -11,7 +11,8 @@
      *             backend)
      */
     public HistoryBuilder(IStateChangeInput stateChangeInput,
-            IStateHistoryBackend backend) throws IOException {
+            IStateHistoryBackend backend, boolean buildManually)
+            throws IOException {
         if (stateChangeInput == null || backend == null) {
             throw new IllegalArgumentException();
         }
@@ -20,6 +21,13 @@
         shs = new StateHistorySystem(hb, true);
 
         sci.assignTargetStateSystem(shs);
-        started = false;
+
+        if (buildManually) {
+            TmfSignalManager.deregister(this);
+            this.buildManually();
+        } else {
+            started = false;
+            /* We'll now wait for the signal to start building */
+        }
     }
 
