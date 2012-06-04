@@ -24,23 +24,23 @@
         fCacheEndIndex   = index;
 
         job = new Job("Fetching Events") { //$NON-NLS-1$
-        	private int startIndex = index;
-        	private int skipCount = 0;
+            private int startIndex = index;
+            private int skipCount = 0;
             @Override
             @SuppressWarnings("unchecked")
             protected IStatus run(final IProgressMonitor monitor) {
 
-            	int nbRequested;
-            	if (fFilter == null) {
-            		nbRequested = fCache.length;
-            	} else {
-            		nbRequested = TmfDataRequest.ALL_DATA;
-            		int i = index / fCache.length;
-            		if (i < fFilterIndex.size()) {
-            			startIndex = fFilterIndex.get(i);
-            			skipCount = index - (i * fCache.length);
-            		}
-            	}
+                int nbRequested;
+                if (fFilter == null) {
+                    nbRequested = fCache.length;
+                } else {
+                    nbRequested = TmfDataRequest.ALL_DATA;
+                    int i = index / fCache.length;
+                    if (i < fFilterIndex.size()) {
+                        startIndex = fFilterIndex.get(i);
+                        skipCount = index - (i * fCache.length);
+                    }
+                }
 
                 TmfDataRequest<ITmfEvent> request = new TmfDataRequest<ITmfEvent>(ITmfEvent.class, startIndex, nbRequested) {
                     private int count = 0;
@@ -54,21 +54,21 @@
                         }
                         super.handleData(event);
                         if (event != null) {
-                        	if (((fFilter == null) || fFilter.matches(event)) && (skipCount-- <= 0)) {
-                        		synchronized (TmfEventsCache.this) {
-                        			fCache[count] = new CachedEvent(event.clone(), rank);
-                        			count++;
-                        			fCacheEndIndex++;
-                        		}
-                                if (fFilter != null) {
-                                	fTable.cacheUpdated(false);
+                            if (((fFilter == null) || fFilter.matches(event)) && (skipCount-- <= 0)) {
+                                synchronized (TmfEventsCache.this) {
+                                    fCache[count] = new CachedEvent(event.clone(), rank);
+                                    count++;
+                                    fCacheEndIndex++;
                                 }
-                        	}
+                                if (fFilter != null) {
+                                    fTable.cacheUpdated(false);
+                                }
+                            }
                         }
                         if (count >= fCache.length) {
-                        	cancel();
+                            cancel();
                         } else if ((fFilter != null) && (count >= (fTable.getTable().getItemCount() - 3))) { // -1 for header row, -2 for top and bottom filter status rows
-                        	cancel();
+                            cancel();
                         }
                         rank++;
                     }
@@ -85,7 +85,7 @@
 
                 // Flag the UI thread that the cache is ready
                 if (monitor.isCanceled()) {
-                	return Status.CANCEL_STATUS;
+                    return Status.CANCEL_STATUS;
                 } else {
                     return Status.OK_STATUS;
                 }
