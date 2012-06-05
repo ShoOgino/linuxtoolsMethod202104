@@ -1,0 +1,29 @@
+    private static void verifyAttribute(int attribute)
+            throws TimeRangeException, AttributeNotFoundException {
+        List<ITmfStateInterval> intervals;
+
+        System.out.print("Checking attribute " + attribute);
+        System.out.print(' ' + ss.getFullAttributePath(attribute));
+
+        intervals = ss.queryHistoryRange(attribute, startTime, endTime);
+        System.out.println(" (" + intervals.size() + " intervals)");
+
+        /*
+         * Compare the start of the history with the start time of the first
+         * interval
+         */
+        verify(attribute, startTime, intervals.get(0).getStartTime());
+
+        /* Compare the end time of each interval with the start of the next one */
+        for (int i = 0; i < intervals.size() - 1; i++) {
+            verify(attribute, intervals.get(i).getEndTime() + 1,
+                    intervals.get(i + 1).getStartTime());
+        }
+        /*
+         * Compare the end time of the last interval against the end time of the
+         * history
+         */
+        verify(attribute, intervals.get(intervals.size() - 1).getEndTime(),
+                endTime);
+    }
+
