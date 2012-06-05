@@ -1,0 +1,29 @@
+    /* (non-Javadoc)
+     * @see org.eclipse.linuxtools.tmf.core.trace.TmfTrace#armRequest(org.eclipse.linuxtools.tmf.core.request.ITmfDataRequest)
+     */
+    @Override
+    protected synchronized ITmfContext armRequest(final ITmfDataRequest request) {
+
+        // Make sure we have something to read from
+        if (fTraces == null) {
+            return null;
+        }
+
+        if (request instanceof ITmfEventRequest
+            && !TmfTimestamp.BIG_BANG.equals(((ITmfEventRequest) request).getRange().getStartTime())
+            && request.getIndex() == 0)
+        {
+            final ITmfContext context = seekEvent(((ITmfEventRequest) request).getRange().getStartTime());
+            ((ITmfEventRequest) request).setStartIndex((int) context.getRank());
+            return context;
+
+        }
+
+        // Check if we are already at the right index
+        if ((fExperimentContext != null) && fExperimentContext.getRank() == request.getIndex()) {
+            return fExperimentContext;
+        }
+
+        return seekEvent(request.getIndex());
+    }
+
