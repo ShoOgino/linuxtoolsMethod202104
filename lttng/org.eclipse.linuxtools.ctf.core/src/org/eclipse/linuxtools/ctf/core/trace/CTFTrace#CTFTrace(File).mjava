@@ -14,6 +14,8 @@
         environment = new HashMap<String, String>();
         clocks = new HashMap<String, CTFClock>();
         streamFileChannels = new LinkedList<FileChannel>();
+        eventDecs = new HashMap<Long, HashMap<Long, EventDeclaration>>();
+        eventDefs = new HashMap<StreamInput, HashMap<Long, EventDefinition>>();
 
         if (!this.path.isDirectory()) {
             throw new CTFReaderException("Path must be a valid directory"); //$NON-NLS-1$
@@ -36,12 +38,12 @@
         /* List files not called metadata and not hidden. */
         File[] files = path.listFiles(metadataFileFilter);
         Arrays.sort(files, metadataComparator);
-
+        indexes = new HashMap<StreamInput, StreamInputPacketIndex>();
         /* Try to open each file */
         for (File streamFile : files) {
             openStreamInput(streamFile);
         }
-        events = new HashMap<Long, EventDeclaration>();
+
         /* Create their index */
         for (Map.Entry<Long, Stream> stream : streams.entrySet()) {
             Set<StreamInput> inputs = stream.getValue().getStreamInputs();
@@ -55,7 +57,7 @@
                     Map.Entry<Long, EventDeclaration> pairs = it.next();
                     Long eventNum = pairs.getKey();
                     EventDeclaration eventDec = pairs.getValue();
-                    events.put(eventNum, eventDec);
+                    getEvents(s.getStream().getId()).put(eventNum, eventDec);
                 }
 
                 /*

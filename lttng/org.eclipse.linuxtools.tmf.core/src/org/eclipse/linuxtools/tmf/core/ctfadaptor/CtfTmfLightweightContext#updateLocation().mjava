@@ -1,0 +1,28 @@
+    // -------------------------------------------
+    // Private helpers
+    // -------------------------------------------
+    /**
+     * This updates the position of an iterator to the location(curLocation)
+     * Since the iterators are in a pool to not exhaust the number of file
+     * pointers some of them can be shared. This means there can be collisions
+     * between contexts fighting over the same resource. A heuristic is applied
+     * that if there are MAX_COLLISIONS collisions in a row, the iterator is
+     * changed for the next one in the iterator pool.
+     *
+     * @return true if the location is correct.
+     */
+    private synchronized boolean updateLocation() {
+        if (!curLocation.getLocation().equals(
+                (fSeeker.getLocation().getLocation()))) {
+            collisions++;
+            if (collisions > MAX_COLLISIONS) {
+                fSeeker = getIterator();
+                collisions = 0;
+            }
+            fSeeker.setRank(curRank);
+            return fSeeker.seek(curLocation.getLocation());
+        }
+        collisions = 0;
+        return true;
+    }
+
