@@ -1,0 +1,21 @@
+    private ITmfContext restoreExpContext(ITmfContext context) {
+        TmfExperimentContext expContext = (TmfExperimentContext) context;
+        int size = expContext.getContexts().length;
+        ITmfContext[] trcCtxts = new ITmfContext[size];
+        for (int i = 0; i < size; i++) {
+            ITmfTrace<?> trace = ((TmfExperiment<?>) fTrace).getTraces()[i];
+            ITmfContext ctx = expContext.getContexts()[i];
+            trcCtxts[i] = trace.seekEvent(ctx.getLocation().clone());
+            trcCtxts[i].setRank(ctx.getRank());
+        }
+        TmfExperimentContext ctx = new TmfExperimentContext(trcCtxts);
+        ctx.setLocation(context.getLocation().clone());
+        ctx.setRank(context.getRank());
+        ITmfEvent[] trcEvts = expContext.getEvents();
+        for (int i = 0; i < size; i++) {
+            ITmfEvent event = trcEvts[i];
+            ctx.getEvents()[i] = (event != null) ? event.clone() : null;
+        }
+        return ctx;
+    }
+

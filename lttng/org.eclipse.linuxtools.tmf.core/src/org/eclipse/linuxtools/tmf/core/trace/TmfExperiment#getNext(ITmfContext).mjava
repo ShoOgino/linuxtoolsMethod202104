@@ -1,8 +1,8 @@
     /* (non-Javadoc)
      * @see org.eclipse.linuxtools.tmf.core.trace.TmfTrace#getNext(org.eclipse.linuxtools.tmf.core.trace.ITmfContext)
      */
-    @SuppressWarnings("unchecked")
     @Override
+    @SuppressWarnings("unchecked")
     public synchronized T getNext(ITmfContext context) {
 
         // Validate the context
@@ -15,6 +15,12 @@
         final int lastTrace = expContext.getLastTrace();
         if (lastTrace != TmfExperimentContext.NO_TRACE) {
             final ITmfContext traceContext = expContext.getContexts()[lastTrace];
+
+            TmfExperimentLocation location = (TmfExperimentLocation) expContext.getLocation();
+            if (location != null) {
+                location.getLocation().getLocations()[lastTrace] = traceContext.getLocation().clone();
+            }
+
             expContext.getEvents()[lastTrace] = fTraces[lastTrace].getNext(traceContext);
             expContext.setLastTrace(TmfExperimentContext.NO_TRACE);
         }
@@ -38,8 +44,6 @@
             event = (T) expContext.getEvents()[trace];
             if (event != null) {
                 updateAttributes(expContext, event.getTimestamp());
-                TmfExperimentLocation location = (TmfExperimentLocation) expContext.getLocation();
-                location.getLocation().getLocations()[trace] = expContext.getContexts()[trace].getLocation();
                 expContext.increaseRank();
                 expContext.setLastTrace(trace);
                 fExperimentContext = expContext;
