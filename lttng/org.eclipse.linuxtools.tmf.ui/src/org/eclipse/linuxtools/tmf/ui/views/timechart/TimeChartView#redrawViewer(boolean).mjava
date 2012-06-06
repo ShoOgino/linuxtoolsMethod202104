@@ -1,0 +1,34 @@
+    private void redrawViewer(boolean resetTimeIntervals) {
+        synchronized (fSyncObj) {
+            if (fRedrawBusy) {
+                fRedrawPending = true;
+                return;
+            } else {
+                fRedrawBusy = true;
+            }
+        }
+        final boolean reset = resetTimeIntervals;
+        // Perform the refresh on the UI thread
+        Display.getDefault().asyncExec(new Runnable() {
+            @Override
+            public void run() {
+                if (fViewer.getControl().isDisposed()) {
+                    return;
+                }
+                if (reset) {
+                    fViewer.setTimeRange(fTimeAnalysisEntries.toArray(new TimeChartAnalysisEntry[0]));
+                    fViewer.setTimeBounds();
+                }
+                fViewer.getControl().redraw();
+                fViewer.getControl().update();
+                synchronized (fSyncObj) {
+                    fRedrawBusy = false;
+                    if (fRedrawPending) {
+                        fRedrawPending = false;
+                        redrawViewer(reset);
+                    }
+                }
+            }
+        });
+    }
+

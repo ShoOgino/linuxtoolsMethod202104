@@ -1,4 +1,4 @@
-    private void refreshViewer(boolean resetTimeIntervals) {
+    private void refreshViewer() {
         synchronized (fSyncObj) {
             if (fRefreshBusy) {
                 fRefreshPending = true;
@@ -7,22 +7,20 @@
                 fRefreshBusy = true;
             }
         }
-        final boolean reset = resetTimeIntervals;
         // Perform the refresh on the UI thread
         Display.getDefault().asyncExec(new Runnable() {
             @Override
             public void run() {
-                if (fViewer.getControl().isDisposed())
+                if (fViewer.getControl().isDisposed()) {
                     return;
-                fViewer.setInput(fTimeAnalysisEntries.toArray(new TimeChartAnalysisEntry[0]));
-                if (reset) {
-                    fViewer.resetStartFinishTime();
                 }
+                fViewer.setInput(fTimeAnalysisEntries.toArray(new TimeChartAnalysisEntry[0]));
+                fViewer.resetStartFinishTime();
                 synchronized (fSyncObj) {
                     fRefreshBusy = false;
                     if (fRefreshPending) {
                         fRefreshPending = false;
-                        refreshViewer(reset);
+                        refreshViewer();
                     }
                 }
             }
