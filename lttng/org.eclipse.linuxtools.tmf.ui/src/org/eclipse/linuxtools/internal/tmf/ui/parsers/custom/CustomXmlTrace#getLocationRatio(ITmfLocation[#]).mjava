@@ -1,22 +1,14 @@
     @Override
-    public double getLocationRatio(final ITmfLocation<?> location) {
-        RandomAccessFile raFile = null;
+    public synchronized double getLocationRatio(final ITmfLocation<?> location) {
+        if (fFile == null) {
+            return 0;
+        }
         try {
             if (location.getLocation() instanceof Long) {
-                raFile = new RandomAccessFile(getPath(), "r"); //$NON-NLS-1$
-                return (double) ((Long) location.getLocation()) / raFile.length();
+                return (double) ((Long) location.getLocation()) / fFile.length();
             }
-        } catch (final FileNotFoundException e) {
-            Activator.getDefault().logError("Error getting location ration. File not found: " + getPath(), e); //$NON-NLS-1$
         } catch (final IOException e) {
             Activator.getDefault().logError("Error getting location ration. File: " + getPath(), e); //$NON-NLS-1$
-        } finally {
-            if (raFile != null) {
-                try {
-                    raFile.close();
-                } catch (final IOException e) {
-                }
-            }
         }
         return 0;
     }

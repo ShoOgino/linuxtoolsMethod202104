@@ -1,29 +1,30 @@
     @Override
-    public TmfContext seekEvent(final ITmfLocation<?> location) {
+    public synchronized TmfContext seekEvent(final ITmfLocation<?> location) {
         final CustomTxtTraceContext context = new CustomTxtTraceContext(NULL_LOCATION, ITmfContext.UNKNOWN_RANK);
-        if (NULL_LOCATION.equals(location) || !new File(getPath()).isFile())
+        if (NULL_LOCATION.equals(location) || fFile == null) {
             return context;
+        }
         try {
-            BufferedRandomAccessFile raFile = new BufferedRandomAccessFile(getPath(), "r"); //$NON-NLS-1$
-            if (location != null && location.getLocation() instanceof Long) {
-                raFile.seek((Long)location.getLocation());
+            if (location == null) {
+                fFile.seek(0);
+            } else if (location.getLocation() instanceof Long) {
+                fFile.seek((Long) location.getLocation());
             }
             String line;
-            long rawPos = raFile.getFilePointer();
-            while ((line = raFile.getNextLine()) != null) {
+            long rawPos = fFile.getFilePointer();
+            while ((line = fFile.getNextLine()) != null) {
                 for (final InputLine input : getFirstLines()) {
                     final Matcher matcher = input.getPattern().matcher(line);
                     if (matcher.find()) {
                         context.setLocation(new TmfLocation<Long>(rawPos));
-                        context.raFile = raFile;
                         context.firstLineMatcher = matcher;
                         context.firstLine = line;
-                        context.nextLineLocation = raFile.getFilePointer();
+                        context.nextLineLocation = fFile.getFilePointer();
                         context.inputLine = input;
                         return context;
                     }
                 }
-                rawPos = raFile.getFilePointer();
+                rawPos = fFile.getFilePointer();
             }
             return context;
         } catch (final FileNotFoundException e) {

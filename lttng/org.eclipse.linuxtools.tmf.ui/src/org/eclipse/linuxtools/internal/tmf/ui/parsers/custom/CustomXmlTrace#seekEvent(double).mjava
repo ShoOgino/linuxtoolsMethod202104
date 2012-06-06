@@ -1,12 +1,13 @@
     @Override
-    public TmfContext seekEvent(final double ratio) {
-        BufferedRandomAccessFile raFile = null;
+    public synchronized TmfContext seekEvent(final double ratio) {
+        if (fFile == null) {
+            return new CustomTxtTraceContext(NULL_LOCATION, ITmfContext.UNKNOWN_RANK);
+        }
         try {
-            raFile = new BufferedRandomAccessFile(getPath(), "r"); //$NON-NLS-1$
-            long pos = (long) (ratio * raFile.length());
+            long pos = (long) (ratio * fFile.length());
             while (pos > 0) {
-                raFile.seek(pos - 1);
-                if (raFile.read() == '\n') {
+                fFile.seek(pos - 1);
+                if (fFile.read() == '\n') {
                     break;
                 }
                 pos--;
@@ -15,19 +16,9 @@
             final TmfContext context = seekEvent(location);
             context.setRank(ITmfContext.UNKNOWN_RANK);
             return context;
-        } catch (final FileNotFoundException e) {
-            Activator.getDefault().logError("Error seeking event. File not found: " + getPath(), e); //$NON-NLS-1$
-            return new CustomXmlTraceContext(NULL_LOCATION, ITmfContext.UNKNOWN_RANK);
         } catch (final IOException e) {
             Activator.getDefault().logError("Error seeking event. File: " + getPath(), e); //$NON-NLS-1$
             return new CustomXmlTraceContext(NULL_LOCATION, ITmfContext.UNKNOWN_RANK);
-        } finally {
-            if (raFile != null) {
-                try {
-                    raFile.close();
-                } catch (final IOException e) {
-                }
-            }
         }
     }
 
