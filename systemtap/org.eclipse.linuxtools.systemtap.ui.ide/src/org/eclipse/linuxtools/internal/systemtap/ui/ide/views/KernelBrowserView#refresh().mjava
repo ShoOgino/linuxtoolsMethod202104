@@ -6,6 +6,40 @@
 	public void refresh() {
 		LogManager.logDebug("Start refresh:", this); //$NON-NLS-1$
 		
+		IPreferenceStore p = IDEPlugin.getDefault().getPreferenceStore();
+		String kernelSource = p.getString(IDEPreferenceConstants.P_KERNEL_SOURCE);
+		if(null == kernelSource || kernelSource.length() < 1) {
+			showBrowserErrorMessage(Localization.getString("KernelBrowserView.NoKernelSourceFound")); //$NON-NLS-1$
+			return;
+		}
+
+		String localOrRemote = p.getString(IDEPreferenceConstants.P_REMOTE_LOCAL_KERNEL_SOURCE);
+		URI kernelLocationURI = null;
+		IRemoteFileProxy proxy = null;
+		boolean remote = localOrRemote.equals(PathPreferencePage.REMOTE);
+		if (remote) {
+			boolean error = false;
+			try {
+				kernelLocationURI = createUri(kernelSource);
+				if (kernelLocationURI == null)
+					error = true;
+				else {
+					proxy = RemoteProxyManager.getInstance().getFileProxy(kernelLocationURI);
+					if (!validateProxy(proxy, kernelSource))
+						error = true;
+				}
+			} catch (CoreException e2) {
+				error = true;
+			}
+			if (error) {
+				showBrowserErrorMessage(Localization.getString("KernelBrowserView.KernelSourceDirNotFound")); //$NON-NLS-1$
+				return;
+			}
+		}
+
+		KernelRefreshJob refreshJob = new KernelRefreshJob(remote, kernelLocationURI, proxy, kernelSource);
+		refreshJob.setUser(true);
+		refreshJob.setPriority(Job.SHORT);
 		refreshJob.schedule();
 		LogManager.logDebug("End refresh:", this); //$NON-NLS-1$
 	}
