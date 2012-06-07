@@ -3,9 +3,10 @@
         fStartTime = Long.MAX_VALUE;
         fEndTime = Long.MIN_VALUE;
         fSelectedExperiment = (TmfExperiment<ITmfEvent>) experiment;
-        ArrayList<ControlFlowEntry> entryList = new ArrayList<ControlFlowEntry>();
+        ArrayList<ControlFlowEntry> rootList = new ArrayList<ControlFlowEntry>();
         for (ITmfTrace<?> trace : experiment.getTraces()) {
             if (trace instanceof CtfKernelTrace) {
+                ArrayList<ControlFlowEntry> entryList = new ArrayList<ControlFlowEntry>();
                 CtfKernelTrace ctfKernelTrace = (CtfKernelTrace) trace;
                 IStateSystemQuerier ssq = ctfKernelTrace.getStateSystem();
                 long start = ssq.getStartTime();
@@ -62,14 +63,14 @@
                         e.printStackTrace();
                     }
                 }
+                buildTree(entryList, rootList);
             }
-            buildTree(entryList);
+            Collections.sort(rootList, fControlFlowEntryComparator);
+            fEntryList = rootList;
             refresh(INITIAL_WINDOW_OFFSET);
-            ControlFlowEntry[] entries = fEntryList.toArray(new ControlFlowEntry[0]);
-            Arrays.sort(entries, fControlFlowEntryComparator);
-            for (ControlFlowEntry entry : entries) {
-                buildStatusEvents(entry);
-            }
+        }
+        for (ControlFlowEntry entry : rootList) {
+            buildStatusEvents(entry);
         }
     }
 
