@@ -1,12 +1,39 @@
 	public void createFieldEditors() {
-		LogManager.logDebug("Start createFieldEditors:", this);
-//		addField(new DirectoryFieldEditor(IDEPreferenceConstants.P_DEFAULT_TAPSET, 
-//				"&Default tapset directory:", getFieldEditorParent()));
-		addField(new DirectoryFieldEditor(IDEPreferenceConstants.P_KERNEL_SOURCE, 
-				Localization.getString("PathPreferencePage.KernelSourceDirectory"), getFieldEditorParent()));
+		LogManager.logDebug("Start createFieldEditors:", this); //$NON-NLS-1$
+		Composite parent = getFieldEditorParent();
+		String labels[][] = {{Localization.getString("PathPreferencePage.LocalMachine"), LOCAL}, //$NON-NLS-1$
+							 {Localization.getString("PathPreferencePage.RemoteMachine"), REMOTE}}; //$NON-NLS-1$
+		RadioGroupFieldEditor radioEditor = new RadioGroupFieldEditor(IDEPreferenceConstants.P_REMOTE_LOCAL_KERNEL_SOURCE,
+				Localization.getString("PathPreferencePage.RemoteOrLocalRadio"), 1, labels, parent, true) { //$NON-NLS-1$
+			protected void fireValueChanged(String property,
+					Object oldValue,
+					Object newValue){
+				super.fireValueChanged(property, oldValue, newValue);
+				if (!oldValue.equals(newValue) && directoryEditor != null) {
+					if (newValue.equals(REMOTE))
+						directoryEditor.setRemote(true, getFieldEditorParent());
+					else
+						directoryEditor.setRemote(false, getFieldEditorParent());
+				}
+			}
+		};
+		addField(radioEditor);
+
+		IPreferenceStore p = IDEPlugin.getDefault().getPreferenceStore();
+		String remoteOrLocal = p.getString(IDEPreferenceConstants.P_REMOTE_LOCAL_KERNEL_SOURCE);
+		boolean remote;
+		if (remoteOrLocal.equals(REMOTE))
+			remote = true;
+		else
+			remote = false;
+
+		directoryEditor = new LocalRemoteDirectoryEditor(IDEPreferenceConstants.P_KERNEL_SOURCE,
+				Localization.getString("PathPreferencePage.KernelSourceDirectory"), parent, remote); //$NON-NLS-1$
+		addField(directoryEditor);
 
 		addField(new ListEditor(IDEPreferenceConstants.P_EXCLUDED_KERNEL_SOURCE,
-				Localization.getString("PathPreferencePage.ExcludedSourceFolders"), Localization.getString("PathPreferencePage.ExcludedDirectory"), "", new DirectoryValidator(), getFieldEditorParent()));
-		LogManager.logDebug("End createFieldEditors:", this);
+				Localization.getString("PathPreferencePage.ExcludedSourceFolders"), Localization.getString("PathPreferencePage.ExcludedDirectory"), "", new DirectoryValidator(), parent)); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+
+	LogManager.logDebug("End createFieldEditors:", this); //$NON-NLS-1$
 	}
 
