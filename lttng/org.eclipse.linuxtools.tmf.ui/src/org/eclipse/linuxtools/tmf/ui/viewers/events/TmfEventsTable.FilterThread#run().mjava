@@ -8,7 +8,7 @@
             if (nbRequested <= 0) {
                 return;
             }
-            request = new TmfEventRequest<ITmfEvent>(ITmfEvent.class, TmfTimeRange.ETERNITY, (int) fFilterCheckCount,
+            request = new TmfDataRequest<ITmfEvent>(ITmfEvent.class, (int) fFilterCheckCount,
                     nbRequested, fTrace.getCacheSize(), ExecutionType.BACKGROUND) {
                 @Override
                 public void handleData(final ITmfEvent event) {
@@ -34,5 +34,13 @@
             } catch (final InterruptedException e) {
             }
             refreshTable();
+            synchronized (fFilterSyncObj) {
+                fFilterThread = null;
+                if (fFilterThreadResume) {
+                    fFilterThreadResume = false;
+                    fFilterThread = new FilterThread(filter);
+                    fFilterThread.start();
+                }
+            }
         }
 
