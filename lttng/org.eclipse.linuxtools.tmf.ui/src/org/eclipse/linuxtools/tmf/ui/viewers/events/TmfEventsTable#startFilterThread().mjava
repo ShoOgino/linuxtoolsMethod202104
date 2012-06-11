@@ -1,11 +1,16 @@
     protected void startFilterThread() {
         synchronized (fFilterSyncObj) {
-            if (fFilterThread != null) {
-                fFilterThread.cancel();
-            }
             final ITmfFilterTreeNode filter = (ITmfFilterTreeNode) fTable.getData(Key.FILTER_OBJ);
-            fFilterThread = new FilterThread(filter);
-            fFilterThread.start();
+            if (fFilterThread == null || fFilterThread.filter != filter) {
+                if (fFilterThread != null) {
+                    fFilterThread.cancel();
+                    fFilterThreadResume = false;
+                }
+                fFilterThread = new FilterThread(filter);
+                fFilterThread.start();
+            } else {
+                fFilterThreadResume = true;
+            }
         }
     }
 
