@@ -1,12 +1,14 @@
     /**
      * Run the TraceControlComponent.
+     *
+     * @throws Exception
+     *             This will fail the test
      */
-    public void testTraceControlComponents()
-        throws Exception {
-        
+    public void testTraceControlComponents() throws Exception {
+
         fProxy.setTestFile(fTestFile);
         fProxy.setScenario(SCEN_LIST_INFO_TEST);
-        
+
         ITraceControlComponent root = TraceControlTestFacility.getInstance().getControlView().getTraceControlRoot();
 
         ISystemRegistry registry = RSECorePlugin.getTheSystemRegistry();
@@ -42,10 +44,10 @@
         ITraceControlComponent[] groups = node.getChildren();
         assertNotNull(groups);
         assertEquals(2, groups.length);
-        
+
         assertTrue(groups[0] instanceof TraceProviderGroup);
         assertTrue(groups[1] instanceof TraceSessionGroup);
-        
+
         assertEquals("Provider", groups[0].getName());
         assertEquals("Sessions", groups[1].getName());
 
@@ -116,7 +118,7 @@
         ustProvider = (UstProviderComponent) providers[2];
         assertEquals("/home/user/git/lttng-ust/tests/hello.cxx/.libs/lt-hello [PID=4852]", ustProvider.getName());
         assertEquals(4852, ustProvider.getPid());
-        
+
         // verify getters and setter
         verifyUstProviderGettersSetters(ustProvider);
 
@@ -137,10 +139,10 @@
         assertEquals("ust_tests_hello:tptest", baseEventInfo.getName());
         assertEquals(TraceLogLevel.TRACE_DEBUG_FUNCTION, baseEventInfo.getLogLevel());
         assertEquals(TraceEventType.TRACEPOINT, baseEventInfo.getEventType());
-        
+
         // verify getters and setters
         verifyBaseEventGettersSetters(baseEventInfo);
-        
+
         // ------------------------------------------------------------------------
         // Verify TraceSessionGroup
         // ------------------------------------------------------------------------
@@ -163,11 +165,11 @@
 
         // Verify setters and setters
         verifySessionGetterSetters(session);
-        
+
         ITraceControlComponent[] domains = session.getChildren();
         assertNotNull(domains);
         assertEquals(2, domains.length);
-        
+
         // ------------------------------------------------------------------------
         // Verify Kernel domain
         // ------------------------------------------------------------------------
@@ -178,12 +180,12 @@
 
         // Verify setters and setters
         verifyDomainGettersSetters((TraceDomainComponent) domains[0]);
-        
+
         // ------------------------------------------------------------------------
         // Verify Kernel's channel0
         // ------------------------------------------------------------------------
         assertTrue(channels[0] instanceof TraceChannelComponent);
-        TraceChannelComponent channel = (TraceChannelComponent) channels[0]; 
+        TraceChannelComponent channel = (TraceChannelComponent) channels[0];
         assertEquals("channel0", channel.getName());
         assertEquals(4, channel.getNumberOfSubBuffers());
         assertEquals("splice()", channel.getOutputType());
@@ -204,13 +206,13 @@
         assertTrue(channel0Events[2] instanceof TraceProbeEventComponent);
         assertTrue(channel0Events[3] instanceof TraceProbeEventComponent);
         assertTrue(channel0Events[4] instanceof TraceEventComponent);
-        
+
         TraceEventComponent event = (TraceEventComponent) channel0Events[0];
         assertEquals("block_rq_remap", event.getName());
         assertEquals(TraceLogLevel.TRACE_EMERG, event.getLogLevel());
         assertEquals(TraceEventType.TRACEPOINT, event.getEventType());
         assertEquals(TraceEnablement.ENABLED, event.getState());
-        
+
         event = (TraceEventComponent) channel0Events[1];
         assertEquals("block_bio_remap", event.getName());
         assertEquals(TraceLogLevel.TRACE_EMERG, event.getLogLevel());
@@ -237,18 +239,18 @@
         assertNull(probeEvent.getAddress());
         assertEquals("0x0", probeEvent.getOffset());
         assertEquals("init_post", probeEvent.getSymbol());
-        
+
         event = (TraceEventComponent) channel0Events[4];
         assertEquals("syscalls", event.getName());
         assertEquals(TraceLogLevel.LEVEL_UNKNOWN, event.getLogLevel());
         assertEquals(TraceEventType.SYSCALL, event.getEventType());
         assertEquals(TraceEnablement.ENABLED, event.getState());
-        
+
         // ------------------------------------------------------------------------
         // Verify Kernel's channel1
         // ------------------------------------------------------------------------
         assertEquals("channel1", channels[1].getName());
-        channel = (TraceChannelComponent) channels[1]; 
+        channel = (TraceChannelComponent) channels[1];
         assertEquals(4, channel.getNumberOfSubBuffers());
         assertEquals("splice()", channel.getOutputType());
         assertEquals(true, channel.isOverwriteMode());
@@ -267,9 +269,9 @@
         // Verify domain UST global
         // ------------------------------------------------------------------------
         assertEquals("UST global", domains[1].getName());
-        
+
         ITraceControlComponent[] ustChannels = domains[1].getChildren();
-        
+
         for (int i = 0; i < ustChannels.length; i++) {
             assertTrue(ustChannels[i] instanceof TraceChannelComponent);
         }
@@ -277,7 +279,7 @@
         // ------------------------------------------------------------------------
         // Verify UST global's mychannel1
         // ------------------------------------------------------------------------
-        channel = (TraceChannelComponent) ustChannels[0]; 
+        channel = (TraceChannelComponent) ustChannels[0];
         assertEquals("mychannel1", channel.getName());
         assertEquals(8, channel.getNumberOfSubBuffers());
         assertEquals("mmap()", channel.getOutputType());
@@ -286,8 +288,8 @@
         assertEquals(TraceEnablement.DISABLED, channel.getState());
         assertEquals(8192, channel.getSubBufferSize());
         assertEquals(200, channel.getSwitchTimer());
-        
-        // verify getters and setters 
+
+        // verify getters and setters
         verifyChannelGettersSetters(channel);
 
         // ------------------------------------------------------------------------
@@ -314,28 +316,28 @@
         // ------------------------------------------------------------------------
         ustEvents = channel.getChildren();
         assertEquals(2, ustEvents.length);
-        
+
         event = (TraceEventComponent) ustEvents[0];
         assertEquals("ust_tests_hello:tptest_sighandler", event.getName());
         assertEquals(TraceLogLevel.TRACE_DEBUG_LINE, event.getLogLevel());
         assertEquals(TraceEventType.TRACEPOINT, event.getEventType());
         assertEquals(TraceEnablement.DISABLED, event.getState());
-        
+
         event = (TraceEventComponent) ustEvents[1];
         assertEquals("*", ustEvents[1].getName());
         assertEquals(TraceLogLevel.LEVEL_UNKNOWN, event.getLogLevel());
         assertEquals(TraceEventType.TRACEPOINT, event.getEventType());
         assertEquals(TraceEnablement.ENABLED, event.getState());
-        
+
         // verify getters and setters
         verifyEventGettersSetters(event);
-        
+
         // disconnect
         node.disconnect();
         assertEquals(TargetNodeState.DISCONNECTED, node.getTargetNodeState());
         assertNotNull(node.getImage());
         assertNotSame(connectedImage, node.getImage());
-        
+
         node.getParent().removeChild(node);
     }
 

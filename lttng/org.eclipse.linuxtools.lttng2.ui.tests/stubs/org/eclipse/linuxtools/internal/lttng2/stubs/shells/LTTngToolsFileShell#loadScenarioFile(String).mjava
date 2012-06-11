@@ -2,57 +2,57 @@
      * Parse a scenario file with the format:
      * <SCENARIO>
      * ScenarioName
-     * 
+     *
      * <COMMAND_INPUT>
      * Command
      * </COMAND_INPUT>
-     * 
+     *
      * <COMMAND_RESULT>
      * CommandResult
      * </COMMAND_RESULT>
-     * 
+     *
      * <COMMAND_OUTPUT>
      * CommandOutput
      * </COMMAND_OUTPUT>
-     * 
+     *
      * </SCENARIO>
-     * 
+     *
      * Where: ScenarioName - is the scenario name
      *        Command - the command line string
      *        CommandResult - the result integer of the command (0 for success, 1 for failure)
      *        ComandOutput - the command output string (multi-line possible)
-     *        
+     *
      * Note: 1) There can be many scenarios per file
      *       2) There can be many (Command-CommandResult-CommandOutput) triples per scenario
      *       3) Lines starting with # will be ignored (comments)
-     *                 
+     *
      * @param scenariofile - path to scenario file
      * @throws Exception
      */
     public synchronized void loadScenarioFile(String scenariofile) throws Exception {
         fScenariofile = scenariofile;
-        
+
         // clean up map
         Collection<Map<String, ICommandResult>> values = fScenarioMap.values();
         for (Iterator<Map<String, ICommandResult>> iterator = values.iterator(); iterator.hasNext();) {
-            Map<String, ICommandResult> map = (Map<String, ICommandResult>) iterator.next();
+            Map<String, ICommandResult> map = iterator.next();
             map.clear();
         }
         fScenarioMap.clear();
-        
+
         // load from file
-        
+
         // Open the file
         FileInputStream fstream = new FileInputStream(fScenariofile);
-        
+
         // Get the object of DataInputStream
         DataInputStream in = new DataInputStream(fstream);
         BufferedReader br = new BufferedReader(new InputStreamReader(in));
         String strLine;
-        
+
         // Read File Line by Line
-        
-        // Temporary map for generating instance numbers for lttng list <session> commands. 
+
+        // Temporary map for generating instance numbers for lttng list <session> commands.
         // The numbers are per scenario.
         Map<String, Integer> tmpSessionNameMap = new HashMap<String, Integer>();
         while ((strLine = br.readLine()) != null) {
@@ -80,7 +80,7 @@
                 int result = 0;
                 tmpSessionNameMap.clear();
                 while ((strLine = br.readLine()) != null) {
-                    // Ignore comments 
+                    // Ignore comments
                     if(isComment(strLine)) {
                         continue;
                     }
@@ -88,7 +88,7 @@
                     if (SCENARIO_END_KEY.equals(strLine)) {
                         // Scenario is finished
                         break;
-                    } 
+                    }
                     if (INPUT_KEY.equals(strLine)) {
                         strLine = br.readLine();
                         // Ignore comments
@@ -97,7 +97,7 @@
                         }
                         // Read command
                         input = strLine;
-                        
+
                         // Handle instances of 'lttng list <session"-comamand
                         Matcher matcher = LTTNG_LIST_SESSION_PATTERN.matcher(strLine);
                         if (matcher.matches() && !input.matches(LTTNG_LIST_PROVIDER_PATTERN)) {
@@ -139,8 +139,8 @@
                     } else if (inOutput) {
                         // subsequent lines of output
                         output.add(strLine);
-                    } 
-//                    else { 
+                    }
+//                    else {
 //                        if (RESULT_END_KEY.equals(strLine)) {
                         // nothing to do
 //                    }
