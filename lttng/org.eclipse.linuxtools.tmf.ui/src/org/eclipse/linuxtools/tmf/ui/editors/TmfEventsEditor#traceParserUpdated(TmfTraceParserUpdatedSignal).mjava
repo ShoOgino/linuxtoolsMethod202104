@@ -1,3 +1,8 @@
+    /**
+     * Handler for the Trace Parser Updated signal
+     *
+     * @param signal The incoming signal
+     */
     @SuppressWarnings("unchecked")
     @TmfSignalHandler
     public void traceParserUpdated(final TmfTraceParserUpdatedSignal signal) {
@@ -7,8 +12,8 @@
                 fTrace.getName();
                 fTrace = null;
                 final String traceTypeId = fFile.getPersistentProperty(TmfCommonConstants.TRACETYPE);
-                if (traceTypeId != null)
-                    for (final IConfigurationElement ce : TmfTraceType.getTypeElements())
+                if (traceTypeId != null) {
+                    for (final IConfigurationElement ce : TmfTraceType.getTypeElements()) {
                         if (traceTypeId.equals(ce.getAttribute(TmfTraceType.ID_ATTR))) {
                             fTrace = (ITmfTrace<?>) ce.createExecutableExtension(TmfTraceType.TRACE_TYPE_ATTR);
                             final ITmfEvent event = (TmfEvent) ce.createExecutableExtension(TmfTraceType.EVENT_TYPE_ATTR);
@@ -16,6 +21,8 @@
                             fTrace.initTrace(null, path, event.getClass());
                             break;
                         }
+                    }
+                }
             } catch (final InvalidRegistryObjectException e) {
                 Activator.getDefault().logError("Error handling signal TmfTraceParserUpdatedSignal", e); //$NON-NLS-1$
             } catch (final TmfTraceException e) {
@@ -28,8 +35,9 @@
                 fEventsTable = createEventsTable(fParent, fTrace.getCacheSize());
                 fEventsTable.setTrace(fTrace, true);
                 broadcast(new TmfTraceOpenedSignal(this, fTrace, fFile, fEventsTable));
-            } else
+            } else {
                 fEventsTable = new TmfEventsTable(fParent, 0);
+            }
             fParent.layout();
         }
     }

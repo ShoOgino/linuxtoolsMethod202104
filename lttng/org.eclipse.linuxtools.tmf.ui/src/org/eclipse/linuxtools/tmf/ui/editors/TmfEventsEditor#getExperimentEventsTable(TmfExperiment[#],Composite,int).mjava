@@ -13,27 +13,34 @@
         try {
             for (final ITmfTrace<?> trace : experiment.getTraces()) {
                 final IResource resource = trace.getResource();
-                if (resource == null)
+                if (resource == null) {
                     return null;
+                }
                 final String traceType = resource.getPersistentProperty(TmfCommonConstants.TRACETYPE);
-                if ((commonTraceType != null) && !commonTraceType.equals(traceType))
+                if ((commonTraceType != null) && !commonTraceType.equals(traceType)) {
                     return null;
+                }
                 commonTraceType = traceType;
             }
-            if (commonTraceType == null)
+            if (commonTraceType == null) {
                 return null;
-            if (commonTraceType.startsWith(CustomTxtTrace.class.getCanonicalName()))
+            }
+            if (commonTraceType.startsWith(CustomTxtTrace.class.getCanonicalName())) {
                 return new CustomEventsTable(((CustomTxtTrace) experiment.getTraces()[0]).getDefinition(), parent, cacheSize);
-            if (commonTraceType.startsWith(CustomXmlTrace.class.getCanonicalName()))
+            }
+            if (commonTraceType.startsWith(CustomXmlTrace.class.getCanonicalName())) {
                 return new CustomEventsTable(((CustomXmlTrace) experiment.getTraces()[0]).getDefinition(), parent, cacheSize);
-            for (final IConfigurationElement ce : TmfTraceType.getTypeElements())
+            }
+            for (final IConfigurationElement ce : TmfTraceType.getTypeElements()) {
                 if (ce.getAttribute(TmfTraceType.ID_ATTR).equals(commonTraceType)) {
                     final IConfigurationElement[] eventsTableTypeCE = ce.getChildren(TmfTraceType.EVENTS_TABLE_TYPE_ELEM);
-                    if (eventsTableTypeCE.length != 1)
+                    if (eventsTableTypeCE.length != 1) {
                         break;
+                    }
                     final String eventsTableType = eventsTableTypeCE[0].getAttribute(TmfTraceType.CLASS_ATTR);
-                    if ((eventsTableType == null) || (eventsTableType.length() == 0))
+                    if ((eventsTableType == null) || (eventsTableType.length() == 0)) {
                         break;
+                    }
                     final Bundle bundle = Platform.getBundle(ce.getContributor().getName());
                     final Class<?> c = bundle.loadClass(eventsTableType);
                     final Class<?>[] constructorArgs = new Class[] { Composite.class, int.class };
@@ -42,6 +49,7 @@
                     eventsTable = (TmfEventsTable) constructor.newInstance(args);
                     break;
                 }
+            }
         } catch (final CoreException e) {
             Activator.getDefault().logError("Error getting TmfEventsTable for experiment", e); //$NON-NLS-1$
         } catch (final InvalidRegistryObjectException e) {
