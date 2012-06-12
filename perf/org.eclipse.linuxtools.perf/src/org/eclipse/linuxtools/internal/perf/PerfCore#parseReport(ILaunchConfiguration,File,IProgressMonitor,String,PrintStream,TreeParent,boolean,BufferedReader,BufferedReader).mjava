@@ -1,0 +1,161 @@
+	/**
+	 * Parse and build a tree model from the report of a perf data file
+	 * @param config launch configuration
+	 * @param workingDir working directory configuration
+	 * @param monitor  monitor
+	 * @param perfDataLoc location of perf data file
+	 * @param print print stream
+	 * @param invisibleRoot  root of the model
+	 * @param OldPerfVersion boolean old perf version flag
+	 * @param input input stream from perf data file report
+	 * @param error output stream to where all standard error is written to
+	 */
+	public static void parseReport(ILaunchConfiguration config,
+			File workingDir, IProgressMonitor monitor, String perfDataLoc,
+			PrintStream print, TreeParent invisibleRoot,
+			boolean OldPerfVersion, BufferedReader input, BufferedReader error) {
+		if (monitor != null && monitor.isCanceled()) { RefreshView(); return; }
+		String line = null;
+		String items[];
+		float percent;
+
+		Process p = null;
+		double samples;
+		String comm,dso,symbol;
+		boolean kernelFlag;
+		PMEvent currentEvent = null;
+		PMCommand currentCommand = null;
+		PMDso currentDso = null;
+		PMFile currentFile = null;
+		PMSymbol currentSym = null;
+		try {
+			while (( line = input.readLine()) != null){
+				if (monitor != null && monitor.isCanceled()) { RefreshView(); return; }
+				// line containing report information
+				if ((line.startsWith("#"))) {
+					if (line.contains("Events:")) {
+						String[] tmp = line.trim().split(" ");
+						currentEvent = new PMEvent(tmp[tmp.length - 1]);
+						invisibleRoot.addChild(currentEvent);
+						currentCommand = null;
+						currentDso = null;
+					} else if (line.contains("Samples:")) { //"samples" was used instead of events in an older version, some incompatibilities may arise.
+						if (print != null) { print.println("WARNING: You are running an older version of Perf, please update if you can. The plugin may produce unpredictable results."); }
+						invisibleRoot.addChild(new PMEvent("WARNING: You are running an older version of Perf, the plugin may produce unpredictable results."));
+					}
+				// contains profiled information
+				} else {
+					items = line.trim().split(""+(char)1); // using custom field separator. for default whitespace use " +"
+					if (items.length != 5) {
+						continue;
+					}
+					percent = Float.parseFloat(items[0]); //percent column
+					samples = Double.parseDouble(items[1].trim()); //samples column
+					comm = items[2].trim(); //command column
+					dso = items[3].trim(); //dso column
+					symbol = items[4].trim(); //symbol column 
+					kernelFlag = (""+symbol.charAt(1)).equals("k");			
+
+					// initialize current command if it doesn't exist
+					if ((currentCommand == null) || (!currentCommand.getName().equals(comm))) {
+						currentCommand = (PMCommand) currentEvent.getChild(comm);
+						if(currentCommand == null) {
+							currentCommand = new PMCommand(comm);
+							currentEvent.addChild(currentCommand);
+						}
+					}
+
+					// initialize current dso if it doesn't exist
+					if ((currentDso == null) || (!currentDso.getName().equals(dso))) {
+						currentDso = (PMDso) currentCommand.getChild(dso);
+						if (currentDso == null) {
+							currentDso = new PMDso(dso,kernelFlag);
+							currentCommand.addChild(currentDso);
+						}
+					}
+
+					/*
+					 *  Initialize the current file, and symbol
+					 *
+					 *  We won't know the name of the file containing the symbol
+					 *  until we run 'perf annotate' to resolve it, so for now we
+					 *  attach all symbols as children of 'Unfiled Symbols'.
+					 */
+					currentFile = currentDso.getFile(PerfPlugin.STRINGS_UnfiledSymbols);
+					currentSym = new PMSymbol(symbol, samples, percent);
+					currentFile.addChild(currentSym);
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		spitStream(error,"Perf Report STDERR", print);
+
+		boolean SourceLineNumbers = PerfPlugin.ATTR_SourceLineNumbers_default;
+		boolean Kernel_SourceLineNumbers = PerfPlugin.ATTR_Kernel_SourceLineNumbers_default;
+		try {
+			// Check if resolving source file/line numbers is selected
+			SourceLineNumbers = config.getAttribute(PerfPlugin.ATTR_SourceLineNumbers, PerfPlugin.ATTR_SourceLineNumbers_default);
+			Kernel_SourceLineNumbers = config.getAttribute(PerfPlugin.ATTR_Kernel_SourceLineNumbers, PerfPlugin.ATTR_Kernel_SourceLineNumbers_default);
+		} catch (CoreException e2) {
+			SourceLineNumbers = false;
+		}
+
+		if (monitor != null && monitor.isCanceled()) { RefreshView(); return; }
+
+		boolean hasProfileData = invisibleRoot.getChildren().length != 0;
+
+		if (SourceLineNumbers) {
+			for (TreeParent ev : invisibleRoot.getChildren()) {
+				if (!(ev instanceof PMEvent)) continue;
+				for (TreeParent cmd : ev.getChildren()) {
+					if (!(cmd instanceof PMCommand)) continue;
+					for (TreeParent d : cmd.getChildren()) {
+						if (!(d instanceof PMDso)) continue;					
+						currentDso = (PMDso)d;
+						if ((!Kernel_SourceLineNumbers) && currentDso.isKernelDso()) continue;
+						for (TreeParent s : currentDso.getFile(PerfPlugin.STRINGS_UnfiledSymbols).getChildren()) {
+							if (!(s instanceof PMSymbol)) continue;
+
+						if (monitor != null && monitor.isCanceled()) { RefreshView(); return; }
+
+
+							currentSym = (PMSymbol)s;
+								String[] annotateCmd;
+								if (workingDir == null) {
+									annotateCmd = getAnnotateString(config, currentDso.getName(), currentSym.getName().substring(4), perfDataLoc, OldPerfVersion);
+								} else {
+									String perfDefaultDataLoc = workingDir + "/" + PerfPlugin.PERF_DEFAULT_DATA;
+									annotateCmd = getAnnotateString(config, currentDso.getName(), currentSym.getName().substring(4), perfDefaultDataLoc, OldPerfVersion);
+								}
+
+							try {
+								p = Runtime.getRuntime().exec(annotateCmd);
+								input = new BufferedReader(new InputStreamReader(p.getInputStream()));
+								error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+							} catch (IOException e) {
+								e.printStackTrace();
+							}
+							
+							PerfCore.parseAnnotation(monitor, input,
+									workingDir, currentDso, currentSym);
+						}
+
+						if (currentDso.getFile(PerfPlugin.STRINGS_UnfiledSymbols).getChildren().length == 0) {
+							currentDso.removeChild(currentDso.getFile(PerfPlugin.STRINGS_UnfiledSymbols));
+						}
+						spitStream(error,"Perf Annotate STDERR", print);
+					}
+				}
+			}
+		}
+
+		if (print != null) {
+			if (hasProfileData) {
+				print.println("Profile data loaded into Perf Profile View.");
+			} else {
+				print.println("No profile data generated to be displayed.");
+			}
+		}
+	}
+

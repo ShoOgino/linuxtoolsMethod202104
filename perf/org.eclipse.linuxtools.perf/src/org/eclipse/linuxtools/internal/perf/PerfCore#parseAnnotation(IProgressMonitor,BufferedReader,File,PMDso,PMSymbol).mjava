@@ -1,0 +1,73 @@
+	/**
+	 * Parse annotation file for a dso given a symbol
+	 * @param monitor monitor
+	 * @param input annotation file input stream
+	 * @param workingDir working directory configuration
+	 * @param currentDso dso
+	 * @param currentSym symbol
+	 */
+	public static void parseAnnotation(IProgressMonitor monitor,
+			BufferedReader input, File workingDir, PMDso currentDso,
+			PMSymbol currentSym) {
+		if (monitor != null && monitor.isCanceled()) { RefreshView(); return; }
+
+		boolean grabBlock = false;
+		boolean blockStarted = false;
+		String dsoName,lineRef;
+		String line = null;
+		String items[];
+		float percent;
+
+		try {
+			while (( line = input.readLine()) != null){
+				if (line.startsWith("Sorted summary for file")) {
+					grabBlock = true;
+					dsoName = line.replace("Sorted summary for file ","");
+					blockStarted = false;
+					if ((workingDir != null) && (dsoName.startsWith("./"))) {
+						if (workingDir.getAbsolutePath().endsWith("/")) {
+							dsoName = workingDir.getAbsolutePath() + dsoName.substring(2); // path already ends with '/', so trim './'
+						} else {
+							dsoName = workingDir.getAbsolutePath() + dsoName.substring(1); // path doesn't have '/', so trim just the '.'
+						}
+					}
+					currentDso.setPath(dsoName);
+				} else if (line.startsWith("---")) {
+					if (blockStarted) {
+						blockStarted = false;
+						grabBlock = false;
+					} else {
+						blockStarted = true;
+					}
+				} else if (grabBlock && blockStarted) {
+					//process the line.
+					items = line.trim().split(" +");
+					if (items.length != 2) {
+						continue;
+					}
+					percent = Float.parseFloat(items[0]);
+					lineRef = items[1];
+					items = lineRef.split(":");
+					if (currentDso == null) {
+						//if (PerfPlugin.DEBUG_ON) System.err.println("Parsed line ref without being in valid block, shouldn't happen.");
+						break;
+					} else {
+						currentSym.addPercent(Integer.parseInt(items[1]), percent);
+						// Symbol currently in 'Unfiled Symbols' but we now know the actual parent
+						if (currentSym.getParent().getName().equals(PerfPlugin.STRINGS_UnfiledSymbols)) {
+							currentSym.getParent().removeChild(currentSym);
+							currentDso.getFile(items[0]).addChild(currentSym);
+						// Symbol has 2 (or more) parents
+						} else if (!((PMFile)currentSym.getParent()).getPath().equals(items[0])) {
+							currentSym.markConflict();
+							currentSym.getParent().removeChild(currentSym);
+							currentDso.getFile(PerfPlugin.STRINGS_MultipleFilesForSymbol).addChild(currentSym);
+						}
+					}
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
