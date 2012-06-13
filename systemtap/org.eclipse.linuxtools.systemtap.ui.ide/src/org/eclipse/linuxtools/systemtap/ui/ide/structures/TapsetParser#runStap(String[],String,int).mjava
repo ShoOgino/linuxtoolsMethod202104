@@ -5,7 +5,7 @@
 	 * @param level integer representing what point to stop stap at (1,2,3,4,5)
 	 */
 	protected String runStap(String[] options, String probe, int level) {
-		String[] script = null;
+		String[] args = null;
 		
 		int size = 4;	//start at 4 for stap, -pX, -e, script
 		if(null != tapsets && tapsets.length > 0 && tapsets[0].trim().length() > 0)
@@ -13,40 +13,37 @@
 		if(null != options && options.length > 0 && options[0].trim().length() > 0)
 			size += options.length;
 		
-		script = new String[size];
-		script[0] = "stap";
-		script[1] = "-p" + level;
-		script[size-2] = "-e";
-		script[size-1] = probe;
+		args = new String[size];
+		args[0] = ""; //$NON-NLS-1$
+		args[1] = "-p" + level; //$NON-NLS-1$
+		args[size-2] = "-e"; //$NON-NLS-1$
+		args[size-1] = probe;
 		
 		//Add extra tapset directories
 		if(null != tapsets && tapsets.length > 0 && tapsets[0].trim().length() > 0) {
 			for(int i=0; i<tapsets.length; i++) {
-				script[2+(i<<1)] = "-I";
-				script[3+(i<<1)] = tapsets[i];
+				args[2+(i<<1)] = "-I"; //$NON-NLS-1$
+				args[3+(i<<1)] = tapsets[i];
 			}
 		}
 		if(null != options && options.length > 0 && options[0].trim().length() > 0) {
 			for(int i=0; i<options.length; i++)
-				script[script.length-options.length-2+i] = options[i];
+				args[args.length-options.length-2+i] = options[i];
+		}
+
+		StringOutputStream str = new StringOutputStream();
+		StringOutputStream strErr = new StringOutputStream();
+		try {
+			URI locationURI = new URI(Path.ROOT.toOSString());
+			IRemoteCommandLauncher launcher = RemoteProxyManager.getInstance().getLauncher(locationURI);
+			launcher.execute(new Path("stap"), args, null, null, null); //$NON-NLS-1$
+			launcher.waitAndRead(str, strErr, new NullProgressMonitor());
+		} catch (URISyntaxException e) {
+			LogManager.logCritical("URISyntaxException runStap: " + e.getMessage(), this); //$NON-NLS-1$
+		} catch (CoreException e) {
+			LogManager.logCritical("CoreException runStap: " + e.getMessage(), this); //$NON-NLS-1$
 		}
 		
-		LoggedCommand cmd = new LoggedCommand(script, null, null, 0);
-		cmd.start();
-		
-		//Block to prevent errors.
-		while(cmd.isRunning()) {
-			try {
-				Thread.sleep(100);
-			} catch(InterruptedException e) {
-				LogManager.logCritical("InterruptedException runStap: " + e.getMessage(), this); //$NON-NLS-1$
-			}
-		}
-		
-		cmd.stop();	//While stop was already called we do this to ensure things are shutdown before proceding
-		String s = cmd.getOutput();
-		cmd.dispose();
-		
-		return s;
+		return str.toString();
 	}
 
