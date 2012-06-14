@@ -1,0 +1,19 @@
+    private void validateContextRanks(ITmfContext context) {
+        assertTrue("Experiment context type", context instanceof TmfExperimentContext);
+        TmfExperimentContext ctx = (TmfExperimentContext) context;
+
+        int nbTraces = ctx.getContexts().length;
+
+        // expRank = sum(trace ranks) - nbTraces + 1 (if lastTraceRead != NO_TRACE)
+        long expRank = -nbTraces + ((ctx.getLastTrace() != TmfExperimentContext.NO_TRACE) ? 1 : 0);
+        for (int i = 0; i < nbTraces; i++) {
+            long rank = ctx.getContexts()[i].getRank();
+            if (rank == -1) {
+                expRank = -1;
+                break;
+            }
+            expRank += rank;
+        }
+        assertEquals("Experiment context rank", expRank, ctx.getRank());
+    }
+

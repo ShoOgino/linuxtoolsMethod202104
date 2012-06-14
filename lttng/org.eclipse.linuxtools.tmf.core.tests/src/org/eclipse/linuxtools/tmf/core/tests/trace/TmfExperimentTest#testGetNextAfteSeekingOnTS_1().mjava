@@ -1,0 +1,26 @@
+    public void testGetNextAfteSeekingOnTS_1() throws Exception {
+
+        final long INITIAL_TS = 1;
+        final int NB_READS = 20;
+
+        // On lower bound, returns the first event (ts = 1)
+        final ITmfContext context = fExperiment.seekEvent(new TmfTimestamp(INITIAL_TS, SCALE, 0));
+
+        validateContextRanks(context);
+
+        // Read NB_EVENTS
+        ITmfEvent event;
+        for (int i = 0; i < NB_READS; i++) {
+            event = fExperiment.getNext(context);
+            assertEquals("Event timestamp", INITIAL_TS + i, event.getTimestamp().getValue());
+            assertEquals("Event rank", INITIAL_TS + i, context.getRank());
+        }
+
+        // Make sure we stay positioned
+        event = fExperiment.parseEvent(context);
+        assertEquals("Event timestamp", INITIAL_TS + NB_READS, event.getTimestamp().getValue());
+        assertEquals("Event rank", INITIAL_TS + NB_READS - 1, context.getRank());
+
+        validateContextRanks(context);
+    }
+

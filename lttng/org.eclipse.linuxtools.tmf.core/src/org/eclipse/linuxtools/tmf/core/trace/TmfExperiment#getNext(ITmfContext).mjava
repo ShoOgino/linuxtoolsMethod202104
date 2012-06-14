@@ -21,12 +21,6 @@
         final int lastTrace = expContext.getLastTrace();
         if (lastTrace != TmfExperimentContext.NO_TRACE) {
             final ITmfContext traceContext = expContext.getContexts()[lastTrace];
-
-            TmfExperimentLocation location = (TmfExperimentLocation) expContext.getLocation();
-            if (location != null) {
-                location.getLocation().getLocations()[lastTrace] = traceContext.getLocation().clone();
-            }
-
             expContext.getEvents()[lastTrace] = fTraces[lastTrace].getNext(traceContext);
             expContext.setLastTrace(TmfExperimentContext.NO_TRACE);
         }
@@ -52,7 +46,14 @@
                 updateAttributes(expContext, event.getTimestamp());
                 expContext.increaseRank();
                 expContext.setLastTrace(trace);
-                fExperimentContext = expContext;
+                final ITmfContext traceContext = expContext.getContexts()[trace];
+
+                TmfExperimentLocation location = (TmfExperimentLocation) expContext.getLocation();
+                if (location != null) {
+                    location.getLocation().getLocations()[trace] = traceContext.getLocation().clone();
+                }
+
+                fExperimentContext = expContext.clone();
                 processEvent(event);
             }
         }
