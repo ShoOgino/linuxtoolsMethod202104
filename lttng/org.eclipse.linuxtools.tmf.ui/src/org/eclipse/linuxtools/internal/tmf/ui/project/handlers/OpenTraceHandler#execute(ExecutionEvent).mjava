@@ -4,12 +4,14 @@
 
         // Check if we are closing down
         final IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
-        if (window == null)
+        if (window == null) {
             return null;
+        }
 
         // Check that the trace is valid
-        if (fTrace == null)
+        if (fTrace == null) {
             return null;
+        }
 
         // If trace is under an experiment, use the original trace from the traces folder
         fTrace = fTrace.getElementUnderTraceFolder();
@@ -34,9 +36,9 @@
 
         final IResource resource = fTrace.getResource();
         IFile file = null;
-        if (resource instanceof IFile)
+        if (resource instanceof IFile) {
             file = (IFile) resource;
-        else if (resource instanceof IFolder)
+        } else if (resource instanceof IFolder) {
             try {
                 final IFile bookmarksFile = fTrace.getProject().getTracesFolder().getResource().getFile(BOOKMARKS_HIDDEN_FILE);
                 if (!bookmarksFile.exists()) {
@@ -47,18 +49,21 @@
 
                 final IFolder folder = (IFolder) resource;
                 file = folder.getFile(fTrace.getName() + '_');
-                if (!file.exists())
+                if (!file.exists()) {
                     file.createLink(bookmarksFile.getLocation(), IResource.REPLACE, null);
+                }
                 file.setHidden(true);
-                if (usesEditor)
+                if (usesEditor) {
                     file.setPersistentProperty(TmfCommonConstants.TRACETYPE, fTrace.getTraceType());
-                else
+                } else {
                     file.setPersistentProperty(TmfCommonConstants.TRACETYPE, TmfTrace.class.getCanonicalName());
+                }
             } catch (final CoreException e) {
                 Activator.getDefault().logError("Error opening trace " + fTrace.getName(), e); //$NON-NLS-1$
             }
+        }
 
-        if (usesEditor)
+        if (usesEditor) {
             try {
                 final IEditorInput editorInput = new TmfEditorInput(file, trace);
                 final IWorkbench wb = PlatformUI.getWorkbench();
@@ -70,13 +75,14 @@
                     activePage.activate(editor);
                 } else {
                     activePage.openEditor(editorInput, editorId);
-                    if (resource instanceof IFile)
+                    if (resource instanceof IFile) {
                         IDE.setDefaultEditor((IFile) resource, editorId);
+                    }
                 }
             } catch (final PartInitException e) {
                 Activator.getDefault().logError("Error opening trace " + fTrace.getName(), e); //$NON-NLS-1$
             }
-        else {
+        } else {
             // Create the experiment
             final ITmfTrace[] traces = new ITmfTrace[] { trace };
             final TmfExperiment experiment = new TmfExperiment(traceEvent.getClass(), fTrace.getName(), traces, trace.getCacheSize());

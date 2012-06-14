@@ -4,23 +4,23 @@
         container.setLayout(new GridLayout());
 
         updateListener = new UpdateListener();
-        
+
         Composite headerComposite = new Composite(container, SWT.FILL);
         GridLayout headerLayout = new GridLayout(5, false);
         headerLayout.marginHeight = 0;
         headerLayout.marginWidth = 0;
         headerComposite.setLayout(headerLayout);
         headerComposite.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
-        
+
         Label logtypeLabel = new Label(headerComposite, SWT.NULL);
         logtypeLabel.setText(Messages.CustomTxtParserInputWizardPage_logType);
-        
+
         logtypeText = new Text(headerComposite, SWT.BORDER | SWT.SINGLE);
         logtypeText.setLayoutData(new GridData(120, SWT.DEFAULT));
-        
+
         Label timestampFormatLabel = new Label(headerComposite, SWT.NULL);
         timestampFormatLabel.setText(Messages.CustomTxtParserInputWizardPage_timestampFormat);
-        
+
         timestampOutputFormatText = new Text(headerComposite, SWT.BORDER | SWT.SINGLE);
         timestampOutputFormatText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
         timestampOutputFormatText.setText(DEFAULT_TIMESTAMP_FORMAT);
@@ -34,11 +34,11 @@
                 openHelpShell(SIMPLE_DATE_FORMAT_URL);
             }
         });
-        
+
         Label timestampPreviewLabel = new Label(headerComposite, SWT.NULL);
         timestampPreviewLabel.setLayoutData(new GridData(SWT.RIGHT, SWT.CENTER, false, false, 3, 1));
         timestampPreviewLabel.setText(Messages.CustomTxtParserInputWizardPage_preview);
-        
+
         timestampPreviewText = new Text(headerComposite, SWT.BORDER | SWT.SINGLE | SWT.READ_ONLY);
         timestampPreviewText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1));
         timestampPreviewText.setText(Messages.CustomTxtParserInputWizardPage_noMatchingTimestamp);
@@ -48,14 +48,16 @@
         buttonBarLayout.marginHeight = 0;
         buttonBarLayout.marginWidth = 0;
         buttonBar.setLayout(buttonBarLayout);
-        
+
         Button removeButton = new Button(buttonBar, SWT.PUSH);
         removeButton.setImage(deleteImage);
         removeButton.setToolTipText(Messages.CustomTxtParserInputWizardPage_removeLine);
         removeButton.addSelectionListener(new SelectionAdapter() {
         	@Override
             public void widgetSelected(SelectionEvent e) {
-                if (treeViewer.getSelection().isEmpty() || selectedLine == null) return;
+                if (treeViewer.getSelection().isEmpty() || selectedLine == null) {
+                    return;
+                }
                 removeLine();
                 InputLine inputLine = (InputLine) ((IStructuredSelection) treeViewer.getSelection()).getFirstElement();
                 if (inputLine.parentInput == null) {
@@ -120,7 +122,9 @@
         moveUpButton.addSelectionListener(new SelectionAdapter() {
         	@Override
             public void widgetSelected(SelectionEvent e) {
-                if (treeViewer.getSelection().isEmpty()) return;
+                if (treeViewer.getSelection().isEmpty()) {
+                    return;
+                }
                 InputLine inputLine = (InputLine) ((IStructuredSelection) treeViewer.getSelection()).getFirstElement();
                 if (inputLine.parentInput == null) {
                     for (int i = 1; i < definition.inputs.size(); i++) {
@@ -143,7 +147,9 @@
         moveDownButton.addSelectionListener(new SelectionAdapter() {
         	@Override
             public void widgetSelected(SelectionEvent e) {
-                if (treeViewer.getSelection().isEmpty()) return;
+                if (treeViewer.getSelection().isEmpty()) {
+                    return;
+                }
                 InputLine inputLine = (InputLine) ((IStructuredSelection) treeViewer.getSelection()).getFirstElement();
                 if (inputLine.parentInput == null) {
                     for (int i = 0; i < definition.inputs.size() - 1; i++) {
@@ -160,7 +166,7 @@
                 updatePreviews();
             }
         });
-        
+
         SashForm vSash = new SashForm(container, SWT.VERTICAL);
         vSash.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         vSash.setBackground(vSash.getDisplay().getSystemColor(SWT.COLOR_GRAY));
@@ -178,15 +184,15 @@
         treeScrolledComposite.setContent(treeContainer);
         treeScrolledComposite.setExpandHorizontal(true);
         treeScrolledComposite.setExpandVertical(true);
-        
+
         treeViewer = new TreeViewer(treeContainer, SWT.SINGLE | SWT.BORDER);
         treeViewer.setContentProvider(new InputLineTreeNodeContentProvider());
         treeViewer.setLabelProvider(new InputLineTreeLabelProvider());
         treeViewer.addSelectionChangedListener(new InputLineTreeSelectionChangedListener());
         treeContainer.layout();
-        
+
         treeScrolledComposite.setMinSize(treeContainer.computeSize(SWT.DEFAULT, SWT.DEFAULT).x, treeContainer.computeSize(SWT.DEFAULT, SWT.DEFAULT).y);
-        
+
         lineScrolledComposite = new ScrolledComposite(hSash, SWT.V_SCROLL);
         lineScrolledComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         lineContainer = new Composite(lineScrolledComposite, SWT.NONE);
@@ -201,19 +207,19 @@
         if (definition == null) {
             definition = new CustomTxtTraceDefinition();
             definition.inputs.add(new InputLine(Cardinality.ZERO_OR_MORE, DEFAULT_REGEX,
-                    Arrays.asList(new InputData(CustomTxtTraceDefinition.TAG_MESSAGE, CustomTxtTraceDefinition.ACTION_SET))));
+                    Arrays.asList(new InputData(CustomTraceDefinition.TAG_MESSAGE, CustomTraceDefinition.ACTION_SET))));
         }
         loadDefinition(definition);
         treeViewer.expandAll();
         lineContainer.layout();
-        
+
         logtypeText.addModifyListener(updateListener);
         timestampOutputFormatText.addModifyListener(updateListener);
-        
+
         lineScrolledComposite.setMinSize(lineContainer.computeSize(SWT.DEFAULT, SWT.DEFAULT).x, lineContainer.computeSize(SWT.DEFAULT, SWT.DEFAULT).y-1);
 
         hSash.setWeights(new int[] {1, 2});
-        
+
         Composite sashBottom = new Composite(vSash, SWT.NONE);
         GridLayout sashBottomLayout = new GridLayout(3, false);
         sashBottomLayout.marginHeight = 0;
@@ -233,7 +239,7 @@
                 updatePreviews(true);
             }
         });
-        
+
         Button legendButton = new Button(sashBottom, SWT.PUSH);
         legendButton.setImage(helpImage);
         legendButton.setToolTipText(Messages.CustomTxtParserInputWizardPage_previewLegend);
@@ -244,7 +250,7 @@
                 openLegend();
             }
         });
-        
+
         inputText = new StyledText(sashBottom, SWT.MULTI | SWT.V_SCROLL | SWT.H_SCROLL);
         if (fixedFont == null) {
             if (System.getProperty("os.name").contains("Windows")) { //$NON-NLS-1$  //$NON-NLS-2$
@@ -262,9 +268,9 @@
         inputText.addModifyListener(updateListener);
 
         vSash.setWeights(new int[] {hSash.computeSize(SWT.DEFAULT, SWT.DEFAULT).y, sashBottom.computeSize(SWT.DEFAULT, SWT.DEFAULT).y});
-        
+
         setControl(container);
-        
+
         validate();
         updatePreviews();
     }
