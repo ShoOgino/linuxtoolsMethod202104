@@ -9,7 +9,7 @@
      *            , print the first expected events vs actual events
      * @return
      */
-    protected <T extends LttngEvent> TmfEventRequest<T> prepareEventRequest(
+    protected <T extends LttngEvent> TmfEventRequest prepareEventRequest(
             final Class<T> k, final int startIdx, final int endIdx, final boolean printFirst20) {
         // verify bounds
         if (!(endIdx > startIdx && startIdx >= 0 && endIdx <= 31)) {
@@ -26,10 +26,10 @@
 
         // request
         validSequence = true;
-        final TmfEventRequest<T> request = new TmfEventRequest<T>(k, trange, TmfDataRequest.ALL_DATA, DEFAULT_CHUNK) {
+        final TmfEventRequest request = new TmfEventRequest(k, trange, TmfDataRequest.ALL_DATA, DEFAULT_CHUNK) {
 
             @Override
-            public void handleData(final T event) {
+            public void handleData(final ITmfEvent event) {
                 if (event == null) {
                     System.out
                     .println("Syntheric Event Received is null, after event: "
@@ -39,9 +39,11 @@
 
                 // Listen to only one variant of synthetic event to keep
                 // track of
-                if (event instanceof LttngSyntheticEvent)
-                    if (((LttngSyntheticEvent) event).getSynType() != SequenceInd.BEFORE)
+                if (event instanceof LttngSyntheticEvent) {
+                    if (((LttngSyntheticEvent) event).getSynType() != SequenceInd.BEFORE) {
                         return;
+                    }
+                }
 
                 // Validating the orders of the first 20 events
                 if (printFirst20 && feventCount < 20) {
