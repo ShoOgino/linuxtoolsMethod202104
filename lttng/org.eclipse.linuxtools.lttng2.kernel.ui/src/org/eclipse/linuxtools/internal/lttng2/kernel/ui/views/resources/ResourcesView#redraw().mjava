@@ -1,4 +1,12 @@
     private void redraw() {
+        synchronized (fSyncObj) {
+            if (fRedrawState == State.IDLE) {
+                fRedrawState = State.BUSY;
+            } else {
+                fRedrawState = State.PENDING;
+                return;
+            }
+        }
         Display.getDefault().asyncExec(new Runnable() {
             @Override
             public void run() {
@@ -7,6 +15,14 @@
                 }
                 fTimeGraphViewer.getControl().redraw();
                 fTimeGraphViewer.getControl().update();
+                synchronized (fSyncObj) {
+                    if (fRedrawState == State.PENDING) {
+                        fRedrawState = State.IDLE;
+                        redraw();
+                    } else {
+                        fRedrawState = State.IDLE;
+                    }
+                }
             }
         });
     }

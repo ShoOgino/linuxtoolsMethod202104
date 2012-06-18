@@ -2,45 +2,6 @@
     public List<ITmfStateInterval> queryHistoryRange(int attributeQuark,
             long t1, long t2, long resolution) throws TimeRangeException,
             AttributeNotFoundException {
-        List<ITmfStateInterval> intervals;
-        ITmfStateInterval currentInterval;
-        long ts, tEnd;
-
-        /* Make sure the time range makes sense */
-        if (t2 < t1 || resolution <= 0) {
-            throw new TimeRangeException();
-        }
-
-        /* Set the actual, valid end time of the range query */
-        if (t2 > this.getCurrentEndTime()) {
-            tEnd = this.getCurrentEndTime();
-        } else {
-            tEnd = t2;
-        }
-
-        /* Get the initial state at time T1 */
-        intervals = new ArrayList<ITmfStateInterval>();
-        currentInterval = querySingleState(t1, attributeQuark);
-        intervals.add(currentInterval);
-
-        /*
-         * Iterate over the "resolution points". We skip unneeded queries in the
-         * case the current interval is longer than the resolution.
-         */
-        for (ts = t1; (currentInterval.getEndTime() != -1) && (ts < tEnd);
-                ts += resolution) {
-            if (ts <= currentInterval.getEndTime()) {
-                continue;
-            }
-            currentInterval = querySingleState(ts, attributeQuark);
-            intervals.add(currentInterval);
-        }
-
-        /* Add the interval at t2, if it wasn't included already. */
-        if (currentInterval.getEndTime() < tEnd) {
-            currentInterval = querySingleState(tEnd, attributeQuark);
-            intervals.add(currentInterval);
-        }
-        return intervals;
+        return queryHistoryRange(attributeQuark, t1, t2, resolution, new NullProgressMonitor());
     }
 
