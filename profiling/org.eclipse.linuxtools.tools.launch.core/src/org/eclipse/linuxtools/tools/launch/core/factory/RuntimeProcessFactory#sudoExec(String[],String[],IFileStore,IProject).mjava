@@ -1,0 +1,47 @@
+	/**
+	 * @since 1.1
+	 */
+	public Process sudoExec(String[] cmdarray, String[] envp, IFileStore dir, IProject project) throws IOException {
+		URI uri = URI.create("sudo"); //$NON-NLS-1$
+
+		List<String> cmdList = Arrays.asList(cmdarray);
+		ArrayList<String> cmdArrayList = new ArrayList<String>(cmdList);
+		cmdArrayList.add(0, "-n"); //$NON-NLS-1$
+
+		String[] cmdArraySudo = new String[cmdArrayList.size()];
+		cmdArrayList.toArray(cmdArraySudo);
+
+		Process p = null;
+		try {
+			cmdArraySudo = fillPathSudoCommand(cmdArraySudo, project);
+			IRemoteCommandLauncher launcher;
+			IPath changeToDir = null, path;
+			if (project != null) {
+				IRemoteFileProxy proxy = RemoteProxyManager.getInstance().getFileProxy(project);
+				path = new Path(proxy.toPath(uri));
+				launcher = RemoteProxyManager.getInstance().getLauncher(project);
+				envp = updateEnvironment(envp, project);
+
+				if (dir != null)
+					changeToDir = new Path(proxy.toPath(dir.toURI()));
+			} else {
+				launcher = RemoteProxyManager.getInstance().getLauncher(uri);
+				path = new Path(uri.getPath());
+				if (dir != null)
+					changeToDir = new Path(dir.toURI().getPath());
+			}
+
+			List<String> cmdlist = new ArrayList<String>(Arrays.asList(cmdArraySudo));
+			cmdlist.remove(0);
+			cmdlist.toArray(cmdArraySudo);
+			cmdArraySudo = cmdlist.toArray(new String[0]);
+
+			p = launcher.execute(path, cmdArraySudo, envp, changeToDir , new NullProgressMonitor());
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+
+		return p;
+
+	}
+
