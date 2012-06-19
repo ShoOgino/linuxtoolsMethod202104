@@ -1,22 +1,29 @@
 	// Runs assuming perf.data has already been recorded, environ and workingDir can be set to null to use default
 	//perfDataLoc is optional - it is used to provide a pre-existing data file instead of something recorded from
 	//whatever project is being profiled. It is only used for junit tests atm.
-    public static void Report(ILaunchConfiguration config, String[] environ, File workingDir, IProgressMonitor monitor, String perfDataLoc, PrintStream print) {
-		TreeParent invisibleRoot = PerfPlugin.getDefault().getModelRoot(); 
+	public static void Report(ILaunchConfiguration config, String[] environ, IPath workingDir, IProgressMonitor monitor, String perfDataLoc, PrintStream print) {
+		ConfigUtils configUtils = new ConfigUtils(config);
+		IProject project = null;
+		try {
+			project = ConfigUtils.getProject(configUtils.getProjectName());
+		} catch (CoreException e1) {
+			e1.printStackTrace();
+		}
+		TreeParent invisibleRoot = PerfPlugin.getDefault().getModelRoot();  
 		if (invisibleRoot == null) {
 			invisibleRoot = new TreeParent("");
 			PerfPlugin.getDefault().setModelRoot(invisibleRoot);
 		} else {
 			invisibleRoot.clear();
 		}
-		
+
 		boolean OldPerfVersion = false;
-		if (getPerfVersion(environ, workingDir).contains("perf version 0.0.2.PERF")) {
+		if (getPerfVersion(config, environ, workingDir).contains("perf version 0.0.2.PERF")) {
 			OldPerfVersion = true;
 			if (print != null) { print.println("WARNING: You are running an older version of Perf, please update if you can. The plugin may produce unpredictable results."); }
 		}
-		
-		
+
+
 		BufferedReader input = null;
 		BufferedReader error = null;
 		Process p = null;
@@ -24,25 +31,26 @@
 		if (monitor != null && monitor.isCanceled()) { RefreshView(); return; }
 
 		try {
-			if (workingDir == null) {
-				p = Runtime.getRuntime().exec(getReportString(config, perfDataLoc));				
+			if (workingDir==null) {
+				p = RuntimeProcessFactory.getFactory().exec(getReportString(config, perfDataLoc), project);
 			} else {
-				String perfDefaultDataLoc = workingDir + "/" + PerfPlugin.PERF_DEFAULT_DATA;
-				p = Runtime.getRuntime().exec(getReportString(config, perfDefaultDataLoc));
-			}			
-			//p.waitFor();
+				p = RuntimeProcessFactory.getFactory().exec(getReportString(config, workingDir.toOSString() + PerfPlugin.PERF_DEFAULT_DATA), project);
+			}
+
+			//			p.waitFor();
 			input = new BufferedReader(new InputStreamReader(p.getInputStream()));
 			error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
 			//spitting error stream moved to end of while loop, due to commenting of p.waitFor()
 		} catch( IOException e ) {
 			e.printStackTrace();
-		/*} catch (InterruptedException e) {
+			/*} catch (InterruptedException e) {
 			e.printStackTrace();*/
-		}
-		
-		PerfCore.parseReport(config, workingDir, monitor, perfDataLoc, print,
-				invisibleRoot, OldPerfVersion, input, error);
-		
+		} 
+
+
+		PerfCore.parseRemoteReport(config, workingDir, monitor, perfDataLoc, print,
+				invisibleRoot, OldPerfVersion, input, error, project);
+
 		RefreshView();
-    }
+	}
 

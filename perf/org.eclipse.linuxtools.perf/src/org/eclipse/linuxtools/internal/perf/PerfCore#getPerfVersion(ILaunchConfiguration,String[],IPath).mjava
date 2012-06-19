@@ -1,0 +1,38 @@
+	//Gets the current version of perf
+	public static String getPerfVersion(ILaunchConfiguration config, String[] environ, IPath workingDir) {
+		ConfigUtils configUtils = new ConfigUtils(config);
+		IProject project = null;
+		try {
+			project = ConfigUtils.getProject(configUtils.getProjectName());
+		} catch (CoreException e1) {
+			e1.printStackTrace();
+		}
+		Process p = null;
+		IRemoteFileProxy proxy = null;
+		IFileStore workingDirFileStore = null;
+
+		if (workingDir == null) {
+			try {
+				p = RuntimeProcessFactory.getFactory().exec(new String [] {PerfPlugin.PERF_COMMAND, "--version"}, project);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		} else {
+			try {
+				proxy = RemoteProxyManager.getInstance().getFileProxy(new URI(workingDir.toOSString()));
+				workingDirFileStore = proxy.getResource(workingDir.toOSString());
+				p = RuntimeProcessFactory.getFactory().exec(new String [] {PerfPlugin.PERF_COMMAND, "--version"}, environ, workingDirFileStore, project);
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (CoreException e) {
+				e.printStackTrace();
+			} catch (URISyntaxException e) {
+				e.printStackTrace();
+			}
+		}			
+
+		//p.waitFor();
+		BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
+		return spitStream(input, "Perf --version STDOUT", null);
+	}
+

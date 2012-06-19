@@ -1,19 +1,7 @@
-	/**
-	 * Parse and build a tree model from the report of a perf data file
-	 * @param config launch configuration
-	 * @param workingDir working directory configuration
-	 * @param monitor  monitor
-	 * @param perfDataLoc location of perf data file
-	 * @param print print stream
-	 * @param invisibleRoot  root of the model
-	 * @param OldPerfVersion boolean old perf version flag
-	 * @param input input stream from perf data file report
-	 * @param error output stream to where all standard error is written to
-	 */
-	public static void parseReport(ILaunchConfiguration config,
-			File workingDir, IProgressMonitor monitor, String perfDataLoc,
+	public static void parseRemoteReport(ILaunchConfiguration config,
+			IPath workingDir, IProgressMonitor monitor, String perfDataLoc,
 			PrintStream print, TreeParent invisibleRoot,
-			boolean OldPerfVersion, BufferedReader input, BufferedReader error) {
+			boolean OldPerfVersion, BufferedReader input, BufferedReader error, IProject project) {
 		if (monitor != null && monitor.isCanceled()) { RefreshView(); return; }
 		String line = null;
 		String items[];
@@ -43,7 +31,7 @@
 						if (print != null) { print.println("WARNING: You are running an older version of Perf, please update if you can. The plugin may produce unpredictable results."); }
 						invisibleRoot.addChild(new PMEvent("WARNING: You are running an older version of Perf, the plugin may produce unpredictable results."));
 					}
-				// contains profiled information
+					// contains profiled information
 				} else {
 					items = line.trim().split(""+(char)1); // using custom field separator. for default whitespace use " +"
 					if (items.length != 5) {
@@ -117,26 +105,27 @@
 						for (TreeParent s : currentDso.getFile(PerfPlugin.STRINGS_UnfiledSymbols).getChildren()) {
 							if (!(s instanceof PMSymbol)) continue;
 
-						if (monitor != null && monitor.isCanceled()) { RefreshView(); return; }
+							if (monitor != null && monitor.isCanceled()) { RefreshView(); return; }
 
 
 							currentSym = (PMSymbol)s;
-								String[] annotateCmd;
-								if (workingDir == null) {
-									annotateCmd = getAnnotateString(config, currentDso.getName(), currentSym.getName().substring(4), perfDataLoc, OldPerfVersion);
-								} else {
-									String perfDefaultDataLoc = workingDir + "/" + PerfPlugin.PERF_DEFAULT_DATA;
-									annotateCmd = getAnnotateString(config, currentDso.getName(), currentSym.getName().substring(4), perfDefaultDataLoc, OldPerfVersion);
-								}
+							String[] annotateCmd;
+							if (workingDir == null) {
+								annotateCmd = getAnnotateString(config, currentDso.getName(), currentSym.getName().substring(4), perfDataLoc, OldPerfVersion);
+							} else {
+								String perfDefaultDataLoc = workingDir + "/" + PerfPlugin.PERF_DEFAULT_DATA;
+								annotateCmd = getAnnotateString(config, currentDso.getName(), currentSym.getName().substring(4), perfDefaultDataLoc, OldPerfVersion);
+							}
 
 							try {
-								p = Runtime.getRuntime().exec(annotateCmd);
+								if(project==null) p = Runtime.getRuntime().exec(annotateCmd);
+								else p = RuntimeProcessFactory.getFactory().exec(annotateCmd, project);
 								input = new BufferedReader(new InputStreamReader(p.getInputStream()));
 								error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
 							} catch (IOException e) {
 								e.printStackTrace();
 							}
-							
+
 							PerfCore.parseAnnotation(monitor, input,
 									workingDir, currentDso, currentSym);
 						}
