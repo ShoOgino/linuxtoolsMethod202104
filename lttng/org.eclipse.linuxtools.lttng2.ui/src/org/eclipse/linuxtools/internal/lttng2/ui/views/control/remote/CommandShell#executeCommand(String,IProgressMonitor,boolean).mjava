@@ -9,43 +9,64 @@
                 @Override
                 public CommandResult call() throws IOException, CancellationException {
                     final ArrayList<String> result = new ArrayList<String>();
-                    int returnValue = 0;
-
+                    
                     synchronized (fHostShell) {
-                        fHostShell.writeToShell(formatShellCommand(command));
+                        // Initialize return value which will be updated in isAliasEchoResult()
+                        fReturnValue = 0;
+
+                        int startAlias = fRandom.nextInt();
+                        int endAlias = fRandom.nextInt();
+                        fHostShell.writeToShell(formatShellCommand(command, startAlias, endAlias));
+                        
                         String nextLine;
-                        while ((nextLine = fBufferReader.readLine()) != null) {
+                        boolean isStartFound = false;
+                        while ((nextLine = fInputBufferReader.readLine()) != null) {
 
                             if (monitor.isCanceled()) {
                                 flushInput();
-                                throw new CancellationException();
+                                throw new CancellationException(); 
                             }
 
-                            if (nextLine.contains(DONE_MARKUP_STRING) && nextLine.contains(SHELL_ECHO_CMD)) {
+                            // check if line contains echoed start alias 
+                            if (isAliasEchoResult(nextLine, startAlias, true)) {
+                                isStartFound = true;
+                                continue;
+                            }
+
+                            // check if line contains is the end mark-up. This will retrieve also 
+                            // the return value of the actual command. 
+                            if (isAliasEchoResult(nextLine, endAlias, false)) {
                                 break;
                             }
-                        }
 
-                        while ((nextLine = fBufferReader.readLine()) != null) {
-                            // check if job was cancelled
-                            if (monitor.isCanceled()) {
-                                flushInput();
-                                throw new CancellationException();
+                            // Ignore line if
+                            // 1) start hasn't been found or
+                            // 2) line is an echo of the command or
+                            // 3) line is  an echo of the end mark-up
+                            if (!isStartFound ||
+                                    isCommandEcho(nextLine, command) ||
+                                    nextLine.contains(getEchoResult(endAlias)))
+                            {
+                                continue;
                             }
 
-                            if (!nextLine.contains(DONE_MARKUP_STRING)) {
-                                result.add(nextLine);
-                            } else {
-                                if (checkReturnValue) {
-                                    returnValue = Integer.valueOf(nextLine.substring(DONE_MARKUP_STRING.length()+1));
-                                }
-                                break;
-                            }
+                            // Now it's time add to the result
+                            result.add(nextLine);
                         }
 
+                        // Read any left over output 
                         flushInput();
+                        
+                        // Read error stream output when command failed.
+                        if (fReturnValue != 0) { 
+                            while(fErrorBufferReader.ready()) {
+                                if ((nextLine = fErrorBufferReader.readLine()) != null)  {
+                                    result.add(nextLine);
+                                }
+                            }
+                        }
                     }
-                    return new CommandResult(returnValue, result.toArray(new String[result.size()]));
+                    return new CommandResult(fReturnValue, result.toArray(new String[result.size()]));
                 }
             });
 
