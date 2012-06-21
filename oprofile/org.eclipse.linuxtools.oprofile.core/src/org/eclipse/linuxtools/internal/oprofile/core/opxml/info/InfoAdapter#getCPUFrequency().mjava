@@ -3,13 +3,16 @@
 	 * @return the system's cpu frequency
 	 */
 	private int getCPUFrequency() {
-		File file = new File(CPUINFO);
+
 		int val = 0;
 		BufferedReader bi = null;
 		try {
-			bi = new BufferedReader(new FileReader(file));
+			proxy = RemoteProxyManager.getInstance().getFileProxy(Oprofile.OprofileProject.getProject());
+			IFileStore fileStore = proxy.getResource(CPUINFO);
+			if(fileStore.fetchInfo().exists()){
+				InputStream is = fileStore.openInputStream(EFS.NONE, new NullProgressMonitor());
+				bi = new BufferedReader(new InputStreamReader(is));
 			String line;
-
 			while ((line = bi.readLine()) != null) {
 				int index = line.indexOf(':');
 				if (index != -1) {
@@ -36,9 +39,12 @@
 				}
 			}
 			bi.close();
+			}
 		} catch (NumberFormatException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (CoreException e) {
 			e.printStackTrace();
 		} finally {
 			if (null != bi) {

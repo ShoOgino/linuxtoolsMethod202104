@@ -3,22 +3,25 @@
 	 * and if opcontrol exists in the indicated path
 	 * @param project
 	 * @return
+	 * @throws OpcontrolException if opcontrol not installed
+	 * @since 1.1
 	 */
-	public static boolean hasPermissions(IProject project) {
+	public boolean hasPermissions(IProject project) throws OpcontrolException {
 		String linuxtoolsPath = LinuxtoolsPathProperty.getInstance().getLinuxtoolsPath(project);
 
 		try {
 			String opcontrolPath = null;
 			if(linuxtoolsPath.equals("")){
-				opcontrolPath = RuntimeProcessFactory.getFactory().whichCommand(OPCONTROL_EXECUTABLE, project);
+				if(!isInstalled()){
+					throw new OpcontrolException(OprofileCorePlugin.createErrorStatus("opcontrolProvider", null));
+				} else{
+					return true;
+				}
+
 			} else if(linuxtoolsPath.endsWith("/")){
 				opcontrolPath = linuxtoolsPath + "opcontrol";
 			} else {
 				opcontrolPath = linuxtoolsPath + "/opcontrol";
-			}
-
-			if(opcontrolPath.equals("")){
-				return false;
 			}
 
 			// Check if user has sudo permissions without password by running sudo -l.
@@ -58,6 +61,7 @@
 						return true;
 				 }
 			}
+			 System.out.println(buffer.toString());
 		} catch (IOException e) {
 			e.printStackTrace();
 			return false;

@@ -2,10 +2,13 @@
 	 * Set whether the cpu supports timer mode
 	 */
 	public static void checkTimerSupport() {
-		File file = new File(CPUTYPE);
 
 		try {
-			BufferedReader bi = new BufferedReader(new FileReader(file));
+			proxy = RemoteProxyManager.getInstance().getFileProxy(Oprofile.OprofileProject.getProject());
+			IFileStore fileStore = proxy.getResource(CPUTYPE);
+			if(fileStore.fetchInfo().exists()){
+				InputStream is = fileStore.openInputStream(EFS.NONE, new NullProgressMonitor());
+				BufferedReader bi = new BufferedReader(new InputStreamReader(is));
 			String cpuType = bi.readLine();
 			bi.close();
 			if (cpuType.equals(TIMER)) {
@@ -13,10 +16,14 @@
 			} else {
 				hasTimerSupport = false;
 			}
+
+			}
 		} catch (FileNotFoundException e) {
 			hasTimerSupport = true;
 		} catch (IOException e) {
 			hasTimerSupport = true;
+			e.printStackTrace();
+		} catch (CoreException e) {
 			e.printStackTrace();
 		}
 	}

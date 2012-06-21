@@ -31,6 +31,31 @@
 //
 //		return _opcontrol;
 		
-		return new LinuxOpcontrolProvider();
+		IOpcontrolProvider opcontrolProvider = null;
+
+		IExtensionRegistry registry = Platform.getExtensionRegistry();
+		IExtensionPoint extPoint = registry.getExtensionPoint("org.eclipse.linuxtools.oprofile.core.OpcontrolProvider"); //$NON-NLS-1$
+		if (extPoint != null) {
+			IExtension[] extensions = extPoint.getExtensions();
+			for (IExtension extension : extensions) {
+				IConfigurationElement[] configElements = extension.getConfigurationElements();
+				if (configElements.length != 0) {
+					try {
+						String scheme = configElements[0].getAttribute("scheme");
+						if(Oprofile.OprofileProject.getProject().getLocationURI().getScheme().equals(scheme)){
+							opcontrolProvider = (IOpcontrolProvider) configElements[0].createExecutableExtension("class");//$NON-NLS-1$
+						}
+					} catch (CoreException ce) {
+						ce.printStackTrace();
+					}
+				}
+			}
+		}
+		// If there was a problem finding opcontrol, throw an exception
+		if(opcontrolProvider == null) {
+			throw new OpcontrolException(OprofileCorePlugin.createErrorStatus("opcontrolProvider", null));
+		}
+
+		return opcontrolProvider;
 	}
 

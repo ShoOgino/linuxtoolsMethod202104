@@ -4,11 +4,17 @@
 	 * @return whether the options are valid
 	 */
 	public boolean isValid() {
+		IRemoteFileProxy proxy = null;
+		try {
+			proxy = RemoteProxyManager.getInstance().getFileProxy(Oprofile.OprofileProject.getProject());
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
 		// The only point of contention is whether the specified vmlinux *file* exists.
 		String fn = options.getKernelImageFile();
 		if (fn != null && fn.length() > 0) {
-			File file = new File(options.getKernelImageFile());
-			return (file.exists() && file.isFile());
+			IFileStore fileStore = proxy.getResource(options.getKernelImageFile());
+			return (fileStore.fetchInfo().exists() && !fileStore.fetchInfo().isDirectory());
 		}
 		
 		return true;

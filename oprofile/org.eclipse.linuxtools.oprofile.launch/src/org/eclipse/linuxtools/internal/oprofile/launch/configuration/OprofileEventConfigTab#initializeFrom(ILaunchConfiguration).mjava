@@ -2,8 +2,66 @@
 	 * @see ILaunchConfigurationTab#initializeFrom(ILaunchConfiguration)
 	 */
 	public void initializeFrom(ILaunchConfiguration config) {
-		if (!getTimerMode()) {
+		this.hasPermissions = null;
+
+		IProject previousProject = Oprofile.OprofileProject.getProject();
+		IProject project = getProject(config);
+		Oprofile.OprofileProject.setProject(project);
+
 			try {
+			if(!hasPermissions(project)){
+				OpcontrolException e = new OpcontrolException(OprofileCorePlugin.createErrorStatus("opcontrolSudo", null));
+				OprofileCorePlugin.showErrorDialog("opcontrolProvider", e); //$NON-NLS-1$
+				createTimerModeTab(top);
+				return;
+			}
+		} catch (OpcontrolException e){
+			OprofileCorePlugin.showErrorDialog("opcontrolProvider", e);
+			createTimerModeTab(top);
+			return;
+		}
+		Oprofile.updateInfo();
+
+		String previousHost = null;
+		if(previousProject != null){
+			if(previousProject.getLocationURI() != null){
+				previousHost = previousProject.getLocationURI().getHost();
+			}
+		}
+
+		String host = project.getLocationURI().getHost();
+
+		// Create the counter tabs if host has changed or if they haven't been created yet
+		if(previousProject == null || previousHost != host || counters == null){
+			Control[] children = top.getChildren();
+
+			for (Control control : children) {
+				control.dispose();
+			}
+
+			if (getTimerMode()) {
+				Label timerModeLabel = new Label(top, SWT.LEFT);
+				timerModeLabel.setText(OprofileLaunchMessages.getString("tab.event.timermode.no.options")); //$NON-NLS-1$
+			} else {
+				createVerticalSpacer(top, 1);
+
+				//default event checkbox
+				defaultEventCheck = new Button(top, SWT.CHECK);
+				defaultEventCheck.setText(OprofileLaunchMessages.getString("tab.event.defaultevent.button.text")); //$NON-NLS-1$
+				defaultEventCheck.setLayoutData(new GridData());
+				defaultEventCheck.addSelectionListener(new SelectionAdapter() {
+					@Override
+					public void widgetSelected(SelectionEvent se) {
+						handleEnabledToggle();
+					}
+				});
+				createVerticalSpacer(top, 1);
+				createCounterTabs(top);
+			}
+
+		}
+
+		if(!getTimerMode()){
 				for (int i = 0; i < counters.length; i++) {
 					counters[i].loadConfiguration(config);
 				}
@@ -11,12 +69,10 @@
 				for (CounterSubTab tab : counterSubTabs) {
 					tab.initializeTab(config);
 				}
-	
+			try{
 				boolean enabledState = config.getAttribute(OprofileLaunchPlugin.ATTR_USE_DEFAULT_EVENT, true);
 				defaultEventCheck.setSelection(enabledState);
 				setEnabledState(!enabledState);
-	
-				updateLaunchConfigurationDialog();
 			} catch (CoreException e) {
 				e.printStackTrace();
 			}

@@ -5,6 +5,7 @@
 	public OpcontrolException handleError (String stdout, String stderr) {
 		String type = "";
 		String fullErr = "";
+		IRemoteFileProxy proxy = null;
 		
 		// Figure out which stream has the error
 		// If both have errors, then stderr takes priority
@@ -23,8 +24,12 @@
 		
 		// Read in the errors
 		try {
+			proxy = RemoteProxyManager.getInstance().getFileProxy(Oprofile.OprofileProject.getProject());
+			IFileStore fileStore = proxy.getResource(errorFilePath);
+			InputStream is = fileStore.openInputStream(EFS.NONE, new NullProgressMonitor());
+
 			String line = "";
-			BufferedReader buff = new BufferedReader(new FileReader(new File(errorFilePath)));
+			BufferedReader buff = new BufferedReader(new InputStreamReader(is));
 			
 			// Populate the mapping
 			while ((line = buff.readLine()) != null){
@@ -34,9 +39,9 @@
 			
 			buff.close();
 			
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
 		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (CoreException e) {
 			e.printStackTrace();
 		}
 		

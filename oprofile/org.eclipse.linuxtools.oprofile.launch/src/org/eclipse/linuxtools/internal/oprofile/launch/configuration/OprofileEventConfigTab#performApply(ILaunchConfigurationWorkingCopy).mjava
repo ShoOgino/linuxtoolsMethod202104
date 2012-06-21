@@ -2,17 +2,23 @@
 	 * @see ILaunchConfigurationTab#performApply(ILaunchConfigurationWorkingCopy)
 	 */
 	public void performApply(ILaunchConfigurationWorkingCopy config) {
+		IProject project = getProject(config);
+		try{
+			if(!hasPermissions(project)){
+				return;
+			}
 		if (getTimerMode()) {
 			config.setAttribute(OprofileLaunchPlugin.ATTR_USE_DEFAULT_EVENT, true);
 		} else {
 			config.setAttribute(OprofileLaunchPlugin.ATTR_USE_DEFAULT_EVENT, defaultEventCheck.getSelection());
-			
 			for (CounterSubTab cst : counterSubTabs) {
 				cst.performApply(config);
 			}
 		}
-		try {
 			config.doSave();
+		} catch(OpcontrolException e){
+			return;
+
 		} catch (CoreException e) {
 			e.printStackTrace();
 		}
