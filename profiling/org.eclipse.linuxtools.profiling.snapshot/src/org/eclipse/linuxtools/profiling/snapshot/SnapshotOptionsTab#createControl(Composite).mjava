@@ -1,0 +1,40 @@
+	public void createControl(Composite parent) {
+		top = new Composite(parent, SWT.NONE);
+		setControl(top);
+		top.setLayout(new GridLayout(1, true));
+		providerCombo = new Combo(top, SWT.READ_ONLY);
+		providerCombo.setItems(ProfileLaunchConfigurationTabGroup
+				.getTabGroupIdsForType("snapshot"));
+
+		final CTabFolder tabgroup = new CTabFolder(top, SWT.NONE);
+
+		providerCombo.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				// dispose of old tabs
+				for (CTabItem item : tabgroup.getItems()) {
+					item.dispose();
+				}
+
+				// get the tabs associated with the selected ID
+				tabs = ProfileLaunchConfigurationTabGroup
+						.getTabGroupProviderFromId(providerCombo.getText())
+						.getProfileTabs();
+
+				// create the tab item, and load the specified tab inside
+				for (ILaunchConfigurationTab tab : tabs) {
+					CTabItem item = new CTabItem(tabgroup, SWT.NONE);
+					item.setText(tab.getName());
+					item.setImage(tab.getImage());
+
+					tab.createControl(tabgroup);
+					item.setControl(tab.getControl());
+				}
+
+				// initialize all tab widgets based on the configuration
+				initializeFrom(initial);
+			}
+		});
+
+	}
+
