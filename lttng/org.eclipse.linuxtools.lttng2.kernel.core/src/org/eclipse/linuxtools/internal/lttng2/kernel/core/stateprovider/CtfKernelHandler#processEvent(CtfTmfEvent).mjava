@@ -1,32 +1,26 @@
     private void processEvent(CtfTmfEvent event) {
-        currentEvent = event;
-        ITmfEventField content = event.getContent();
-        String eventName = event.getEventName();
-
-        long ts = event.getTimestamp().getValue();
         int quark;
         ITmfStateValue value;
-        Integer eventCpu = event.getCPU();
-        Integer currentCPUNode, currentThreadNode;
 
-        /* Adjust the current nodes Vectors if we see a new CPU in an event */
-        if (eventCpu >= currentCPUNodes.size()) {
-            /* We need to add this node to the vector */
-            for (Integer i = currentCPUNodes.size(); i < eventCpu + 1; i++) {
-                quark = ss.getQuarkRelativeAndAdd(cpusNode, i.toString());
-                currentCPUNodes.add(quark);
+        currentEvent = event;
 
-                quark = ss.getQuarkRelativeAndAdd(threadsNode, Attributes.UNKNOWN);
-                currentThreadNodes.add(quark);
-            }
-        }
-
-        currentCPUNode = currentCPUNodes.get(eventCpu);
-        currentThreadNode = currentThreadNodes.get(eventCpu);
-        assert (currentCPUNode != null);
-        assert (currentThreadNode != null);
+        final ITmfEventField content = event.getContent();
+        final String eventName = event.getEventName();
+        final long ts = event.getTimestamp().getValue();
 
         try {
+            /* Shortcut for the "current CPU" attribute node */
+            final Integer currentCPUNode = ss.getQuarkRelativeAndAdd(cpusNode, String.valueOf(event.getCPU()));
+
+            /*
+             * Shortcut for the "current thread" attribute node. It requires
+             * querying the current CPU's current thread.
+             */
+            quark = ss.getQuarkRelativeAndAdd(currentCPUNode, Attributes.CURRENT_THREAD);
+            value = ss.queryOngoingState(quark);
+            int thread = value.unboxInt();
+            final Integer currentThreadNode = ss.getQuarkRelativeAndAdd(threadsNode, String.valueOf(thread));
+
             /*
              * Feed event to the history system if it's known to cause a state
              * transition.
@@ -161,9 +155,6 @@
 
                 Integer formerThreadNode = ss.getQuarkRelativeAndAdd(threadsNode, prevTid.toString());
                 Integer newCurrentThreadNode = ss.getQuarkRelativeAndAdd(threadsNode, nextTid.toString());
-
-                /* Update the currentThreadNodes pointer */
-                currentThreadNodes.set(eventCpu, newCurrentThreadNode);
 
                 /* Set the status of the process that got scheduled out. */
                 quark = ss.getQuarkRelativeAndAdd(formerThreadNode, Attributes.STATUS);
