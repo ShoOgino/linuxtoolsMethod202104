@@ -1,0 +1,40 @@
+    public void runCoalescedRequest(long startIndex) throws Exception {
+
+        fTrace = setupTrace(DIRECTORY + File.separator + TEST_STREAM);
+
+        TmfSignalManager.register(this);
+        TmfTestTriggerSignal signal = new TmfTestTriggerSignal(this, startIndex, false);
+        TmfSignalManager.dispatchSignal(signal);
+
+        request1.waitForCompletion();
+        request2.waitForCompletion();
+        request3.waitForCompletion();
+
+        try {
+            assertEquals("Request1: nbEvents", NB_EVENTS - startIndex, requestedEvents1.size());
+            assertTrue  ("Request1: isCompleted", request1.isCompleted());
+            assertFalse ("Request1: isCancelled", request1.isCancelled());
+
+            assertEquals("Request2: nbEvents", NB_EVENTS - startIndex, requestedEvents2.size());
+            assertTrue  ("Request2: isCompleted", request2.isCompleted());
+            assertFalse ("Request2: isCancelled", request2.isCancelled());
+
+            assertEquals("Request3: nbEvents", NB_EVENTS - startIndex, requestedEvents3.size());
+            assertTrue  ("Request3: isCompleted", request3.isCompleted());
+            assertFalse ("Request3: isCancelled", request3.isCancelled());
+
+            // Ensure that we have distinct events.
+            // Don't go overboard: we are not validating the stub!
+            for (int i = 0; i < NB_EVENTS - startIndex; i++) {
+                assertEquals("Distinct events", i + 1 + startIndex, requestedEvents1.get(i).getTimestamp().getValue());
+                assertEquals("Distinct events", i + 1 + startIndex, requestedEvents2.get(i).getTimestamp().getValue());
+                assertEquals("Distinct events", i + 1 + startIndex, requestedEvents3.get(i).getTimestamp().getValue());
+            }
+        }
+        finally {
+            TmfSignalManager.deregister(this);
+            fTrace.dispose();
+            fTrace = null;
+        }
+    }
+
