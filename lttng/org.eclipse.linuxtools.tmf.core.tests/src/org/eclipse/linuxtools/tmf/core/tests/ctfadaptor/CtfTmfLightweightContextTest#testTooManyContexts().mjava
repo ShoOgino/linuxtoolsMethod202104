@@ -1,0 +1,45 @@
+    /**
+     * Context fuzzer. Use an amount of contexts greater than the size of the
+     * iterator cache and have them access the trace in parallel.
+     *
+     * @throws TmfTraceException
+     *             Would fail the test
+     * @throws InterruptedException
+     *             Would fail the test
+     */
+    @Test
+    public void testTooManyContexts() throws TmfTraceException, InterruptedException {
+        final int lwcCount = 101;
+        double increment = (end - begin) / lwcCount;
+        final ArrayList<Long> vals = new ArrayList<Long>();
+        final ArrayList<Thread> threads = new ArrayList<Thread>();
+        final ArrayList<CtfTmfLightweightContext> tooManyContexts = new ArrayList<CtfTmfLightweightContext>();
+
+        for (double i = begin; i < end; i += increment) {
+            SeekerThread thread = new SeekerThread() {
+                @Override
+                public void run() {
+                    CtfTmfLightweightContext lwc = new CtfTmfLightweightContext(fixture);
+                    lwc.seek(val);
+                    fixture.getNext(lwc);
+                    synchronized(fixture){
+                        vals.add(lwc.getCurrentEvent().getTimestampValue());
+                        tooManyContexts.add(lwc);
+                    }
+                }
+            };
+            thread.setVal((long)i);
+            threads.add(thread);
+            thread.start();
+        }
+
+        for( Thread t: threads){
+            t.join();
+        }
+
+        for( Long val : vals){
+            assertTrue(val >= begin);
+            assertTrue(val <= end);
+        }
+    }
+

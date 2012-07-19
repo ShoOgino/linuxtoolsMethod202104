@@ -1,0 +1,43 @@
+    /**
+     * This needs explaining: the iterator table is effectively a cache.
+     * Originally the contexts had a 1 to 1 structure with the file handles of a
+     * trace. This failed since there is a limit to how many file handles we can
+     * have opened simultaneously. Then a round-robin scheme was implemented,
+     * this lead up to a two competing contexts syncing up and using the same
+     * file handler, causing horrible slowdowns. Now a random replacement
+     * algorithm is selected. This is the same as used by arm processors, and it
+     * works quite well when many cores so this looks promising for very
+     * multi-threaded systems.
+     *
+     * @param context
+     *            the context to look up
+     * @return the iterator refering to the context
+     */
+    public CtfIterator getIterator(final CtfTmfLightweightContext context) {
+        /*
+         * if the element is in the map, we don't need to do anything else.
+         */
+        CtfIterator retVal = fMap.get(context);
+        if (retVal == null) {
+            /*
+             * Assign an iterator to a context, this means we will need to seek
+             * at the end.
+             */
+            if (fRandomAccess.size() < MAX_SIZE) {
+                /*
+                 * if we're not full yet, just add an element.
+                 */
+                retVal = new CtfIterator(fTrace);
+                addElement(context, retVal);
+
+            } else {
+                /*
+                 * if we're full, randomly replace an element
+                 */
+                retVal = replaceRandomElement(context);
+            }
+            retVal.seek((Long) context.getLocation().getLocation());
+        }
+        return retVal;
+    }
+
