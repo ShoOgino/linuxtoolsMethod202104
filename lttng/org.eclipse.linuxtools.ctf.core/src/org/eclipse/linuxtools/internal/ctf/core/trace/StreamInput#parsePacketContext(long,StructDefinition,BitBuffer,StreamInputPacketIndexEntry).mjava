@@ -3,13 +3,38 @@
             StreamInputPacketIndexEntry packetIndex) {
         streamPacketContextDef.read(bitBuffer);
 
+        for (String field : streamPacketContextDef.getDeclaration()
+                .getFieldsList()) {
+            Definition id = streamPacketContextDef.lookupDefinition(field);
+            if (id instanceof IntegerDefinition) {
+                packetIndex.addAttribute(field,
+                        ((IntegerDefinition) id).getValue());
+            } else if (id instanceof FloatDefinition) {
+                packetIndex.addAttribute(field,
+                        ((FloatDefinition) id).getValue());
+            } else if (id instanceof EnumDefinition) {
+                packetIndex.addAttribute(field,
+                        ((EnumDefinition) id).getValue());
+            } else if (id instanceof StringDefinition) {
+                packetIndex.addAttribute(field,
+                        ((StringDefinition) id).getValue());
+            }
+
+        }
+
+        Long contentSize = (Long) packetIndex.lookupAttribute("content_size"); //$NON-NLS-1$
+        Long packetSize = (Long) packetIndex.lookupAttribute("packet_size"); //$NON-NLS-1$
+        Long timestampBegin = (Long) packetIndex
+                .lookupAttribute("timestamp_begin"); //$NON-NLS-1$
+        Long timestampEnd = (Long) packetIndex.lookupAttribute("timestamp_end"); //$NON-NLS-1$
+        String device = (String) packetIndex.lookupAttribute("device"); //$NON-NLS-1$
+        // LTTng Specific
+        Long CPU_ID = (Long) packetIndex.lookupAttribute("cpu_id"); //$NON-NLS-1$
         /*
          * Read the content size in bits
          */
-        IntegerDefinition contentSizeDef = (IntegerDefinition) streamPacketContextDef
-                .lookupDefinition("content_size"); //$NON-NLS-1$
-        if (contentSizeDef != null) {
-            packetIndex.setContentSizeBits((int) contentSizeDef.getValue());
+        if (contentSize != null) {
+            packetIndex.setContentSizeBits(contentSize.intValue());
         } else {
             packetIndex.setContentSizeBits((int) (fileSizeBytes * 8));
         }
@@ -17,10 +42,9 @@
         /*
          * Read the packet size in bits
          */
-        IntegerDefinition packetSizeDef = (IntegerDefinition) streamPacketContextDef
-                .lookupDefinition("packet_size"); //$NON-NLS-1$
-        if (packetSizeDef != null) {
-            packetIndex.setPacketSizeBits((int) packetSizeDef.getValue());
+
+        if (packetSize != null) {
+            packetIndex.setPacketSizeBits(packetSize.intValue());
         } else {
             if (packetIndex.getContentSizeBits() != 0) {
                 packetIndex.setPacketSizeBits(packetIndex.getContentSizeBits());
@@ -32,20 +56,28 @@
         /*
          * Read the begin timestamp
          */
-        IntegerDefinition timestampBeginDef = (IntegerDefinition) streamPacketContextDef
-                .lookupDefinition("timestamp_begin"); //$NON-NLS-1$
-        if (timestampBeginDef != null) {
-            packetIndex.setTimestampBegin(timestampBeginDef.getValue());
+
+        if (timestampBegin != null) {
+            packetIndex.setTimestampBegin(timestampBegin.longValue());
         }
 
         /*
          * Read the end timestamp
          */
-        IntegerDefinition timestampEndDef = (IntegerDefinition) streamPacketContextDef
-                .lookupDefinition("timestamp_end"); //$NON-NLS-1$
-        if (timestampEndDef != null) {
-            packetIndex.setTimestampEnd(timestampEndDef.getValue());
+        if (timestampEnd != null) {
+            if( timestampEnd == -1 ) {
+                timestampEnd = Long.MAX_VALUE;
+            }
+            packetIndex.setTimestampEnd(timestampEnd.longValue());
             setTimestampEnd(packetIndex.getTimestampEnd());
+        }
+
+        if (device != null) {
+            packetIndex.setTarget(device);
+        }
+
+        if (CPU_ID != null) {
+            packetIndex.setTarget("CPU" + CPU_ID.toString()); //$NON-NLS-1$
         }
     }
 
