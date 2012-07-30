@@ -8,17 +8,34 @@
 		 *  that we can properly load the widgets the first time.
 		 */
 
-		// store current provider id in the configuration
-		if (configuration != null) {
-			setProvider(configuration);
+		// starting initialization of this tab's controls
+		initialized = false;
+
+		// update current configuration (initial) with configuration being
+		// passed in
+		initial = configuration;
+
+		// check if there exists a launch provider id in the configuration
+		if (initial != null) {
+			try {
+				String providerId = initial.getAttribute("provider", "");
+				if (providerId != null && !providerId.equals("")) {
+					// load provider corresponding to specified id
+					loadTabGroupItems(tabgroup, providerId);
+				} else {
+					// load highest priority provider if none found
+					loadTabGroupItems(tabgroup, null);
+				}
+			} catch (CoreException e) {
+				// continue, initialize tabs
+			}
 		}
-		if (initial == null){
-			initial = configuration;
-		}
-		if (providerCombo != null && !providerCombo.getText().equals("")) {
+		if (tabs != null) {
 			for (AbstractLaunchConfigurationTab tab : tabs) {
 				tab.initializeFrom(configuration);
 			}
 		}
+		// finished initialization
+		initialized = true;
 	}
 

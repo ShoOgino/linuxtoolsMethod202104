@@ -4,42 +4,20 @@
 		top.setLayout(new GridLayout(1, true));
 		providerCombo = new Combo(top, SWT.READ_ONLY);
 		comboItems = ProfileLaunchConfigurationTabGroup
-				.getTabGroupNamesForType("snapshot");
+				.getProviderNamesForType("snapshot");
 		Set<String> providerNames = comboItems.keySet();
 		providerCombo.setItems(providerNames.toArray(new String[0]));
 
-		final CTabFolder tabgroup = new CTabFolder(top, SWT.NONE);
+		tabgroup = new CTabFolder(top, SWT.NONE);
 
 		providerCombo.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				// dispose of old tabs
-				for (CTabItem item : tabgroup.getItems()) {
-					item.dispose();
-				}
-
-				providerId = comboItems.get(providerCombo.getText());
-				// get the tabs associated with the selected ID
-				tabs = ProfileLaunchConfigurationTabGroup
-						.getTabGroupProviderFromId(providerId)
-						.getProfileTabs();
-
-				// create the tab item, and load the specified tab inside
-				for (ILaunchConfigurationTab tab : tabs) {
-					tab.setLaunchConfigurationDialog(getLaunchConfigurationDialog());
-					CTabItem item = new CTabItem(tabgroup, SWT.NONE);
-					item.setText(tab.getName());
-					item.setImage(tab.getImage());
-
-					tab.createControl(tabgroup);
-					item.setControl(tab.getControl());
-				}
-
-				// initialize all tab widgets based on the configuration
+				String curProviderId = comboItems.get(providerCombo.getText());
+				loadTabGroupItems(tabgroup, curProviderId);
 				initializeFrom(initial);
 				top.layout();
 			}
 		});
-
 	}
 
