@@ -1,0 +1,71 @@
+    /**
+     * Get the statistics viewer for an experiment. If all traces in the
+     * experiment are of the same type, use the extension point specified.
+     *
+     * @return a statistics viewer of the appropriate type
+     * @since 2.0
+     */
+    protected TmfStatisticsViewer createStatisticsViewer() {
+        if (fExperiment == null) {
+            return new TmfStatisticsViewer(fParent);
+        }
+        String commonTraceType = null;
+        try {
+            /*
+             * Determine if the traces of the experiment are of the same type.
+             * If not, it uses the most generic one.
+             */
+            for (ITmfTrace trace : fExperiment.getTraces()) {
+                IResource resource = trace.getResource();
+                if (resource == null) {
+                    return new TmfStatisticsViewer(fParent);
+                }
+                String traceType = resource.getPersistentProperty(TmfCommonConstants.TRACETYPE);
+                if (commonTraceType != null && !commonTraceType.equals(traceType)) {
+                    return new TmfStatisticsViewer(fParent);
+                }
+                commonTraceType = traceType;
+            }
+            if (commonTraceType == null) {
+                return new TmfStatisticsViewer(fParent);
+            }
+            /*
+             * Search in the configuration if there is any viewer specified for
+             * this kind of trace type.
+             */
+            for (IConfigurationElement ce : TmfTraceType.getTypeElements()) {
+                if (ce.getAttribute(TmfTraceType.ID_ATTR).equals(commonTraceType)) {
+                    IConfigurationElement[] statisticsViewerCE = ce.getChildren(TmfTraceType.STATISTICS_VIEWER_ELEM);
+                    if (statisticsViewerCE.length != 1) {
+                        break;
+                    }
+                    String statisticsViewer = statisticsViewerCE[0].getAttribute(TmfTraceType.CLASS_ATTR);
+                    if (statisticsViewer == null || statisticsViewer.length() == 0) {
+                        break;
+                    }
+                    Bundle bundle = Platform.getBundle(ce.getContributor().getName());
+                    Class<?> c = bundle.loadClass(statisticsViewer);
+                    Class<?>[] constructorArgs = new Class[] { Composite.class };
+                    Constructor<?> constructor = c.getConstructor(constructorArgs);
+                    Object[] args = new Object[] { fParent };
+                    return (TmfStatisticsViewer) constructor.newInstance(args);
+                }
+            }
+        } catch (CoreException e) {
+            Activator.getDefault().logError("Error creating statistics viewer : cannot find the property TmfCommonConstants.TRACETYPE", e); //$NON-NLS-1$
+        } catch (ClassNotFoundException e) {
+            Activator.getDefault().logError("Error creating statistics viewer : cannot load the statistics viewer class", e); //$NON-NLS-1$
+        } catch (NoSuchMethodException e) {
+            Activator.getDefault().logError("Error creating statistics viewer : constructor of the viewer doesn't exist", e); //$NON-NLS-1$
+        } catch (InstantiationException e) {
+            Activator.getDefault().logError("Error creating statistics viewer : cannot instantiate the statistics viewer", e); //$NON-NLS-1$
+        } catch (IllegalAccessException e) {
+            Activator.getDefault().logError("Error creating statistics viewer : cannot access the constructor of the viewer", e); //$NON-NLS-1$
+        } catch (IllegalArgumentException e) {
+            Activator.getDefault().logError("Error creating statistics viewer : argument(s) sent to the constructor are illegal", e); //$NON-NLS-1$
+        } catch (InvocationTargetException e) {
+            Activator.getDefault().logError("Error creating statistics viewer : the constructor of the viewer sent an exception", e); //$NON-NLS-1$
+        }
+        return new TmfStatisticsViewer(fParent);
+    }
+

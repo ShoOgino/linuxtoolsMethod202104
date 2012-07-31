@@ -9,63 +9,30 @@
     @TmfSignalHandler
     public void experimentSelected(TmfExperimentSelectedSignal signal) {
         if (signal != null) {
-            TmfExperiment experiment = signal.getExperiment();
-            String experimentName = experiment.getName();
-
-            if (TmfStatisticsTreeRootFactory.containsTreeRoot(getTreeID(experimentName))) {
-                // The experiment root is already present
-                String treeID = getTreeID(experimentName);
-                TmfStatisticsTreeNode experimentTreeNode = TmfStatisticsTreeRootFactory.getStatTreeRoot(treeID);
-
-                ITmfTrace[] traces = experiment.getTraces();
-
-                // check if there is partial data loaded in the experiment
-                int numTraces = experiment.getTraces().length;
-                int numNodeTraces = experimentTreeNode.getNbChildren();
-
-                if (numTraces == numNodeTraces) {
-                    boolean same = true;
-                    /*
-                     * Detect if the experiment contains the same traces as when
-                     * previously selected
-                     */
-                    for (int i = 0; i < numTraces; i++) {
-                        String traceName = traces[i].getName();
-                        if (!experimentTreeNode.containsChild(traceName)) {
-                            same = false;
-                            break;
-                        }
-                    }
-
-                    if (same) {
-                        // no need to reload data, all traces are already loaded
-                        fTreeViewer.setInput(experimentTreeNode);
-
-                        resetUpdateSynchronization();
-
-                        return;
-                    }
-                    experimentTreeNode.reset();
+            // Does not reload the same trace if already opened
+            if (fExperiment == null
+                    || signal.getExperiment().toString().compareTo(fExperiment.toString()) != 0) {
+                /*
+                 * Dispose the current viewer and adapt the new one to the trace
+                 * type of the experiment selected
+                 */
+                if (fStatsViewer != null) {
+                    fStatsViewer.dispose();
                 }
-            } else {
-                TmfStatisticsTreeRootFactory.addStatsTreeRoot(getTreeID(experimentName), getStatisticData());
-            }
+                // Update the current experiment
+                fExperiment = signal.getExperiment();
+                fStatsViewer = createStatisticsViewer();
+                fParent.layout();
 
-            resetUpdateSynchronization();
+                String experimentName = fExperiment.getName();
+                String treeID = fStatsViewer.getTreeID(experimentName);
 
-            TmfStatisticsTreeNode treeModelRoot = TmfStatisticsTreeRootFactory.getStatTreeRoot(getTreeID(experiment.getName()));
+                setInput(treeID, fExperiment.getTraces());
 
-            // if the model has contents, clear to start over
-            if (treeModelRoot.hasChildren()) {
-                treeModelRoot.reset();
-            }
-
-            // set input to a clean data model
-            fTreeViewer.setInput(treeModelRoot);
-
-            if (fRequestData) {
-                requestData(experiment, experiment.getTimeRange());
-                fRequestData = false;
+                if (fRequestData) {
+                    requestData(fExperiment, fExperiment.getTimeRange());
+                    fRequestData = false;
+                }
             }
         }
     }
