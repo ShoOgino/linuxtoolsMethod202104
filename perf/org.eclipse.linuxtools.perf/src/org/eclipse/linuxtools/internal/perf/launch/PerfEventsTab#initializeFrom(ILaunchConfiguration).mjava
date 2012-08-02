@@ -2,7 +2,33 @@
 	public void initializeFrom(ILaunchConfiguration config) {
 		//if (PerfPlugin.DEBUG_ON) System.out.println("Initializing eventsTab from previous config.");
 		
+		IProject project = getProject(config);
+
 		try {
+			if(previousProject == null || (previousProject != null && !previousProject.equals(project))){
+				Control[] children = top.getChildren();
+
+				for (Control control : children) {
+					control.dispose();
+				}
+
+				createVerticalSpacer(top, 1);
+
+				//Default event checkbox
+				_chkDefaultEvent = new Button(top, SWT.CHECK);
+				_chkDefaultEvent.setText("Default Event"); //$NON-NLS-1$
+				_chkDefaultEvent.setLayoutData(new GridData());
+				_chkDefaultEvent.addSelectionListener(new SelectionAdapter() {
+					@Override
+					public void widgetSelected(SelectionEvent se) {
+						refreshDefaultEnabled();
+						updateLaunchConfigurationDialog();
+					}
+				});
+
+				createEventTabs(top, config);
+			}
+
 			//restore whether things are default event/enabled or not.
 			_chkDefaultEvent.setSelection(config.getAttribute(PerfPlugin.ATTR_DefaultEvent, PerfPlugin.ATTR_DefaultEvent_default));
 			refreshDefaultEnabled();
@@ -48,9 +74,10 @@
 					}
 				}
 			}
-		} catch (CoreException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+			previousProject = project;
+			} catch (CoreException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 	}
 
