@@ -16,21 +16,36 @@
                  * Dispose the current viewer and adapt the new one to the trace
                  * type of the experiment selected
                  */
-                if (fStatsViewer != null) {
-                    fStatsViewer.dispose();
-                }
+                fStatsViewers.clear();
                 // Update the current experiment
                 fExperiment = signal.getExperiment();
-                fStatsViewer = createStatisticsViewer();
-                fParent.layout();
+                createStatisticsViewers();
+                fStatsViewers.layout();
 
-                String experimentName = fExperiment.getName();
-                String treeID = fStatsViewer.getTreeID(experimentName);
-
-                setInput(treeID, fExperiment.getTraces());
+                TmfStatisticsViewer statViewer;
+                for (ITmfViewer viewer : fStatsViewers.getViewers()) {
+                    if (!(viewer instanceof TmfStatisticsViewer)) {
+                        Activator.getDefault().logError("Error - cannot cast viewer to a statistics viewer"); //$NON-NLS-1$
+                        continue;
+                    }
+                    statViewer = (TmfStatisticsViewer) viewer;
+                    setInput(statViewer, fExperiment.getTraces());
+                }
 
                 if (fRequestData) {
-                    requestData(fExperiment, fExperiment.getTimeRange());
+                    TmfExperimentRangeUpdatedSignal updateSignal = new TmfExperimentRangeUpdatedSignal(null, fExperiment, fExperiment.getTimeRange());
+                    TmfStatisticsViewer statsViewer;
+                    // Synchronizes the request to make them coalesced
+                    fExperiment.startSynch(new TmfStartSynchSignal(0));
+                    for (ITmfViewer viewer : fStatsViewers.getViewers()) {
+                        if (!(viewer instanceof TmfStatisticsViewer)) {
+                            Activator.getDefault().logError("Error - cannot cast viewer to a statistics viewer"); //$NON-NLS-1$
+                            continue;
+                        }
+                        statsViewer = (TmfStatisticsViewer) viewer;
+                        statsViewer.experimentRangeUpdated(updateSignal);
+                    }
+                    fExperiment.endSynch(new TmfEndSynchSignal(0));
                     fRequestData = false;
                 }
             }

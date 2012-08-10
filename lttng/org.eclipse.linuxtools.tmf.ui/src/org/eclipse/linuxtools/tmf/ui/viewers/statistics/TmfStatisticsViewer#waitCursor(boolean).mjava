@@ -1,34 +1,53 @@
     /**
      * When the experiment is loading the cursor will be different so the user
-     * know the processing is not finished yet.
+     * knows that the processing is not finished yet.
      *
-     * @param waitInd
+     * Calls to this method are stacked.
+     *
+     * @param waitRequested
      *            Indicates if we need to show the waiting cursor, or the
-     *            default one
+     *            default one.
      */
-    public void waitCursor(final boolean waitInd) {
+    protected void waitCursor(final boolean waitRequested) {
         if ((fTreeViewer == null) || (fTreeViewer.getTree().isDisposed())) {
             return;
         }
 
+        boolean needsUpdate = false;
         Display display = fTreeViewer.getControl().getDisplay();
-        if (fWaitCursor == null) {
-            fWaitCursor = new Cursor(display, SWT.CURSOR_WAIT);
-        }
-
-        // Perform the updates on the UI thread
-        display.asyncExec(new Runnable() {
-            @Override
-            public void run() {
-                if ((fTreeViewer != null)
-                        && (!fTreeViewer.getTree().isDisposed())) {
-                    Cursor cursor = null; /* indicates default */
-                    if (waitInd) {
-                        cursor = fWaitCursor;
-                    }
-                    fTreeViewer.getControl().setCursor(cursor);
+        if (waitRequested) {
+            fWaitCursorCount++;
+            if (fWaitCursor == null) { // The cursor hasn't been initialized yet
+                fWaitCursor = new Cursor(display, SWT.CURSOR_WAIT);
+            }
+            if (fWaitCursorCount == 1) { // The cursor is not in waiting mode
+                needsUpdate = true;
+            }
+        } else {
+            if (fWaitCursorCount > 0) { // The cursor is in waiting mode
+                fWaitCursorCount--;
+                if (fWaitCursorCount == 0) { // No more reason to wait
+                    // Put back the default cursor
+                    needsUpdate = true;
                 }
             }
-        });
+        }
+
+        if (needsUpdate) {
+            // Performs the updates on the UI thread
+            display.asyncExec(new Runnable() {
+                @Override
+                public void run() {
+                    if ((fTreeViewer != null)
+                            && (!fTreeViewer.getTree().isDisposed())) {
+                        Cursor cursor = null; // indicates default
+                        if (waitRequested) {
+                            cursor = fWaitCursor;
+                        }
+                        fTreeViewer.getControl().setCursor(cursor);
+                    }
+                }
+            });
+        }
     }
 
