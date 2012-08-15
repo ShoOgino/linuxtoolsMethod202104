@@ -12,15 +12,14 @@
         long timestamp = 0;
 
         if (lostEventsInThisPacket > lostSoFar) {
-            EventDefinition eventDef = EventDeclaration.getLostEventDeclaration().createDefinition(
-                    streamInputReader);
+            EventDefinition eventDef = EventDeclaration.getLostEventDeclaration().createDefinition(streamInputReader);
             eventDef.setTimestamp(this.lastTimestamp);
             ++lostSoFar;
             return eventDef;
         }
 
-        final StructDefinition sehd = getStreamEventHeaderDef();
-        final BitBuffer currentBitBuffer = getBitBuffer();
+        final StructDefinition sehd = streamEventHeaderDef;
+        final BitBuffer currentBitBuffer = bitBuffer;
 
         /* Read the stream event header. */
         if (sehd != null) {
@@ -34,31 +33,32 @@
 
             /* Get the timestamp from the event header (may be overridden later on) */
             Definition timestampDef = sehd.lookupInteger("timestamp"); //$NON-NLS-1$
+            if (timestampDef instanceof IntegerDefinition) {
+                timestamp = calculateTimestamp((IntegerDefinition) timestampDef);
+            } // else timestamp remains 0
 
             /* Check for the variant v. */
-            VariantDefinition variantDef = (VariantDefinition) sehd.lookupDefinition("v"); //$NON-NLS-1$
-            if (variantDef != null) {
+            Definition variantDef = sehd.lookupDefinition("v"); //$NON-NLS-1$
+            if (variantDef instanceof VariantDefinition) {
 
                 /* Get the variant current field */
-                StructDefinition variantCurrentField = (StructDefinition) variantDef.getCurrentField();
+                StructDefinition variantCurrentField = (StructDefinition) ((VariantDefinition) variantDef).getCurrentField();
 
                 /*
                  * Try to get the id field in the current field of the variant.
                  * If it is present, it overrides the previously read event id.
                  */
-                IntegerDefinition idIntegerDef = (IntegerDefinition) variantCurrentField.lookupDefinition("id"); //$NON-NLS-1$
-                if (idIntegerDef != null) {
-                    eventID = idIntegerDef.getValue();
+                Definition idIntegerDef = variantCurrentField.lookupDefinition("id"); //$NON-NLS-1$
+                if (idIntegerDef instanceof IntegerDefinition) {
+                    eventID = ((IntegerDefinition) idIntegerDef).getValue();
                 }
 
-                /* Get the timestamp. */
+                /* Get the timestamp. This would overwrite any previous timestamp definition */
                 timestampDef = variantCurrentField.lookupDefinition("timestamp"); //$NON-NLS-1$
+                if (timestampDef instanceof IntegerDefinition) {
+                    timestamp = calculateTimestamp((IntegerDefinition) timestampDef);
+                }
             }
-
-            /* Calculate the event timestamp. */
-            if (timestampDef instanceof IntegerDefinition) {
-                timestamp = calculateTimestamp((IntegerDefinition) timestampDef);
-            } // else timestamp remains 0
         }
 
         /* Read the stream event context. */
