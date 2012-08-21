@@ -1,0 +1,38 @@
+	public void loadTabGroupItems(CTabFolder tabgroup, String curProviderId) {
+		// dispose of old tabs
+		for (CTabItem item : tabgroup.getItems()) {
+			item.dispose();
+		}
+
+		ProfileLaunchConfigurationTabGroup tabGroupConfig;
+
+		if (curProviderId == null || "".equals(curProviderId)) {
+			// get id of highest priority provider
+			curProviderId = ProfileLaunchConfigurationTabGroup
+					.getHighestProviderId(getProfilingType());
+		}
+		tabGroupConfig = ProfileLaunchConfigurationTabGroup
+				.getTabGroupProviderFromId(curProviderId);
+		if (tabGroupConfig == null) {
+			// no provider found
+			return;
+		}
+		tabs = tabGroupConfig.getProfileTabs();
+		setProvider(curProviderId);
+
+		// Show provider name in combo.
+		int itemIndex = getComboItemIndexFromId(curProviderId);
+		providerCombo.select(itemIndex);
+
+		// create the tab item, and load the specified tab inside
+		for (ILaunchConfigurationTab tab : tabs) {
+			tab.setLaunchConfigurationDialog(getLaunchConfigurationDialog());
+			CTabItem item = new CTabItem(tabgroup, SWT.NONE);
+			item.setText(tab.getName());
+			item.setImage(tab.getImage());
+
+			tab.createControl(tabgroup);
+			item.setControl(tab.getControl());
+		}
+	}
+

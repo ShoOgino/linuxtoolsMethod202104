@@ -1,0 +1,41 @@
+	public void initializeFrom(ILaunchConfiguration configuration) {
+		/**
+		 * First time the configuration is selected.
+		 *
+		 * This is a cheap way to get access to the launch configuration. Our
+		 * tabs are loaded dynamically, so the tab group doesn't "know" about
+		 * them. We get access to this launch configuration to ensure that we
+		 * can properly load the widgets the first time.
+		 */
+
+		// starting initialization of this tab's controls
+		initialized = false;
+
+		// update current configuration (initial) with configuration being
+		// passed in
+		initial = configuration;
+
+		// check if there exists a launch provider id in the configuration
+		if (initial != null) {
+			try {
+				String providerId = initial.getAttribute(PROVIDER_CONFIG_ATT, "");
+				if (providerId != null && !providerId.equals("")) {
+					// load provider corresponding to specified id
+					loadTabGroupItems(tabgroup, providerId);
+				} else {
+					// load highest priority provider if none found
+					loadTabGroupItems(tabgroup, null);
+				}
+			} catch (CoreException e) {
+				// continue, initialize tabs
+			}
+		}
+		if (tabs != null) {
+			for (AbstractLaunchConfigurationTab tab : tabs) {
+				tab.initializeFrom(configuration);
+			}
+		}
+		// finished initialization
+		initialized = true;
+	}
+
