@@ -1,0 +1,30 @@
+	/**
+	 * Clean-up any files created as part of a unit test.
+	 * This method removes *all* Workspace IResources and any external
+	 * files / folders created with the #createWorkspaceFile #createWorkspaceFolder
+	 * methods in this class
+	 */
+	public static void cleanUp() throws CoreException {
+		IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+		root.refreshLocal(IResource.DEPTH_INFINITE, NULL_MONITOR);
+
+		// Delete all external files & folders created using ResourceHelper
+		for (String loc : externalFilesCreated) {
+			File f = new File(loc);
+			if (f.exists())
+				deleteRecursive(f);
+		}
+		externalFilesCreated.clear();
+
+		// Remove IResources created by this helper
+		for (IResource r : resourcesCreated) {
+			if (r.exists())
+				try {
+					r.delete(true, NULL_MONITOR);
+				} catch (CoreException e) {
+					// Ignore
+				}
+		}
+		resourcesCreated.clear();
+	}
+
