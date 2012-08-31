@@ -32,12 +32,12 @@
 				{
 					if(chars[needle-1] == '/' && chars[needle] == '*')
 					{
-						commentChunks.add(new Integer(needle));
+						commentChunks.add(needle);
 						while(needle < chars.length)
 						{
 							if(chars[needle-1] == '*' && chars[needle] == '/')
 							{
-								commentChunks.add(new Integer(needle));
+								commentChunks.add(needle);
 								needle++;
 								break;
 							}
@@ -48,11 +48,11 @@
 				}
 				for(int i=0, pair, start, end; i < commentChunks.size(); i++)
 				{
-					if(!(((Integer)(commentChunks.get(i))).intValue() < offset))
+					if(!(commentChunks.get(i).intValue() < offset))
 					{
 						pair = i - i%2;
-						start = ((Integer)(commentChunks.get(pair))).intValue();
-						end = ((Integer)(commentChunks.get(pair+1))).intValue();
+						start = commentChunks.get(pair).intValue();
+						end = commentChunks.get(pair+1).intValue();
 						if(offset >= start && offset <= end)
 							die=true;
 					}
@@ -67,13 +67,13 @@
 				LogManager.logInfo("Disposing", MessageDialog.class); //$NON-NLS-1$
 			} else {
 				IEditorInput in = getEditorInput();
-				if(in instanceof PathEditorInput) {
-					PathEditorInput input = (PathEditorInput)in;
+				if(in instanceof FileStoreEditorInput) {
+					FileStoreEditorInput input = (FileStoreEditorInput)in;
 	
 					IPreferenceStore p = IDEPlugin.getDefault().getPreferenceStore();
 					String kernroot = p.getString(IDEPreferenceConstants.P_KERNEL_SOURCE);
 	
-					String filepath = input.getPath().toOSString();
+					String filepath = input.getURI().getPath();
 					String kernrelative = filepath.substring(kernroot.length()+1, filepath.length());
 					StringBuffer sb = new StringBuffer();
 					
@@ -86,17 +86,18 @@
 						LogManager.logInfo("Disposing", MessageDialog.class);
 					} else { */
 						sb.append("\n{\n\t\n}\n");
-						if(null == IDESessionSettings.activeSTPEditor) {
+						STPEditor activeSTPEditor = IDESessionSettings.getActiveSTPEditor(); 
+						if(null == activeSTPEditor) {
 							NewFileAction action = new NewFileAction();
 							//action.init(input.getMainWindow());
 							action.run();
 							IEditorPart ed = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().getActiveEditor();
 							if(ed instanceof STPEditor)
-								IDESessionSettings.activeSTPEditor = (STPEditor)ed;
+								IDESessionSettings.setActiveSTPEditor((STPEditor)ed);
 						}
-						STPEditor editor = IDESessionSettings.activeSTPEditor;
-						if(null != editor)
-							editor.insertText(sb.toString());
+
+						if(null != activeSTPEditor)
+							activeSTPEditor.insertText(sb.toString());
 					//}
 				}
 			}

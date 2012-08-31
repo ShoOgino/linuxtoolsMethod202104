@@ -1,0 +1,32 @@
+	/**
+	 * Creates a ICProject.
+	 */
+	private static ICProject createCProject2(final String projectName, String binFolderName) throws CoreException {
+		final IWorkspace ws = ResourcesPlugin.getWorkspace();
+		final ICProject newProject[] = new ICProject[1];
+		ws.run(new IWorkspaceRunnable() {
+
+			public void run(IProgressMonitor monitor) throws CoreException {
+				IWorkspaceRoot root = ws.getRoot();
+				IProject project = root.getProject(projectName);
+				if (!project.exists()) {
+					project.create(null);
+				} else {
+					project.refreshLocal(IResource.DEPTH_INFINITE, null);
+				}
+				if (!project.isOpen()) {
+					project.open(null);
+				}
+				if (!project.hasNature(CProjectNature.C_NATURE_ID)) {
+					String projectId = PLUGIN_ID + ".TestProject"; //$NON-NLS-1$
+					addNatureToProject(project, CProjectNature.C_NATURE_ID, null);
+					CCorePlugin.getDefault().mapCProjectOwner(project, projectId, false);
+				}
+				addDefaultBinaryParser(project);
+				newProject[0] = CCorePlugin.getDefault().getCoreModel().create(project);
+			}
+		}, null);
+
+		return newProject[0];
+	}
+
