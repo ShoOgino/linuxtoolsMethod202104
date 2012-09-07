@@ -1,7 +1,7 @@
     private void parseTraceDeclaration(CommonTree traceDecl)
             throws ParseException {
-        assert ((traceDecl.getType() == CTFParser.CTF_EXPRESSION_TYPE) || (traceDecl
-                .getType() == CTFParser.CTF_EXPRESSION_VAL));
+        assert ((traceDecl.getType() == CTFParser.CTF_EXPRESSION_TYPE) ||
+                (traceDecl.getType() == CTFParser.CTF_EXPRESSION_VAL));
 
         /* There should be a left and right */
         assert (traceDecl.getChildCount() == 2);
@@ -65,6 +65,17 @@
                 }
             } else {
                 trace.setByteOrder(byteOrder);
+                final DeclarationScope parentScope = scope.getParentScope();
+                String types[] = parentScope.getTypeNames();
+
+                for (String type : types) {
+                    IDeclaration d = parentScope.lookupType(type);
+                    if (d instanceof IntegerDeclaration) {
+                        addByteOrder(byteOrder, parentScope, type, (IntegerDeclaration) d);
+                    } else if (d instanceof StructDeclaration) {
+                        setAlign(parentScope, (StructDeclaration) d, byteOrder);
+                    }
+                }
             }
         } else if (left.equals(CTFStrings.PACKET_HEADER)) {
             if (trace.packetHeaderIsSet()) {
