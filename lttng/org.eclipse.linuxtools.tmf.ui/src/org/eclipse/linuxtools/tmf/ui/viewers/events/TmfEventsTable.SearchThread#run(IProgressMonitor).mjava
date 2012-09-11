@@ -19,6 +19,7 @@
                     rank = event.rank;
                     if (searchFilter.matches(event.event) && ((eventFilter == null) || eventFilter.matches(event.event))) {
                         foundRank = event.rank;
+                        foundTimestamp = event.event.getTimestamp();
                         break;
                     }
                     if (direction == Direction.FORWARD) {
@@ -56,6 +57,7 @@
                         super.handleData(event);
                         if (searchFilter.matches(event) && ((eventFilter == null) || eventFilter.matches(event))) {
                             foundRank = currentRank;
+                            foundTimestamp = event.getTimestamp();
                             if (direction == Direction.FORWARD) {
                                 done();
                                 return;
@@ -119,6 +121,10 @@
                     }
                     fTable.setSelection(selection);
                     fSelectedRank = foundRank;
+                    fRawViewer.selectAndReveal(fSelectedRank);
+                    if (foundTimestamp != null) {
+                        broadcast(new TmfTimeSynchSignal(TmfEventsTable.this, foundTimestamp));
+                    }
                     synchronized (fSearchSyncObj) {
                         fSearchThread = null;
                     }
