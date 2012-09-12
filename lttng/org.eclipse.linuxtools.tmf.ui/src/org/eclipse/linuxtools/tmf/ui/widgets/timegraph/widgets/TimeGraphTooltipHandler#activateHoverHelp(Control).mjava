@@ -35,9 +35,17 @@
             }
 
             private void addItem(String name, String value) {
-                TableItem line = new TableItem(_tipTable, SWT.NONE);
-                line.setText(0, name);
-                line.setText(1, value);
+                Label nameLabel = new Label(_tipComposite, SWT.NO_FOCUS);
+                nameLabel.setText(name);
+                setupControl(nameLabel);
+                Label separator = new Label(_tipComposite, SWT.NO_FOCUS | SWT.SEPARATOR | SWT.VERTICAL);
+                GridData gd = new GridData(SWT.CENTER, SWT.CENTER, false, false);
+                gd.heightHint = nameLabel.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
+                separator.setLayoutData(gd);
+                setupControl(separator);
+                Label valueLabel = new Label(_tipComposite, SWT.NO_FOCUS);
+                valueLabel.setText(value);
+                setupControl(valueLabel);
             }
 
             private void fillValues(Point pt, TimeGraphControl timeGraphControl, ITimeGraphEntry entry) {
@@ -59,6 +67,7 @@
                     if (currEvent == null || currEvent.getTime() < currPixelTime) {
                         if (nextEvent != null && nextEvent.getTime() < nextPixelTime) {
                             currEvent = nextEvent;
+                            currPixelTime = nextEvent.getTime();
                         }
                     }
 
@@ -84,7 +93,7 @@
                     }
 
                     // This block receives a list of <String, String> values to be added to the tip table
-                    Map<String, String> eventAddOns = _utilImp.getEventHoverToolTipInfo(currEvent);
+                    Map<String, String> eventAddOns = _utilImp.getEventHoverToolTipInfo(currEvent, currPixelTime);
                     if (eventAddOns != null) {
                         for (Iterator<String> iter = eventAddOns.keySet().iterator(); iter.hasNext();) {
                             String message = iter.next();
@@ -154,13 +163,13 @@
                 TimeGraphControl timeGraphControl = (TimeGraphControl) event.widget;
                 createTooltipShell(timeGraphControl.getShell());
                 ITimeGraphEntry entry = timeGraphControl.getEntry(pt);
-                _tipTable.remove(0, _tipTable.getItemCount() - 1);
+                for (Control child : _tipComposite.getChildren()) {
+                    child.dispose();
+                }
                 fillValues(pt, timeGraphControl, entry);
-                if (_tipTable.getItemCount() == 0) {
+                if (_tipComposite.getChildren().length == 0) {
                     return;
                 }
-                _tipTable.getColumn(0).pack();
-                _tipTable.getColumn(1).pack();
                 _tipShell.pack();
                 _tipPosition = control.toDisplay(pt);
                 _tipShell.pack();
