@@ -1,0 +1,52 @@
+	/**
+	 * Runs the stap with the given options and returns the output generated 
+	 * @param options String[] of any optional parameters to pass to stap
+	 * @param probe String containing the script to run stap on
+	 * @since 1.2
+	 */
+	protected String runStap(String[] options, String probe) {
+		String[] args = null;
+		
+		int size = 2;	//start at 2 for stap, script, options will be added in later
+		if(null != tapsets && tapsets.length > 0 && tapsets[0].trim().length() > 0)
+			size += tapsets.length<<1;
+		if(null != options && options.length > 0 && options[0].trim().length() > 0)
+			size += options.length;
+
+		args = new String[size];
+		args[0] = ""; //$NON-NLS-1$
+		args[size-1] = probe;
+		args[size-2] = "";
+		
+		//Add extra tapset directories
+		if(null != tapsets && tapsets.length > 0 && tapsets[0].trim().length() > 0) {
+			for(int i=0; i<tapsets.length; i++) {
+				args[2+(i<<1)] = "-I"; //$NON-NLS-1$
+				args[3+(i<<1)] = tapsets[i];
+			}
+		}
+		if(null != options && options.length > 0 && options[0].trim().length() > 0) {
+			for(int i=0; i<options.length; i++)
+				args[args.length-options.length-1+i] = options[i];
+		}
+
+		StringOutputStream str = new StringOutputStream();
+		StringOutputStream strErr = new StringOutputStream();
+		try {
+			URI uri;
+			if(IDEPlugin.getDefault().getPreferenceStore().getBoolean(IDEPreferenceConstants.P_REMOTE_PROBES))
+				uri = IDEPlugin.getDefault().createRemoteUri(null);
+			else
+				uri = new URI(Path.ROOT.toOSString());
+			IRemoteCommandLauncher launcher = RemoteProxyManager.getInstance().getLauncher(uri);
+			launcher.execute(new Path("stap"), args, null, null, null); //$NON-NLS-1$
+			launcher.waitAndRead(str, strErr, new NullProgressMonitor());
+		} catch (URISyntaxException e) {
+			LogManager.logCritical("URISyntaxException runStap: " + e.getMessage(), this); //$NON-NLS-1$
+		} catch (CoreException e) {
+			LogManager.logCritical("CoreException runStap: " + e.getMessage(), this); //$NON-NLS-1$
+		}
+		
+		return str.toString();
+	}
+
