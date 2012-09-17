@@ -1,5 +1,12 @@
-    // Tracers
+    /**
+     * The central tracing method. Prepends the timestamp and the thread id
+     * to the trace message.
+     *
+     * @param msg the trace message to log
+     */
     public static synchronized void trace(String msg) {
+
+        // Set the timestamp (ms resolution)
         long currentTime = System.currentTimeMillis();
         StringBuilder message = new StringBuilder("[");
         message.append(currentTime / 1000);
@@ -7,19 +14,22 @@
         message.append(String.format("%1$03d", currentTime % 1000));
         message.append("] ");
 
-        message.append("[Th=");
+        // Set the thread id
+        message.append("[TID=");
         message.append(String.format("%1$03d", Thread.currentThread().getId()));
         message.append("] ");
 
+        // Append the trace message
         message.append(msg);
 
-        if (fTraceLog != null) {
+        // Write to file
+        if (fTraceFile != null) {
             try {
-                fTraceLog.write(message.toString());
-                fTraceLog.newLine();
-                fTraceLog.flush();
+                fTraceFile.write(message.toString());
+                fTraceFile.newLine();
+                fTraceFile.flush();
             } catch (IOException e) {
-                Activator.getDefault().logError("Error writing to log file", e);
+                Activator.logError("Error writing to log file", e);
             }
         }
     }
