@@ -1,7 +1,80 @@
 	@Override
-	protected void setDefaultProfileAttributes(
-			ILaunchConfigurationWorkingCopy wc) {
-		wc.setAttribute(IDebugUIConstants.ATTR_LAUNCH_IN_BACKGROUND, false);
-		wc.setAttribute(IDebugUIConstants.ATTR_CAPTURE_IN_CONSOLE, true);
+	protected void setDefaultProfileAttributes(ILaunchConfigurationWorkingCopy wc) {
+
+		// acquire a provider id to run.
+		String providerId = ProviderLaunchConfigurationDelegate.getProviderIdToRun(getProfilingType());
+
+		// get tab group associated with provider id.
+		ProfileLaunchConfigurationTabGroup tabgroup = ProfileLaunchConfigurationTabGroup.getTabGroupProviderFromId(providerId);
+
+		/**
+		 * Certain tabs' setDefaults(ILaunchConfigurationWorkingCopy) may
+		 * require a launch configuration dialog. Eg. CMainTab generates
+		 * a name for the configuration based on generateName in setDefaults()
+		 * so we can create a temporary launch configuration dialog here. With
+		 * the exception of generateName(String), the other methods do not
+		 * get called.
+		 */
+		ILaunchConfigurationDialog dialog  = new ILaunchConfigurationDialog() {
+
+			public void run(boolean fork, boolean cancelable,
+					IRunnableWithProgress runnable) {
+				throw new UnsupportedOperationException ();
+			}
+
+			public void updateMessage() {
+				throw new UnsupportedOperationException ();
+			}
+
+			public void updateButtons() {
+				throw new UnsupportedOperationException ();
+			}
+
+			public void setName(String name) {
+				throw new UnsupportedOperationException ();
+			}
+
+			public void setActiveTab(int index) {
+				throw new UnsupportedOperationException ();
+			}
+
+			public void setActiveTab(ILaunchConfigurationTab tab) {
+				throw new UnsupportedOperationException ();
+			}
+
+			public ILaunchConfigurationTab[] getTabs() {
+				return null;
+			}
+
+			public String getMode() {
+				return null;
+			}
+
+			public ILaunchConfigurationTab getActiveTab() {
+				return null;
+			}
+
+			public String generateName(String name) {
+				if (name == null) {
+					name = "";
+				}
+				return getLaunchManager().generateLaunchConfigurationName(name);
+			}
+		};
+
+		tabgroup.createTabs(dialog , "profile"); //$NON-NLS-1$
+
+		// set configuration to match default attributes for all tabs.
+		for (ILaunchConfigurationTab tab : tabgroup.getTabs()) {
+			tab.setLaunchConfigurationDialog(dialog);
+			tab.setDefaults(wc);
+		}
+
+		// get configuration shortcut associated with provider id.
+		ProfileLaunchShortcut shortcut= ProfileLaunchShortcut.getLaunchShortcutProviderFromId(providerId);
+		// set attributes related to the specific profiling shortcut configuration.
+		shortcut.setDefaultProfileLaunchShortcutAttributes(wc);
+
+		wc.setAttribute(ProviderOptionsTab.PROVIDER_CONFIG_ATT, providerId);
 	}
 

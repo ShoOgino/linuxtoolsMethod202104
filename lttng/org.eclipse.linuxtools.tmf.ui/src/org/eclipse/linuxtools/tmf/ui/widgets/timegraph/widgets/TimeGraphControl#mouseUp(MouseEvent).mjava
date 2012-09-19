@@ -2,7 +2,7 @@
     public void mouseUp(MouseEvent e) {
         if (DRAG_NONE != _dragState) {
             setCapture(false);
-            if (DRAG_TRACE_ITEM == _dragState) {
+            if (e.button == 1 && DRAG_TRACE_ITEM == _dragState) {
                 // Notify time provider to check the need for listener
                 // notification
                 _timeProvider.notifyStartFinishTime();
@@ -10,10 +10,27 @@
                     long time = getTimeAtX(e.x);
                     _timeProvider.setSelectedTimeNotify(time, false);
                 }
-            } else if (DRAG_SPLIT_LINE == _dragState) {
+                _dragState = DRAG_NONE;
+            } else if (e.button == 1 && DRAG_SPLIT_LINE == _dragState) {
                 redraw();
+                _dragState = DRAG_NONE;
+            } else if (e.button == 3 && DRAG_ZOOM == _dragState) {
+                Point size = getCtrlSize();
+                int nameWidth = _timeProvider.getNameSpace();
+                int x = e.x - nameWidth;
+                if (Math.max(_dragX, _dragX0) > nameWidth && _dragX != _dragX0) {
+                    long time0 = getTimeAtX(_dragX0);
+                    long time1 = getTimeAtX(_dragX);
+                    if (time0 < time1) {
+                        _timeProvider.setStartFinishTimeNotify(time0, time1);
+                    } else {
+                        _timeProvider.setStartFinishTimeNotify(time1, time0);
+                    }
+                } else {
+                    redraw();
+                }
+                _dragState = DRAG_NONE;
             }
-            _dragState = DRAG_NONE;
         }
     }
 
