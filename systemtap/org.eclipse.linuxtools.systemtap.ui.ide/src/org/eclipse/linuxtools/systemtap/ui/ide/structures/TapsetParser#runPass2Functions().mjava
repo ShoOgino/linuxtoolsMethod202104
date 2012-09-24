@@ -1,41 +1,44 @@
 	/**
 	 * This method is used to build up the list of functions that were found
-	 * durring the first pass of stap.  These functions will then all be passed
-	 * on to have stap -up2 run on them in order to find the variable types
-	 * associated with them.
+	 * during the first pass of stap.  Stap is invoked by: $stap -v -p1 -e
+	 * 'probe begin{}' and parsing the output.
 	 */
 	private void runPass2Functions() {
-		int i, j, k, l=0;
-		TreeNode child;
-		String function;
-		String[] parameters = new String[0];
-		StringBuilder probe = new StringBuilder("");
-
-		ArrayList<String> functionNames = new ArrayList<String>();
-		
-		//Add Functions
-		for(i=0; i<functions.getChildCount(); i++) {
-			child = functions.getChildAt(i);
-			for(j=0; j<child.getChildCount(); j++) {
-				probe.delete(0, probe.length());
-				function = child.getChildAt(j).toString();
-				probe.append(function.substring(0, function.indexOf("(")+1));
-				function = function.substring(function.indexOf("(")+1, function.indexOf(")"));
-				parameters = function.split(",");
-
-				//Make sure each parameter has a distinct name so there isn't a type problem
-				if(parameters[0].length() > 0) {
-					for(k=0; k<parameters.length; k++) {
-						if(k>0)
-							probe.append(",");
-						probe.append(parameters[k] + l++);
+		int i = 0;
+		TreeNode parent;
+		String script = "probe begin{}";
+		String result = runStap(new String[] {"-v", "-p1", "-e"}, script);
+		StringTokenizer st = new StringTokenizer(result, "\n", false);
+		st.nextToken(); //skip that stap command
+		String tok = "";
+		while(st.hasMoreTokens()) {
+			tok = st.nextToken().toString();
+			String regex = "^function .*\\)\n$"; //match ^function and ending the line with ')'
+			Pattern p = Pattern.compile(regex, Pattern.MULTILINE | Pattern.UNIX_LINES | Pattern.COMMENTS);
+			Matcher m = p.matcher(tok);
+			while(m.find()) {
+				// this gives us function foo (bar, bar)
+				// we need to strip the ^function and functions with a leading _
+				Pattern secondp = Pattern.compile("[\\W]"); //take our function line and split it up
+				Pattern underscorep = Pattern.compile("^function _.*"); //remove any lines that "^function _"
+				String[] us = underscorep.split(m.group().toString());
+				
+				for(String s : us) {
+					String[] test = secondp.split(s);
+					i = 0;
+					for(String t : test) {
+						if(i == 1) {
+							functions.add(new TreeNode(t, t, true));
+						}
+						else if(i > 1 && t.length() >= 1) {
+							parent = functions.getChildAt(functions.getChildCount()-1);
+							parent.add(new TreeDefinitionNode("function " + t, t, parent.getData().toString(), false));
+						}
+						i++;
 					}
 				}
-				probe.append(")\n");
-				functionNames.add(probe.toString());
 			}
+			functions.sortTree();
 		}
-		parameters = functionNames.toArray(parameters);
-		runPass2FunctionSet(parameters, 0, parameters.length-1);
 	}
 
