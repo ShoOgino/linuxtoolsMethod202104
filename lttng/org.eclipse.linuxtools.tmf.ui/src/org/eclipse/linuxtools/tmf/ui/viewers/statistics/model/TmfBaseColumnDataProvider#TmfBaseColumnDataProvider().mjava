@@ -1,0 +1,101 @@
+    /**
+     * Create basic columns to represent the statistics data
+     */
+    public TmfBaseColumnDataProvider() {
+        /* List that will be used to create the table. */
+        fColumnData = new Vector<TmfBaseColumnData>();
+        /* Column showing the name of the events and its level in the tree */
+        fColumnData.add(new TmfBaseColumnData(LEVEL_COLUMN, 200, SWT.LEFT, LEVEL_COLUMN_TIP, new ColumnLabelProvider() {
+            @Override
+            public String getText(Object element) {
+                return ((TmfStatisticsTreeNode) element).getKey();
+            }
+
+            @Override
+            public Image getImage(Object element) {
+                TmfStatisticsTreeNode node = (TmfStatisticsTreeNode) element;
+                if (fFolderLevels.contains(node.getKey())) {
+                    return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_FOLDER);
+                }
+                return PlatformUI.getWorkbench().getSharedImages().getImage(ISharedImages.IMG_OBJ_ELEMENT);
+            }
+        }, new ViewerComparator() {
+            @Override
+            public int compare(Viewer viewer, Object e1, Object e2) {
+                TmfStatisticsTreeNode n1 = (TmfStatisticsTreeNode) e1;
+                TmfStatisticsTreeNode n2 = (TmfStatisticsTreeNode) e2;
+
+                return n1.getKey().compareTo(n2.getKey());
+            }
+        }, null));
+
+        /* Column showing the total number of events */
+        fColumnData.add(new TmfBaseColumnData(EVENTS_COUNT_COLUMN, 140, SWT.LEFT, EVENTS_COUNT_COLUMN_TIP, new ColumnLabelProvider() {
+            @Override
+            public String getText(Object element) {
+                TmfStatisticsTreeNode node = (TmfStatisticsTreeNode) element;
+                if (!fFolderLevels.contains(node.getKey())) {
+                    return Long.toString(node.getValue().getTotal());
+                }
+                return ""; //$NON-NLS-1$
+            }
+        }, new ViewerComparator() {
+            @Override
+            public int compare(Viewer viewer, Object e1, Object e2) {
+                TmfStatisticsTreeNode n1 = (TmfStatisticsTreeNode) e1;
+                TmfStatisticsTreeNode n2 = (TmfStatisticsTreeNode) e2;
+
+                return (int) (n1.getValue().getTotal() - n2.getValue().getTotal());
+            }
+        }, new ITmfColumnPercentageProvider() {
+
+            @Override
+            public double getPercentage(TmfStatisticsTreeNode node) {
+                TmfStatisticsTreeNode parent = node;
+                do {
+                    parent = parent.getParent();
+                } while (parent != null && parent.getValue().getTotal() == 0);
+
+                if (parent == null) {
+                    return 0;
+                }
+                return (double) node.getValue().getTotal() / parent.getValue().getTotal();
+            }
+        }));
+
+        /* Column showing the number of events within the selected time range */
+        fColumnData.add(new TmfBaseColumnData(PARTIAL_EVENTS_COUNT_COLUMN, 140, SWT.LEFT, PARTIAL_COUNT_COLUMN_TIP,
+                new ColumnLabelProvider() {
+            @Override
+            public String getText(Object element) {
+                TmfStatisticsTreeNode node = (TmfStatisticsTreeNode) element;
+                if (!fFolderLevels.contains(node.getKey())) {
+                    return Long.toString(node.getValue().getPartial());
+                }
+                return ""; //$NON-NLS-1$
+            }
+        }, new ViewerComparator() {
+            @Override
+            public int compare(Viewer viewer, Object e1, Object e2) {
+                TmfStatisticsTreeNode n1 = (TmfStatisticsTreeNode) e1;
+                TmfStatisticsTreeNode n2 = (TmfStatisticsTreeNode) e2;
+
+                return (int) (n1.getValue().getPartial() - n2.getValue().getPartial());
+            }
+        }, new ITmfColumnPercentageProvider() {
+
+            @Override
+            public double getPercentage(TmfStatisticsTreeNode node) {
+                TmfStatisticsTreeNode parent = node;
+                do {
+                    parent = parent.getParent();
+                } while (parent != null && parent.getValue().getPartial() == 0);
+
+                if (parent == null) {
+                    return 0;
+                }
+                return (double) node.getValue().getPartial() / parent.getValue().getPartial();
+            }
+        }));
+    }
+

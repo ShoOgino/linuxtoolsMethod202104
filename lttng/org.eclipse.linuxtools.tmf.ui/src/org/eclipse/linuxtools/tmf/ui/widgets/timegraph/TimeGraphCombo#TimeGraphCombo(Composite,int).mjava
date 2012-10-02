@@ -46,11 +46,29 @@
             @Override
             public void treeCollapsed(TreeExpansionEvent event) {
                 fTimeGraphViewer.setExpandedState((ITimeGraphEntry) event.getElement(), false);
+                ArrayList<TreeItem> treeItems = getVisibleExpandedItems(tree);
+                if (treeItems.size() == 0) {
+                    return;
+                }
+                TreeItem treeItem = treeItems.get(fTimeGraphViewer.getTopIndex());
+                tree.setTopItem(treeItem);
             }
 
             @Override
             public void treeExpanded(TreeExpansionEvent event) {
                 fTimeGraphViewer.setExpandedState((ITimeGraphEntry) event.getElement(), true);
+                ArrayList<TreeItem> treeItems = getVisibleExpandedItems(tree);
+                if (treeItems.size() == 0) {
+                    return;
+                }
+                final TreeItem treeItem = treeItems.get(fTimeGraphViewer.getTopIndex());
+                // queue the top item update because the tree can change its top item
+                // autonomously immediately after the listeners have been notified
+                getDisplay().asyncExec(new Runnable() {
+                    @Override
+                    public void run() {
+                        tree.setTopItem(treeItem);
+                    }});
             }
         });
 

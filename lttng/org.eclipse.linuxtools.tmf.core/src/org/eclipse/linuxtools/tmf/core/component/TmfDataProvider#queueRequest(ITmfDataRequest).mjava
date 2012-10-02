@@ -1,0 +1,83 @@
+    protected void queueRequest(final ITmfDataRequest request) {
+
+        if (fExecutor.isShutdown()) {
+            request.cancel();
+            return;
+        }
+
+        final TmfDataProvider provider = this;
+
+        // Process the request
+        TmfThread thread = new TmfThread(request.getExecType()) {
+
+            @Override
+            public void run() {
+
+                if (TmfCoreTracer.isRequestTraced()) {
+                    TmfCoreTracer.traceRequest(request, "is being serviced by " + provider.getName()); //$NON-NLS-1$
+                }
+
+                // Extract the generic information
+                request.start();
+                int nbRequested = request.getNbRequested();
+                int nbRead = 0;
+
+                // Initialize the execution
+                ITmfContext context = armRequest(request);
+                if (context == null) {
+                    request.cancel();
+                    return;
+                }
+
+                try {
+                    // Get the ordered events
+                    ITmfEvent data = getNext(context);
+                    if (TmfCoreTracer.isRequestTraced()) {
+                        TmfCoreTracer.traceRequest(request, "read first event"); //$NON-NLS-1$
+                    }
+                    while (data != null && !isCompleted(request, data, nbRead)) {
+                        if (fLogData) {
+                            TmfCoreTracer.traceEvent(provider, request, data);
+                        }
+                        if (request.getDataType().isInstance(data)) {
+                            request.handleData(data);
+                        }
+
+                        // To avoid an unnecessary read passed the last data
+                        // requested
+                        if (++nbRead < nbRequested) {
+                            data = getNext(context);
+                        }
+                    }
+                    if (TmfCoreTracer.isRequestTraced()) {
+                        TmfCoreTracer.traceRequest(request, "COMPLETED"); //$NON-NLS-1$
+                    }
+
+                    if (request.isCancelled()) {
+                        request.cancel();
+                    } else {
+                        request.done();
+                    }
+                } catch (Exception e) {
+                    request.fail();
+                }
+
+                // Cleanup
+                context.dispose();
+            }
+
+            @Override
+            public void cancel() {
+                if (!request.isCompleted()) {
+                    request.cancel();
+                }
+            }
+        };
+
+        if (TmfCoreTracer.isRequestTraced()) {
+            TmfCoreTracer.traceRequest(request, "QUEUED"); //$NON-NLS-1$
+        }
+        fExecutor.execute(thread);
+
+    }
+
