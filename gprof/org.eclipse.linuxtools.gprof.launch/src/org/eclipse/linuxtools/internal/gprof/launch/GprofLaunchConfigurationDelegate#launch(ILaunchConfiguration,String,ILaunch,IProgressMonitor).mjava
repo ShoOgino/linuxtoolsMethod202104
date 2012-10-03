@@ -1,0 +1,26 @@
+	@Override
+	public void launch(ILaunchConfiguration config, String mode, ILaunch launch, IProgressMonitor monitor) throws CoreException {
+		this.config = config;
+		IPath exePath = getExePath(config);
+
+		/* 
+		 * this code written by QNX Software Systems and others and was 
+		 * originally in the CDT under LocalCDILaunchDelegate::RunLocalApplication
+		 */
+		//set up and launch the local c/c++ program
+		IRemoteCommandLauncher launcher = RemoteProxyManager.getInstance().getLauncher(getProject());
+
+		URI workingDirURI = getProject().getLocationURI();
+		IPath workingDirPath = new Path(workingDirURI.getPath());
+		String arguments[] = getProgramArgumentsArray( config );
+		
+		//add a listener for termination of the launch
+		ILaunchManager lmgr = DebugPlugin.getDefault().getLaunchManager();
+		lmgr.addLaunchListener(new LaunchTerminationWatcher(launch, exePath));
+		
+		Process process = launcher.execute(exePath, arguments, getEnvironment(config), workingDirPath, monitor);
+
+		DebugPlugin.newProcess( launch, process, renderProcessLabel( exePath.toOSString() ) );
+
+	}
+
