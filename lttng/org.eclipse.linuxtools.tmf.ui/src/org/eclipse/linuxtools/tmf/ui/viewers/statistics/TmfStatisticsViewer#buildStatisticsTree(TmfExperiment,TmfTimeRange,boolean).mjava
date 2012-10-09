@@ -1,0 +1,56 @@
+    /**
+     * Requests all the data of the experiment to the state system which
+     * contains information about the statistics.
+     *
+     * Since the viewer may be listening to multiple traces, it have to receive
+     * the experiment rather than a single trace. The filtering is done with the
+     * method {@link #isListeningTo(String trace)}.
+     *
+     * @param experiment
+     *            The experiment for which a request must be done
+     * @param timeRange
+     *            The time range that will be requested to the state system
+     * @param isGlobal
+     *            Tells if the request is for the global event count or the
+     *            partial one.
+     */
+    private void buildStatisticsTree(final TmfExperiment experiment, TmfTimeRange timeRange, boolean isGlobal) {
+        final TmfStatisticsTreeNode statTree = TmfStatisticsTreeRootFactory.getStatTreeRoot(getTreeID());
+        final AbsTmfStatisticsTree statsData = TmfStatisticsTreeRootFactory.getStatTree(getTreeID());
+        if (statsData == null) {
+            return;
+        }
+
+        synchronized (statsData) {
+            if (isGlobal) {
+                statTree.resetGlobalValue();
+            } else {
+                statTree.resetTimeRangeValue();
+            }
+
+            /*
+             * Checks each trace in the experiment, since the viewer may be
+             * listening to multiple traces.
+             */
+            for (final ITmfTrace trace : experiment.getTraces()) {
+                if (!isListeningTo(trace.getName())) {
+                    continue;
+                }
+
+                /* Retrieves the statistics object */
+                final ITmfStatistics stats = trace.getStatistics();
+                if (stats == null) {
+                    /*
+                     * The state system is not accessible yet for this trace.
+                     * Try the next one.
+                     */
+                    continue;
+                }
+
+                updateValues(statsData, trace, timeRange, isGlobal);
+
+                modelComplete(isGlobal);
+            }
+        }
+    }
+
