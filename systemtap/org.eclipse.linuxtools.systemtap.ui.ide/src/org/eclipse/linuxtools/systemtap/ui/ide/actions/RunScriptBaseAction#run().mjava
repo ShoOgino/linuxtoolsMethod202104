@@ -16,17 +16,22 @@
 					 scpclient.transfer(fileName,tmpfileName);
 			        }catch(Exception e){e.printStackTrace();}
 			}
-			String[] script = buildScript();
-			String[] envVars = getEnvironmentVariables();
+			final String[] script = buildScript();
+			final String[] envVars = getEnvironmentVariables();
             if(continueRun)
             {
-            	ScriptConsole console;
-            	if(getRunLocal() == false) {
-            		console = ScriptConsole.getInstance(serverfileName);
-            	} else {
-            		console = ScriptConsole.getInstance(fileName);
-            	}
-                console.run(script, envVars, new PasswordPrompt(IDESessionSettings.password), new StapErrorParser());
+            	Display.getDefault().asyncExec(new Runnable() {
+            		public void run() {
+            			final ScriptConsole console;
+            			if(getRunLocal() == false) {
+            				console = ScriptConsole.getInstance(serverfileName);
+            				console.run(script, envVars, new PasswordPrompt(IDESessionSettings.password), new StapErrorParser());
+            			} else {
+            				console = ScriptConsole.getInstance(fileName);
+            				console.runLocally(script, envVars, new PasswordPrompt(IDESessionSettings.password), new StapErrorParser());
+            			}
+            		}
+            	});
             }
 		}
 	}
