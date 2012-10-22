@@ -1,0 +1,59 @@
+    /**
+     * Whenever a trace's statistics back-end finishes computing the statistics
+     * for a given interval, it will send the StatsUpdated signal. This method
+     * will receive this signal and update the statistics view accordingly.
+     *
+     * @param sig
+     *            The signal that is received
+     */
+    @TmfSignalHandler
+    public void statsUpdated(TmfStatsUpdatedSignal sig) {
+        /* Only handle this signal if it's about the trace we represent. */
+        if (!isListeningTo(sig.getTrace())) {
+            return;
+        }
+
+        final TmfStatisticsTree statsData = TmfStatisticsTreeManager.getStatTree(getTreeID());
+        Map<String, Long> map = sig.getEventsPerType();
+        String name = sig.getTrace().getName();
+        boolean isGlobal = sig.isGlobal();
+
+        /*
+         * "Global", "partial", "total", etc., it's all very confusing...
+         *
+         * The base view shows the total count for the trace and for
+         * each even types, organized in columns like this:
+         *
+         *                   |  Global  |  Time range |
+         * trace name        |    A     |      B      |
+         *    Event Type     |          |             |
+         *       <event 1>   |    C     |      D      |
+         *       <event 2>   |   ...    |     ...     |
+         *         ...       |          |             |
+         *
+         * Here, we called the cells like this:
+         *  A : GlobalTotal
+         *  B : TimeRangeTotal
+         *  C : GlobalTypeCount(s)
+         *  D : TimeRangeTypeCount(s)
+         */
+
+        /* Fill in an the event counts (either cells C or D) */
+        for (Map.Entry<String, Long> entry : map.entrySet()) {
+            statsData.setTypeCount(name, entry.getKey(), isGlobal, entry.getValue());
+        }
+
+        /*
+         * Calculate the totals (cell A or B, depending if isGlobal). We will
+         * use the results of the previous request instead of sending another
+         * one.
+         */
+        long globalTotal = 0;
+        for (long val : map.values()) {
+            globalTotal += val;
+        }
+        statsData.setTotal(name, isGlobal, globalTotal);
+
+        modelComplete(isGlobal);
+    }
+

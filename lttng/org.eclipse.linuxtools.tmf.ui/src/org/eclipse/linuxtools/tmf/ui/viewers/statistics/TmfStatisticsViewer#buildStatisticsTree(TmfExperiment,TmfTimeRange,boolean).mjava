@@ -33,7 +33,7 @@
              * listening to multiple traces.
              */
             for (final ITmfTrace trace : experiment.getTraces()) {
-                if (!isListeningTo(trace.getName())) {
+                if (!isListeningTo(trace)) {
                     continue;
                 }
 
@@ -41,15 +41,23 @@
                 final ITmfStatistics stats = trace.getStatistics();
                 if (stats == null) {
                     /*
-                     * The state system is not accessible yet for this trace.
-                     * Try the next one.
+                     * The statistics provider for this trace is not accessible
+                     * (yet?). Try the next one.
                      */
                     continue;
                 }
 
-                updateValues(statsData, trace, timeRange, isGlobal);
+                /* The generic statistics are stored in nanoseconds, so we must make
+                 * sure the time range is scaled correctly. */
+                ITmfTimestamp start = timeRange.getStartTime().normalize(0, TIME_SCALE);
+                ITmfTimestamp end = timeRange.getEndTime().normalize(0, TIME_SCALE);
 
-                modelComplete(isGlobal);
+                /*
+                 * Send a request to update the statistics view. The result will
+                 * be sent through a {@link TmfStatsUpdatedSignal}, and will be
+                 * processed by the signal handler.
+                 */
+                trace.getStatistics().updateStats(isGlobal, start, end);
             }
         }
     }
