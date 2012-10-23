@@ -1,0 +1,33 @@
+    @Override
+    protected void eventHandle(ITmfEvent event) {
+        int quark;
+
+        /* Since this can be used for any trace types, normalize all the
+         * timestamp values to nanoseconds. */
+        final long ts = event.getTimestamp().normalize(0, -9).getValue();
+
+        final String eventName = event.getType().getName();
+
+        try {
+
+            /* Number of events of each type, globally */
+            quark = ss.getQuarkRelativeAndAdd(typeAttribute, eventName);
+            ss.incrementAttribute(ts, quark);
+
+//            /* Number of events per CPU */
+//            quark = ss.getQuarkRelativeAndAdd(currentCPUNode, Attributes.STATISTICS, Attributes.EVENT_TYPES, eventName);
+//            ss.incrementAttribute(ts, quark);
+//
+//            /* Number of events per process */
+//            quark = ss.getQuarkRelativeAndAdd(currentThreadNode, Attributes.STATISTICS, Attributes.EVENT_TYPES, eventName);
+//            ss.incrementAttribute(ts, quark);
+
+        } catch (StateValueTypeException e) {
+            e.printStackTrace();
+        } catch (TimeRangeException e) {
+            e.printStackTrace();
+        } catch (AttributeNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+

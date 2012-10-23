@@ -1,29 +1,30 @@
     @Override
-    @SuppressWarnings({ "unchecked", "rawtypes" })
     public void createPartControl(Composite parent) {
         fParent = parent;
         TableItem ti[];
-        // If an experiment is already selected, update the table
-        TmfExperiment<ITmfEvent> experiment = (TmfExperiment<ITmfEvent>) TmfExperiment
-                .getCurrentExperiment();
-        if (experiment == null) {
-            return;
-        }
+
+        // Always create the table anyway otherwise we have an NPE when
+        // setFocus() is called by platform. Besides it's nice to have
+        // at least the column headers.
         fTable = new Table(parent, SWT.BORDER|SWT.FILL);
-
-
         ArrayList<Pair> tableData = new ArrayList<Pair>();
-        for (ITmfTrace trace : experiment.getTraces()) {
-            Pair traceEntry = new Pair(trace.getName());
-            tableData.add(traceEntry);
-            if (trace instanceof CtfTmfTrace) {
-                CtfTmfTrace ctfTrace = (CtfTmfTrace) trace;
-                for (String varName : ctfTrace
-                        .getEnvNames()) {
-                    tableData.add(new Pair( varName, ctfTrace.getEnvValue(varName)));
+
+        // If an experiment is already selected, update the table
+        TmfExperiment experiment = TmfExperiment.getCurrentExperiment();
+        if (experiment != null) {
+            for (ITmfTrace trace : experiment.getTraces()) {
+                Pair traceEntry = new Pair(trace.getName());
+                tableData.add(traceEntry);
+                if (trace instanceof CtfTmfTrace) {
+                    CtfTmfTrace ctfTrace = (CtfTmfTrace) trace;
+                    for (String varName : ctfTrace
+                            .getEnvNames()) {
+                        tableData.add(new Pair( varName, ctfTrace.getEnvValue(varName)));
+                    }
                 }
             }
         }
+
         TableColumn nameCol = new TableColumn(fTable, SWT.NONE, 0);
         TableColumn valueCol = new TableColumn(fTable, SWT.NONE, 1);
         nameCol.setText("Environment Variable"); //$NON-NLS-1$
@@ -45,6 +46,5 @@
         fTable.pack();
 
         parent.layout();
-
     }
 

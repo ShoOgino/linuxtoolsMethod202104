@@ -1,16 +1,20 @@
 	@Override
-    @SuppressWarnings("unchecked")
 	public void createPartControl(Composite parent) {
         fParent = parent;
 
         fTitlePrefix = getTitle();
 
         // If an experiment is already selected, update the table
-        TmfExperiment<ITmfEvent> experiment = (TmfExperiment<ITmfEvent>) TmfExperiment.getCurrentExperiment();
+        TmfExperiment experiment = TmfExperiment.getCurrentExperiment();
         if (experiment != null) {
-            experimentSelected(new TmfExperimentSelectedSignal<ITmfEvent>(this, experiment));
+            experimentSelected(new TmfExperimentSelectedSignal(this, experiment));
         } else {
             fEventsTable = createEventsTable(parent);
+            fEventsTable.addSelectionChangedListener(this);
         }
+        // we need to wrap the ISelectionProvider interface in the view because
+        // the events table can be replaced later while the selection changed listener
+        // is only added once by the platform to the selection provider set here
+        getSite().setSelectionProvider(this);
     }
 

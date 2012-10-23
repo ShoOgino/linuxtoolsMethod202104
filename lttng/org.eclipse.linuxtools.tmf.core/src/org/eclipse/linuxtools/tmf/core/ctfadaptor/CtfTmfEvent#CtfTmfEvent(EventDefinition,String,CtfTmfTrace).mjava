@@ -14,7 +14,7 @@
         this.fTrace = originTrace;
 
         if (eventDef == null) {
-            this.timestamp = -1;
+            this.fTimestamp = new CtfTmfTimestamp(-1);
             this.sourceCPU = -1;
             this.typeId = -1;
             this.fileName = NO_STREAM;
@@ -24,15 +24,14 @@
         }
 
         /* Read the base event info */
-        Long offset = originTrace.getCTFTrace().getOffset();
-        this.timestamp = eventDef.getTimestamp() + offset;
+        long ts = this.getTrace().getCTFTrace().timestampCyclesToNanos(eventDef.getTimestamp());
+        this.fTimestamp = new CtfTmfTimestamp(ts);
         this.sourceCPU = eventDef.getCPU();
         this.typeId = eventDef.getDeclaration().getId();
         this.eventName = eventDef.getDeclaration().getName();
         this.fileName =  fileName;
 
         /* Read the fields */
-        this.fContent = new CtfTmfContent(ITmfEventField.ROOT_FIELD_ID,
-                parseFields(eventDef));
+        this.fContent = new TmfEventField(ITmfEventField.ROOT_FIELD_ID, parseFields(eventDef));
     }
 

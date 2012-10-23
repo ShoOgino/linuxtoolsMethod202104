@@ -1,0 +1,48 @@
+    /**
+     * From a state system tree previously built with a CTF kernel trace, print
+     * to the console the interval of each state and the ID of the current
+     * thread running on each CPU.
+     *
+     * @param ssb
+     *            the State System Builder through which make request
+     */
+    private static void requestExample(final ITmfStateSystem ssb) {
+        try {
+            /* Request the current thread executing on each CPU */
+            List<Integer> currentThreadByCPUS;
+            List<ITmfStateInterval> stateIntervals;
+            StringBuilder output = new StringBuilder();
+
+            currentThreadByCPUS = ssb.getQuarks(Attributes.CPUS, "*", Attributes.CURRENT_THREAD); //$NON-NLS-1$
+
+            for (Integer currentThread : currentThreadByCPUS) {
+                stateIntervals = ssb.queryHistoryRange(currentThread.intValue(), ssb.getStartTime(),
+                        ssb.getCurrentEndTime());
+
+                /* Output formatting */
+                output.append("Value of attribute : "); //$NON-NLS-1$
+                output.append(ssb.getFullAttributePath(currentThread.intValue()));
+                output.append("\n------------------------------------------------\n"); //$NON-NLS-1$
+                for (ITmfStateInterval stateInterval : stateIntervals) {
+                    /* Print the interval */
+                    output.append('[');
+                    output.append(String.valueOf(stateInterval.getStartTime()));
+                    output.append(", "); //$NON-NLS-1$
+                    output.append(String.valueOf(stateInterval.getEndTime()));
+                    output.append(']');
+                    /* Print the attribute value */
+                    output.append(" = "); //$NON-NLS-1$
+                    output.append(stateInterval.getStateValue().unboxInt());
+                    output.append('\n');
+                }
+            }
+            System.out.println(output.toString());
+        } catch (TimeRangeException e) {
+            e.printStackTrace();
+        } catch (AttributeNotFoundException e) {
+            e.printStackTrace();
+        } catch (StateValueTypeException e) {
+            e.printStackTrace();
+        }
+    }
+

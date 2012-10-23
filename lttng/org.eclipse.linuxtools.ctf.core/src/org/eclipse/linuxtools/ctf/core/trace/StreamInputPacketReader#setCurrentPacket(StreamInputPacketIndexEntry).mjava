@@ -13,9 +13,7 @@
              */
             MappedByteBuffer bb = null;
             try {
-                bb = getStreamInputReader()
-                        .getStreamInput()
-                        .getFileChannel()
+                bb = streamInputReader.getStreamInput().getFileChannel()
                         .map(MapMode.READ_ONLY,
                                 this.currentPacket.getOffsetBytes(),
                                 (this.currentPacket.getPacketSizeBits() + 7) / 8);
@@ -27,37 +25,28 @@
                 e.printStackTrace();
             }
 
-            getBitBuffer().setByteBuffer(bb);
+            bitBuffer.setByteBuffer(bb);
 
             /*
              * Read trace packet header.
              */
-            if (getTracePacketHeaderDef() != null) {
-                getTracePacketHeaderDef().read(getBitBuffer());
+            if (tracePacketHeaderDef != null) {
+                tracePacketHeaderDef.read(bitBuffer);
             }
 
             /*
              * Read stream packet context.
              */
             if (getStreamPacketContextDef() != null) {
-                getStreamPacketContextDef().read(getBitBuffer());
-                /*
-                 * Read CPU ID
-                 */
+                getStreamPacketContextDef().read(bitBuffer);
 
+                /* Read CPU ID */
                 if (this.getCurrentPacket().getTarget() != null) {
-                    this.currentCpu = (int) this.getCurrentPacket()
-                            .getTargetId();
+                    this.currentCpu = (int) this.getCurrentPacket().getTargetId();
                 }
-                /*
-                 * Read number of lost events
-                 */
 
-                int totalLostEvents = (int) this.getCurrentPacket()
-                        .getLostEvents();
-                lostEventsInThisPacket = totalLostEvents - lostEvents;
-                lostEvents = totalLostEvents;
-                currentPacket.setLostEvents(lostEventsInThisPacket);
+                /* Read number of lost events */
+                lostEventsInThisPacket = (int) this.getCurrentPacket().getLostEvents();
                 lostSoFar = 0;
 
             }
@@ -68,7 +57,7 @@
              */
             lastTimestamp = currentPacket.getTimestampBegin();
         } else {
-            getBitBuffer().setByteBuffer(null);
+            bitBuffer.setByteBuffer(null);
 
             lastTimestamp = 0;
         }

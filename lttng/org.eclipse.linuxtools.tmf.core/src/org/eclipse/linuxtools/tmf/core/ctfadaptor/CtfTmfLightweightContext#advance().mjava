@@ -4,12 +4,19 @@
      * @return success or not
      */
     public synchronized boolean advance() {
+        final CtfLocationData curLocationData = this.curLocation.getLocationInfo();
         boolean retVal = getIterator().advance();
         CtfTmfEvent currentEvent = getIterator().getCurrentEvent();
+
         if (currentEvent != null) {
-            curLocation.setLocation(currentEvent.getTimestampValue());
+            final long timestampValue = currentEvent.getTimestamp().getValue();
+            if (curLocationData.getTimestamp() == timestampValue) {
+                curLocation = new CtfLocation(timestampValue, curLocationData.getIndex() + 1);
+            } else {
+                curLocation = new CtfLocation(timestampValue, 0L);
+            }
         } else {
-            curLocation.setLocation(CtfLocation.INVALID_LOCATION);
+            curLocation = new CtfLocation(CtfLocation.INVALID_LOCATION);
         }
 
         return retVal;
