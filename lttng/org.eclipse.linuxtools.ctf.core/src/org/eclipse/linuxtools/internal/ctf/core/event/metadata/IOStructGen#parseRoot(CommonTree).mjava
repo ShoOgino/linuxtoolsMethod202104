@@ -31,16 +31,18 @@
         List<CommonTree> declarations = new ArrayList<CommonTree>();
         List<CommonTree> environments = new ArrayList<CommonTree>();
         List<CommonTree> clocks = new ArrayList<CommonTree>();
+        List<CommonTree> callsites = new ArrayList<CommonTree>();
         /* Create a new declaration scope with no parent. */
         pushScope();
 
         try {
             for (CommonTree child : children) {
+                final int type = child.getType();
                 if (DEBUG_) {
                     out.write(child.toString()
-                            + " -> " + child.getType() + '\n'); //$NON-NLS-1$
+                            + " -> " + type + '\n'); //$NON-NLS-1$
                 }
-                switch (child.getType()) {
+                switch (type) {
                 case CTFParser.DECLARATION:
                     declarations.add(child);
                     break;
@@ -62,6 +64,9 @@
                     break;
                 case CTFParser.ENV:
                     environments.add(child);
+                    break;
+                case CTFParser.CALLSITE:
+                    callsites.add(child);
                     break;
                 default:
                     childTypeError(child);
@@ -93,6 +98,12 @@
             }
             for (CommonTree clock : clocks) {
                 parseClock(clock);
+            }
+            if (DEBUG_) {
+                out.write("Callsites\n"); //$NON-NLS-1$
+            }
+            for (CommonTree callsite : callsites) {
+                parseCallsite(callsite);
             }
 
             if (DEBUG_) {
