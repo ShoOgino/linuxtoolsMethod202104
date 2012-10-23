@@ -1,0 +1,37 @@
+	/**
+	 * The worker method. It will find the container, create the
+	 * file if missing or just replace its contents, and open
+	 * the editor on the newly created file.
+	 */
+
+	private void doFinish(String containerName,	String fileName, IProgressMonitor monitor) throws CoreException {
+		// create a .stp file
+		
+		monitor.beginTask(resourceBundle.getString("StapNewWizard.BeginTask") + fileName, 2);
+		final File newFile = new File(containerName, fileName);
+		try {
+			String envString = "#!/usr/bin/env stap";
+			FileOutputStream FOS = new FileOutputStream(newFile);
+			newFile.createNewFile();
+			FOS.write(envString.getBytes());
+			FOS.close();
+		} catch (IOException e) {
+			throwCoreException("Error: " + e);
+		}
+		monitor.worked(1);
+		monitor.setTaskName(resourceBundle.getString("StapNewWizard.SetTask"));
+		getShell().getDisplay().asyncExec(new Runnable() {
+			public void run() {
+				try {
+					IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getWorkbench()
+							.showPerspective(IDEPerspective.ID, PlatformUI.getWorkbench().getActiveWorkbenchWindow());
+					IDE.openEditorOnFileStore(page, EFS.getLocalFileSystem().fromLocalFile(newFile));
+				} catch (WorkbenchException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+		});
+		monitor.worked(1);
+	}
+
