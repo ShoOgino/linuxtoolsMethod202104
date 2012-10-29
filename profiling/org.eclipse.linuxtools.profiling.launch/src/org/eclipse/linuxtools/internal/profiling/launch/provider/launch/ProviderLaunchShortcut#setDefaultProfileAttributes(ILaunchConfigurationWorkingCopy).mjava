@@ -2,10 +2,13 @@
 	protected void setDefaultProfileAttributes(ILaunchConfigurationWorkingCopy wc) {
 
 		// acquire a provider id to run.
-		String providerId = ProviderLaunchConfigurationDelegate.getProviderIdToRun(wc, getProfilingType());
+		final String providerId = ProviderLaunchConfigurationDelegate.getProviderIdToRun(wc, getProfilingType());
+
+		// get tool name from id.
+		final String providerToolName = ProviderFramework.getProviderToolNameFromId(providerId);
 
 		// get tab group associated with provider id.
-		ProfileLaunchConfigurationTabGroup tabgroup = ProfileLaunchConfigurationTabGroup.getTabGroupProviderFromId(providerId);
+		final ProfileLaunchConfigurationTabGroup tabgroup = ProfileLaunchConfigurationTabGroup.getTabGroupProviderFromId(providerId);
 
 		/**
 		 * Certain tabs' setDefaults(ILaunchConfigurationWorkingCopy) may
@@ -58,7 +61,8 @@
 				if (name == null) {
 					name = "";
 				}
-				return getLaunchManager().generateLaunchConfigurationName(name);
+				String providerConfigutationName = generateProviderConfigurationName(name, providerToolName);
+				return getLaunchManager().generateLaunchConfigurationName(providerConfigutationName);
 			}
 		};
 
@@ -77,5 +81,20 @@
 
 		wc.setAttribute(ProviderProfileConstants.PROVIDER_CONFIG_ATT,
 				providerId);
+
+		// set tool name in configuration.
+		wc.setAttribute(ProviderProfileConstants.PROVIDER_CONFIG_TOOLNAME_ATT, providerToolName);
+
+		/**
+		 * To avoid renaming an already renamed launch configuration, we can
+		 * check the expected format of the name using regular expressions and
+		 * skip on matches.
+		 */
+		String curConfigName = wc.getName();
+		Pattern configNamePattern = Pattern.compile(".+\\s\\[.+\\](\\s\\(\\d+\\))?$"); //$NON-NLS-1$
+		Matcher match = configNamePattern.matcher(curConfigName);
+		if (!match.find()) {
+			wc.rename(dialog.generateName(curConfigName));
+		}
 	}
 
