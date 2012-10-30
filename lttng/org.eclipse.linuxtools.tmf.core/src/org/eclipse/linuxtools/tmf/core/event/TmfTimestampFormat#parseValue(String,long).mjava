@@ -1,0 +1,124 @@
+    /**
+     * Parse a string according to the format pattern
+     *
+     * @param string the source string
+     * @param ref the reference (base) time
+     * @return the parsed value
+     * @throws ParseException if the string has an invalid format
+     */
+    public long parseValue(final String string, final long ref) throws ParseException {
+
+        // Trivial case
+        if (string == null || string.length() == 0) {
+            return 0;
+        }
+
+        // The timestamp sub-components
+        long seconds  = -1;
+        long millisec =  0;
+        long microsec =  0;
+        long nanosec  =  0;
+
+        // Since we are processing the fractional part, substitute it with
+        // its pattern so the base parser doesn't complain
+        StringBuilder sb = new StringBuilder(string);
+        int dot = string.indexOf('.');
+        if (dot == -1) {
+            sb.append('.');
+            dot = string.length();
+        }
+        sb = new StringBuilder(string.substring(0, dot));
+        String basePattern = super.toPattern();
+        int dot2 = basePattern.indexOf('.');
+        if (dot2 != -1) {
+            sb.append(basePattern.substring(dot2));
+        }
+
+        // Fill in our extensions
+        for (String pattern : fSupplPatterns) {
+            String pat = fOpenBracket + pattern + fCloseBracket;
+            Matcher matcher;
+
+            // Extract the substring corresponding to the extra pattern letters
+            // and replace with the pattern so the base parser can do its job.
+            switch (pattern.charAt(0)) {
+                case 'T':
+                    // Remove everything up to the first "." and  compute the
+                    // number of seconds since the epoch. If there is no period,
+                    // assume an integer value and return immediately
+                    if (dot < 1) {
+                        return new DecimalFormat("0").parse(string).longValue() * 1000000000; //$NON-NLS-1$
+                    }
+                    seconds = new DecimalFormat("0").parse(string.substring(0, dot)).longValue(); //$NON-NLS-1$
+                    sb.delete(0, dot);
+                    sb.insert(0, pat);
+                    break;
+                case 'S':
+                    matcher = MILLISEC_PAT.matcher(string.substring(dot));
+                    if (matcher.find()) {
+                        millisec = new Long(matcher.group(1));
+                        for (int l = matcher.group(1).length(); l < 3; l++) {
+                            millisec *= 10;
+                        }
+                    }
+                    stripQuotes(sb, pattern);
+                    break;
+                case 'C':
+                    matcher = MICROSEC_PAT.matcher(string.substring(dot));
+                    if (matcher.find()) {
+                        microsec = new Long(matcher.group(2));
+                        for (int l = matcher.group(2).length(); l < 3; l++) {
+                            microsec *= 10;
+                        }
+                    }
+                    stripQuotes(sb, pattern);
+                    break;
+                case 'N':
+                    matcher = NANOSEC_PAT.matcher(string.substring(dot));
+                    if (matcher.find()) {
+                        nanosec = new Long(matcher.group(3));
+                        for (int l = matcher.group(3).length(); l < 3; l++) {
+                            nanosec *= 10;
+                        }
+                    }
+                    stripQuotes(sb, pattern);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        // If there was no "T" (thus not an interval), parse as a date
+        if (seconds == -1) {
+            Date baseDate = super.parse(sb.toString());
+
+            Calendar refTime = Calendar.getInstance(TimeZone.getTimeZone("UTC")); //$NON-NLS-1$
+            refTime.setTimeInMillis(ref / 1000000);
+            Calendar newTime = Calendar.getInstance(TimeZone.getTimeZone("UTC")); //$NON-NLS-1$
+            newTime.setTimeInMillis(baseDate.getTime());
+
+            int[] fields = new int[] { Calendar.YEAR, Calendar.DAY_OF_YEAR, Calendar.MONTH, Calendar.DATE, Calendar.HOUR, Calendar.MINUTE, Calendar.SECOND };
+            for (int field : fields) {
+                int value = newTime.get(field);
+                // Do some adjustments...
+                if (field == Calendar.YEAR) {
+                    value -= 1970;
+                } else if (field == Calendar.DATE || field == Calendar.DAY_OF_YEAR) {
+                    value -= 1;
+                }
+                // ... and fill-in the empty fields
+                if (value == 0) {
+                    newTime.set(field, refTime.get(field));
+                } else if (field == Calendar.DAY_OF_YEAR) {
+                    newTime.set(field, value);
+                } else {
+                    break; // Get out as soon as we have a significant value
+                }
+            }
+            seconds = newTime.getTimeInMillis() / 1000;
+        }
+
+        // Compute the value in ns
+        return seconds * 1000000000 +  millisec * 1000000 +  microsec * 1000 +  nanosec;
+    }
+

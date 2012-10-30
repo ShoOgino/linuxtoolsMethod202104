@@ -1,15 +1,19 @@
     @Override
     protected void updateValue() {
-        String stringValue = fTextValue.getText();
-        long value = HistogramUtils.stringToNanoseconds(stringValue);
+        String string = fTextValue.getText();
+        long value = 0;
+        try {
+            value = TmfTimestampFormat.getDefaulTimeFormat().parseValue(string, fExperimentStartTime);
+        } catch (ParseException e) {
+        }
 
         if (getValue() != value) {
             // Make sure that the new time is within range
             TmfExperiment exp = TmfExperiment.getCurrentExperiment();
             if (exp != null) {
                 TmfTimeRange range = exp.getTimeRange();
-                long startTime = range.getStartTime().normalize(0, -9).getValue();
-                long endTime = range.getEndTime().normalize(0, -9).getValue();
+                long startTime = range.getStartTime().getValue();
+                long endTime = range.getEndTime().getValue();
                 if (value < startTime) {
                     value = startTime;
                 } else if (value > endTime) {
