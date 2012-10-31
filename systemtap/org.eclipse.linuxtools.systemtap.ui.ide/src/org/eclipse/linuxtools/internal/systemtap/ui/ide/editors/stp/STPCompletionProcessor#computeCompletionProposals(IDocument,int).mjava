@@ -1,35 +1,34 @@
 	public ICompletionProposal[] computeCompletionProposals(IDocument document, int offset){
 
-		String prefix;
-		int locationOffset =0;
+		ITypedRegion partition = null;
+		
+		try {
+			partition = document.getPartition(offset);
+		} catch (BadLocationException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+		String prefix = ""; //$NON-NLS-1$
+		String prePrefix = ""; //$NON-NLS-1$
 
 		// Get completion hint from document
 		try {
-			prefix = completionWord(document, offset);
-			locationOffset = completionReplaceWordLocation(document, offset);
+			prefix = getPrefix(document, offset);
+			prePrefix = getPrecedingToken(document, prefix, offset);
 		} catch (BadLocationException e) {
 			return NO_COMPLETIONS;
 		}
 
-		// If cannot find a place to replace our partial typed completion
-		// with the full one, abort with no completions.
-		if (locationOffset < 0)
-			return NO_COMPLETIONS;
-			
-		String[] completionData = STPMetadataSingleton.getCompletionResults(prefix);
+		if (prePrefix.startsWith("probe")){ //$NON-NLS-1$
+			return getProbeCompletionList(prefix, offset);
+		}
 
-		// If cannot find  any completions
-		// abort with no completions.
-		if (completionData.length < 1)
-			return NO_COMPLETIONS;
-
-		// Build proposals and submit
-		ICompletionProposal[] result = new ICompletionProposal[completionData.length];
-		for (int i = 0; i < completionData.length; i++)
-			result[i] = new CompletionProposal(
-							completionData[i].substring(offset - locationOffset), 
-							offset, 0, completionData[i].length(), null, 
-							completionData[i], null, null);
-		return result;
+		// In the global scope return global keyword completion.
+		if (partition.getType() == IDocument.DEFAULT_CONTENT_TYPE ){
+			return getGlobalKeywordCompletion(prefix, offset);
+		}
+		
+		return NO_COMPLETIONS;
 	}
 
