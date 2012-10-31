@@ -1,5 +1,9 @@
     @Override
     public Map<String, Long> getEventTypesInRange(ITmfTimestamp start, ITmfTimestamp end) {
+        // FIXME Instead of waiting until the end, we could check the current
+        // end time, and answer as soon as possible...
+        stats.waitUntilBuilt();
+
         Map<String, Long> map = new HashMap<String, Long>();
 
         /* Make sure the start/end times are within the state history, so we
@@ -13,51 +17,43 @@
             int quark = stats.getQuarkAbsolute(Attributes.EVENT_TYPES);
             List<Integer> quarks = stats.getSubAttributes(quark, false);
 
-            /*
-             * Get the complete states (in our case, event counts) at the start
-             * time and end time of the requested time range.
-             */
-            List<ITmfStateInterval> startState = stats.queryFullState(startTime);
             List<ITmfStateInterval> endState = stats.queryFullState(endTime);
 
-            /* Save the relevant information in the map we will be returning */
             String curEventName;
             long countAtStart, countAtEnd, eventCount;
-            for (int typeQuark : quarks) {
-                curEventName = stats.getAttributeName(typeQuark);
-                countAtStart = startState.get(typeQuark).getStateValue().unboxInt();
-                countAtEnd = endState.get(typeQuark).getStateValue().unboxInt();
 
-                /*
-                 * The default value for the statistics is 0, rather than the
-                 * value -1 used by the state system for non-initialized state.
-                 */
-                if (startTime == stats.getStartTime() || countAtStart == -1) {
-                    countAtStart = 0;
+            if (startTime == stats.getStartTime()) {
+                /* Only use the values picked up at the end time */
+                for (int typeQuark : quarks) {
+                    curEventName = stats.getAttributeName(typeQuark);
+                    eventCount = endState.get(typeQuark).getStateValue().unboxInt();
+                    if (eventCount == -1) {
+                        eventCount = 0;
+                    }
+                    map.put(curEventName, eventCount);
                 }
-
+            } else {
                 /*
-                 * Workaround a bug in the state system where requests for the
-                 * very last state change will give -1. Send the request 1ns
-                 * before the end of the trace and add the last event to the
-                 * count.
+                 * Query the start time at -1, so the beginning of the interval
+                 * is inclusive.
                  */
-                if (countAtEnd < 0) {
-                    ITmfStateInterval realInterval = stats.querySingleState(endTime - 1, typeQuark);
-                    countAtEnd = realInterval.getStateValue().unboxInt() + 1;
-                }
+                List<ITmfStateInterval> startState = stats.queryFullState(startTime - 1);
+                for (int typeQuark : quarks) {
+                    curEventName = stats.getAttributeName(typeQuark);
+                    countAtStart = startState.get(typeQuark).getStateValue().unboxInt();
+                    countAtEnd = endState.get(typeQuark).getStateValue().unboxInt();
 
-                /*
-                 * If after this it is still at -1, it's because no event of
-                 * this type happened during the requested time range.
-                 */
-                if (countAtEnd < 0) {
-                    countAtEnd = 0;
+                    if (countAtStart == -1) {
+                        countAtStart = 0;
+                    }
+                    if (countAtEnd == -1) {
+                        countAtEnd = 0;
+                    }
+                    eventCount = countAtEnd - countAtStart;
+                    map.put(curEventName, eventCount);
                 }
-
-                eventCount = countAtEnd - countAtStart;
-                map.put(curEventName, eventCount);
             }
+
         } catch (TimeRangeException e) {
             /* Assume there is no events, nothing will be put in the map. */
         } catch (AttributeNotFoundException e) {

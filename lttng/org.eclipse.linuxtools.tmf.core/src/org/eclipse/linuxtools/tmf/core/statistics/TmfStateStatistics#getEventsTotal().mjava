@@ -1,13 +1,14 @@
     @Override
     public long getEventsTotal() {
-        long startTime = stats.getStartTime();
+        /* We need the complete state history to be built to answer this. */
+        stats.waitUntilBuilt();
+
         long endTime = stats.getCurrentEndTime();
-        int countAtStart = 0, countAtEnd = 0;
+        int count = 0;
 
         try {
             final int quark = stats.getQuarkAbsolute(Attributes.TOTAL);
-            countAtStart = stats.querySingleState(startTime, quark).getStateValue().unboxInt();
-            countAtEnd = stats.querySingleState(endTime, quark).getStateValue().unboxInt();
+            count= stats.querySingleState(endTime, quark).getStateValue().unboxInt();
 
         } catch (TimeRangeException e) {
             /* Assume there is no events for that range */
@@ -18,7 +19,6 @@
             e.printStackTrace();
         }
 
-        long total = countAtEnd - countAtStart;
-        return total;
+        return count;
     }
 
