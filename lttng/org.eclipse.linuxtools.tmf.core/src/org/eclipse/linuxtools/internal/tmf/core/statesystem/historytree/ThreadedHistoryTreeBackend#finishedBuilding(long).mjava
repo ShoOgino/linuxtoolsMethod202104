@@ -1,6 +1,5 @@
     @Override
     public void finishedBuilding(long endTime) {
-        HTInterval pill;
         /*
          * We need to commit everything in the History Tree and stop the
          * standalone thread before returning to the StateHistorySystem. (SHS
@@ -8,20 +7,8 @@
          * at the same time we are writing the last nodes!)
          */
 
-        /*
-         * Send the "poison pill" in the queue, then wait for the HT to finish
-         * its closeTree()
-         */
-        
-        try {
-            pill = new HTInterval(-1, endTime, -1, TmfStateValue.nullValue());
-            intervalQueue.put(pill);
-            shtThread.join();
-        } catch (TimeRangeException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        stopRunningThread(endTime);
+        isFinishedBuilding = true;
         return;
     }
 
