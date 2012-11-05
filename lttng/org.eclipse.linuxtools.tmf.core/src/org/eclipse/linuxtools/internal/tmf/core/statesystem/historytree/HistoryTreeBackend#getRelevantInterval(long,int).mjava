@@ -7,7 +7,7 @@
      * @return The node containing the information we want
      */
     private HTInterval getRelevantInterval(long t, int key)
-            throws TimeRangeException {
+            throws TimeRangeException, StateSystemDisposedException {
         if (!checkValidTime(t)) {
             throw new TimeRangeException();
         }
@@ -17,9 +17,13 @@
         CoreNode currentNode = sht.latestBranch.firstElement();
         HTInterval interval = currentNode.getRelevantInterval(key, t);
 
-        while (interval == null && currentNode.getNbChildren() > 0) {
-            currentNode = (CoreNode) sht.selectNextChild(currentNode, t);
-            interval = currentNode.getRelevantInterval(key, t);
+        try {
+            while (interval == null && currentNode.getNbChildren() > 0) {
+                currentNode = (CoreNode) sht.selectNextChild(currentNode, t);
+                interval = currentNode.getRelevantInterval(key, t);
+            }
+        } catch (ClosedChannelException e) {
+            throw new StateSystemDisposedException();
         }
         /*
          * Since we should now have intervals at every attribute/timestamp
