@@ -1,0 +1,35 @@
+    private void updateTable() {
+        fTable.setItemCount(0);
+        if (fTrace == null) {
+            return;
+        }
+        ITmfTrace[] traces;
+        if (fTrace instanceof TmfExperiment) {
+            TmfExperiment experiment = (TmfExperiment) fTrace;
+            traces = experiment.getTraces();
+        } else {
+            traces = new ITmfTrace[] { fTrace };
+        }
+        ArrayList<Pair> tableData = new ArrayList<Pair>();
+        for (ITmfTrace trace : traces) {
+            Pair traceEntry = new Pair(trace.getName());
+            tableData.add(traceEntry);
+            if (trace instanceof CtfTmfTrace) {
+                CtfTmfTrace ctfTrace = (CtfTmfTrace) trace;
+                for (String varName : ctfTrace.getEnvNames()) {
+                    tableData.add(new Pair(varName, ctfTrace.getEnvValue(varName)));
+                }
+            }
+        }
+
+        for (Pair pair : tableData) {
+            TableItem item = new TableItem(fTable, SWT.NONE);
+            item.setText(0, pair.getKey());
+            item.setText(1, pair.getValue());
+        }
+
+        for (TableColumn column : fTable.getColumns()) {
+            column.pack();
+        }
+    }
+

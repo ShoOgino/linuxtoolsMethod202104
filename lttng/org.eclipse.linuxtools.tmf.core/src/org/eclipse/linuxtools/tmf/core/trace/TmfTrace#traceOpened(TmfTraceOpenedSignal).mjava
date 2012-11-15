@@ -1,0 +1,69 @@
+    /**
+     * Handler for the Trace Opened signal
+     *
+     * @param signal
+     *            The incoming signal
+     * @since 2.0
+     */
+    @TmfSignalHandler
+    public void traceOpened(TmfTraceOpenedSignal signal) {
+        ITmfTrace trace = signal.getTrace();
+        if (signal.getTrace() instanceof TmfExperiment) {
+            TmfExperiment experiment = (TmfExperiment) signal.getTrace();
+            for (ITmfTrace expTrace : experiment.getTraces()) {
+                if (expTrace == this) {
+                    trace = expTrace;
+                    break;
+                }
+            }
+        }
+        if (signal.getTrace() == this || trace == this) {
+            /* the signal is for this trace or experiment or for an experiment containing this trace */
+
+            /* ensure start time is set */
+            final ITmfContext context = seekEvent(0);
+            getNext(context);
+            context.dispose();
+        }
+        if (trace == this) {
+            /* the signal is for this trace or for an experiment containing this trace */
+            try {
+                buildStatistics();
+            } catch (TmfTraceException e) {
+                e.printStackTrace();
+            }
+            try {
+                buildStateSystem();
+            } catch (TmfTraceException e) {
+                e.printStackTrace();
+            }
+
+            /* Refresh the project, so it can pick up new files that got created. */
+            try {
+                if (fResource != null) {
+                    fResource.getProject().refreshLocal(IResource.DEPTH_INFINITE, null);
+                }
+            } catch (CoreException e) {
+                e.printStackTrace();
+            }
+        }
+        if (signal.getTrace() == this) {
+            /* the signal is for this trace or experiment */
+            if (getNbEvents() == 0) {
+                return;
+            }
+
+            final TmfTimeRange timeRange = new TmfTimeRange(getStartTime(), TmfTimestamp.BIG_CRUNCH);
+            final TmfTraceRangeUpdatedSignal rangeUpdatedsignal = new TmfTraceRangeUpdatedSignal(this, this, timeRange);
+
+            // Broadcast in separate thread to prevent deadlock
+            new Thread() {
+                @Override
+                public void run() {
+                    broadcast(rangeUpdatedsignal);
+                }
+            }.start();
+            return;
+        }
+    }
+

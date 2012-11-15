@@ -1,0 +1,136 @@
+    /**
+     * Signal handler for the trace selected signal.
+     *
+     * Spawns a request to index the trace (checkpoints creation) as well as it fills
+     * the first page.
+     *
+     * @param signal The trace selected signal
+     * @since 2.0
+     */
+    @TmfSignalHandler
+    public void traceSelected(TmfTraceSelectedSignal signal) {
+
+        fLock.lock();
+        try {
+            // Update the trace reference
+            ITmfTrace trace = signal.getTrace();
+            if (!trace.equals(fTrace)) {
+                fTrace = trace;
+            } else {
+                return;
+            }
+
+            final Job job = new IndexingJob("Indexing " + getName() + "..."); //$NON-NLS-1$ //$NON-NLS-2$
+            job.setUser(false);
+            job.schedule();
+
+            if (fIndexRequest != null && !fIndexRequest.isCompleted()) {
+                fIndexRequest.cancel();
+            }
+
+            cancelOngoingRequests();
+            resetLoader();
+
+            TmfTimeRange window = TmfTimeRange.ETERNITY;
+
+            fIndexRequest = new TmfEventRequest(ITmfEvent.class, window, TmfDataRequest.ALL_DATA, DEFAULT_BLOCK_SIZE, ITmfDataRequest.ExecutionType.BACKGROUND) {
+
+                private ITmfTimestamp fFirstTime = null;
+                private ITmfTimestamp fLastTime = null;
+                private int fNbSeqEvents = 0;
+                private final List<ITmfSyncSequenceDiagramEvent> fSdEvents = new ArrayList<ITmfSyncSequenceDiagramEvent>(MAX_NUM_OF_MSG);
+
+                /*
+                 * (non-Javadoc)
+                 * @see org.eclipse.linuxtools.tmf.core.request.TmfDataRequest#handleData(org.eclipse.linuxtools.tmf.core.event.ITmfEvent)
+                 */
+                @Override
+                public void handleData(ITmfEvent event) {
+                    super.handleData(event);
+
+                    ITmfSyncSequenceDiagramEvent sdEvent = getSequnceDiagramEvent(event);
+
+                    if (sdEvent != null) {
+                        ++fNbSeqEvents;
+
+                        if (fFirstTime == null) {
+                            fFirstTime = event.getTimestamp();
+                        }
+
+                        fLastTime = event.getTimestamp();
+
+                        if ((fNbSeqEvents % MAX_NUM_OF_MSG) == 0) {
+                            fLock.lock();
+                            try {
+                                fCheckPoints.add(new TmfTimeRange(fFirstTime, fLastTime));
+                                if (fView != null) {
+                                    fView.updateCoolBar();
+                                }
+                            } finally {
+                                fLock.unlock();
+                            }
+                            fFirstTime = null;
+
+                        }
+
+                        if (fNbSeqEvents > MAX_NUM_OF_MSG) {
+                            // page is full
+                            return;
+                        }
+
+                        fSdEvents.add(sdEvent);
+
+                        if (fNbSeqEvents == MAX_NUM_OF_MSG) {
+                            fillCurrentPage(fSdEvents);
+                        }
+                    }
+                }
+
+                /*
+                 * (non-Javadoc)
+                 * @see org.eclipse.linuxtools.tmf.core.request.TmfDataRequest#handleSuccess()
+                 */
+                @Override
+                public void handleSuccess() {
+                    if ((fFirstTime != null) && (fLastTime != null)) {
+
+                        fLock.lock();
+                        try {
+                            fCheckPoints.add(new TmfTimeRange(fFirstTime, fLastTime));
+                            if (fView != null) {
+                                fView.updateCoolBar();
+                            }
+                        } finally {
+                            fLock.unlock();
+                        }
+                    }
+
+                    if (fNbSeqEvents <= MAX_NUM_OF_MSG) {
+                        fillCurrentPage(fSdEvents);
+                    }
+
+                    super.handleSuccess();
+                }
+
+                /*
+                 * (non-Javadoc)
+                 * @see org.eclipse.linuxtools.tmf.core.request.TmfDataRequest#handleCompleted()
+                 */
+                @Override
+                public void handleCompleted() {
+                    if (fEvents.isEmpty()) {
+                        fFrame = new Frame();
+                        fView.setFrameSync(fFrame);
+                    }
+                    super.handleCompleted();
+                    job.cancel();
+                }
+            };
+
+            fTrace.sendRequest(fIndexRequest);
+        } finally {
+            fLock.unlock();
+        }
+
+    }
+

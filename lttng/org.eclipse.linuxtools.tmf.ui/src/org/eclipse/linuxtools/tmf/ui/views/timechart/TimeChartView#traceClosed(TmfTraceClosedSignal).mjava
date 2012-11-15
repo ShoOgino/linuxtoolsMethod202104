@@ -3,6 +3,7 @@
      *
      * @param signal
      *            The incoming signal
+     * @since 2.0
      */
     @TmfSignalHandler
     public void traceClosed(TmfTraceClosedSignal signal) {
@@ -14,6 +15,15 @@
             if (fTimeAnalysisEntries.get(i).getTrace().equals(trace)) {
                 fTimeAnalysisEntries.remove(i);
                 fDecorationProviders.remove(trace);
+                synchronized (fDecorateThreads) {
+                    for (DecorateThread thread : fDecorateThreads) {
+                        if (thread.fTimeAnalysisEntry.getTrace() == trace) {
+                            thread.cancel();
+                            fDecorateThreads.remove(thread);
+                            break;
+                        }
+                    }
+                }
                 refreshViewer();
                 break;
             }

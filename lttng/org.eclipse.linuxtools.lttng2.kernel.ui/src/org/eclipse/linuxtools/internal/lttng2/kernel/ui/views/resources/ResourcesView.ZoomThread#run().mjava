@@ -1,14 +1,13 @@
         @Override
         public void run() {
-            ArrayList<TraceEntry> entryList = null;
-            synchronized (fEntryListSyncObj) {
-                entryList = (ArrayList<TraceEntry>) fEntryList.clone();
-            }
-            if (entryList == null) {
+            if (fZoomEntryList == null) {
                 return;
             }
             long resolution = Math.max(1, (fZoomEndTime - fZoomStartTime) / fDisplayWidth);
-            for (TraceEntry traceEntry : entryList) {
+            for (TraceEntry traceEntry : fZoomEntryList) {
+                if (!traceEntry.fKernelTrace.getStateSystem().waitUntilBuilt()) {
+                    return;
+                }
                 for (ITimeGraphEntry child : traceEntry.getChildren()) {
                     if (fMonitor.isCanceled()) {
                         break;

@@ -1,0 +1,28 @@
+    /**
+     * Listen to the "trace closed" signal to clean up if necessary.
+     *
+     * @param signal
+     *            The "trace closed" signal.
+     */
+    @TmfSignalHandler
+    public void traceClosed(TmfTraceClosedSignal signal) {
+        ITmfTrace trace = signal.getTrace();
+        if (signal.getTrace() instanceof TmfExperiment) {
+            TmfExperiment experiment = (TmfExperiment) signal.getTrace();
+            for (ITmfTrace expTrace : experiment.getTraces()) {
+                if (expTrace == sci.getTrace()) {
+                    trace = expTrace;
+                    break;
+                }
+            }
+        }
+        if (trace != sci.getTrace()) {
+            return;
+        }
+        /* the signal is for this trace or for an experiment containing this trace */
+
+        if (!started) {
+            close(true);
+        }
+    }
+

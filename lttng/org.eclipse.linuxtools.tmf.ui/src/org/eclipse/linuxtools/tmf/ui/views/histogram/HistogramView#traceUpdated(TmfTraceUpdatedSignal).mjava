@@ -1,0 +1,22 @@
+    /**
+     * Handles the trace updated signal. Used to update time limits (start and end time)
+     * @param signal the trace updated signal
+     * @since 2.0
+     */
+    @TmfSignalHandler
+    public void traceUpdated(TmfTraceUpdatedSignal signal) {
+        if (signal.getTrace() != fTrace) {
+            return;
+        }
+        TmfTimeRange fullRange = signal.getTrace().getTimeRange();
+        fTraceStartTime = fullRange.getStartTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+        fTraceEndTime = fullRange.getEndTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+
+        fFullTraceHistogram.setFullRange(fTraceStartTime, fTraceEndTime);
+        fTimeRangeHistogram.setFullRange(fTraceStartTime, fTraceEndTime);
+
+        if ((fFullTraceRequest != null) && fFullTraceRequest.getRange().getEndTime().compareTo(signal.getRange().getEndTime()) < 0) {
+            sendFullRangeRequest(fullRange);
+        }
+}
+

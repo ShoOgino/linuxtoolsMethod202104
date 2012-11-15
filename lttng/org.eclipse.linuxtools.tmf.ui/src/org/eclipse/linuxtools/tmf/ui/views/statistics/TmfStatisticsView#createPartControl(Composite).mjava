@@ -7,21 +7,14 @@
     @Override
     public void createPartControl(Composite parent) {
         fStatsViewers.setParent(parent);
-        TmfExperiment currentExperiment = TmfExperiment.getCurrentExperiment();
-        // Read current data if any available
-        if (currentExperiment != null) {
-            fRequestData = true;
-            // Insert the statistics data into the tree
-            TmfExperimentSelectedSignal signal = new TmfExperimentSelectedSignal(this, currentExperiment);
-            experimentSelected(signal);
-            return;
-        }
         createStatisticsViewers();
-        /*
-         * Updates the experiment field only at the end because
-         * experimentSelected signal verifies the old selected experiment to
-         * avoid reloading the same trace.
-         */
-        fExperiment = currentExperiment;
+
+        IEditorPart editor = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().getActiveEditor();
+        if (editor instanceof ITmfTraceEditor) {
+            ITmfTrace trace = ((ITmfTraceEditor) editor).getTrace();
+            if (trace != null) {
+                traceSelected(new TmfTraceSelectedSignal(this, trace));
+            }
+        }
     }
 

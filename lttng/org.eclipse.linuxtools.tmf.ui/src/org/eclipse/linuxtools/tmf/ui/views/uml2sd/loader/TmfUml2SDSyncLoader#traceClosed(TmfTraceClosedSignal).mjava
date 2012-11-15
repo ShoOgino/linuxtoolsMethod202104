@@ -1,0 +1,35 @@
+    /**
+     * Signal handler for the trace closed signal.
+     *
+     * @param signal The trace closed signal
+     * @since 2.0
+     */
+    @TmfSignalHandler
+    public void traceClosed(TmfTraceClosedSignal signal) {
+        if (signal.getTrace() != fTrace) {
+            return;
+        }
+        fLock.lock();
+        try {
+            if (fIndexRequest != null) {
+                if (!fIndexRequest.isCompleted()) {
+                    fIndexRequest.cancel();
+                }
+                fIndexRequest = null;
+            }
+
+            cancelOngoingRequests();
+
+            if (fFilterCriteria != null) {
+                fFilterCriteria.clear();
+            }
+
+            FilterListDialog.deactivateSavedGlobalFilters();
+
+            resetLoader();
+        } finally {
+            fTrace = null;
+            fLock.unlock();
+        }
+    }
+

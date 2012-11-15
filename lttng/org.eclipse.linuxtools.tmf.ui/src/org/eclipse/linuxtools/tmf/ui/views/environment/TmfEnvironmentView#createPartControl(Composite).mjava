@@ -1,50 +1,23 @@
     @Override
     public void createPartControl(Composite parent) {
-        fParent = parent;
-        TableItem ti[];
-
-        // Always create the table anyway otherwise we have an NPE when
-        // setFocus() is called by platform. Besides it's nice to have
-        // at least the column headers.
-        fTable = new Table(parent, SWT.BORDER|SWT.FILL);
-        ArrayList<Pair> tableData = new ArrayList<Pair>();
-
-        // If an experiment is already selected, update the table
-        TmfExperiment experiment = TmfExperiment.getCurrentExperiment();
-        if (experiment != null) {
-            for (ITmfTrace trace : experiment.getTraces()) {
-                Pair traceEntry = new Pair(trace.getName());
-                tableData.add(traceEntry);
-                if (trace instanceof CtfTmfTrace) {
-                    CtfTmfTrace ctfTrace = (CtfTmfTrace) trace;
-                    for (String varName : ctfTrace
-                            .getEnvNames()) {
-                        tableData.add(new Pair( varName, ctfTrace.getEnvValue(varName)));
-                    }
-                }
-            }
-        }
-
+        fTable = new Table(parent, SWT.NONE);
         TableColumn nameCol = new TableColumn(fTable, SWT.NONE, 0);
         TableColumn valueCol = new TableColumn(fTable, SWT.NONE, 1);
         nameCol.setText("Environment Variable"); //$NON-NLS-1$
         valueCol.setText("Value"); //$NON-NLS-1$
 
-        final int tableSize = tableData.size();
-
-        fTable.setItemCount(tableSize);
-        ti = fTable.getItems();
-        for(int i = 0; i < tableSize; i++){
-            final Pair currentPair = tableData.get(i);
-            ti[i].setText(0, currentPair.getKey());
-            ti[i].setText(1, currentPair.getValue());
-        }
+        fTable.setItemCount(0);
 
         fTable.setHeaderVisible(true);
         nameCol.pack();
         valueCol.pack();
-        fTable.pack();
 
-        parent.layout();
+        IEditorPart editor = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().getActiveEditor();
+        if (editor instanceof ITmfTraceEditor) {
+            ITmfTrace trace = ((ITmfTraceEditor) editor).getTrace();
+            if (trace != null) {
+                traceSelected(new TmfTraceSelectedSignal(this, trace));
+            }
+        }
     }
 

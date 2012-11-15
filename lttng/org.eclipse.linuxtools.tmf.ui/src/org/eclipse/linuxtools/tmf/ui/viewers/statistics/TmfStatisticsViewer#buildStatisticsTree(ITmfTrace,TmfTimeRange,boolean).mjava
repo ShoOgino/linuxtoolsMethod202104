@@ -1,0 +1,67 @@
+    /**
+     * Requests all the data of the trace to the state system which
+     * contains information about the statistics.
+     *
+     * Since the viewer may be listening to multiple traces, it may receive
+     * an experiment rather than a single trace. The filtering is done with the
+     * method {@link #isListeningTo(String trace)}.
+     *
+     * @param trace
+     *            The trace for which a request must be done
+     * @param timeRange
+     *            The time range that will be requested to the state system
+     * @param isGlobal
+     *            Tells if the request is for the global event count or the
+     *            partial one.
+     */
+    private void buildStatisticsTree(final ITmfTrace trace, TmfTimeRange timeRange, boolean isGlobal) {
+        final TmfStatisticsTreeNode statTree = TmfStatisticsTreeManager.getStatTreeRoot(getTreeID());
+        final TmfStatisticsTree statsData = TmfStatisticsTreeManager.getStatTree(getTreeID());
+        if (statsData == null) {
+            return;
+        }
+
+        synchronized (statsData) {
+            if (isGlobal) {
+                statTree.resetGlobalValue();
+            } else {
+                statTree.resetTimeRangeValue();
+            }
+
+            ITmfTrace[] traces;
+            if (trace instanceof TmfExperiment) {
+                TmfExperiment experiment = (TmfExperiment) trace;
+                traces = experiment.getTraces();
+            } else {
+                traces = new ITmfTrace[] { trace };
+            }
+            for (final ITmfTrace aTrace : traces) {
+                if (!isListeningTo(aTrace)) {
+                    continue;
+                }
+
+                /* Retrieves the statistics object */
+                final ITmfStatistics stats = aTrace.getStatistics();
+                if (stats == null) {
+                    /*
+                     * The statistics provider for this trace is not accessible
+                     * (yet?). Try the next one.
+                     */
+                    continue;
+                }
+
+                /* The generic statistics are stored in nanoseconds, so we must make
+                 * sure the time range is scaled correctly. */
+                long start = timeRange.getStartTime().normalize(0, TIME_SCALE).getValue();
+                long end = timeRange.getEndTime().normalize(0, TIME_SCALE).getValue();
+
+                /*
+                 * Send a request to update the statistics view. The result will
+                 * be sent through a {@link TmfStatsUpdatedSignal}, and will be
+                 * processed by the signal handler.
+                 */
+                aTrace.getStatistics().updateStats(isGlobal, start, end);
+            }
+        }
+    }
+
