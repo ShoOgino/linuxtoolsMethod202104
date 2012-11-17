@@ -1,0 +1,43 @@
+	private static void testGcovLaunchSummary(SWTWorkbenchBot bot, String projectName, String binName) throws Exception {
+		IProject project = ResourcesPlugin.getWorkspace().getRoot().getProject(projectName);
+		String binLocation = project.getFile(binName).getLocation().toOSString();
+		IPath binPath = new Path(binLocation);
+		IFile binFile = ResourcesPlugin.getWorkspace().getRoot().getFile(binPath);
+		
+		SWTBot viewBot = bot.viewByTitle("Project Explorer").bot();
+		SWTBotShell wbShell = bot.activeShell();
+//		wbShell.activate();
+//		SWTBotShell wbShell = viewBot.shells()[0];
+//		wbShell.activate();
+		SWTBotTree treeBot = viewBot.tree();
+		treeBot.setFocus();
+		// We need to select the binary, but in the tree, it may have additional info appended to the
+		// name such as [x86_64/le].  So, we look at all nodes of the project and look for the one that
+		// starts with our binary file name.  We can then select the node.
+		List<String> nodes = treeBot.expandNode(projectName).getNodes();
+		String binNodeName = binFile.getName();
+		for (String item: nodes) {
+			if (item.startsWith(binFile.getName())) {
+				binNodeName = item;
+				break;
+			}
+		}
+		treeBot.expandNode(projectName).select(binNodeName);
+		String menuItem = "Profile As";
+		String subMenuItem = "1 Profile Code Coverage";
+		ContextMenuHelper.clickContextMenu(treeBot, menuItem, subMenuItem);
+
+
+		wbShell.activate();
+		SWTBotView botView = bot.viewByTitle("gcov");
+		// The following cannot be tested on 4.2 because the SWTBot implementation of toolbarButton()
+		// is broken there because it relies PartPane having a method getPane() which is no longer true.
+//		botView.toolbarButton("Sort coverage per function").click();
+//		dumpCSV(bot, botView, projectName, "function", testProducedReference);
+//		botView.toolbarButton("Sort coverage per file").click();
+//		dumpCSV(bot, botView, projectName, "file", testProducedReference);
+//		botView.toolbarButton("Sort coverage per folder").click();
+//		dumpCSV(bot, botView, projectName, "folder", testProducedReference);
+		botView.close();
+	}
+
