@@ -1,0 +1,57 @@
+	/**
+	 * Get launch providers for a given type and order them with regards to highest priority first.
+	 *
+	 * @param type
+	 * @return array of launch provider configuration elements in prioritized order
+	 * @since 1.2
+	 */
+	public static ArrayList<IConfigurationElement> getOrderedConfigElements(String type) {
+		IConfigurationElement[] configs = getConfigurationElements();
+		ArrayList<IConfigurationElement> configList = new ArrayList<IConfigurationElement>();
+
+		for (IConfigurationElement config : configs) {
+			if (config.getName().equals("provider")) { //$NON-NLS-1$
+				String currentType = config.getAttribute("type"); //$NON-NLS-1$
+				if (currentType != null && currentType.equals(type)) {
+
+					String priority = config.getAttribute("priority"); //$NON-NLS-1$
+					if (priority != null) {
+						try {
+							Integer.parseInt(priority);
+							configList.add(config);
+						} catch (NumberFormatException e) {
+							// continue
+						}
+					}
+				}
+			}
+		}
+
+		Collections.sort(configList, new Comparator<IConfigurationElement>() {
+			public int compare(IConfigurationElement c1,
+					IConfigurationElement c2) {
+				int p1, p2;
+				// If priority is not an int or is < 0, corresponding config has
+				// lowest priority.
+				try {
+					p1 = Integer.parseInt(c1.getAttribute("priority")); //$NON-NLS-1$
+					if (p1 <= 0) {
+						return 1;
+					}
+				} catch (NumberFormatException e) {
+					return 1;
+				}
+				try {
+					p2 = Integer.parseInt(c2.getAttribute("priority")); //$NON-NLS-1$
+					if (p2 <= 0) {
+						return -1;
+					}
+				} catch (NumberFormatException e) {
+					return -1;
+				}
+				return p1 < p2 ? -1 : 1;
+			}
+		});
+		return configList;
+	}
+

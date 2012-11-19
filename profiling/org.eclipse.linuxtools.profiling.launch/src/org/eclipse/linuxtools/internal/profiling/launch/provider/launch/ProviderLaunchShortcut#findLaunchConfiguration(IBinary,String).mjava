@@ -1,0 +1,82 @@
+	@Override
+	protected ILaunchConfiguration findLaunchConfiguration(IBinary bin, String mode) {
+
+		// create a default launch configuration based on the shortcut
+		ILaunchConfiguration config = createConfiguration(bin, false);
+
+		String providerId = null;
+		try {
+			providerId = ProviderLaunchConfigurationDelegate.getProviderIdToRun(config.getWorkingCopy(), type);
+		} catch (CoreException e1) {
+			e1.printStackTrace();
+		}
+
+		// check that there exists a provider for the given profiling type
+		if (providerId == null) {
+			handleFail(Messages.ProviderLaunchShortcut_0 + " " + type);
+			return null;
+		}
+
+		// true if a configuration exists for current project and program
+		boolean existsConfigForProject = false;
+
+		// true if a configuration exists for current project, program and
+		// the default provider
+		boolean existsConfigForTool = false;
+
+		try {
+			String projectName = config.getAttribute(ICDTLaunchConfigurationConstants.ATTR_PROJECT_NAME, "");
+			String programName = config.getAttribute(ICDTLaunchConfigurationConstants.ATTR_PROGRAM_NAME, "");
+			ILaunchConfiguration[] configs = getLaunchManager().getLaunchConfigurations(getLaunchConfigType());
+
+			for(ILaunchConfiguration currConfig : configs){
+				String curProjectName = currConfig.getAttribute(ICDTLaunchConfigurationConstants.ATTR_PROJECT_NAME, "");
+				String curProgramName = currConfig.getAttribute(ICDTLaunchConfigurationConstants.ATTR_PROGRAM_NAME, "");
+
+				// check that current configuration belongs to the current project/program
+				if(curProjectName.equals(projectName) && curProgramName.equals(programName)){
+					existsConfigForProject = true;
+					String curProviderId = currConfig.getAttribute(ProviderProfileConstants.PROVIDER_CONFIG_ATT, "");
+
+					// check that current configuration has the same provider as the provider to run.
+					if(curProviderId.equals(providerId)){
+						existsConfigForTool = true;
+						break;
+					}
+				}
+			}
+		} catch (CoreException e) {
+			// a configuration might be corrupted, skip prompting logic
+			// and fall back to default behavior
+			existsConfigForProject = true;
+			existsConfigForTool = true;
+		}
+
+		// automatically create a configuration if there are none available for
+		// the current project/program
+		if (!existsConfigForProject) {
+			createConfiguration(bin);
+		} else if (!existsConfigForTool) {
+			String provider = ProviderFramework
+					.getProviderToolNameFromId(providerId);
+
+			String profileType = Character.toUpperCase(type.charAt(0))
+					+ type.substring(1);
+
+			// prompt message
+			String promptMsg = MessageFormat.format(
+					Messages.ProviderLaunchConfigurationPrompt_0,
+					(Object[]) new String[] { profileType, provider });
+
+			MessageBox prompt = new MessageBox(getActiveWorkbenchShell(),
+					SWT.ICON_QUESTION | SWT.YES | SWT.NO);
+			prompt.setMessage(promptMsg);
+
+			// prompt user for configuration creation
+			if (prompt.open() == SWT.YES) {
+				return createConfiguration(bin);
+			}
+		}
+		return super.findLaunchConfiguration(bin, mode);
+	}
+

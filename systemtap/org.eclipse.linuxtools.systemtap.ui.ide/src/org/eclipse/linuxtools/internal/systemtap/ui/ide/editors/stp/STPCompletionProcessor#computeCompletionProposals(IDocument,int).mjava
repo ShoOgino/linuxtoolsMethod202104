@@ -1,0 +1,34 @@
+	public ICompletionProposal[] computeCompletionProposals(IDocument document, int offset){
+
+		ITypedRegion partition = null;
+		
+		try {
+			partition = document.getPartition(offset);
+		} catch (BadLocationException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
+		String prefix = ""; //$NON-NLS-1$
+		String prePrefix = ""; //$NON-NLS-1$
+
+		// Get completion hint from document
+		try {
+			prefix = getPrefix(document, offset);
+			prePrefix = getPrecedingToken(document, prefix, offset);
+		} catch (BadLocationException e) {
+			return NO_COMPLETIONS;
+		}
+
+		if (prePrefix.startsWith("probe")){ //$NON-NLS-1$
+			return getProbeCompletionList(prefix, offset);
+		}
+
+		// In the global scope return global keyword completion.
+		if (partition.getType() == IDocument.DEFAULT_CONTENT_TYPE ){
+			return getGlobalKeywordCompletion(prefix, offset);
+		}
+		
+		return NO_COMPLETIONS;
+	}
+

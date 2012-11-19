@@ -1,0 +1,100 @@
+	@Override
+	protected void setDefaultProfileAttributes(ILaunchConfigurationWorkingCopy wc) {
+
+		// acquire a provider id to run.
+		final String providerId = ProviderLaunchConfigurationDelegate.getProviderIdToRun(wc, getProfilingType());
+
+		// get tool name from id.
+		final String providerToolName = ProviderFramework.getProviderToolNameFromId(providerId);
+
+		// get tab group associated with provider id.
+		final ProfileLaunchConfigurationTabGroup tabgroup = ProfileLaunchConfigurationTabGroup.getTabGroupProviderFromId(providerId);
+
+		/**
+		 * Certain tabs' setDefaults(ILaunchConfigurationWorkingCopy) may
+		 * require a launch configuration dialog. Eg. CMainTab generates
+		 * a name for the configuration based on generateName in setDefaults()
+		 * so we can create a temporary launch configuration dialog here. With
+		 * the exception of generateName(String), the other methods do not
+		 * get called.
+		 */
+		ILaunchConfigurationDialog dialog  = new ILaunchConfigurationDialog() {
+
+			public void run(boolean fork, boolean cancelable,
+					IRunnableWithProgress runnable) {
+				throw new UnsupportedOperationException ();
+			}
+
+			public void updateMessage() {
+				throw new UnsupportedOperationException ();
+			}
+
+			public void updateButtons() {
+				throw new UnsupportedOperationException ();
+			}
+
+			public void setName(String name) {
+				throw new UnsupportedOperationException ();
+			}
+
+			public void setActiveTab(int index) {
+				throw new UnsupportedOperationException ();
+			}
+
+			public void setActiveTab(ILaunchConfigurationTab tab) {
+				throw new UnsupportedOperationException ();
+			}
+
+			public ILaunchConfigurationTab[] getTabs() {
+				return null;
+			}
+
+			public String getMode() {
+				return null;
+			}
+
+			public ILaunchConfigurationTab getActiveTab() {
+				return null;
+			}
+
+			public String generateName(String name) {
+				if (name == null) {
+					name = "";
+				}
+				String providerConfigutationName = generateProviderConfigurationName(name, providerToolName);
+				return getLaunchManager().generateLaunchConfigurationName(providerConfigutationName);
+			}
+		};
+
+		tabgroup.createTabs(dialog , "profile"); //$NON-NLS-1$
+
+		// set configuration to match default attributes for all tabs.
+		for (ILaunchConfigurationTab tab : tabgroup.getTabs()) {
+			tab.setLaunchConfigurationDialog(dialog);
+			tab.setDefaults(wc);
+		}
+
+		// get configuration shortcut associated with provider id.
+		ProfileLaunchShortcut shortcut= ProviderFramework.getLaunchShortcutProviderFromId(providerId);
+		// set attributes related to the specific profiling shortcut configuration.
+		shortcut.setDefaultProfileLaunchShortcutAttributes(wc);
+
+		wc.setAttribute(ProviderProfileConstants.PROVIDER_CONFIG_ATT,
+				providerId);
+
+		// set tool name in configuration.
+		wc.setAttribute(ProviderProfileConstants.PROVIDER_CONFIG_TOOLNAME_ATT, providerToolName);
+
+		/**
+		 * To avoid renaming an already renamed launch configuration, we can
+		 * check the expected format of the name using regular expressions and
+		 * skip on matches.
+		 */
+		String curConfigName = wc.getName();
+		Pattern configNamePattern = Pattern.compile(".+\\s\\[.+\\](\\s\\(\\d+\\))?$"); //$NON-NLS-1$
+		Matcher match = configNamePattern.matcher(curConfigName);
+		if (!match.find()) {
+			wc.rename(dialog.generateName(curConfigName));
+		}
+	}
+

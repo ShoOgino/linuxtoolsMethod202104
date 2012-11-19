@@ -7,59 +7,10 @@
 	 * @param type A profiling type (eg. memory, snapshot, timing, etc.)
 	 * @return a profiling launch shortcut that implements <code>ProfileLaunchShortcut</code>
 	 * and provides the necessary profiling type, or <code>null</code> if none could be found.
-	 * @since 1.1
+	 * @since 1.2
 	 */
 	public ProfileLaunchShortcut getProfilingProvider(String type) {
-		IExtensionPoint extPoint = Platform.getExtensionRegistry()
-				.getExtensionPoint(ProfileLaunchPlugin.PLUGIN_ID, "launchProvider"); //$NON-NLS-1$
-		IConfigurationElement[] configs = extPoint.getConfigurationElements();
-		ArrayList<IConfigurationElement> configList = new ArrayList<IConfigurationElement>();
-
-		for (IConfigurationElement config : configs) {
-			if (config.getName().equals("provider")) { //$NON-NLS-1$
-				String currentType = config.getAttribute("type"); //$NON-NLS-1$
-				String shortcut = config.getAttribute("shortcut"); //$NON-NLS-1$
-				if (currentType != null && shortcut != null
-						&& currentType.equals(type)) {
-
-					String priority = config.getAttribute("priority");
-					if (priority != null) {
-						try {
-							Integer.parseInt(priority);
-							configList.add(config);
-						} catch (NumberFormatException e) {
-							// continue
-						}
-					}
-				}
-			}
-		}
-
-		Collections.sort(configList, new Comparator<IConfigurationElement>() {
-			public int compare(IConfigurationElement c1,
-					IConfigurationElement c2) {
-				int p1, p2;
-				// If priority is not an int or is < 0, corresponding config has
-				// lowest priority.
-				try {
-					p1 = Integer.parseInt(c1.getAttribute("priority"));
-					if (p1 <= 0) {
-						return 1;
-					}
-				} catch (NumberFormatException e) {
-					return 1;
-				}
-				try {
-					p2 = Integer.parseInt(c2.getAttribute("priority"));
-					if (p2 <= 0) {
-						return -1;
-					}
-				} catch (NumberFormatException e) {
-					return -1;
-				}
-				return p1 < p2 ? -1 : 1;
-			}
-		});
+		ArrayList<IConfigurationElement> configList = ProviderFramework.getOrderedConfigElements(type);
 
 		for (IConfigurationElement config : configList) {
 			try {

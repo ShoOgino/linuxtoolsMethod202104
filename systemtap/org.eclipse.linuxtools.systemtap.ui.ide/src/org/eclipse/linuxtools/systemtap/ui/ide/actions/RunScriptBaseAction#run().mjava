@@ -1,0 +1,42 @@
+	/**
+	 * The main body of this event. Starts by making sure the current editor is valid to run,
+	 * then builds the command line arguments for stap and retrieves the environment variables.
+	 * Finally, it gets an instance of <code>ScriptConsole</code> to run the script.
+	 */
+	@Override
+	public void run() {
+
+		if(isValid()) {
+			if(getRunLocal() == false) {
+				try{
+				 
+					ScpClient scpclient = new ScpClient();
+					serverfileName = fileName.substring(fileName.lastIndexOf('/')+1);
+					tmpfileName="/tmp/"+ serverfileName; //$NON-NLS-1$
+					 scpclient.transfer(fileName,tmpfileName);
+			        } catch (JSchException e) {
+						e.printStackTrace();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+			}
+			final String[] script = buildStandardScript();
+			final String[] envVars = getEnvironmentVariables();
+            if(continueRun)
+            {
+            	Display.getDefault().asyncExec(new Runnable() {
+            		public void run() {
+            			final ScriptConsole console;
+            			if(getRunLocal() == false) {
+            				console = ScriptConsole.getInstance(serverfileName);
+            				console.run(script, envVars, new PasswordPrompt(IDESessionSettings.password), new StapErrorParser());
+            			} else {
+            				console = ScriptConsole.getInstance(fileName);
+            				console.runLocally(script, envVars, new PasswordPrompt(IDESessionSettings.password), new StapErrorParser());
+            			}
+            		}
+            	});
+            }
+		}
+	}
+

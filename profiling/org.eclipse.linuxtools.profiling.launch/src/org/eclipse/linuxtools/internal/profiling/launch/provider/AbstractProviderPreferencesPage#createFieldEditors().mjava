@@ -1,0 +1,53 @@
+	@Override
+	protected void createFieldEditors() {
+		String providerId = ProviderFramework.getHighestProviderId(type);
+
+		getPreferenceStore().setDefault(
+				ProviderProfileConstants.PREFS_KEY + type, providerId);
+
+		HashMap<String, String> map = ProviderFramework
+				.getProviderNamesForType(type);
+		// 2d array containing launch provider names on the first column and
+		// corresponding id's on the second.
+		String[][] providerList = new String[map.size()][2];
+		int i = 0;
+		for (Entry<String, String> entry : map.entrySet()) {
+			String toolId = entry.getValue();
+			String toolDescription = getToolInformationFromId(toolId, PROVIDER_ATT_DESC);
+			String toolName = entry.getKey();
+
+			// Append tool description to tool name if available.
+			if (toolDescription != null && !toolDescription.equals("")) {
+				toolName = toolName + " " + "[" + toolDescription + "]"; //$NON-NLS-1$
+			}
+
+			providerList[i][0] = toolName;
+			providerList[i][1] = toolId;
+			i++;
+		}
+
+		// Create basic field editor.
+		RadioGroupFieldEditor editor = new RadioGroupFieldEditor(
+				ProviderProfileConstants.PREFS_KEY + type,
+				Messages.ProviderPreferencesPage_1, 1, providerList,
+				getFieldEditorParent(), true);
+		editor.setPreferenceStore(getPreferenceStore());
+		addField(editor);
+
+		Composite radioBoxControl = editor
+				.getRadioBoxControl(getFieldEditorParent());
+		Control[] providerOptions = radioBoxControl.getChildren();
+
+		// Set tool tip text on field editors.
+		for (Control control : providerOptions) {
+			// Get tool specific information from provider id.
+			String curProviderId = (String) control.getData();
+			// Set tool tip description text.
+			String toolDescription = getToolInformationFromId(curProviderId,
+					PROVIDER_ATT_INFO);
+			if (toolDescription != null && !toolDescription.equals("")) {
+				control.setToolTipText(toolDescription);
+			}
+		}
+	}
+
