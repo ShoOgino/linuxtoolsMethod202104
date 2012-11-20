@@ -1,8 +1,9 @@
     private void updateTable() {
-        fTable.setItemCount(0);
+        fTree.setItemCount(0);
         if (fTrace == null) {
             return;
         }
+
         ITmfTrace[] traces;
         if (fTrace instanceof TmfExperiment) {
             TmfExperiment experiment = (TmfExperiment) fTrace;
@@ -10,25 +11,26 @@
         } else {
             traces = new ITmfTrace[] { fTrace };
         }
-        ArrayList<Pair> tableData = new ArrayList<Pair>();
+
         for (ITmfTrace trace : traces) {
-            Pair traceEntry = new Pair(trace.getName());
-            tableData.add(traceEntry);
             if (trace instanceof CtfTmfTrace) {
+                TreeItem item = new TreeItem(fTree, SWT.NONE);
+                item.setText(0, trace.getName());
                 CtfTmfTrace ctfTrace = (CtfTmfTrace) trace;
                 for (String varName : ctfTrace.getEnvNames()) {
-                    tableData.add(new Pair(varName, ctfTrace.getEnvValue(varName)));
+                    TreeItem subItem = new TreeItem(item, SWT.NONE);
+                    subItem.setText(0, varName);
+                    subItem.setText(1, ctfTrace.getEnvValue(varName));
                 }
             }
         }
 
-        for (Pair pair : tableData) {
-            TableItem item = new TableItem(fTable, SWT.NONE);
-            item.setText(0, pair.getKey());
-            item.setText(1, pair.getValue());
+        // Expand the tree items
+        for (int i = 0; i < fTree.getItemCount(); i++) {
+            fTree.getItem(i).setExpanded(true);
         }
 
-        for (TableColumn column : fTable.getColumns()) {
+        for (TreeColumn column : fTree.getColumns()) {
             column.pack();
         }
     }
