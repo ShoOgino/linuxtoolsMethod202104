@@ -1,4 +1,4 @@
-    private void refresh(final long windowRange) {
+    private void refresh() {
         Display.getDefault().asyncExec(new Runnable() {
             @Override
             public void run() {
@@ -18,14 +18,15 @@
                     fTimeGraphViewer.setInput(entries);
                     fTimeGraphViewer.setTimeBounds(fStartTime, fEndTime);
 
-                    long endTime = fStartTime + windowRange;
+                    long timestamp = fTrace == null ? 0 : fTrace.getCurrentTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+                    long startTime = fTrace == null ? 0 : fTrace.getCurrentRange().getStartTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+                    long endTime = fTrace == null ? 0 : fTrace.getCurrentRange().getEndTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+                    startTime = Math.max(startTime, fStartTime);
+                    endTime = Math.min(endTime, fEndTime);
+                    fTimeGraphViewer.setSelectedTime(timestamp, false);
+                    fTimeGraphViewer.setStartFinishTime(startTime, endTime);
 
-                    if (fEndTime < endTime) {
-                        endTime = fEndTime;
-                    }
-                    fTimeGraphViewer.setStartFinishTime(fStartTime, endTime);
-
-                    startZoomThread(fStartTime, endTime);
+                    startZoomThread(startTime, endTime);
                 }
             }
         });

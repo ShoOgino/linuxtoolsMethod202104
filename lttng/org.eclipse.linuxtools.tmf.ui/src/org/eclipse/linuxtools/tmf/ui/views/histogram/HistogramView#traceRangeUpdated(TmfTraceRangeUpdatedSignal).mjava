@@ -23,11 +23,14 @@
         fTimeRangeHistogram.setFullRange(fTraceStartTime, fTraceEndTime);
 
         if (drawTimeRangeHistogram) {
-            fCurrentTimestamp = fTraceStartTime;
+            long startTime = fTrace.getCurrentRange().getStartTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+            long duration = fTrace.getCurrentRange().getEndTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue() - startTime;
+            fCurrentTimestamp = fTrace.getCurrentTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
             fCurrentEventTimeControl.setValue(fCurrentTimestamp);
-            fFullTraceHistogram.setTimeRange(fTraceStartTime, INITIAL_WINDOW_SPAN);
-            fTimeRangeHistogram.setTimeRange(fTraceStartTime, INITIAL_WINDOW_SPAN);
-            sendTimeRangeRequest(fTraceStartTime, fTraceStartTime + INITIAL_WINDOW_SPAN);
+            fTimeSpanControl.setValue(duration);
+            fFullTraceHistogram.setTimeRange(startTime, duration);
+            fTimeRangeHistogram.setTimeRange(startTime, duration);
+            sendTimeRangeRequest(startTime, startTime + duration);
         }
 
         sendFullRangeRequest(fullRange);

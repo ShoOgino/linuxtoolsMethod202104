@@ -1,32 +1,36 @@
     private void initializeHistograms() {
         TmfTimeRange fullRange = updateTraceTimeRange();
+        long timestamp = fTrace.getCurrentTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+        long startTime = fTrace.getCurrentRange().getStartTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+        long duration = fTrace.getCurrentRange().getEndTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue() - startTime;
 
         if ((fTimeRangeRequest != null) && !fTimeRangeRequest.isCompleted()) {
             fTimeRangeRequest.cancel();
         }
         fTimeRangeHistogram.clear();
         fTimeRangeHistogram.setFullRange(fTraceStartTime, fTraceEndTime);
-        fTimeRangeHistogram.setTimeRange(fTraceStartTime, INITIAL_WINDOW_SPAN);
-        fTimeRangeHistogram.setCurrentEvent(fTraceStartTime);
+        fTimeRangeHistogram.setTimeRange(startTime, duration);
+        fTimeRangeHistogram.setCurrentEvent(timestamp);
 
         if ((fFullTraceRequest != null) && !fFullTraceRequest.isCompleted()) {
             fFullTraceRequest.cancel();
         }
         fFullTraceHistogram.clear();
         fFullTraceHistogram.setFullRange(fTraceStartTime, fTraceEndTime);
-        fFullTraceHistogram.setTimeRange(fTraceStartTime, INITIAL_WINDOW_SPAN);
-        fFullTraceHistogram.setCurrentEvent(fTraceStartTime);
+        fFullTraceHistogram.setTimeRange(startTime, duration);
+        fFullTraceHistogram.setCurrentEvent(timestamp);
 
-        fWindowStartTime = fTraceStartTime;
-        fWindowSpan = INITIAL_WINDOW_SPAN;
-        fWindowEndTime = fWindowStartTime + fWindowSpan;
+        fWindowStartTime = startTime;
+        fWindowSpan = duration;
+        fWindowEndTime = startTime + duration;
 
-        fCurrentEventTimeControl.setValue(fTraceStartTime);
+        fCurrentTimestamp = timestamp;
+        fCurrentEventTimeControl.setValue(fCurrentTimestamp);
 
-        fTimeSpanControl.setValue(fWindowSpan);
+        fTimeSpanControl.setValue(duration);
 
         if (!fullRange.equals(TmfTimeRange.NULL_RANGE)) {
-            sendTimeRangeRequest(fTraceStartTime, fTraceStartTime + fWindowSpan);
+            sendTimeRangeRequest(startTime, startTime + duration);
             sendFullRangeRequest(fullRange);
         }
     }
