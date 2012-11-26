@@ -6,7 +6,7 @@
 		if (this.monitor == null) {
 			this.monitor = new NullProgressMonitor();
 		}
-		
+
 		makeView();
 		if (realTime) {
         	try {
@@ -17,29 +17,36 @@
 	            		done = true;
 	            		return Status.CANCEL_STATUS;
 	            	}
-	            	
+
 	            	Thread.sleep(500);
 	            }
 	            if (!monitor.isCanceled()) returnStatus = realTimeParsing();
 	            done = true;
 				return returnStatus;
-        	} catch (Exception e) {
+        	} catch (InterruptedException e) {
         		SystemTapUIErrorMessages m = new SystemTapUIErrorMessages(
-        				Messages.getString("SystemTapParser.InternalData"), //$NON-NLS-1$ 
-        				Messages.getString("SystemTapParser.FailedToSetData"), //$NON-NLS-1$ 
+        				Messages.getString("SystemTapParser.InternalData"), //$NON-NLS-1$
+        				Messages.getString("SystemTapParser.FailedToSetData"), //$NON-NLS-1$
         				Messages.getString("SystemTapParser.FailedToSetDataMessage")); //$NON-NLS-1$
         		m.schedule();
         		return Status.CANCEL_STATUS;
-        	}
+			} catch (FileNotFoundException e) {
+        		SystemTapUIErrorMessages m = new SystemTapUIErrorMessages(
+        				Messages.getString("SystemTapParser.InternalData"), //$NON-NLS-1$
+        				Messages.getString("SystemTapParser.FailedToSetData"), //$NON-NLS-1$
+        				Messages.getString("SystemTapParser.FailedToSetDataMessage")); //$NON-NLS-1$
+        		m.schedule();
+        		return Status.CANCEL_STATUS;
+			}
 		} else {
 			returnStatus = nonRealTimeParsing();
 			if (!returnStatus.isOK()){
 				return returnStatus;
 			}
-			
+
 			setData(this);
 			return returnStatus;
 		}
-	
+
 	}
 

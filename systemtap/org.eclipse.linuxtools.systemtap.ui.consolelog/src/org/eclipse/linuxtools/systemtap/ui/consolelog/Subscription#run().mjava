@@ -1,7 +1,7 @@
 	/**
 	 * Gather data from a previously started script and do stuff with it.
 	 * Contains blocking reads.
-	 * 
+	 *
 	 */
 	  @Override
 	public void run () {
@@ -10,42 +10,30 @@
 		//long timeToRemove = 0;
 		inputGobbler.start();
 		while (!Thread.interrupted() && ClientSession.isConnected()) {
-			subrep = session.recvResponse(scriptid);	
+			subrep = session.recvResponse(scriptid);
 			//timeToRemove = System.currentTimeMillis() - (1000 * ConsoleLogPlugin.getDefault().getPluginPreferences().getInt(ConsoleLogPreferenceConstants.SAVE_LENGTH));
 			if (subrep == null) {
 				// Interrupting this thread cause recvResponse to return
 				// from its blocking read, leaving subrep null
 				break;
 			}
-			
+
 			if (subrep.isValid() && (subrep.getsource() == DMResponse.STDERR)) {
 				// log the err output?, maybe pop up a dialog? ignore for now..
 				final String outp = new String (session.recvData(scriptid, subrep.getsize()));
-				final String[] lines = outp.trim().split("\n");
+				final String[] lines = outp.trim().split("\n"); //$NON-NLS-1$
 				for (final String str : lines) {
-					try{
-					inputGobbler.fireNewDataEvent(str + "\n");
-					}catch(Exception e)
-					{
-						System.err.println(e.toString());
-					}
-
-				}	
+					inputGobbler.fireNewDataEvent(str + "\n"); //$NON-NLS-1$
+				}
 			return;
 			}
 			else if (subrep.isValid()) {
-				
-				final String outp = new String (session.recvData(scriptid, subrep.getsize()));
-				
-				final String[] lines = outp.trim().split("\n");
-				for (final String str : lines) {
-					try{
-					inputGobbler.fireNewDataEvent(str + "\n");
-					}catch(Exception e)
-					{
-						System.err.println(e.toString());
-					}
 
+				final String outp = new String (session.recvData(scriptid, subrep.getsize()));
+
+				final String[] lines = outp.trim().split("\n"); //$NON-NLS-1$
+				for (final String str : lines) {
+					inputGobbler.fireNewDataEvent(str + "\n"); //$NON-NLS-1$
 				}
 
 			}
