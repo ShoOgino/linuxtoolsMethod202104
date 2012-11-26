@@ -3,19 +3,17 @@
 	 */
 	public synchronized void stop() {
 		  if(isRunning()) {
-			  String command[] = new String[1];
-				String moduleName = this.getName();
-				moduleName = moduleName.substring(0,moduleName.indexOf('.'));
-				if (moduleName.indexOf('-') != -1)
-					moduleName = moduleName.substring(0, moduleName.indexOf('-'));
-			
-				command[0] = "ps -ef | grep " + moduleName + " | grep stapio | awk '{print $2}' | xargs kill -SIGINT";
-				ScpExec stop = new ScpExec(command, moduleName);
-		        stop.start();
-              cmd.stop();
-              cmd.removeErrorStreamListener(errorDaemon);
-              cmd.removeInputStreamListener(consoleDaemon);
-              setName(Localization.getString("ScriptConsole.Terminated") + super.getName());
+			  // Remove the readers so the process is not blocked
+			  // on writing to console 
+			  cmd.removeErrorStreamListener(errorDaemon);
+			  cmd.removeInputStreamListener(consoleDaemon);
+
+			  // Stop the underlying stap process
+			  this.stopCommand.run();
+
+			  // Stop the command
+			  cmd.stop();
+              setName(Localization.getString("ScriptConsole.Terminated") + super.getName()); //$NON-NLS-1$
 		}
 	}
 
