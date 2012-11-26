@@ -1,0 +1,35 @@
+	private static void checkDefaultPreference(String preferenceCategory, String profilingType){
+		SWTWorkbenchBot bot = new SWTWorkbenchBot();
+
+		// Open preferences shell.
+		SWTBotMenu windowsMenu = bot.menu("Window");
+		windowsMenu.menu("Preferences").click();
+		SWTBotShell shell = bot.shell("Preferences");
+		shell.activate();
+
+		// Go to specified tree item in "Profiling Categories" preferences page.
+		SWTBotTreeItem treeItem = bot.tree().expandNode("C/C++").expandNode("Profiling Categories");
+		assertNotNull(treeItem);
+
+		treeItem.select(preferenceCategory);
+
+		// Restore defaults.
+		bot.button("Restore Defaults").click();
+		bot.button("Apply").click();
+
+		// Get information for default tool.
+		String defaultToolId = ProviderFramework.getProviderIdToRun(null, profilingType);
+		String defaultToolName = ProviderFramework.getToolInformationFromId(defaultToolId , "name");
+		String defaultToolInfo = ProviderFramework.getToolInformationFromId(defaultToolId , "information");
+		String defaultToolDescription = ProviderFramework.getToolInformationFromId(defaultToolId , "description");
+		String defaultToolLabel = defaultToolName + " [" + defaultToolDescription + "]";
+
+		// Assert default radio is as expected.
+		SWTBotRadio defaultRadio = bot.radio(defaultToolLabel);
+		assertNotNull(defaultRadio);
+		assertTrue(defaultToolInfo.equals(defaultRadio.getToolTipText()));
+
+		bot.button("Apply").click();
+		bot.button("OK").click();
+	}
+

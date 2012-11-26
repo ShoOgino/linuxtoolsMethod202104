@@ -1,0 +1,32 @@
+	@Test
+	public void testProfileProject() throws Exception {
+		SWTWorkbenchBot bot = new SWTWorkbenchBot();
+		proj = createProjectAndBuild(FrameworkUtil.getBundle(this.getClass()), PROJ_NAME);
+		testPreferencesPage();
+
+		// Focus on project explorer view.
+		bot.viewByTitle("Project Explorer").bot();
+		bot.activeShell();
+		SWTBotTree treeBot = bot.tree();
+		treeBot.setFocus();
+
+		// Select project binary.
+		// AbstractTest#createProjectAndBuild builds one executable binary under Binaries.
+		treeBot.expandNode(PROJ_NAME).expandNode("Binaries").getNode(0).select();
+
+		String menuItem = "Profiling Tools";
+		String subMenuItem = "3 Profile Timing";
+
+		// Click on "Profiling Tools -> 3 Profiling Timing" context menu to execute shortcut.
+		ContextMenuHelper.clickContextMenu(treeBot, menuItem, subMenuItem);
+
+		// Assert that the expected tool is running.
+		SWTBotShell profileShell = bot.shell("Successful profile launch").activate();
+		assertNotNull(profileShell);
+
+		bot.button("OK").click();
+		bot.waitUntil(shellCloses(profileShell));
+
+		deleteProject(proj);
+	}
+
