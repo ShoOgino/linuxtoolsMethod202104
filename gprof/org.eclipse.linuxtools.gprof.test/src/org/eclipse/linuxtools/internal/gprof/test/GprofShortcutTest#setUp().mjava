@@ -1,0 +1,28 @@
+	@Override
+	protected void setUp() throws Exception {
+		super.setUp();
+		proj = createProjectAndBuild(FrameworkUtil.getBundle(this.getClass()), "fibTest2"); //$NON-NLS-1$
+		ProjectScope ps = new ProjectScope(proj.getProject());
+		ScopedPreferenceStore scoped = new ScopedPreferenceStore(ps, ProviderProfileConstants.PLUGIN_ID);
+		scoped.setSearchContexts(new IScopeContext[] { ps, InstanceScope.INSTANCE });
+		scoped.setValue(ProviderProfileConstants.PREFS_KEY + GPROF_CATEGORY, GPROF_PROVIDER_ID);
+		scoped.setValue(ProviderProfileConstants.USE_PROJECT_SETTINGS + GPROF_CATEGORY, true);
+		scoped.save();
+
+		IExtensionPoint extPoint = Platform.getExtensionRegistry().getExtensionPoint(LAUNCH_SHORT_EXTPT);
+		IConfigurationElement[] configs = extPoint.getConfigurationElements();
+		for (IConfigurationElement cfg : configs) {
+			if (cfg.getAttribute("id").equals(ID)){ //$NON-NLS-1$
+				try {
+					shortcut = (ProviderLaunchShortcut) cfg.createExecutableExtension("class"); //$NON-NLS-1$
+					launchConfigTypeId = cfg.getChildren("class")[0].getChildren("parameter")[1].getAttribute("value"); //$NON-NLS-1$
+				} catch (Exception e){
+					fail ();
+				}
+			}
+		}
+		config = createConfiguration(proj.getProject());
+		launch = new Launch(config, ILaunchManager.PROFILE_MODE, null);
+ 		wc = config.getWorkingCopy();
+	}
+
