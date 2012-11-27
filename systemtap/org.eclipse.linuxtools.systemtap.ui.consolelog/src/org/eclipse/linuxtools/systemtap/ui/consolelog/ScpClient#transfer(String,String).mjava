@@ -1,41 +1,37 @@
     public void transfer(String fromFile, String toFile) throws IOException, JSchException{
-      // exec 'scp -t rfile' remotely
-    	FileInputStream fis=null;	
+    	FileInputStream fis=null;
       String rfile=toFile;
       String lfile=fromFile;
-      String command="scp -t "+rfile;
+      String command="scp -t "+rfile; //$NON-NLS-1$
       try {
-      Channel channel=session.openChannel("exec");
-      ((ChannelExec)channel).setCommand(command);
+    	  Channel channel=session.openChannel("exec"); //$NON-NLS-1$
+    	  ((ChannelExec)channel).setCommand(command);
 
-      // get I/O streams for remote scp
-      OutputStream out=channel.getOutputStream();
-      InputStream in=channel.getInputStream();
+    	  // get I/O streams for remote scp
+    	  OutputStream out=channel.getOutputStream();
+    	  InputStream in=channel.getInputStream();
 
-      channel.connect();
-      
+    	  channel.connect();
 
       if(checkAck(in)!=0){
-    	  System.out.println("err");
+    	  System.out.println("err"); //$NON-NLS-1$
       }
 
       // send "C0644 filesize filename", where filename should not include '/'
       long filesize=(new File(lfile)).length();
-      command="C0644 "+filesize+" ";
+      command="C0644 "+filesize+" "; //$NON-NLS-1$ //$NON-NLS-2$
       if(lfile.lastIndexOf('/')>0){
         command+=lfile.substring(lfile.lastIndexOf('/')+1);
       }
       else{
         command+=lfile;
       }
-      command+="\n";
-      
+      command+="\n"; //$NON-NLS-1$
+
       out.write(command.getBytes()); out.flush();
       if(checkAck(in)!=0){
-    	  System.out.println("err");
+    	  System.out.println("err"); //$NON-NLS-1$
       }
-      
-
 
       // send a content of lfile
       fis=new FileInputStream(lfile);
@@ -51,16 +47,17 @@
       // send '\0'
       buf[0]=0; out.write(buf, 0, 1); out.flush();
       if(checkAck(in)!=0){
-	System.out.println("err");
+	System.out.println("err"); //$NON-NLS-1$
       }
       out.close();
 
       channel.disconnect();
       session.disconnect();
-      
+
     }
     catch(IOException e){
-      try{if(fis!=null)fis.close();}catch(Exception ee){}
+      if(fis!=null)
+    	  fis.close();
       throw e;
     }
   }
