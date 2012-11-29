@@ -29,9 +29,18 @@
 			return getGlobalKeywordCompletion(prefix, offset);
 		}
 
-		// If inside a probe return probe variable completions.
+		// If inside a probe return probe variable completions and functions
+		// which can be called.
 		if (partition.getType() == STPPartitionScanner.STP_PROBE){
-			return getProbeVariableCompletions(document, offset, prefix);
+			ICompletionProposal[] variableCompletions = getProbeVariableCompletions(document, offset, prefix);
+			ICompletionProposal[] functionCompletions = getFunctionCompletions(offset, prefix);
+			
+			ArrayList<ICompletionProposal> completions = new ArrayList<ICompletionProposal>(
+					variableCompletions.length + functionCompletions.length);
+			completions.addAll(Arrays.asList(variableCompletions));
+			completions.addAll(Arrays.asList(functionCompletions));
+
+			return completions.toArray(new ICompletionProposal[0]);
 		}
 
 		return NO_COMPLETIONS;
