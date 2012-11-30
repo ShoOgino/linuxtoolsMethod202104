@@ -2,23 +2,38 @@
 	 * @see java.util.concurrent.Executor#execute(java.lang.Runnable)
 	 */
 	@Override
-	public synchronized void execute(final Runnable requestThread) {
-		fRequestQueue.offer(new TmfThread(((TmfThread) requestThread).getExecType()) {
-			@Override
-			public void run() {
-				try {
-					requestThread.run();
-				} finally {
-					scheduleNext();
-				}
-			}
+	public synchronized void execute(final Runnable command) {
+
+        // We are expecting MyEventThread:s
+        if (!(command instanceof TmfEventThread)) {
+            // TODO: Log an error
+            return;
+        }
+
+        // Wrap the thread in a MyThread
+        TmfEventThread thread = (TmfEventThread) command;
+        TmfEventThread wrapper = new TmfEventThread(thread) {
             @Override
-            public void cancel() {
-                ((TmfThread) requestThread).cancel();
+            public void run() {
+                try {
+                    command.run();
+                } finally {
+                    scheduleNext();
+                }
             }
-		});
-		if (fCurrentRequest == null) {
-			scheduleNext();
-		}
+        };
+
+        // Add the thread to the appropriate queue
+        ExecutionType priority = thread.getExecType();
+        (priority == ExecutionType.FOREGROUND ? fHighPriorityTasks : fLowPriorityTasks).offer(wrapper);
+
+        // Schedule or preempt as appropriate
+        if (fActiveTask == null) {
+            scheduleNext();
+        } else if (priority == ExecutionType.FOREGROUND && priority != fActiveTask.getExecType()) {
+            fActiveTask.getThread().suspend();
+            fSuspendedTask = fActiveTask;
+            scheduleNext();
+        }
 	}
 
