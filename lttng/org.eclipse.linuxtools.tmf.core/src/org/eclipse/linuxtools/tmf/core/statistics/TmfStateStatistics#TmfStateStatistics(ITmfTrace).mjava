@@ -1,0 +1,27 @@
+    /**
+     * Constructor
+     *
+     * @param trace
+     *            The trace for which we build these statistics
+     * @throws TmfTraceException
+     *             If something went wrong trying to initialize the statistics
+     */
+    public TmfStateStatistics(ITmfTrace trace) throws TmfTraceException {
+        /* Set up the path to the history tree file we'll use */
+        this.trace = trace;
+        IResource resource = trace.getResource();
+        String supplDirectory = null;
+
+        try {
+            // get the directory where the history file will be stored.
+            supplDirectory = resource.getPersistentProperty(TmfCommonConstants.TRACE_SUPPLEMENTARY_FOLDER);
+        } catch (CoreException e) {
+            throw new TmfTraceException(e.toString(), e);
+        }
+
+        final File htFile = new File(supplDirectory + File.separator + STATS_STATE_FILENAME);
+        final IStateChangeInput htInput = new StatsStateProvider(trace);
+
+        this.stats = StateSystemManager.loadStateHistory(htFile, htInput, STATE_ID, false);
+    }
+

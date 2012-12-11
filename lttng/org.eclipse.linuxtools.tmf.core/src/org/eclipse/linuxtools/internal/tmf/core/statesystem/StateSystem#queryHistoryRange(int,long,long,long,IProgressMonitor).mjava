@@ -1,10 +1,19 @@
     @Override
     public List<ITmfStateInterval> queryHistoryRange(int attributeQuark,
-            long t1, long t2, long resolution, IProgressMonitor monitor) throws TimeRangeException,
-            AttributeNotFoundException {
+            long t1, long t2, long resolution, IProgressMonitor monitor)
+            throws TimeRangeException, AttributeNotFoundException,
+            StateSystemDisposedException {
+        if (isDisposed) {
+            throw new StateSystemDisposedException();
+        }
+
         List<ITmfStateInterval> intervals;
         ITmfStateInterval currentInterval;
         long ts, tEnd;
+
+        if (monitor == null) {
+            monitor = new NullProgressMonitor();
+        }
 
         /* Make sure the time range makes sense */
         if (t2 < t1 || resolution <= 0) {

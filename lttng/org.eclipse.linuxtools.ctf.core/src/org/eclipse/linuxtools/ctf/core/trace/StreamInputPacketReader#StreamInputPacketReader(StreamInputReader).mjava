@@ -7,19 +7,54 @@
     public StreamInputPacketReader(StreamInputReader streamInputReader) {
         this.streamInputReader = streamInputReader;
 
-        /*
-         * Set the BitBuffer's byte order.
-         */
-        getBitBuffer().setByteOrder(streamInputReader.getByteOrder());
+        /* Set the BitBuffer's byte order. */
+        bitBuffer = new BitBuffer();
+        bitBuffer.setByteOrder(streamInputReader.getByteOrder());
 
-        events = streamInputReader.getStreamInput().getStream().getTrace()
-                .getEventDefs(streamInputReader.getStreamInput());
-        /*
-         * Create definitions needed to read the events.
-         */
-        createDefinitions();
-
-        lostEvents = 0;
+        events = streamInputReader.getStreamInput().getStream().getTrace().getEventDefs(streamInputReader.getStreamInput());
         lostSoFar = 0;
+
+        /* Create trace packet header definition. */
+        final Stream currentStream = streamInputReader.getStreamInput().getStream();
+        StructDeclaration tracePacketHeaderDecl = currentStream.getTrace().getPacketHeader();
+        if (tracePacketHeaderDecl != null) {
+            tracePacketHeaderDef = tracePacketHeaderDecl.createDefinition(this, "trace.packet.header"); //$NON-NLS-1$
+        } else {
+            tracePacketHeaderDef = null;
+        }
+
+        /* Create stream packet context definition. */
+        StructDeclaration streamPacketContextDecl = currentStream.getPacketContextDecl();
+        if (streamPacketContextDecl != null) {
+            streamPacketContextDef = streamPacketContextDecl.createDefinition(this, "stream.packet.context"); //$NON-NLS-1$
+        } else {
+            streamPacketContextDef = null;
+        }
+
+        /* Create stream event header definition. */
+        StructDeclaration streamEventHeaderDecl = currentStream.getEventHeaderDecl();
+        if (streamEventHeaderDecl != null) {
+            streamEventHeaderDef = streamEventHeaderDecl.createDefinition(this, "stream.event.header"); //$NON-NLS-1$
+        } else {
+            streamEventHeaderDef = null;
+        }
+
+        /* Create stream event context definition. */
+        StructDeclaration streamEventContextDecl = currentStream.getEventContextDecl();
+        if (streamEventContextDecl != null) {
+            streamEventContextDef = streamEventContextDecl.createDefinition(this, "stream.event.context"); //$NON-NLS-1$
+        } else {
+            streamEventContextDef = null;
+        }
+
+        /* Create event definitions */
+        Collection<EventDeclaration> eventDecls = streamInputReader.getStreamInput().getStream().getEvents().values();
+
+        for (EventDeclaration event : eventDecls) {
+            if (!events.containsKey(event.getId())) {
+                EventDefinition eventDef = event.createDefinition(streamInputReader);
+                events.put(event.getId(), eventDef);
+            }
+        }
     }
 

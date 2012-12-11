@@ -1,0 +1,37 @@
+    private void updateTable() {
+        fTree.setItemCount(0);
+        if (fTrace == null) {
+            return;
+        }
+
+        ITmfTrace[] traces;
+        if (fTrace instanceof TmfExperiment) {
+            TmfExperiment experiment = (TmfExperiment) fTrace;
+            traces = experiment.getTraces();
+        } else {
+            traces = new ITmfTrace[] { fTrace };
+        }
+
+        for (ITmfTrace trace : traces) {
+            if (trace instanceof CtfTmfTrace) {
+                TreeItem item = new TreeItem(fTree, SWT.NONE);
+                item.setText(0, trace.getName());
+                CtfTmfTrace ctfTrace = (CtfTmfTrace) trace;
+                for (String varName : ctfTrace.getEnvNames()) {
+                    TreeItem subItem = new TreeItem(item, SWT.NONE);
+                    subItem.setText(0, varName);
+                    subItem.setText(1, ctfTrace.getEnvValue(varName));
+                }
+            }
+        }
+
+        // Expand the tree items
+        for (int i = 0; i < fTree.getItemCount(); i++) {
+            fTree.getItem(i).setExpanded(true);
+        }
+
+        for (TreeColumn column : fTree.getColumns()) {
+            column.pack();
+        }
+    }
+

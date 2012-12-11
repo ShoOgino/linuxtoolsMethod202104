@@ -1,7 +1,16 @@
     @Override
-    public ITmfContext seekEvent(double ratio) {
+    public synchronized ITmfContext seekEvent(double ratio) {
         CtfTmfLightweightContext context = new CtfTmfLightweightContext(this);
-        context.seek(Math.round(this.getNbEvents() * ratio));
+        if (fTrace == null) {
+            context.setLocation(null);
+            context.setRank(ITmfContext.UNKNOWN_RANK);
+            return context;
+        }
+        final long end = this.getEndTime().getValue();
+        final long start = this.getStartTime().getValue();
+        final long diff = end - start;
+        final long ratioTs = Math.round(diff * ratio) + start;
+        context.seek(ratioTs);
         context.setRank(ITmfContext.UNKNOWN_RANK);
         return context;
     }

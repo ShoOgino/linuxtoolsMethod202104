@@ -1,0 +1,34 @@
+    /**
+     * Listen to the "trace range updated" signal to start the state history
+     * construction.
+     *
+     * @param signal
+     *            The "trace range updated" signal. Listening to this
+     *            signal will coalesce this request with the one from the
+     *            indexer and histogram.
+     */
+    @TmfSignalHandler
+    public void traceRangeUpdated(final TmfTraceRangeUpdatedSignal signal) {
+        ITmfTrace trace = signal.getTrace();
+        if (signal.getTrace() instanceof TmfExperiment) {
+            TmfExperiment experiment = (TmfExperiment) signal.getTrace();
+            for (ITmfTrace expTrace : experiment.getTraces()) {
+                if (expTrace == sci.getTrace()) {
+                    trace = expTrace;
+                    break;
+                }
+            }
+        }
+        if (trace != sci.getTrace()) {
+            return;
+        }
+        /* the signal is for this trace or for an experiment containing this trace */
+
+        if (!started) {
+            started = true;
+            StateSystemBuildRequest request = new StateSystemBuildRequest(this);
+            trace = signal.getTrace();
+            trace.sendRequest(request);
+        }
+    }
+

@@ -1,0 +1,33 @@
+    @Override
+    public void updateStats(final boolean isGlobal, final long start,
+            final long end) {
+        /*
+         * Since we are currently in a signal handler (ie, in the UI thread),
+         * and since state system queries can be arbitrarily long (O(log n) wrt
+         * the size of the trace), we will run those queries in a separate
+         * thread and update the statistics view out-of-band.
+         */
+        Thread statsThread = new Thread("Statistics update") { //$NON-NLS-1$
+            @Override
+            public void run() {
+                long total;
+                Map<String, Long> map;
+
+                /* Wait until the history building completed */
+                if (!stats.waitUntilBuilt()) {
+                    return;
+                }
+
+                /* Range should be valid for both global and time range queries */
+                total = getEventsInRange(start, end);
+                map = getEventTypesInRange(start, end);
+
+                /* Send the signal to notify the stats viewer to update its display */
+                TmfSignal sig = new TmfStatsUpdatedSignal(this, trace, isGlobal, total, map);
+                TmfSignalManager.dispatchSignal(sig);
+            }
+        };
+        statsThread.start();
+        return;
+    }
+

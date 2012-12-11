@@ -1,0 +1,72 @@
+    @Override
+    public Map<String, Long> getEventTypesInRange(long start, long end) {
+        // FIXME Instead of waiting until the end, we could check the current
+        // end time, and answer as soon as possible...
+        stats.waitUntilBuilt();
+
+        Map<String, Long> map = new HashMap<String, Long>();
+
+        /* Make sure the start/end times are within the state history, so we
+         * don't get TimeRange exceptions.
+         */
+        long startTime = checkStartTime(start);
+        long endTime = checkEndTime(end);
+
+        try {
+            /* Get the list of quarks, one for each even type in the database */
+            int quark = stats.getQuarkAbsolute(Attributes.EVENT_TYPES);
+            List<Integer> quarks = stats.getSubAttributes(quark, false);
+
+            List<ITmfStateInterval> endState = stats.queryFullState(endTime);
+
+            String curEventName;
+            long countAtStart, countAtEnd, eventCount;
+
+            if (startTime == stats.getStartTime()) {
+                /* Only use the values picked up at the end time */
+                for (int typeQuark : quarks) {
+                    curEventName = stats.getAttributeName(typeQuark);
+                    eventCount = endState.get(typeQuark).getStateValue().unboxInt();
+                    if (eventCount == -1) {
+                        eventCount = 0;
+                    }
+                    map.put(curEventName, eventCount);
+                }
+            } else {
+                /*
+                 * Query the start time at -1, so the beginning of the interval
+                 * is inclusive.
+                 */
+                List<ITmfStateInterval> startState = stats.queryFullState(startTime - 1);
+                for (int typeQuark : quarks) {
+                    curEventName = stats.getAttributeName(typeQuark);
+                    countAtStart = startState.get(typeQuark).getStateValue().unboxInt();
+                    countAtEnd = endState.get(typeQuark).getStateValue().unboxInt();
+
+                    if (countAtStart == -1) {
+                        countAtStart = 0;
+                    }
+                    if (countAtEnd == -1) {
+                        countAtEnd = 0;
+                    }
+                    eventCount = countAtEnd - countAtStart;
+                    map.put(curEventName, eventCount);
+                }
+            }
+
+        } catch (TimeRangeException e) {
+            /* Assume there is no events, nothing will be put in the map. */
+        } catch (AttributeNotFoundException e) {
+            /*
+             * These other exception types would show a logic problem however,
+             * so they should not happen.
+             */
+            e.printStackTrace();
+        } catch (StateValueTypeException e) {
+            e.printStackTrace();
+        } catch (StateSystemDisposedException e) {
+            e.printStackTrace();
+        }
+        return map;
+    }
+

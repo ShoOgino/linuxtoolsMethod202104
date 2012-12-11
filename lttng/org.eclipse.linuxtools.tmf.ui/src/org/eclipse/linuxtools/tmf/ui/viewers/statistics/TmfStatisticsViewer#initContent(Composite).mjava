@@ -1,0 +1,108 @@
+    /**
+     * Initialize the content that will be drawn in this viewer
+     *
+     * @param parent
+     *            The parent of the control to create
+     */
+    protected void initContent(Composite parent) {
+        final List<TmfBaseColumnData> columnDataList = getColumnDataProvider().getColumnData();
+
+        fTreeViewer = new TreeViewer(parent, SWT.BORDER | SWT.H_SCROLL | SWT.V_SCROLL);
+        fTreeViewer.setContentProvider(new TmfTreeContentProvider());
+        fTreeViewer.getTree().setHeaderVisible(true);
+        fTreeViewer.setUseHashlookup(true);
+
+        // Creates the columns defined by the column data provider
+        for (final TmfBaseColumnData columnData : columnDataList) {
+            final TreeViewerColumn treeColumn = new TreeViewerColumn(fTreeViewer, columnData.getAlignment());
+            treeColumn.getColumn().setText(columnData.getHeader());
+            treeColumn.getColumn().setWidth(columnData.getWidth());
+            treeColumn.getColumn().setToolTipText(columnData.getTooltip());
+
+            if (columnData.getComparator() != null) { // A comparator is defined.
+                // Adds a listener on the columns header for sorting purpose.
+                treeColumn.getColumn().addSelectionListener(new SelectionAdapter() {
+
+                    private ViewerComparator reverseComparator;
+
+                    @Override
+                    public void widgetSelected(SelectionEvent e) {
+                        // Initializes the reverse comparator once.
+                        if (reverseComparator == null) {
+                            reverseComparator = new ViewerComparator() {
+                                @Override
+                                public int compare(Viewer viewer, Object e1, Object e2) {
+                                    return -1 * columnData.getComparator().compare(viewer, e1, e2);
+                                }
+                            };
+                        }
+
+                        if (fTreeViewer.getTree().getSortDirection() == SWT.UP
+                                || fTreeViewer.getTree().getSortColumn() != treeColumn.getColumn()) {
+                            /*
+                             * Puts the descendant order if the old order was
+                             * up or if the selected column has changed.
+                             */
+                            fTreeViewer.setComparator(columnData.getComparator());
+                            fTreeViewer.getTree().setSortDirection(SWT.DOWN);
+                        } else {
+                            /*
+                             * Puts the ascendant ordering if the selected
+                             * column hasn't changed.
+                             */
+                            fTreeViewer.setComparator(reverseComparator);
+                            fTreeViewer.getTree().setSortDirection(SWT.UP);
+                        }
+                        fTreeViewer.getTree().setSortColumn(treeColumn.getColumn());
+                    }
+                });
+            }
+            treeColumn.setLabelProvider(columnData.getLabelProvider());
+        }
+
+        // Handler that will draw the bar charts.
+        fTreeViewer.getTree().addListener(SWT.EraseItem, new Listener() {
+            @Override
+            public void handleEvent(Event event) {
+                if (columnDataList.get(event.index).getPercentageProvider() != null) {
+                    TmfStatisticsTreeNode node = (TmfStatisticsTreeNode) event.item.getData();
+
+                    double percentage = columnDataList.get(event.index).getPercentageProvider().getPercentage(node);
+                    if (percentage == 0) {  // No bar to draw
+                        return;
+                    }
+
+                    if ((event.detail & SWT.SELECTED) > 0) {    // The item is selected.
+                        // Draws our own background to avoid overwritten the bar.
+                        event.gc.fillRectangle(event.x, event.y, event.width, event.height);
+                        event.detail &= ~SWT.SELECTED;
+                    }
+
+                    int barWidth = (int) ((fTreeViewer.getTree().getColumn(event.index).getWidth() - 8) * percentage);
+                    int oldAlpha = event.gc.getAlpha();
+                    Color oldForeground = event.gc.getForeground();
+                    Color oldBackground = event.gc.getBackground();
+                    /*
+                     * Draws a transparent gradient rectangle from the color of
+                     * foreground and background.
+                     */
+                    event.gc.setAlpha(64);
+                    event.gc.setForeground(event.item.getDisplay().getSystemColor(SWT.COLOR_BLUE));
+                    event.gc.setBackground(event.item.getDisplay().getSystemColor(SWT.COLOR_LIST_BACKGROUND));
+                    event.gc.fillGradientRectangle(event.x, event.y, barWidth, event.height, true);
+                    event.gc.drawRectangle(event.x, event.y, barWidth, event.height);
+                    // Restores old values
+                    event.gc.setForeground(oldForeground);
+                    event.gc.setBackground(oldBackground);
+                    event.gc.setAlpha(oldAlpha);
+                    event.detail &= ~SWT.BACKGROUND;
+                }
+            }
+        });
+
+        // Initializes the comparator parameters
+        fTreeViewer.setComparator(columnDataList.get(0).getComparator());
+        fTreeViewer.getTree().setSortColumn(fTreeViewer.getTree().getColumn(0));
+        fTreeViewer.getTree().setSortDirection(SWT.DOWN);
+    }
+

@@ -12,8 +12,8 @@
             if (event == null) {
                 return;
             }
-            final TmfTimeRange timeRange = new TmfTimeRange(event.getTimestamp().clone(), TmfTimestamp.BIG_CRUNCH);
-            final TmfExperimentRangeUpdatedSignal signal = new TmfExperimentRangeUpdatedSignal(this, this, timeRange);
+            final TmfTimeRange timeRange = new TmfTimeRange(event.getTimestamp(), TmfTimestamp.BIG_CRUNCH);
+            final TmfTraceRangeUpdatedSignal signal = new TmfTraceRangeUpdatedSignal(this, this, timeRange);
 
             // Broadcast in separate thread to prevent deadlock
             new Thread() {
@@ -32,11 +32,11 @@
 
             @Override
             public void run() {
-                while (!fExecutor.isShutdown()) {
+                while (!executorIsShutdown()) {
                     if (!getIndexer().isIndexing()) {
                         ITmfTimestamp startTimestamp = TmfTimestamp.BIG_CRUNCH;
                         ITmfTimestamp endTimestamp = TmfTimestamp.BIG_BANG;
-                        for (final ITmfTrace<T> trace : fTraces) {
+                        for (final ITmfTrace trace : fTraces) {
                             if (trace.getStartTime().compareTo(startTimestamp) < 0) {
                                 startTimestamp = trace.getStartTime();
                             }
@@ -52,8 +52,8 @@
                         }
                         safeTimestamp = endTimestamp;
                         if (timeRange != null) {
-                            final TmfExperimentRangeUpdatedSignal signal =
-                                    new TmfExperimentRangeUpdatedSignal(TmfExperiment.this, TmfExperiment.this, timeRange);
+                            final TmfTraceRangeUpdatedSignal signal =
+                                    new TmfTraceRangeUpdatedSignal(TmfExperiment.this, TmfExperiment.this, timeRange);
                             broadcast(signal);
                         }
                     }

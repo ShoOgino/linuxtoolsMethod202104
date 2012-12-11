@@ -1,0 +1,24 @@
+    /**
+     * Handles the signal about new trace range.
+     *
+     * @param signal
+     *            The trace range updated signal
+     */
+    @TmfSignalHandler
+    public void traceRangeUpdated(TmfTraceRangeUpdatedSignal signal) {
+        ITmfTrace trace = signal.getTrace();
+        // validate
+        if (!isListeningTo(trace)) {
+            return;
+        }
+
+        synchronized (fStatisticsRangeUpdateSyncObj) {
+            // Sends the time range request only once from this method.
+            if (fSendRangeRequest) {
+                fSendRangeRequest = false;
+                requestTimeRangeData(trace, fTrace.getCurrentRange());
+            }
+        }
+        requestData(trace, signal.getRange());
+    }
+

@@ -1,0 +1,29 @@
+        @Override
+        public void run() {
+            if (ss == null) {
+                System.err.println("Cannot run event manager without assigning a target state system first!"); //$NON-NLS-1$
+                return;
+            }
+            ITmfEvent event;
+
+            try {
+                event = eventsQueue.take();
+                while (event.getTimestamp().getValue() != -1) {
+                    currentEvent = event;
+
+                    /* Make sure this is an event the sub-class can process */
+                    if (eventType.isInstance(event)) {
+                        eventHandle(event);
+                    }
+                    event = eventsQueue.take();
+                }
+                /* We've received the last event, clean up */
+                closeStateSystem();
+                return;
+            } catch (InterruptedException e) {
+                /* We've been interrupted abnormally */
+                System.out.println("Event handler interrupted!"); //$NON-NLS-1$
+                e.printStackTrace();
+            }
+        }
+

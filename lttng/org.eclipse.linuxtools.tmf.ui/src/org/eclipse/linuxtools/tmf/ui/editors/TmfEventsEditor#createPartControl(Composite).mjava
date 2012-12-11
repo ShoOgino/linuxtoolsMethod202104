@@ -4,14 +4,27 @@
         if (fTrace != null) {
             setPartName(fTrace.getName());
             fEventsTable = createEventsTable(parent, fTrace.getCacheSize());
+            fEventsTable.addSelectionChangedListener(this);
             fEventsTable.setTrace(fTrace, true);
             fEventsTable.refreshBookmarks(fFile);
-            broadcast(new TmfTraceOpenedSignal(this, fTrace, fFile, fEventsTable));
+
+            /* ensure start time is set */
+            final ITmfContext context = fTrace.seekEvent(0);
+            fTrace.getNext(context);
+            context.dispose();
+
+            broadcast(new TmfTraceOpenedSignal(this, fTrace, fFile));
         } else {
             setPartName(getEditorInput().getName());
             fEventsTable = new TmfEventsTable(parent, 0);
+            fEventsTable.addSelectionChangedListener(this);
         }
         addPropertyListener(this);
         ResourcesPlugin.getWorkspace().addResourceChangeListener(this, IResourceChangeEvent.POST_CHANGE);
+        // we need to wrap the ISelectionProvider interface in the editor because
+        // the events table can be replaced later while the selection changed listener
+        // is only added once by the platform to the selection provider set here
+        getSite().setSelectionProvider(this);
+        getSite().getPage().addPartListener(this);
     }
 

@@ -1,0 +1,64 @@
+    /**
+     * Creates the statistics viewers for all traces in an experiment and
+     * populates a viewer folder. Each viewer is placed in a different tab and
+     * the first one is selected automatically.
+     *
+     * It uses the extension point that defines the statistics viewer to build
+     * from the trace type. If no viewer is defined, another tab won't be
+     * created, since the global viewer already contains all the basic
+     * statistics. If there is no trace selected, a global statistics viewer will
+     * still be created.
+     *
+     * @since 2.0
+     */
+    protected void createStatisticsViewers() {
+        // Default style for the tabs that will be created
+        int defaultStyle = SWT.NONE;
+
+        // The folder composite that will contain the tabs
+        Composite folder = fStatsViewers.getParentFolder();
+
+        // Instantiation of the global viewer
+        TmfStatisticsViewer globalViewer = getGlobalViewer();
+        if (fTrace != null) {
+            if (globalViewer != null) {
+                // Shows the name of the trace in the global tab
+                globalViewer.init(folder, Messages.TmfStatisticsView_GlobalTabName + " - " + fTrace.getName(), fTrace); //$NON-NLS-1$
+            }
+            fStatsViewers.addTab(globalViewer, Messages.TmfStatisticsView_GlobalTabName, defaultStyle);
+
+            String traceName;
+            IResource traceResource;
+            ITmfTrace[] traces;
+            if (fTrace instanceof TmfExperiment) {
+                TmfExperiment experiment = (TmfExperiment) fTrace;
+                traces = experiment.getTraces();
+            } else {
+                traces = new ITmfTrace[] { fTrace };
+            }
+            // Creates a statistics viewer for each trace.
+            for (ITmfTrace trace : traces) {
+                traceName = trace.getName();
+                traceResource = trace.getResource();
+                TmfStatisticsViewer viewer = getStatisticsViewer(traceResource);
+                /*
+                 * Adds a new viewer only if there is one defined for the
+                 * selected trace type, since the global tab already contains
+                 * all the basic event counts for the trace(s)
+                 */
+                if (viewer != null) {
+                    viewer.init(folder, traceName, trace);
+                    fStatsViewers.addTab(viewer, viewer.getName(), defaultStyle);
+                }
+            }
+        } else {
+            if (globalViewer != null) {
+                // There is no trace selected. Shows an empty global tab
+                globalViewer.init(folder, Messages.TmfStatisticsView_GlobalTabName, fTrace);
+            }
+            fStatsViewers.addTab(globalViewer, Messages.TmfStatisticsView_GlobalTabName, defaultStyle);
+        }
+        // Makes the global viewer visible
+        fStatsViewers.setSelection(0);
+    }
+

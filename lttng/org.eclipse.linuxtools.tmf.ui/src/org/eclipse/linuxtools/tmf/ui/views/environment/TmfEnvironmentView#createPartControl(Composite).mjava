@@ -1,50 +1,23 @@
     @Override
-    @SuppressWarnings({ "unchecked", "rawtypes" })
     public void createPartControl(Composite parent) {
-        fParent = parent;
-        TableItem ti[];
-        // If an experiment is already selected, update the table
-        TmfExperiment<ITmfEvent> experiment = (TmfExperiment<ITmfEvent>) TmfExperiment
-                .getCurrentExperiment();
-        if (experiment == null) {
-            return;
-        }
-        fTable = new Table(parent, SWT.BORDER|SWT.FILL);
-
-
-        ArrayList<Pair> tableData = new ArrayList<Pair>();
-        for (ITmfTrace trace : experiment.getTraces()) {
-            Pair traceEntry = new Pair(trace.getName());
-            tableData.add(traceEntry);
-            if (trace instanceof CtfTmfTrace) {
-                CtfTmfTrace ctfTrace = (CtfTmfTrace) trace;
-                for (String varName : ctfTrace
-                        .getEnvNames()) {
-                    tableData.add(new Pair( varName, ctfTrace.getEnvValue(varName)));
-                }
-            }
-        }
-        TableColumn nameCol = new TableColumn(fTable, SWT.NONE, 0);
-        TableColumn valueCol = new TableColumn(fTable, SWT.NONE, 1);
+        fTree = new Tree(parent, SWT.NONE);
+        TreeColumn nameCol = new TreeColumn(fTree, SWT.NONE, 0);
+        TreeColumn valueCol = new TreeColumn(fTree, SWT.NONE, 1);
         nameCol.setText("Environment Variable"); //$NON-NLS-1$
         valueCol.setText("Value"); //$NON-NLS-1$
 
-        final int tableSize = tableData.size();
+        fTree.setItemCount(0);
 
-        fTable.setItemCount(tableSize);
-        ti = fTable.getItems();
-        for(int i = 0; i < tableSize; i++){
-            final Pair currentPair = tableData.get(i);
-            ti[i].setText(0, currentPair.getKey());
-            ti[i].setText(1, currentPair.getValue());
-        }
-
-        fTable.setHeaderVisible(true);
+        fTree.setHeaderVisible(true);
         nameCol.pack();
         valueCol.pack();
-        fTable.pack();
 
-        parent.layout();
-
+        IEditorPart editor = getSite().getPage().getActiveEditor();
+        if (editor instanceof ITmfTraceEditor) {
+            ITmfTrace trace = ((ITmfTraceEditor) editor).getTrace();
+            if (trace != null) {
+                traceSelected(new TmfTraceSelectedSignal(this, trace));
+            }
+        }
     }
 

@@ -1,0 +1,67 @@
+    /**
+     * Format the timestamp according to its pattern.
+     *
+     * @param value the timestamp value to format (in ns)
+     * @return the formatted timestamp
+     */
+    public synchronized String format(long value) {
+
+        // Split the timestamp value into its sub-components
+        long sec = value / 1000000000;            // seconds
+        long ms  = value % 1000000000 / 1000000;  // milliseconds
+        long cs  = value % 1000000    / 1000;     // microseconds
+        long ns  = value % 1000;                  // nanoseconds
+
+        // Let the base class fill the stuff it knows about
+        StringBuffer result = new StringBuffer(super.format(sec * 1000 + ms));
+
+        // In the case where there is no separation between 2 supplementary
+        // fields, the pattern will have the form "..'[pat-1]''[pat-2]'.." and
+        // the base class format() will interpret the 2 adjacent quotes as a
+        // wanted character in the result string as ("..[pat-1]'[pat-2]..").
+        // Remove these extra quotes before filling the supplementary fields.
+        int loc = result.indexOf(fCloseBracket + "'" + fOpenBracket); //$NON-NLS-1$
+        while (loc != -1) {
+            result.deleteCharAt(loc + fCloseBracket.length());
+            loc = result.indexOf(fCloseBracket + "'" + fOpenBracket); //$NON-NLS-1$
+        }
+
+        // Fill in our extensions
+        for (String pattern : fSupplPatterns) {
+            int length = pattern.length();
+
+            // Prepare the format buffer
+            StringBuffer fmt = new StringBuffer(length);
+            for (int i = 0; i < length; i++) {
+                fmt.append("0"); //$NON-NLS-1$
+            }
+            DecimalFormat dfmt = new DecimalFormat(fmt.toString());
+            String fmtVal = ""; //$NON-NLS-1$;
+
+            // Format the proper value as per the pattern
+            switch (pattern.charAt(0)) {
+                case 'T':
+                    fmtVal = dfmt.format(sec);
+                    break;
+                case 'S':
+                    fmtVal = dfmt.format(ms);
+                    break;
+                case 'C':
+                    fmtVal = dfmt.format(cs);
+                    break;
+                case 'N':
+                    fmtVal = dfmt.format(ns);
+                    break;
+                default:
+                    break;
+            }
+
+            // Substitute the placeholder with the formatted value
+            String ph = new StringBuffer(fOpenBracket + pattern + fCloseBracket).toString();
+            loc = result.indexOf(ph);
+            result.replace(loc, loc + length + fOpenBracket.length() + fCloseBracket.length(), fmtVal);
+        }
+
+        return result.toString();
+    }
+

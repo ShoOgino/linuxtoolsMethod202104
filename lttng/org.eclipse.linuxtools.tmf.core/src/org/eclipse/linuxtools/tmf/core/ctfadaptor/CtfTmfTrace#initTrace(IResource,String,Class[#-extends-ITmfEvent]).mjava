@@ -1,0 +1,55 @@
+    //-------------------------------------------
+    //        TmfTrace Overrides
+    //-------------------------------------------
+    /**
+     * Method initTrace.
+     *
+     * @param resource
+     *            The resource associated with this trace
+     * @param path
+     *            The path to the trace file
+     * @param eventType
+     *            The type of events that will be read from this trace
+     * @throws TmfTraceException
+     *             If something when wrong while reading the trace
+     */
+    @Override
+    public void initTrace(final IResource resource, final String path, final Class<? extends ITmfEvent> eventType)
+            throws TmfTraceException {
+        /*
+         * Set the cache size. This has to be done before the call to super()
+         * because the super needs to know the cache size.
+         */
+        setCacheSize();
+
+        @SuppressWarnings("unused")
+        CtfTmfEventType type;
+
+        try {
+            this.fTrace = new CTFTrace(path);
+            CtfIteratorManager.addTrace(this);
+            CtfTmfLightweightContext ctx;
+            /* Set the start and (current) end times for this trace */
+            ctx = (CtfTmfLightweightContext) seekEvent(0L);
+            CtfTmfEvent event = getNext(ctx);
+            if((ctx.getLocation().equals(CtfIterator.NULL_LOCATION)) || (ctx.getCurrentEvent() == null)) {
+                /* Handle the case where the trace is empty */
+                this.setStartTime(TmfTimestamp.BIG_BANG);
+            } else {
+                final ITmfTimestamp curTime = event.getTimestamp();
+                this.setStartTime(curTime);
+                this.setEndTime(curTime);
+            }
+
+        } catch (final CTFReaderException e) {
+            /*
+             * If it failed at the init(), we can assume it's because the file
+             * was not found or was not recognized as a CTF trace. Throw into
+             * the new type of exception expected by the rest of TMF.
+             */
+            throw new TmfTraceException(e.getMessage(), e);
+        }
+
+        super.initTrace(resource, path, eventType);
+    }
+

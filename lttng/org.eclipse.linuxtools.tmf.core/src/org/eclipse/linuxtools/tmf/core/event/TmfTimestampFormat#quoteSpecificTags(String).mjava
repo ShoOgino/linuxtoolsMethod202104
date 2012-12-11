@@ -1,0 +1,53 @@
+    /**
+     * Copy the pattern but quote (bracket with "[&" and "&]") the
+     * TmfTimestampFormat specific tags so these fields are treated as
+     * comments by the base class.
+     *
+     * It also keeps track of the corresponding quoted fields so they can be
+     * properly populated later on (by format()).
+     *
+     * @param pattern the 'extended' pattern
+     * @return the quoted and bracketed pattern
+     */
+    private String quoteSpecificTags(final String pattern) {
+
+        StringBuffer result = new StringBuffer();
+
+        int length = pattern.length();
+        boolean inQuote = false;
+
+        for (int i = 0; i < length; i++) {
+            char c = pattern.charAt(i);
+            result.append(c);
+            if (c == '\'') {
+                // '' is treated as a single quote regardless of being
+                // in a quoted section.
+                if ((i + 1) < length) {
+                    c = pattern.charAt(i + 1);
+                    if (c == '\'') {
+                        i++;
+                        result.append(c);
+                        continue;
+                    }
+                }
+                inQuote = !inQuote;
+                continue;
+            }
+            if (!inQuote) {
+                if (fSupplPatternLetters.indexOf(c) != -1) {
+                    StringBuilder pat = new StringBuilder();
+                    pat.append(c);
+                    result.insert(result.length() - 1, "'" + fOpenBracket); //$NON-NLS-1$
+                    while ((i + 1) < length && pattern.charAt(i + 1) == c) {
+                        result.append(c);
+                        pat.append(c);
+                        i++;
+                    }
+                    result.append(fCloseBracket + "'"); //$NON-NLS-1$
+                    fSupplPatterns.add(pat.toString());
+                }
+            }
+        }
+        return result.toString();
+    }
+

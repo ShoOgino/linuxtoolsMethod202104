@@ -1,0 +1,20 @@
+    /**
+     * Create a new request from an existing one, and add it to the coalesced
+     * requests
+     *
+     * @param request
+     *            The request to copy
+     */
+    protected void newCoalescedDataRequest(ITmfDataRequest request) {
+        synchronized (fLock) {
+            TmfCoalescedDataRequest coalescedRequest = new TmfCoalescedDataRequest(request.getDataType(), request.getIndex(),
+                    request.getNbRequested(), request.getBlockSize(), request.getExecType());
+            coalescedRequest.addRequest(request);
+            if (TmfCoreTracer.isRequestTraced()) {
+                TmfCoreTracer.traceRequest(request, "COALESCED with " + coalescedRequest.getRequestId()); //$NON-NLS-1$
+                TmfCoreTracer.traceRequest(coalescedRequest, "now contains " + coalescedRequest.getSubRequestIds()); //$NON-NLS-1$
+            }
+            fPendingCoalescedRequests.add(coalescedRequest);
+        }
+    }
+

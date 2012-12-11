@@ -6,11 +6,10 @@
      *            The rank of the event in the trace
      * @return The position (index) this event should use once cached
      */
-    @SuppressWarnings("unchecked")
     public int getFilteredEventIndex(final long rank) {
         int current;
         int startRank;
-        TmfDataRequest<ITmfEvent> request;
+        TmfDataRequest request;
         final ITmfFilter filter = fFilter;
         synchronized (this) {
             int start = 0;
@@ -46,12 +45,12 @@
 
         final int index = current * fCache.length;
 
-        class DataRequest<T extends ITmfEvent> extends TmfDataRequest<T> {
+        class DataRequest extends TmfDataRequest {
             ITmfFilter fFilter;
             int fRank;
             int fIndex;
 
-            DataRequest(Class<T> dataType, ITmfFilter filter, int start, int nbRequested) {
+            DataRequest(Class<? extends ITmfEvent> dataType, ITmfFilter filter, int start, int nbRequested) {
                 super(dataType, start, nbRequested);
                 fFilter = filter;
                 fRank = start;
@@ -59,7 +58,7 @@
             }
 
             @Override
-            public void handleData(T event) {
+            public void handleData(ITmfEvent event) {
                 super.handleData(event);
                 if (isCancelled()) {
                     return;
@@ -79,11 +78,11 @@
             }
         }
 
-        request = new DataRequest<ITmfEvent>(ITmfEvent.class, filter, startRank, TmfDataRequest.ALL_DATA);
-        ((ITmfDataProvider<ITmfEvent>) fTrace).sendRequest(request);
+        request = new DataRequest(ITmfEvent.class, filter, startRank, TmfDataRequest.ALL_DATA);
+        ((ITmfDataProvider) fTrace).sendRequest(request);
         try {
             request.waitForCompletion();
-            return ((DataRequest<ITmfEvent>) request).getFilteredIndex();
+            return ((DataRequest) request).getFilteredIndex();
         } catch (InterruptedException e) {
             Activator.getDefault().logError("Filter request interrupted!", e); //$NON-NLS-1$
         }

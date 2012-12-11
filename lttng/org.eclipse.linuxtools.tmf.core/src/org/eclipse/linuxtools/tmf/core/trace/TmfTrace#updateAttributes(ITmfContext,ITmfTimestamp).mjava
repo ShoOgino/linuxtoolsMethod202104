@@ -6,17 +6,26 @@
      */
     protected synchronized void updateAttributes(final ITmfContext context, final ITmfTimestamp timestamp) {
         if (fStartTime.equals(TmfTimestamp.BIG_BANG) || (fStartTime.compareTo(timestamp, false) > 0)) {
-            fStartTime = timestamp.clone();
+            fStartTime = timestamp;
         }
         if (fEndTime.equals(TmfTimestamp.BIG_CRUNCH) || (fEndTime.compareTo(timestamp, false) < 0)) {
-            fEndTime = timestamp.clone();
+            fEndTime = timestamp;
+        }
+        if (fCurrentRange == TmfTimeRange.NULL_RANGE) {
+            fCurrentTime = timestamp;
+            ITmfTimestamp initialOffset = getInitialRangeOffset();
+            long endValue = timestamp.getValue() + initialOffset.normalize(0, timestamp.getScale()).getValue();
+            ITmfTimestamp endTimestamp = new TmfTimestamp(endValue, timestamp.getScale());
+            fCurrentRange = new TmfTimeRange(timestamp, endTimestamp);
         }
         if (context.hasValidRank()) {
             long rank = context.getRank();
             if (fNbEvents <= rank) {
                 fNbEvents = rank + 1;
             }
-            fIndexer.updateIndex(context, timestamp);
+            if (fIndexer != null) {
+                fIndexer.updateIndex(context, timestamp);
+            }
         }
     }
 

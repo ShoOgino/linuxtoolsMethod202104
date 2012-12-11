@@ -1,0 +1,27 @@
+    /**
+     * Trace is disposed: clear the data structures and the view
+     *
+     * @param signal the signal received
+     */
+    @TmfSignalHandler
+    public void traceClosed(final TmfTraceClosedSignal signal) {
+        synchronized (fBuildThreadMap) {
+            BuildThread buildThread = fBuildThreadMap.remove(signal.getTrace());
+            if (buildThread != null) {
+                buildThread.cancel();
+            }
+        }
+        synchronized (fEntryListMap) {
+            fEntryListMap.remove(signal.getTrace());
+        }
+        if (signal.getTrace() == fTrace) {
+            fTrace = null;
+            fStartTime = 0;
+            fEndTime = 0;
+            if (fZoomThread != null) {
+                fZoomThread.cancel();
+            }
+            refresh();
+        }
+    }
+

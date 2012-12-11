@@ -1,5 +1,4 @@
     @Override
-    @SuppressWarnings("unchecked")
     public void createPartControl(Composite parent) {
 
         fParent = parent;
@@ -39,7 +38,7 @@
         gridLayout.marginWidth = 0;
         gridLayout.horizontalSpacing = 5;
         gridLayout.verticalSpacing = 0;
-        gridLayout.makeColumnsEqualWidth = true;
+        gridLayout.makeColumnsEqualWidth = false;
         gridLayout.marginLeft = 5;
         gridLayout.marginRight = 5;
         controlsComposite.setLayout(gridLayout);
@@ -48,17 +47,17 @@
         gridData = new GridData();
         gridData.horizontalAlignment = SWT.CENTER;
         gridData.verticalAlignment = SWT.CENTER;
-        fCurrentEventTimeControl = new HistogramCurrentTimeControl(this, controlsComposite, SWT.BORDER, SWT.NONE,
-                currentEventLabel, HistogramUtils.nanosecondsToString(0L));
+        fCurrentEventTimeControl = new HistogramCurrentTimeControl(this, controlsComposite, currentEventLabel, 0L);
         fCurrentEventTimeControl.setLayoutData(gridData);
+        fCurrentEventTimeControl.setValue(0L);
 
         // Window span time control
         gridData = new GridData();
         gridData.horizontalAlignment = SWT.CENTER;
         gridData.verticalAlignment = SWT.CENTER;
-        fTimeSpanControl = new HistogramTimeRangeControl(this, controlsComposite, SWT.BORDER, SWT.NONE,
-                windowSpanLabel, HistogramUtils.nanosecondsToString(0L));
+        fTimeSpanControl = new HistogramTimeRangeControl(this, controlsComposite, windowSpanLabel, 0L);
         fTimeSpanControl.setLayoutData(gridData);
+        fTimeSpanControl.setValue(0L);
 
         // --------------------------------------------------------------------
         // Time range histogram
@@ -113,10 +112,12 @@
         // Histogram
         fFullTraceHistogram = new FullTraceHistogram(this, fullRangeComposite);
 
-        // Load the experiment if present
-        fCurrentExperiment = (TmfExperiment<ITmfEvent>) TmfExperiment.getCurrentExperiment();
-        if (fCurrentExperiment != null) {
-            loadExperiment();
+        IEditorPart editor = getSite().getPage().getActiveEditor();
+        if (editor instanceof ITmfTraceEditor) {
+            ITmfTrace trace = ((ITmfTraceEditor) editor).getTrace();
+            if (trace != null) {
+                traceSelected(new TmfTraceSelectedSignal(this, trace));
+            }
         }
     }
 
