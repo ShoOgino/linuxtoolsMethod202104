@@ -1,0 +1,65 @@
+    private void putIntLE(int index, int length, int value) {
+        assert ((length > 0) && (length <= BIT_INT));
+        int end = index + length;
+        int startByte = index / BIT_CHAR;
+        int endByte = (end + (BIT_CHAR - 1)) / BIT_CHAR;
+        int currByte, lshift, cshift, mask, cmask;
+        int correctedValue = value;
+
+        /*
+         * mask v high bits. Works for unsigned and two complement signed
+         * numbers which value do not overflow on length bits.
+         */
+
+        if (length < BIT_INT) {
+            correctedValue &= ~(~0 << length);
+        }
+
+        /* sub byte */
+        if (startByte == (endByte - 1)) {
+            lshift = index % BIT_CHAR;
+            mask = ~((~0) << lshift);
+            if ((end % BIT_CHAR) > 0) {
+                mask |= (~(0)) << (end % BIT_CHAR);
+            }
+            cmask = correctedValue << lshift;
+            /*
+             * low bits are cleared because of lshift and high bits are already
+             * cleared
+             */
+            cmask &= ~mask;
+            int b = this.buf.get(startByte) & 0xFF;
+            this.buf.put(startByte, (byte) ((b & mask) | cmask));
+            return;
+        }
+
+        /* head byte */
+        currByte = startByte;
+        cshift = index % BIT_CHAR;
+        if (cshift > 0) {
+            mask = ~((~0) << cshift);
+            cmask = correctedValue << cshift;
+            cmask &= ~mask;
+            int b = this.buf.get(currByte) & 0xFF;
+            this.buf.put(currByte, (byte) ((b & mask) | cmask));
+            correctedValue >>>= BIT_CHAR - cshift;
+            // index += BIT_CHAR - cshift;
+            currByte++;
+        }
+
+        /* middle byte(s) */
+        for (; currByte < (endByte - 1); currByte++) {
+            this.buf.put(currByte, (byte) correctedValue);
+            correctedValue >>>= BIT_CHAR;
+        }
+        /* end byte */
+        if ((end % BIT_CHAR) > 0) {
+            mask = (~0) << (end % BIT_CHAR);
+            cmask = correctedValue & ~mask;
+            int b = this.buf.get(currByte) & 0xFF;
+            this.buf.put(currByte, (byte) ((b & mask) | cmask));
+        } else {
+            this.buf.put(currByte, (byte) correctedValue);
+        }
+    }
+
