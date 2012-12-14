@@ -1,0 +1,44 @@
+	/**
+	 * Set name of the launch configuration.
+	 *
+	 * @param newToolName String tool name to be appended to configuration name,
+	 */
+	private void setConfigurationName(String newToolName) {
+		try {
+			String currentToolName = initial.getAttribute(
+					ProviderProfileConstants.PROVIDER_CONFIG_TOOLNAME_ATT, "");
+
+			// Append the new tool name as long as the current and new tool
+			// names are different.
+			if (newToolName != null && !newToolName.equals("")
+					&& !currentToolName.equals(newToolName)) {
+
+				String projectName = initial.getAttribute(
+						ICDTLaunchConfigurationConstants.ATTR_PROJECT_NAME, "");
+
+				// String of the form <project name> [<tool name>].
+				String newConfigurationName = ProviderLaunchShortcut
+						.generateProviderConfigurationName(projectName,
+								newToolName);
+
+				// Unique name of the form <project name> [<tool name>]{(<number>)}.
+				String newUniqueToolName = getLaunchManager()
+						.generateLaunchConfigurationName(newConfigurationName);
+
+				// Save changes in current configuration.
+				ILaunchConfigurationWorkingCopy wc = initial.getWorkingCopy();
+				wc.rename(newUniqueToolName);
+				wc.setAttribute(
+						ProviderProfileConstants.PROVIDER_CONFIG_TOOLNAME_ATT,
+						newToolName);
+				initial = wc.doSave();
+
+				// Set name field in launch configuration dialog to avoid the
+				// new configuration name from being overwritten.
+				getLaunchConfigurationDialog().setName(newUniqueToolName);
+			}
+		} catch (CoreException e) {
+			// If unable to set the name, leave the original name as is.
+		}
+	}
+
