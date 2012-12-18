@@ -1,30 +1,20 @@
-	public static HashMap<String,ArrayList<String>> loadEventList(ILaunchConfiguration config) {
+	private static HashMap<String,ArrayList<String>> loadEventList(ILaunchConfiguration config){
 		HashMap<String,ArrayList<String>> events = new HashMap<String,ArrayList<String>>();
-		IProject project = null;
-		if (config==null) {
+		IProject project = getProject(config);
+
+		if (project == null) {
 			if (!PerfCore.checkPerfInPath()) {
 				return events;
 			}
-		} else {
-			ConfigUtils configUtils = new ConfigUtils(config);
-			try {
-				String projectName = configUtils.getProjectName();
-				// an empty string is not a legal path to file argument for ConfigUtils.getProject
-				if(projectName != null && !projectName.equals("")){
-					project = ConfigUtils.getProject(projectName);
-				}
-
-			} catch (CoreException e1) {
-				e1.printStackTrace();
-			}
-			if (!PerfCore.checkRemotePerfInPath(project)) {
-				return events;
-			}
+		} else if (!PerfCore.checkRemotePerfInPath(project)) {
+			return events;
 		}
+
 		Process p = null;
 		BufferedReader input = null;
 		try {
-			// Alternatively can try with -i flag
+			// Execute "perf list" to get list of all symbolic event types.
+			// Alternatively can try with -i flag.
 			p = RuntimeProcessFactory.getFactory().exec(new String[] {PerfPlugin.PERF_COMMAND, "list"}, project); //(char 1 as -t is a custom field seperator
 
 			/*
@@ -36,35 +26,36 @@
 		} catch( IOException e ) {
 			e.printStackTrace();
 		} 
+
 		String line;
 		try {
+			// Process list of events. Each line is of the form <event>\s+<category>.
 			while (( line = input.readLine()) != null){
 				if (line.contains("[")) {
 					String event;
-					String cat;
+					String category;
 					if (line.contains(PerfPlugin.STRINGS_HWBREAKPOINTS)) {
-						cat = PerfPlugin.STRINGS_HWBREAKPOINTS;
-						event = line.substring(1,line.indexOf("[", 0)).trim();
+						category = PerfPlugin.STRINGS_HWBREAKPOINTS;
+						event = line.substring(1,line.indexOf('[', 0)).trim();
 					} else if (line.contains(PerfPlugin.STRINGS_RAWHWEvents)) {
-						cat = PerfPlugin.STRINGS_RAWHWEvents;
-						event = line.substring(1,line.indexOf("[", 0)).trim();
+						category = PerfPlugin.STRINGS_RAWHWEvents;
+						event = line.substring(1,line.indexOf('[', 0)).trim();
 					} else {
-						event = line.substring(1,line.indexOf("[", 0)).trim();
+						event = line.substring(1,line.indexOf('[', 0)).trim();
 						if (event.contains("OR")) {
 							event = event.split("OR")[0]; //filter out the abbreviations.
 						}
-						cat = line.replaceFirst(".*\\[(.+)\\]", "$1").trim();
+						category = line.replaceFirst(".*\\[(.+)\\]", "$1").trim();
 					}
-					ArrayList<String> catevs = events.get(cat);
-					if (catevs == null) {
-						catevs = new ArrayList<String>();
-						events.put(cat, catevs);
+					ArrayList<String> categoryEvents = events.get(category);
+					if (categoryEvents == null) {
+						categoryEvents = new ArrayList<String>();
+						events.put(category, categoryEvents);
 					}
-					catevs.add(event.trim());
+					categoryEvents.add(event.trim());
 				}
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} finally {
 			if (null != input) {
