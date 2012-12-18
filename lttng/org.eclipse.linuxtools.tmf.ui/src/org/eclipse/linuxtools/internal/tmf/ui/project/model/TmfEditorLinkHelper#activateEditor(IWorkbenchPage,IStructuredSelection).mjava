@@ -1,0 +1,56 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.ui.navigator.ILinkHelper#activateEditor(org.eclipse.ui.IWorkbenchPage, org.eclipse.jface.viewers.IStructuredSelection)
+     */
+    @Override
+    public void activateEditor(IWorkbenchPage aPage, IStructuredSelection aSelection) {
+        if (aSelection == null || aSelection.isEmpty()) {
+            return;
+        }
+
+        IFile file = null;
+
+        if ((aSelection.getFirstElement() instanceof TmfTraceElement)) {
+            TmfTraceElement traceElement = ((TmfTraceElement)aSelection.getFirstElement());
+
+            // If trace is under an experiment, use the original trace from the traces folder
+            traceElement = traceElement.getElementUnderTraceFolder();
+
+            // Get the editor resource
+            final IResource resource = traceElement.getResource();
+            if (resource instanceof IFile) {
+                file = (IFile) resource;
+            } else if (resource instanceof IFolder) {
+                file = ((IFolder) resource).getFile(traceElement.getName() + '_');
+            }
+        } else if ((aSelection.getFirstElement() instanceof TmfExperimentElement)) {
+            TmfExperimentElement experimentElement = (TmfExperimentElement) aSelection.getFirstElement();
+            file = experimentElement.getResource().getFile(experimentElement.getName() + '_');
+        }
+
+        if (file != null) {
+            IEditorInput tmpInput = new FileEditorInput(file);
+            IEditorPart localEditor = aPage.findEditor(tmpInput);
+            if (localEditor != null) {
+                // Editor found.
+                aPage.activate(localEditor);
+                aPage.bringToTop(localEditor);
+            } else {
+                // Search in references for corresponding editor
+                IEditorReference[] refs = aPage.getEditorReferences();
+                for (IEditorReference editorReference : refs) {
+                    try {
+                        if (editorReference.getEditorInput().equals(tmpInput)) {
+                            localEditor = editorReference.getEditor(true);
+                            if (localEditor != null) {
+                                aPage.bringToTop(localEditor);
+                            }
+                        }
+                    } catch (PartInitException e) {
+                        // Ignore
+                    }
+                }
+            }
+        }
+    }
+

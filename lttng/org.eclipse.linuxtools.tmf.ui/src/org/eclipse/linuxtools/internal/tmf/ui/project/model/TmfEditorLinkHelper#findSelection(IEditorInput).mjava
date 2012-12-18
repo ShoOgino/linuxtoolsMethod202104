@@ -1,0 +1,50 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.ui.navigator.ILinkHelper#findSelection(org.eclipse.ui.IEditorInput)
+     */
+    @Override
+    public IStructuredSelection findSelection(IEditorInput anInput) {
+        IFile file = ResourceUtil.getFile(anInput);
+        if (file != null) {
+
+            try {
+                // Get the trace type ID
+                String traceTypeId = file.getPersistentProperty(TmfCommonConstants.TRACETYPE);
+                if (traceTypeId == null) {
+                    return StructuredSelection.EMPTY;
+                }
+
+                final TmfNavigatorContentProvider ncp = new TmfNavigatorContentProvider();
+                ncp.getChildren(file.getProject()); // force the model to be populated
+                final TmfProjectElement project = TmfProjectRegistry.getProject(file.getProject());
+
+                // Check for experiments, traces which are folders or traces which are files
+                if (traceTypeId.equals(TmfExperiment.class.getCanonicalName())) {
+                    // Case 1: Experiment
+                    for (final ITmfProjectModelElement projectElement : project.getExperimentsFolder().getChildren()) {
+                        if (projectElement.getName().equals(file.getParent().getName())) {
+                            return new StructuredSelection(projectElement);
+                        }
+                    }
+                } else if (traceTypeId.equals(TmfTrace.class.getCanonicalName())) {
+                    // Case 2: Trace that is a folder
+                    for (final ITmfProjectModelElement projectElement : project.getTracesFolder().getChildren()) {
+                        if (projectElement.getName().equals(file.getParent().getName())) {
+                            return new StructuredSelection(projectElement);
+                        }
+                    }
+                } else {
+                    // Case 3: Trace that is a file
+                    for (final ITmfProjectModelElement projectElement : project.getTracesFolder().getChildren()) {
+                        if (projectElement.getResource().equals(file)) {
+                            return new StructuredSelection(projectElement);
+                        }
+                    }
+                }
+            } catch (CoreException e) {
+                return StructuredSelection.EMPTY;
+            }
+        }
+        return StructuredSelection.EMPTY;
+    }
+
