@@ -11,9 +11,23 @@
                     if (monitor.isCanceled()) {
                         throw new OperationCanceledException();
                     }
+                    // Close the experiment if open
+                    IFile file = fExperiment.getBookmarksFile();
+                    FileEditorInput input = new FileEditorInput(file);
+                    IWorkbench wb = PlatformUI.getWorkbench();
+                    for (IWorkbenchWindow wbWindow : wb.getWorkbenchWindows()) {
+                        for (IWorkbenchPage wbPage : wbWindow.getPages()) {
+                            for (IEditorReference editorReference : wbPage.getEditorReferences()) {
+                                if (editorReference.getEditorInput().equals(input)) {
+                                    wbPage.closeEditor(editorReference.getEditor(false), false);
+                                }
+                            }
+                        }
+                    }
+
                     IFolder folder = fExperiment.getResource();
-                    IFile bookmarksFile = folder.getFile(fExperiment.getName() + '_');
-                    IFile newBookmarksFile = folder.getFile(newName + '_');
+                    IFile bookmarksFile = fExperiment.getBookmarksFile();
+                    IFile newBookmarksFile = folder.getFile(bookmarksFile.getName().replace(fExperiment.getName(), newName));
                     if (bookmarksFile.exists()) {
                         if (!newBookmarksFile.exists()) {
                             IPath newBookmarksPath = newBookmarksFile.getFullPath();
@@ -34,7 +48,7 @@
         } catch (InterruptedException exception) {
             return null;
         } catch (InvocationTargetException exception) {
-            MessageDialog.openError(getShell(), "", NLS.bind("", exception.getTargetException().getMessage())); //$NON-NLS-1$ //$NON-NLS-2$
+            MessageDialog.openError(getShell(), "", exception.getTargetException().getMessage()); //$NON-NLS-1$
             return null;
         } catch (RuntimeException exception) {
             return null;

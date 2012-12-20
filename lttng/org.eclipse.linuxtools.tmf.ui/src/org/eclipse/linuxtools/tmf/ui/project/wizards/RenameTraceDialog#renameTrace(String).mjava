@@ -11,10 +11,43 @@
                     if (monitor.isCanceled()) {
                         throw new OperationCanceledException();
                     }
+                    // Close the trace if open
+                    IFile file = fTrace.getBookmarksFile();
+                    FileEditorInput input = new FileEditorInput(file);
+                    IWorkbench wb = PlatformUI.getWorkbench();
+                    for (IWorkbenchWindow wbWindow : wb.getWorkbenchWindows()) {
+                        for (IWorkbenchPage wbPage : wbWindow.getPages()) {
+                            for (IEditorReference editorReference : wbPage.getEditorReferences()) {
+                                if (editorReference.getEditorInput().equals(input)) {
+                                    wbPage.closeEditor(editorReference.getEditor(false), false);
+                                }
+                            }
+                        }
+                    }
+                    TmfExperimentFolder experimentFolder = fTrace.getProject().getExperimentsFolder();
+                    for (final ITmfProjectModelElement experiment : experimentFolder.getChildren()) {
+                        for (final ITmfProjectModelElement trace : experiment.getChildren()) {
+                            if (trace.equals(fTrace)) {
+                                // Close the experiment if open
+                                file = ((TmfExperimentElement) experiment).getBookmarksFile();
+                                input = new FileEditorInput(file);
+                                for (IWorkbenchWindow wbWindow : wb.getWorkbenchWindows()) {
+                                    for (IWorkbenchPage wbPage : wbWindow.getPages()) {
+                                        for (IEditorReference editorReference : wbPage.getEditorReferences()) {
+                                            if (editorReference.getEditorInput().equals(input)) {
+                                                wbPage.closeEditor(editorReference.getEditor(false), false);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     if (fTrace.getResource() instanceof IFolder) {
                         IFolder folder = (IFolder) fTrace.getResource();
-                        IFile bookmarksFile = folder.getFile(fTrace.getName() + '_');
-                        IFile newBookmarksFile = folder.getFile(newName + '_');
+                        IFile bookmarksFile = fTrace.getBookmarksFile();
+                        IFile newBookmarksFile = folder.getFile(bookmarksFile.getName().replace(fTrace.getName(), newName));
                         if (bookmarksFile.exists()) {
                             if (!newBookmarksFile.exists()) {
                                 IPath newBookmarksPath = newBookmarksFile.getFullPath();
@@ -39,7 +72,7 @@
         } catch (InterruptedException exception) {
             return null;
         } catch (InvocationTargetException exception) {
-            MessageDialog.openError(getShell(), "", NLS.bind("", exception.getTargetException().getMessage())); //$NON-NLS-1$ //$NON-NLS-2$
+            MessageDialog.openError(getShell(), "", exception.getTargetException().getMessage()); //$NON-NLS-1$
             return null;
         } catch (RuntimeException exception) {
             return null;

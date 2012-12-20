@@ -14,22 +14,8 @@
             public void run() {
 
                 final IFile file;
-
                 try {
-                    final IFile bookmarksFile = experimentElement.getProject().getExperimentsFolder().getResource().getFile(BOOKMARKS_HIDDEN_FILE);
-                    if (!bookmarksFile.exists()) {
-                        final InputStream source = new ByteArrayInputStream(new byte[0]);
-                        bookmarksFile.create(source, true, null);
-                    }
-                    bookmarksFile.setHidden(true);
-
-                    file = experimentElement.getResource().getFile(experimentElement.getName() + '_');
-                    if (!file.exists()) {
-                        file.createLink(bookmarksFile.getLocation(), IResource.REPLACE, null);
-                    }
-                    file.setHidden(true);
-                    file.setPersistentProperty(TmfCommonConstants.TRACETYPE, TmfExperiment.class.getCanonicalName());
-
+                    file = experimentElement.getBookmarksFile();
                 } catch (final CoreException e) {
                     Activator.getDefault().logError("Error opening experiment " + experimentElement.getName(), e); //$NON-NLS-1$
                     displayErrorMsg(Messages.OpenExperimentHandler_Error + "\n\n" + e.getMessage()); //$NON-NLS-1$
@@ -86,7 +72,7 @@
                 final TmfExperiment experiment = new TmfExperiment(ITmfEvent.class, experimentElement.getName(), traces, cacheSize);
                 experiment.setBookmarksFile(file);
 
-                final String finalCommonEditorId = commonEditorId;
+                final String editorId = commonEditorId;
                 Display.getDefault().asyncExec(new Runnable() {
                     @Override
                     public void run() {
@@ -100,9 +86,9 @@
                                 activePage.reuseEditor((IReusableEditor) editor, editorInput);
                                 activePage.activate(editor);
                             } else {
-                                activePage.openEditor(editorInput, finalCommonEditorId);
+                                activePage.openEditor(editorInput, editorId);
                             }
-                            IDE.setDefaultEditor(file, finalCommonEditorId);
+                            IDE.setDefaultEditor(file, editorId);
                             // editor should dispose the experiment on close
                         } catch (final CoreException e) {
                             Activator.getDefault().logError("Error opening experiment " + experimentElement.getName(), e); //$NON-NLS-1$
