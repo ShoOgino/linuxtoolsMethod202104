@@ -1,0 +1,43 @@
+	public static HashMap<String,ArrayList<String>> parseEventList (BufferedReader input){
+		HashMap<String,ArrayList<String>> events = new HashMap<String,ArrayList<String>>();
+		String line;
+		try {
+			// Process list of events. Each line is of the form <event>\s+<category>.
+			while (( line = input.readLine()) != null){
+				if (line.contains("[")) {
+					String event;
+					String category;
+					if (line.contains(PerfPlugin.STRINGS_HWBREAKPOINTS)) {
+						category = PerfPlugin.STRINGS_HWBREAKPOINTS;
+						event = line.substring(1,line.indexOf('[', 0)).trim();
+					} else if (line.contains(PerfPlugin.STRINGS_RAWHWEvents)) {
+						category = PerfPlugin.STRINGS_RAWHWEvents;
+						event = line.substring(1,line.indexOf('[', 0)).trim();
+					} else {
+						event = line.substring(1,line.indexOf('[', 0)).trim();
+						if (event.contains("OR")) {
+							event = event.split("OR")[0]; //filter out the abbreviations.
+						}
+						category = line.replaceFirst(".*\\[(.+)\\]", "$1").trim();
+					}
+					ArrayList<String> categoryEvents = events.get(category);
+					if (categoryEvents == null) {
+						categoryEvents = new ArrayList<String>();
+						events.put(category, categoryEvents);
+					}
+					categoryEvents.add(event.trim());
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			if (null != input) {
+				try {
+					input.close();
+				} catch (IOException e) {
+				}
+			}
+		}
+		return events;
+	}
+
