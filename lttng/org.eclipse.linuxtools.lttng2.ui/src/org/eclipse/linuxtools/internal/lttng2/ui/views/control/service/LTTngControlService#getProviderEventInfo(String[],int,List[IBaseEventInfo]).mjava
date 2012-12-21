@@ -11,20 +11,31 @@
      */
     protected int getProviderEventInfo(String[] output, int currentIndex, List<IBaseEventInfo> events) {
         int index = currentIndex;
+        IBaseEventInfo eventInfo = null;
         while (index < output.length) {
             String line = output[index];
             Matcher matcher = LTTngControlServiceConstants.PROVIDER_EVENT_PATTERN.matcher(line);
             if (matcher.matches()) {
-                // sched_kthread_stop (loglevel: TRACE_EMERG0) (type:
-                // tracepoint)
-                IBaseEventInfo eventInfo = new BaseEventInfo(matcher.group(1).trim());
+                // sched_kthread_stop (loglevel: TRACE_EMERG0) (type: tracepoint)
+                eventInfo = new BaseEventInfo(matcher.group(1).trim());
                 eventInfo.setLogLevel(matcher.group(2).trim());
                 eventInfo.setEventType(matcher.group(3).trim());
                 events.add(eventInfo);
-            } else if (LTTngControlServiceConstants.UST_PROVIDER_PATTERN.matcher(line).matches()) {
-                return index;
+                index++;
+            } else if (LTTngControlServiceConstants.EVENT_FIELD_PATTERN.matcher(line).matches()) {
+                if (eventInfo != null) {
+                    List<IFieldInfo> fields = new ArrayList<IFieldInfo>();
+                    index = getFieldInfo(output, index, fields);
+                    eventInfo.setFields(fields);
+                } else {
+                    index++;
+                }
             }
-            index++;
+            else if (LTTngControlServiceConstants.UST_PROVIDER_PATTERN.matcher(line).matches()) {
+                return index;
+            } else {
+                index++;
+            }
         }
         return index;
     }

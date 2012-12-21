@@ -1,0 +1,53 @@
+    /*
+     * (non-Javadoc)
+     * @see org.eclipse.linuxtools.internal.lttng2.ui.views.control.service.ILttngControlService#enableEvents(java.lang.String, java.lang.String, java.util.List, boolean, java.lang.String, org.eclipse.core.runtime.IProgressMonitor)
+     */
+    @Override
+    public void enableEvents(String sessionName, String channelName, List<String> eventNames, boolean isKernel, String filterExpression, IProgressMonitor monitor) throws ExecutionException {
+
+        StringBuffer command = createCommand(LTTngControlServiceConstants.COMMAND_ENABLE_EVENT);
+
+        if (eventNames == null || eventNames.isEmpty()) {
+            command.append(LTTngControlServiceConstants.OPTION_ALL);
+        } else {
+
+            StringBuffer eventNameParameter = new StringBuffer();
+            for (Iterator<String> iterator = eventNames.iterator(); iterator.hasNext();) {
+                String event = iterator.next();
+                eventNameParameter.append(event);
+                if (iterator.hasNext()) {
+                    eventNameParameter.append(',');
+                }
+            }
+            command.append(formatParameter(eventNameParameter.toString()));
+        }
+
+        if (isKernel) {
+            command.append(LTTngControlServiceConstants.OPTION_KERNEL);
+        } else {
+            command.append(LTTngControlServiceConstants.OPTION_UST);
+        }
+
+        String newSessionName = formatParameter(sessionName);
+
+        command.append(LTTngControlServiceConstants.OPTION_SESSION);
+        command.append(newSessionName);
+
+        if (channelName != null) {
+            command.append(LTTngControlServiceConstants.OPTION_CHANNEL);
+            command.append(channelName);
+        }
+
+        command.append(LTTngControlServiceConstants.OPTION_TRACEPOINT);
+
+        if (filterExpression != null) {
+            command.append(LTTngControlServiceConstants.OPTION_FILTER);
+            command.append('\'');
+            command.append(filterExpression);
+            command.append('\'');
+        }
+
+        executeCommand(command.toString(), monitor);
+
+    }
+
