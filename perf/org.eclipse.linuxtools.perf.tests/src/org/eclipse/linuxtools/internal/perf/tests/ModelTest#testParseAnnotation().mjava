@@ -1,0 +1,60 @@
+	public void testParseAnnotation() {
+		BufferedReader input = null;
+
+		try {
+			input = new BufferedReader(new FileReader(
+					"resources/perf-annotation-data"));
+		} catch (FileNotFoundException e) {
+			fail();
+		}
+
+		// Set up arguments for the annotation parser.
+		IPath workingDir = Path.fromOSString("/working/directory/");
+		PMCommand cmd = new PMCommand("testCommand");
+		PMDso dso = new PMDso("testDso", false);
+		PMFile tmpFile = new PMFile(PerfPlugin.STRINGS_UnfiledSymbols);
+		PMSymbol sym = new PMSymbol("testSym", 0, 0);
+
+		// Set children and respective parents.
+		cmd.addChild(dso);
+		dso.addChild(tmpFile);
+		tmpFile.addChild(sym);
+
+		dso.setParent(cmd);
+		tmpFile.setParent(dso);
+		sym.setParent(tmpFile);
+
+		PerfCore.parseAnnotation(null, input, workingDir, dso, sym);
+
+		// Expected results data.
+		String expectedDsoPath = "/working/directory/fibonacci";
+		String expectedFilePath = "/home/user/workspace/fibonacci/Debug/../src/fibonacci.cpp";
+
+		assertTrue(expectedDsoPath.equals(dso.getPath()));
+		assertTrue(dso.getChildren().length == 2);
+
+		for (TreeParent dsoChild : dso.getChildren()) {
+			String filePath = ((PMFile) dsoChild).getPath();
+
+			if (PerfPlugin.STRINGS_UnfiledSymbols.equals(filePath)) {
+				assertFalse(dsoChild.hasChildren());
+			} else {
+				assertTrue(expectedFilePath.equals(filePath));
+				assertTrue(dsoChild.hasChildren());
+				assertTrue(dsoChild.getChildren().length == 1);
+
+				TreeParent curSym = dsoChild.getChildren()[0];
+				assertTrue(curSym.hasChildren());
+				assertTrue(curSym.getChildren().length == 5);
+
+				float percentCount = 0;
+				for (TreeParent symChild : curSym.getChildren()) {
+					percentCount += symChild.getPercent();
+				}
+
+				assertTrue(Math.ceil(percentCount) == 100.0);
+
+			}
+		}
+	}
+
