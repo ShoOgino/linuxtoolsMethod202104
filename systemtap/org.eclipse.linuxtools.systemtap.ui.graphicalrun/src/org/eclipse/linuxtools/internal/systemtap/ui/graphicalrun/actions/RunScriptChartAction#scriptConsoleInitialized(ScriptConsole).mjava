@@ -1,0 +1,18 @@
+	@Override
+	protected void scriptConsoleInitialized(ScriptConsole console){
+		console.getCommand().addInputStreamListener(new ChartStreamDaemon2(console, dataSet, parser));
+		try {
+			IWorkbenchPage p = PlatformUI.getWorkbench().showPerspective(GraphingPerspective.ID, PlatformUI.getWorkbench().getActiveWorkbenchWindow());
+			IViewPart ivp = p.showView(GraphSelectorView.ID);
+			String name = console.getName();
+			((GraphSelectorView)ivp).createScriptSet(name.substring(name.lastIndexOf('/')+1), dataSet);
+		} catch(WorkbenchException we) {
+			IStatus status = new Status(IStatus.ERROR,
+				      GraphicalRunPlugin.PLUGIN_ID, 1, Messages.RunScriptChartAction_couldNotSwitchToGraphicPerspective , we);
+			ErrorDialog.openError(Display.getCurrent().getActiveShell(),
+					Messages.RunScriptChartAction_couldNotSwitchToGraphicPerspective,
+					null,
+					status);
+		}
+	}
+
