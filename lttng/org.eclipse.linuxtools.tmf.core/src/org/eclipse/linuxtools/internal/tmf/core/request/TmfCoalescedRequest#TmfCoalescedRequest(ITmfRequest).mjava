@@ -1,0 +1,26 @@
+    /**
+     * Create a coalesced request based on the provided request
+     *
+     * @param request the base request
+     */
+    public TmfCoalescedRequest(ITmfRequest request) {
+        super(request != null ? request.getRequestPriority() : null);
+
+        // Initialize sub-requests list with the request
+        if (request != null) {
+            fSubRequests.add(request);
+            fNbSubRequests++;
+            request.setParent(this);
+
+            // Collect the filter values of interestIndex
+            TmfBlockFilter blockFilter = (TmfBlockFilter) request.getEventFilter(TmfBlockFilter.class);
+            long startIndex = blockFilter.getStartIndex();
+            long nbRequested = blockFilter.getNbRequested();
+            addEventFilter(new TmfBlockFilter(startIndex, nbRequested));
+
+            TmfRangeFilter rangeFilter = (TmfRangeFilter) request.getEventFilter(TmfRangeFilter.class);
+            TmfTimeRange timeRange = rangeFilter.getTimeRange();
+            addEventFilter(new TmfRangeFilter(timeRange));
+        }
+    }
+

@@ -9,18 +9,12 @@
      * @param priority the requested execution priority
      */
     public TmfDataRequest(Class<? extends ITmfEvent> dataType, long index, int nbRequested, int blockSize, ExecutionType priority) {
-        fRequestId = fRequestNumber++;
-        fDataType = dataType;
-        fIndex = index;
-        fNbRequested = nbRequested;
-        fBlockSize = blockSize;
-        fExecType = priority;
-        fNbRead = 0;
+        super(TmfTimeRange.ETERNITY, index, nbRequested,
+              priority == ITmfDataRequest.ExecutionType.FOREGROUND ? ITmfRequest.TmfRequestPriority.HIGH : ITmfRequest.TmfRequestPriority.NORMAL);
+        fEventTypeFilter = new TmfEventTypeFilter(dataType);
+        addEventFilter(fEventTypeFilter);
 
-        fRequestRunning = false;
-        fRequestCompleted = false;
-        fRequestFailed = false;
-        fRequestCanceled = false;
+        fBlockSize = blockSize;
 
         if (!(this instanceof ITmfEventRequest) && TmfCoreTracer.isRequestTraced()) {
             String type = getClass().getName();
