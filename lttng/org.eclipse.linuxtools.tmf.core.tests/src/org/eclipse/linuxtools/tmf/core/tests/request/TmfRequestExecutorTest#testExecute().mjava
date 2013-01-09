@@ -1,0 +1,82 @@
+    /**
+	 * Test method for {@link org.eclipse.linuxtools.internal.tmf.core.request.TmfRequestExecutor#execute(java.lang.Runnable)}.
+	 */
+	public void testExecute() {
+	    final long TIMEOUT = 100;
+
+        MyProvider provider = new MyProvider();
+        MyRequest  request1 = new MyRequest(ITmfRequest.TmfRequestPriority.NORMAL, Integer.MAX_VALUE /  10, reqmon1);
+        MyThread   thread1  = new MyThread(provider, request1, thrmon1);
+        MyRequest  request2 = new MyRequest(ITmfRequest.TmfRequestPriority.HIGH,   Integer.MAX_VALUE / 100, reqmon2);
+        MyThread   thread2  = new MyThread(provider, request2, thrmon2);
+        MyRequest  request3 = new MyRequest(ITmfRequest.TmfRequestPriority.HIGH,   Integer.MAX_VALUE / 100, reqmon3);
+        MyThread   thread3  = new MyThread(provider, request3, thrmon3);
+
+        // Start thread1
+        fExecutor.execute(thread1);
+        synchronized (reqmon1) {
+            try {
+                reqmon1.wait();
+                assertTrue("isRunning", thread1.isRunning());
+            } catch (InterruptedException e) {
+            }
+        }
+
+        // Start higher priority thread2
+        fExecutor.execute(thread2);
+        synchronized (reqmon2) {
+            try {
+                reqmon2.wait();
+                assertFalse("isRunning", thread1.isRunning());
+                assertTrue("isRunning", thread2.isRunning());
+            } catch (InterruptedException e) {
+            }
+        }
+
+        // Wait for end of thread2
+        try {
+            synchronized (reqmon2) {
+                reqmon2.wait();
+                assertTrue("isCompleted", thread2.isCompleted());
+            }
+            synchronized (thrmon1) {
+                thrmon1.wait(TIMEOUT); // Use a timeout in case we already missed the signal
+                assertTrue("isRunning", thread1.isRunning());
+            }
+        } catch (InterruptedException e) {
+        }
+
+        // Start higher priority thread3
+        fExecutor.execute(thread3);
+        synchronized (reqmon3) {
+            try {
+                reqmon3.wait();
+                assertFalse("isRunning", thread1.isRunning());
+                assertTrue("isRunning", thread3.isRunning());
+            } catch (InterruptedException e) {
+            }
+        }
+
+        // Wait for end of thread3
+        try {
+            synchronized (reqmon3) {
+                reqmon3.wait();
+                assertTrue("isCompleted", thread3.isCompleted());
+            }
+            synchronized (thrmon1) {
+                thrmon1.wait(TIMEOUT); // Use a timeout in case we already missed the signal
+                assertTrue("isRunning", thread1.isRunning());
+            }
+        } catch (InterruptedException e) {
+        }
+
+        // Wait for thread1 completion
+        try {
+            synchronized (reqmon1) {
+                reqmon1.wait();
+                assertTrue("isCompleted", thread1.isCompleted());
+            }
+        } catch (InterruptedException e) {
+        }
+    }
+
