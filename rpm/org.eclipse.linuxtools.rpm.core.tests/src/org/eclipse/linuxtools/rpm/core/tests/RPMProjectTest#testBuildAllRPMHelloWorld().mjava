@@ -1,0 +1,19 @@
+	@Test
+	public void testBuildAllRPMHelloWorld() throws Exception {
+		// Create a project for the test
+		IProject testProject = root.getProject("testBuildAllRPMHelloWorld1");
+		RPMProject rpmProject = importSrpm(testProject);
+		ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		rpmProject.buildAll(bos);
+
+		IFile foo2 = rpmProject.getConfiguration().getSrpmsFolder()
+				.getFile(new Path("helloworld-2-2.src.rpm"));
+		assertTrue(foo2.exists());
+
+		String arch = Utils.runCommandToString("rpm", "--eval", "%{_arch}").trim();
+		IFile foo3 = rpmProject.getConfiguration().getRpmsFolder().getFolder(new Path(arch))
+				.getFile(new Path("helloworld-2-2."+arch+".rpm"));
+		assertTrue(foo3.exists());
+		testProject.delete(true, true, null);
+	}
+
