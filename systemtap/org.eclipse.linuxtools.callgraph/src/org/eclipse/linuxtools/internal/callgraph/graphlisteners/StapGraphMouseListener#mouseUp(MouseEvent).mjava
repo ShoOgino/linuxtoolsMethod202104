@@ -1,5 +1,54 @@
 	@Override
 	public void mouseUp(MouseEvent e) {
-			mouseUpEvent();
+		listener.setStop(true);
+		graph.removeMouseMoveListener(listener);
+		graph.removeListener(SWT.MouseExit, exitListener);
+
+		List<StapNode> list = graph.getSelection();
+
+		if (list.size() == 1) {
+			int id;
+			if (list.get(0) != null) {
+				id = list.get(0).id;
+			} else {
+				graph.setSelection(null);
+				return;
+			}
+			graph.setSelection(null);
+
+			// ------------Highlighting
+			if (graph.getDrawMode() == StapGraph.CONSTANT_DRAWMODE_TREE
+					|| graph.getDrawMode() == StapGraph.CONSTANT_DRAWMODE_LEVEL) {
+				for (StapNode n : (List<StapNode>) graph.getNodes()) {
+					unhighlightall(n);
+				}
+
+				List<Integer> callees = null;
+
+				if (graph.isCollapseMode()) {
+					callees = graph.getNodeData(id).collapsedChildren;
+				} else {
+					callees = graph.getNodeData(id).children;
+				}
+
+				for (int subID : callees) {
+					if (graph.getNode(subID) != null) {
+						graph.getNode(subID).highlight();
+					}
+				}
+
+				if (graph.getParentNode(id) != null) {
+					graph.getParentNode(id).highlight();
+				}
+				graph.getNode(id).highlight();
+				return;
+			}
+
+		} else if (list.size() == 0 && ! (graph.getDrawMode() == StapGraph.CONSTANT_DRAWMODE_AGGREGATE)) {
+			for (StapNode n : (List<StapNode>) graph.getNodes()) {
+				unhighlightall(n);
+			}
+
+		}
 	}
 
