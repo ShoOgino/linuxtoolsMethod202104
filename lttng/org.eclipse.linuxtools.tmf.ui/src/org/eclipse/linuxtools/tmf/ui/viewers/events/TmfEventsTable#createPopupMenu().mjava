@@ -38,6 +38,56 @@
             }
         };
 
+        final IAction navigateToEventAction = new Action(Messages.TmfEventsTable_NavigateToModelActionText) {
+            @Override
+            public void run() {
+
+                final TableItem items[] = fTable.getSelection();
+                if (items.length != 1) {
+                    return;
+                }
+                final TableItem item = items[0];
+
+                final Object eventData = item.getData();
+                if (eventData instanceof CtfTmfEvent) {
+                    String modelURI = ((CtfTmfEvent) eventData).getCustomAttribute(CtfCustomAttributes.MODEL_URI_KEY);
+
+                    if (modelURI != null) {
+                        IWorkbenchPage activePage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+
+                        IFile file = null;
+                        final URI uri = URI.createURI(modelURI);
+                        if (uri.isPlatformResource()) {
+                            IPath path = new Path(uri.toPlatformString(true));
+                            file = ResourcesPlugin.getWorkspace().getRoot().getFile(path);
+                        } else if (uri.isFile() && !uri.isRelative()) {
+                            file = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(
+                                    new Path(uri.toFileString()));
+                        }
+
+                        if (file != null) {
+                            try {
+                                /*
+                                 * create a temporary validation marker on the
+                                 * model file, remove it afterwards thus,
+                                 * navigation works with all model editors
+                                 * supporting the navigation to a marker
+                                 */
+                                IMarker marker = file.createMarker(EValidator.MARKER);
+                                marker.setAttribute(EValidator.URI_ATTRIBUTE, modelURI);
+                                marker.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_INFO);
+
+                                IDE.openEditor(activePage, marker, OpenStrategy.activateOnOpen());
+                                marker.delete();
+                            }
+                            catch (CoreException e) {
+                                displayException(e);
+                            }
+                        }
+                    }
+                }
+            }
+        };
         final IAction showSearchBarAction = new Action(Messages.TmfEventsTable_ShowSearchBarActionText) {
             @Override
             public void run() {
@@ -119,6 +169,16 @@
                     tablePopupMenu.add(showRawAction);
                 }
                 tablePopupMenu.add(new Separator());
+                if (item != null) {
+                    // add navigation action, if event meta data contain a model URI
+                    final Object eventData = item.getData();
+                    if (eventData instanceof CtfTmfEvent) {
+                        if (((CtfTmfEvent) eventData).listCustomAttributes().contains(CtfCustomAttributes.MODEL_URI_KEY)) {
+                            tablePopupMenu.add(navigateToEventAction);
+                            tablePopupMenu.add(new Separator());
+                        }
+                    }
+                }
                 tablePopupMenu.add(clearFiltersAction);
                 final ITmfFilterTreeNode[] savedFilters = FilterManager.getSavedFilters();
                 if (savedFilters.length > 0) {
