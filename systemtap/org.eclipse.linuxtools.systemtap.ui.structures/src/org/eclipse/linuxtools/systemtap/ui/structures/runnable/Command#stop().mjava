@@ -4,13 +4,21 @@
 	 */
 	public synchronized void stop() {
 		if(!stopped) {
-			stopped = true;
 			if(null != errorGobbler)
 				errorGobbler.stop();
 			if(null != inputGobbler)
 				inputGobbler.stop();
-			if(null != process)
+			try {
+				if(process != null){
+					process.waitFor();
+				}
+			} catch (InterruptedException e) {
+				// This thread was interrupted while waiting for
+				// the process to exit. Destroy the process just
+				// to make sure it exits.
 				process.destroy();
+			}
+			stopped = true;
 		}
 	}
 
