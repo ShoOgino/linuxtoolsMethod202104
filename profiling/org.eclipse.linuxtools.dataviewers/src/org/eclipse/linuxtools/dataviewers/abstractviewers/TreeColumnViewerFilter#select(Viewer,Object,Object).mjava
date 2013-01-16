@@ -1,0 +1,32 @@
+    /*
+     * (non-Javadoc)
+     *
+     * @see org.eclipse.jface.viewers.ViewerFilter#select(org.eclipse.jface.viewers.Viewer, java.lang.Object,
+     * java.lang.Object)
+     */
+    @Override
+    public boolean select(Viewer viewer, Object parentElement, Object element) {
+    	ITreeContentProvider provider = (ITreeContentProvider) fTreeViewer.getContentProvider();
+        String s = field.getValue(element);
+        if (s.contains(matchingText)) {
+            return true;
+        }
+        if (provider.hasChildren(element)) {
+            for (Object o : provider.getChildren(element)) {
+                if (select(viewer, element, o)) {
+                    return true;
+                }
+            }
+        }
+        if (fKeepAllChildIfParentMatch) {
+            while (parentElement != null) {
+                String ps = field.getValue(parentElement);
+                if (ps.contains(matchingText)) {
+                    return true;
+                }
+                parentElement = provider.getParent(parentElement);
+            }
+        }
+        return false;
+    }
+
