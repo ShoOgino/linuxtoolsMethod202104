@@ -1,0 +1,31 @@
+    /**
+     * @since 3.0
+     */
+    @Override
+    public ITmfTimestampTransform getTimestampTransform() {
+        if (fTsTransform == null) {
+            /* Check if a formula is stored somewhere in the resources */
+            File sync_file = getSyncFormulaFile();
+            if (sync_file != null && sync_file.exists()) {
+
+                try {
+                    FileInputStream fis = new FileInputStream(sync_file);
+                    ObjectInputStream ois = new ObjectInputStream(fis);
+                    fTsTransform = (ITmfTimestampTransform) ois.readObject();
+
+                    ois.close();
+                    fis.close();
+                } catch (ClassNotFoundException e1) {
+                    fTsTransform = TmfTimestampTransform.IDENTITY;
+                } catch (FileNotFoundException e1) {
+                    fTsTransform = TmfTimestampTransform.IDENTITY;
+                } catch (IOException e1) {
+                    fTsTransform = TmfTimestampTransform.IDENTITY;
+                }
+            } else {
+                fTsTransform = TmfTimestampTransform.IDENTITY;
+            }
+        }
+        return fTsTransform;
+    }
+

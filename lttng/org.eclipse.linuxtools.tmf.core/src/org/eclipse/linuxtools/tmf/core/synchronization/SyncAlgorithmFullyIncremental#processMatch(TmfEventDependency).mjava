@@ -1,0 +1,25 @@
+    @Override
+    protected void processMatch(TmfEventDependency match) {
+        String trace1 = match.getSourceEvent().getTrace().getName();
+        String trace2 = match.getDestinationEvent().getTrace().getName();
+
+        /* Process only if source and destination are different */
+        if (trace1.equals(trace2)) {
+            return;
+        }
+
+        /* Check if a convex hull algorithm already exists for these 2 traces */
+        ConvexHull algo = null;
+        for (ConvexHull traceSync : fSyncs) {
+            if (traceSync.isForTraces(trace1, trace2)) {
+                algo = traceSync;
+            }
+        }
+        if (algo == null) {
+            algo = new ConvexHull(trace1, trace2);
+            fSyncs.add(algo);
+        }
+        algo.processMatch(match);
+
+    }
+
