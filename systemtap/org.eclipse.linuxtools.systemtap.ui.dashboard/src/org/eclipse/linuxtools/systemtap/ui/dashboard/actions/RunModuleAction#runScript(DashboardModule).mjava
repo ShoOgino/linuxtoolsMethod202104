@@ -1,5 +1,4 @@
-	private void runScript(DashboardModule module)
-	{
+	private void runScript(DashboardModule module) {
 		IViewPart ivp = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().findView(ActiveModuleBrowserView.ID);
 		ActiveModuleBrowserView ambv = (ActiveModuleBrowserView)ivp;
 		boolean paused = ambv.isPaused(module);
@@ -7,25 +6,27 @@
 		String tmpfileName = fileName;
 		String serverfileName = fileName.substring(fileName.lastIndexOf('/')+1);
 		if(ConsoleLogPlugin.getDefault().getPreferenceStore().getBoolean(ConsoleLogPreferenceConstants.REMEMBER_SERVER)!=true &&
-			new SelectServerDialog(fWindow.getShell()).open() == false)
+			new SelectServerDialog(fWindow.getShell()).open() == false) {
 			return;
-        	
-	  if (module.location.equalsIgnoreCase("local")) { //$NON-NLS-1$
-		 try{
+		}
+
+		if (module.location.equalsIgnoreCase("local")) { //$NON-NLS-1$
+			try {
 				ScpClient scpclient = new ScpClient();
-				tmpfileName=null;
-				tmpfileName="/tmp/"+ serverfileName; //$NON-NLS-1$
-				 scpclient.transfer(fileName,tmpfileName);
-		    } catch (JSchException e) {
+				tmpfileName = null;
+				tmpfileName = "/tmp/" + serverfileName; //$NON-NLS-1$
+				scpclient.transfer(fileName, tmpfileName);
+			} catch (JSchException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-	  }
+		}
 		String modname = serverfileName.substring(0, serverfileName.indexOf('.'));
-		if (modname.indexOf('-') != -1)
+		if (modname.indexOf('-') != -1) {
 			modname = modname.substring(0, modname.indexOf('-'));
-	
+		}
+
 		//TODO: Check for prebuilt module first
 		String[] cmd = new String[] {
 				"stap", //$NON-NLS-1$
@@ -33,32 +34,24 @@
 				"-m", //$NON-NLS-1$
 				modname,
 				tmpfileName};
-		
+
 			   	ScriptConsole console = ScriptConsole.getInstance(serverfileName);
             console.run(cmd, null, null, null);
 		IDataSet ds;
-		if(paused)
+		if(paused) {
 			ds = ambv.pause(module).data;
-		else
+		} else {
 			ds = DataSetFactory.createDataSet(module.dataSetID, module.labels);
-		  
-		console.getCommand().addInputStreamListener(new ChartStreamDaemon2(console, ds, module.parser));
-		  
-		 
-		  
-	//	createClientSession();
-	//	subscription.addInputStreamListener(new ChartStreamDaemon2(console, ds, module.parser));
+		}
 
-		//if(paused)
-			//ambv.pause(module).paused = false;
-		//else {
+		console.getCommand().addInputStreamListener(new ChartStreamDaemon2(console, ds, module.parser));
+
 			ActiveModuleData amd = new ActiveModuleData();
 			amd.module = module;
 			amd.cmd = console;
 			amd.data = ds;
 			amd.paused = false;
 			addActive(module.category + "." + module.display, amd); //$NON-NLS-1$
-		//}
-	
+
 	}
 
