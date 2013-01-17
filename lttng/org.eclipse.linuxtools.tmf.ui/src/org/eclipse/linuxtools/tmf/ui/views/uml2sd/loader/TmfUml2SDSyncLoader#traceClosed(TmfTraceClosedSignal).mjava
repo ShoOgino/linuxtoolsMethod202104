@@ -9,14 +9,11 @@
         if (signal.getTrace() != fTrace) {
             return;
         }
+        ITmfRequest indexRequest = null;
         fLock.lock();
         try {
-            if (fIndexRequest != null) {
-                if (!fIndexRequest.isCompleted()) {
-                    fIndexRequest.cancel();
-                }
-                fIndexRequest = null;
-            }
+            indexRequest = fIndexRequest;
+            fIndexRequest = null;
 
             cancelOngoingRequests();
 
@@ -25,11 +22,14 @@
             }
 
             FilterListDialog.deactivateSavedGlobalFilters();
-
-            resetLoader();
         } finally {
             fTrace = null;
             fLock.unlock();
         }
+        if (indexRequest != null && !indexRequest.isCompleted()) {
+            indexRequest.cancel();
+        }
+
+        resetLoader();
     }
 

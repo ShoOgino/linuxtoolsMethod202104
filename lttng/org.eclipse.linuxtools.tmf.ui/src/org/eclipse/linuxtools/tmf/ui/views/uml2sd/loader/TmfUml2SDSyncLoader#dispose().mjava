@@ -5,6 +5,7 @@
     @Override
     public void dispose() {
        super.dispose();
+       ITmfRequest indexRequest = null;
        fLock.lock();
        try {
            IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
@@ -13,12 +14,8 @@
                window.getSelectionService().removePostSelectionListener(this);
            }
 
-           if (fIndexRequest != null) {
-               if (!fIndexRequest.isCompleted()) {
-                   fIndexRequest.cancel();
-               }
-               fIndexRequest = null;
-           }
+           indexRequest = fIndexRequest;
+           fIndexRequest = null;
            cancelOngoingRequests();
 
            fView.setSDFindProvider(null);
@@ -27,6 +24,9 @@
            fView = null;
        } finally {
            fLock.unlock();
+       }
+       if (indexRequest != null && !indexRequest.isCompleted()) {
+           indexRequest.cancel();
        }
     }
 

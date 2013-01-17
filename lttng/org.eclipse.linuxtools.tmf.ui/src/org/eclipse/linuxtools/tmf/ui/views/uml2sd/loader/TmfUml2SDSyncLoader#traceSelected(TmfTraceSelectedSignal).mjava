@@ -10,6 +10,7 @@
     @TmfSignalHandler
     public void traceSelected(TmfTraceSelectedSignal signal) {
 
+        ITmfRequest indexRequest = null;
         fLock.lock();
         try {
             // Update the trace reference
@@ -24,12 +25,9 @@
             job.setUser(false);
             job.schedule();
 
-            if (fIndexRequest != null && !fIndexRequest.isCompleted()) {
-                fIndexRequest.cancel();
-            }
+            indexRequest = fIndexRequest;
 
             cancelOngoingRequests();
-            resetLoader();
 
             TmfTimeRange window = TmfTimeRange.ETERNITY;
 
@@ -127,10 +125,14 @@
                 }
             };
 
-            fTrace.sendRequest(fIndexRequest);
         } finally {
             fLock.unlock();
         }
+        if (indexRequest != null && !indexRequest.isCompleted()) {
+            indexRequest.cancel();
+        }
+        resetLoader();
+        fTrace.sendRequest(fIndexRequest);
 
     }
 
