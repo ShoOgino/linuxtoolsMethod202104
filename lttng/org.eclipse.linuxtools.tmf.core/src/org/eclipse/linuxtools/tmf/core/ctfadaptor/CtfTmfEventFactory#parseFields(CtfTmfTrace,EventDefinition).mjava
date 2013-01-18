@@ -2,7 +2,7 @@
      * Extract the field information from the structDefinition haze-inducing
      * mess, and put them into something ITmfEventField can cope with.
      */
-    private CtfTmfEventField[] parseFields(EventDefinition eventDef) {
+    private static CtfTmfEventField[] parseFields(CtfTmfTrace trace, EventDefinition eventDef) {
         List<CtfTmfEventField> fields = new ArrayList<CtfTmfEventField>();
 
         StructDefinition structFields = eventDef.getFields();
@@ -44,7 +44,7 @@
         }
         /* Add callsite */
         final String name = eventDef.getDeclaration().getName();
-        List<CTFCallsite> eventList = fTrace.getCTFTrace().getCallsiteCandidates(name);
+        List<CTFCallsite> eventList = trace.getCTFTrace().getCallsiteCandidates(name);
         if (!eventList.isEmpty()) {
             final String callsite = "callsite"; //$NON-NLS-1$
             if (eventList.size() == 1 || ip == -1) {
@@ -52,11 +52,10 @@
                 fields.add(new CTFStringField(cs.toString(), callsite));
             } else {
                 fields.add(new CTFStringField(
-                        fTrace.getCTFTrace().getCallsite(name, ip).toString(),
+                        trace.getCTFTrace().getCallsite(name, ip).toString(),
                         callsite));
             }
         }
-
         return fields.toArray(new CtfTmfEventField[fields.size()]);
     }
 

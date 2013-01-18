@@ -1,0 +1,39 @@
+    /**
+     * Factory method to instantiate new {@link CtfTmfEvent}'s.
+     *
+     * @param eventDef
+     *            CTF EventDefinition object corresponding to this trace event
+     * @param fileName
+     *            The path to the trace file
+     * @param originTrace
+     *            The trace from which this event originates
+     * @return The newly-built CtfTmfEvent
+     */
+    public static CtfTmfEvent createEvent(EventDefinition eventDef,
+            String fileName, CtfTmfTrace originTrace) {
+
+        /* Prepare what to pass to CtfTmfEvent's constructor */
+        long ts = eventDef.getTimestamp();
+        CtfTmfTimestamp timestamp = new CtfTmfTimestamp(
+                    originTrace.getCTFTrace().timestampCyclesToNanos(ts));
+
+        int sourceCPU = eventDef.getCPU();
+
+        ITmfEventField content = new TmfEventField(
+                ITmfEventField.ROOT_FIELD_ID, parseFields(originTrace, eventDef));
+
+        String reference = fileName == null ? CtfTmfEvent.NO_STREAM : fileName;
+
+        /* Construct and return the object */
+        CtfTmfEvent event = new CtfTmfEvent(
+                originTrace,
+                ITmfContext.UNKNOWN_RANK,
+                timestamp,
+                content,
+                reference,
+                sourceCPU,
+                eventDef.getDeclaration()
+        );
+        return event;
+    }
+
