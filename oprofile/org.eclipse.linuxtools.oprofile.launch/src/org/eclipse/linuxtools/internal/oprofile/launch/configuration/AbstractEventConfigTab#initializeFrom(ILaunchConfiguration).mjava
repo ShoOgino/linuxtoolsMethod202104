@@ -2,25 +2,19 @@
 	 * @see ILaunchConfigurationTab#initializeFrom(ILaunchConfiguration)
 	 */
 	public void initializeFrom(ILaunchConfiguration config) {
-		this.hasPermissions = null;
+		setPermissions(null);
 
-		IProject previousProject = Oprofile.OprofileProject.getProject();
+		IProject previousProject = getOprofileProject();
 		IProject project = getProject(config);
-		Oprofile.OprofileProject.setProject(project);
+		setOprofileProject(project);
 
-			try {
 			if(!hasPermissions(project)){
 				OpcontrolException e = new OpcontrolException(OprofileCorePlugin.createErrorStatus("opcontrolSudo", null));
 				OprofileCorePlugin.showErrorDialog("opcontrolProvider", e); //$NON-NLS-1$
 				createTimerModeTab(top);
 				return;
 			}
-		} catch (OpcontrolException e){
-			OprofileCorePlugin.showErrorDialog("opcontrolProvider", e);
-			createTimerModeTab(top);
-			return;
-		}
-		Oprofile.updateInfo();
+		updateOprofileInfo();
 
 		String previousHost = null;
 		if(previousProject != null){
@@ -46,7 +40,7 @@
 				control.dispose();
 			}
 
-			if (getTimerMode()) {
+			if (getOprofileTimerMode()) {
 				Label timerModeLabel = new Label(top, SWT.LEFT);
 				timerModeLabel.setText(OprofileLaunchMessages.getString("tab.event.timermode.no.options")); //$NON-NLS-1$
 			} else {
@@ -68,7 +62,7 @@
 
 		}
 
-		if(!getTimerMode()){
+		if(!getOprofileTimerMode()){
 				for (int i = 0; i < counters.length; i++) {
 					counters[i].loadConfiguration(config);
 				}
