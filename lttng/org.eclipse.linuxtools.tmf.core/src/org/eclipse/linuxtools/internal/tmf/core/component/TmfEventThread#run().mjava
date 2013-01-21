@@ -8,7 +8,7 @@
 
         // Extract the generic information
         fRequest.start();
-        long nbRequested = fRequest.getNbRequested();
+        int nbRequested = fRequest.getNbRequested();
         int nbRead = 0;
         isCompleted = false;
 
@@ -25,10 +25,10 @@
             TmfCoreTracer.traceRequest(fRequest, "read first event"); //$NON-NLS-1$
 
             while (event != null && !fProvider.isCompleted(fRequest, event, nbRead)) {
-                while (isPaused) {
+                if (isPaused) {
                     try {
-                        synchronized (object) {
-                            if (isPaused) {
+                        while (isPaused) {
+                            synchronized (object) {
                                 object.wait();
                             }
                         }
@@ -37,7 +37,9 @@
                 }
 
                 TmfCoreTracer.traceEvent(fProvider, fRequest, event);
-                fRequest.handleEvent(event);
+                if (fRequest.getDataType().isInstance(event)) {
+                    fRequest.handleData(event);
+                }
 
                 // To avoid an unnecessary read passed the last event requested
                 if (++nbRead < nbRequested) {

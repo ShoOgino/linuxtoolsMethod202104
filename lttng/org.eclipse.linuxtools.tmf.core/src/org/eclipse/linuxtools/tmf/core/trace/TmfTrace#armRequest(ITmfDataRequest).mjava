@@ -1,0 +1,20 @@
+    /**
+     * @since 2.0
+     */
+    @Override
+    public synchronized ITmfContext armRequest(final ITmfDataRequest request) {
+        if (executorIsShutdown()) {
+            return null;
+        }
+        if ((request instanceof ITmfEventRequest)
+            && !TmfTimestamp.BIG_BANG.equals(((ITmfEventRequest) request).getRange().getStartTime())
+            && (request.getIndex() == 0))
+        {
+            final ITmfContext context = seekEvent(((ITmfEventRequest) request).getRange().getStartTime());
+            ((ITmfEventRequest) request).setStartIndex((int) context.getRank());
+            return context;
+
+        }
+        return seekEvent(request.getIndex());
+    }
+
