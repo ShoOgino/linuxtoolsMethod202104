@@ -3,9 +3,8 @@
 		 * @param	e	The <code>MouseEvent</code> that represents this doubleclick event.
 		 */
 		@Override
-		public void mouseDoubleClick(MouseEvent e) 
+		public void mouseDoubleClick(MouseEvent e)
 		{
-			LogManager.logDebug("Start mouseDoubleClick: e-" + e, this); //$NON-NLS-1$
 			getSite().getShell().setCursor(new Cursor(getSite().getShell().getDisplay(), SWT.CURSOR_WAIT));
 			int lineno = getVerticalRuler().getLineOfLastMouseButtonActivity();
 
@@ -21,7 +20,7 @@
 				die = true;
 			if(line.startsWith("/*") && !line.contains("*/") && !line.endsWith("*/"))	//try to eat single-line C comments //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 				die = true;
-			
+
 			//gogo find comment segments
 			try
 			{
@@ -62,35 +61,26 @@
 				LogManager.logCritical("Exception mouseDoubleClick: " + excp.getMessage(), this); //$NON-NLS-1$
 			}
 			if(die) {
-				LogManager.logInfo("Initializing", MessageDialog.class); //$NON-NLS-1$
 				MessageDialog.openError(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(),
 						Localization.getString("CEditor.ProbeInsertFailed"),Localization.getString("CEditor.CanNotProbeLine")); //$NON-NLS-1$ //$NON-NLS-2$
-				LogManager.logInfo("Disposing", MessageDialog.class); //$NON-NLS-1$
 			} else {
 				IEditorInput in = getEditorInput();
 				if(in instanceof FileStoreEditorInput) {
 					FileStoreEditorInput input = (FileStoreEditorInput)in;
-	
+
 					IPreferenceStore p = IDEPlugin.getDefault().getPreferenceStore();
 					String kernroot = p.getString(IDEPreferenceConstants.P_KERNEL_SOURCE);
-	
+
 					String filepath = input.getURI().getPath();
 					String kernrelative = filepath.substring(kernroot.length()+1, filepath.length());
 					StringBuffer sb = new StringBuffer();
-					
+
 					sb.append("probe kernel.statement(\"*@"+ kernrelative + ":" + (lineno+1) + "\")"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 
-				/*	if(!checkProbe(sb.toString() + "{ }")) {
-						LogManager.logInfo("Initializing", MessageDialog.class);
-						MessageDialog.openError(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(),
-								Localization.getString("CEditor.ProbeInsertFailed"),Localization.getString("CEditor.CanNotProbeLine"));
-						LogManager.logInfo("Disposing", MessageDialog.class);
-					} else { */
 						sb.append("\n{\n\t\n}\n"); //$NON-NLS-1$
-						STPEditor activeSTPEditor = IDESessionSettings.getActiveSTPEditor(); 
+						STPEditor activeSTPEditor = IDESessionSettings.getActiveSTPEditor();
 						if(null == activeSTPEditor) {
 							NewFileAction action = new NewFileAction();
-							//action.init(input.getMainWindow());
 							action.run();
 							IEditorPart ed = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().getActiveEditor();
 							if(ed instanceof STPEditor)
@@ -99,10 +89,8 @@
 
 						if(null != activeSTPEditor)
 							activeSTPEditor.insertText(sb.toString());
-					//}
 				}
 			}
 			getSite().getShell().setCursor(null);	//Return the cursor to normal
-			LogManager.logDebug("End mouseDoubleClick:", this); //$NON-NLS-1$
 		}
 
