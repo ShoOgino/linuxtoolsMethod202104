@@ -1,0 +1,46 @@
+    /**
+     * Creates the tree viewer.
+     *
+     * @param parent
+     *            the parent composite
+     * @return the tree viewer
+     */
+    protected CheckboxTreeViewer createTreeViewer(Composite parent) {
+        if (fContainerMode) {
+            fViewer = new ContainerCheckedTreeViewer(parent, SWT.BORDER);
+        } else {
+            fViewer = new CheckboxTreeViewer(parent, SWT.BORDER);
+        }
+
+        Tree tree = fViewer.getTree();
+        tree.setHeaderVisible(true);
+        for (String columnName : fColumnNames) {
+            TreeColumn column = new TreeColumn(tree, SWT.LEFT);
+            column.setText(columnName);
+            column.pack();
+        }
+
+        fViewer.setContentProvider(fContentProvider);
+        fViewer.setLabelProvider(fLabelProvider);
+        fViewer.addCheckStateListener(new CheckStateListener());
+        fViewer.addCheckStateListener(new ICheckStateListener() {
+            @Override
+            public void checkStateChanged(CheckStateChangedEvent event) {
+                updateOKStatus();
+            }
+        });
+        fViewer.setComparator(fComparator);
+        if (fFilters != null) {
+            for (int i = 0; i != fFilters.size(); i++) {
+                fViewer.addFilter(fFilters.get(i));
+            }
+        }
+        fViewer.setInput(fInput);
+
+        //pack the columns again for a nice view...
+        for (TreeColumn column : tree.getColumns()) {
+            column.pack();
+        }
+        return fViewer;
+    }
+
