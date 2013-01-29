@@ -1,6 +1,6 @@
 	/**
 	 * This is the main method of the action.  It handles prompting the user
-	 * for a file that contans an exported DataSet.  Then, it will generate
+	 * for a file that contains an exported DataSet.  Then, it will generate
 	 * a new <code>DataSet</code> to hold all of the data.
 	 * @param act The action that fired this method.
 	 */
@@ -9,20 +9,20 @@
 		FileDialog dialog= new FileDialog(fWindow.getShell(), SWT.OPEN);
 		dialog.setText(Localization.getString("ImportDataSetAction.OpenDataSetFile")); //$NON-NLS-1$
 		String fileName = dialog.open();
-		
+
 		File f = null;
-		
+
 		if(null == fileName || fileName.length() <= 0)
 			return;
-		
+
 		f = new File(fileName);
 
 		if(!f.exists() || !f.canRead())
 			return;
-		
+
 		//Create a new DataSet
 		IDataSet dataSet = readFile(f);
-		
+
 		if(null == dataSet) {
 			MessageDialog
 					.openWarning(
@@ -31,14 +31,14 @@
 									.getString("ImportDataSetAction.Problem"), Localization.getString("ImportDataSetAction.ErrorReadingDataSet")); //$NON-NLS-1$ //$NON-NLS-2$
 			return;
 		}
-		
+
 		//Create a new script set
 		try {
 			IWorkbenchPage p = PlatformUI.getWorkbench().showPerspective(GraphingPerspective.ID, PlatformUI.getWorkbench().getActiveWorkbenchWindow());
 			IViewPart ivp = p.findView(GraphSelectorView.ID);
 			((GraphSelectorView)ivp).createScriptSet(fileName, dataSet);
 		} catch(WorkbenchException we) {
-			LogManager.logCritical("WorkbenchException ImportDataSetAction.run:" + we.getMessage(), this); //$NON-NLS-1$
+			ExceptionErrorDialog.openError(Localization.getString("ImportDataSetAction.UnableToImportDataSet"), we); //$NON-NLS-1$
 		}
 	}
 
