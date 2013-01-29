@@ -3,23 +3,30 @@
 		for (CTabItem item : tabgroup.getItems()) {
 			item.dispose();
 		}
+		setErrorMessage(null);
 		initialized.clear();
 
 		ProfileLaunchConfigurationTabGroup tabGroupConfig;
 
 		if (curProviderId == null || "".equals(curProviderId)) {
-			// get the id of a provider
-			curProviderId = ProviderFramework
-					.getProviderIdToRun(null, getProfilingType());
+			curProviderId = getDefaultProviderId();
 		}
 
 		// starting initialization of this tab's controls
 		initialized.put(curProviderId, false);
 
-		tabGroupConfig = ProviderFramework
-				.getTabGroupProviderFromId(curProviderId);
+		tabGroupConfig = ProviderFramework.getTabGroupProviderFromId(curProviderId);
 		if (tabGroupConfig == null) {
-			// no provider found
+			String profilingToolName = null;
+			try {
+				profilingToolName = initial.getAttribute(ProviderProfileConstants.PROVIDER_CONFIG_TOOLNAME_ATT, (String)null);
+			} catch (CoreException e) {
+				// do nothing
+			}
+			if (profilingToolName == null)
+				setErrorMessage(NLS.bind(Messages.ProfilingTab_specified_providerid_not_installed, curProviderId));
+			else
+				setErrorMessage(NLS.bind(Messages.ProfilingTab_specified_profiler_not_installed, profilingToolName));
 			return;
 		}
 		tabs = tabGroupConfig.getProfileTabs();

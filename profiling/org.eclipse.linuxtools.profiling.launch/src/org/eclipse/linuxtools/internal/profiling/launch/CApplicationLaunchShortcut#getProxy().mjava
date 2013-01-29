@@ -1,0 +1,30 @@
+	private ILaunchShortcut2 getProxy() {
+		if (proxy == null) {
+			// Get a proxy to CDT's CApplicationLaunchShortcut class which is internal
+			// This plug-in has a dependency on org.eclipe.cdt.debug.ui so this extension is expected to be found.
+			IExtensionPoint extPoint =
+					Platform.getExtensionRegistry().getExtensionPoint("org.eclipse.debug.ui.launchShortcuts"); //$NON-NLS-1$
+			IConfigurationElement[] configs = extPoint.getConfigurationElements();
+			for (IConfigurationElement config : configs) {
+				Object obj = null;
+				if (config.getName().equals("shortcut")) { //$NON-NLS-1$
+					String id = config.getAttribute("id"); //$NON-NLS-1$
+					if (id.equals(CDT_LAUNCH_SHORTCUT_ID)) {
+						try {
+							obj = config.createExecutableExtension("class"); //$NON-NLS-1$
+						} catch (CoreException e) {
+							ProfileLaunchPlugin.log(e);
+						}
+						if (obj instanceof ILaunchShortcut2) {
+							proxy = (ILaunchShortcut2)obj;
+							break;
+						}
+					}
+				}
+				if (proxy != null)
+					break;
+			}
+		}
+		return proxy;
+	}
+
