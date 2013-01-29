@@ -1,0 +1,27 @@
+    /**
+     * Verify cancellation of ongoing indexing.
+     *
+     * Verified Methods: loader.experimentSelected(), loader.experimentDisposed(), loader.nextPage()
+     * Expected result: No exceptions during cancellation and nextPage() operation.
+     *
+     * Note this test is not sufficient to verify the concurrent access of the loader attributes
+     * by multiple threads. Contention might happen but it's not guaranteed.
+     */
+    @Test
+    public void verifyCancel() {
+        for(int i = 0; i < 5; i++) {
+            fFacility.selectExperiment(false);
+            fFacility.delay(IUml2SDTestConstants.INITIAL_INDEX_DELAY);
+
+            try {
+                fFacility.disposeExperiment();
+                fFacility.getLoader().nextPage(); // to test out of bounce
+                // Note: To actually create an out of bound exception remove
+                // safety-checks in nextPage/moveToPage of loader class
+            } catch (Exception e){
+                // No Exception expected
+                fail("exp.select/exp.dispose");
+            }
+        }
+    }
+

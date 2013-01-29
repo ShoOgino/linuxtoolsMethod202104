@@ -1,0 +1,40 @@
+    /**
+     * Verify 1st message find within page.
+     *
+     * Verified Methods: loader.find(), loader.moveToMessage()
+     * Expected result: Correct message is selected
+     */
+    @Test
+    public void verifyFirstMessage() {
+        criteria = new Criteria();
+        criteria.setSyncMessageSelected(true);
+        criteria.setExpression("GAME_.*");
+
+        // set expected values
+        fTmfComponent.setSource(fFacility.getLoader());
+        fTmfComponent.setCurrentTime(TC_002_TIME_VALUE);
+        fTmfComponent.setCurrentRange(null); // not used
+        fTmfComponent.setSignalReceived(false);
+
+        fFacility.getLoader().find(criteria);
+        // Wait for the selection to finish - needed due to new platform behavior in Juno
+	    fFacility.delay(IUml2SDTestConstants.GUI_REFESH_DELAY);
+        assertTrue("find", fTmfComponent.isSignalReceived());
+        assertFalse("find", fTmfComponent.isSignalError());
+        assertFalse("find", fTmfComponent.isCurrentTimeError());
+        assertFalse("find", fTmfComponent.isSourceError());
+
+        assertEquals("find", TC_002_PAGE_VALUE, fFacility.getLoader().currentPage());
+        selection = fFacility.getSdView().getSDWidget().getSelection();
+        assertNotNull(selection);
+        assertEquals("find", 1, selection.size());
+        assertTrue(selection.get(0) instanceof TmfSyncMessage);
+        msg = (TmfSyncMessage) selection.get(0);
+        assertEquals("find", TC_002_MESSAGE_NAME, msg.getName());
+        assertEquals("find", 0, TC_002_TIME_VALUE.compareTo(msg.getStartTime(), false));
+        assertEquals("find", TC_002_START_OCCURRANCE, msg.getStartOccurrence());
+        assertEquals("find", TC_002_END_OCCURRANCE, msg.getEndOccurrence());
+        assertEquals("find", TC_002_START_LIFELINE, msg.getStartLifeline().getName());
+        assertEquals("find", TC_002_END_LIFELINE, msg.getEndLifeline().getName());
+    }
+

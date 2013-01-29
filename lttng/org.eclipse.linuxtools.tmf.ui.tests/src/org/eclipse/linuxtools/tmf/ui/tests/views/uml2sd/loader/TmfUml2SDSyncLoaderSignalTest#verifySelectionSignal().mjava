@@ -1,0 +1,32 @@
+    /**
+     * Test Case: 002
+     * Description: Verify that time sync signal is sent correctly after selection
+     * Verified Methods: loader.broadcast(), testSelectionChanged
+     * Expected result: Time sync signal is sent with correct current time.
+     */
+    @Test
+    public void verifySelectionSignal() {
+        fTmfComponent.setSignalReceived(false);
+
+        int count = fFacility.getSdView().getFrame().syncMessageCount();
+        assertEquals("Test Preparation", IUml2SDTestConstants.MAX_MESSEAGES_PER_PAGE, count);
+        GraphNode node = fFacility.getSdView().getFrame().getSyncMessage(3);
+
+        // set expected values
+        fTmfComponent.setSource(fFacility.getLoader());
+        fTmfComponent.setCurrentTime(new Uml2SDTestTimestamp(9788642113228L));
+        fTmfComponent.setCurrentRange(null); // not used
+
+        fFacility.getSdView().getSDWidget().moveTo(node); // selects the given node
+        // Wait for the selection to finish - needed due to new platform behavior in Juno
+		fFacility.delay(IUml2SDTestConstants.GUI_REFESH_DELAY);
+        assertTrue("TmfTimeSynchSignal", fTmfComponent.isSignalReceived());
+        assertFalse("TmfTimeSynchSignal", fTmfComponent.isSignalError());
+        assertFalse("TmfTimeSynchSignal", fTmfComponent.isCurrentTimeError());
+        assertFalse("TmfTimeSynchSignal", fTmfComponent.isSourceError());
+
+        fTmfComponent.setSignalReceived(false);
+
+        fTmfComponent.dispose();
+    }
+
