@@ -6,6 +6,24 @@
         if (null == _timeProvider) {
             return;
         }
+        if (e.detail == SWT.MENU_MOUSE) {
+            if (fPendingMenuDetectEvent == null) {
+                /* Feature in Linux. The MenuDetectEvent is received before mouseDown.
+                 * Store the event and trigger it later just before handling mouseUp.
+                 * This allows for the method to detect if mouse is used to drag zoom.
+                 */
+                fPendingMenuDetectEvent = e;
+                return;
+            }
+            fPendingMenuDetectEvent = null;
+            if (_dragState != DRAG_ZOOM || _dragX != _dragX0) {
+                return;
+            }
+        } else {
+            if (_dragState != DRAG_NONE) {
+                return;
+            }
+        }
         Point p = toControl(e.x, e.y);
         int idx = getItemIndexAtY(p.y);
         if (idx >= 0 && idx < _data._expandedItems.length) {
