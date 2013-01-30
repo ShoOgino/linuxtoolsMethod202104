@@ -1,44 +1,45 @@
     public void testCancelSubRequests() {
 
-	        final boolean[] crFlags = new boolean[4];
-	        TmfCoalescedDataRequest request = setupTestRequest(crFlags);
-	        TmfDataRequest subRequest1 = new TmfDataRequestStub(TmfEvent.class, 10, 100, 200);
-	        TmfDataRequest subRequest2 = new TmfDataRequestStub(TmfEvent.class, 10, 100, 200);
-	        request.addRequest(subRequest1);
-	        request.addRequest(subRequest2);
+        final boolean[] crFlags = new boolean[4];
+        TmfCoalescedDataRequest request = setupTestRequest(crFlags);
+        TmfDataRequest subRequest1 = new TmfDataRequestStub(ITmfEvent.class, 10, 100, 200);
+        TmfDataRequest subRequest2 = new TmfDataRequestStub(ITmfEvent.class, 10, 100, 200);
+        request.addRequest(subRequest1);
+        request.addRequest(subRequest2);
 
-	        subRequest1.cancel();
+        subRequest1.cancel();
 
-	        // Validate the first coalesced request
-	        assertTrue ("isCompleted", subRequest1.isCompleted());
-	        assertFalse("isFailed",    subRequest1.isFailed());
-	        assertTrue ("isCancelled", subRequest1.isCancelled());
+        // Validate the first coalesced request
+        assertTrue ("isCompleted", subRequest1.isCompleted());
+        assertFalse("isFailed",    subRequest1.isFailed());
+        assertTrue ("isCancelled", subRequest1.isCancelled());
 
-	        // Validate the coalescing request
-	        assertFalse("isCompleted", request.isCompleted());
-	        assertFalse("isFailed",     request.isFailed());
-	        assertFalse("isCancelled", request.isCancelled());
+        // Validate the coalescing request
+        assertFalse("isCompleted", request.isCompleted());
+        assertFalse("isFailed",     request.isFailed());
+        assertFalse("isCancelled", request.isCancelled());
 
-	        // Cancel second sub-request
-	        subRequest2.cancel();
+        // Cancel second sub-request
+        subRequest2.cancel();
 
-	        // Validate the second coalesced request
-	        assertTrue ("isCompleted", subRequest2.isCompleted());
-	        assertFalse("isFailed",    subRequest2.isFailed());
-	        assertTrue ("isCancelled", subRequest2.isCancelled());
+        // Validate the second coalesced request
+        assertTrue ("isCompleted", subRequest2.isCompleted());
+        assertFalse("isFailed",    subRequest2.isFailed());
+        assertTrue("isCancelled",  subRequest2.isCancelled());
 
-	        // Validate the coalescing request
-	        assertTrue ("isCompleted", request.isCompleted());
-	        assertFalse("isFailed",    request.isFailed());
-	        assertTrue ("isCancelled", request.isCancelled());
+        // Validate the coalescing request
+        assertTrue("isCompleted", request.isCompleted());
+        assertFalse("isFailed",   request.isFailed());
+        assertTrue("isCancelled", request.isCancelled());
 
-	        // Finalize coalescing request -
-	        // Note: No need to check "request.isCancelled()" since it was verified above
-            request.cancel();
+        // Finalize coalescing request -
+        // Note: No need to check "request.isCancelled()" since it was verified
+        // above
+        request.cancel();
 
-	        assertTrue ("handleCompleted", crFlags[0]);
-	        assertFalse("handleSuccess",   crFlags[1]);
-	        assertFalse("handleFailure",   crFlags[2]);
-	        assertTrue ("handleCancel",    crFlags[3]);
-	    }
+        assertTrue("handleCompleted", crFlags[0]);
+        assertFalse("handleSuccess", crFlags[1]);
+        assertFalse("handleFailure", crFlags[2]);
+        assertTrue("handleCancel", crFlags[3]);
+    }
 
