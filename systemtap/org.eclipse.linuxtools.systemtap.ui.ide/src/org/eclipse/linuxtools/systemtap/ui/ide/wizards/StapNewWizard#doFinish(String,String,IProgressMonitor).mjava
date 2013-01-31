@@ -8,16 +8,10 @@
 		// create a .stp file
 
 		monitor.beginTask(resourceBundle.getString("StapNewWizard.BeginTask") + fileName, 2); //$NON-NLS-1$
-		final File newFile = new File(containerName, fileName);
-		try {
-			String envString = "#!/usr/bin/env stap"; //$NON-NLS-1$
-			FileOutputStream FOS = new FileOutputStream(newFile);
-			newFile.createNewFile();
-			FOS.write(envString.getBytes());
-			FOS.close();
-		} catch (IOException e) {
-			throwCoreException("Error: " + e);
-		}
+		final IContainer newResource = (IContainer) ResourcesPlugin.getWorkspace().getRoot().findMember(containerName);
+		final IFile newFile = newResource.getFile(new Path(fileName));
+		String envString = "#!/usr/bin/env stap"; //$NON-NLS-1$
+		newFile.create(new ByteArrayInputStream(envString.getBytes()) , true, monitor);
 		monitor.worked(1);
 		monitor.setTaskName(resourceBundle.getString("StapNewWizard.SetTask")); //$NON-NLS-1$
 		getShell().getDisplay().asyncExec(new Runnable() {
@@ -25,10 +19,9 @@
 				try {
 					IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getWorkbench()
 							.showPerspective(IDEPerspective.ID, PlatformUI.getWorkbench().getActiveWorkbenchWindow());
-					IDE.openEditorOnFileStore(page, EFS.getLocalFileSystem().fromLocalFile(newFile));
+					IDE.openEditor(page, newFile);
 				} catch (WorkbenchException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
+					// ignore, the file is created but opening the editor failed
 				}
 			}
 		});
