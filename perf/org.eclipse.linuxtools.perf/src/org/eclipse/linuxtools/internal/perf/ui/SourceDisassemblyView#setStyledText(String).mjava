@@ -1,0 +1,33 @@
+	public void setStyledText (String text) {
+		List<StyleRange> styles = new ArrayList<StyleRange> ();
+		int ptr = 0;
+
+		getStyledText().setText(text);
+
+		StringTokenizer tok = new StringTokenizer(text, "\n"); //$NON-NLS-1$
+		while (tok.hasMoreTokens()) {
+			String line = tok.nextToken();
+			if (Pattern.matches(ASM, line)) {
+				Matcher m = Pattern.compile(ASM).matcher(line);
+				if (m.matches() && m.group(1) != null) {
+					try {
+						float percent = Float.parseFloat(m.group(1).trim());
+						if (percent >= 20) {
+							styles.add(new StyleRange(ptr, line.length(), RED, null));
+						} else if  (percent >= 5) {
+							styles.add(new StyleRange(ptr, line.length(), ORANGE, null));
+						}
+					} catch (NumberFormatException e) {
+						// set no StyleRange
+					}
+				}
+			} else if (Pattern.matches(CODE, line)) {
+				styles.add(new StyleRange(ptr, line.length(), GREEN, null));
+			}
+
+			// + 1 to skip over the '\n' at EOL that the tokenizer eats
+			ptr += line.length() + 1;
+		}
+		getStyledText().setStyleRanges(styles.toArray(new StyleRange [0]));
+	}
+
