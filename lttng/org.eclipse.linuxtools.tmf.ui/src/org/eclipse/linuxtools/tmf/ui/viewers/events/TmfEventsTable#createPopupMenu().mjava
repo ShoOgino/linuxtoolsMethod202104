@@ -38,7 +38,77 @@
             }
         };
 
-        final IAction navigateToEventAction = new Action(Messages.TmfEventsTable_NavigateToModelActionText) {
+        final IAction openCallsiteAction = new Action(Messages.TmfEventsTable_OpenCallsiteActionText) {
+            @Override
+            public void run() {
+                final TableItem items[] = fTable.getSelection();
+                if (items.length != 1) {
+                    return;
+                }
+                final TableItem item = items[0];
+
+                final Object data = item.getData();
+                if (data instanceof CtfTmfEvent) {
+                    CtfTmfEvent event = (CtfTmfEvent) data;
+                    CtfTmfCallsite cs = event.getCallsite();
+                    if (cs == null || cs.getFileName() == null) {
+                        return;
+                    }
+                    IMarker marker = null;
+                    try {
+                        String fileName = cs.getFileName();
+                        final String trimmedPath = fileName.replaceAll("\\.\\./", ""); //$NON-NLS-1$ //$NON-NLS-2$
+                        final ArrayList<IFile> files = new ArrayList<IFile>();
+                        ResourcesPlugin.getWorkspace().getRoot().accept(new IResourceVisitor() {
+                            @Override
+                            public boolean visit(IResource resource) throws CoreException {
+                                if (resource instanceof IFile && resource.getFullPath().toString().endsWith(trimmedPath)) {
+                                    files.add((IFile) resource);
+                                }
+                                return true;
+                            }
+                        });
+                        IFile file = null;
+                        if (files.size() > 1) {
+                            ListDialog dialog = new ListDialog(getTable().getShell());
+                            dialog.setContentProvider(ArrayContentProvider.getInstance());
+                            dialog.setLabelProvider(new LabelProvider() {
+                                @Override
+                                public String getText(Object element) {
+                                    return ((IFile) element).getFullPath().toString();
+                                }
+                            });
+                            dialog.setInput(files);
+                            dialog.setTitle(Messages.TmfEventsTable_OpenCallsiteSelectFileDialogTitle);
+                            dialog.setMessage(Messages.TmfEventsTable_OpenCallsiteSelectFileDialogTitle + '\n' + cs.toString());
+                            dialog.open();
+                            Object[] result = dialog.getResult();
+                            if (result != null && result.length > 0) {
+                                file = (IFile) result[0];
+                            }
+                        } else if (files.size() == 1) {
+                            file = files.get(0);
+                        }
+                        if (file != null) {
+                            marker = file.createMarker(IMarker.MARKER);
+                            marker.setAttribute(IMarker.LINE_NUMBER, Long.valueOf(cs.getLineNumber()).intValue());
+                            IDE.openEditor(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage(), marker);
+                            marker.delete();
+                        } else if (files.size() == 0){
+                            displayException(new FileNotFoundException('\'' + cs.toString() + '\'' + '\n' + Messages.TmfEventsTable_OpenCallsiteNotFound));
+                        }
+                    } catch (PartInitException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    } catch (CoreException e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                }
+            }
+        };
+
+        final IAction openModelAction = new Action(Messages.TmfEventsTable_OpenModelActionText) {
             @Override
             public void run() {
 
@@ -50,7 +120,7 @@
 
                 final Object eventData = item.getData();
                 if (eventData instanceof CtfTmfEvent) {
-                    String modelURI = ((CtfTmfEvent) eventData).getCustomAttribute(CtfCustomAttributes.MODEL_URI_KEY);
+                    String modelURI = ((CtfTmfEvent) eventData).getCustomAttribute(CtfConstants.MODEL_URI_KEY);
 
                     if (modelURI != null) {
                         IWorkbenchPage activePage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
@@ -83,11 +153,14 @@
                             catch (CoreException e) {
                                 displayException(e);
                             }
+                        } else {
+                            displayException(new FileNotFoundException('\'' + modelURI + '\'' + '\n' + Messages.TmfEventsTable_OpenModelUnsupportedURI));
                         }
                     }
                 }
             }
         };
+
         final IAction showSearchBarAction = new Action(Messages.TmfEventsTable_ShowSearchBarActionText) {
             @Override
             public void run() {
@@ -159,6 +232,7 @@
                         return;
                     }
                 }
+
                 // Right-click on table
                 if (fTable.isVisible() && fRawViewer.isVisible()) {
                     tablePopupMenu.add(hideTableAction);
@@ -169,16 +243,26 @@
                     tablePopupMenu.add(showRawAction);
                 }
                 tablePopupMenu.add(new Separator());
+
                 if (item != null) {
-                    // add navigation action, if event meta data contain a model URI
-                    final Object eventData = item.getData();
-                    if (eventData instanceof CtfTmfEvent) {
-                        if (((CtfTmfEvent) eventData).listCustomAttributes().contains(CtfCustomAttributes.MODEL_URI_KEY)) {
-                            tablePopupMenu.add(navigateToEventAction);
-                            tablePopupMenu.add(new Separator());
+                    final Object data = item.getData();
+                    if (data instanceof CtfTmfEvent) {
+                        Separator separator = null;
+                        CtfTmfEvent event = (CtfTmfEvent) data;
+                        if (event.getCallsite() != null) {
+                            tablePopupMenu.add(openCallsiteAction);
+                            separator = new Separator();
+                        }
+                        if (event.listCustomAttributes().contains(CtfConstants.MODEL_URI_KEY)) {
+                            tablePopupMenu.add(openModelAction);
+                            separator = new Separator();
+                        }
+                        if (separator != null) {
+                            tablePopupMenu.add(separator);
                         }
                     }
                 }
+
                 tablePopupMenu.add(clearFiltersAction);
                 final ITmfFilterTreeNode[] savedFilters = FilterManager.getSavedFilters();
                 if (savedFilters.length > 0) {
