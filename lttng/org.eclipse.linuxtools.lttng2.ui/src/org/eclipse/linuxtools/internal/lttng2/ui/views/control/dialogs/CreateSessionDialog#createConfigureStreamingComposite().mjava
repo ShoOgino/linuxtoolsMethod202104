@@ -1,0 +1,210 @@
+    private void createConfigureStreamingComposite() {
+        if (fStreamingComposite == null) {
+            fStreamingComposite = new Composite(fMainStreamingGroup, SWT.NONE);
+            GridLayout layout = new GridLayout(1, true);
+            fStreamingComposite.setLayout(layout);
+            fStreamingComposite.setLayoutData(new GridData(GridData.FILL_BOTH));
+
+            Group urlGroup = new Group(fStreamingComposite, SWT.SHADOW_NONE);
+            layout = new GridLayout(7, true);
+            urlGroup.setLayout(layout);
+            urlGroup.setLayoutData(new GridData(GridData.FILL_BOTH));
+
+            fLinkDataWithControlButton = new Button(urlGroup, SWT.CHECK);
+            fLinkDataWithControlButton.setText(Messages.TraceControl_CreateSessionLinkButtonText);
+            fLinkDataWithControlButton.setToolTipText(Messages.TraceControl_CreateSessionLinkButtonTooltip);
+            GridData data = new GridData(GridData.FILL_HORIZONTAL);
+            data.horizontalSpan = 7;
+            fLinkDataWithControlButton.setLayoutData(data);
+            fLinkDataWithControlButton.setSelection(true);
+
+            Label label = new Label(urlGroup, SWT.NONE);
+            data = new GridData(GridData.FILL_HORIZONTAL);
+            data.horizontalSpan = 1;
+            label.setLayoutData(data);
+
+            label = new Label(urlGroup, SWT.NONE);
+            label.setText(Messages.TraceControl_CreateSessionProtocolLabelText);
+            data = new GridData(GridData.FILL_HORIZONTAL);
+            data.horizontalSpan = 1;
+            label.setLayoutData(data);
+
+            label = new Label(urlGroup, SWT.NONE);
+            label.setText(Messages.TraceControl_CreateSessionAddressLabelText);
+            data = new GridData(GridData.FILL_HORIZONTAL);
+            data.horizontalSpan = 4;
+            label.setLayoutData(data);
+
+            label = new Label(urlGroup, SWT.NONE);
+            label.setText(Messages.TraceControl_CreateSessionPortLabelText);
+            data = new GridData(GridData.FILL_HORIZONTAL);
+            data.horizontalSpan = 1;
+            label.setLayoutData(data);
+
+            label = new Label(urlGroup, SWT.RIGHT);
+            label.setText(Messages.TraceControl_CreateSessionControlUrlLabel);
+            data = new GridData(GridData.FILL_HORIZONTAL);
+            data.horizontalSpan = 1;
+            label.setLayoutData(data);
+
+            fControlProtocolCombo = new CCombo(urlGroup, SWT.READ_ONLY);
+            fControlProtocolCombo.setToolTipText(Messages.TraceControl_CreateSessionCommonProtocolTooltip);
+            data = new GridData(GridData.FILL_HORIZONTAL);
+            data.horizontalSpan = 1;
+            fControlProtocolCombo.setLayoutData(data);
+
+            fControlHostAddressText = new Text(urlGroup, SWT.NONE);
+            fControlHostAddressText.setToolTipText(Messages.TraceControl_CreateSessionControlAddressTooltip);
+            data = new GridData(GridData.FILL_HORIZONTAL);
+            data.horizontalSpan = 4;
+            fControlHostAddressText.setLayoutData(data);
+
+            fControlPortText = new Text(urlGroup, SWT.NONE);
+            fControlPortText.setToolTipText(Messages.TraceControl_CreateSessionControlPortTooltip);
+            data = new GridData(GridData.FILL_HORIZONTAL);
+            data.horizontalSpan = 1;
+            fControlPortText.setLayoutData(data);
+
+            label = new Label(urlGroup, SWT.RIGHT);
+            label.setText(Messages.TraceControl_CreateSessionDataUrlLabel);
+            data = new GridData(GridData.FILL_HORIZONTAL);
+            data.horizontalSpan = 1;
+            label.setLayoutData(data);
+
+            fDataProtocolCombo = new CCombo(urlGroup, SWT.READ_ONLY);
+            fDataProtocolCombo.setEnabled(false);
+            fDataProtocolCombo.setToolTipText(Messages.TraceControl_CreateSessionProtocolTooltip);
+            data = new GridData(GridData.FILL_HORIZONTAL);
+            data.horizontalSpan = 1;
+            fDataProtocolCombo.setLayoutData(data);
+
+            String items[] = new String[StreamingProtocol.values().length];
+            for (int i = 0; i < items.length; i++) {
+                items[i] = StreamingProtocol.values()[i].name();
+            }
+            fControlProtocolCombo.setItems(items);
+            fDataProtocolCombo.setItems(items);
+
+            fDataHostAddressText = new Text(urlGroup, SWT.NONE);
+            fDataHostAddressText.setEnabled(false);
+            fDataHostAddressText.setToolTipText(Messages.TraceControl_CreateSessionDataAddressTooltip);
+            data = new GridData(GridData.FILL_HORIZONTAL);
+            data.horizontalSpan = 4;
+            fDataHostAddressText.setLayoutData(data);
+
+            fDataPortText = new Text(urlGroup, SWT.NONE);
+            fDataPortText.setEnabled(true);
+            fDataPortText.setToolTipText(Messages.TraceControl_CreateSessionDataPortTooltip);
+            data = new GridData(GridData.FILL_HORIZONTAL);
+            data.horizontalSpan = 1;
+            fDataPortText.setLayoutData(data);
+
+            fCopyProtocolSelectionListener = new ControlProtocolSelectionListener();
+            fControlProtocolSelectionListener = new ProtocolComboSelectionListener(fControlProtocolCombo, fControlPortText);
+            fDataProtocolSelectionListener = new ProtocolComboSelectionListener(fDataProtocolCombo, fDataPortText);
+
+            fControlProtocolCombo.addSelectionListener(fCopyProtocolSelectionListener);
+
+            fControlUrlKeyListener = new CopyKeyListener(fControlHostAddressText, fDataHostAddressText);
+            fControlHostAddressText.addKeyListener(fControlUrlKeyListener);
+
+//            InetAddress inet = null;
+//            try {
+//                inet = InetAddress.getLocalHost();
+//                inet = InetAddress.getByName(inet.getHostName());
+//            } catch (UnknownHostException e1) {
+//            }
+//            if (inet != null) {
+//                fControlUrlAddressText.setText(inet.getHostAddress());
+//                fDataUrlAddressText.setText(inet.getHostAddress());
+//            }
+            fControlProtocolCombo.select(DEFAULT_URL_INDEX);
+            fDataProtocolCombo.select(DEFAULT_URL_INDEX);
+
+            fLinkDataWithControlButton.addSelectionListener(new SelectionAdapter() {
+                @Override
+                public void widgetSelected(SelectionEvent e) {
+                    if (fLinkDataWithControlButton.getSelection()) {
+                        // Set enablement control data channel inputs
+                        fDataProtocolCombo.setEnabled(false);
+                        fDataHostAddressText.setEnabled(false);
+                        fControlPortText.setEnabled(true);
+                        fDataPortText.setEnabled(true);
+
+                        // Update listeners
+                        fControlProtocolCombo.removeSelectionListener(fControlProtocolSelectionListener);
+                        fDataProtocolCombo.removeSelectionListener(fDataProtocolSelectionListener);
+                        fControlProtocolCombo.addSelectionListener(fCopyProtocolSelectionListener);
+                        fControlHostAddressText.addKeyListener(fControlUrlKeyListener);
+
+                        // Get previous selection and validate
+                        int currentSelection = fControlProtocolCombo.getSelectionIndex() <= COMMON_URL_LAST_INDEX ?
+                                fControlProtocolCombo.getSelectionIndex() : DEFAULT_URL_INDEX;
+
+                        // Update combo box items
+                        fControlProtocolCombo.removeAll();
+                        String[] controlItems = new String[StreamingProtocol.values().length];
+                        for (int i = 0; i < controlItems.length; i++) {
+                            controlItems[i] = StreamingProtocol.values()[i].name();
+                        }
+                        fControlProtocolCombo.setItems(controlItems);
+                        fDataProtocolCombo.setItems(controlItems);
+
+                        // Set selection
+                        fControlProtocolCombo.select(currentSelection);
+                        fDataProtocolCombo.select(currentSelection);
+                        fDataHostAddressText.setText(fControlHostAddressText.getText());
+
+                        // Update tool tips
+                        fControlProtocolCombo.setToolTipText(Messages.TraceControl_CreateSessionCommonProtocolTooltip);
+                    } else {
+                        // Enable data channel inputs
+                        fDataProtocolCombo.setEnabled(true);
+                        fDataHostAddressText.setEnabled(true);
+
+                        // Update listeners
+                        fControlProtocolCombo.removeSelectionListener(fCopyProtocolSelectionListener);
+                        fControlProtocolCombo.addSelectionListener(fControlProtocolSelectionListener);
+                        fDataProtocolCombo.addSelectionListener(fDataProtocolSelectionListener);
+                        fControlHostAddressText.removeKeyListener(fControlUrlKeyListener);
+
+                        // Update combo box items
+                        int currentSelection = fControlProtocolCombo.getSelectionIndex();
+                        fControlProtocolCombo.removeAll();
+                        String[] controlItems = new String[StreamingProtocol2.values().length];
+                        for (int i = 0; i < controlItems.length; i++) {
+                            controlItems[i] = StreamingProtocol2.values()[i].name();
+                        }
+                        fControlProtocolCombo.setItems(controlItems);
+                        fDataProtocolCombo.setItems(controlItems);
+
+                        // Set selection
+                        fControlProtocolCombo.select(currentSelection);
+                        fDataProtocolCombo.select(currentSelection);
+
+                        // Update tool tips
+                        fDataProtocolCombo.setToolTipText(Messages.TraceControl_CreateSessionProtocolTooltip);
+                        fControlProtocolCombo.setToolTipText(Messages.TraceControl_CreateSessionProtocolTooltip);
+
+                        // Update control/data port enablement and input
+                        if (fControlProtocolCombo.getItem(fControlProtocolCombo.getSelectionIndex()).equals(StreamingProtocol.net.name()) ||
+                                fControlProtocolCombo.getItem(fControlProtocolCombo.getSelectionIndex()).equals(StreamingProtocol.net6.name())) {
+                            fControlPortText.setText(""); //$NON-NLS-1$
+                            fControlPortText.setEnabled(false);
+                        } else {
+                            fControlPortText.setEnabled(true);
+                        }
+
+                        if (fDataProtocolCombo.getItem(fDataProtocolCombo.getSelectionIndex()).equals(StreamingProtocol.net.name()) ||
+                                fDataProtocolCombo.getItem(fDataProtocolCombo.getSelectionIndex()).equals(StreamingProtocol.net6.name())) {
+                            fDataPortText.setText(""); //$NON-NLS-1$
+                            fDataPortText.setEnabled(false);
+                        } else {
+                            fDataPortText.setEnabled(true);
+                        }
+                    }
+                }
+            });
+        }
+    }
+

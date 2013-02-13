@@ -4,32 +4,73 @@
      */
     @Override
     protected Control createDialogArea(Composite parent) {
-        
+
         // Main dialog panel
         fDialogComposite = new Composite(parent, SWT.NONE);
-        GridLayout layout = new GridLayout(4, true);
+        GridLayout layout = new GridLayout(1, true);
         fDialogComposite.setLayout(layout);
         fDialogComposite.setLayoutData(new GridData(GridData.FILL_BOTH));
 
-        Label sessionNameLabel = new Label(fDialogComposite, SWT.RIGHT);
+        Group sessionGroup = new Group(fDialogComposite, SWT.SHADOW_NONE);
+        sessionGroup.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+        sessionGroup.setLayout(new GridLayout(4, true));
+
+        Label sessionNameLabel = new Label(sessionGroup, SWT.RIGHT);
         sessionNameLabel.setText(Messages.TraceControl_CreateSessionNameLabel);
-        fSessionNameText = new Text(fDialogComposite, SWT.NONE);
+        fSessionNameText = new Text(sessionGroup, SWT.NONE);
         fSessionNameText.setToolTipText(Messages.TraceControl_CreateSessionNameTooltip);
-        
-        Label sessionPath = new Label(fDialogComposite, SWT.RIGHT);
+
+        Label sessionPath = new Label(sessionGroup, SWT.RIGHT);
         sessionPath.setText(Messages.TraceControl_CreateSessionPathLabel);
-        fSessionPathText = new Text(fDialogComposite, SWT.NONE);
+        fSessionPathText = new Text(sessionGroup, SWT.NONE);
         fSessionPathText.setToolTipText(Messages.TraceControl_CreateSessionPathTooltip);
 
         // layout widgets
         GridData data = new GridData(GridData.FILL_HORIZONTAL);
         data.horizontalSpan = 3;
-        
+
         fSessionNameText.setLayoutData(data);
+
+        data = new GridData(GridData.FILL_HORIZONTAL);
+        data.horizontalSpan = 3;
         fSessionPathText.setLayoutData(data);
 
-        getShell().setMinimumSize(new Point(300, 150));
-        
+        if (fParent.isNetworkStreamingSupported()) {
+            fNoConsumerButton = new Button(sessionGroup, SWT.CHECK);
+            fNoConsumerButton.setText(Messages.TraceControl_CreateSessionNoConsumertText);
+            fNoConsumerButton.setToolTipText(Messages.TraceControl_CreateSessionNoConsumertTooltip);
+            data = new GridData(GridData.FILL_HORIZONTAL);
+            data.horizontalSpan = 2;
+            fNoConsumerButton.setLayoutData(data);
+
+            fDisableConsumerButton = new Button(sessionGroup, SWT.CHECK);
+            fDisableConsumerButton.setText(Messages.TraceControl_CreateSessionDisableConsumertText);
+            fDisableConsumerButton.setToolTipText(Messages.TraceControl_CreateSessionDisableConsumertTooltip);
+            data = new GridData(GridData.FILL_HORIZONTAL);
+            data.horizontalSpan = 2;
+            fDisableConsumerButton.setLayoutData(data);
+
+            fNoConsumerButton.addSelectionListener(new SelectionAdapter() {
+                @Override
+                public void widgetSelected(SelectionEvent e) {
+                    if (fNoConsumerButton.getSelection()) {
+                        fDisableConsumerButton.setSelection(false);
+                    }
+                }
+            });
+
+            fDisableConsumerButton.addSelectionListener(new SelectionAdapter() {
+                @Override
+                public void widgetSelected(SelectionEvent e) {
+                    if (fDisableConsumerButton.getSelection()) {
+                        fNoConsumerButton.setSelection(false);
+                    }
+                }
+            });
+
+            createAdvancedOptionsComposite();
+        }
+
         return fDialogComposite;
     }
 

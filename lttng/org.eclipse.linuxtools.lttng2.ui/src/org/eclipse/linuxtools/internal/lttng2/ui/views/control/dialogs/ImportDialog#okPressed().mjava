@@ -5,6 +5,7 @@
     @Override
     protected void okPressed() {
         if (!fIsError) {
+
             // Validate input data
             fTraces.clear();
 
@@ -14,6 +15,20 @@
                 MessageDialog.openError(getShell(),
                         Messages.TraceControl_ImportDialogTitle,
                         Messages.TraceControl_ImportDialogNoProjectSelectedError);
+                return;
+            }
+
+            if (fSession.isStreamedTrace()) {
+                // For streaming use standard import wizard from TMF because exact location
+                // is not available (lttng backend limitation)
+                IProject project = fProjects.get(fCombo.getSelectionIndex());
+                ImportTraceWizard wizard = new ImportTraceWizard();
+                wizard.init(PlatformUI.getWorkbench(), new StructuredSelection(project));
+                WizardDialog dialog = new WizardDialog(getShell(), wizard);
+                if (dialog.open() == Window.OK) {
+                    super.okPressed();
+                }
+                super.cancelPressed();
                 return;
             }
 
