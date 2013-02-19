@@ -38,16 +38,10 @@
         assertEquals("Checkpoints size", NB_EVENTS / BLOCK_SIZE, checkpoints.size());
         for (int i = 0; i < checkpoints.size(); i++) {
             ITmfCheckpoint checkpoint = checkpoints.get(i);
-            TmfExperimentLocation expLocation = (TmfExperimentLocation) checkpoint.getLocation();
-            TmfLocationArray locations = expLocation.getLocationInfo();
-            ITmfContext[] trcContexts = new ITmfContext[2];
-            trcContexts[0] = new TmfContext(locations.getLocation(0), (i * pageSize) / 2);
-            trcContexts[1] = new TmfContext(locations.getLocation(1), (i * pageSize) / 2);
-            TmfExperimentContext expContext = new TmfExperimentContext(trcContexts);
-            expContext.getEvents()[0] = testTraces[0].getNext(testTraces[0].seekEvent((i * pageSize) / 2));
-            expContext.getEvents()[1] = testTraces[1].getNext(testTraces[1].seekEvent((i * pageSize) / 2));
-            ITmfEvent event = experiment.parseEvent(expContext);
-            assertTrue(expContext.getRank() == i * pageSize);
+            ITmfLocation location = checkpoint.getLocation();
+            ITmfContext context = experiment.seekEvent(location);
+            ITmfEvent event = experiment.parseEvent(context);
+            assertTrue(context.getRank() == i * pageSize);
             assertTrue((checkpoint.getTimestamp().compareTo(event.getTimestamp(), false) == 0));
             assertEquals("Checkpoint value", i * pageSize + 1, checkpoint.getTimestamp().getValue());
         }
