@@ -1,0 +1,59 @@
+    @Override
+    protected void eventHandle(ITmfEvent event) {
+        final String eventName = event.getType().getName();
+
+        if (eventName.equals(LttngStrings.SCHED_SWITCH)) {
+            /*
+             * Fields: string prev_comm, int32 prev_tid, int32 prev_prio, int64
+             * prev_state, string next_comm, int32 next_tid, int32 next_prio
+             */
+
+            ITmfEventField content = event.getContent();
+            long ts = event.getTimestamp().getValue();
+            String cpu = event.getSource();
+
+            Long prevTid = (Long) content.getField(LttngStrings.PREV_TID).getValue();
+
+            try {
+                Integer currentCPUNode = ss.getQuarkRelativeAndAdd(getNodeCPUs(), cpu);
+
+                /*
+                 * This quark contains the value of the cumulative time spent on
+                 * the source CPU by the currently running thread
+                 */
+                Integer cumulativeTimeQuark = ss.getQuarkRelativeAndAdd(currentCPUNode, prevTid.toString());
+                Long startTime = fLastStartTimes.get(cpu);
+                /*
+                 * If start time is null, we haven't seen the start of the
+                 * process, so we assume beginning of the trace
+                 */
+                if (startTime == null) {
+                    startTime = fTraceStart;
+                }
+
+                /*
+                 * We add the time from startTime until now to the cumulative
+                 * time of the thread
+                 */
+                if (startTime != null) {
+                    ITmfStateValue value = ss.queryOngoingState(cumulativeTimeQuark);
+
+                    /*
+                     * Modify cumulative time for this CPU/TID combo: The total
+                     * time changes when the process is scheduled out. Nothing
+                     * happens when the process is scheduled in.
+                     */
+                    long prevCumulativeTime = value.unboxLong();
+                    long newCumulativeTime = prevCumulativeTime + (ts - startTime);
+
+                    value = TmfStateValue.newValueLong(newCumulativeTime);
+                    ss.modifyAttribute(ts, value, cumulativeTimeQuark);
+                    fLastStartTimes.put(cpu, ts);
+                }
+            } catch (AttributeNotFoundException e) {
+                Activator.getDefault().logError("Attribute not found in LttngKernelCpuStateProvider", e); //$NON-NLS-1$
+            }
+
+        }
+    }
+
