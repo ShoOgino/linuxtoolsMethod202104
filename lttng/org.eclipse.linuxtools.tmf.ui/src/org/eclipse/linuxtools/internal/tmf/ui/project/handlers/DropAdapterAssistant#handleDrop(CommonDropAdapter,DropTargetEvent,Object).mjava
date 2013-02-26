@@ -8,6 +8,11 @@
         // Use local variable to avoid parameter assignment
         Object targetToUse = aTarget;
 
+        int operation = aDropTargetEvent.detail;
+        if (operation != DND.DROP_LINK) {
+            operation = DND.DROP_COPY;
+        }
+
         // If target is a trace, use its parent (either trace folder or experiment)
         if (targetToUse instanceof TmfTraceElement) {
             targetToUse = ((TmfTraceElement) targetToUse).getParent();
@@ -40,20 +45,13 @@
                 if (source instanceof TmfTraceElement) {
                     TmfTraceElement sourceTrace = (TmfTraceElement) source;
                     // If source trace is under an experiment, use the original trace from the traces folder
-                    if (sourceTrace.getParent() instanceof TmfExperimentElement) {
-                        for (TmfTraceElement trace : sourceTrace.getProject().getTracesFolder().getTraces()) {
-                            if (trace.getName().equals(sourceTrace.getName())) {
-                                sourceTrace = trace;
-                                break;
-                            }
-                        }
-                    }
+                    sourceTrace = sourceTrace.getElementUnderTraceFolder();
                     if (targetToUse instanceof TmfExperimentElement) {
                         TmfExperimentElement targetExperiment = (TmfExperimentElement) targetToUse;
-                        ok |= drop(sourceTrace, targetExperiment);
+                        ok |= drop(sourceTrace, targetExperiment, operation);
                     } else if (targetToUse instanceof TmfTraceFolder) {
                         TmfTraceFolder traceFolder = (TmfTraceFolder) targetToUse;
-                        ok |= drop(sourceTrace, traceFolder);
+                        ok |= drop(sourceTrace, traceFolder, operation);
                     }
                 } else if (source instanceof IResource) {
                     IResource sourceResource = (IResource) source;
@@ -62,10 +60,10 @@
                     }
                     if (targetToUse instanceof TmfExperimentElement) {
                         TmfExperimentElement targetExperiment = (TmfExperimentElement) targetToUse;
-                        ok |= drop(sourceResource, targetExperiment);
+                        ok |= (drop(sourceResource, targetExperiment, operation) != null);
                     } else if (targetToUse instanceof TmfTraceFolder) {
                         TmfTraceFolder traceFolder = (TmfTraceFolder) targetToUse;
-                        ok |= drop(sourceResource, traceFolder);
+                        ok |= (drop(sourceResource, traceFolder, operation) != null);
                     }
                 }
             }
@@ -75,10 +73,10 @@
                 Path path = new Path(source);
                 if (targetToUse instanceof TmfExperimentElement) {
                     TmfExperimentElement targetExperiment = (TmfExperimentElement) targetToUse;
-                    ok |= drop(path, targetExperiment);
+                    ok |= drop(path, targetExperiment, operation);
                 } else if (targetToUse instanceof TmfTraceFolder) {
                     TmfTraceFolder traceFolder = (TmfTraceFolder) targetToUse;
-                    ok |= drop(path, traceFolder);
+                    ok |= drop(path, traceFolder, operation);
                 }
             }
         }

@@ -1,0 +1,52 @@
+    /**
+     * Drop a trace by importing/linking a path in a target experiment
+     *
+     * @param path the source path
+     * @param targetExperiment the target experiment
+     * @param operation the drop operation (DND.DROP_COPY | DND.DROP_LINK)
+     * @return true if successful
+     */
+    private static boolean drop(Path path,
+            TmfExperimentElement targetExperiment,
+            int operation) {
+
+        // Use local variable to avoid parameter assignment
+        Path pathToUse = path;
+
+        for (TmfTraceElement trace : targetExperiment.getTraces()) {
+            if (trace.getName().equals(pathToUse.lastSegment()) && pathToUse.toString().startsWith(targetExperiment.getProject().getResource().getLocation().toString())) {
+                return false;
+            }
+        }
+        if (!pathToUse.toString().startsWith(targetExperiment.getProject().getResource().getLocation().toString())) {
+            String targetName = pathToUse.lastSegment();
+            for (TmfTraceElement trace : targetExperiment.getProject().getTracesFolder().getTraces()) {
+                if (trace.getName().equals(targetName)) {
+                    targetName = promptRename(trace);
+                    if (targetName == null) {
+                        return false;
+                    }
+                    break;
+                }
+            }
+            if (operation == DND.DROP_COPY) {
+                importTrace(targetExperiment.getProject().getTracesFolder().getResource(), pathToUse, targetName);
+            } else {
+                createLink(targetExperiment.getProject().getTracesFolder().getResource(), pathToUse, targetName);
+            }
+            // use the copied resource for the experiment
+            IResource resource = null;
+            File file = new File(pathToUse.toString());
+            if (file.exists() && file.isFile()) {
+                resource = targetExperiment.getProject().getTracesFolder().getResource().getFile(targetName);
+            } else if (file.exists() && file.isDirectory()) {
+                resource = targetExperiment.getProject().getTracesFolder().getResource().getFolder(targetName);
+            }
+            if (resource != null && resource.exists()) {
+                createLink(targetExperiment.getResource(), resource, resource.getName());
+                return true;
+            }
+        }
+        return false;
+    }
+

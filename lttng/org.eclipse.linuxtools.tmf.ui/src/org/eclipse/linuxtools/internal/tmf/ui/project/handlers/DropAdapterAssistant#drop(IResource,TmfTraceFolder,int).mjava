@@ -1,0 +1,40 @@
+    /**
+     * Drop a trace by copying/linking a resource in a trace folder
+     *
+     * @param sourceResource the source resource
+     * @param traceFolder the target trace folder
+     * @param operation the drop operation (DND.DROP_COPY | DND.DROP_LINK)
+     * @return the target resource or null if unsuccessful
+     */
+    private static IResource drop(IResource sourceResource,
+            TmfTraceFolder traceFolder,
+            int operation) {
+
+        if (sourceResource.getProject().equals(traceFolder.getResource().getProject())) {
+            return null;
+        }
+        String targetName = sourceResource.getName();
+        for (TmfTraceElement trace : traceFolder.getTraces()) {
+            if (trace.getName().equals(targetName)) {
+                targetName = promptRename(trace);
+                if (targetName == null) {
+                    return null;
+                }
+                break;
+            }
+        }
+        try {
+            if (operation == DND.DROP_COPY) {
+                IPath destination = traceFolder.getResource().getFullPath().addTrailingSeparator().append(targetName);
+                sourceResource.copy(destination, false, null);
+                cleanupBookmarks(destination);
+            } else {
+                createLink(traceFolder.getResource(), sourceResource, targetName);
+            }
+            return traceFolder.getResource().findMember(targetName);
+        } catch (CoreException e) {
+            displayException(e);
+        }
+        return null;
+    }
+

@@ -1,0 +1,57 @@
+    /**
+     * Drop a trace by copying/linking a resource in a target experiment
+     *
+     * @param sourceResource the source resource
+     * @param targetExperiment the target experiment
+     * @param operation the drop operation (DND.DROP_COPY | DND.DROP_LINK)
+     * @return the target resource or null if unsuccessful
+     */
+    private static IResource drop(IResource sourceResource,
+            TmfExperimentElement targetExperiment,
+            int operation) {
+
+        IResource traceResource = sourceResource;
+
+        TmfProjectElement projectElement = TmfProjectRegistry.getProject(sourceResource.getProject());
+        for (TmfTraceElement trace : targetExperiment.getTraces()) {
+            if (trace.getName().equals(sourceResource.getName()) && targetExperiment.getProject().equals(projectElement)) {
+                return null;
+            }
+        }
+        if (!targetExperiment.getProject().equals(projectElement)) {
+            String targetName = sourceResource.getName();
+            for (TmfTraceElement trace : targetExperiment.getProject().getTracesFolder().getTraces()) {
+                if (trace.getName().equals(targetName)) {
+                    targetName = promptRename(trace);
+                    if (targetName == null) {
+                        return null;
+                    }
+                    break;
+                }
+            }
+            try {
+                if (operation == DND.DROP_COPY) {
+                    IPath destination = targetExperiment.getProject().getTracesFolder().getResource().getFullPath().addTrailingSeparator().append(targetName);
+                    sourceResource.copy(destination, false, null);
+                    cleanupBookmarks(destination);
+                } else {
+                    createLink(targetExperiment.getProject().getTracesFolder().getResource(), sourceResource, targetName);
+                }
+                // use the copied resource for the experiment
+                if (sourceResource.getType() == IResource.FILE) {
+                    traceResource = targetExperiment.getProject().getTracesFolder().getResource().getFile(targetName);
+                } else if (sourceResource.getType() == IResource.FOLDER) {
+                    traceResource = targetExperiment.getProject().getTracesFolder().getResource().getFolder(targetName);
+                }
+            } catch (CoreException e) {
+                displayException(e);
+                return null;
+            }
+        }
+        if (traceResource != null && traceResource.exists()) {
+            createLink(targetExperiment.getResource(), traceResource, traceResource.getName());
+            return traceResource;
+        }
+        return null;
+    }
+

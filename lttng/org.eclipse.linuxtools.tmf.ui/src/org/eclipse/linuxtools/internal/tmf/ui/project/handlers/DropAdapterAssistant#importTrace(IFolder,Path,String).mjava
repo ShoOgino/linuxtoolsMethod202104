@@ -1,0 +1,58 @@
+    /**
+     * Import a trace to the trace folder
+     *
+     * @param folder the trace folder resource
+     * @param path the path to the trace to import
+     * @param targetName the target name
+     */
+    private static void importTrace(final IFolder folder, final Path path, final String targetName) {
+        final File source = new File(path.toString());
+        if (source.isDirectory()) {
+            IPath containerPath = folder.getFullPath().addTrailingSeparator().append(targetName);
+            IOverwriteQuery overwriteImplementor = new IOverwriteQuery() {
+                @Override
+                public String queryOverwrite(String pathString) {
+                    return IOverwriteQuery.NO_ALL;
+                }
+            };
+            List<File> filesToImport = Arrays.asList(source.listFiles());
+            ImportOperation operation = new ImportOperation(
+                    containerPath,
+                    source,
+                    FileSystemStructureProvider.INSTANCE,
+                    overwriteImplementor,
+                    filesToImport);
+            operation.setCreateContainerStructure(false);
+            try {
+                operation.run(new NullProgressMonitor());
+            } catch (InvocationTargetException e) {
+                displayException(e);
+            } catch (InterruptedException e) {
+                displayException(e);
+            }
+        } else {
+            IRunnableWithProgress runnable = new IRunnableWithProgress() {
+                @Override
+                public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
+                    try {
+                        InputStream inputStream = new FileInputStream(source);
+                        IFile targetFile = folder.getFile(targetName);
+                        targetFile.create(inputStream, IResource.NONE, monitor);
+                    } catch (CoreException e) {
+                        displayException(e);
+                    } catch (FileNotFoundException e) {
+                        displayException(e);
+                    }
+                }
+            };
+            WorkspaceModifyDelegatingOperation operation = new WorkspaceModifyDelegatingOperation(runnable);
+            try {
+                operation.run(new NullProgressMonitor());
+            } catch (InvocationTargetException e) {
+                displayException(e);
+            } catch (InterruptedException e) {
+                displayException(e);
+            }
+        }
+    }
+

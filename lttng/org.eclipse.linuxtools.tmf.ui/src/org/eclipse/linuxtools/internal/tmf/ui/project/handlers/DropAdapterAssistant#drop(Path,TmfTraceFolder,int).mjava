@@ -1,0 +1,30 @@
+    /**
+     * Drop a trace by importing/linking a path in a trace folder
+     *
+     * @param path the source path
+     * @param traceFolder the target trace folder
+     * @param operation the drop operation (DND.DROP_COPY | DND.DROP_LINK)
+     * @return true if successful
+     */
+    private static boolean drop(Path path,
+            TmfTraceFolder traceFolder,
+            int operation) {
+
+        String targetName = path.lastSegment();
+        for (TmfTraceElement trace : traceFolder.getTraces()) {
+            if (trace.getName().equals(targetName)) {
+                targetName = promptRename(trace);
+                if (targetName == null) {
+                    return false;
+                }
+                break;
+            }
+        }
+        if (operation == DND.DROP_COPY) {
+            importTrace(traceFolder.getResource(), path, targetName);
+        } else {
+            createLink(traceFolder.getResource(), path, targetName);
+        }
+        return true;
+    }
+
