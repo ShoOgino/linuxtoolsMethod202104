@@ -1,0 +1,29 @@
+    /**
+     * Removes a trace from an experiment
+     *
+     * @param trace The trace to remove
+     * @throws CoreException exception
+     * @since 2.0
+     */
+    public void removeTrace(TmfTraceElement trace) throws CoreException {
+
+        // Close the experiment if open
+        IFile file = getBookmarksFile();
+        FileEditorInput input = new FileEditorInput(file);
+        IWorkbench wb = PlatformUI.getWorkbench();
+        for (IWorkbenchWindow wbWindow : wb.getWorkbenchWindows()) {
+            for (IWorkbenchPage wbPage : wbWindow.getPages()) {
+                for (IEditorReference editorReference : wbPage.getEditorReferences()) {
+                    if (editorReference.getEditorInput().equals(input)) {
+                        wbPage.closeEditor(editorReference.getEditor(false), false);
+                    }
+                }
+            }
+        }
+
+        /* Finally, remove the trace from experiment*/
+        removeChild(trace);
+        trace.getResource().delete(true, null);
+
+    }
+

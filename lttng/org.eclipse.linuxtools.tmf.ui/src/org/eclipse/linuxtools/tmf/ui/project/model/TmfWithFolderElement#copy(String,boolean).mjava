@@ -1,0 +1,40 @@
+    /**
+     * Copy this model element
+     *
+     * @param newName The name of the new element
+     * @param copySuppFiles Whether to copy supplementary files or not
+     * @return the new Resource object
+     */
+    public IResource copy(final String newName, final boolean copySuppFiles) {
+
+        final IPath newPath = getParent().getResource().getFullPath().addTrailingSeparator().append(newName);
+
+        /* Copy supplementary files first, only if needed */
+        if (copySuppFiles) {
+            copySupplementaryFolder(newName);
+        }
+        /* Copy the trace */
+        try {
+            getResource().copy(newPath, IResource.FORCE | IResource.SHALLOW, null);
+
+            /* Delete any bookmarks file found in copied trace folder */
+            IFolder folder = ((IFolder)getParent().getResource()).getFolder(newName);
+            if (folder.exists()) {
+                for (IResource member : folder.members()) {
+                    if (TmfTrace.class.getCanonicalName().equals(member.getPersistentProperty(TmfCommonConstants.TRACETYPE))) {
+                        member.delete(true, null);
+                    }
+                    if (TmfExperiment.class.getCanonicalName().equals(member.getPersistentProperty(TmfCommonConstants.TRACETYPE))) {
+                        member.delete(true, null);
+                    }
+                }
+            }
+            return folder;
+        } catch (CoreException e) {
+
+        }
+
+        return null;
+
+    }
+

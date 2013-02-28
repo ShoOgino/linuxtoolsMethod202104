@@ -1,8 +1,5 @@
     private IResource copyTrace(final String newName) {
 
-        IPath oldPath = fTrace.getResource().getFullPath();
-        final IPath newPath = oldPath.append("../" + newName); //$NON-NLS-1$
-
         WorkspaceModifyOperation operation = new WorkspaceModifyOperation() {
             @Override
             public void execute(IProgressMonitor monitor) throws CoreException {
@@ -11,19 +8,7 @@
                     if (monitor.isCanceled()) {
                         throw new OperationCanceledException();
                     }
-                    // Copy supplementary files first
-                    fTrace.copySupplementaryFolder(newName);
-                    // Copy the trace
-                    fTrace.getResource().copy(newPath, IResource.FORCE | IResource.SHALLOW, null);
-                    // Delete any bookmarks file found in copied trace folder
-                    IFolder folder = fTraceFolder.getFolder(newName);
-                    if (folder.exists()) {
-                        for (IResource member : folder.members()) {
-                            if (TmfTrace.class.getCanonicalName().equals(member.getPersistentProperty(TmfCommonConstants.TRACETYPE))) {
-                                member.delete(true, null);
-                            }
-                        }
-                    }
+                    fTrace.copy(newName, true);
                     if (monitor.isCanceled()) {
                         throw new OperationCanceledException();
                     }
@@ -45,5 +30,6 @@
         }
 
         return fTrace.getResource();
+
     }
 
