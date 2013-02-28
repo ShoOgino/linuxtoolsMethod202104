@@ -1,6 +1,5 @@
     /**
-     * Draws this overview ruler.
-     *
+     * Draws this overview ruler. Uses <code>ITextViewerExtension5</code> for its implementation.
      * @param gc
      *            the GC to draw into
      */
@@ -8,28 +7,38 @@
         Rectangle r = new Rectangle(0, 0, 0, 0);
         int yy, hh = ANNOTATION_HEIGHT;
 
+        ITextViewerExtension5 extension = (ITextViewerExtension5) fTextViewer;
         IDocument document = fTextViewer.getDocument();
-        IRegion visible = fTextViewer.getVisibleRegion();
-
         StyledText textWidget = fTextViewer.getTextWidget();
+
         int maxLines = textWidget.getLineCount();
-
         Point size = fCanvas.getSize();
-        int writable = JFaceTextUtil.computeLineHeight(textWidget, 0, maxLines, maxLines);
 
-        if (size.y > writable)
-            size.y = Math.max(writable - fHeader.getSize().y, 0);
+        fCachedAnnotations.clear();
+        if (fModel != null) {
+            Iterator<?> iter = fModel.getAnnotationIterator();
+            while (iter.hasNext()) {
+                Annotation annotation = (Annotation) iter.next();
+
+                if (annotation.isMarkedDeleted() || skip(annotation.getType()))
+                    continue;
+
+                fCachedAnnotations.add(annotation);
+            }
+        }
 
         for (Iterator<Object> iterator = fAnnotationsSortedByLayer.iterator(); iterator.hasNext();) {
             Object annotationType = iterator.next();
+
             if (skip(annotationType))
                 continue;
 
             int[] style = new int[] { FilterIterator.PERSISTENT, FilterIterator.TEMPORARY };
             for (int t = 0; t < style.length; t++) {
+
+                FilterIterator e = new FilterIterator(annotationType, style[t], fCachedAnnotations.iterator());
                 Color fill = null;
                 Color stroke = null;
-                FilterIterator e = new FilterIterator(annotationType, style[t]);
                 if (annotationType.toString().compareTo(STAnnotatedSourceEditorActivator.ANNOTATION_TYPE) != 0) {
                     fill = getFillColor(annotationType, style[t] == FilterIterator.TEMPORARY);
                     stroke = getStrokeColor(annotationType, style[t] == FilterIterator.TEMPORARY);
@@ -38,8 +47,11 @@
                 while (e.hasNext()) {
                     Annotation a = e.next();
                     Position p = fModel.getPosition(a);
+                    if (p == null)
+                        continue;
 
-                    if (p == null || !p.overlapsWith(visible.getOffset(), visible.getLength()))
+                    IRegion widgetRegion = extension.modelRange2WidgetRange(new Region(p.getOffset(), p.getLength()));
+                    if (widgetRegion == null)
                         continue;
 
                     if (a.getType().compareTo(STAnnotatedSourceEditorActivator.ANNOTATION_TYPE) == 0) {
@@ -47,17 +59,12 @@
                         stroke = getFPStrokeColor(a, false);
                     }
 
-                    int annotationOffset = Math.max(p.getOffset(), visible.getOffset());
-                    int annotationEnd = Math.min(p.getOffset() + p.getLength(),
-                            visible.getOffset() + visible.getLength());
-                    int annotationLength = annotationEnd - annotationOffset;
-
                     try {
                         if (ANNOTATION_HEIGHT_SCALABLE) {
-                            int numbersOfLines = document.getNumberOfLines(annotationOffset, annotationLength);
+                            int numbersOfLines = document.getNumberOfLines(p.getOffset(), p.getLength());
                             // don't count empty trailing lines
-                            IRegion lastLine = document.getLineInformationOfOffset(annotationOffset + annotationLength);
-                            if (lastLine.getOffset() == annotationOffset + annotationLength) {
+                            IRegion lastLine = document.getLineInformationOfOffset(p.getOffset() + p.getLength());
+                            if (lastLine.getOffset() == p.getOffset() + p.getLength()) {
                                 numbersOfLines -= 2;
                                 hh = (numbersOfLines * size.y) / maxLines + ANNOTATION_HEIGHT;
                                 if (hh < ANNOTATION_HEIGHT)
@@ -67,7 +74,7 @@
                         }
                         fAnnotationHeight = hh;
 
-                        int startLine = textWidget.getLineAtOffset(annotationOffset - visible.getOffset());
+                        int startLine = textWidget.getLineAtOffset(widgetRegion.getOffset());
                         yy = Math.min((startLine * size.y) / maxLines, size.y - hh);
 
                         if (fill != null) {
@@ -89,5 +96,6 @@
                 }
             }
         }
+        fCachedAnnotations.clear();
     }
 
