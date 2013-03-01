@@ -2,20 +2,28 @@
      * Test a range query with a resolution
      */
     @Test
-    public void testRangeQuery3() throws AttributeNotFoundException,
-            TimeRangeException, StateValueTypeException,
-            StateSystemDisposedException {
-
+    public void testRangeQuery3() {
         long time1 = interestingTimestamp1;
         long time2 = time1 + 1L * NANOSECS_PER_SEC;
         long resolution = 1000000; /* One query every millisecond */
         int quark;
         List<ITmfStateInterval> intervals;
 
-        quark = ssq.getQuarkAbsolute(Attributes.CPUS, "0", Attributes.CURRENT_THREAD);
-        intervals = ssq.queryHistoryRange(quark, time1, time2, resolution, null);
-        assertEquals(126, intervals.size()); /* Number of context switches! */
-        assertEquals(1452, intervals.get(50).getStateValue().unboxInt());
-        assertEquals(1331668248815698779L, intervals.get(100).getEndTime());
+        try {
+            quark = ssq.getQuarkAbsolute(Attributes.CPUS, "0", Attributes.CURRENT_THREAD);
+            intervals = ssq.queryHistoryRange(quark, time1, time2, resolution, null);
+            assertEquals(126, intervals.size()); /* Number of context switches! */
+            assertEquals(1452, intervals.get(50).getStateValue().unboxInt());
+            assertEquals(1331668248815698779L, intervals.get(100).getEndTime());
+
+        } catch (AttributeNotFoundException e) {
+            fail();
+        } catch (TimeRangeException e) {
+            fail();
+        } catch (StateSystemDisposedException e) {
+            fail();
+        } catch (StateValueTypeException e) {
+            fail();
+        }
     }
 
