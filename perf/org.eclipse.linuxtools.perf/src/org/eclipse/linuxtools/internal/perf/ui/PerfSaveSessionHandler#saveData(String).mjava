@@ -1,0 +1,30 @@
+	@Override
+	public File saveData(String filename) {
+		// get paths
+		IPath newDataLoc = getNewDataLocation(filename, DATA_EXT);
+		IPath defaultDataLoc = PerfPlugin.getDefault().getPerfProfileData();
+
+		// get files
+		File newDataFile = new File(newDataLoc.toOSString());
+		File defaultDataFile = defaultDataLoc.toFile();
+
+		if (canSave(newDataFile)) {
+			// copy default data into new location
+			try {
+				newDataFile.createNewFile();
+				copyFile(defaultDataFile, newDataFile);
+				PerfPlugin.getDefault().setPerfProfileData(newDataLoc);
+				PerfPlugin.getDefault().getProfileView()
+						.setContentDescription(newDataLoc.toOSString());
+
+				return newDataFile;
+			} catch (IOException e) {
+				openErroDialog(Messages.PerfSaveSession_failure_title,
+						Messages.PerfSaveSession_failure_msg,
+						newDataLoc.lastSegment());
+			}
+		}
+		return null;
+
+	}
+
