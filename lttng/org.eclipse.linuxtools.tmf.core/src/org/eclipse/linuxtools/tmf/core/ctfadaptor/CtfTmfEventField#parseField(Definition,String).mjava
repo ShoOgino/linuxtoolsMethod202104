@@ -42,7 +42,7 @@
                 for (int i = 0; i < arrayDecl.getLength(); i++) {
                     values.add(((IntegerDefinition) arrayDef.getElem(i)).getValue());
                 }
-                field = new CTFIntegerArrayField(fieldName, values);
+                field = new CTFIntegerArrayField(fieldName, values, ((IntegerDeclaration) arrayDecl.getElementType()).getBase());
             }
             /* Add other types of arrays here */
 
@@ -62,7 +62,7 @@
                 for (int i = 0; i < seqDef.getLength(); i++) {
                     values.add(((IntegerDefinition) seqDef.getElem(i)).getValue());
                 }
-                field = new CTFIntegerArrayField(fieldName, values);
+                field = new CTFIntegerArrayField(fieldName, values, ((IntegerDeclaration) seqDecl.getElementType()).getBase());
             }
             /* Add other Sequence types here */
 
@@ -81,6 +81,21 @@
                 list.add(curField);
             }
             field = new CTFStructField(fieldName, list.toArray(new CtfTmfEventField[list.size()]));
+        } else if (fieldDef instanceof VariantDefinition) {
+            VariantDefinition varDef = (VariantDefinition) fieldDef;
+
+            String curFieldName = varDef.getCurrentFieldName();
+            Definition curFieldDef = varDef.getDefinitions().get(curFieldName);
+            if (curFieldDef != null) {
+                field = CtfTmfEventField.parseField(curFieldDef, curFieldName);
+            } else {
+                /* A safe-guard, but curFieldDef should never be null */
+                field = new CTFStringField(curFieldName, ""); //$NON-NLS-1$
+            }
+
+        } else {
+            /* Safe-guard, to avoid null exceptions later, field is expected not to be null */
+            field = new CTFStringField(fieldName, Messages.TmfEventField_UnsupportedType + fieldDef.getClass().toString());
         }
         return field;
     }
