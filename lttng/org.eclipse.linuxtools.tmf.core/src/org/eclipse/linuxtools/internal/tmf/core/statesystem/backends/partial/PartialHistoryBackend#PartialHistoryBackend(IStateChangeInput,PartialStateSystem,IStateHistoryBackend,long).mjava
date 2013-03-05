@@ -1,0 +1,39 @@
+    /**
+     * Constructor
+     *
+     * @param partialInput
+     *            The state change input object that was used to build the
+     *            upstream state system. This partial history will make its own
+     *            copy (since they have different targets).
+     * @param pss
+     *            The partial history's inner state system. It should already be
+     *            assigned to partialInput.
+     * @param realBackend
+     *            The real state history back-end to use. It's supposed to be
+     *            modular, so it should be able to be of any type.
+     * @param granularity
+     *            Configuration parameter indicating how many trace events there
+     *            should be between each checkpoint
+     */
+    public PartialHistoryBackend(IStateChangeInput partialInput, PartialStateSystem pss,
+            IStateHistoryBackend realBackend, long granularity) {
+        if (granularity <= 0 || partialInput == null || pss == null) {
+            throw new IllegalArgumentException();
+        }
+        if (partialInput.getAssignedStateSystem() != pss) {
+            throw new RuntimeException();
+        }
+
+        final long startTime = realBackend.getStartTime();
+
+        this.partialInput = partialInput;
+        this.partialSS = pss;
+
+        this.innerHistory = realBackend;
+        this.granularity = granularity;
+
+        latestTime = startTime;
+
+        registerCheckpoints();
+    }
+

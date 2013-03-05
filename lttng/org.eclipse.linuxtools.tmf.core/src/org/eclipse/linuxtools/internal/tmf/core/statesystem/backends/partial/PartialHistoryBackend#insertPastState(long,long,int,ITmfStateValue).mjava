@@ -1,0 +1,23 @@
+    @Override
+    public void insertPastState(long stateStartTime, long stateEndTime,
+            int quark, ITmfStateValue value) throws TimeRangeException {
+        waitForCheckpoints();
+
+        /* Update the latest time */
+        if (stateEndTime > latestTime) {
+            latestTime = stateEndTime;
+        }
+
+        /*
+         * Check if the interval intersects the previous checkpoint. If so,
+         * insert it in the real history back-end.
+         *
+         * FIXME since intervals are inserted in order of rank, we could avoid
+         * doing a map lookup every time here (just compare with the known
+         * previous one).
+         */
+        if (stateStartTime <= checkpoints.floorKey(stateEndTime)) {
+            innerHistory.insertPastState(stateStartTime, stateEndTime, quark, value);
+        }
+    }
+

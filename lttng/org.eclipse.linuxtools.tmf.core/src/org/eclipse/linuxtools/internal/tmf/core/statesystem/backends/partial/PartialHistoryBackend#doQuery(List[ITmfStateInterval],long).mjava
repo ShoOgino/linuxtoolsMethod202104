@@ -1,0 +1,57 @@
+    @Override
+    public void doQuery(List<ITmfStateInterval> currentStateInfo, long t)
+            throws TimeRangeException, StateSystemDisposedException {
+        /* Wait for required steps to be done */
+        waitForCheckpoints();
+        partialSS.getUpstreamSS().waitUntilBuilt();
+
+        if (!checkValidTime(t)) {
+            throw new TimeRangeException();
+        }
+
+        /* Reload the previous checkpoint */
+        long checkpointTime = checkpoints.floorKey(t);
+        innerHistory.doQuery(currentStateInfo, checkpointTime);
+
+        /*
+         * Set the initial contents of the partial state system (which is the
+         * contents of the query at the checkpoint).
+         */
+        partialSS.takeQueryLock();
+        partialSS.replaceOngoingState(currentStateInfo);
+
+        /* Send an event request to update the state system to the target time. */
+        TmfTimeRange range = new TmfTimeRange(
+                new TmfTimestamp(checkpointTime, -9), new TmfTimestamp(t, -9));
+        ITmfEventRequest request = new PartialStateSystemRequest(partialInput, range);
+        partialInput.getTrace().sendRequest(request);
+
+        try {
+            request.waitForCompletion();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        /*
+         * Now the partial state system should have the ongoing time we are
+         * looking for. However, the method expects a List of *state intervals*,
+         * not state values, so we'll create intervals with a dummy end time.
+         */
+        try {
+            for (int i = 0; i < currentStateInfo.size(); i++) {
+                long start = 0;
+                ITmfStateValue val = null;
+                start = partialSS.getOngoingStartTime(i);
+                val = partialSS.queryOngoingState(i);
+
+                ITmfStateInterval interval = new TmfStateInterval(start, t, i, val);
+                currentStateInfo.set(i, interval);
+            }
+        } catch (AttributeNotFoundException e) {
+            /* Should not happen, we iterate over existing values. */
+            e.printStackTrace();
+        }
+
+        partialSS.releaseQueryLock();
+    }
+
