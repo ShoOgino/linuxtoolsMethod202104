@@ -1,0 +1,64 @@
+    /**
+     * Run the program
+     *
+     * @param args
+     *            Command-line arguments, unused.
+     * @throws Exception
+     *             I'm messing with Exception. Come at me bro!
+     */
+    public static void main(String[] args) throws Exception {
+        if (!CtfTmfTestTraces.tracesExist()) {
+            System.err.println("Trace files not present.");
+            return;
+        }
+
+        /* Prepare the files */
+        File stateFile = File.createTempFile("test-values", ".ht");
+        stateFile.deleteOnExit();
+        File logFile = File.createTempFile("test-values", ".log");
+        PrintWriter writer = new PrintWriter(new FileWriter(logFile), true);
+
+        /* Build and query the state system */
+        IStateChangeInput input = new CtfKernelStateInput(CtfTmfTestTraces.getTestTrace(TRACE_INDEX));
+        ITmfStateSystem ssq = StateSystemManager.loadStateHistory(stateFile, input, true);
+        List<ITmfStateInterval> fullState = ssq.queryFullState(targetTimestamp);
+
+        /* Print the interval contents (with some convenience formatting) */
+        writer.println("Start times:");
+        for (ITmfStateInterval interval : fullState) {
+            writer.println(String.valueOf(interval.getStartTime()) + "L,");
+        }
+        writer.println();
+
+        writer.println("End times:");
+        for (ITmfStateInterval interval : fullState) {
+            writer.println(String.valueOf(interval.getEndTime())+ "L,");
+        }
+        writer.println();
+
+        writer.println("State values:");
+        for (ITmfStateInterval interval : fullState) {
+            ITmfStateValue val = interval.getStateValue();
+            switch (val.getType()) {
+            case NULL:
+                writer.println("TmfStateValue.nullValue(),");
+                break;
+
+            case INTEGER:
+                writer.println("TmfStateValue.newValueInt(" + val.unboxInt() + "),");
+                break;
+
+            case STRING:
+                writer.println("TmfStateValue.newValueString(\"" + val.unboxStr() + "\"),");
+                break;
+
+            default:
+                writer.println(val.toString());
+                break;
+            }
+        }
+
+        writer.close();
+        System.exit(0);
+    }
+
