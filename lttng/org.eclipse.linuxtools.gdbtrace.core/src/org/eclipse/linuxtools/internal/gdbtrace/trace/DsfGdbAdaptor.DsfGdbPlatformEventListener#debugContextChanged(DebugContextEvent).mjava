@@ -1,0 +1,56 @@
+        @Override
+        public void debugContextChanged(DebugContextEvent event) {
+            ISelection selection = event.getContext();
+            if (selection instanceof IStructuredSelection) {
+                List<?> eventContextList = ((IStructuredSelection) selection).toList();
+                for (Object eventContext : eventContextList) {
+                    if (eventContext instanceof IAdaptable) {
+                        IDMContext context = (IDMContext) ((IAdaptable) eventContext).getAdapter(IDMContext.class);
+                        if (context != null) {
+                            String sessionId;
+                            synchronized(fCurrentSessionId) {
+                                sessionId = context.getSessionId();
+                                if (sessionId.equals(fCurrentSessionId)) {
+                                    return;
+                                }
+                            }
+                            fCurrentSessionId = sessionId;
+                            // Get the current trace record
+                            final DsfExecutor executor = DsfSession.getSession(sessionId).getExecutor();
+                            final DsfServicesTracker tracker = new DsfServicesTracker(GdbTraceCorePlugin.getBundleContext(), sessionId);
+                            Query<ITraceRecordDMContext> getCurrentRecordQuery = new Query<ITraceRecordDMContext>() {
+                                @Override
+                                public void execute(final DataRequestMonitor<ITraceRecordDMContext> queryRm) {
+                                    final IGDBTraceControl traceControl = tracker.getService(IGDBTraceControl.class);
+                                    final ICommandControlService commandControl = tracker.getService(ICommandControlService.class);
+                                    if (traceControl != null && commandControl != null) {
+                                        ITraceTargetDMContext traceContext = (ITraceTargetDMContext) commandControl.getContext();
+                                        traceControl.getCurrentTraceRecordContext(traceContext,	queryRm);
+                                    } else {
+                                        queryRm.done();
+                                    }
+                                }
+                            };
+                            try {
+                                executor.execute(getCurrentRecordQuery);
+                                ITraceRecordDMContext record = getCurrentRecordQuery.get();
+                                // If we get a trace record, it means that this can be used
+                                if (record != null && record.getRecordId() != null) {
+                                    int recordId = Integer.parseInt(record.getRecordId());
+                                    selectGdbTraceEditor(sessionId, recordId);
+                                    break;
+                                }
+                            } catch (InterruptedException e) {
+                            } catch (java.util.concurrent.ExecutionException e) {
+                            } catch (RejectedExecutionException e) {
+                            } finally {
+                                tracker.dispose();
+                            }
+                            // else not DSF-GDB or GDB < 7.2
+                        }
+                    }
+                    // else not DSF
+                }
+            }
+        }
+

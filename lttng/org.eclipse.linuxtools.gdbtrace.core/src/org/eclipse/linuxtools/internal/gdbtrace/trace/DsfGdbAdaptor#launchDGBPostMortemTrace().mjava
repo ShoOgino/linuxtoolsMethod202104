@@ -1,0 +1,44 @@
+    /**
+     * Builds a launcher and launches a Post-mortem GDB session, based on a
+     * previously-gathered GDB Tracepoint file.  The information used to
+     * create the launcher is provided to the constructor of this class,
+     * at instantiation time.
+     * <p>
+     * Note: Requires GDB 7.2 or later
+     */
+    private void launchDGBPostMortemTrace() throws CoreException {
+
+        ILaunchConfigurationType configType = DebugPlugin
+                .getDefault()
+                .getLaunchManager()
+                .getLaunchConfigurationType("org.eclipse.cdt.launch.postmortemLaunchType"); //$NON-NLS-1$
+        ILaunchConfigurationWorkingCopy wc = configType.newInstance(null, fTraceFile);
+
+        wc.setAttribute("org.eclipse.cdt.dsf.gdb.DEBUG_NAME", gdb72Executable); //$NON-NLS-1$
+        wc.setAttribute("org.eclipse.cdt.dsf.gdb.POST_MORTEM_TYPE", "TRACE_FILE"); //$NON-NLS-1$ //$NON-NLS-2$
+        wc.setAttribute("org.eclipse.cdt.launch.ATTR_BUILD_BEFORE_LAUNCH_ATTR", 0); //$NON-NLS-1$
+        wc.setAttribute("org.eclipse.cdt.launch.COREFILE_PATH", fTraceFilePath); //$NON-NLS-1$
+        wc.setAttribute("org.eclipse.cdt.launch.DEBUGGER_START_MODE", "core"); //$NON-NLS-1$ //$NON-NLS-2$
+        wc.setAttribute("org.eclipse.cdt.launch.PROGRAM_NAME", tracedExecutable); //$NON-NLS-1$
+        // So that the GDB launch is synchronous
+        wc.setAttribute("org.eclipse.debug.ui.ATTR_LAUNCH_IN_BACKGROUND", false); //$NON-NLS-1$
+
+        if (!sourceLocator.isEmpty()) {
+            wc.setAttribute("org.eclipse.debug.core.source_locator_memento", sourceLocator); //$NON-NLS-1$
+        }
+
+        // Launch GDB session
+        fLaunch = wc.doSave().launch("debug", null); //$NON-NLS-1$
+        isTerminating = false;
+
+        if (fLaunch instanceof GdbLaunch) {
+            fSessionId = ((GdbLaunch) fLaunch).getSession().getId();
+        }
+
+        fDsfSession = ((GdbLaunch) fLaunch).getSession();
+        fDsfSession.addServiceEventListener(this, null);
+
+        // Find the number of frames contained in the tracepoint file
+        fNumberOfFrames = findNumFrames();
+    }
+

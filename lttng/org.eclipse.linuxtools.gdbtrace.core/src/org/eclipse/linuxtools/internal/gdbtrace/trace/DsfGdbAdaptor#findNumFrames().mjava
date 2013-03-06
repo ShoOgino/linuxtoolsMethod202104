@@ -1,0 +1,57 @@
+    /**
+     * Returns the number of frames contained in currently loaded tracepoint GDB
+     * session.
+     * <p>
+     * Note: A postmortem GDB session must be started before calling
+     *         this method
+     *
+     * @return the number of frames contained in currently loaded tracepoint GDB
+     *         session or zero in case of error
+     */
+    private synchronized int findNumFrames() {
+        int frameNum = 0;
+
+        if (DsfSession.getSession(fSessionId) == null) {
+            return 0;
+        }
+
+        final DsfExecutor executor = DsfSession.getSession(fSessionId)
+                .getExecutor();
+        final DsfServicesTracker tracker = new DsfServicesTracker(
+                GdbTraceCorePlugin.getBundleContext(), fSessionId);
+
+        Query<ITraceStatusDMData> selectRecordQuery = new Query<ITraceStatusDMData>() {
+            @Override
+            public void execute(
+                    final DataRequestMonitor<ITraceStatusDMData> queryRm) {
+                final IGDBTraceControl traceControl = tracker
+                        .getService(IGDBTraceControl.class);
+
+                final ICommandControlService commandControl = tracker
+                        .getService(ICommandControlService.class);
+                final ITraceTargetDMContext dmc = (ITraceTargetDMContext) commandControl
+                        .getContext();
+
+                if (traceControl != null) {
+                    traceControl.getTraceStatus(dmc, queryRm);
+                } else {
+                    queryRm.done();
+                }
+            }
+        };
+        try {
+            executor.execute(selectRecordQuery);
+            ITraceStatusDMData data = selectRecordQuery.get(); // blocks
+            frameNum = data.getNumberOfCollectedFrame();
+        } catch (InterruptedException e) {
+
+        } catch (java.util.concurrent.ExecutionException e) {
+
+        } catch (RejectedExecutionException e) {
+
+        } finally {
+            tracker.dispose();
+        }
+        return frameNum;
+    }
+

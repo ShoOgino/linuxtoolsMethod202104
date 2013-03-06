@@ -1,0 +1,28 @@
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+        Shell shell = HandlerUtil.getActiveShell(event);
+        SelectTraceExecutableDialog dialog = new SelectTraceExecutableDialog(shell);
+        dialog.open();
+        if (dialog.getReturnCode() != Window.OK) {
+            return null;
+        }
+        IPath tracedExecutable = dialog.getExecutablePath();
+
+        ISelection selection = HandlerUtil.getCurrentSelection(event);
+        if (selection instanceof IStructuredSelection) {
+            for (Object o : ((IStructuredSelection) selection).toList()) {
+                TmfTraceElement traceElement = (TmfTraceElement) o;
+                IResource resource = traceElement.getResource();
+                try {
+                    resource.setPersistentProperty(GdbTrace.EXEC_KEY, tracedExecutable.toString());
+                } catch (CoreException e) {
+                    final MessageBox mb = new MessageBox(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell());
+                    mb.setText(e.getClass().getName());
+                    mb.setMessage(e.getMessage());
+                    mb.open();
+                }
+            }
+        }
+        return null;
+    }
+
