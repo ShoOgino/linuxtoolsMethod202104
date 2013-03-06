@@ -7,9 +7,24 @@
         ICommandResult result = executeCommand(command.toString(), monitor, false);
         String[] output = result.getOutput();
 
-        if (isError(result) && ((output == null) || (!LTTngControlServiceConstants.SESSION_NOT_FOUND_ERROR_PATTERN.matcher(output[0]).matches()))) {
-                throw new ExecutionException(Messages.TraceControl_CommandError + " " + command.toString() + "\n" + formatOutput(result)); //$NON-NLS-1$ //$NON-NLS-2$
-       }
+        boolean isError = isError(result);
+        if (isError && (output != null)) {
+            int index = 0;
+            while (index < output.length) {
+                String line = output[index];
+                Matcher matcher = LTTngControlServiceConstants.SESSION_NOT_FOUND_ERROR_PATTERN.matcher(line);
+                if (matcher.matches()) {
+                    // Don't treat this as an error
+                    isError = false;
+                }
+                index++;
+            }
+        }
+
+        if (isError) {
+            throw new ExecutionException(Messages.TraceControl_CommandError + " " + command.toString() + "\n" + formatOutput(result)); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+
         //Session <sessionName> destroyed
     }
 
