@@ -50,8 +50,35 @@
 			/*
 			 * Launch
 			 */
-			IProcess process = createProcess(config, launch);
 			
+			File workDir = getWorkingDirectory(config);
+			if (workDir == null) {
+				workDir = new File(System.getProperty("user.home", ".")); //$NON-NLS-1$ //$NON-NLS-2$
+			}
+
+			//Put command into a shell script
+			String cmd = generateCommand(config);
+			File script = File.createTempFile("org.eclipse.linuxtools.profiling.launch" + System.currentTimeMillis(), ".sh");
+			String data = "#!/bin/sh\nexec " + cmd; //$NON-NLS-1$
+			FileOutputStream out = null;
+			try {
+				out = new FileOutputStream(script);
+				out.write(data.getBytes());
+			} finally {
+				if (out != null) {
+					out.close();
+				}
+			}
+
+			String [] commandArray = new String [] {"sh", script.getAbsolutePath()}; //$NON-NLS-1$
+
+			Process subProcess = execute(commandArray, getEnvironment(config),
+					workDir, true);
+
+			IProcess process = createNewProcess(launch, subProcess,commandArray[0]);
+			// set the command line used
+			process.setAttribute(IProcess.ATTR_CMDLINE,cmd);
+
 			monitor.worked(1);
 			
 			StreamListener s = new StreamListener();
