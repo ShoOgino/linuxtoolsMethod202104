@@ -22,25 +22,20 @@
 
         /* Read the 'type' of the value, then react accordingly */
         valueType = buffer.get();
-        if (valueType <= 0) {
-            /* the type of ValueOrOffset is 'value' */
-            valueOrOffset = buffer.getInt();
-            if (valueOrOffset == -1) {
-                /* Null value */
-                value = TmfStateValue.nullValue();
-            } else {
-                /* Normal integer value */
-                value = TmfStateValue.newValueInt(valueOrOffset);
-            }
+        valueOrOffset = buffer.getInt();
+        switch (valueType) {
 
-        } else { // valueType > 0
-            /* the type is 'offset' */
-            valueOrOffset = buffer.getInt();
+        case TYPE_NULL:
+            value = TmfStateValue.nullValue();
+            break;
 
-            /*
-             * Go read the corresponding entry in the Strings section of the
-             * block
-             */
+        case TYPE_INTEGER:
+            /* "ValueOrOffset" is the straight value */
+            value = TmfStateValue.newValueInt(valueOrOffset);
+            break;
+
+        case TYPE_STRING:
+            /* Go read the matching entry in the Strings section of the block */
             buffer.mark();
             buffer.position(valueOrOffset);
 
@@ -60,8 +55,7 @@
             /* Confirm the 0'ed byte at the end */
             res = buffer.get();
             if (res != 0) {
-                throw new IOException(
-                        "Invalid interval data. Maybe your file is corrupt?"); //$NON-NLS-1$
+                throw new IOException(errMsg);
             }
 
             /*
@@ -69,14 +63,16 @@
              * interval)
              */
             buffer.reset();
+            break;
+        default:
+            /* Unknown data, better to not make anything up... */
+            throw new IOException(errMsg);
         }
 
         try {
-            interval = new HTInterval(intervalStart, intervalEnd, attribute,
-                    value);
+            interval = new HTInterval(intervalStart, intervalEnd, attribute, value);
         } catch (TimeRangeException e) {
-            throw new IOException(
-                    "Invalid interval data. Maybe your file is corrupt?"); //$NON-NLS-1$
+            throw new IOException(errMsg);
         }
         return interval;
     }
