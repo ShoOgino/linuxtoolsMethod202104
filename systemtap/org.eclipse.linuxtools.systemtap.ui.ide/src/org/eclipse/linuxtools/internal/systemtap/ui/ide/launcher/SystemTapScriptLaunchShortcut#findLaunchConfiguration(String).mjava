@@ -1,0 +1,34 @@
+	protected ILaunchConfiguration findLaunchConfiguration(String scriptPath) {
+		ILaunchConfiguration configuration = null;
+		ArrayList<ILaunchConfiguration> candidateConfiguraions = new ArrayList<ILaunchConfiguration>();
+		try {
+			ILaunchConfiguration[] configs = DebugPlugin.getDefault()
+					.getLaunchManager()
+					.getLaunchConfigurations(getLaunchConfigType());
+
+			for (ILaunchConfiguration config: configs){
+				if (config.getAttribute(SystemTapScriptLaunchConfigurationTab.SCRIPT_PATH_ATTR, "").equals(scriptPath)){ //$NON-NLS-1$
+					candidateConfiguraions.add(config);
+				}
+			}
+
+			int candidateCount = candidateConfiguraions.size();
+			if (candidateCount == 0) {
+				ILaunchConfigurationType type = getLaunchConfigType();
+				configuration = type.newInstance(null, "Default"); //$NON-NLS-1$
+				ILaunchConfigurationWorkingCopy wc = configuration.getWorkingCopy();
+				wc.setAttribute(SystemTapScriptLaunchConfigurationTab.SCRIPT_PATH_ATTR, scriptPath);
+				configuration = wc.doSave();
+			} else if (candidateCount == 1) {
+				configuration = candidateConfiguraions.get(0);
+			} else {
+				configuration = chooseConfiguration(candidateConfiguraions,
+						ILaunchManager.RUN_MODE);
+			}
+		} catch (CoreException e) {
+			ExceptionErrorDialog.openError(Messages.SystemTapScriptLaunchShortcut_couldNotFindConfig, e);
+		}
+
+		return configuration;
+	}
+

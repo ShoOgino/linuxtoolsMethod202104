@@ -1,0 +1,107 @@
+	@Override
+	public void createControl(Composite parent) {
+
+		GridLayout singleColumnGridLayout = new GridLayout();
+		singleColumnGridLayout.numColumns = 1;
+		Composite comp = new Composite(parent, SWT.NONE);
+		setControl(comp);
+		comp.setLayout(singleColumnGridLayout);
+		comp.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+
+		this.fileDialog = new FileDialog(PlatformUI.getWorkbench()
+				.getActiveWorkbenchWindow().getShell(), SWT.OPEN);
+		fileDialog.setText(Messages.SystemTapScriptOptionsTab_0);
+		fileDialog.setFilterPath(Platform.getLocation().toOSString());
+		// Target Executable path
+		Group targetExecutableGroup = new Group(comp, SWT.SHADOW_ETCHED_IN);
+		targetExecutableGroup.setText(Messages.SystemTapScriptOptionsTab_1);
+		targetExecutableGroup
+				.setToolTipText(Messages.SystemTapScriptOptionsTab_targetToolTip);
+
+		targetExecutableGroup.setLayoutData(new GridData(SWT.FILL, SWT.FILL,
+				true, false));
+		GridLayout twoColumnGridLayout = new GridLayout();
+		twoColumnGridLayout.numColumns = 2;
+		targetExecutableGroup.setLayout(twoColumnGridLayout);
+		this.targetProgramText = new Text(targetExecutableGroup, SWT.SINGLE
+				| SWT.BORDER);
+		targetProgramText.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true,
+				true));
+		targetProgramText.addModifyListener(modifyListiner);
+		Button selectTargetProgramButton = new Button(targetExecutableGroup, 0);
+		GridData gridData = new GridData();
+		gridData.widthHint = 110;
+		selectTargetProgramButton.setLayoutData(gridData);
+		selectTargetProgramButton
+				.setText(Messages.SystemTapScriptLaunchConfigurationTab_1);
+		selectTargetProgramButton.addSelectionListener(new SelectionListener() {
+
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				targetProgramText.setText(fileDialog.open());
+			}
+
+			@Override
+			public void widgetDefaultSelected(SelectionEvent e) {
+			}
+		});
+
+		// Check boxes
+		cmpChkBoxes = new Composite(comp, SWT.NONE);
+		cmpChkBoxes.setLayout(twoColumnGridLayout);
+		cmpChkBoxes.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+
+		for (int i = 0; i < IDEPreferenceConstants.STAP_BOOLEAN_OPTIONS.length; i++) {
+			checkBox[i] = new Button(cmpChkBoxes, SWT.CHECK);
+			checkBox[i]
+					.setText(IDEPreferenceConstants.STAP_BOOLEAN_OPTIONS[i][IDEPreferenceConstants.LABEL]
+							+ " (" + IDEPreferenceConstants.STAP_BOOLEAN_OPTIONS[i][IDEPreferenceConstants.FLAG] + ")"); //$NON-NLS-1$//$NON-NLS-2$
+			checkBox[i].addSelectionListener(new SelectionListener() {
+				@Override
+				public void widgetSelected(SelectionEvent e) {
+					updateLaunchConfigurationDialog();
+				}
+
+				@Override
+				public void widgetDefaultSelected(SelectionEvent e) {
+					updateLaunchConfigurationDialog();
+				}
+			});
+			checkBox[i]
+					.setToolTipText(IDEPreferenceConstants.STAP_BOOLEAN_OPTIONS[i][IDEPreferenceConstants.TOOLTIP]);
+
+			if (IDEPreferenceConstants.STAP_BOOLEAN_OPTIONS[i][IDEPreferenceConstants.FLAG]
+					.contains(Messages.SystemTapScriptOptionsTab_3)) {
+				this.dyninstCheckBox = checkBox[i];
+			}
+		}
+
+		// Labels and Text fields
+		cmpTxtBoxes = new Composite(comp, SWT.NONE);
+		cmpTxtBoxes.setLayout(twoColumnGridLayout);
+		cmpTxtBoxes.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+
+		Label label;
+		for (int i = 0; i < IDEPreferenceConstants.STAP_STRING_OPTIONS.length; i++) {
+			label = new Label(cmpTxtBoxes, SWT.NONE);
+			label.setText(IDEPreferenceConstants.STAP_STRING_OPTIONS[i][IDEPreferenceConstants.LABEL]
+					+ " (" + IDEPreferenceConstants.STAP_STRING_OPTIONS[i][IDEPreferenceConstants.FLAG] + ")"); //$NON-NLS-1$ //$NON-NLS-2$
+			label.setToolTipText(IDEPreferenceConstants.STAP_STRING_OPTIONS[i][IDEPreferenceConstants.TOOLTIP]);
+			text[i] = new Text(cmpTxtBoxes, SWT.BORDER);
+			text[i].setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+			text[i].addModifyListener(modifyListiner);
+			text[i].setToolTipText(IDEPreferenceConstants.STAP_STRING_OPTIONS[i][IDEPreferenceConstants.TOOLTIP]);
+
+			if (IDEPreferenceConstants.STAP_STRING_OPTIONS[i][IDEPreferenceConstants.FLAG]
+					.contains("-x")) { //$NON-NLS-1$
+				this.targetPidText = text[i];
+			}
+		}
+
+		label = new Label(cmpTxtBoxes, SWT.NONE);
+		label.setText(Messages.SystemTapScriptOptionsTab_2);
+		this.miscCommandsText = new Text(cmpTxtBoxes, SWT.BORDER);
+		this.miscCommandsText.setLayoutData(new GridData(SWT.FILL, SWT.FILL,
+				true, true));
+	}
+
