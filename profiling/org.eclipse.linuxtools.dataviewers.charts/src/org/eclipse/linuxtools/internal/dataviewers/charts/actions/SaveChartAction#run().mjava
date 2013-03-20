@@ -1,0 +1,56 @@
+    /*
+     * (non-Javadoc)
+     * 
+     * @see org.eclipse.jface.action.Action#run()
+     */
+    @Override
+    public void run() {
+        String path = dialog.open();
+        if (path == null) {
+            // cancel pressed
+            return;
+        }
+        final File file = new File(path);
+        if (file.exists()) {
+            boolean overwrite = MessageDialog.openQuestion(shell, Messages.ChartConstants_CONFIRM_OVERWRITE_TITLE,
+                    Messages.ChartConstants_CONFIRM_OVERWRITE_MSG);
+            if (overwrite) {
+                file.delete();
+            } else {
+                return;
+            }
+        }
+
+        final String ext = dialog.getFilterNames()[dialog.getFilterIndex()];
+
+        UIJob saveAsImage = new UIJob(Messages.ChartConstants_SAVE_CHART_AS + " " + file.getName()) { //$NON-NLS-1$
+            @Override
+            public IStatus runInUIThread(IProgressMonitor monitor) {
+                int extention;
+                if (EXT_GIF.equals(ext)) {
+                    extention = SWT.IMAGE_GIF;
+                } else if (EXT_JPEG.equals(ext) || EXT_JPG.equals(ext)) {
+                    extention = SWT.IMAGE_JPEG;
+                } else {
+                    extention = SWT.IMAGE_PNG;
+                }
+
+                try {
+                    monitor.beginTask(Messages.ChartConstants_SAVE_CHART_AS + " " + file.getName() + "...", //$NON-NLS-1$//$NON-NLS-2$
+                            IProgressMonitor.UNKNOWN);
+                    file.createNewFile();
+                    generateImageFile(file, extention);
+                    return Status.OK_STATUS;
+                } catch (IOException e) {
+                    return new Status(IStatus.ERROR, Activator.PLUGIN_ID, Messages.ChartConstants_ERROR_SAVING_CHART
+                            + " (" + file.getAbsolutePath() + "):\n" + e.getMessage(), e); //$NON-NLS-1$ //$NON-NLS-2$
+                }
+            }
+        };
+        saveAsImage.setUser(true);
+        saveAsImage.schedule();
+
+        // save the state of the dialog
+        saveState();
+    }
+
