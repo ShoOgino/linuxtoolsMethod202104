@@ -3,6 +3,7 @@
 		BufferedReader buffTmp = null;
 
 		try {
+
 			Process proc = RuntimeProcessFactory.getFactory().exec(cmd, null);
 			StringBuffer strBuffData = new StringBuffer();
 			StringBuffer strBuffTmp = new StringBuffer();
@@ -56,6 +57,34 @@
 			}
 
 			text = strBuffData.toString();
+
+			if (launch != null) {
+				String configName = launch.getLaunchConfiguration().getName();
+				// Console will try to read from stream so create afterwards
+				// Console will have the configuration name as a substring
+				DebugPlugin.newProcess(launch, proc, ""); //$NON-NLS-1$
+
+				ConsolePlugin plugin = ConsolePlugin.getDefault();
+				IConsoleManager conMan = plugin.getConsoleManager();
+				IConsole[] existing = conMan.getConsoles();
+				IOConsole binaryOutCons = null;
+				PrintStream print;
+
+				// Find the console
+				for (IConsole x : existing) {
+					if (x.getName().contains(configName)) { //$NON-NLS-1$
+						binaryOutCons = (IOConsole) x;
+					}
+				}
+
+				// Get the printstream via the outputstream.
+				// Get ouput stream
+				if (binaryOutCons != null) {
+					OutputStream outputTo = binaryOutCons.newOutputStream();
+					print = new PrintStream(outputTo);
+					print.println(strBuffTmp.toString());
+				}
+			}
 		} catch (IOException e) {
 			text = ""; //$NON-NLS-1$
 		} finally {
