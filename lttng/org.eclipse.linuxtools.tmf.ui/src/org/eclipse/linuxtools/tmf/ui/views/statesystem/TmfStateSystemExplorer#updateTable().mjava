@@ -1,0 +1,60 @@
+    /**
+     * Update the tree, which means keep the tree of attributes in the first
+     * column as-is, but update the values to the ones at a new timestamp.
+     */
+    private synchronized void updateTable() {
+        ITmfTrace[] traces = fTrace.getTraces();
+        long ts = fCurrentTimestamp;
+
+        /* For each trace... */
+        for (int traceNb = 0; traceNb < traces.length; traceNb++) {
+            Map<String, ITmfStateSystem> sss = traces[traceNb].getStateSystems();
+
+            /* For each state system associated with this trace... */
+            int ssNb = 0;
+            for (Map.Entry<String, ITmfStateSystem> entry : sss.entrySet()) {
+                /*
+                 * Even though we only use the value, it just feels safer to
+                 * iterate the same way as before to keep the order the same.
+                 */
+                final ITmfStateSystem ss = entry.getValue();
+                final int traceNb1 = traceNb;
+                final int ssNb1 = ssNb;
+                ts = (ts == -1 ? ss.getStartTime() : ts);
+                try {
+                    final List<ITmfStateInterval> fullState = ss.queryFullState(ts);
+                    fTree.getDisplay().asyncExec(new Runnable() {
+                        @Override
+                        public void run() {
+                            /* Get the tree item of the relevant state system */
+                            TreeItem traceItem = fTree.getItem(traceNb1);
+                            TreeItem item = traceItem.getItem(ssNb1);
+                            /* Update it, then its children, recursively */
+                            item.setText(VALUE_COL, emptyString);
+                            updateChildren(ss, fullState, -1, item);
+                        }
+                    });
+
+                } catch (TimeRangeException e) {
+                    /*
+                     * This can happen in an experiment, if the user selects a
+                     * range valid in the experiment, but this specific does not
+                     * exist. Print "out-of-range" into all the values.
+                     */
+                    fTree.getDisplay().asyncExec(new Runnable() {
+                        @Override
+                        public void run() {
+                            TreeItem traceItem = fTree.getItem(traceNb1);
+                            TreeItem item = traceItem.getItem(ssNb1);
+                            markOutOfRange(item);
+                        }
+                    });
+                } catch (StateSystemDisposedException e) {
+                    return;
+                }
+
+                ssNb++;
+            }
+        }
+    }
+

@@ -1,0 +1,37 @@
+    /**
+     * Populate an 'item' (a row in the tree) with the information found in the
+     * interval. This method should only be called by the UI thread.
+     */
+    private static void populateColumns(TreeItem item, ITmfStateInterval interval) {
+        try {
+            ITmfStateValue state = interval.getStateValue();
+
+            // add the value in the 2nd column
+            switch (state.getType()) {
+            case INTEGER:
+                item.setText(VALUE_COL, String.valueOf(state.unboxInt()));
+                break;
+            case LONG:
+                item.setText(VALUE_COL, String.valueOf(state.unboxLong()));
+                break;
+            case STRING:
+                item.setText(VALUE_COL, state.unboxStr());
+                break;
+            case NULL:
+            default:
+                item.setText(VALUE_COL, emptyString);
+                break;
+            }
+
+            TmfTimestamp startTime = new TmfTimestamp(interval.getStartTime(), ITmfTimestamp.NANOSECOND_SCALE);
+            item.setText(START_TIME_COL, startTime.toString());
+
+            TmfTimestamp endTime = new TmfTimestamp(interval.getEndTime(), ITmfTimestamp.NANOSECOND_SCALE);
+            item.setText(END_TIME_COL, endTime.toString());
+
+        } catch (StateValueTypeException e) {
+            /* Should not happen, we're case-switching on the specific types */
+            throw new RuntimeException();
+        }
+    }
+
