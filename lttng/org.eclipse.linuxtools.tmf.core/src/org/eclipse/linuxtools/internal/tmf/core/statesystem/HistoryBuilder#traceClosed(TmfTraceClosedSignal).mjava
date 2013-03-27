@@ -6,22 +6,19 @@
      */
     @TmfSignalHandler
     public void traceClosed(TmfTraceClosedSignal signal) {
-        ITmfTrace trace = signal.getTrace();
-        if (signal.getTrace() instanceof TmfExperiment) {
-            TmfExperiment experiment = (TmfExperiment) signal.getTrace();
-            for (ITmfTrace expTrace : experiment.getTraces()) {
-                if (expTrace == sci.getTrace()) {
-                    trace = expTrace;
-                    break;
-                }
+        /*
+         * Check if this signal is for this trace, or for an experiment
+         * containing this trace.
+         */
+        boolean found = false;
+        for (ITmfTrace trace : signal.getTrace().getTraces()) {
+            if (trace == sci.getTrace()) {
+                found = true;
+                break;
             }
         }
-        if (trace != sci.getTrace()) {
-            return;
-        }
-        /* the signal is for this trace or for an experiment containing this trace */
 
-        if (!started) {
+        if (found && !started) {
             close(true);
         }
     }
