@@ -4,8 +4,9 @@
 	 */
 	@Override
 	public void createPartControl(Composite parent) {
-		if (masterComposite != null)
+		if (masterComposite != null) {
 			masterComposite.dispose();
+		}
 		masterComposite = parent;
 		GridLayout layout = new GridLayout(2, false);
 		layout.horizontalSpacing=0;
@@ -16,49 +17,50 @@
 
 		// LOAD ALL ACTIONS
 		createActions();
-		
+
 		//MENU FOR SYSTEMTAP BUTTONS
 		mgr = getViewSite().getActionBars().getToolBarManager();
-		
-		
+
+
 		//MENU FOR SYSTEMTAP GRAPH OPTIONS
 		menu = getViewSite().getActionBars().getMenuManager();
-		
+
 		// ADD OPTIONS TO THE GRAPH MENU
 		addFileMenu();
 
-		save_cur_dot = new Action(Messages.getString("CallgraphView.SaveViewAsDot")) { //$NON-NLS-1$
+		saveCurDot = new Action(Messages.getString("CallgraphView.SaveViewAsDot")) { //$NON-NLS-1$
 			@Override
 			public void run(){
 				writeToDot(g.getCollapseMode(), g.nodeMap.keySet());
 			}
 
 		};
-		save_dot = new Action(Messages.getString("CallgraphView.SaveAllUncollapsedAsDot")) { //$NON-NLS-1$
+		saveDot = new Action(Messages.getString("CallgraphView.SaveAllUncollapsedAsDot")) { //$NON-NLS-1$
             @Override
 			public void run(){
               writeToDot(false, g.nodeDataMap.keySet());
             }
 		};
-		
-		save_col_dot = new Action (Messages.getString("CallgraphView.SaveAllCollapsedAsDot")) { //$NON-NLS-1$
+
+		saveColDot = new Action (Messages.getString("CallgraphView.SaveAllCollapsedAsDot")) { //$NON-NLS-1$
 		     @Override
 			public void run(){
 	                writeToDot(true, g.nodeDataMap.keySet());
 	            }
-			
+
 		};
-		
-		save_text = new Action (Messages.getString("CallgraphView.SaveCollapsedAsASCII")) { //$NON-NLS-1$
+
+		saveText = new Action (Messages.getString("CallgraphView.SaveCollapsedAsASCII")) { //$NON-NLS-1$
 			@Override
 			public void run() {
 				//Prints an 80 char table
 		        Shell sh = new Shell();
 		        FileDialog dialog = new FileDialog(sh, SWT.SAVE);
 		        String filePath = dialog.open();
-		        
-		        if (filePath == null)
+
+		        if (filePath == null) {
 		        	return;
+		        }
 		        File f = new File(filePath);
 		        f.delete();
         		try {
@@ -66,23 +68,24 @@
 					BufferedWriter out = new BufferedWriter(new FileWriter(f));
 					StringBuilder builder = new StringBuilder();
 					builder.append("                           Function                           | Called |  Time\n"); //$NON-NLS-1$
-					
+
 					for (StapData k : g.nodeDataMap.values()) {
-	            		if ( (!k.isCollapsed ) && !k.isOnlyChildWithThisName())
+	            		if ( (!k.isCollapsed ) && !k.isOnlyChildWithThisName()) {
 	            			continue;
+	            		}
 						if (k.isCollapsed) {
 							StringBuilder name = new StringBuilder(k.name);
 							name = fixString(name, 60);
 							builder.append(" " + name + " | "); //$NON-NLS-1$ //$NON-NLS-2$
-							
+
 							StringBuilder called = new StringBuilder("" + k.timesCalled); //$NON-NLS-1$
 							called = fixString(called, 6);
-							
+
 							StringBuilder time = new StringBuilder("" + //$NON-NLS-1$
-									StapNode.numberFormat.format((float) k.getTime()/g.getTotalTime() * 100) 
+									StapNode.numberFormat.format((float) k.getTime()/g.getTotalTime() * 100)
 									+ "%"); //$NON-NLS-1$
 							time = fixString(time, 6);
-							
+
 							builder.append(called + " | " + time + "\n"); //$NON-NLS-1$ //$NON-NLS-2$
 						}
 						if (builder.length() > 2000) {
@@ -91,9 +94,10 @@
 							builder.setLength(0);
 						}
 					}
-					
-					if (builder.length() > 0)
+
+					if (builder.length() > 0) {
 						out.append(builder.toString());
+					}
 					out.close();
 		        } catch (IOException e) {
 		        	e.printStackTrace();
@@ -102,10 +106,10 @@
 		};
 		saveMenu = new MenuManager(Messages.getString("CallgraphView.SaveMenu")); //$NON-NLS-1$
 		file.add(saveMenu);
-		saveMenu.add(save_cur_dot);
-		saveMenu.add(save_col_dot);
-		saveMenu.add(save_text);
-		saveMenu.add(save_dot);
+		saveMenu.add(saveCurDot);
+		saveMenu.add(saveColDot);
+		saveMenu.add(saveText);
+		saveMenu.add(saveDot);
 		view = new MenuManager(Messages.getString("CallgraphView.ViewMenu")); //$NON-NLS-1$
 		animation = new MenuManager(Messages.getString("CallgraphView.AnimationMenu")); //$NON-NLS-1$
 		markers = new MenuManager(Messages.getString("CallgraphView.Markers")); //$NON-NLS-1$
@@ -113,36 +117,36 @@
 		menu.add(view);
 		menu.add(gotoMenu);
 		addHelpMenu();
-		
-		view.add(view_treeview);
-		view.add(view_radialview);
-		view.add(view_aggregateview);
-		view.add(view_levelview);
-		view.add(getView_refresh());
-		view.add(mode_collapsednodes);
+
+		view.add(viewTreeview);
+		view.add(viewRadialview);
+		view.add(viewAggregateview);
+		view.add(viewLevelview);
+		view.add(getViewRefresh());
+		view.add(modeCollapsedNodes);
 		view.add(limits);
 		view.add(animation);
-		
-		
+
+
 		gotoMenu.add(play);
-		gotoMenu.add(goto_previous);
-		gotoMenu.add(goto_next);
-		gotoMenu.add(goto_last);
+		gotoMenu.add(gotoPrevious);
+		gotoMenu.add(gotoNext);
+		gotoMenu.add(gotoLast);
 		gotoMenu.add(markers);
-		
+
 		addKillButton();
 		mgr.add(play);
-		mgr.add(view_radialview);
-		mgr.add(view_treeview);
-		mgr.add(view_levelview);
-		mgr.add(view_aggregateview);
-		mgr.add(mode_collapsednodes);
-		
-		markers.add(markers_next);
-		markers.add(markers_previous);
-		
-		animation.add(animation_slow);
-		animation.add(animation_fast);
+		mgr.add(viewRadialview);
+		mgr.add(viewTreeview);
+		mgr.add(viewLevelview);
+		mgr.add(viewAggregateview);
+		mgr.add(modeCollapsedNodes);
+
+		markers.add(markersNext);
+		markers.add(markersPrevious);
+
+		animation.add(animationSlow);
+		animation.add(animationFast);
 
 		setGraphOptions(false);
 	}

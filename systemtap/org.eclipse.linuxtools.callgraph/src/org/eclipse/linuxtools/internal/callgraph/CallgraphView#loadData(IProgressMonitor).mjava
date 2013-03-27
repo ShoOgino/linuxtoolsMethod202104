@@ -7,18 +7,20 @@
 		IProgressMonitor monitor = mon;
 		//Dummy node, set start time
 		if (g.getNodeData(0) == null) {
-			g.loadData(SWT.NONE, 0, StapGraph.CONSTANT_TOP_NODE_NAME, 
+			g.loadData(SWT.NONE, 0, StapGraph.CONSTANT_TOP_NODE_NAME,
 					1, 1, -1, false, ""); //$NON-NLS-1$
 		}
 		g.setStartTime(parser.startTime);
 		g.setEndTime(parser.endingTimeInNS);
 
-		
+
 		/*
 		 *                Load graph data
 		 */
 	    for (int id_parent : parser.serialMap.keySet()) {
-	    	if (id_parent < 0) continue;
+	    	if (id_parent < 0) {
+	    		continue;
+	    	}
 	    	boolean marked = false;
 	    	String msg = ""; //$NON-NLS-1$
 	    	if (g.getNodeData(id_parent) == null) {
@@ -29,11 +31,12 @@
 	    		g.loadData(SWT.NONE, id_parent, parser.serialMap.get(id_parent), parser.timeMap.get(id_parent),
 	    				1, 0, marked, msg);
 	    	}
-	    	
-	    	for (int key :parser.neighbourMaps.keySet()) { 
+
+	    	for (int key :parser.neighbourMaps.keySet()) {
 		    	HashMap<Integer, ArrayList<Integer>> outNeighbours = parser.neighbourMaps.get(key);
-		    	if (outNeighbours == null || outNeighbours.get(id_parent) == null)
+		    	if (outNeighbours == null || outNeighbours.get(id_parent) == null) {
 		    		continue;
+		    	}
 				for (int id_child : outNeighbours.get(id_parent)) {
 					if (g.getNodeData(id_child) != null && id_child < 0) {
 						//Assume this is an additional call of the same node
@@ -46,7 +49,7 @@
 					if (monitor.isCanceled()) {
 						return Status.CANCEL_STATUS;
 					}
-					
+
 					marked = false;
 					msg = ""; //$NON-NLS-1$
 					if (parser.markedMap.get(id_child) != null) {
@@ -54,7 +57,7 @@
 						msg = parser.markedMap.remove(id_child);
 					}
 					if (id_child != -1) {
-						if (parser.timeMap.get(id_child) == null){						
+						if (parser.timeMap.get(id_child) == null){
 							g.loadData(SWT.NONE, id_child, parser.serialMap
 									.get(id_child), parser.timeMap.get(0),
 									1, id_parent, marked,msg);
@@ -66,35 +69,37 @@
 					}
 				}
 	    	}
-			
+
 	    	if (parser.neighbourMaps.size() > 1) {
 	    		g.setThreaded();
 	    	}
 		}
-	    
+
 	    monitor.worked(1);
 	    if (parser.markedMap.size() > 0) {
 	    	//Still some markers left
 	    	for (int key : parser.markedMap.keySet()) {
 	    		g.insertMessage(key, parser.markedMap.get(key));
 	    	}
-	    	
+
 	    	//Erase the remaining nodes, just in case
 	    	parser.markedMap.clear();
 	    }
-	    
-	    
-	    if (g.aggregateTime == null)
+
+
+	    if (g.aggregateTime == null) {
 	    	g.aggregateTime = new HashMap<String, Long>();
-		if (g.aggregateCount == null)
-	    	g.aggregateCount = new HashMap<String, Integer>();	    
-	    
+	    }
+		if (g.aggregateCount == null) {
+	    	g.aggregateCount = new HashMap<String, Integer>();
+		}
+
 	    g.aggregateCount.putAll(parser.countMap);
 	    g.aggregateTime.putAll(parser.aggregateTimeMap);
 	    //TODO: Do not set to 0.
 	    g.setLastFunctionCalled(0);
 
-	    
+
 	    //Finish off by collapsing nodes, initializing the tree and setting options
 	    g.recursivelyCollapseAllChildrenOfNode(g.getTopNode());
 	    monitor.worked(1);
