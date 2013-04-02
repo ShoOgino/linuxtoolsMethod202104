@@ -1,10 +1,24 @@
 	protected ILaunchConfiguration createConfiguration(IProject proj) throws CoreException {
 		String projectName = proj.getName();
-		IResource bin = proj.findMember(new Path(BIN_DIR).append(projectName));
-		if (bin == null) {
-			fail(NLS.bind(Messages.getString("AbstractTest.No_binary"), projectName)); //$NON-NLS-1$
+		String binPath = "";
+		if (proj.getLocation()==null) {
+			IFileStore fileStore = null;
+			try {
+				fileStore = EFS.getStore(new URI(proj.getLocationURI() + BIN_DIR + IPath.SEPARATOR + projectName));
+			} catch (URISyntaxException e) {
+				fail(NLS.bind(Messages.getString("AbstractTest.No_binary"), projectName)); //$NON-NLS-1$
+			}
+			if ((fileStore instanceof LocalFile)) {
+				fail(NLS.bind(Messages.getString("AbstractTest.No_binary"), projectName)); //$NON-NLS-1$
+			}
+			binPath = EFSExtensionManager.getDefault().getPathFromURI(proj.getLocationURI())+ BIN_DIR + IPath.SEPARATOR + proj.getName();
+		} else {
+			IResource bin = proj.findMember(new Path(BIN_DIR).append(projectName));
+			if (bin == null) {
+				fail(NLS.bind(Messages.getString("AbstractTest.No_binary"), projectName)); //$NON-NLS-1$
+			}
+			binPath = bin.getProjectRelativePath().toString();
 		}
-		String binPath = bin.getProjectRelativePath().toString();
 		ILaunchConfigurationType configType = getLaunchConfigType();
 		ILaunchConfigurationWorkingCopy wc = configType.newInstance(null,
 				getLaunchManager()
@@ -13,7 +27,6 @@
 
 		wc.setAttribute(ICDTLaunchConfigurationConstants.ATTR_PROGRAM_NAME, binPath);
 		wc.setAttribute(ICDTLaunchConfigurationConstants.ATTR_PROJECT_NAME, projectName);
-		wc.setMappedResources(new IResource[] {bin, proj});
 		wc.setAttribute(ICDTLaunchConfigurationConstants.ATTR_WORKING_DIRECTORY, (String) null);
 
 		// Make launch run in foreground
