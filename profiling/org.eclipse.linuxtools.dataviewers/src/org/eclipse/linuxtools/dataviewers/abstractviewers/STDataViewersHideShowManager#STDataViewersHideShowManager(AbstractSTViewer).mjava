@@ -1,37 +1,26 @@
-    /*
-     * Creates a new instance of STDataViewersHideShowManager Adding a ColumnSizeListener in order handle the column
-     * width
+    /**
+     * Creates a new instance of STDataViewersHideShowManager.
      */
     public STDataViewersHideShowManager(AbstractSTViewer stViewer) {
         this.stViewer = stViewer;
-
-        columns = stViewer.getColumns();
-        int[] widths = new int[columns.length];
-        int[] states = new int[columns.length];
-        for (int i = 0; i < columns.length; i++) {
-            widths[i] = stViewer.getColumnWidth(columns[i]);
-            states[i] = STATE_SHOWN;
-        }
-
-        this.columnsWidth = widths;
-        this.columnsState = states;
-
+        Item[] columns = stViewer.getColumns();
+        this.columnsWidth = new int[columns.length];
+        this.columnsState = new int[columns.length];
         this.defaultColumnsWidth = new int[columns.length];
-        for (int i = columns.length; i-- > 0;) {
+        for (int i = 0; i < columns.length; i++) {
             ISTDataViewersField field = (ISTDataViewersField) columns[i].getData();
-            this.defaultColumnsWidth[i] = field.getPreferredWidth();
+            columnsWidth[i] = stViewer.getColumnWidth(columns[i]);
+            columnsState[i] = field.isShowingByDefault() ? STATE_SHOWN : STATE_HIDDEN;
+            defaultColumnsWidth[i] = field.getPreferredWidth();
             STColumnSizeListener l = new STColumnSizeListener(this);
             columnsSizeListener.put(columns[i], l);
             columns[i].addListener(SWT.Resize, l);
             columns[i].addDisposeListener(new DisposeListener() {
-
                 @Override
-				public void widgetDisposed(DisposeEvent e) {
+                public void widgetDisposed(DisposeEvent e) {
                     Item column = (Item) e.widget;
                     column.removeListener(SWT.Resize, columnsSizeListener.get(column));
-
                 }
-
             });
         }
     }
