@@ -4,24 +4,30 @@
 		try {
 			String keyword = textViewer.getDocument().get(hoverRegion.getOffset(), hoverRegion.getLength());
 
-			documentation = TapsetLibrary.getDocumentationNoCache("function::" + keyword); //$NON-NLS-1$
-			if (documentation != null){
+			documentation = TapsetLibrary.getDocumentation("function::" + keyword); //$NON-NLS-1$
+			if (!documentation.startsWith("No manual entry for")){ //$NON-NLS-1$
 				return documentation;
 			}
 
-			documentation = TapsetLibrary.getDocumentationNoCache("probe::" + keyword); //$NON-NLS-1$
-			if (documentation != null){
+			documentation = TapsetLibrary.getDocumentation("probe::" + keyword); //$NON-NLS-1$
+			if (!documentation.startsWith("No manual entry for")){ //$NON-NLS-1$
 				return documentation;
 			}
 
-			documentation = TapsetLibrary.getDocumentationNoCache("tapset::" + keyword); //$NON-NLS-1$
-			if (documentation != null){
+			documentation = TapsetLibrary.getDocumentation("tapset::" + keyword); //$NON-NLS-1$
+			if (!documentation.startsWith("No manual entry for")){ //$NON-NLS-1$
 				return documentation;
 			}
 
 			if (keyword.indexOf('.') > 0){
 				keyword = keyword.split("\\.")[0]; //$NON-NLS-1$
-				documentation = TapsetLibrary.getDocumentationNoCache("tapset::" + keyword); //$NON-NLS-1$
+				documentation = TapsetLibrary.getDocumentation("tapset::" + keyword); //$NON-NLS-1$
+			}
+
+			if (textViewer.getDocument().getPartition(hoverRegion.getOffset())
+					.getType() == STPPartitionScanner.STP_PROBE) {
+				String probe = getProbe(textViewer.getDocument(), hoverRegion.getOffset());
+				documentation = TapsetLibrary.getDocumentation("probe::" + probe + "::"+ keyword); //$NON-NLS-1$ //$NON-NLS-2$
 			}
 
 		} catch (BadLocationException e) {
