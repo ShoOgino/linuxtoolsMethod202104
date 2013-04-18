@@ -1,20 +1,27 @@
     /**
      * Method validate.
-     * @param project IProject
-     * @param path String
-     * @return boolean
+     *
+     * @param project
+     *            IProject
+     * @param path
+     *            String
+     * @return IStatus IStatus.error or Status.OK_STATUS
      * @see org.eclipse.linuxtools.tmf.core.trace.ITmfTrace#validate(IProject, String)
+     * @since 2.0
      */
     @Override
-    public boolean validate(final IProject project, final String path) {
+    public IStatus validate(final IProject project, final String path) {
+        IStatus validTrace = Status.OK_STATUS;
         try {
             final CTFTrace temp = new CTFTrace(path);
             boolean valid = temp.majortIsSet(); // random test
             temp.dispose();
-            return valid;
+            if (!valid) {
+                validTrace = new Status(IStatus.ERROR, Activator.PLUGIN_ID, Messages.CtfTmfTrace_MajorNotSet);
+            }
         } catch (final CTFReaderException e) {
-            /* Nope, not a CTF trace we can read */
-            return false;
+            validTrace = new Status(IStatus.ERROR, Activator.PLUGIN_ID, Messages.CtfTmfTrace_ReadingError +": " + e.toString()); //$NON-NLS-1$
         }
+        return validTrace;
     }
 

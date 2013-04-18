@@ -6,7 +6,7 @@
         if (window == null) {
             return null;
         }
-
+        List<IStatus> statuses = new ArrayList<IStatus>();
         boolean ok = true;
         for (Object element : fSelection.toList()) {
             TmfTraceElement trace = (TmfTraceElement) element;
@@ -18,21 +18,30 @@
                     String bundleName = event.getParameter(BUNDLE_PARAMETER);
                     String traceType = event.getParameter(TYPE_PARAMETER);
                     String iconUrl = event.getParameter(ICON_PARAMETER);
-                    ok &= propagateProperties(trace, bundleName, traceType, iconUrl);
+                    IStatus status = propagateProperties(trace, bundleName, traceType, iconUrl);
+                    ok &= status.isOK();
+                    if (!status.isOK()) {
+                        statuses.add(status);
+                    }
                 } catch (CoreException e) {
-                    Activator.getDefault().logError("Error selecting trace type for trace" + trace.getName(), e); //$NON-NLS-1$
+                    Activator.getDefault().logError(Messages.SelectTraceTypeHandler_ErrorSelectingTrace + trace.getName(), e);
                 }
             }
         }
         ((ITmfProjectModelElement) fSelection.getFirstElement()).getProject().refresh();
 
         if (!ok) {
-            MessageBox mb = new MessageBox(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), SWT.ICON_ERROR);
-            mb.setText(Messages.SelectTraceTypeHandler_Title);
-            mb.setMessage(Messages.SelectTraceTypeHandler_InvalidTraceType);
-            mb.open();
+            final Shell shell = window.getShell();
+            MultiStatus info = new MultiStatus(Activator.PLUGIN_ID, 1, Messages.SelectTraceTypeHandler_TraceFailedValidation, null);
+            if (statuses.size() > 1)
+            {
+                info = new MultiStatus(Activator.PLUGIN_ID, 1, Messages.SelectTraceTypeHandler_TracesFailedValidation, null);
+            }
+            for (IStatus status : statuses) {
+                info.add(status);
+            }
+            ErrorDialog.openError(shell, Messages.SelectTraceTypeHandler_Title, Messages.SelectTraceTypeHandler_InvalidTraceType, info);
         }
-
         return null;
     }
 
