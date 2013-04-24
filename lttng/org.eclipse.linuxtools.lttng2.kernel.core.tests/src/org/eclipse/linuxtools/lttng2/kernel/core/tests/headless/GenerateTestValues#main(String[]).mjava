@@ -15,7 +15,7 @@
         /* Prepare the files */
         File stateFile = File.createTempFile("test-values", ".ht");
         stateFile.deleteOnExit();
-        File logFile = File.createTempFile("test-values", ".log");
+        File logFile = File.createTempFile("TestValues", ".java");
         PrintWriter writer = new PrintWriter(new FileWriter(logFile), true);
 
         /* Build and query the state system */
@@ -23,22 +23,31 @@
         ITmfStateSystem ssq = StateSystemManager.loadStateHistory(stateFile, input, true);
         List<ITmfStateInterval> fullState = ssq.queryFullState(targetTimestamp);
 
-        /* Print the interval contents (with some convenience formatting) */
-        writer.println("Start times:");
-        for (ITmfStateInterval interval : fullState) {
-            writer.println(String.valueOf(interval.getStartTime()) + "L,");
-        }
+        /* Start printing the java file's contents */
+        writer.println("interface TestValues {");
+        writer.println();
+        writer.println(INDENT + "static final int size = " + fullState.size() +";");
         writer.println();
 
-        writer.println("End times:");
+        /* Print the array contents */
+        writer.println(INDENT + "static final long[] startTimes = {");
         for (ITmfStateInterval interval : fullState) {
-            writer.println(String.valueOf(interval.getEndTime())+ "L,");
+            writer.println(INDENT + INDENT + String.valueOf(interval.getStartTime()) + "L,");
         }
+        writer.println(INDENT + "};");
         writer.println();
 
-        writer.println("State values:");
+        writer.println(INDENT + "static final long[] endTimes = {");
+        for (ITmfStateInterval interval : fullState) {
+            writer.println(INDENT + INDENT + String.valueOf(interval.getEndTime())+ "L,");
+        }
+        writer.println(INDENT + "};");
+        writer.println();
+
+        writer.println(INDENT + "static final ITmfStateValue[] values = {");
         for (ITmfStateInterval interval : fullState) {
             ITmfStateValue val = interval.getStateValue();
+            writer.print(INDENT + INDENT);
 
             switch (val.getType()) {
             case NULL:
@@ -58,6 +67,10 @@
                 break;
             }
         }
+        writer.println(INDENT + "};");
+
+        writer.println("}");
+        writer.println();
 
         writer.close();
         System.exit(0);
