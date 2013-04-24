@@ -1,0 +1,43 @@
+    /**
+     * Update the chart's values before refreshing the viewer
+     */
+    protected void updateDisplay() {
+        Display.getDefault().asyncExec(new Runnable() {
+            final TmfChartTimeStampFormat tmfChartTimeStampFormat = new TmfChartTimeStampFormat(getTimeOffset());
+
+            @Override
+            public void run() {
+                if (!getSwtChart().isDisposed()) {
+                    double maxy = DEFAULT_MAXY;
+                    double miny = DEFAULT_MINY;
+                    for (Entry<String, double[]> entry : fSeriesValues.entrySet()) {
+                        ILineSeries series = (ILineSeries) getSwtChart().getSeriesSet().getSeries(entry.getKey());
+                        if (series == null) {
+                            series = addSeries(entry.getKey());
+                        }
+                        series.setXSeries(fXValues);
+                        /* Find the minimal and maximum values in this series */
+                        for (double value : entry.getValue()) {
+                            maxy = Math.max(maxy, value);
+                            miny = Math.min(miny, value);
+                        }
+                        series.setYSeries(entry.getValue());
+                    }
+
+                    IAxisTick xTick = getSwtChart().getAxisSet().getXAxis(0).getTick();
+                    xTick.setFormat(tmfChartTimeStampFormat);
+
+                    final double start = fXValues[0];
+                    int lastX = fXValues.length - 1;
+                    double end = (start == fXValues[lastX]) ? start + 1 : fXValues[lastX];
+                    getSwtChart().getAxisSet().getXAxis(0).setRange(new Range(start, end));
+                    getSwtChart().getAxisSet().getXAxis(0).adjustRange();
+                    if (maxy > miny) {
+                        getSwtChart().getAxisSet().getYAxis(0).setRange(new Range(miny, maxy));
+                    }
+                    getSwtChart().redraw();
+                }
+            }
+        });
+    }
+
