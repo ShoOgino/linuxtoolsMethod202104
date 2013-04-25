@@ -26,7 +26,7 @@
         String label = null;
 
         for (CommonTree child : children) {
-            if (isUnaryString(child)) {
+            if (isAnyUnaryString(child)) {
                 label = parseUnaryString(child);
             } else if (child.getType() == CTFParser.ENUM_VALUE) {
 
@@ -56,6 +56,11 @@
 
         if (!enumDeclaration.add(low, high, label)) {
             throw new ParseException("enum declarator values overlap."); //$NON-NLS-1$
+        }
+
+        if (valueSpecified && (BigInteger.valueOf(low).compareTo(enumDeclaration.getContainerType().getMinValue()) == -1 ||
+                BigInteger.valueOf(high).compareTo(enumDeclaration.getContainerType().getMaxValue()) == 1)) {
+            throw new ParseException("enum value is not in range"); //$NON-NLS-1$
         }
 
         return high;

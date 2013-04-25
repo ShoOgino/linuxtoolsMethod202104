@@ -27,7 +27,7 @@
             fc = fis.getChannel();
 
             /* Map one memory page of 4 kiB */
-            byteBuffer = fc.map(MapMode.READ_ONLY, 0, 4096);
+            byteBuffer = fc.map(MapMode.READ_ONLY, 0, Math.min((int)fc.size(), 4096));
         } catch (IOException e) {
             /* Shouldn't happen at this stage if every other check passed */
             throw new CTFReaderException();
@@ -81,6 +81,10 @@
         } else {
             /* No packet header, we suppose there is only one stream */
             stream = streams.get(null);
+        }
+
+        if (stream == null) {
+            throw new CTFReaderException("Unexpected end of stream"); //$NON-NLS-1$
         }
 
         /* Create the stream input */
