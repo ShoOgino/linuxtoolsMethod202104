@@ -1,0 +1,44 @@
+    private void selectTime(long time) {
+        if (fEntryList == null) {
+            return;
+        }
+        fTimeGraphCombo.getTimeGraphViewer().setSelectedTime(time, true);
+        for (ThreadEntry threadEntry : fEntryList) {
+            ITmfStateSystem ss = threadEntry.fThreadTrace.getStateSystems().get(CallStackStateProvider.ID);
+            if (ss == null || !ss.waitUntilBuilt()) {
+                continue;
+            }
+            long queryTime = Math.max(ss.getStartTime(), Math.min(ss.getCurrentEndTime(), time));
+            for (CallStackEntry callStackEntry : threadEntry.getChildren()) {
+                try {
+                    ITmfStateInterval stackLevelInterval = ss.querySingleState(queryTime, callStackEntry.getQuark());
+                    ITmfStateValue nameValue = stackLevelInterval.getStateValue();
+                    String name = ""; //$NON-NLS-1$
+                    try {
+                        if (nameValue.getType() == Type.STRING) {
+                            name = nameValue.unboxStr();
+                        } else if (nameValue.getType() == Type.INTEGER) {
+                            name = "0x" + Integer.toHexString(nameValue.unboxInt()); //$NON-NLS-1$
+                        } else if (nameValue.getType() == Type.LONG) {
+                            name = "0x" + Long.toHexString(nameValue.unboxLong()); //$NON-NLS-1$
+                        }
+                    } catch (StateValueTypeException e) {
+                    }
+                    callStackEntry.setFunctionName(name);
+                    if (name.length() > 0) {
+                        callStackEntry.setStartTime(stackLevelInterval.getStartTime());
+                        callStackEntry.setEndTime(stackLevelInterval.getEndTime() + 1);
+                    }
+                } catch (AttributeNotFoundException e) {
+                    e.printStackTrace();
+                } catch (TimeRangeException e) {
+                    e.printStackTrace();
+                } catch (StateSystemDisposedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        fTimeGraphCombo.refresh();
+        fTimeGraphCombo.getTimeGraphViewer().setSelectedTime(time, true);
+    }
+

@@ -1,0 +1,45 @@
+    private static List<ITimeEvent> getEventList(CallStackEntry entry,
+            long startTime, long endTime, long resolution,
+            IProgressMonitor monitor) {
+        ITmfStateSystem ss = entry.getTrace().getStateSystems().get(CallStackStateProvider.ID);
+        long start = Math.max(startTime, ss.getStartTime());
+        long end = Math.min(endTime, ss.getCurrentEndTime() + 1);
+        if (end <= start) {
+            return null;
+        }
+        List<ITimeEvent> eventList = null;
+        try {
+            List<ITmfStateInterval> stackIntervals = ss.queryHistoryRange(entry.getQuark(), start, end - 1, resolution, monitor);
+            eventList = new ArrayList<ITimeEvent>(stackIntervals.size());
+            long lastEndTime = -1;
+            boolean lastIsNull = true;
+            for (ITmfStateInterval statusInterval : stackIntervals) {
+                if (monitor.isCanceled()) {
+                    return null;
+                }
+                long time = statusInterval.getStartTime();
+                long duration = statusInterval.getEndTime() - time + 1;
+                if (!statusInterval.getStateValue().isNull()) {
+                    final int MODULO = CallStackPresentationProvider.NUM_COLORS / 2;
+                    int value = statusInterval.getStateValue().toString().hashCode() % MODULO + MODULO;
+                    eventList.add(new CallStackEvent(entry, time, duration, value));
+                    lastIsNull = false;
+                } else {
+                    if (lastEndTime != time && lastEndTime != -1 && lastIsNull) {
+                        eventList.add(new TimeEvent(entry, lastEndTime, time - lastEndTime));
+                    }
+                    eventList.add(new NullTimeEvent(entry, time, duration));
+                    lastIsNull = true;
+                }
+                lastEndTime = time + duration;
+            }
+        } catch (AttributeNotFoundException e) {
+            e.printStackTrace();
+        } catch (TimeRangeException e) {
+            e.printStackTrace();
+        } catch (StateSystemDisposedException e) {
+            /* Ignored */
+        }
+        return eventList;
+    }
+

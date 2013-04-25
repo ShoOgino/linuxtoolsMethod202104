@@ -1,0 +1,29 @@
+        @Override
+        public void run() {
+            if (fZoomEntryList == null) {
+                return;
+            }
+            long resolution = Math.max(1, (fZoomEndTime - fZoomStartTime) / fDisplayWidth);
+            for (ThreadEntry threadEntry : fZoomEntryList) {
+                ITmfStateSystem ss = threadEntry.fThreadTrace.getStateSystems().get(CallStackStateProvider.ID);
+                if (ss == null || !ss.waitUntilBuilt()) {
+                    continue;
+                }
+                for (ITimeGraphEntry child : threadEntry.getChildren()) {
+                    if (fMonitor.isCanceled()) {
+                        break;
+                    }
+                    CallStackEntry entry = (CallStackEntry) child;
+                    if (fZoomStartTime <= fStartTime && fZoomEndTime >= fEndTime) {
+                        entry.setZoomedEventList(null);
+                    } else {
+                        List<ITimeEvent> zoomedEventList = getEventList(entry, fZoomStartTime, fZoomEndTime, resolution, fMonitor);
+                        if (zoomedEventList != null) {
+                            entry.setZoomedEventList(zoomedEventList);
+                        }
+                    }
+                    redraw();
+                }
+            }
+        }
+

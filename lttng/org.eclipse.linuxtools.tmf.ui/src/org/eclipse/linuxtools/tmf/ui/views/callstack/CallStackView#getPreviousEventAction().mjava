@@ -1,0 +1,51 @@
+    /**
+     * Get the previous event action.
+     *
+     * @return The Action object
+     */
+    private Action getPreviousEventAction() {
+        if (fPrevEventAction == null) {
+            fPrevEventAction = new Action() {
+                @Override
+                public void run() {
+                    TimeGraphViewer viewer = fTimeGraphCombo.getTimeGraphViewer();
+                    ITimeGraphEntry entry = viewer.getSelection();
+                    if (entry instanceof CallStackEntry) {
+                        try {
+                            CallStackEntry callStackEntry = (CallStackEntry) entry;
+                            ITmfTrace trace = callStackEntry.getTrace();
+                            ITmfStateSystem ss = trace.getStateSystems().get(CallStackStateProvider.ID);
+                            long time = Math.max(ss.getStartTime(), Math.min(ss.getCurrentEndTime(), viewer.getSelectedTime()));
+                            ThreadEntry threadEntry = (ThreadEntry) callStackEntry.getParent();
+                            int quark = ss.getQuarkRelative(threadEntry.getThreadQuark(), CallStackStateProvider.CALL_STACK);
+                            ITmfStateInterval stackInterval = ss.querySingleState(time, quark);
+                            if (stackInterval.getStartTime() == time && time > ss.getStartTime()) {
+                                stackInterval = ss.querySingleState(time - 1, quark);
+                            }
+                            viewer.setSelectedTimeNotify(stackInterval.getStartTime(), true);
+                            int stackLevel = stackInterval.getStateValue().unboxInt();
+                            CallStackEntry selectedEntry = threadEntry.getChildren().get(Math.max(0, stackLevel - 1));
+                            fTimeGraphCombo.setSelection(selectedEntry);
+                            viewer.getTimeGraphControl().fireSelectionChanged();
+                            startZoomThread(viewer.getTime0(), viewer.getTime1());
+                        } catch (AttributeNotFoundException e) {
+                            e.printStackTrace();
+                        } catch (TimeRangeException e) {
+                            e.printStackTrace();
+                        } catch (StateSystemDisposedException e) {
+                            e.printStackTrace();
+                        } catch (StateValueTypeException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            };
+
+            fPrevEventAction.setText(Messages.TmfTimeGraphViewer_PreviousEventActionNameText);
+            fPrevEventAction.setToolTipText(Messages.TmfTimeGraphViewer_PreviousEventActionToolTipText);
+            fPrevEventAction.setImageDescriptor(Activator.getDefault().getImageDescripterFromPath(ITmfImageConstants.IMG_UI_PREV_EVENT));
+        }
+
+        return fPrevEventAction;
+    }
+

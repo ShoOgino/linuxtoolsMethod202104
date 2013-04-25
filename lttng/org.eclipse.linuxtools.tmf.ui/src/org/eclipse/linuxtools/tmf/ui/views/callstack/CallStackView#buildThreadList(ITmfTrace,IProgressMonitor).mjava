@@ -1,0 +1,65 @@
+    private void buildThreadList(final ITmfTrace trace, IProgressMonitor monitor) {
+        fStartTime = Long.MAX_VALUE;
+        fEndTime = Long.MIN_VALUE;
+        ITmfTrace[] traces;
+        if (trace instanceof TmfExperiment) {
+            TmfExperiment experiment = (TmfExperiment) trace;
+            traces = experiment.getTraces();
+        } else {
+            traces = new ITmfTrace[] { trace };
+        }
+        ArrayList<ThreadEntry> entryList = new ArrayList<ThreadEntry>();
+        for (ITmfTrace aTrace : traces) {
+            if (monitor.isCanceled()) {
+                return;
+            }
+            ITmfStateSystem ss = aTrace.getStateSystems().get(CallStackStateProvider.ID);
+            if (ss == null || !ss.waitUntilBuilt()) {
+                String threadName = Messages.CallStackView_StackInfoNotAvailable + ' ' + '(' + aTrace.getName() + ')';
+                ThreadEntry threadEntry = new ThreadEntry(aTrace, threadName, -1, 0, 0);
+                entryList.add(threadEntry);
+                continue;
+            }
+            long startTime = ss.getStartTime();
+            long endTime = ss.getCurrentEndTime() + 1;
+            fStartTime = Math.min(fStartTime, startTime);
+            fEndTime = Math.max(fEndTime, endTime);
+            List<Integer> threadQuarks = ss.getQuarks(CallStackStateProvider.THREADS, "*"); //$NON-NLS-1$
+            for (int i = 0; i < threadQuarks.size(); i++) {
+                if (monitor.isCanceled()) {
+                    return;
+                }
+                int threadQuark = threadQuarks.get(i);
+                String thread = ss.getAttributeName(threadQuark);
+                String threadEntryName = thread + ' ' + '(' + aTrace.getName() + ')';
+                ThreadEntry threadEntry = new ThreadEntry(aTrace, threadEntryName, threadQuark, startTime, endTime);
+                entryList.add(threadEntry);
+                int eventStackQuark;
+                try {
+                    eventStackQuark = ss.getQuarkRelative(threadQuark, CallStackStateProvider.CALL_STACK);
+                    int level = 1;
+                    for (int stackLevelQuark : ss.getSubAttributes(eventStackQuark, false)) {
+                        CallStackEntry callStackEntry = new CallStackEntry(stackLevelQuark, level++, aTrace);
+                        threadEntry.addChild(callStackEntry);
+                    }
+                } catch (AttributeNotFoundException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        synchronized (fEntryListMap) {
+            fEntryListMap.put(trace, (ArrayList<ThreadEntry>) entryList.clone());
+        }
+        if (trace == fTrace) {
+            refresh();
+        }
+        for (ThreadEntry threadEntry : entryList) {
+            for (CallStackEntry callStackEntry : threadEntry.getChildren()) {
+                if (monitor.isCanceled()) {
+                    return;
+                }
+                buildStatusEvents(trace, callStackEntry, monitor);
+            }
+        }
+    }
+

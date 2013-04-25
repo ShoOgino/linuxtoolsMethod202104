@@ -1,0 +1,109 @@
+    @Override
+    public void createPartControl(Composite parent) {
+        fTimeGraphCombo = new TimeGraphCombo(parent, SWT.NONE);
+
+        fTimeGraphCombo.setTreeContentProvider(new TreeContentProvider());
+
+        fTimeGraphCombo.setTreeLabelProvider(new TreeLabelProvider());
+
+        fTimeGraphCombo.setTreeColumns(COLUMN_NAMES);
+
+        fTimeGraphCombo.getTreeViewer().getTree().getColumn(0).setWidth(200);
+        fTimeGraphCombo.getTreeViewer().getTree().getColumn(1).setWidth(50);
+        fTimeGraphCombo.getTreeViewer().getTree().getColumn(2).setWidth(120);
+        fTimeGraphCombo.getTreeViewer().getTree().getColumn(3).setWidth(120);
+        fTimeGraphCombo.getTreeViewer().getTree().getColumn(4).setWidth(120);
+
+        fTimeGraphCombo.setTimeGraphProvider(new CallStackPresentationProvider());
+        fTimeGraphCombo.getTimeGraphViewer().setTimeFormat(TimeFormat.CALENDAR);
+
+        fTimeGraphCombo.getTimeGraphViewer().addRangeListener(new ITimeGraphRangeListener() {
+            @Override
+            public void timeRangeUpdated(TimeGraphRangeUpdateEvent event) {
+                long startTime = event.getStartTime();
+                long endTime = event.getEndTime();
+                TmfTimeRange range = new TmfTimeRange(new CtfTmfTimestamp(startTime), new CtfTmfTimestamp(endTime));
+                TmfTimestamp time = new CtfTmfTimestamp(fTimeGraphCombo.getTimeGraphViewer().getSelectedTime());
+                broadcast(new TmfRangeSynchSignal(CallStackView.this, range, time));
+                startZoomThread(startTime, endTime);
+            }
+        });
+
+        fTimeGraphCombo.getTimeGraphViewer().addTimeListener(new ITimeGraphTimeListener() {
+            @Override
+            public void timeSelected(TimeGraphTimeEvent event) {
+                long time = event.getTime();
+                selectTime(time);
+                broadcast(new TmfTimeSynchSignal(CallStackView.this, new CtfTmfTimestamp(time)));
+            }
+        });
+
+        fTimeGraphCombo.getTimeGraphViewer().getControl().addControlListener(new ControlAdapter() {
+            @Override
+            public void controlResized(ControlEvent e) {
+                fDisplayWidth = fTimeGraphCombo.getTimeGraphViewer().getControl().getSize().x;
+                if (fEntryList != null) {
+                    startZoomThread(fTimeGraphCombo.getTimeGraphViewer().getTime0(), fTimeGraphCombo.getTimeGraphViewer().getTime1());
+                }
+            }
+        });
+
+        fTimeGraphCombo.getTreeViewer().addDoubleClickListener(new IDoubleClickListener() {
+            @Override
+            public void doubleClick(DoubleClickEvent event) {
+                Object selection = ((IStructuredSelection) event.getSelection()).getFirstElement();
+                if (selection instanceof CallStackEntry) {
+                    CallStackEntry entry = (CallStackEntry) selection;
+                    if (entry.getFunctionName().length() > 0) {
+                        long startTime = entry.getStartTime();
+                        long endTime = entry.getEndTime();
+                        long spacingTime = (long) ((endTime - startTime) * 0.01);
+                        startTime -= spacingTime;
+                        endTime += spacingTime;
+                        TmfTimeRange range = new TmfTimeRange(new CtfTmfTimestamp(startTime), new CtfTmfTimestamp(endTime));
+                        TmfTimestamp time = new CtfTmfTimestamp(fTimeGraphCombo.getTimeGraphViewer().getSelectedTime());
+                        broadcast(new TmfRangeSynchSignal(CallStackView.this, range, time));
+                        fTimeGraphCombo.getTimeGraphViewer().setStartFinishTime(startTime, endTime);
+                        startZoomThread(startTime, endTime);
+                    }
+                }
+            }
+        });
+
+        fTimeGraphCombo.getTimeGraphViewer().getTimeGraphControl().addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseDoubleClick(MouseEvent e) {
+                TimeGraphControl timeGraphControl = fTimeGraphCombo.getTimeGraphViewer().getTimeGraphControl();
+                ISelection selection = timeGraphControl.getSelection();
+                if (selection instanceof TimeGraphSelection) {
+                    Object o = ((TimeGraphSelection) selection).getFirstElement();
+                    if (o instanceof CallStackEvent) {
+                        CallStackEvent event = (CallStackEvent) o;
+                        long startTime = event.getTime();
+                        long endTime = startTime + event.getDuration();
+                        long spacingTime = (long) ((endTime - startTime) * 0.01);
+                        startTime -= spacingTime;
+                        endTime += spacingTime;
+                        TmfTimeRange range = new TmfTimeRange(new CtfTmfTimestamp(startTime), new CtfTmfTimestamp(endTime));
+                        TmfTimestamp time = new CtfTmfTimestamp(fTimeGraphCombo.getTimeGraphViewer().getSelectedTime());
+                        broadcast(new TmfRangeSynchSignal(CallStackView.this, range, time));
+                        fTimeGraphCombo.getTimeGraphViewer().setStartFinishTime(startTime, endTime);
+                        startZoomThread(startTime, endTime);
+                    }
+                }
+            }
+        });
+
+        // View Action Handling
+        makeActions();
+        contributeToActionBars();
+
+        IEditorPart editor = getSite().getPage().getActiveEditor();
+        if (editor instanceof ITmfTraceEditor) {
+            ITmfTrace trace = ((ITmfTraceEditor) editor).getTrace();
+            if (trace != null) {
+                traceSelected(new TmfTraceSelectedSignal(this, trace));
+            }
+        }
+    }
+

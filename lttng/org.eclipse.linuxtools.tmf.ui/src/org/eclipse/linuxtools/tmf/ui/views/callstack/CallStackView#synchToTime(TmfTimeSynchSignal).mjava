@@ -1,0 +1,56 @@
+    /**
+     * Handler for the TimeSynch signal
+     *
+     * @param signal
+     *            The incoming signal
+     */
+    @TmfSignalHandler
+    public void synchToTime(final TmfTimeSynchSignal signal) {
+
+        fSavedTimeSyncSignal = isPinned() ? new TmfTimeSynchSignal(signal.getSource(), signal.getCurrentTime()) : null;
+
+        if (signal.getSource() == this || fTrace == null || isPinned()) {
+            return;
+        }
+        final long time = signal.getCurrentTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+        Display.getDefault().asyncExec(new Runnable() {
+            @Override
+            public void run() {
+                if (fTimeGraphCombo.isDisposed()) {
+                    return;
+                }
+                selectTime(time);
+                startZoomThread(fTimeGraphCombo.getTimeGraphViewer().getTime0(), fTimeGraphCombo.getTimeGraphViewer().getTime1());
+                if (fEntryList == null) {
+                    return;
+                }
+                TimeGraphViewer viewer = fTimeGraphCombo.getTimeGraphViewer();
+                for (ThreadEntry threadEntry : fEntryList) {
+                    ITmfStateSystem ss = threadEntry.getTrace().getStateSystems().get(CallStackStateProvider.ID);
+                    if (ss == null || time < ss.getStartTime() || time > ss.getCurrentEndTime()) {
+                        continue;
+                    }
+                    try {
+                        int quark = ss.getQuarkRelative(threadEntry.getThreadQuark(), CallStackStateProvider.CALL_STACK);
+                        ITmfStateInterval stackInterval = ss.querySingleState(time, quark);
+                        if (time == stackInterval.getStartTime()) {
+                            int stackLevel = stackInterval.getStateValue().unboxInt();
+                            CallStackEntry selectedEntry = threadEntry.getChildren().get(Math.max(0, stackLevel - 1));
+                            fTimeGraphCombo.setSelection(selectedEntry);
+                            viewer.getTimeGraphControl().fireSelectionChanged();
+                            break;
+                        }
+                    } catch (AttributeNotFoundException e) {
+                        e.printStackTrace();
+                    } catch (TimeRangeException e) {
+                        e.printStackTrace();
+                    } catch (StateSystemDisposedException e) {
+                        e.printStackTrace();
+                    } catch (StateValueTypeException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        });
+    }
+

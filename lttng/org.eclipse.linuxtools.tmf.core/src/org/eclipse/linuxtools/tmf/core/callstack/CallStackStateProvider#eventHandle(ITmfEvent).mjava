@@ -1,0 +1,25 @@
+    @Override
+    protected void eventHandle(ITmfEvent event) {
+        String functionEntryName = functionEntry(event);
+        try {
+            if (functionEntryName != null) {
+                long timestamp = event.getTimestamp().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+                String thread = threadName(event);
+                int quark = ss.getQuarkAbsoluteAndAdd(THREADS, thread, CALL_STACK);
+                ITmfStateValue value = TmfStateValue.newValueString(functionEntryName);
+                ss.pushAttribute(timestamp, value, quark);
+            } else if (functionExit(event) != null) {
+                long timestamp = event.getTimestamp().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+                String thread = threadName(event);
+                int quark = ss.getQuarkAbsoluteAndAdd(THREADS, thread, CALL_STACK);
+                ss.popAttribute(timestamp, quark);
+            }
+        } catch (TimeRangeException e) {
+            e.printStackTrace();
+        } catch (AttributeNotFoundException e) {
+            e.printStackTrace();
+        } catch (StateValueTypeException e) {
+            e.printStackTrace();
+        }
+    }
+

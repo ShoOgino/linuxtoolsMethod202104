@@ -1,0 +1,38 @@
+    /**
+     * Handler for the RangeSynch signal
+     *
+     * @param signal
+     *            The incoming signal
+     */
+    @TmfSignalHandler
+    public void synchToRange(final TmfRangeSynchSignal signal) {
+
+        if (isPinned()) {
+            fSavedRangeSyncSignal =
+                    new TmfRangeSynchSignal(signal.getSource(), new TmfTimeRange(signal.getCurrentRange().getStartTime(), signal.getCurrentRange().getEndTime()), signal.getCurrentTime());
+
+            fSavedTimeSyncSignal = null;
+        }
+
+        if (signal.getSource() == this || fTrace == null || isPinned()) {
+            return;
+        }
+        if (signal.getCurrentRange().getIntersection(fTrace.getTimeRange()) == null) {
+            return;
+        }
+        final long startTime = signal.getCurrentRange().getStartTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+        final long endTime = signal.getCurrentRange().getEndTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+        final long time = signal.getCurrentTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+        Display.getDefault().asyncExec(new Runnable() {
+            @Override
+            public void run() {
+                if (fTimeGraphCombo.isDisposed()) {
+                    return;
+                }
+                fTimeGraphCombo.getTimeGraphViewer().setStartFinishTime(startTime, endTime);
+                fTimeGraphCombo.getTimeGraphViewer().setSelectedTime(time, false);
+                startZoomThread(startTime, endTime);
+            }
+        });
+    }
+

@@ -1,0 +1,23 @@
+    @Override
+    public String getEventName(ITimeEvent event) {
+        if (event instanceof CallStackEvent) {
+            CallStackEntry entry = (CallStackEntry) event.getEntry();
+            ITmfStateSystem ss = entry.getTrace().getStateSystems().get(CallStackStateProvider.ID);
+            try {
+                ITmfStateInterval value = ss.querySingleState(event.getTime(), entry.getQuark());
+                if (!value.getStateValue().isNull()) {
+                    ITmfStateValue state = value.getStateValue();
+                    return state.toString();
+                }
+            } catch (AttributeNotFoundException e) {
+                e.printStackTrace();
+            } catch (TimeRangeException e) {
+                e.printStackTrace();
+            } catch (StateSystemDisposedException e) {
+                /* Ignored */
+            }
+            return null;
+        }
+        return State.MULTIPLE.toString();
+    }
+
