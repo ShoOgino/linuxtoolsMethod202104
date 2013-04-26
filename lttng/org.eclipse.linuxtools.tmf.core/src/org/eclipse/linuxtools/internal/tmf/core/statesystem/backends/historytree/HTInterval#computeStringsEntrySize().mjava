@@ -1,8 +1,24 @@
     private int computeStringsEntrySize() {
-        if (sv.toByteArray() == null) {
+        switch(sv.getType()) {
+        case NULL:
+        case INTEGER:
+            /* Those don't use the strings section at all */
             return 0;
+        case LONG:
+            /* The value's bytes are written directly into the strings section */
+            return 8;
+        case STRING:
+            try {
+                /* String's length + 2 (1 byte for size, 1 byte for \0 at the end */
+                return sv.unboxStr().getBytes().length + 2;
+            } catch (StateValueTypeException e) {
+                /* We're inside a switch/case for the string type, can't happen */
+                throw new RuntimeException();
+            }
+        default:
+            /* It's very important that we know how to write the state value in
+             * the file!! */
+            throw new RuntimeException();
         }
-        return sv.toByteArray().length + 2;
-        /* (+1 for the first byte indicating the size, +1 for the 0'ed byte) */
     }
 
