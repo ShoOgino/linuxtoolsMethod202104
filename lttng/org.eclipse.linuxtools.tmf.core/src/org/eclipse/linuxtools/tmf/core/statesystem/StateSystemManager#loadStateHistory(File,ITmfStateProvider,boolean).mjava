@@ -8,10 +8,10 @@
      *            The target name of the history file we want to use. If it
      *            exists it will be opened. If it doesn't, a new file will be
      *            created with this name/path.
-     * @param htInput
-     *            The IStateChangeInput to use for building the history file. It
-     *            may be required even if we are opening an already-existing
-     *            history (ie, for partial histories).
+     * @param stateProvider
+     *            The {@link ITmfStateProvider} to use for building the history
+     *            file. It may be required even if we are opening an
+     *            already-existing history (ie, for partial histories).
      * @param buildManually
      *            If false, the construction will wait for a signal before
      *            starting. If true, it will build everything right now and
@@ -24,7 +24,7 @@
      * @since 2.0
      */
     public static ITmfStateSystem loadStateHistory(File htFile,
-            IStateChangeInput htInput, boolean buildManually)
+            ITmfStateProvider stateProvider, boolean buildManually)
             throws TmfTraceException {
         IStateHistoryBackend htBackend;
 
@@ -33,9 +33,9 @@
         // at least if its range matches the trace's range.
         if (htFile.exists()) {
             /* Load an existing history */
-            final int version = (htInput == null) ?
-                    IStateChangeInput.IGNORE_PROVIDER_VERSION :
-                    htInput.getVersion();
+            final int version = (stateProvider == null) ?
+                    ITmfStateProvider.IGNORE_PROVIDER_VERSION :
+                    stateProvider.getVersion();
             try {
                 htBackend = new HistoryTreeBackend(htFile, version);
                 ITmfStateSystem ss = HistoryBuilder.openExistingHistory(htBackend);
@@ -52,15 +52,15 @@
         /* Create a new state history from scratch */
         HistoryBuilder builder;
 
-        if (htInput == null) {
+        if (stateProvider == null) {
             return null;
         }
         try {
             htBackend = new ThreadedHistoryTreeBackend(htFile,
-                    htInput.getStartTime(), htInput.getVersion(), QUEUE_SIZE);
+                    stateProvider.getStartTime(), stateProvider.getVersion(), QUEUE_SIZE);
             StateSystem ss = new StateSystem(htBackend);
-            htInput.assignTargetStateSystem(ss);
-            builder = new HistoryBuilder(htInput, ss, htBackend, buildManually);
+            stateProvider.assignTargetStateSystem(ss);
+            builder = new HistoryBuilder(stateProvider, ss, htBackend, buildManually);
         } catch (IOException e) {
             /*
              * If it fails here however, it means there was a problem writing to
