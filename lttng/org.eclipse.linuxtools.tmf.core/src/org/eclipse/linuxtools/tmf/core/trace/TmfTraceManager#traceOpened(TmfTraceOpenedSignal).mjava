@@ -1,0 +1,25 @@
+    /**
+     * Signal handler for the traceOpened signal.
+     *
+     * @param signal
+     *            The incoming signal
+     */
+    @TmfSignalHandler
+    public synchronized void traceOpened(final TmfTraceOpenedSignal signal) {
+        final ITmfTrace trace = signal.getTrace();
+        final ITmfTimestamp startTs = trace.getStartTime();
+
+        /* Calculate the initial time range */
+        final int SCALE = ITmfTimestamp.NANOSECOND_SCALE;
+        long offset = trace.getInitialRangeOffset().normalize(0, SCALE).getValue();
+        long endTime = startTs.normalize(0, SCALE).getValue() + offset;
+        final TmfTimeRange startTr = new TmfTimeRange(startTs, new TmfTimestamp(endTime, SCALE));
+
+        final TmfTraceContext startCtx = new TmfTraceContext(startTs, startTr);
+
+        fTraces.put(trace, startCtx);
+
+        /* We also want to set the newly-opened trace as the active trace */
+        fCurrentTrace = trace;
+    }
+

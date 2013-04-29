@@ -1,0 +1,23 @@
+    /**
+     * Signal handler for the TmfTimeSynchSignal signal.
+     *
+     * The current time of *all* traces whose range contains the requested new
+     * time will be updated.
+     *
+     * @param signal
+     *            The incoming signal
+     */
+    @TmfSignalHandler
+    public synchronized void timeUpdated(final TmfTimeSynchSignal signal) {
+        final ITmfTimestamp ts = signal.getCurrentTime();
+
+        for (Map.Entry<ITmfTrace, TmfTraceContext> entry : fTraces.entrySet()) {
+            final ITmfTrace trace = entry.getKey();
+            if (ts.intersects(getValidTimeRange(trace))) {
+                TmfTraceContext prevCtx = entry.getValue();
+                TmfTraceContext newCtx = new TmfTraceContext(prevCtx, ts);
+                entry.setValue(newCtx);
+            }
+        }
+    }
+

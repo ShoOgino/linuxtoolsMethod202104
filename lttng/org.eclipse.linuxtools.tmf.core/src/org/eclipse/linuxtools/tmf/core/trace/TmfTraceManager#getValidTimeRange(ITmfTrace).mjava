@@ -1,0 +1,48 @@
+    /**
+     * Return the valid time range of a trace (not the "current time range", but
+     * the range of all possible valid timestamps).
+     *
+     * For a real trace this is the whole range of the trace. For an experiment,
+     * it goes from the start time of the earliest trace to the end time of the
+     * latest one.
+     *
+     * @param trace
+     *            The trace to check for
+     * @return The valid time span, or 'null' if the trace is not valid
+     */
+    private TmfTimeRange getValidTimeRange(ITmfTrace trace) {
+        if (!fTraces.containsKey(trace)) {
+            /* Trace is not part of the currently opened traces */
+            return null;
+        }
+        if (!(trace instanceof TmfExperiment)) {
+            /* "trace" is a single trace, return its time range directly */
+            return trace.getTimeRange();
+        }
+        final ITmfTrace[] traces = ((TmfExperiment) trace).getTraces();
+        if (traces.length == 0) {
+            /* We are being trolled */
+            return null;
+        }
+        if (traces.length == 1) {
+            /* Trace is an experiment with only 1 trace */
+            return traces[0].getTimeRange();
+        }
+        /*
+         * Trace is an experiment with 2+ traces, so get the earliest start and
+         * the latest end.
+         */
+        ITmfTimestamp start = traces[0].getStartTime();
+        ITmfTimestamp end = traces[0].getEndTime();
+        for (int i = 1; i < traces.length; i++) {
+            ITmfTrace curTrace = traces[i];
+            if (curTrace.getStartTime().compareTo(start) < 0) {
+                start = curTrace.getStartTime();
+            }
+            if (curTrace.getEndTime().compareTo(end) > 0) {
+                end = curTrace.getEndTime();
+            }
+        }
+        return new TmfTimeRange(start, end);
+    }
+
