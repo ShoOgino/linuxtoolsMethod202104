@@ -1,0 +1,27 @@
+    /**
+     * Handler for the synch signal
+     *
+     * @param signal
+     *            The signal that's received
+     */
+    @TmfSignalHandler
+    public void synchToTime(final TmfTimeSynchSignal signal) {
+        if (signal.getSource() == this || fTrace == null) {
+            return;
+        }
+        final long time = signal.getCurrentTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+
+        Display.getDefault().asyncExec(new Runnable() {
+            @Override
+            public void run() {
+                if (fTimeGraphCombo.isDisposed()) {
+                    return;
+                }
+                fTimeGraphCombo.getTimeGraphViewer().setSelectedTime(time, true);
+                startZoomThread(fTimeGraphCombo.getTimeGraphViewer().getTime0(), fTimeGraphCombo.getTimeGraphViewer().getTime1());
+
+                synchingToTime(time);
+            }
+        });
+    }
+

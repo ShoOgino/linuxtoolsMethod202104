@@ -1,20 +1,28 @@
     @Override
     public void postDrawEvent(ITimeEvent event, Rectangle bounds, GC gc) {
+        ITmfTimeGraphDrawingHelper drawingHelper = getDrawingHelper();
         if (bounds.width <= gc.getFontMetrics().getAverageCharWidth()) {
             return;
         }
-        if (!(event instanceof ResourcesEvent)) {
+
+        if (!(event instanceof TimeEvent)) {
             return;
         }
-        ResourcesEvent resourcesEvent = (ResourcesEvent) event;
-        if (!resourcesEvent.getType().equals(Type.CPU)) {
+        TimeEvent tcEvent = (TimeEvent) event;
+        if (!tcEvent.hasValue()) {
             return;
         }
-        int status = resourcesEvent.getValue();
+
+        ResourcesEntry entry = (ResourcesEntry) event.getEntry();
+        if (!entry.getType().equals(Type.CPU)) {
+            return;
+        }
+
+        int status = tcEvent.getValue();
         if (status != StateValues.CPU_STATUS_RUN_USERMODE && status != StateValues.CPU_STATUS_RUN_SYSCALL) {
             return;
         }
-        ResourcesEntry entry = (ResourcesEntry) event.getEntry();
+
         ITmfStateSystem ss = entry.getTrace().getStateSystems().get(LttngKernelTrace.STATE_ID);
         long time = event.getTime();
         try {
@@ -33,9 +41,9 @@
                             gc.setForeground(gc.getDevice().getSystemColor(SWT.COLOR_WHITE));
                             long startTime = Math.max(tidInterval.getStartTime(), event.getTime());
                             long endTime = Math.min(tidInterval.getEndTime() + 1, event.getTime() + event.getDuration());
-                            if (fTimeGraphViewer.getXForTime(endTime) > bounds.x) {
-                                int x = Math.max(fTimeGraphViewer.getXForTime(startTime), bounds.x);
-                                int width = Math.min(fTimeGraphViewer.getXForTime(endTime), bounds.x + bounds.width) - x;
+                            if (drawingHelper.getXForTime(endTime) > bounds.x) {
+                                int x = Math.max(drawingHelper.getXForTime(startTime), bounds.x);
+                                int width = Math.min(drawingHelper.getXForTime(endTime), bounds.x + bounds.width) - x;
                                 int drawn = Utils.drawText(gc, value.unboxStr(), x + 1, bounds.y - 2, width - 1, true, true);
                                 if (drawn > 0) {
                                     fLastThreadId = currentThreadId;
@@ -50,9 +58,9 @@
                             gc.setForeground(gc.getDevice().getSystemColor(SWT.COLOR_WHITE));
                             long startTime = Math.max(tidInterval.getStartTime(), event.getTime());
                             long endTime = Math.min(tidInterval.getEndTime() + 1, event.getTime() + event.getDuration());
-                            if (fTimeGraphViewer.getXForTime(endTime) > bounds.x) {
-                                int x = Math.max(fTimeGraphViewer.getXForTime(startTime), bounds.x);
-                                int width = Math.min(fTimeGraphViewer.getXForTime(endTime), bounds.x + bounds.width) - x;
+                            if (drawingHelper.getXForTime(endTime) > bounds.x) {
+                                int x = Math.max(drawingHelper.getXForTime(startTime), bounds.x);
+                                int width = Math.min(drawingHelper.getXForTime(endTime), bounds.x + bounds.width) - x;
                                 Utils.drawText(gc, value.unboxStr().substring(4), x + 1, bounds.y - 2, width - 1, true, true);
                             }
                         }
@@ -60,7 +68,7 @@
                 }
                 time = tidInterval.getEndTime() + 1;
                 if (time < event.getTime() + event.getDuration()) {
-                    int x = fTimeGraphViewer.getXForTime(time);
+                    int x = drawingHelper.getXForTime(time);
                     if (x >= bounds.x) {
                         gc.setForeground(gc.getDevice().getSystemColor(SWT.COLOR_GRAY));
                         gc.drawLine(x, bounds.y + 1, x, bounds.y + bounds.height - 2);

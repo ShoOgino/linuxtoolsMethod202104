@@ -1,30 +1,13 @@
     @Override
     public int getStateTableIndex(ITimeEvent event) {
-        if (event instanceof ResourcesEvent) {
-            ResourcesEvent resourcesEvent = (ResourcesEvent) event;
-            if (resourcesEvent.getType() == Type.CPU) {
-                int status = resourcesEvent.getValue();
-                if (status == StateValues.CPU_STATUS_IDLE) {
-                    return State.IDLE.ordinal();
-                } else if (status == StateValues.CPU_STATUS_RUN_USERMODE) {
-                    return State.USERMODE.ordinal();
-                } else if (status == StateValues.CPU_STATUS_RUN_SYSCALL) {
-                    return State.SYSCALL.ordinal();
-                } else if (status == StateValues.CPU_STATUS_IRQ) {
-                    return State.IRQ.ordinal();
-                } else if (status == StateValues.CPU_STATUS_SOFTIRQ) {
-                    return State.SOFT_IRQ.ordinal();
-                }
-            } else if (resourcesEvent.getType() == Type.IRQ) {
-                return State.IRQ_ACTIVE.ordinal();
-            } else if (resourcesEvent.getType() == Type.SOFT_IRQ) {
-                int cpu = resourcesEvent.getValue();
-                if (cpu == StateValues.SOFT_IRQ_RAISED) {
-                    return State.SOFT_IRQ_RAISED.ordinal();
-                }
-                return State.SOFT_IRQ_ACTIVE.ordinal();
-            } else {
-                return INVISIBLE; // NULL
+        State state = getEventState(event);
+        if (state != null) {
+            return state.ordinal();
+        }
+        if (event instanceof TimeEvent) {
+            TimeEvent tcEvent = (TimeEvent) event;
+            if (tcEvent.hasValue()) {
+                return INVISIBLE;
             }
         }
         return TRANSPARENT;

@@ -1,29 +1,31 @@
-    private void buildEventList(final ITmfTrace trace, IProgressMonitor monitor) {
-        fStartTime = Long.MAX_VALUE;
-        fEndTime = Long.MIN_VALUE;
-        ArrayList<TraceEntry> entryList = new ArrayList<TraceEntry>();
-        for (ITmfTrace aTrace : TmfTraceManager.getTraceSet(trace)) {
+    @Override
+    protected void buildEventList(ITmfTrace trace, IProgressMonitor monitor) {
+        setStartTime(Long.MAX_VALUE);
+        setEndTime(Long.MIN_VALUE);
+
+        ArrayList<ResourcesEntry> entryList = new ArrayList<ResourcesEntry>();
+        for (ITmfTrace aTrace : fTraceManager.getActiveTraceSet()) {
             if (monitor.isCanceled()) {
                 return;
             }
             if (aTrace instanceof LttngKernelTrace) {
-                LttngKernelTrace ctfKernelTrace = (LttngKernelTrace) aTrace;
-                ITmfStateSystem ssq = ctfKernelTrace.getStateSystems().get(LttngKernelTrace.STATE_ID);
+                LttngKernelTrace lttngKernelTrace = (LttngKernelTrace) aTrace;
+                ITmfStateSystem ssq = lttngKernelTrace.getStateSystems().get(LttngKernelTrace.STATE_ID);
                 if (!ssq.waitUntilBuilt()) {
                     return;
                 }
                 long startTime = ssq.getStartTime();
                 long endTime = ssq.getCurrentEndTime() + 1;
-                TraceEntry groupEntry = new TraceEntry(ctfKernelTrace, aTrace.getName(), startTime, endTime);
+                ResourcesEntry groupEntry = new ResourcesEntry(lttngKernelTrace, aTrace.getName(), startTime, endTime, 0);
                 entryList.add(groupEntry);
-                fStartTime = Math.min(fStartTime, startTime);
-                fEndTime = Math.max(fEndTime, endTime);
+                setStartTime(Math.min(getStartTime(), startTime));
+                setEndTime(Math.max(getEndTime(), endTime));
                 List<Integer> cpuQuarks = ssq.getQuarks(Attributes.CPUS, "*"); //$NON-NLS-1$
                 ResourcesEntry[] cpuEntries = new ResourcesEntry[cpuQuarks.size()];
                 for (int i = 0; i < cpuQuarks.size(); i++) {
                     int cpuQuark = cpuQuarks.get(i);
                     int cpu = Integer.parseInt(ssq.getAttributeName(cpuQuark));
-                    ResourcesEntry entry = new ResourcesEntry(cpuQuark, ctfKernelTrace, Type.CPU, cpu);
+                    ResourcesEntry entry = new ResourcesEntry(cpuQuark, lttngKernelTrace, getStartTime(), getEndTime(), Type.CPU, cpu);
                     groupEntry.addChild(entry);
                     cpuEntries[i] = entry;
                 }
@@ -32,7 +34,7 @@
                 for (int i = 0; i < irqQuarks.size(); i++) {
                     int irqQuark = irqQuarks.get(i);
                     int irq = Integer.parseInt(ssq.getAttributeName(irqQuark));
-                    ResourcesEntry entry = new ResourcesEntry(irqQuark, ctfKernelTrace, Type.IRQ, irq);
+                    ResourcesEntry entry = new ResourcesEntry(irqQuark, lttngKernelTrace, getStartTime(), getEndTime(), Type.IRQ, irq);
                     groupEntry.addChild(entry);
                     irqEntries[i] = entry;
                 }
@@ -41,29 +43,28 @@
                 for (int i = 0; i < softIrqQuarks.size(); i++) {
                     int softIrqQuark = softIrqQuarks.get(i);
                     int softIrq = Integer.parseInt(ssq.getAttributeName(softIrqQuark));
-                    ResourcesEntry entry = new ResourcesEntry(softIrqQuark, ctfKernelTrace, Type.SOFT_IRQ, softIrq);
+                    ResourcesEntry entry = new ResourcesEntry(softIrqQuark, lttngKernelTrace, getStartTime(), getEndTime(), Type.SOFT_IRQ, softIrq);
                     groupEntry.addChild(entry);
                     softIrqEntries[i] = entry;
                 }
             }
         }
-        synchronized (fEntryListMap) {
-            fEntryListMap.put(trace, (ArrayList<TraceEntry>) entryList.clone());
-        }
-        if (trace == fTrace) {
+        putEntryList(trace, (ArrayList<TimeGraphEntry>) entryList.clone());
+
+        if (trace.equals(getTrace())) {
             refresh();
         }
-        for (TraceEntry traceEntry : entryList) {
+        for (ResourcesEntry traceEntry : entryList) {
             if (monitor.isCanceled()) {
                 return;
             }
-            LttngKernelTrace ctfKernelTrace = traceEntry.getTrace();
-            ITmfStateSystem ssq = ctfKernelTrace.getStateSystems().get(LttngKernelTrace.STATE_ID);
+            LttngKernelTrace lttngKernelTrace = traceEntry.getTrace();
+            ITmfStateSystem ssq = lttngKernelTrace.getStateSystems().get(LttngKernelTrace.STATE_ID);
             long startTime = ssq.getStartTime();
             long endTime = ssq.getCurrentEndTime() + 1;
-            long resolution = (endTime - startTime) / fDisplayWidth;
-            for (ResourcesEntry entry : traceEntry.getChildren()) {
-                List<ITimeEvent> eventList = getEventList(entry, startTime, endTime, resolution, false, monitor);
+            long resolution = (endTime - startTime) / getDisplayWidth();
+            for (TimeGraphEntry entry : traceEntry.getChildren()) {
+                List<ITimeEvent> eventList = getEventList(entry, startTime, endTime, resolution, monitor);
                 entry.setEventList(eventList);
                 redraw();
             }

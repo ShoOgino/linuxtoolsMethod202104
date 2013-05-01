@@ -1,0 +1,31 @@
+    private static State getEventState(ITimeEvent event) {
+        if (event instanceof TimeEvent && ((TimeEvent) event).hasValue()) {
+            TimeEvent tcEvent = (TimeEvent) event;
+
+            ResourcesEntry entry = (ResourcesEntry) event.getEntry();
+            int value = tcEvent.getValue();
+
+            if (entry.getType() == Type.CPU) {
+                if (value == StateValues.CPU_STATUS_IDLE) {
+                    return State.IDLE;
+                } else if (value == StateValues.CPU_STATUS_RUN_USERMODE) {
+                    return State.USERMODE;
+                } else if (value == StateValues.CPU_STATUS_RUN_SYSCALL) {
+                    return State.SYSCALL;
+                } else if (value == StateValues.CPU_STATUS_IRQ) {
+                    return State.IRQ;
+                } else if (value == StateValues.CPU_STATUS_SOFTIRQ) {
+                    return State.SOFT_IRQ;
+                }
+            } else if ((entry.getType() == Type.IRQ) && (tcEvent.hasValue()) && (value != ResourcesView.NO_VALUE_EVENT)) {
+                return State.IRQ_ACTIVE;
+            } else if ((entry.getType() == Type.SOFT_IRQ) && (tcEvent.hasValue()) && (value != ResourcesView.NO_VALUE_EVENT)) {
+                if (value == StateValues.SOFT_IRQ_RAISED) {
+                    return State.SOFT_IRQ_RAISED;
+                }
+                return State.SOFT_IRQ_ACTIVE;
+            }
+        }
+        return null;
+    }
+

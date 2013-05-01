@@ -1,0 +1,32 @@
+    /**
+     * Redraw the canvas
+     */
+    protected void redraw() {
+        synchronized (fSyncObj) {
+            if (fRedrawState == State.IDLE) {
+                fRedrawState = State.BUSY;
+            } else {
+                fRedrawState = State.PENDING;
+                return;
+            }
+        }
+        Display.getDefault().asyncExec(new Runnable() {
+            @Override
+            public void run() {
+                if (fTimeGraphCombo.isDisposed()) {
+                    return;
+                }
+                fTimeGraphCombo.redraw();
+                fTimeGraphCombo.update();
+                synchronized (fSyncObj) {
+                    if (fRedrawState == State.PENDING) {
+                        fRedrawState = State.IDLE;
+                        redraw();
+                    } else {
+                        fRedrawState = State.IDLE;
+                    }
+                }
+            }
+        });
+    }
+
