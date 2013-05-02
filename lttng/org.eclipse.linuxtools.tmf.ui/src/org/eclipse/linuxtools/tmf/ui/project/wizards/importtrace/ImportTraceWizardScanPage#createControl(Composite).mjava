@@ -1,0 +1,53 @@
+    @Override
+    public void createControl(Composite parent) {
+        super.createControl(parent);
+        final Composite control = (Composite) this.getControl();
+        traceTypeViewer = new CheckboxTreeViewer(control, SWT.CHECK);
+        traceTypeViewer.setContentProvider(getBatchWizard().getScannedTraces());
+        traceTypeViewer.getTree().setHeaderVisible(true);
+        traceTypeViewer.getControl().setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+        traceTypeViewer.setInput(getBatchWizard().getScannedTraces());
+        traceTypeViewer.addCheckStateListener(new ImportTraceCheckStateListener());
+
+        TreeViewerFocusCellManager focusCellManager = new TreeViewerFocusCellManager(traceTypeViewer, new FocusCellOwnerDrawHighlighter(traceTypeViewer));
+        ColumnViewerEditorActivationStrategy actSupport = new ColumnViewerEditorActivationStrategy(traceTypeViewer) {
+        };
+        TreeViewerEditor.create(traceTypeViewer, focusCellManager, actSupport, ColumnViewerEditor.TABBING_HORIZONTAL
+                | ColumnViewerEditor.TABBING_MOVE_TO_ROW_NEIGHBOR
+                | ColumnViewerEditor.TABBING_VERTICAL | ColumnViewerEditor.KEYBOARD_ACTIVATION);
+
+        final TextCellEditor textCellEditor = new TextCellEditor(traceTypeViewer.getTree());
+        // --------------------
+        // Column 1
+        // --------------------
+        TreeViewerColumn column = new TreeViewerColumn(traceTypeViewer, SWT.NONE);
+        column.getColumn().setWidth(200);
+        column.getColumn().setText(Messages.ImportTraceWizardImportCaption);
+        column.setLabelProvider(new FirstColumnLabelProvider());
+        column.setEditingSupport(new ColumnEditorSupport(traceTypeViewer, textCellEditor));
+
+        // --------------------
+        // Column 2
+        // --------------------
+
+        column = new TreeViewerColumn(traceTypeViewer, SWT.NONE);
+        column.getColumn().setWidth(200);
+        column.getColumn().setText(Messages.ImportTraceWizardTraceDisplayName);
+        column.setLabelProvider(new ColumnLabelProvider() {
+            @Override
+            public String getText(Object element) {
+                if (element instanceof FileAndName) {
+                    FileAndName elem = (FileAndName) element;
+                    return elem.getFile().getPath();
+                }
+                return null;
+            }
+        });
+
+        init();
+        getBatchWizard().setTracesToScan(fTracesToScan);
+        getBatchWizard().setTraceFolder(fTargetFolder);
+        getBatchWizard().getNMContainer().backgroundRun(this, fRunnable);
+        setErrorMessage(Messages.ImportTraceWizardScanPage_SelectAtleastOne);
+    }
+

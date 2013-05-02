@@ -1,0 +1,78 @@
+        @Override
+        public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
+            fMonitor = monitor;
+            final Control control = traceTypeViewer.getControl();
+            control.getDisplay().syncExec(new Runnable() {
+                @Override
+                public void run() {
+                    fMonitor = SubMonitor.convert(getMonitor());
+                    getMonitor().setTaskName(Messages.ImportTraceWizardPageScan_scanning + " "); //$NON-NLS-1$
+                    ((SubMonitor) getMonitor()).setWorkRemaining(IProgressMonitor.UNKNOWN);
+                }
+            });
+
+            while (fCanRun == true) {
+                boolean updated = false;
+                boolean validCombo;
+                if (fTracesToScan.isEmpty() && !control.isDisposed()) {
+                    control.getDisplay().asyncExec(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            if (!control.isDisposed()) {
+                                getMonitor().setTaskName(Messages.ImportTraceWizardPageScan_scanning + " "); //$NON-NLS-1$
+                                getMonitor().subTask(Messages.ImportTraceWizardPageScan_done);
+                            }
+                        }
+                    });
+                }
+                final TraceValidationHelper traceToScan = fTracesToScan.take();
+
+                if (!getBatchWizard().hasScanned(traceToScan)) {
+                    getBatchWizard().addResult(traceToScan, TmfTraceType.getInstance().validate(traceToScan));
+                }
+                validCombo = getBatchWizard().getResult(traceToScan);
+                if (validCombo) {
+                    // Synched on it's parent
+
+                    getBatchWizard().getScannedTraces().addCandidate(traceToScan.getTraceType(), new File(traceToScan.getTraceToScan()));
+                    updated = true;
+                }
+                // position++;
+
+                if (updated) {
+                    if (!control.isDisposed()) {
+                        control.getDisplay().asyncExec(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (!control.isDisposed()) {
+                                    getMonitor().setTaskName(Messages.ImportTraceWizardPageScan_scanning + " "); //$NON-NLS-1$
+                                    getMonitor().subTask(traceToScan.getTraceToScan());
+                                    getMonitor().worked(1);
+                                }
+                            }
+                        }
+                                );
+                    }
+                }
+
+                final boolean editing = traceTypeViewer.isCellEditorActive();
+                if (updated && !editing)
+                {
+                    if (!control.isDisposed()) {
+                        control.getDisplay().asyncExec(new Runnable() {
+
+                            @Override
+                            public void run() {
+                                if (!control.isDisposed()) {
+                                    if (!traceTypeViewer.isCellEditorActive()) {
+                                        traceTypeViewer.refresh();
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        }
+

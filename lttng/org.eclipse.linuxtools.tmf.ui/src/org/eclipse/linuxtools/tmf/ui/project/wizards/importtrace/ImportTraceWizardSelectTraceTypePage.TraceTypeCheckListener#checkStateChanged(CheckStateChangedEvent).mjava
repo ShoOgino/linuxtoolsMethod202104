@@ -1,0 +1,33 @@
+        @Override
+        public void checkStateChanged(CheckStateChangedEvent event) {
+
+            boolean checkStatus = event.getChecked();
+            Object element = event.getElement();
+
+            fTreeView.setGrayed(element, false);
+            fTreeView.setSubtreeChecked(element, checkStatus);
+            ITreeContentProvider tcp = (ITreeContentProvider) fTreeView.getContentProvider();
+            String parentElement = (String) tcp.getParent(element);
+            if (parentElement != null) {
+                String[] siblings = (String[]) tcp.getChildren(parentElement);
+                final String first = siblings[0];
+                final boolean isFirstChecked = fTreeView.getChecked(first);
+                boolean allSame = true;
+                for (String peer : siblings) {
+                    final boolean peerChecked = fTreeView.getChecked(peer);
+                    if (peerChecked != isFirstChecked) {
+                        allSame = false;
+                    }
+                }
+                if (allSame) {
+                    fTreeView.setGrayed(parentElement, false);
+                    fTreeView.setChecked(parentElement, checkStatus);
+                } else {
+                    fTreeView.setChecked(parentElement, false);
+                    fTreeView.setGrayed(parentElement, true);
+                }
+            }
+            getWizard().getContainer().updateButtons();
+
+        }
+

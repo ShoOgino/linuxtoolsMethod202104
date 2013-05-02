@@ -1,0 +1,44 @@
+    /*
+     * I am a job. Make me work
+     */
+    private synchronized IStatus updateFiles(IProgressMonitor monitor) {
+        final Set<String> filesToScan = new TreeSet<String>();
+        final String[] parentFiles = fParentFilesToScan.toArray(new String[0]);
+        final String[] traceTypes = fTraceTypesToScan.toArray(new String[0]);
+        int workToDo = 1;
+        for (String name : parentFiles) {
+
+            final File file = new File(name);
+            final File[] listFiles = file.listFiles();
+            if (listFiles != null) {
+                workToDo += listFiles.length;
+            }
+        }
+        int step = TOTALWORK / workToDo;
+        try {
+            for (String name : parentFiles) {
+                final File fileToAdd = new File(name);
+                recurse(filesToScan, fileToAdd, monitor, step);
+            }
+
+            for (String fileToScan : filesToScan) {
+                for (String traceCat : traceTypes) {
+                    TraceValidationHelper tv = new TraceValidationHelper(fileToScan, traceCat);
+                    // for thread safety, keep checks in this order.
+                    if (!fResults.containsKey(tv)) {
+                        if (!fTracesToScan.contains(tv)) {
+                            fTracesToScan.put(tv);
+                            monitor.subTask(tv.getTraceToScan());
+                        }
+                    }
+                }
+            }
+        } catch (InterruptedException e) {
+            monitor.done();
+            return new Status(IStatus.ERROR, Activator.PLUGIN_ID, e.getMessage(), e);
+        }
+
+        monitor.done();
+        return Status.OK_STATUS;
+    }
+

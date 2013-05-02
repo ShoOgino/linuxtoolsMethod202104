@@ -1,0 +1,51 @@
+    @Override
+    public boolean validateSourceGroup() {
+
+        File sourceDirectory = getSourceDirectory();
+        if (sourceDirectory == null) {
+            setMessage(Messages.ImportTraceWizard_SelectTraceSourceEmpty);
+            return false;
+        }
+
+        if (sourceConflictsWithDestination(new Path(sourceDirectory.getPath()))) {
+            setMessage(null);
+            setErrorMessage(getSourceConflictMessage());
+            return false;
+        }
+
+        List<FileSystemElement> resourcesToImport = getSelectedResources();
+        if (resourcesToImport.size() == 0) {
+            setMessage(null);
+            setErrorMessage(Messages.ImportTraceWizard_SelectTraceNoneSelected);
+            return false;
+        }
+
+        IContainer container = getSpecifiedContainer();
+        if (container != null && container.isVirtual()) {
+            if (Platform.getPreferencesService().getBoolean(Activator.PLUGIN_ID, ResourcesPlugin.PREF_DISABLE_LINKING, false, null)) {
+                setMessage(null);
+                setErrorMessage(Messages.ImportTraceWizard_CannotImportFilesUnderAVirtualFolder);
+                return false;
+            }
+            if (createLinksInWorkspaceButton == null || !createLinksInWorkspaceButton.getSelection()) {
+                setMessage(null);
+                setErrorMessage(Messages.ImportTraceWizard_HaveToCreateLinksUnderAVirtualFolder);
+                return false;
+            }
+        }
+
+        // Perform trace validation
+        String traceTypeName = fTraceTypes.getText();
+        String tokens[] = traceTypeName.split(":", 2); //$NON-NLS-1$
+        if (tokens.length >= 2) {
+            String id = TmfTraceType.getInstance().getTraceTypeId(tokens[0], tokens[1]);
+            if (!TmfTraceType.getInstance().validateTrace(id, getSelectedResources())) {
+                setMessage(null);
+                setErrorMessage(Messages.ImportTraceWizard_TraceValidationFailed);
+                return false;
+            }
+        }
+        setErrorMessage(null);
+        return true;
+    }
+

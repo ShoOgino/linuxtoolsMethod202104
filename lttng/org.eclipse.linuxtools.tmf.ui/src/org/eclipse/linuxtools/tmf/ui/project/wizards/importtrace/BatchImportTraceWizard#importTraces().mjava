@@ -1,0 +1,37 @@
+    private boolean importTraces() {
+        boolean success = false;
+        IOverwriteQuery overwriteQuery = new IOverwriteQuery() {
+            @Override
+            public String queryOverwrite(String file) {
+                return fOverwrite ? IOverwriteQuery.ALL : IOverwriteQuery.NO_ALL;
+            }
+        };
+        FileSystemStructureProvider fileSystemStructureProvider = FileSystemStructureProvider.INSTANCE;
+
+        for (FileAndName traceToImport : fTraces) {
+            try {
+                if (fLinked) {
+                    createLink(fTargetFolder, Path.fromOSString(traceToImport.getFile().getAbsolutePath()), traceToImport.getName());
+                    setTraceType(traceToImport);
+                    success = true;
+                }
+                else {
+                    List<File> subList = new ArrayList<File>();
+                    subList.add(traceToImport.getFile());
+                    IPath path = fTargetFolder.getFullPath().append(traceToImport.getName());
+                    final File parentFile = traceToImport.getFile().getParentFile();
+                    ImportOperation operation = new ImportOperation(path,
+                            parentFile, fileSystemStructureProvider, overwriteQuery,
+                            subList);
+                    operation.setContext(getShell());
+                    if (executeImportOperation(operation)) {
+                        setTraceType(traceToImport);
+                        success = true;
+                    }
+                }
+            } catch (Exception e) {
+            }
+        }
+        return success;
+    }
+

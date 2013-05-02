@@ -1,0 +1,30 @@
+    private void populateCategoriesAndTraceTypes() {
+        if (fTraceTypes.isEmpty()) {
+            // Populate the Categories and Trace Types
+            IConfigurationElement[] config = Platform.getExtensionRegistry().getConfigurationElementsFor(TmfTraceType.TMF_TRACE_TYPE_ID);
+            for (IConfigurationElement ce : config) {
+                String elementName = ce.getName();
+                if (elementName.equals(TmfTraceType.TYPE_ELEM)) {
+                    String traceTypeId = ce.getAttribute(TmfTraceType.ID_ATTR);
+                    fTraceTypeAttributes.put(traceTypeId, ce);
+                } else if (elementName.equals(TmfTraceType.CATEGORY_ELEM)) {
+                    String categoryId = ce.getAttribute(TmfTraceType.ID_ATTR);
+                    fTraceCategories.put(categoryId, ce);
+                }
+            }
+            // create the trace types
+            for (String typeId : fTraceTypeAttributes.keySet()) {
+                IConfigurationElement ce = fTraceTypeAttributes.get(typeId);
+                final String category = getCategory(ce);
+                final String attribute = ce.getAttribute(TmfTraceType.NAME_ATTR);
+                ITmfTrace trace = null;
+                try {
+                    trace = (ITmfTrace) ce.createExecutableExtension(TmfTraceType.TRACE_TYPE_ATTR);
+                } catch (CoreException e) {
+                }
+                TraceTypeHelper tt = new TraceTypeHelper(typeId, category, attribute, trace);
+                fTraceTypes.put(typeId, tt);
+            }
+        }
+    }
+
