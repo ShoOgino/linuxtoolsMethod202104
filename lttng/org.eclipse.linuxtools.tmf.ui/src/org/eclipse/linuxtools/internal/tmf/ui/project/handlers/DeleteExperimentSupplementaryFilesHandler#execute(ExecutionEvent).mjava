@@ -29,19 +29,26 @@
 
             if (element instanceof TmfExperimentElement) {
 
-                TmfExperimentElement trace = (TmfExperimentElement) element;
+                TmfExperimentElement experiment = (TmfExperimentElement) element;
 
-                IResource[] resources = trace.getSupplementaryResources();
+                IResource[] resources = experiment.getSupplementaryResources();
                 resourcesList.addAll(Arrays.asList(resources));
 
-                for (TmfTraceElement aTrace : trace.getTraces()) {
+                // Map to know which trace to close for each resource
+                HashMap<IResource, TmfTraceElement> traceMap = new HashMap<IResource, TmfTraceElement>();
+
+                for (TmfTraceElement aTrace : experiment.getTraces()) {
 
                     // If trace is under an experiment, use the original trace from the traces folder
                     aTrace = aTrace.getElementUnderTraceFolder();
 
-                    // Delete the selected resources
+                    // Add the trace supplementary resources for the dialog
                     resources = aTrace.getSupplementaryResources();
                     resourcesList.addAll(Arrays.asList(resources));
+
+                    for (IResource resource : resources) {
+                        traceMap.put(resource, aTrace);
+                    }
                 }
 
                 SelectSupplementaryResourcesDialog dialog = new SelectSupplementaryResourcesDialog(window.getShell(), resourcesList.toArray(new IResource[resourcesList.size()]));
@@ -52,15 +59,17 @@
 
                 IResource[] resourcesToDelete = dialog.getResources();
 
-                for (int i = 0; i < resourcesToDelete.length; i++) {
+                // Delete the selected resources
+                for (IResource resource : resourcesToDelete) {
+                    traceMap.get(resource).closeEditors();
                     try {
-                        resourcesToDelete[i].delete(true, new NullProgressMonitor());
+                        resource.delete(true, new NullProgressMonitor());
                     } catch (CoreException e) {
-                        Activator.getDefault().logError("Error deleting supplementary resource " + resourcesToDelete[i], e); //$NON-NLS-1$
+                        Activator.getDefault().logError("Error deleting supplementary resource " + resource, e); //$NON-NLS-1$
                     }
                 }
 
-                IResource resource = trace.getProject().getResource();
+                IResource resource = experiment.getProject().getResource();
                 if (resource != null) {
                     try {
                         resource.refreshLocal(IResource.DEPTH_INFINITE, null);
