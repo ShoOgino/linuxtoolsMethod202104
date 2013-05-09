@@ -1,17 +1,34 @@
     @Override
     public IPropertyDescriptor[] getPropertyDescriptors() {
         List<IPropertyDescriptor> descriptors= new ArrayList<IPropertyDescriptor>();
+
+        /* Display basic event information */
         descriptors.add(new ReadOnlyTextPropertyDescriptor(ID_TIMESTAMP, NAME_TIMESTAMP));
         descriptors.add(new ReadOnlyTextPropertyDescriptor(ID_SOURCE, NAME_SOURCE));
         descriptors.add(new ReadOnlyTextPropertyDescriptor(ID_TYPE, NAME_TYPE));
         descriptors.add(new ReadOnlyTextPropertyDescriptor(ID_REFERENCE, NAME_REFERENCE));
+
+        /* Display event fields */
+        descriptors.add(new ReadOnlyTextPropertyDescriptor(ID_CONTENT, NAME_CONTENT));
+
+        /* Display source lookup information, if the event supplies it */
         if ((fEvent instanceof ITmfSourceLookup) && (((ITmfSourceLookup)fEvent).getCallsite() != null)) {
             descriptors.add(new ReadOnlyTextPropertyDescriptor(ID_SOURCE_LOOKUP, NAME_SOURCE_LOOKUP));
         }
-        if ((fEvent instanceof ITmfModelLookup) && (((ITmfModelLookup)fEvent).getModelUri() != null)) {
+
+        /* Display Model URI information, if the event supplies it */
+        if ((fEvent instanceof ITmfModelLookup) && (((ITmfModelLookup) fEvent).getModelUri() != null)) {
             descriptors.add(new ReadOnlyTextPropertyDescriptor(ID_MODEL_URI, NAME_MODEL_URI));
         }
-        descriptors.add(new ReadOnlyTextPropertyDescriptor(ID_CONTENT, NAME_CONTENT));
+
+        /* Display custom attributes, if available */
+        if (fEvent instanceof ITmfCustomAttributes) {
+            ITmfCustomAttributes event = (ITmfCustomAttributes) fEvent;
+            if (event.listCustomAttributes() != null && !event.listCustomAttributes().isEmpty()) {
+                descriptors.add(new ReadOnlyTextPropertyDescriptor(ID_CUSTOM_ATTRIBUTE, NAME_CUSTOM_ATTRIBUTES));
+            }
+        }
+
         return descriptors.toArray(new IPropertyDescriptor[0]);
     }
 
