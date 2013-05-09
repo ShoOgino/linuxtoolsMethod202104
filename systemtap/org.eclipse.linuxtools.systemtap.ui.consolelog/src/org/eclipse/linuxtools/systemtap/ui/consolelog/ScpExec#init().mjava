@@ -4,19 +4,32 @@
 				.getString(ConsoleLogPreferenceConstants.SCP_USER);
 		String host = ConsoleLogPlugin.getDefault().getPreferenceStore()
 				.getString(ConsoleLogPreferenceConstants.HOST_NAME);
-		String password = ConsoleLogPlugin.getDefault()
-				.getPreferenceStore()
-				.getString(ConsoleLogPreferenceConstants.SCP_PASSWORD);
-
 		try {
-			channel = SystemtapProcessFactory.execRemote(
-					new String[] { command }, System.out, System.err, user, host, password);
+			JSch jsch = new JSch();
+
+			session = jsch.getSession(user, host, 22);
+
+			session.setPassword(ConsoleLogPlugin.getDefault()
+					.getPreferenceStore()
+					.getString(ConsoleLogPreferenceConstants.SCP_PASSWORD));
+
+			java.util.Properties config = new java.util.Properties();
+			config.put("StrictHostKeyChecking", "no"); //$NON-NLS-1$//$NON-NLS-2$
+			session.setConfig(config);
+			session.connect();
+			channel = session.openChannel("exec"); //$NON-NLS-1$
+			((ChannelExec) channel).setCommand(command);
+
+			channel.setInputStream(null, true);
+			channel.setOutputStream(System.out, true);
+			channel.setExtOutputStream(System.err, true);
 
 			errorGobbler = new StreamGobbler(channel.getExtInputStream());
 			inputGobbler = new StreamGobbler(channel.getInputStream());
 
 			this.transferListeners();
 			return Status.OK_STATUS;
+
 		} catch (JSchException e) {
 			IStatus status = new Status(IStatus.ERROR, ConsoleLogPlugin.PLUGIN_ID, Messages.ScpExec_FileTransferFailed, e);
 			ErrorDialog.openError(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), Messages.ScpExec_Error, e.getMessage(), status);
