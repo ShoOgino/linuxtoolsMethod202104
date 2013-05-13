@@ -1,0 +1,39 @@
+	@BeforeClass
+	public static void setUpWorkbench() throws Exception {
+		SWTWorkbenchBot bot = new SWTWorkbenchBot();
+		try {
+			bot.viewByTitle("Welcome").close();
+			// hide Subclipse Usage stats popup if present/installed
+			bot.shell("Subclipse Usage").activate();
+			bot.button("Cancel").click();
+		} catch (WidgetNotFoundException e) {
+			// ignore
+		}
+
+		// Set C/C++ perspective.
+		bot.perspectiveByLabel("C/C++").activate();
+		bot.sleep(500);
+		for (SWTBotShell sh : bot.shells()) {
+			if (sh.getText().startsWith("C/C++")) {
+				sh.activate();
+				bot.sleep(500);
+				break;
+			}
+		}
+
+		// Turn off automatic building by default to avoid timing issues
+		SWTBotMenu windowsMenu = bot.menu("Window");
+		windowsMenu.menu("Preferences").click();
+		SWTBotShell shell = bot.shell("Preferences");
+		shell.activate();
+		bot.tree().expandNode("General").select("Workspace");
+		SWTBotCheckBox buildAuto = bot.checkBox("Build automatically");
+		if (buildAuto != null && buildAuto.isChecked()) {
+			buildAuto.click();
+		}
+		bot.sleep(1000);
+		bot.button("Apply").click();
+		bot.button("OK").click();
+		bot.waitUntil(shellCloses(shell));
+	}
+

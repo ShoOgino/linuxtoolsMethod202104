@@ -1,0 +1,55 @@
+	@Test
+	public void runPerfViewTest() throws Exception {
+		SWTWorkbenchBot bot = new SWTWorkbenchBot();
+
+		/*
+		 * - Method returns when the build is complete -
+		 * AbstractTest#createProjectAndBuild builds a single executable binary
+		 * under "Binaries".
+		 */
+		proj = createProjectAndBuild(FrameworkUtil.getBundle(this.getClass()),
+				PROJ_NAME);
+
+		// Focus on project explorer view.
+		bot.viewByTitle("Project Explorer").bot();
+		bot.activeShell();
+		SWTBotTree treeBot = bot.tree();
+		treeBot.setFocus();
+
+		// Select project binary.
+		treeBot.expandNode(PROJ_NAME).expandNode("Binaries").getNode(0).select();
+
+		// Launch configuration strings
+		String menuItem = "Profiling Tools";
+		String configMenuTitle = "Profiling Tools Configurations";
+		String subMenuItem = configMenuTitle + "...";
+
+		// Open profiling configurations dialog
+		MenuItem menu = ContextMenuHelper.contextMenu(treeBot, menuItem, subMenuItem);
+		click(menu);
+
+		bot.shell(configMenuTitle).activate();
+
+		// Create new Perf configuration
+		SWTBotTree profilingConfigs = bot.tree();
+		SWTBotTree perfNode = profilingConfigs.select("Profile with Perf");
+		perfNode.contextMenu("New").click();
+
+		// Activate options tab
+		bot.cTabItem("Perf Options").activate();
+
+		setPerfOptions(bot);
+
+		bot.button("Apply").click();
+
+		if (PerfCore.checkPerfInPath()) {
+			bot.button("Profile").click();
+
+		} else {
+			bot.button("Close").click();
+			openStubView();
+		}
+
+		testPerfView();
+	}
+
