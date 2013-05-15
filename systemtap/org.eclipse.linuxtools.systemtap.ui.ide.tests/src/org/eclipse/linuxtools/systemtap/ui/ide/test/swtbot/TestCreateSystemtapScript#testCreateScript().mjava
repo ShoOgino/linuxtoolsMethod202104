@@ -1,5 +1,43 @@
 	@Test
 	public void testCreateScript(){
-		createScript(bot, "testScript.stp");
+		String scriptName = "testScript.stp";
+		createScript(bot, scriptName);
+
+		// Write a script
+		SWTBotEclipseEditor editor = bot.editorByTitle(scriptName).toTextEditor();
+		editor.typeText(0, editor.getText().length(), "\nprobe begin{log(\"began");
+		editor.save();
+
+		// Focus on project explorer view.
+		bot.viewByTitle("Project Explorer").setFocus();
+		bot.activeShell();
+		SWTBotTree treeBot = bot.tree();
+		treeBot.setFocus();
+		SWTBotTreeItem node = treeBot.expandNode((SYSTEMTAP_PROJECT_NAME));
+		bot.waitUntil(new NodeAvaiable(node, scriptName));
+
+		treeBot.expandNode(SYSTEMTAP_PROJECT_NAME).expand().select(scriptName);
+
+		MenuItem menu = ContextMenuHelper.contextMenu(treeBot, "Run As", "Run Configurations...");
+		click(menu);
+
+		SWTBotShell shell = bot.shell("Run Configurations");
+
+		SWTBotTree runConfigurationsTree = bot.tree();
+		runConfigurationsTree.select("SystemTap").contextMenu("New").click();
+
+		bot.button("Run").click();
+		bot.waitUntil(new ShellIsClosed(shell));
+
+		SWTBotView console = bot.viewByTitle("Console");
+		console.setFocus();
+
+		try {
+			bot.button("Stop Script").click();
+		} catch (WidgetNotFoundException e) {
+			//ignore
+		}
+
+		assert(console.bot().label().getText().contains(scriptName));
 	}
 
