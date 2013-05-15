@@ -1,0 +1,30 @@
+    /**
+     * Test, with two traces in parallel, when we select a time range that is
+     * only partially valid for both traces.
+     *
+     * Each trace's time range should get clamped to respectively valid ranges.
+     */
+    @Test
+    public void testTwoTracesTimeRangeInBoth() {
+        openTrace(trace1);
+        openTrace(trace2);
+        selectTrace(trace1);
+        TmfTimeRange range = new TmfTimeRange(
+                new TmfTimestamp(t1end - ONE_SECOND, SCALE),
+                new TmfTimestamp(t2start + ONE_SECOND, SCALE));
+        selectTimeRange(range);
+
+        /* Range of trace1 should be clamped to its end time */
+        TmfTimeRange expectedRange = new TmfTimeRange(
+                new TmfTimestamp(t1end - ONE_SECOND, SCALE),
+                new TmfTimestamp(t1end, SCALE));
+        assertEquals(expectedRange, tm.getCurrentRange());
+
+        /* Range of trace2 should be clamped to its start time */
+        selectTrace(trace2);
+        expectedRange = new TmfTimeRange(
+                new TmfTimestamp(t2start, SCALE),
+                new TmfTimestamp(t2start + ONE_SECOND, SCALE));
+        assertEquals(expectedRange, tm.getCurrentRange());
+    }
+
