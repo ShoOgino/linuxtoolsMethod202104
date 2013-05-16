@@ -7,7 +7,7 @@
      * @param mouseWheel Flag to force scrollView to handles mouse wheel
      */
     public ScrollView(Composite c, int style, boolean mouseWheel) {
-        super(c, SWT.NONE); // style&(~(SWT.H_SCROLL|SWT.V_SCROLL)));
+        super(c, SWT.NONE);
 
         fHorScrollBar = new Canvas(this, SWT.H_SCROLL);
         if (mouseWheel) {
@@ -23,10 +23,6 @@
             fViewControl.getHorizontalBar().setVisible(false);
         }
         fVertScrollBar = new Canvas(this, SWT.V_SCROLL);
-        // make fVerScrollBar able to receive mouse wheel
-        // does not help as we can't set a MouseListener on fVerScrollBar.getVerticalBar()
-        // to set focus on viewcontrol_
-        // fVerScrollBar.addKeyListener( new KeyAdapter() {});
 
         setLayout(new SVLayout());
 
@@ -105,8 +101,10 @@
             @Override
             public void mouseDown(MouseEvent e) {
                 int ox = e.x, oy = e.y;
-                e.x = fMouseDownX = viewToContentsX(e.x);
-                e.y = fMousDownY = viewToContentsY(e.y);
+                e.x = viewToContentsX(e.x);
+                fMouseDownX = e.x;
+                e.y = viewToContentsY(e.y);
+                fMousDownY = e.y;
                 contentsMouseDownEvent(e);
                 e.x = ox;
                 e.y = oy;
@@ -120,8 +118,9 @@
                 contentsMouseUpEvent(e);
                 e.x = ox;
                 e.y = oy;
-                // here because class extenting me can catch mouse Up and want to scroll...
-                fMouseDownX = fMousDownY = -1;
+                // here because class extending me can catch mouse Up and want to scroll...
+                fMouseDownX = -1;
+                fMousDownY = -1;
             }
         };
         fViewControl.addMouseListener(fLocalMouseListener);
