@@ -1,0 +1,19 @@
+    private IStatus updateScanQueue(IProgressMonitor monitor, final Set<String> filesToScan, final List<String> traceTypes) throws InterruptedException {
+        for (String fileToScan : filesToScan) {
+            for (String traceCat : traceTypes) {
+                TraceValidationHelper tv = new TraceValidationHelper(fileToScan, traceCat);
+                // for thread safety, keep checks in this order.
+                if (!fResults.containsKey(tv)) {
+                    if (!fTracesToScan.contains(tv)) {
+                        fTracesToScan.put(tv);
+                        monitor.subTask(tv.getTraceToScan());
+                        if (monitor.isCanceled()) {
+                            return CANCEL_STATUS;
+                        }
+                    }
+                }
+            }
+        }
+        return Status.OK_STATUS;
+    }
+

@@ -3,6 +3,7 @@
      */
     private synchronized IStatus updateFiles(IProgressMonitor monitor, String traceToScan) {
         final Set<String> filesToScan = new TreeSet<String>();
+
         int workToDo = 1;
         for (String name : fParentFiles.keySet()) {
 
@@ -29,22 +30,10 @@
                 filesToScan.addAll(fParentFiles.get(name));
                 fParentFilesToScan.add(name);
             }
-            for (String fileToScan : filesToScan) {
-                for (String traceCat : fTraceTypesToScan) {
-                    TraceValidationHelper tv = new TraceValidationHelper(fileToScan, traceCat);
-                    // for thread safety, keep checks in this order.
-                    if (!fResults.containsKey(tv)) {
-                        if (!fTracesToScan.contains(tv)) {
-                            fTracesToScan.put(tv);
-                            monitor.subTask(tv.getTraceToScan());
-                            if (monitor.isCanceled()) {
-                                fParentFilesToScan.remove(traceToScan);
-                                fParentFiles.remove(traceToScan);
-                                return CANCEL_STATUS;
-                            }
-                        }
-                    }
-                }
+            IStatus cancelled = updateScanQueue(monitor, filesToScan, fTraceTypesToScan);
+            if (cancelled.matches(IStatus.CANCEL)) {
+                fParentFilesToScan.remove(traceToScan);
+                fParentFiles.remove(traceToScan);
             }
         } catch (InterruptedException e) {
             monitor.done();
