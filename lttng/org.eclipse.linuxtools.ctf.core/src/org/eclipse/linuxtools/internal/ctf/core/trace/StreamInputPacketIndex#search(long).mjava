@@ -21,7 +21,7 @@
         /*
          * If the index is empty, return the iterator at the very beginning.
          */
-        if( this.getEntries().isEmpty()) {
+        if (this.getEntries().isEmpty()) {
             return this.getEntries().listIterator();
         }
 
@@ -53,12 +53,30 @@
                  * the packet to return is before the guess.
                  */
                 max = guessI - 1;
-            } else if (timestamp >= guessEntry.getTimestampBegin()) {
+            } else if (timestamp > guessEntry.getTimestampBegin()) {
                 /*
                  * If the timestamp is after the begin timestamp, we know that
                  * the packet to return is after the guess or is the guess.
                  */
                 min = guessI;
+            } else if (timestamp == guessEntry.getTimestampBegin()) {
+                /*
+                 * If the timestamp is equal to the begin timestamp, we want to
+                 * return the first packetIndexEntry that have this timestamp.
+                 */
+                if (guessI > 0) {
+                    StreamInputPacketIndexEntry previousGuessEntry = this.entries.get(guessI - 1);
+                    while (guessI > 0 && guessEntry.getTimestampBegin() == previousGuessEntry.getTimestampBegin()) {
+                        guessEntry = previousGuessEntry;
+                        guessI--;
+                        if (guessI - 1 >= 0) {
+                            previousGuessEntry = this.entries.get(guessI - 1);
+                        }
+                    }
+                    min = guessI;
+                    max = guessI;
+                }
+
             }
         }
 
