@@ -2,6 +2,9 @@
      * Create the initial tree from a trace.
      */
     private synchronized void createTable() {
+
+        long ts = fCurrentTimestamp;
+
         if (fTrace == null) {
             return;
         }
@@ -26,11 +29,13 @@
                 String ssName = entry.getKey();
                 ITmfStateSystem ss = entry.getValue();
                 ss.waitUntilBuilt();
-                long startTime = ss.getStartTime();
+                if (ts == -1 || ts < ss.getStartTime() || ts > ss.getCurrentEndTime()) {
+                    ts = ss.getStartTime();
+                }
                 try {
-                    fullStates.put(ssName, ss.queryFullState(startTime));
+                    fullStates.put(ssName, ss.queryFullState(ts));
                 } catch (TimeRangeException e) {
-                    /* Should not happen since we're querying at start time */
+                    /* We already checked the limits ourselves */
                     throw new RuntimeException();
                 } catch (StateSystemDisposedException e) {
                     /* Probably shutting down, cancel and return */
@@ -68,6 +73,10 @@
                         item.setExpanded(true);
                     }
                     packColumns();
+
+                    if (filterStatus) {
+                        filterChildren(traceRoot);
+                    }
                 }
             });
         }
