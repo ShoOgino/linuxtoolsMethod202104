@@ -1,17 +1,25 @@
         @Override
         public IStatus run(IProgressMonitor monitor) {
+            /*
+             * Set up phase, it is synchronous
+             */
             fMonitor = monitor;
             final Control control = traceTypeViewer.getControl();
+            // please note the sync exec here is to allow us to set
             control.getDisplay().syncExec(new Runnable() {
                 @Override
                 public void run() {
-                    // monitor gets overwritten here so it's necessary to save it in a field.
+                    // monitor gets overwritten here so it's necessary to save
+                    // it in a field.
                     fMonitor = SubMonitor.convert(getMonitor());
                     getMonitor().setTaskName(Messages.ImportTraceWizardPageScanScanning + ' ');
                     ((SubMonitor) getMonitor()).setWorkRemaining(IProgressMonitor.UNKNOWN);
                 }
             });
-
+            /*
+             * At this point we start calling async execs and updating the view.
+             * This is a good candidate to parallelise.
+             */
             while (fCanRun == true) {
                 boolean updated = false;
                 boolean validCombo;
@@ -23,6 +31,7 @@
                             if (!control.isDisposed()) {
                                 getMonitor().setTaskName(Messages.ImportTraceWizardPageScanScanning + ' ');
                                 getMonitor().subTask(Messages.ImportTraceWizardPageScanDone);
+                                ImportTraceWizardScanPage.this.setMessage(Messages.ImportTraceWizardPageScanScanning + ' ' + Messages.ImportTraceWizardPageScanDone);
                             }
                         }
                     });
