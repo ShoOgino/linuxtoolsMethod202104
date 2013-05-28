@@ -16,17 +16,51 @@
                 }
                 else {
                     List<File> subList = new ArrayList<File>();
-                    subList.add(traceToImport.getFile());
-                    IPath path = fTargetFolder.getFullPath().append(traceToImport.getName());
-                    final File parentFile = traceToImport.getFile().getParentFile();
-                    ImportOperation operation = new ImportOperation(path,
-                            parentFile, fileSystemStructureProvider, overwriteQuery,
-                            subList);
-                    operation.setContext(getShell());
-                    if (executeImportOperation(operation)) {
-                        setTraceType(traceToImport);
-                        success = true;
+                    IPath path = fTargetFolder.getFullPath();
+                    File parentFile = traceToImport.getFile();
+                    final boolean isFile = parentFile.isFile();
+                    if (isFile) {
+                        IFile resource = ResourcesPlugin.getWorkspace().getRoot().getFile(path.append(traceToImport.getName()));
+                        if (fOverwrite || !resource.exists()) {
+                            subList.add(parentFile);
+                            parentFile = parentFile.getParentFile();
+                            final FileInputStream source = new FileInputStream(traceToImport.getFile());
+                            if( resource.exists()) {
+                                resource.delete(IResource.FORCE, new NullProgressMonitor());
+                            }
+                            resource.create(source, true, new NullProgressMonitor());
+                            source.close();
+                            setTraceType(traceToImport);
+                            success = true;
+                        }
+                    } else {
+                        path = fTargetFolder.getFullPath().append(traceToImport.getName());
+                        File[] fileList = traceToImport.getFile().listFiles();
+                        for (File child : fileList) {
+                            subList.add(child);
+                        }
+
+                        Collections.sort(subList, new Comparator<File>() {
+                            @Override
+                            public int compare(File o1, File o2) {
+                                return o1.getAbsolutePath().compareTo(o2.getAbsolutePath());
+                            }
+                        });
+
+                        ImportOperation operation = new ImportOperation(
+                                path,
+                                parentFile,
+                                fileSystemStructureProvider,
+                                overwriteQuery,
+                                subList);
+                        operation.setContext(getShell());
+                        operation.setCreateContainerStructure(false);
+                        if (executeImportOperation(operation)) {
+                            setTraceType(traceToImport);
+                            success = true;
+                        }
                     }
+
                 }
             } catch (Exception e) {
             }

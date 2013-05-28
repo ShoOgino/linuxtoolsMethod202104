@@ -1,4 +1,5 @@
     private IStatus setTraceType(FileAndName traceToImport) {
+        IStatus validate = Status.OK_STATUS;
         IPath path = fTargetFolder.getFullPath().append(traceToImport.getName());
         IResource resource = ResourcesPlugin.getWorkspace().getRoot().findMember(path);
         if (resource != null) {
@@ -15,16 +16,26 @@
                     traceIcon = ce.getAttribute(TmfTraceType.ICON_ATTR);
                 }
                 final String traceType = traceTypeId;
-                if (!traceTypeOK &&
-                        (traceType.startsWith(TmfTraceType.CUSTOM_TXT_CATEGORY) ||
-                        traceType.startsWith(TmfTraceType.CUSTOM_XML_CATEGORY))) {
+                final boolean startsWithTxt = traceType.startsWith(TmfTraceType.CUSTOM_TXT_CATEGORY);
+                final boolean startsWithXML = traceType.startsWith(TmfTraceType.CUSTOM_XML_CATEGORY);
+                if (!traceTypeOK && (startsWithTxt || startsWithXML)) {
+                    final char SEPARATOR = ':';
                     // do custom trace stuff here
                     traceTypeOK = true;
-                    traceBundle =
-                            Activator.getDefault().getBundle().getSymbolicName();
-
-                    traceTypeId = CustomTxtTrace.class.getCanonicalName() + ":" + traceType; //$NON-NLS-1$
-                    traceIcon = DEFAULT_TRACE_ICON_PATH;
+                    String traceTypeToken[] = traceType.split(":", 2); //$NON-NLS-1$
+                    if (traceTypeToken.length == 2) {
+                        traceBundle =
+                                Activator.getDefault().getBundle().getSymbolicName();
+                        if (startsWithTxt) {
+                            traceTypeId = CustomTxtTrace.class.getCanonicalName() + SEPARATOR + traceTypeToken[1];
+                        }
+                        else {
+                            traceTypeId = CustomXmlTrace.class.getCanonicalName() + SEPARATOR + traceTypeToken[1];
+                        }
+                        traceIcon = DEFAULT_TRACE_ICON_PATH;
+                    } else {
+                        traceTypeOK = false;
+                    }
                 }
                 if (traceTypeOK) {
                     resource.setPersistentProperty(TmfCommonConstants.TRACEBUNDLE,
@@ -37,18 +48,50 @@
                 TmfProjectElement tmfProject =
                         TmfProjectRegistry.getProject(resource.getProject());
                 if (tmfProject != null) {
-                    for (TmfTraceElement traceElement : tmfProject.getTracesFolder().getTraces()) {
+                    final TmfTraceFolder tracesFolder = tmfProject.getTracesFolder();
+                    tracesFolder.refresh();
+
+                    List<TmfTraceElement> traces = tracesFolder.getTraces();
+                    boolean found = false;
+                    for (TmfTraceElement traceElement : traces) {
                         if (traceElement.getName().equals(resource.getName())) {
                             traceElement.refreshTraceType();
+                            found = true;
                             break;
                         }
                     }
+                    if (!found) {
+                        TmfTraceElement te = new TmfTraceElement(traceToImport.getName(), resource, tracesFolder);
+                        te.refreshTraceType();
+                        traces = tracesFolder.getTraces();
+                        for (TmfTraceElement traceElement : traces) {
+                            if (traceElement.getName().equals(resource.getName())) {
+                                traceElement.refreshTraceType();
+                                ITmfTrace tmfTrace = null;
+                                try {
+                                    tmfTrace = traceElement.instantiateTrace();
+                                    if (tmfTrace != null) {
+                                        validate = tmfTrace.validate(tmfProject.getResource(), traceElement.getLocation().getPath());
+                                    } else {
+                                        return new Status(IStatus.ERROR, traceElement.getName(), "File does not exist : " + traceElement.getLocation().getPath()); //$NON-NLS-1$
+                                    }
+                                } finally {
+                                    if (tmfTrace != null) {
+                                        tmfTrace.dispose();
+                                    }
+                                }
+                                break;
+                            }
+                        }
+
+                    }
+
                 }
             } catch (CoreException e) {
                 Activator.getDefault().logError(Messages.BatchImportTraceWizardErrorImportingTraceResource
                         + " " + resource.getName(), e); //$NON-NLS-1$
             }
         }
-        return Status.OK_STATUS;
+        return validate;
     }
 

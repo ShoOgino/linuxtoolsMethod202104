@@ -1,0 +1,59 @@
+    @Override
+    public void createControl(Composite parent) {
+        super.createControl(parent);
+        IFolder originalFolder = getBatchWizard().getTargetFolder();
+        IProject proj = null;
+        if (originalFolder != null) {
+            proj = originalFolder.getProject();
+        }
+
+        Composite optionPane = (Composite) this.getControl();
+        optionPane.setLayout(new GridLayout());
+        optionPane.setLayoutData(new GridData(SWT.LEFT, SWT.TOP, true, true));
+
+        IProject[] projects = ResourcesPlugin.getWorkspace().getRoot().getProjects();
+
+        fProjects = new List(optionPane, SWT.NONE);
+        fProjects.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+
+        for (IProject project : projects) {
+            try {
+                if (project.getNature(TmfProjectNature.ID) != null) {
+                    final String name = project.getName();
+                    fProjectsMap.put(name, project);
+                    fProjects.add(name);
+                }
+            } catch (CoreException e) {
+                // TODO: add a logger to activator and then log it
+            }
+        }
+
+        fProjects.getSelection();
+        fProjects.addSelectionListener(new SelectionListener() {
+
+            private static final String TRACE = "Traces"; //$NON-NLS-1$
+
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                final String listItem = fProjects.getSelection()[0];
+                IFolder folder = fProjectsMap.get(listItem).getFolder(TRACE);
+                getBatchWizard().setTraceFolder(folder);
+                ImportTraceWizardPageOptions.this.setErrorMessage(null);
+            }
+
+            @Override
+            public void widgetDefaultSelected(SelectionEvent e) {
+                final String listItem = fProjects.getSelection()[0];
+                IFolder folder = fProjectsMap.get(listItem).getFolder(TRACE);
+                getBatchWizard().setTraceFolder(folder);
+                ImportTraceWizardPageOptions.this.setErrorMessage(null);
+            }
+        });
+        if (proj != null) {
+            fProjects.setSelection(fProjects.indexOf(proj.getName()));
+            this.setErrorMessage(null);
+        } else {
+            this.setErrorMessage(Messages.SharedSelectProject);
+        }
+    }
+
