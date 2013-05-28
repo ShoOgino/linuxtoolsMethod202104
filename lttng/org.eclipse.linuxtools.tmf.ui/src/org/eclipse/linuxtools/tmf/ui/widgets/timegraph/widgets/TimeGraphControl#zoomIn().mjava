@@ -2,35 +2,32 @@
      * zoom in using single click
      */
     public void zoomIn() {
-        long _time0 = _timeProvider.getTime0();
-        long _time1 = _timeProvider.getTime1();
-        long _range = _time1 - _time0;
-        if (_range == 0) {
+        long prevTime0 = fTimeProvider.getTime0();
+        long prevTime1 = fTimeProvider.getTime1();
+        long prevRange = prevTime1 - prevTime0;
+        if (prevRange == 0) {
             return;
         }
-        long selTime = _timeProvider.getSelectedTime();
-        if (selTime <= _time0 || selTime >= _time1) {
-            selTime = (_time0 + _time1) / 2;
+        long selTime = fTimeProvider.getSelectedTime();
+        if (selTime <= prevTime0 || selTime >= prevTime1) {
+            selTime = (prevTime0 + prevTime1) / 2;
         }
-        long time0 = selTime - (long) ((selTime - _time0) / zoomCoeff);
-        long time1 = selTime + (long) ((_time1 - selTime) / zoomCoeff);
+        long time0 = selTime - (long) ((selTime - prevTime0) / ZOOM_FACTOR);
+        long time1 = selTime + (long) ((prevTime1 - selTime) / ZOOM_FACTOR);
 
-        long inaccuracy = (_timeProvider.getMaxTime() - _timeProvider.getMinTime()) - (time1 - time0);
-
-        // Trace.debug("selTime:" + selTime + " time0:" + time0 + " time1:"
-        // + time1 + " inaccuracy:" + inaccuracy);
+        long inaccuracy = (fTimeProvider.getMaxTime() - fTimeProvider.getMinTime()) - (time1 - time0);
 
         if (inaccuracy > 0 && inaccuracy < 100) {
-            _timeProvider.setStartFinishTimeNotify(_timeProvider.getMinTime(), _timeProvider.getMaxTime());
+            fTimeProvider.setStartFinishTimeNotify(fTimeProvider.getMinTime(), fTimeProvider.getMaxTime());
             return;
         }
 
-        long m = _timeProvider.getMinTimeInterval();
-        if ((time1 - time0) < m) {
-            time0 = selTime - (selTime - _time0) * m / _range;
-            time1 = time0 + m;
+        long min = fTimeProvider.getMinTimeInterval();
+        if ((time1 - time0) < min) {
+            time0 = selTime - (selTime - prevTime0) * min / prevRange;
+            time1 = time0 + min;
         }
 
-        _timeProvider.setStartFinishTimeNotify(time0, time1);
+        fTimeProvider.setStartFinishTimeNotify(time0, time1);
     }
 

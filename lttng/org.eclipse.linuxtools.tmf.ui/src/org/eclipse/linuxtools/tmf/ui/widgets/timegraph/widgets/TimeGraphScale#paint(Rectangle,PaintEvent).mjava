@@ -1,48 +1,49 @@
     @Override
     void paint(Rectangle rect, PaintEvent e) {
 
-        if (_isInUpdate || null == _timeProvider) {
+        if (fIsInUpdate || null == fTimeProvider) {
             return;
         }
 
         GC gc = e.gc;
         gc.fillRectangle(rect);
 
-        long time0 = _timeProvider.getTime0();
-        long time1 = _timeProvider.getTime1();
-        long selectedTime = _timeProvider.getSelectedTime();
-        int leftSpace = _timeProvider.getNameSpace();
-        int timeSpace = _timeProvider.getTimeSpace();
+        long time0 = fTimeProvider.getTime0();
+        long time1 = fTimeProvider.getTime1();
+        long selectedTime = fTimeProvider.getSelectedTime();
+        int leftSpace = fTimeProvider.getNameSpace();
+        int timeSpace = fTimeProvider.getTimeSpace();
 
-        gc.setBackground(_colors.getColor(TimeGraphColorScheme.TOOL_BACKGROUND));
-        gc.setForeground(_colors.getColor(TimeGraphColorScheme.TOOL_FOREGROUND));
-        Utils.init(_rect0, rect);
+        gc.setBackground(getColorScheme().getColor(TimeGraphColorScheme.TOOL_BACKGROUND));
+        gc.setForeground(getColorScheme().getColor(TimeGraphColorScheme.TOOL_FOREGROUND));
+        Rectangle rect0 = new Rectangle(0, 0, 0, 0);
+        Utils.init(rect0, rect);
 
         // draw top left area
-        _rect0.width = leftSpace;
-        _rect0.x += 4;
-        _rect0.width -= 4;
-        Rectangle absHeaderRect = new Rectangle(_rect0.x, _rect0.y, _rect0.width, _rect0.height);
-        _rect0.x -= 4;
-        _rect0.width += 4;
+        rect0.width = leftSpace;
+        rect0.x += 4;
+        rect0.width -= 4;
+        Rectangle absHeaderRect = new Rectangle(rect0.x, rect0.y, rect0.width, rect0.height);
+        rect0.x -= 4;
+        rect0.width += 4;
 
         // prepare and draw right rect of the timescale
-        _rect0.x += leftSpace;
-        _rect0.width = rect.width - leftSpace;
+        rect0.x += leftSpace;
+        rect0.width = rect.width - leftSpace;
 
         // draw bottom border and erase all other area
         gc.drawLine(rect.x, rect.y + rect.height - 1, rect.x + rect.width - 1,
                 rect.y + rect.height - 1);
-        _rect0.height--;
-        gc.fillRectangle(_rect0);
+        rect0.height--;
+        gc.fillRectangle(rect0);
 
-        if (3 == _dragState && null != _timeProvider) {
+        if (RIGHT_BUTTON == fDragState && null != fTimeProvider) {
             // draw selected zoom region background
-            gc.setBackground(_colors.getBkColor(true, false, true));
-            if (_dragX0 < _dragX) {
-                gc.fillRectangle(new Rectangle(leftSpace + _dragX0, _rect0.y, _dragX - _dragX0, _rect0.height));
-            } else if (_dragX0 > _dragX) {
-                gc.fillRectangle(new Rectangle(leftSpace + _dragX, _rect0.y, _dragX0 - _dragX, _rect0.height));
+            gc.setBackground(getColorScheme().getBkColor(true, false, true));
+            if (fDragX0 < fDragX) {
+                gc.fillRectangle(new Rectangle(leftSpace + fDragX0, rect0.y, fDragX - fDragX0, rect0.height));
+            } else if (fDragX0 > fDragX) {
+                gc.fillRectangle(new Rectangle(leftSpace + fDragX, rect0.y, fDragX0 - fDragX, rect0.height));
             }
         }
 
@@ -55,89 +56,89 @@
         int labelWidth = gc.getCharWidth('0') * numDigits;
         double pixelsPerNanoSec = (timeSpace <= RIGHT_MARGIN) ? 0 :
             (double) (timeSpace - RIGHT_MARGIN) / (time1 - time0);
-        calcTimeDelta(labelWidth, pixelsPerNanoSec);
+        long timeDelta = calcTimeDelta(labelWidth, pixelsPerNanoSec);
 
-        TimeDraw timeDraw = getTimeDraw(_timeDelta);
+        TimeDraw timeDraw = getTimeDraw(timeDelta);
 
         // draw selected zoom region lines
-        if (3 == _dragState && null != _timeProvider) {
-            gc.drawLine(leftSpace + _dragX0, rect.y, leftSpace + _dragX0, rect.y + rect.height);
-            gc.drawLine(leftSpace + _dragX, rect.y, leftSpace + _dragX, rect.y + rect.height);
+        if (RIGHT_BUTTON == fDragState && null != fTimeProvider) {
+            gc.drawLine(leftSpace + fDragX0, rect.y, leftSpace + fDragX0, rect.y + rect.height);
+            gc.drawLine(leftSpace + fDragX, rect.y, leftSpace + fDragX, rect.y + rect.height);
         }
 
-        if (_rect0.isEmpty()) {
+        if (rect0.isEmpty()) {
             return;
         }
 
         // draw selected time
-        int x = _rect0.x + (int) ((selectedTime - time0) * pixelsPerNanoSec);
-        if (x >= _rect0.x && x < _rect0.x + _rect0.width) {
-            gc.setForeground(_colors.getColor(TimeGraphColorScheme.SELECTED_TIME));
-            gc.drawLine(x, _rect0.y + _rect0.height - 6, x, _rect0.y
-                    + _rect0.height);
-            gc.setForeground(_colors.getColor(TimeGraphColorScheme.TOOL_FOREGROUND));
+        int x = rect0.x + (int) ((selectedTime - time0) * pixelsPerNanoSec);
+        if (x >= rect0.x && x < rect0.x + rect0.width) {
+            gc.setForeground(getColorScheme().getColor(TimeGraphColorScheme.SELECTED_TIME));
+            gc.drawLine(x, rect0.y + rect0.height - 6, x, rect0.y
+                    + rect0.height);
+            gc.setForeground(getColorScheme().getColor(TimeGraphColorScheme.TOOL_FOREGROUND));
         }
 
         // draw time scale ticks
-        _rect0.y = rect.y;
-        _rect0.height = rect.height - 4;
-        _rect0.width = labelWidth;
+        rect0.y = rect.y;
+        rect0.height = rect.height - 4;
+        rect0.width = labelWidth;
 
         long time;
-        if (_timeProvider != null && _timeProvider.getTimeFormat().equals(TimeFormat.CALENDAR)) {
-            time = floorToCalendar(time0, _timeDelta);
+        if (fTimeProvider != null && fTimeProvider.getTimeFormat().equals(TimeFormat.CALENDAR)) {
+            time = floorToCalendar(time0, timeDelta);
         } else {
-            time = (time0 / _timeDelta) * _timeDelta;
+            time = (time0 / timeDelta) * timeDelta;
             if (time != time0) {
-                time += _timeDelta;
+                time += timeDelta;
             }
         }
 
-        int y = _rect0.y + _rect0.height;
+        int y = rect0.y + rect0.height;
 
-        if (_timeProvider != null && _timeProvider.getTimeFormat().equals(TimeFormat.CALENDAR)) {
+        if (fTimeProvider != null && fTimeProvider.getTimeFormat().equals(TimeFormat.CALENDAR)) {
             timeDraw.drawAbsHeader(gc, time, absHeaderRect);
         }
 
         while (true) {
             x = rect.x + leftSpace + (int) (Math.floor((time - time0) * pixelsPerNanoSec));
-            if (x >= rect.x + leftSpace + rect.width - _rect0.width) {
+            if (x >= rect.x + leftSpace + rect.width - rect0.width) {
                 break;
             }
             if (x >= rect.x + leftSpace) {
                 gc.drawLine(x, y, x, y + 4);
-                _rect0.x = x;
-                if (x + _rect0.width <= rect.x + rect.width) {
-                    timeDraw.draw(gc, time, _rect0);
+                rect0.x = x;
+                if (x + rect0.width <= rect.x + rect.width) {
+                    timeDraw.draw(gc, time, rect0);
                 }
             }
-            if (pixelsPerNanoSec == 0 || time > Long.MAX_VALUE - _timeDelta || _timeDelta == 0) {
+            if (pixelsPerNanoSec == 0 || time > Long.MAX_VALUE - timeDelta || timeDelta == 0) {
                 break;
             }
-            if (_timeProvider != null && _timeProvider.getTimeFormat().equals(TimeFormat.CALENDAR)) {
-                if (_timeDelta >= YEAR_IN_NS) {
-                    long millis = time / 1000000L;
+            if (fTimeProvider != null && fTimeProvider.getTimeFormat().equals(TimeFormat.CALENDAR)) {
+                if (timeDelta >= YEAR_IN_NS) {
+                    long millis = time / MILLISEC_IN_NS;
                     GREGORIAN_CALENDAR.setTime(new Date(millis));
-                    GREGORIAN_CALENDAR.add(Calendar.YEAR, (int) (_timeDelta / YEAR_IN_NS));
+                    GREGORIAN_CALENDAR.add(Calendar.YEAR, (int) (timeDelta / YEAR_IN_NS));
                     millis = GREGORIAN_CALENDAR.getTimeInMillis();
-                    time = millis * 1000000L;
-                } else if (_timeDelta >= MONTH_IN_NS) {
-                    long millis = time / 1000000L;
+                    time = millis * MILLISEC_IN_NS;
+                } else if (timeDelta >= MONTH_IN_NS) {
+                    long millis = time / MILLISEC_IN_NS;
                     GREGORIAN_CALENDAR.setTime(new Date(millis));
-                    GREGORIAN_CALENDAR.add(Calendar.MONTH, (int) (_timeDelta / MONTH_IN_NS));
+                    GREGORIAN_CALENDAR.add(Calendar.MONTH, (int) (timeDelta / MONTH_IN_NS));
                     millis = GREGORIAN_CALENDAR.getTimeInMillis();
-                    time = millis * 1000000L;
-                } else if (_timeDelta >= DAY_IN_NS) {
-                    long millis = time / 1000000L;
+                    time = millis * MILLISEC_IN_NS;
+                } else if (timeDelta >= DAY_IN_NS) {
+                    long millis = time / MILLISEC_IN_NS;
                     GREGORIAN_CALENDAR.setTime(new Date(millis));
-                    GREGORIAN_CALENDAR.add(Calendar.DAY_OF_MONTH, (int) (_timeDelta / DAY_IN_NS));
+                    GREGORIAN_CALENDAR.add(Calendar.DAY_OF_MONTH, (int) (timeDelta / DAY_IN_NS));
                     millis = GREGORIAN_CALENDAR.getTimeInMillis();
-                    time = millis * 1000000L;
+                    time = millis * MILLISEC_IN_NS;
                 } else {
-                    time += _timeDelta;
+                    time += timeDelta;
                 }
             } else {
-                time += _timeDelta;
+                time += timeDelta;
             }
         }
     }

@@ -1,43 +1,43 @@
     private void setSelectedTimeInt(long time, boolean ensureVisible, boolean doNotify) {
-        long time0 = _time0;
-        long time1 = _time1;
+        long time0 = fTime0;
+        long time1 = fTime1;
         if (ensureVisible) {
-            long timeSpace = (long) ((_time1 - _time0) * .02);
-            long timeMid = (long) ((_time1 - _time0) * .5);
-            if (time < _time0 + timeSpace) {
-                long dt = _time0 - time + timeMid;
-                _time0 -= dt;
-                _time1 -= dt;
-            } else if (time > _time1 - timeSpace) {
-                long dt = time - _time1 + timeMid;
-                _time0 += dt;
-                _time1 += dt;
+            long timeSpace = (fTime1 - fTime0) / RECENTERING_MARGIN_FACTOR;
+            long timeMid = (fTime1 - fTime0) / 2;
+            if (time < fTime0 + timeSpace) {
+                long dt = fTime0 - time + timeMid;
+                fTime0 -= dt;
+                fTime1 -= dt;
+            } else if (time > fTime1 - timeSpace) {
+                long dt = time - fTime1 + timeMid;
+                fTime0 += dt;
+                fTime1 += dt;
             }
-            if (_time0 < _time0_) {
-                _time1 = Math.min(_time1_, _time1 + (_time0_ - _time0));
-                _time0 = _time0_;
-            } else if (_time1 > _time1_) {
-                _time0 = Math.max(_time0_, _time0 - (_time1 - _time1_));
-                _time1 = _time1_;
+            if (fTime0 < fTime0Bound) {
+                fTime1 = Math.min(fTime1Bound, fTime1 + (fTime0Bound - fTime0));
+                fTime0 = fTime0Bound;
+            } else if (fTime1 > fTime1Bound) {
+                fTime0 = Math.max(fTime0Bound, fTime0 - (fTime1 - fTime1Bound));
+                fTime1 = fTime1Bound;
             }
         }
-        if (_time1 - _time0 < _minTimeInterval) {
-            _time1 = Math.min(_time1_, _time0 + _minTimeInterval);
+        if (fTime1 - fTime0 < fMinTimeInterval) {
+            fTime1 = Math.min(fTime1Bound, fTime0 + fMinTimeInterval);
         }
-        _stateCtrl.adjustScrolls();
-        _stateCtrl.redraw();
-        _timeScaleCtrl.redraw();
+        fTimeGraphCtrl.adjustScrolls();
+        fTimeGraphCtrl.redraw();
+        fTimeScaleCtrl.redraw();
 
 
-        boolean notifySelectedTime = (time != _selectedTime);
-        _selectedTime = time;
+        boolean notifySelectedTime = (time != fSelectedTime);
+        fSelectedTime = time;
 
-        if (doNotify && ((time0 != _time0) || (time1 != _time1))) {
-            notifyRangeListeners(_time0, _time1);
+        if (doNotify && ((time0 != fTime0) || (time1 != fTime1))) {
+            notifyRangeListeners(fTime0, fTime1);
         }
 
         if (doNotify && notifySelectedTime) {
-            notifyTimeListeners(_selectedTime);
+            notifyTimeListeners(fSelectedTime);
         }
     }
 

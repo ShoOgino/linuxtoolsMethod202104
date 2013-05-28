@@ -1,7 +1,8 @@
-    private void calcTimeDelta(int width, double pixelsPerNanoSec) {
+    private long calcTimeDelta(int width, double pixelsPerNanoSec) {
+        long timeDelta;
         double minDelta = (pixelsPerNanoSec == 0) ? YEAR_IN_NS : width / pixelsPerNanoSec;
         long unit = 1;
-        if (_timeProvider != null && _timeProvider.getTimeFormat().equals(TimeFormat.CALENDAR)) {
+        if (fTimeProvider != null && fTimeProvider.getTimeFormat().equals(TimeFormat.CALENDAR)) {
             if (minDelta > 6 * MONTH_IN_NS) {
                 unit = YEAR_IN_NS;
             } else if (minDelta > 3 * MONTH_IN_NS) {
@@ -21,26 +22,27 @@
             } else if (minDelta > 20 * SEC_IN_NS) {
                 unit = 30 * SEC_IN_NS;
             } else if (minDelta <= 1) {
-                _timeDelta = 1;
-                return;
+                timeDelta = 1;
+                return timeDelta;
             }
         }
         double log = Math.log10(minDelta / unit);
         long pow10 = (long) log;
         double remainder = log - pow10;
         if (remainder < LOG10_1) {
-            _timeDelta = (long) Math.pow(10, pow10) * unit;
+            timeDelta = (long) Math.pow(10, pow10) * unit;
         } else if (remainder < LOG10_2) {
-            _timeDelta = 2 * (long) Math.pow(10, pow10) * unit;
+            timeDelta = 2 * (long) Math.pow(10, pow10) * unit;
         } else if (remainder < LOG10_3 && unit >= HOUR_IN_NS && unit < YEAR_IN_NS) {
-            _timeDelta = 3 * (long) Math.pow(10, pow10) * unit;
+            timeDelta = 3 * (long) Math.pow(10, pow10) * unit;
         } else if (remainder < LOG10_5) {
-            _timeDelta = 5 * (long) Math.pow(10, pow10) * unit;
+            timeDelta = 5 * (long) Math.pow(10, pow10) * unit;
         } else {
-            _timeDelta = 10 * (long) Math.pow(10, pow10) * unit;
+            timeDelta = 10 * (long) Math.pow(10, pow10) * unit;
         }
-        if (_timeDelta<=0) {
-            _timeDelta=1;
+        if (timeDelta <= 0) {
+            timeDelta = 1;
         }
+        return timeDelta;
     }
 

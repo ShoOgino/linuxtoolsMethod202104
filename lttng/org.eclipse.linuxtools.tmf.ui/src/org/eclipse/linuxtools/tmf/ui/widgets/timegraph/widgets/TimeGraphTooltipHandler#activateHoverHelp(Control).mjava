@@ -8,8 +8,8 @@
         control.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseDown(MouseEvent e) {
-                if (_tipShell != null && ! _tipShell.isDisposed()) {
-                    _tipShell.dispose();
+                if (fTipShell != null && ! fTipShell.isDisposed()) {
+                    fTipShell.dispose();
                 }
             }
         });
@@ -17,8 +17,8 @@
         control.addMouseMoveListener(new MouseMoveListener() {
             @Override
             public void mouseMove(MouseEvent e) {
-                if (_tipShell != null && ! _tipShell.isDisposed()) {
-                    _tipShell.dispose();
+                if (fTipShell != null && ! fTipShell.isDisposed()) {
+                    fTipShell.dispose();
                 }
             }
         });
@@ -26,24 +26,24 @@
         control.addMouseTrackListener(new MouseTrackAdapter() {
             @Override
             public void mouseExit(MouseEvent e) {
-                if (_tipShell != null && ! _tipShell.isDisposed()) {
+                if (fTipShell != null && ! fTipShell.isDisposed()) {
                     Point pt = control.toDisplay(e.x, e.y);
-                    if (! _tipShell.getBounds().contains(pt)) {
-                        _tipShell.dispose();
+                    if (! fTipShell.getBounds().contains(pt)) {
+                        fTipShell.dispose();
                     }
                 }
             }
 
             private void addItem(String name, String value) {
-                Label nameLabel = new Label(_tipComposite, SWT.NO_FOCUS);
+                Label nameLabel = new Label(fTipComposite, SWT.NO_FOCUS);
                 nameLabel.setText(name);
                 setupControl(nameLabel);
-                Label separator = new Label(_tipComposite, SWT.NO_FOCUS | SWT.SEPARATOR | SWT.VERTICAL);
+                Label separator = new Label(fTipComposite, SWT.NO_FOCUS | SWT.SEPARATOR | SWT.VERTICAL);
                 GridData gd = new GridData(SWT.CENTER, SWT.CENTER, false, false);
                 gd.heightHint = nameLabel.computeSize(SWT.DEFAULT, SWT.DEFAULT).y;
                 separator.setLayoutData(gd);
                 setupControl(separator);
-                Label valueLabel = new Label(_tipComposite, SWT.NO_FOCUS);
+                Label valueLabel = new Label(fTipComposite, SWT.NO_FOCUS);
                 valueLabel.setText(value);
                 setupControl(valueLabel);
             }
@@ -64,18 +64,17 @@
                     // if there is no current event at the start of the current pixel range,
                     // or if the current event starts before the current pixel range,
                     // use the next event as long as it starts within the current pixel range
-                    if (currEvent == null || currEvent.getTime() < currPixelTime) {
-                        if (nextEvent != null && nextEvent.getTime() < nextPixelTime) {
-                            currEvent = nextEvent;
-                            currPixelTime = nextEvent.getTime();
-                        }
+                    if ((currEvent == null || currEvent.getTime() < currPixelTime) &&
+                        (nextEvent != null && nextEvent.getTime() < nextPixelTime)) {
+                        currEvent = nextEvent;
+                        currPixelTime = nextEvent.getTime();
                     }
 
                     // state name
-                    String stateTypeName = _utilImp.getStateTypeName(entry);
+                    String stateTypeName = fTimeGraphProvider.getStateTypeName(entry);
                     String entryName = entry.getName();
                     if (stateTypeName == null) {
-                        stateTypeName = _utilImp.getStateTypeName();
+                        stateTypeName = fTimeGraphProvider.getStateTypeName();
                     }
 
                     if (!entryName.isEmpty()) {
@@ -87,13 +86,13 @@
                     }
 
                     // state
-                    String state = _utilImp.getEventName(currEvent);
+                    String state = fTimeGraphProvider.getEventName(currEvent);
                     if (state != null) {
                         addItem(Messages.TmfTimeTipHandler_TRACE_STATE, state);
                     }
 
                     // This block receives a list of <String, String> values to be added to the tip table
-                    Map<String, String> eventAddOns = _utilImp.getEventHoverToolTipInfo(currEvent, currPixelTime);
+                    Map<String, String> eventAddOns = fTimeGraphProvider.getEventHoverToolTipInfo(currEvent, currPixelTime);
                     if (eventAddOns != null) {
                         for (Iterator<String> iter = eventAddOns.keySet().iterator(); iter.hasNext();) {
                             String message = iter.next();
@@ -115,7 +114,7 @@
                     }
 
                     Resolution res = Resolution.NANOSEC;
-                    TimeFormat tf = _timeDataProvider.getTimeFormat();
+                    TimeFormat tf = fTimeDataProvider.getTimeFormat();
                     if (tf == TimeFormat.CALENDAR) {
                         addItem(Messages.TmfTimeTipHandler_TRACE_DATE, eventStartTime > -1 ?
                                 Utils.formatDate(eventStartTime)
@@ -156,18 +155,18 @@
                 TimeGraphControl timeGraphControl = (TimeGraphControl) event.widget;
                 createTooltipShell(timeGraphControl.getShell());
                 ITimeGraphEntry entry = timeGraphControl.getEntry(pt);
-                for (Control child : _tipComposite.getChildren()) {
+                for (Control child : fTipComposite.getChildren()) {
                     child.dispose();
                 }
                 fillValues(pt, timeGraphControl, entry);
-                if (_tipComposite.getChildren().length == 0) {
+                if (fTipComposite.getChildren().length == 0) {
                     return;
                 }
-                _tipShell.pack();
-                _tipPosition = control.toDisplay(pt);
-                _tipShell.pack();
-                setHoverLocation(_tipShell, _tipPosition);
-                _tipShell.setVisible(true);
+                fTipShell.pack();
+                Point tipPosition = control.toDisplay(pt);
+                fTipShell.pack();
+                setHoverLocation(fTipShell, tipPosition);
+                fTipShell.setVisible(true);
             }
         });
     }

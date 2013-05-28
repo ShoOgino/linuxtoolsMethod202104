@@ -5,15 +5,15 @@
      *            1 for next event, -1 for previous event
      */
     public void selectEvent(int n) {
-        if (null == _timeProvider) {
+        if (null == fTimeProvider) {
             return;
         }
         ITimeGraphEntry trace = getSelectedTrace();
         if (trace == null) {
             return;
         }
-        long selectedTime = _timeProvider.getSelectedTime();
-        long endTime = _timeProvider.getEndTime();
+        long selectedTime = fTimeProvider.getSelectedTime();
+        long endTime = fTimeProvider.getEndTime();
         ITimeEvent nextEvent;
         if (-1 == n && selectedTime > endTime) {
             nextEvent = Utils.findEvent(trace, selectedTime, 0);
@@ -34,16 +34,14 @@
                 if (nextTime > endTime) {
                     nextTime = endTime;
                 }
-            } else if (n == -1) {
+            } else if (n == -1 && nextEvent.getTime() + nextEvent.getDuration() < selectedTime) {
                 // for previous event go to its end time unless we were already there
-                if (nextEvent.getTime() + nextEvent.getDuration() < selectedTime) {
-                    nextTime = nextEvent.getTime() + nextEvent.getDuration();
-                }
+                nextTime = nextEvent.getTime() + nextEvent.getDuration();
             }
-            _timeProvider.setSelectedTimeNotify(nextTime, true);
+            fTimeProvider.setSelectedTimeNotify(nextTime, true);
             fireSelectionChanged();
         } else if (1 == n) {
-            _timeProvider.setSelectedTimeNotify(endTime, true);
+            fTimeProvider.setSelectedTimeNotify(endTime, true);
             fireSelectionChanged();
         }
     }
