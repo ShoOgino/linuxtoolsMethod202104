@@ -1,8 +1,8 @@
     final void writeSelf(FileChannel fc) throws IOException {
-        int res, size;
-        int curStringsEntryEndPos = ownerTree.config.blockSize;
+        final int blockSize = ownerTree.getConfig().getBlockSize();
+        int curStringsEntryEndPos = blockSize;
 
-        ByteBuffer buffer = ByteBuffer.allocate(ownerTree.config.blockSize);
+        ByteBuffer buffer = ByteBuffer.allocate(blockSize);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         buffer.clear();
 
@@ -21,7 +21,7 @@
 
         /* Back to us, we write the intervals */
         for (HTInterval interval : intervals) {
-            size = interval.writeInterval(buffer, curStringsEntryEndPos);
+            int size = interval.writeInterval(buffer, curStringsEntryEndPos);
             curStringsEntryEndPos -= size;
         }
 
@@ -43,10 +43,10 @@
         /* Finally, write everything in the Buffer to disk */
 
         // if we don't do this, flip() will lose what's after.
-        buffer.position(ownerTree.config.blockSize);
+        buffer.position(blockSize);
 
         buffer.flip();
-        res = fc.write(buffer);
-        assert (res == ownerTree.config.blockSize);
+        int res = fc.write(buffer);
+        assert (res == blockSize);
     }
 

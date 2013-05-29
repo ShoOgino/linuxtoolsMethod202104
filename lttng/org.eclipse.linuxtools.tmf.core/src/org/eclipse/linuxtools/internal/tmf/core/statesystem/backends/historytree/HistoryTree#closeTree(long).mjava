@@ -26,11 +26,8 @@
             treeIO.writeNode(latestBranch.get(i));
         }
 
-        /* Only use this for debugging purposes, it's VERY slow! */
-        // this.checkIntegrity();
-
         fc = treeIO.getFcOut();
-        buffer = ByteBuffer.allocate(getTreeHeaderSize());
+        buffer = ByteBuffer.allocate(TREE_HEADER_SIZE);
         buffer.order(ByteOrder.LITTLE_ENDIAN);
         buffer.clear();
 
@@ -41,32 +38,30 @@
             buffer.putInt(HISTORY_FILE_MAGIC_NUMBER);
 
             buffer.putInt(FILE_VERSION);
-            buffer.putInt(config.providerVersion);
+            buffer.putInt(config.getProviderVersion());
 
-            buffer.putInt(config.blockSize);
-            buffer.putInt(config.maxChildren);
+            buffer.putInt(config.getBlockSize());
+            buffer.putInt(config.getMaxChildren());
 
             buffer.putInt(nodeCount);
 
             /* root node seq. nb */
-            buffer.putInt(latestBranch.firstElement().getSequenceNumber());
+            buffer.putInt(latestBranch.get(0).getSequenceNumber());
 
             /* start time of this history */
-            buffer.putLong(latestBranch.firstElement().getNodeStart());
+            buffer.putLong(latestBranch.get(0).getNodeStart());
 
             buffer.flip();
             res = fc.write(buffer);
-            assert (res <= getTreeHeaderSize());
+            assert (res <= TREE_HEADER_SIZE);
             /* done writing the file header */
 
         } catch (IOException e) {
             /* We should not have any problems at this point... */
-            e.printStackTrace();
         } finally {
             try {
                 fc.close();
             } catch (IOException e) {
-                e.printStackTrace();
             }
         }
         return;
