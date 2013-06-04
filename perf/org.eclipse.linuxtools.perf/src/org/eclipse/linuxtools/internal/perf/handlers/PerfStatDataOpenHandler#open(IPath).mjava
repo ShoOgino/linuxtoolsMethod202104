@@ -1,0 +1,57 @@
+	@Override
+	public void open(IPath file) {
+		File statFile = file.toFile();
+		BufferedReader fileReader = null;
+		try {
+			fileReader = new BufferedReader(new FileReader(statFile));
+			final StringBuilder contents = new StringBuilder();
+			final StringBuilder title = new StringBuilder();
+			String line;
+
+			// read file contents
+			while ((line = fileReader.readLine()) != null) {
+				// set data title
+				if (title.length() == 0 && line.contains(TITLE_EXCERPT)) {
+					title.append(line);
+				}
+				contents.append(line);
+				contents.append("\n"); //$NON-NLS-1$
+			}
+
+			// construct basic title if none was found in the file
+			if (title.length() == 0) {
+				title.append(NLS.bind(Messages.PerfEditorLauncher_stat_title,
+						statFile.getName()));
+			}
+
+			PerfPlugin.getDefault().setStatData(new IPerfData() {
+
+				@Override
+				public String getTitle() {
+					return title.toString();
+				}
+
+				@Override
+				public String getPerfData() {
+					return contents.toString();
+				}
+			});
+
+			StatView.refreshView();
+		} catch (FileNotFoundException e) {
+			PerfPlugin.getDefault().openError(e,
+					NLS.bind(Messages.PerfEditorLauncher_file_dne_error, statFile.getName()));
+		} catch (IOException e) {
+			PerfPlugin.getDefault().openError(e,
+					NLS.bind(Messages.PerfEditorLauncher_file_read_error, statFile.getName()));
+		} finally {
+			if (fileReader != null) {
+				try {
+					fileReader.close();
+				} catch (IOException e) {
+					PerfPlugin.getDefault().openError(e, "");
+				}
+			}
+		}
+	}
+
