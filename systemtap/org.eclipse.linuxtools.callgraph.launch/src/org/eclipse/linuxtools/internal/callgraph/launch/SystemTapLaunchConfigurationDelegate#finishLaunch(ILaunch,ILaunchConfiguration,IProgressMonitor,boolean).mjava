@@ -1,4 +1,4 @@
-	private void finishLaunch(ILaunch launch, ILaunchConfiguration config, 
+	private void finishLaunch(ILaunch launch, ILaunchConfiguration config,
 			IProgressMonitor monitor, boolean retry) {
 
 		try {
@@ -10,16 +10,16 @@
 
 			// set the default source locator if required
 			setDefaultSourceLocator(launch, config);
-			
+
 			/*
-			 * Fetch a parser 
+			 * Fetch a parser
 			 */
-			String parserClass = config.getAttribute(LaunchConfigurationConstants.PARSER_CLASS, 
+			String parserClass = config.getAttribute(LaunchConfigurationConstants.PARSER_CLASS,
 					LaunchConfigurationConstants.DEFAULT_PARSER_CLASS);
 			IExtensionRegistry reg = Platform.getExtensionRegistry();
 			IConfigurationElement[] extensions = reg
-					.getConfigurationElementsFor(PluginConstants.PARSER_RESOURCE, 
-							PluginConstants.PARSER_NAME, 
+					.getConfigurationElementsFor(PluginConstants.PARSER_RESOURCE,
+							PluginConstants.PARSER_NAME,
 							parserClass);
 			if (extensions == null || extensions.length < 1) {
 				SystemTapUIErrorMessages mess = new SystemTapUIErrorMessages(Messages.getString("SystemTapLaunchConfigurationDelegate.InvalidParser1"),  //$NON-NLS-1$
@@ -29,11 +29,11 @@
 				mess.schedule();
 				return;
 			}
-			
+
 			IConfigurationElement element = extensions[0];
-			SystemTapParser parser = 
+			SystemTapParser parser =
 				(SystemTapParser) element.createExecutableExtension(PluginConstants.ATTR_CLASS);
-			
+
 			//Set parser options
 			parser.setViewID(config.getAttribute(LaunchConfigurationConstants.VIEW_CLASS,
 					LaunchConfigurationConstants.VIEW_CLASS));
@@ -44,13 +44,13 @@
 					LaunchConfigurationConstants.DEFAULT_SECONDARY_VIEW_ID));
 
 			parser.setKillButtonEnabled(true);
-						
+
 			monitor.worked(1);
 
 			/*
 			 * Launch
 			 */
-			
+
 			File workDir = getWorkingDirectory(config);
 			if (workDir == null) {
 				workDir = new File(System.getProperty("user.home", ".")); //$NON-NLS-1$ //$NON-NLS-2$
@@ -58,7 +58,7 @@
 
 			//Put command into a shell script
 			String cmd = generateCommand(config);
-			File script = File.createTempFile("org.eclipse.linuxtools.profiling.launch" + System.currentTimeMillis(), ".sh");
+			File script = File.createTempFile("org.eclipse.linuxtools.profiling.launch" + System.currentTimeMillis(), ".sh"); //$NON-NLS-1$ //$NON-NLS-2$
 			String data = "#!/bin/sh\nexec " + cmd; //$NON-NLS-1$
 			FileOutputStream out = null;
 			try {
@@ -80,10 +80,10 @@
 			process.setAttribute(IProcess.ATTR_CMDLINE,cmd);
 
 			monitor.worked(1);
-			
+
 			StreamListener s = new StreamListener();
 			process.getStreamsProxy().getErrorStreamMonitor().addListener(s);
-			
+
 			while (!process.isTerminated()) {
 				Thread.sleep(100);
 				if ((monitor != null && monitor.isCanceled()) || parser.isDone()) {
@@ -104,45 +104,46 @@
 							Messages.getString("SystemTapLaunchConfigurationDelegate.CallGraphGenericError"), //$NON-NLS-1$
 							Messages.getString("SystemTapLaunchConfigurationDelegate.CallGraphGenericError"), //$NON-NLS-1$
 							Messages.getString("SystemTapLaunchConfigurationDelegate.stapNotFound")); //$NON-NLS-1$
-					
+
 					errorDialog.schedule();
 				}else{
 					SystemTapErrorHandler errorHandler = new SystemTapErrorHandler();
-					
+
 					//Prepare stap information
 					errorHandler.appendToLog(config.getName() + Messages.getString("SystemTapLaunchConfigurationDelegate.stap_command") + cmd+ PluginConstants.NEW_LINE + PluginConstants.NEW_LINE);//$NON-NLS-1$
-					
+
 					//Handle error from TEMP_ERROR_OUTPUT
 					errorHandler.handle(monitor, new FileReader(TEMP_ERROR_OUTPUT));
-					if ((monitor != null && monitor.isCanceled()))
+					if ((monitor != null && monitor.isCanceled())) {
 						return;
-					
+					}
+
 					errorHandler.finishHandling(monitor, scriptPath);
 					if (errorHandler.isErrorRecognized()) {
 						SystemTapUIErrorMessages errorDialog = new SystemTapUIErrorMessages(
 								Messages.getString("SystemTapLaunchConfigurationDelegate.CallGraphGenericError"),  //$NON-NLS-1$
 								Messages.getString("SystemTapLaunchConfigurationDelegate.CallGraphGenericError"),  //$NON-NLS-1$
 								errorHandler.getErrorMessage());
-						
+
 						errorDialog.schedule();
 					}
 				}
 				return;
 			}
-			
+
 			if (element.getAttribute(PluginConstants.ATTR_REALTIME).equals(PluginConstants.VAL_TRUE)) {
 				parser.setRealTime(true);
 			}
-			
+
 			parser.schedule();
 			monitor.worked(1);
-			
+
 			String message = generateErrorMessage(config.getName(), binaryArguments);
-			
+
 			DocWriter dw = new DocWriter(Messages.getString("SystemTapLaunchConfigurationDelegate.DocWriterName"),  //$NON-NLS-1$
 					(Helper.getConsoleByName(config.getName())), message);
 			dw.schedule();
-			
+
 		} catch (IOException e) {
 			e.printStackTrace();
 		} catch (InterruptedException e) {
@@ -151,7 +152,7 @@
 			e.printStackTrace();
 		} finally {
 			monitor.done();
-			
+
 		}
 	}
 
