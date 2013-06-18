@@ -1,0 +1,30 @@
+    /**
+     * Open a trace from a project
+     *
+     * @param projectRoot
+     *            the root of the project
+     * @param traceName
+     *            the trace name
+     * @return success or error
+     */
+    public static IStatus openTraceFromProject(String projectRoot, String traceName) {
+        final IWorkspace workspace = ResourcesPlugin.getWorkspace();
+        final IWorkspaceRoot root = workspace.getRoot();
+        IProject project = root.getProject(projectRoot);
+        TmfImportHelper.forceFolderRefresh(project.getFolder(TmfTraceFolder.TRACE_FOLDER_NAME));
+
+        final TmfProjectElement project2 = TmfProjectRegistry.getProject(project, true);
+        final TmfTraceFolder tracesFolder = project2.getTracesFolder();
+        final List<TmfTraceElement> traces = tracesFolder.getTraces();
+        TmfTraceElement found = null;
+        for (TmfTraceElement candidate : traces) {
+            if (candidate.getName().equals(traceName)) {
+                found = candidate;
+            }
+        }
+        if (found == null) {
+            return new Status(IStatus.ERROR, Activator.PLUGIN_ID, Messages.TmfOpenTraceHelper_ErrorOpeningTrace);
+        }
+        return openTraceFromElement(found);
+    }
+
