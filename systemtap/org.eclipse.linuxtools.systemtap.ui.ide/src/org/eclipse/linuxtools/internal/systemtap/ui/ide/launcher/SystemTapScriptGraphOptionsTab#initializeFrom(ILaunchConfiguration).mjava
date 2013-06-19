@@ -8,24 +8,33 @@
 			regularExpressionText.setText(configuration.getAttribute(REGULARE_EXPRESSION, "")); //$NON-NLS-1$
 			sampleOutputText.setText(configuration.getAttribute(SAMPLE_OUTPUT, "")); //$NON-NLS-1$
 
-			int n = configuration.getAttribute(NUMBER_OF_COLUMNS, 0);
+			oldNumColumns = configuration.getAttribute(NUMBER_OF_COLUMNS, 0);
 			Control[] textBoxes = this.textFieldsComposite.getChildren();
 
-			for (int i = 0; i < n && i*2 < textBoxes.length; i++) {
+			for (int i = 0; i < oldNumColumns && i*2 < textBoxes.length; i++) {
 				String text = configuration.getAttribute(REGEX_BOX+i, (String)null);
 				if (text != null) {
 					((Text)textBoxes[i*2]).setText(text);
 				}
 			}
 
+			cachedNames.clear();
+			oldNumExtras = configuration.getAttribute(NUMBER_OF_EXTRAS, 0);
+			for (int i = oldNumExtras-1; i >= 0; i--) {
+				cachedNames.push(configuration.getAttribute(EXTRA_BOX+i, "")); //$NON-NLS-1$
+			}
+
 			// Add graphs
 			graphsTable.removeAll();
+			badGraphs.clear();
 			LinkedList<GraphData> graphs = createGraphsFromConfiguration(configuration);
 			for (GraphData graphData : graphs) {
 				TableItem item = new TableItem(graphsTable, SWT.NONE);
 				item.setText(GraphFactory.getGraphName(graphData.graphID) + ":" //$NON-NLS-1$
 						+ graphData.title);
+				item.setForeground(item.getDisplay().getSystemColor(SWT.COLOR_BLACK));
 				item.setData(graphData);
+				findBadGraphs(item);
 			}
 
 		} catch (CoreException e) {

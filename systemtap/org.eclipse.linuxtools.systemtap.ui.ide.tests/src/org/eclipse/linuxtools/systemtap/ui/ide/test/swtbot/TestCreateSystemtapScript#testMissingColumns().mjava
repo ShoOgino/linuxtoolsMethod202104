@@ -1,0 +1,67 @@
+	@Test
+	public void testMissingColumns(){
+		String scriptName = "missingColumns.stp";
+		createScript(bot, scriptName);
+
+		// Focus on project explorer view.
+		bot.viewByTitle("Project Explorer").setFocus();
+		bot.activeShell();
+		SWTBotTree treeBot = bot.tree();
+		treeBot.setFocus();
+		SWTBotTreeItem node = treeBot.expandNode((SYSTEMTAP_PROJECT_NAME));
+		bot.waitUntil(new NodeAvaiable(node, scriptName));
+
+		treeBot.expandNode(SYSTEMTAP_PROJECT_NAME).expand().select(scriptName);
+
+		MenuItem menu = ContextMenuHelper.contextMenu(treeBot, "Run As", "Run Configurations...");
+		click(menu);
+
+		SWTBotShell shell = bot.shell("Run Configurations");
+		shell.setFocus();
+
+		SWTBotTree runConfigurationsTree = bot.tree();
+		runConfigurationsTree.select("SystemTap").contextMenu("New").click();
+
+		// Select the "Graphing" tab.
+		SWTBotCTabItem tab = bot.cTabItem(Messages.SystemTapScriptGraphOptionsTab_7);
+		tab.activate();
+
+		// Enable output graphing.
+		bot.checkBox(Messages.SystemTapScriptGraphOptionsTab_2).click();
+
+		// As soon as the Graphing tab is entered, no regular expression exists & nothing can be run.
+		SWTBotText text = bot.textWithLabel("Regular Expression:");
+		assertEquals("", text.getText());
+		assertTrue(!bot.button("Run").isEnabled());
+		assertTrue(!bot.button(Messages.SystemTapScriptGraphOptionsTab_AddGraphButton).isEnabled());
+		text.setText("(1)(2)");
+		assertEquals("(1)(2)", text.getText());
+		assertTrue(bot.button("Run").isEnabled());
+		assertTrue(bot.button(Messages.SystemTapScriptGraphOptionsTab_AddGraphButton).isEnabled());
+
+		text = bot.text("", 1);
+		text.setText("Val 1");
+		assertEquals("Val 1", text.getText());
+		text = bot.text("", 1);
+		text.setText("Val 2");
+		assertEquals("Val 2", text.getText());
+
+		bot.button(Messages.SystemTapScriptGraphOptionsTab_AddGraphButton).click();
+		setupGraph("Graph");
+
+		shell.setFocus();
+		assertTrue(bot.button("Run").isEnabled());
+
+		// Removing groups from the regex disables graphs that rely on those groups.
+		text = bot.textWithLabel("Regular Expression:");
+		text.setText("(1)");
+		assertTrue(!bot.button("Run").isEnabled());
+		text.setText("(1)(2)(3)");
+		assertTrue(bot.button("Run").isEnabled());
+
+		shell.setFocus();
+		bot.button("Apply").click();
+		bot.button("Close").click();
+		bot.waitUntil(new ShellIsClosed(shell));
+	}
+
