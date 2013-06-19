@@ -1,0 +1,24 @@
+	@Test
+	public void testStatDataComparisonCaching() {
+		File oldStatData = new File(STAT_RES + "perf_old.stat");
+		File newStatData = new File(STAT_RES + "perf_new.stat");
+		StatComparisonData diffData = new StatComparisonData("title",
+				oldStatData, newStatData);
+		diffData.cacheData();
+
+		PerfPlugin plugin = PerfPlugin.getDefault();
+		BaseDataManipulator dataMan = new BaseDataManipulator();
+
+		// check data was cached
+		assertEquals(dataMan.fileToString(oldStatData),
+				plugin.getCachedData(diffData.getOldDataID()));
+		assertEquals(dataMan.fileToString(newStatData),
+				plugin.getCachedData(diffData.getNewDataID()));
+
+		diffData.clearCachedData();
+
+		// check cached data was cleared
+		assertNull(plugin.getCachedData(diffData.getOldDataID()));
+		assertNull(plugin.getCachedData(diffData.getNewDataID()));
+	}
+
