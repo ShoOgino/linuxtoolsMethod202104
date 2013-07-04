@@ -23,8 +23,7 @@
                 long startTime = event.getStartTime();
                 long endTime = event.getEndTime();
                 TmfTimeRange range = new TmfTimeRange(new CtfTmfTimestamp(startTime), new CtfTmfTimestamp(endTime));
-                TmfTimestamp time = new CtfTmfTimestamp(fTimeGraphCombo.getTimeGraphViewer().getSelectedTime());
-                broadcast(new TmfRangeSynchSignal(CallStackView.this, range, time));
+                broadcast(new TmfRangeSynchSignal(CallStackView.this, range));
                 startZoomThread(startTime, endTime);
             }
         });
@@ -32,9 +31,10 @@
         fTimeGraphCombo.getTimeGraphViewer().addTimeListener(new ITimeGraphTimeListener() {
             @Override
             public void timeSelected(TimeGraphTimeEvent event) {
-                long time = event.getTime();
-                selectTime(time);
-                broadcast(new TmfTimeSynchSignal(CallStackView.this, new CtfTmfTimestamp(time)));
+                long beginTime = event.getBeginTime();
+                long endTime = event.getEndTime();
+                selectTime(beginTime);
+                broadcast(new TmfTimeSynchSignal(CallStackView.this, new CtfTmfTimestamp(beginTime), new CtfTmfTimestamp(endTime)));
             }
         });
 
@@ -61,8 +61,7 @@
                         startTime -= spacingTime;
                         endTime += spacingTime;
                         TmfTimeRange range = new TmfTimeRange(new CtfTmfTimestamp(startTime), new CtfTmfTimestamp(endTime));
-                        TmfTimestamp time = new CtfTmfTimestamp(fTimeGraphCombo.getTimeGraphViewer().getSelectedTime());
-                        broadcast(new TmfRangeSynchSignal(CallStackView.this, range, time));
+                        broadcast(new TmfRangeSynchSignal(CallStackView.this, range));
                         fTimeGraphCombo.getTimeGraphViewer().setStartFinishTime(startTime, endTime);
                         startZoomThread(startTime, endTime);
                     }
@@ -85,14 +84,16 @@
                         startTime -= spacingTime;
                         endTime += spacingTime;
                         TmfTimeRange range = new TmfTimeRange(new CtfTmfTimestamp(startTime), new CtfTmfTimestamp(endTime));
-                        TmfTimestamp time = new CtfTmfTimestamp(fTimeGraphCombo.getTimeGraphViewer().getSelectedTime());
-                        broadcast(new TmfRangeSynchSignal(CallStackView.this, range, time));
+                        broadcast(new TmfRangeSynchSignal(CallStackView.this, range));
                         fTimeGraphCombo.getTimeGraphViewer().setStartFinishTime(startTime, endTime);
                         startZoomThread(startTime, endTime);
                     }
                 }
             }
         });
+
+        IStatusLineManager statusLineManager = getViewSite().getActionBars().getStatusLineManager();
+        fTimeGraphCombo.getTimeGraphViewer().getTimeGraphControl().setStatusLineManager(statusLineManager);
 
         // View Action Handling
         makeActions();

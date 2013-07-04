@@ -15,8 +15,56 @@
         gc.setBackground(getColorScheme().getBkColor(false, false, true));
         drawBackground(gc, bounds.x, bounds.y, nameSpace, bounds.height);
 
-        if (fDragState == DRAG_ZOOM) {
-            // draw selected zoom region background
+        // draw items
+        drawItems(bounds, fTimeProvider, fItemData.fExpandedItems, fTopIndex, nameSpace, gc);
+
+        int alpha = gc.getAlpha();
+        gc.setAlpha(100);
+
+        long time0 = fTimeProvider.getTime0();
+        long time1 = fTimeProvider.getTime1();
+        long selectionBegin;
+        long selectionEnd;
+        if (fTimeProvider instanceof ITimeDataProvider2) {
+            selectionBegin = ((ITimeDataProvider2) fTimeProvider).getSelectionBegin();
+            selectionEnd = ((ITimeDataProvider2) fTimeProvider).getSelectionEnd();
+        } else {
+            @SuppressWarnings("deprecation")
+            long selectedTime = fTimeProvider.getSelectedTime();
+            selectionBegin = selectedTime;
+            selectionEnd = selectedTime;
+        }
+        double pixelsPerNanoSec = (bounds.width - nameSpace <= RIGHT_MARGIN) ? 0 : (double) (bounds.width - nameSpace - RIGHT_MARGIN) / (time1 - time0);
+        int x0 = bounds.x + nameSpace + (int) ((selectionBegin - time0) * pixelsPerNanoSec);
+        int x1 = bounds.x + nameSpace + (int) ((selectionEnd - time0) * pixelsPerNanoSec);
+
+        // draw selection lines
+        if (fDragState != DRAG_SELECTION) {
+            gc.setForeground(getColorScheme().getColor(TimeGraphColorScheme.SELECTED_TIME));
+            if (x0 >= nameSpace && x0 < bounds.x + bounds.width) {
+                gc.drawLine(x0, bounds.y, x0, bounds.y + bounds.height);
+            }
+            if (x1 != x0) {
+                if (x1 >= nameSpace && x1 < bounds.x + bounds.width) {
+                    gc.drawLine(x1, bounds.y, x1, bounds.y + bounds.height);
+                }
+            }
+        }
+
+        // draw selection background
+        if (selectionBegin != 0 && selectionEnd != 0 && fDragState != DRAG_SELECTION) {
+            x0 = Math.max(nameSpace, Math.min(bounds.x + bounds.width, x0));
+            x1 = Math.max(nameSpace, Math.min(bounds.x + bounds.width, x1));
+            gc.setBackground(getColorScheme().getBkColor(false, false, true));
+            if (x1 - x0 > 1) {
+                gc.fillRectangle(new Rectangle(x0 + 1, bounds.y, x1 - x0 - 1, bounds.height));
+            } else if (x0 - x1 > 1) {
+                gc.fillRectangle(new Rectangle(x1 + 1, bounds.y, x0 - x1 - 1, bounds.height));
+            }
+        }
+
+        // draw drag selection background
+        if (fDragState == DRAG_ZOOM || fDragState == DRAG_SELECTION) {
             gc.setBackground(getColorScheme().getBkColor(false, false, true));
             if (fDragX0 < fDragX) {
                 gc.fillRectangle(new Rectangle(fDragX0, bounds.y, fDragX - fDragX0, bounds.height));
@@ -25,30 +73,27 @@
             }
         }
 
-        drawItems(bounds, fTimeProvider, fItemData.fExpandedItems, fTopIndex, nameSpace, gc);
-
-        // draw selected time
-        long time0 = fTimeProvider.getTime0();
-        long time1 = fTimeProvider.getTime1();
-        long selectedTime = fTimeProvider.getSelectedTime();
-        double pixelsPerNanoSec = (bounds.width - nameSpace <= RIGHT_MARGIN) ? 0 : (double) (bounds.width - nameSpace - RIGHT_MARGIN) / (time1 - time0);
-        int x = bounds.x + nameSpace + (int) ((selectedTime - time0) * pixelsPerNanoSec);
-        if (x >= nameSpace && x < bounds.x + bounds.width) {
-            gc.setForeground(getColorScheme().getColor(TimeGraphColorScheme.SELECTED_TIME));
-            gc.drawLine(x, bounds.y, x, bounds.y + bounds.height);
-        }
-
-        // draw drag line, no line if name space is 0.
+        // draw drag line
         if (DRAG_SPLIT_LINE == fDragState) {
             gc.setForeground(getColorScheme().getColor(TimeGraphColorScheme.BLACK));
             gc.drawLine(bounds.x + nameSpace, bounds.y, bounds.x + nameSpace, bounds.y + bounds.height - 1);
-        } else if (DRAG_ZOOM == fDragState && Math.max(fDragX, fDragX0) > nameSpace && fDragX != fDragX0) {
+        } else if (DRAG_ZOOM == fDragState && Math.max(fDragX, fDragX0) > nameSpace) {
             gc.setForeground(getColorScheme().getColor(TimeGraphColorScheme.TOOL_FOREGROUND));
             gc.drawLine(fDragX0, bounds.y, fDragX0, bounds.y + bounds.height - 1);
-            gc.drawLine(fDragX, bounds.y, fDragX, bounds.y + bounds.height - 1);
+            if (fDragX != fDragX0) {
+                gc.drawLine(fDragX, bounds.y, fDragX, bounds.y + bounds.height - 1);
+            }
+        } else if (DRAG_SELECTION == fDragState && Math.max(fDragX, fDragX0) > nameSpace) {
+            gc.setForeground(getColorScheme().getColor(TimeGraphColorScheme.SELECTED_TIME));
+            gc.drawLine(fDragX0, bounds.y, fDragX0, bounds.y + bounds.height - 1);
+            if (fDragX != fDragX0) {
+                gc.drawLine(fDragX, bounds.y, fDragX, bounds.y + bounds.height - 1);
+            }
         } else if (DRAG_NONE == fDragState && fMouseOverSplitLine && fTimeProvider.getNameSpace() > 0) {
             gc.setForeground(getColorScheme().getColor(TimeGraphColorScheme.RED));
             gc.drawLine(bounds.x + nameSpace, bounds.y, bounds.x + nameSpace, bounds.y + bounds.height - 1);
         }
+
+        gc.setAlpha(alpha);
     }
 

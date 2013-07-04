@@ -23,12 +23,6 @@
                 imageGC.fillRectangle(i, height - value, 1, value);
             }
 
-            // Draw the current event bar
-            final int currentBucket = scaledData.fCurrentBucket;
-            if (currentBucket >= 0 && currentBucket < limit) {
-                drawDelimiter(imageGC, fCurrentEventColor, height, currentBucket);
-            }
-
             // Add a dashed line as a delimiter (at the right of the last bar)
             int lastEventIndex = limit - 1;
             while (lastEventIndex >= 0 && scaledData.fData[lastEventIndex] == 0) {
@@ -36,6 +30,24 @@
             }
             lastEventIndex += (lastEventIndex < limit - 1) ? 1 : 0;
             drawDelimiter(imageGC, fLastEventColor, height, lastEventIndex);
+
+            // Draw the selection bars
+            int alpha = imageGC.getAlpha();
+            imageGC.setAlpha(100);
+            imageGC.setForeground(fSelectionForegroundColor);
+            imageGC.setBackground(fSelectionBackgroundColor);
+            final int beginBucket = scaledData.fSelectionBeginBucket;
+            if (beginBucket >= 0 && beginBucket < limit) {
+                imageGC.drawLine(beginBucket, 0, beginBucket, height);
+            }
+            final int endBucket = Math.min(lastEventIndex, scaledData.fSelectionEndBucket);
+            if (endBucket >= 0 && endBucket < limit && endBucket != beginBucket) {
+                imageGC.drawLine(endBucket, 0, endBucket, height);
+            }
+            if (endBucket - beginBucket > 1) {
+                imageGC.fillRectangle(beginBucket + 1, 0, endBucket - beginBucket - 1, height);
+            }
+            imageGC.setAlpha(alpha);
         } catch (final Exception e) {
             // Do nothing
         }

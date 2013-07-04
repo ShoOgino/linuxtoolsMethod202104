@@ -10,7 +10,6 @@
 
         long time0 = fTimeProvider.getTime0();
         long time1 = fTimeProvider.getTime1();
-        long selectedTime = fTimeProvider.getSelectedTime();
         int leftSpace = fTimeProvider.getNameSpace();
         int timeSpace = fTimeProvider.getTimeSpace();
 
@@ -37,16 +36,6 @@
         rect0.height--;
         gc.fillRectangle(rect0);
 
-        if (RIGHT_BUTTON == fDragState && null != fTimeProvider) {
-            // draw selected zoom region background
-            gc.setBackground(getColorScheme().getBkColor(true, false, true));
-            if (fDragX0 < fDragX) {
-                gc.fillRectangle(new Rectangle(leftSpace + fDragX0, rect0.y, fDragX - fDragX0, rect0.height));
-            } else if (fDragX0 > fDragX) {
-                gc.fillRectangle(new Rectangle(leftSpace + fDragX, rect0.y, fDragX0 - fDragX, rect0.height));
-            }
-        }
-
         if (time1 <= time0 || timeSpace < 2) {
             return;
         }
@@ -60,23 +49,30 @@
 
         TimeDraw timeDraw = getTimeDraw(timeDelta);
 
-        // draw selected zoom region lines
-        if (RIGHT_BUTTON == fDragState && null != fTimeProvider) {
-            gc.drawLine(leftSpace + fDragX0, rect.y, leftSpace + fDragX0, rect.y + rect.height);
-            gc.drawLine(leftSpace + fDragX, rect.y, leftSpace + fDragX, rect.y + rect.height);
+        // draw range decorators
+        if (DRAG_EXTERNAL == fDragState) {
+            int x1 = leftSpace + Math.min(fDragX0, fDragX);
+            int x2 = leftSpace + Math.max(fDragX0, fDragX);
+            drawRangeDecorators(rect0, gc, x1, x2);
+        } else {
+            int x1;
+            int x2;
+            if (fTimeProvider instanceof ITimeDataProvider2) {
+                long selectionBegin = ((ITimeDataProvider2) fTimeProvider).getSelectionBegin();
+                long selectionEnd = ((ITimeDataProvider2) fTimeProvider).getSelectionEnd();
+                x1 = leftSpace + (int) ((selectionBegin - time0) * pixelsPerNanoSec);
+                x2 = leftSpace + (int) ((selectionEnd - time0) * pixelsPerNanoSec);
+            } else {
+                @SuppressWarnings("deprecation")
+                long selectedTime = fTimeProvider.getSelectedTime();
+                x1 = leftSpace + (int) ((selectedTime - time0) * pixelsPerNanoSec);
+                x2 = x1;
+            }
+            drawRangeDecorators(rect0, gc, x1, x2);
         }
 
         if (rect0.isEmpty()) {
             return;
-        }
-
-        // draw selected time
-        int x = rect0.x + (int) ((selectedTime - time0) * pixelsPerNanoSec);
-        if (x >= rect0.x && x < rect0.x + rect0.width) {
-            gc.setForeground(getColorScheme().getColor(TimeGraphColorScheme.SELECTED_TIME));
-            gc.drawLine(x, rect0.y + rect0.height - 6, x, rect0.y
-                    + rect0.height);
-            gc.setForeground(getColorScheme().getColor(TimeGraphColorScheme.TOOL_FOREGROUND));
         }
 
         // draw time scale ticks
@@ -101,7 +97,7 @@
         }
 
         while (true) {
-            x = rect.x + leftSpace + (int) (Math.floor((time - time0) * pixelsPerNanoSec));
+            int x = rect.x + leftSpace + (int) (Math.floor((time - time0) * pixelsPerNanoSec));
             if (x >= rect.x + leftSpace + rect.width - rect0.width) {
                 break;
             }

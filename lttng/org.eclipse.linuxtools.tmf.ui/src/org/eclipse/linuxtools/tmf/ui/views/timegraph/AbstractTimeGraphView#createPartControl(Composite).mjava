@@ -22,8 +22,7 @@
                 final long startTime = event.getStartTime();
                 final long endTime = event.getEndTime();
                 TmfTimeRange range = new TmfTimeRange(new CtfTmfTimestamp(startTime), new CtfTmfTimestamp(endTime));
-                TmfTimestamp time = new CtfTmfTimestamp(fTimeGraphCombo.getTimeGraphViewer().getSelectedTime());
-                broadcast(new TmfRangeSynchSignal(AbstractTimeGraphView.this, range, time));
+                broadcast(new TmfRangeSynchSignal(AbstractTimeGraphView.this, range));
                 if (fZoomThread != null) {
                     fZoomThread.cancel();
                 }
@@ -34,8 +33,9 @@
         fTimeGraphCombo.getTimeGraphViewer().addTimeListener(new ITimeGraphTimeListener() {
             @Override
             public void timeSelected(TimeGraphTimeEvent event) {
-                long time = event.getTime();
-                broadcast(new TmfTimeSynchSignal(AbstractTimeGraphView.this, new CtfTmfTimestamp(time)));
+                CtfTmfTimestamp startTime = new CtfTmfTimestamp(event.getBeginTime());
+                CtfTmfTimestamp endTime = new CtfTmfTimestamp(event.getEndTime());
+                broadcast(new TmfTimeSynchSignal(AbstractTimeGraphView.this, startTime, endTime));
             }
         });
 
@@ -47,6 +47,9 @@
         });
 
         fTimeGraphCombo.getTimeGraphViewer().setTimeFormat(TimeFormat.CALENDAR);
+
+        IStatusLineManager statusLineManager = getViewSite().getActionBars().getStatusLineManager();
+        fTimeGraphCombo.getTimeGraphViewer().getTimeGraphControl().setStatusLineManager(statusLineManager);
 
         // View Action Handling
         makeActions();

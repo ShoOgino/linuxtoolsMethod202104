@@ -1,8 +1,29 @@
     @Override
     public void mouseDown(final MouseEvent event) {
         if (fDataModel.getNbEvents() > 0 && fScaledData.fLastBucket >= event.x) {
-            fScaledData.fCurrentBucket = event.x;
-            updateCurrentEventTime();
+            if ((event.stateMask & SWT.MODIFIER_MASK) == 0) {
+                fScaledData.fSelectionBeginBucket = event.x;
+                fScaledData.fSelectionEndBucket = event.x;
+                fSelectionBegin = getTimestamp(event.x);
+                fSelectionEnd = fSelectionBegin;
+            } else if ((event.stateMask & SWT.MODIFIER_MASK) == SWT.SHIFT) {
+                if (fSelectionBegin == fSelectionEnd) {
+                    if (event.x < fScaledData.fSelectionBeginBucket) {
+                        fScaledData.fSelectionBeginBucket = event.x;
+                        fSelectionBegin = getTimestamp(event.x);
+                    } else {
+                        fScaledData.fSelectionEndBucket = event.x;
+                        fSelectionEnd = getTimestamp(event.x);
+                    }
+                } else if (Math.abs(event.x - fScaledData.fSelectionBeginBucket) <= Math.abs(event.x - fScaledData.fSelectionEndBucket)) {
+                    fScaledData.fSelectionBeginBucket = event.x;
+                    fSelectionBegin = getTimestamp(event.x);
+                } else {
+                    fScaledData.fSelectionEndBucket = event.x;
+                    fSelectionEnd = getTimestamp(event.x);
+                }
+            }
+            updateSelectionTime();
         }
     }
 
