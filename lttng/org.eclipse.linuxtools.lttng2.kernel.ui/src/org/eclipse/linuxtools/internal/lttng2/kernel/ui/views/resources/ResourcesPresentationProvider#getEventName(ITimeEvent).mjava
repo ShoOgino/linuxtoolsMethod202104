@@ -1,29 +1,12 @@
     @Override
     public String getEventName(ITimeEvent event) {
-        if (event instanceof ResourcesEvent) {
-            ResourcesEvent resourcesEvent = (ResourcesEvent) event;
-            if (resourcesEvent.getType() == Type.CPU) {
-                int status = resourcesEvent.getValue();
-                if (status == StateValues.CPU_STATUS_IDLE) {
-                    return State.IDLE.toString();
-                } else if (status == StateValues.CPU_STATUS_RUN_USERMODE) {
-                    return State.USERMODE.toString();
-                } else if (status == StateValues.CPU_STATUS_RUN_SYSCALL) {
-                    return State.SYSCALL.toString();
-                } else if (status == StateValues.CPU_STATUS_IRQ) {
-                    return State.IRQ.toString();
-                } else if (status == StateValues.CPU_STATUS_SOFTIRQ) {
-                    return State.SOFT_IRQ.toString();
-                }
-            } else if (resourcesEvent.getType() == Type.IRQ) {
-                return State.IRQ_ACTIVE.toString();
-            } else if (resourcesEvent.getType() == Type.SOFT_IRQ) {
-                int cpu = resourcesEvent.getValue();
-                if (cpu == StateValues.SOFT_IRQ_RAISED) {
-                    return State.SOFT_IRQ_RAISED.toString();
-                }
-                return State.SOFT_IRQ_ACTIVE.toString();
-            } else {
+        State state = getEventState(event);
+        if (state != null) {
+            return state.toString();
+        }
+        if (event instanceof TimeEvent) {
+            TimeEvent tcEvent = (TimeEvent) event;
+            if (tcEvent.hasValue()) {
                 return null;
             }
         }

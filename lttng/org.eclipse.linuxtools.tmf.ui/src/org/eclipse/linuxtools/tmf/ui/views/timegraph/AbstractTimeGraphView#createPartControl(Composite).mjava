@@ -1,0 +1,63 @@
+    @Override
+    public void createPartControl(Composite parent) {
+        fTimeGraphCombo = new TimeGraphCombo(parent, SWT.NONE, fWeight);
+
+        fTimeGraphCombo.setTreeContentProvider(new TreeContentProvider());
+
+        fTimeGraphCombo.setTreeLabelProvider(fLabelProvider);
+
+        fTimeGraphCombo.setTimeGraphProvider(fPresentation);
+
+        fTimeGraphCombo.setTreeColumns(fColumns);
+
+        fTimeGraphCombo.setFilterContentProvider(new TreeContentProvider());
+
+        fTimeGraphCombo.setFilterLabelProvider(new TreeLabelProvider());
+
+        fTimeGraphCombo.setFilterColumns(fFilterColumns);
+
+        fTimeGraphCombo.getTimeGraphViewer().addRangeListener(new ITimeGraphRangeListener() {
+            @Override
+            public void timeRangeUpdated(TimeGraphRangeUpdateEvent event) {
+                final long startTime = event.getStartTime();
+                final long endTime = event.getEndTime();
+                TmfTimeRange range = new TmfTimeRange(new CtfTmfTimestamp(startTime), new CtfTmfTimestamp(endTime));
+                TmfTimestamp time = new CtfTmfTimestamp(fTimeGraphCombo.getTimeGraphViewer().getSelectedTime());
+                broadcast(new TmfRangeSynchSignal(AbstractTimeGraphView.this, range, time));
+                if (fZoomThread != null) {
+                    fZoomThread.cancel();
+                }
+                startZoomThread(startTime, endTime);
+            }
+        });
+
+        fTimeGraphCombo.getTimeGraphViewer().addTimeListener(new ITimeGraphTimeListener() {
+            @Override
+            public void timeSelected(TimeGraphTimeEvent event) {
+                long time = event.getTime();
+                broadcast(new TmfTimeSynchSignal(AbstractTimeGraphView.this, new CtfTmfTimestamp(time)));
+            }
+        });
+
+        fTimeGraphCombo.addSelectionListener(new ITimeGraphSelectionListener() {
+            @Override
+            public void selectionChanged(TimeGraphSelectionEvent event) {
+                // ITimeGraphEntry selection = event.getSelection();
+            }
+        });
+
+        fTimeGraphCombo.getTimeGraphViewer().setTimeFormat(TimeFormat.CALENDAR);
+
+        // View Action Handling
+        makeActions();
+        contributeToActionBars();
+
+        ITmfTrace trace = getActiveTrace();
+        if (trace != null) {
+            traceSelected(new TmfTraceSelectedSignal(this, trace));
+        }
+
+        // make selection available to other views
+        getSite().setSelectionProvider(fTimeGraphCombo.getTreeViewer());
+    }
+
