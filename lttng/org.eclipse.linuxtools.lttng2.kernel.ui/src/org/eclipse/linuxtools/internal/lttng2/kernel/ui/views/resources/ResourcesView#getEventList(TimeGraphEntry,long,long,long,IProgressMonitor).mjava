@@ -2,18 +2,14 @@
     protected List<ITimeEvent> getEventList(TimeGraphEntry entry,
             long startTime, long endTime, long resolution,
             IProgressMonitor monitor) {
-        ITmfStateSystem ssq = entry.getTrace().getStateSystems().get(LttngKernelTrace.STATE_ID);
+        ResourcesEntry resourcesEntry = (ResourcesEntry) entry;
+        ITmfStateSystem ssq = resourcesEntry.getTrace().getStateSystems().get(LttngKernelTrace.STATE_ID);
         final long realStart = Math.max(startTime, ssq.getStartTime());
         final long realEnd = Math.min(endTime, ssq.getCurrentEndTime() + 1);
         if (realEnd <= realStart) {
             return null;
         }
         List<ITimeEvent> eventList = null;
-
-        if (!(entry instanceof ResourcesEntry)) {
-            return eventList;
-        }
-        ResourcesEntry resourcesEntry = (ResourcesEntry) entry;
         int quark = resourcesEntry.getQuark();
 
         try {
@@ -34,12 +30,11 @@
                             eventList.add(new TimeEvent(entry, lastEndTime, time - lastEndTime));
                         }
                         eventList.add(new TimeEvent(entry, time, duration, status));
-                        lastEndTime = time + duration;
-                    } else {
-                        if (true) {// includeNull) {
-                            eventList.add(new TimeEvent(entry, time, duration, NO_VALUE_EVENT));
-                        }
+                    } else if (lastEndTime == -1 || time + duration >= endTime) {
+                        // add null event if it intersects the start or end time
+                        eventList.add(new NullTimeEvent(entry, time, duration));
                     }
+                    lastEndTime = time + duration;
                 }
             } else if (resourcesEntry.getType().equals(Type.IRQ)) {
                 List<ITmfStateInterval> irqIntervals = ssq.queryHistoryRange(quark, realStart, realEnd - 1, resolution, monitor);
@@ -57,11 +52,18 @@
                         eventList.add(new TimeEvent(entry, time, duration, cpu));
                         lastIsNull = false;
                     } else {
-                        if (lastEndTime != time && lastEndTime != -1 && lastIsNull) {
-                            /* This is a special case where we want to show IRQ_ACTIVE state but we don't know the CPU (it is between two null samples) */
-                            eventList.add(new TimeEvent(entry, lastEndTime, time - lastEndTime, -1));
+                        if (lastEndTime == -1) {
+                            // add null event if it intersects the start time
+                            eventList.add(new NullTimeEvent(entry, time, duration));
                         } else {
-                            eventList.add(new TimeEvent(entry, time, duration, NO_VALUE_EVENT));
+                            if (lastEndTime != time && lastIsNull) {
+                                /* This is a special case where we want to show IRQ_ACTIVE state but we don't know the CPU (it is between two null samples) */
+                                eventList.add(new TimeEvent(entry, lastEndTime, time - lastEndTime, -1));
+                            }
+                            if (time + duration >= endTime) {
+                                // add null event if it intersects the end time
+                                eventList.add(new NullTimeEvent(entry, time, duration));
+                            }
                         }
                         lastIsNull = true;
                     }
@@ -82,11 +84,18 @@
                         int cpu = softIrqInterval.getStateValue().unboxInt();
                         eventList.add(new TimeEvent(entry, time, duration, cpu));
                     } else {
-                        if (lastEndTime != time && lastEndTime != -1 && lastIsNull) {
-                            /* This is a special case where we want to show IRQ_ACTIVE state but we don't know the CPU (it is between two null samples) */
-                            eventList.add(new TimeEvent(entry, lastEndTime, time - lastEndTime, -1));
+                        if (lastEndTime == -1) {
+                            // add null event if it intersects the start time
+                            eventList.add(new NullTimeEvent(entry, time, duration));
                         } else {
-                            eventList.add(new TimeEvent(entry, time, duration, NO_VALUE_EVENT));
+                            if (lastEndTime != time && lastIsNull) {
+                                /* This is a special case where we want to show IRQ_ACTIVE state but we don't know the CPU (it is between two null samples) */
+                                eventList.add(new TimeEvent(entry, lastEndTime, time - lastEndTime, -1));
+                            }
+                            if (time + duration >= endTime) {
+                                // add null event if it intersects the end time
+                                eventList.add(new NullTimeEvent(entry, time, duration));
+                            }
                         }
                         lastIsNull = true;
                     }
