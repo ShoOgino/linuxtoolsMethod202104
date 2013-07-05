@@ -1,10 +1,25 @@
 	public ICompletionProposal[] computeCompletionProposals(IDocument document, int offset){
 
 		ITypedRegion partition = null;
+		boolean useGlobal = false;
 
 		try {
-			partition = document.getPartition(offset);
+			partition =
+					((IDocumentExtension3) document).getPartition(STPProbeScanner.STP_PROBE_PARTITIONING, offset, false);
+			if (partition.getOffset() == offset) {
+				if (partition.getType() != IDocument.DEFAULT_CONTENT_TYPE && partition.getType() != STPProbeScanner.STP_PROBE) {
+					if (offset > 0) {
+						ITypedRegion prevPartition = 
+								((IDocumentExtension3) document).getPartition(STPProbeScanner.STP_PROBE_PARTITIONING, offset - 1, false);
+						useGlobal = prevPartition.getType() == IDocument.DEFAULT_CONTENT_TYPE;
+					} else {
+						useGlobal = true;
+					}
+				}
+			}
 		} catch (BadLocationException e1) {
+			return NO_COMPLETIONS;
+		} catch (BadPartitioningException e) {
 			return NO_COMPLETIONS;
 		}
 
@@ -32,14 +47,9 @@
 			return getProbeCompletionList(prefix, offset);
 		}
 
-		// In the global scope return global keyword completion.
-		if (partition.getType() == IDocument.DEFAULT_CONTENT_TYPE ){
-			return getGlobalKeywordCompletion(prefix, offset);
-		}
-
 		// If inside a probe return probe variable completions and functions
 		// which can be called.
-		if (partition.getType() == STPPartitionScanner.STP_PROBE){
+		if (partition.getType() == STPProbeScanner.STP_PROBE) {
 			ICompletionProposal[] variableCompletions = getProbeVariableCompletions(document, offset, prefix);
 			ICompletionProposal[] functionCompletions = getFunctionCompletions(offset, prefix);
 
@@ -49,6 +59,9 @@
 			completions.addAll(Arrays.asList(functionCompletions));
 
 			return completions.toArray(new ICompletionProposal[0]);
+		} else if (partition.getType() == IDocument.DEFAULT_CONTENT_TYPE || useGlobal) {
+			// In the global scope return global keyword completion.
+			return getGlobalKeywordCompletion(prefix, offset);
 		}
 
 		return NO_COMPLETIONS;

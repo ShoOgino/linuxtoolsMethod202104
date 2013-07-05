@@ -1,0 +1,53 @@
+	private int getBracketCount(IDocument d, int start, int end, boolean ignoreCloseBrackets) throws BadLocationException {
+		int bracketcount = 0;
+		while (start < end) {
+			char curr = d.getChar(start);
+			start++;
+			switch (curr) {
+				case '#' :
+					if (start < end) {
+						// '#'-comment: nothing to do anymore on this line
+						start = end;
+					}
+					break;
+				case '/' :
+					if (start < end) {
+						char next = d.getChar(start);
+						if (next == '*') {
+							// a comment starts, advance to the comment end
+							start = getCommentEnd(d, start + 1, end);
+						} else if (next == '/') {
+							// '//'-comment: nothing to do anymore on this line
+							start = end;
+						}
+					}
+					break;
+				case '*' :
+					if (start < end) {
+						char next = d.getChar(start);
+						if (next == '/') {
+							// we have been in a comment: forget what we read before
+							bracketcount = 0;
+							start++;
+						}
+					}
+					break;
+				case '{' :
+					bracketcount++;
+					ignoreCloseBrackets = false;
+					break;
+				case '}' :
+					if (!ignoreCloseBrackets) {
+						bracketcount--;
+					}
+					break;
+				case '"' :
+				case '\'' :
+					start = getStringEnd(d, start, end, curr);
+					break;
+				default :
+			}
+		}
+		return bracketcount;
+	}
+

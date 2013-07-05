@@ -1,0 +1,40 @@
+	/**
+	 * Skips over the next <code>if</code> keyword. The current token when calling
+	 * this method must be an <code>else</code> keyword. Returns <code>true</code>
+	 * if a matching <code>if</code> could be found, <code>false</code> otherwise.
+	 * The cursor (<code>fPosition</code>) is set to the offset of the <code>if</code>
+	 * token.
+	 *
+	 * @return <code>true</code> if a matching <code>if</code> token was found, <code>false</code> otherwise
+	 */
+	private boolean skipNextIF() {
+		Assert.isTrue(fToken == STPSymbols.TokenELSE);
+
+		while (true) {
+			nextToken();
+			switch (fToken) {
+			// scopes: skip them
+			case STPSymbols.TokenRPAREN:
+			case STPSymbols.TokenRBRACKET:
+			case STPSymbols.TokenRBRACE:
+				skipScope();
+				break;
+
+			case STPSymbols.TokenIF:
+				// found it, return
+				return true;
+			case STPSymbols.TokenELSE:
+				// recursively skip else-if blocks
+				skipNextIF();
+				break;
+
+			// shortcut scope starts
+			case STPSymbols.TokenLPAREN:
+			case STPSymbols.TokenLBRACE:
+			case STPSymbols.TokenLBRACKET:
+			case STPSymbols.TokenEOF:
+				return false;
+			}
+		}
+	}
+

@@ -1,0 +1,51 @@
+	/**
+	 * Returns as a reference any previous access specifiers (<code>public</code>,
+	 * <code>protected</code> or <code>default</code>) or the offset of the brace that
+	 * scopes the class body.
+	 * Sets <code>fIndent</code> to <code>prefAccessSpecifierIndent</code> upon
+	 * a match.
+	 *
+	 * @return the reference offset for an access specifier (public/protected/private)
+	 */
+	private int matchAccessSpecifierAlignment() {
+		while (true) {
+			nextToken();
+			switch (fToken) {
+			// invalid cases: another access specifier or an LBRACE must come before an access specifier
+			// -> bail out with the current position
+			case STPSymbols.TokenLPAREN:
+			case STPSymbols.TokenLBRACKET:
+			case STPSymbols.TokenEOF:
+				return fPosition;
+				
+			case STPSymbols.TokenLBRACE:
+				// opening brace of class body
+				int pos= fPosition;
+				int typeDeclPos= matchTypeDeclaration();
+				fIndent= fPrefs.prefAccessSpecifierIndent;
+				fExtraSpaces = fPrefs.prefAccessSpecifierExtraSpaces;
+				if (typeDeclPos != NOT_FOUND) {
+					return typeDeclPos;
+				}
+				return pos;
+			case STPSymbols.TokenPUBLIC:
+			case STPSymbols.TokenPROTECTED:
+			case STPSymbols.TokenPRIVATE:
+				// align with previous access specifier
+				fIndent= 0;
+				return fPosition;
+
+			// scopes: skip them
+			case STPSymbols.TokenRPAREN:
+			case STPSymbols.TokenRBRACKET:
+			case STPSymbols.TokenRBRACE:
+				skipScope();
+				break;
+
+			default:
+				// keep searching
+				continue;
+			}
+		}
+	}
+

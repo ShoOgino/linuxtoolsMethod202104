@@ -1,0 +1,53 @@
+	// Location to align and break on.
+	public STPAlignment(String name, int mode, int tieBreakRule, STPScribe scribe, int fragmentCount,
+			int sourceRestart, int continuationIndent) {
+		this.name = name;
+		this.location = new STPLocation(scribe, sourceRestart);
+		this.mode = mode;
+		this.tieBreakRule = tieBreakRule;
+		this.fragmentCount = fragmentCount;
+		this.scribe = scribe;
+		this.originalIndentationLevel = this.scribe.indentationLevel;
+		this.wasSplit = false;
+		this.fragmentIndentations = new int[this.fragmentCount];
+		this.fragmentBreaks = new int[this.fragmentCount];
+		Arrays.fill(this.fragmentBreaks, (this.mode & M_FORCE) == 0 ? BREAK_NOT_ALLOWED : NONE);
+		this.currentFragmentStartLine = this.scribe.line;
+
+		int currentColumn = this.location.outputColumn;
+		if (currentColumn == 1) {
+		    currentColumn = this.location.outputIndentationLevel + 1;
+		}
+		
+		// Initialize the break indentation level, using modes and continuationIndentationLevel
+		// preference.
+		final int indentSize = this.scribe.indentationSize;
+
+		if ((mode & M_INDENT_ON_COLUMN) != 0) {
+			// Indent broken fragments at next indentation level, based on current column
+			this.breakIndentationLevel = this.scribe.getNextIndentationLevel(currentColumn);
+			this.alternativeBreakIndentationLevel =
+					this.location.outputIndentationLevel + continuationIndent * indentSize;
+		} else {
+			int baseIndentationLevel = this.location.outputIndentationLevel;
+			if (name != TRAILING_TEXT && this.scribe.currentAlignment != null &&
+					(this.scribe.currentAlignment.mode & M_INDENT_ON_COLUMN) != 0 &&
+					this.scribe.currentAlignment.fragmentCount > 1) {
+				baseIndentationLevel = this.scribe.currentAlignment.breakIndentationLevel;
+			}
+			if ((mode & M_INDENT_BY_ONE) != 0) {
+				// Indent broken fragments exactly one level deeper than current indentation
+				this.breakIndentationLevel = baseIndentationLevel + indentSize;
+			} else {
+				this.breakIndentationLevel = baseIndentationLevel + continuationIndent * indentSize;
+			}
+			this.alternativeBreakIndentationLevel = this.breakIndentationLevel;
+		}
+
+		// Check for forced alignments
+		if ((this.mode & M_FORCE) != 0) {
+			this.fragmentBreaks[this.fragmentIndex] = NONE;
+			couldBreak();
+		}
+	}
+

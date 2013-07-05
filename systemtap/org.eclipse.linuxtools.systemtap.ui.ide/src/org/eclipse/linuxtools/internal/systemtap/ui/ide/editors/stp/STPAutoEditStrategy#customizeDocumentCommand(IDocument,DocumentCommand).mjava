@@ -2,16 +2,23 @@
 	public void customizeDocumentCommand(IDocument document,
 			DocumentCommand command) {
 		boolean modified = false;
-		if (command.text.equals("\"")) { //$NON-NLS-1$
+		boolean isNewLine= command.length == 0 && command.text != null 
+				&& isLineDelimiter(document, command.text);
+		if (isNewLine) {
+			smartIndentAfterNewLine(document, command);
+		} else if (command.text.length() == 1) {
+			smartIndentOnKeypress(document, command);
+		} else if (command.text.length() > 1
+				&& command.text.trim().length() != 0) {
+			smartPaste(document, command); // no smart backspace for paste
+		}
+		if (command.text.equals("\"") && !inStringOrComment(document, command)) { //$NON-NLS-1$
 			command.text = "\"\""; //$NON-NLS-1$
 			modified = true;
-		} else if (command.text.equals("(")){ //$NON-NLS-1$
+		} else if (command.text.equals("(") && !inStringOrComment(document, command)) { //$NON-NLS-1$
 			command.text = "()"; //$NON-NLS-1$
 			modified = true;
-		} else if (command.text.equals("{")) { //$NON-NLS-1$
-			command.text = "{}"; //$NON-NLS-1$
-			modified = true;
-		} else if (command.text.equals("[")) { //$NON-NLS-1$
+		} else if (command.text.equals("[") && !inStringOrComment(document, command)) { //$NON-NLS-1$
 			command.text = "[]"; //$NON-NLS-1$
 			modified = true;
 		}

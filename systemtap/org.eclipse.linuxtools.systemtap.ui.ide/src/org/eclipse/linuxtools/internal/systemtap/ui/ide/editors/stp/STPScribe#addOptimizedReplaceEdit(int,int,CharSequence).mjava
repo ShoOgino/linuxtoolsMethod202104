@@ -1,0 +1,75 @@
+	private final void addOptimizedReplaceEdit(int offset, int length, CharSequence replacement) {
+		if (edits.length == editsIndex) {
+			resize();
+		}
+		if (editsIndex > 0) {
+			// Try to merge last two edits
+			final OptimizedReplaceEdit previous= edits[editsIndex - 1];
+			final int previousOffset= previous.offset;
+			final int previousLength= previous.length;
+			final int endOffsetOfPreviousEdit= previousOffset + previousLength;
+			final int replacementLength= replacement.length();
+			final String previousReplacement= previous.replacement;
+			final int previousReplacementLength= previousReplacement.length();
+			if (previousOffset == offset && previousLength == length
+					&& (replacementLength == 0 || previousReplacementLength == 0)) {
+				if (currentAlignment != null) {
+					final STPLocation location= currentAlignment.location;
+					if (location.editsIndex == editsIndex) {
+						location.editsIndex--;
+						location.textEdit= previous;
+					}
+				}
+				editsIndex--;
+				return;
+			}
+			if (endOffsetOfPreviousEdit == offset) {
+				if (length != 0) {
+					if (replacementLength != 0) {
+						editsIndex--;
+						appendOptimizedReplaceEdit(previousOffset, previousLength + length,
+								previousReplacement + replacement);
+					} else if (previousLength + length == previousReplacementLength) {
+						// Check the characters. If they are identical,
+						// we can get rid of the previous edit.
+						boolean canBeRemoved= true;
+						loop: for (int i= previousOffset; i < previousOffset + previousReplacementLength; i++) {
+							if (scanner.source[i] != previousReplacement.charAt(i - previousOffset)) {
+								editsIndex--;
+								appendOptimizedReplaceEdit(previousOffset, previousReplacementLength,
+										previousReplacement);
+								canBeRemoved= false;
+								break loop;
+							}
+						}
+						if (canBeRemoved) {
+							if (currentAlignment != null) {
+								final STPLocation location= currentAlignment.location;
+								if (location.editsIndex == editsIndex) {
+									location.editsIndex--;
+									location.textEdit= previous;
+								}
+							}
+							editsIndex--;
+						}
+					} else {
+						editsIndex--;
+						appendOptimizedReplaceEdit(previousOffset, previousLength + length,
+								previousReplacement);
+					}
+				} else {
+					if (replacementLength != 0) {
+						editsIndex--;
+						appendOptimizedReplaceEdit(previousOffset, previousLength,
+								previousReplacement + replacement);
+					}
+				}
+			} else {
+				assert endOffsetOfPreviousEdit < offset;
+				appendOptimizedReplaceEdit(offset, length, replacement);
+			}
+		} else {
+			appendOptimizedReplaceEdit(offset, length, replacement);
+		}
+	}
+

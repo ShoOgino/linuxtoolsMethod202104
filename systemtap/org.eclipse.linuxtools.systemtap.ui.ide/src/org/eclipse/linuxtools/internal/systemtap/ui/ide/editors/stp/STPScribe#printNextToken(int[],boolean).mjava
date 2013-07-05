@@ -1,0 +1,25 @@
+	public void printNextToken(int[] expectedTokenTypes, boolean considerSpaceIfAny) {
+		printComment();
+		if (shouldSkip(scanner.getCurrentPosition())) {
+			return;
+		}
+		currentToken= scanner.nextToken();
+		if (Arrays.binarySearch(expectedTokenTypes, currentToken.type) < 0) {
+			if (pendingSpace) {
+				addInsertEdit(scanner.getCurrentTokenStartPosition(), SPACE);
+			}
+			pendingSpace= false;
+			needSpace= true;
+			StringBuilder expectations= new StringBuilder(5);
+			for (int i= 0; i < expectedTokenTypes.length; i++) {
+				if (i > 0) {
+					expectations.append(',');
+				}
+				expectations.append(expectedTokenTypes[i]);
+			}
+			throw new AbortFormatting(
+					"["	+ (line + 1) + "/" + column + "] unexpected token type, expecting:[" + expectations.toString() + "], actual:" + currentToken); //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$
+		}
+		print(currentToken.getLength(), considerSpaceIfAny);
+	}
+

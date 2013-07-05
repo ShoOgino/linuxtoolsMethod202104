@@ -1,0 +1,44 @@
+	/**
+	 * Computes an insert position for an opening brace if <code>offset</code> maps to a position in
+	 * <code>document</code> with a expression in parenthesis that will take a block after the closing parenthesis.
+	 *
+	 * @param document the document being modified
+	 * @param offset the offset of the caret position, relative to the line start.
+	 * @param partitioning the document partitioning
+	 * @param max the max position
+	 * @return an insert position relative to the line start if <code>line</code> contains a parenthesized expression that can be followed by a block, -1 otherwise
+	 */
+	private static int computeAnonymousPosition(IDocument document, int offset, String partitioning,  int max) {
+		// find the opening parenthesis for every closing parenthesis on the current line after offset
+		// return the position behind the closing parenthesis if it looks like a method declaration
+		// or an expression for an if, while, for, catch statement
+
+		STPHeuristicScanner scanner = new STPHeuristicScanner(document);
+		int pos = offset;
+		int length = max;
+		int scanTo = scanner.scanForward(pos, length, '}');
+		if (scanTo == -1)
+			scanTo = length;
+
+		int closingParen = findClosingParenToLeft(scanner, pos) - 1;
+
+		while (true) {
+			int startScan = closingParen + 1;
+			closingParen = scanner.scanForward(startScan, scanTo, ')');
+			if (closingParen == -1)
+				break;
+
+			int openingParen = scanner.findOpeningPeer(closingParen - 1, '(', ')');
+
+			// no way an expression at the beginning of the document can mean anything
+			if (openingParen < 1)
+				break;
+
+			// only select insert positions for parenthesis currently embracing the caret
+			if (openingParen > pos)
+				continue;
+		}
+
+		return -1;
+	}
+

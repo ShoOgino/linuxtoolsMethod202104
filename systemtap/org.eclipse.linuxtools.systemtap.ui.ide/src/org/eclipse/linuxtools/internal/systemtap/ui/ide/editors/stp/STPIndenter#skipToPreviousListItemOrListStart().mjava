@@ -1,0 +1,103 @@
+	/**
+	 * Returns the reference position for a list element. The algorithm
+	 * tries to match any previous indentation on the same list. If there is none,
+	 * the reference position returned is determined depending on the type of list:
+	 * The indentation will either match the list scope introducer (e.g. for
+	 * method declarations), so called deep indents, or simply increase the
+	 * indentation by a number of standard indents. See also {@link #handleScopeIntroduction(int, boolean)}.
+	 * @return the reference position for a list item: either a previous list item
+	 * that has its own indentation, or the list introduction start.
+	 */
+	private int skipToPreviousListItemOrListStart() {
+		int startLine= fLine;
+		int startPosition= fPosition;
+		int linesSkippedInsideScopes = 0;
+		boolean continuationLineCandidate =
+				fToken == STPSymbols.TokenEQUAL || fToken == STPSymbols.TokenSHIFTLEFT ||
+				fToken == STPSymbols.TokenRPAREN;
+		while (true) {
+			int previous = fToken;
+			nextToken();
+
+			// If any line item comes with its own indentation, adapt to it
+			if (fLine < startLine - linesSkippedInsideScopes) {
+				try {
+					int lineOffset= fDocument.getLineOffset(startLine);
+					int bound= Math.min(fDocument.getLength(), startPosition + 1);
+					if ((fToken == STPSymbols.TokenSEMICOLON || fToken == STPSymbols.TokenRBRACE ||
+							fToken == STPSymbols.TokenLBRACE && !looksLikeArrayInitializerIntro() && !looksLikeEnumDeclaration()) &&
+							continuationLineCandidate) {
+						fIndent = fPrefs.prefContinuationIndent;
+					} else {
+						fAlign= fScanner.findNonWhitespaceForwardInAnyPartition(lineOffset, bound);
+						// If the reference line starts with a colon, skip the colon.  
+						if (peekToken(fAlign) == STPSymbols.TokenCOLON) {
+							fAlign= fScanner.findNonWhitespaceForwardInAnyPartition(fAlign + 1, bound);
+						}
+					}
+				} catch (BadLocationException e) {
+					// Ignore and return just the position
+				}
+				return startPosition;
+			}
+
+			int line = fLine;
+			switch (fToken) {
+			// scopes: skip them
+			case STPSymbols.TokenRPAREN:
+				continuationLineCandidate = true;
+				//$FALL-THROUGH$
+			case STPSymbols.TokenRBRACKET:
+			case STPSymbols.TokenRBRACE:
+				skipScope();
+				linesSkippedInsideScopes = line - fLine;
+				break;
+
+			// scope introduction: special treat who special is
+			case STPSymbols.TokenLPAREN:
+			case STPSymbols.TokenLBRACE:
+			case STPSymbols.TokenLBRACKET:
+				return handleScopeIntroduction(startPosition + 1, false);
+
+			case STPSymbols.TokenSEMICOLON:
+				return fPosition;
+
+			case STPSymbols.TokenQUESTIONMARK:
+				if (fPrefs.prefTernaryDeepAlign) {
+					setFirstElementAlignment(fPosition - 1, fPosition + 1);
+				} else {
+					fIndent= fPrefs.prefTernaryIndent;
+				}
+				return fPosition;
+
+			case STPSymbols.TokenEQUAL:
+			case STPSymbols.TokenSHIFTLEFT:
+				continuationLineCandidate = true;
+				break;
+
+			case STPSymbols.TokenRETURN:
+			case STPSymbols.TokenUSING:
+				fIndent = fPrefs.prefContinuationIndent;
+				return fPosition;
+
+			case STPSymbols.TokenTYPEDEF:
+				switch (previous) {
+				case STPSymbols.TokenSTRUCT:
+				case STPSymbols.TokenUNION:
+				case STPSymbols.TokenCLASS:
+				case STPSymbols.TokenENUM:
+					break;
+				default:
+					fIndent = fPrefs.prefContinuationIndent;
+				}
+				return fPosition;
+
+			case STPSymbols.TokenEOF:
+				if (continuationLineCandidate) {
+					fIndent = fPrefs.prefContinuationIndent;
+				}
+				return 0;
+			}
+		}
+	}
+

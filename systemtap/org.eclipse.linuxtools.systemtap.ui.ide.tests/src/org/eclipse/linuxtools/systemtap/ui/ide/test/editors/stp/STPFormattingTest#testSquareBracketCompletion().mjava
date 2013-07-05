@@ -1,0 +1,60 @@
+	@Test
+	public void testSquareBracketCompletion() throws BadLocationException {
+		assumeTrue(stapInstalled);
+		AutoEditTester tester = createAutoEditTester(); 
+		
+		tester.type("probe end {\n");
+		
+		// We are located on 2nd line
+		assertEquals(1, tester.getCaretLine());
+		
+		tester.type("a[");
+		
+		// Verify automatic completion of square brackets
+		assertEquals(1, tester.getCaretLine());
+		assertEquals(3, tester.getCaretColumn());
+		assertEquals("\ta[]", tester.getLine());
+		
+		tester.type("2]");
+		
+		// Verify we can overwrite the end square-bracket
+		assertEquals(1, tester.getCaretLine());
+		assertEquals(5, tester.getCaretColumn());
+		assertEquals("\ta[2]", tester.getLine());
+		
+		// Verify we don't add square brackets inside a string
+		tester.type("=\"b[");
+		assertEquals(1, tester.getCaretLine());
+		assertEquals(9, tester.getCaretColumn());
+		assertEquals("\ta[2]=\"b[\"", tester.getLine());
+		
+		// Verify we don't add square brackets inside a comment
+		tester.goTo(tester.getCaretLine(), tester.getCaretColumn() + 1);
+		tester.type(" /* a[2");
+		assertEquals(1, tester.getCaretLine());
+		assertEquals(17, tester.getCaretColumn());
+		assertEquals("\ta[2]=\"b[\" /* a[2", tester.getLine());
+		
+		// Verify we don't add square brackets inside a line comment
+		tester.type(" */ // a[2");
+		assertEquals(1, tester.getCaretLine());
+		assertEquals(27, tester.getCaretColumn());
+		assertEquals("\ta[2]=\"b[\" /* a[2 */ // a[2", tester.getLine());
+		
+		// Verify we don't add square brackets inside a line comment
+		tester.type("\n# a[2");
+		
+		assertEquals(2, tester.getCaretLine());
+		assertEquals(5, tester.getCaretColumn());
+		assertEquals("# a[2", tester.getLine());
+		
+		// Verify we don't add square brackets inside a char specifier
+		tester.type("\na[3]='[");
+		
+		System.out.println(tester.fDoc.get());
+		assertEquals(3, tester.getCaretLine());
+		assertEquals(8, tester.getCaretColumn());
+		assertEquals("\ta[3]='[", tester.getLine());
+		
+	}
+
