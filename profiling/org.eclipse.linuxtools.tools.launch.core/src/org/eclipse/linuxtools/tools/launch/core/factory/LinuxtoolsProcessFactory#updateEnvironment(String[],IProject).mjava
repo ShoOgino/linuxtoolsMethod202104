@@ -11,7 +11,20 @@
 			envp = new String[0];
 		String ltPath = LinuxtoolsPathProperty.getInstance().getLinuxtoolsPath(project);
 		String envpPath = getEnvpPath(envp);
-		String systemPath = System.getenv(PATH);
+		String systemPath = null;	
+		Map<String, String> systemEnvMap = null;
+		try {
+			systemEnvMap = RemoteEnvProxyManager.class.newInstance().getEnv(project);
+			systemPath = systemEnvMap.get(PATH);
+			if (systemPath==null)
+				systemPath = System.getenv(PATH);
+		} catch (InstantiationException e) {
+			e.printStackTrace();
+		} catch (IllegalAccessException e) {
+			e.printStackTrace();
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
 		StringBuffer newPath = new StringBuffer();
 		newPath.append(PATH_EQUAL);
 
@@ -40,7 +53,7 @@
 					newEnvp[i] = newPath.toString();
 				else
 					newEnvp[i] = envp[i];
-		} else {
+		} else if (systemEnvMap != null) {
 			Map<String, String> envVars = System.getenv();
 			Set<String> keySet = envVars.keySet();
 			newEnvp = new String[envVars.size()];
@@ -50,6 +63,8 @@
 				newEnvp[i] = key + "=" + envVars.get(key);
 				i++;
 			}
+		} else {
+			newEnvp = new String[] {};
 		}
 		return newEnvp;
 	}
