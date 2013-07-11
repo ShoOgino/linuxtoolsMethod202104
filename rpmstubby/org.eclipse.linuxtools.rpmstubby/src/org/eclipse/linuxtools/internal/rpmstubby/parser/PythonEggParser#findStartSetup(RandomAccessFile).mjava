@@ -1,0 +1,27 @@
+	/**
+	 * Find the offset of when setup(...) starts
+	 *
+	 * @param reader The file reader
+	 * @return The position of the start of setup(...
+	 * @throws IOException
+	 */
+	private static long findStartSetup(RandomAccessFile reader) throws IOException {
+		long rc = -1;
+		long previous = 0;
+		Pattern pattern = Pattern.compile("^\\bsetup\\b(\\s+)?(\\()?");
+		Matcher variableMatcher = null;
+		String line = "";
+
+		reader.seek(0);
+		while ((line = reader.readLine()) != null && rc == -1) {
+			variableMatcher = pattern.matcher(line.toLowerCase());
+			if (variableMatcher.find()) {
+				// get the previous line's file pointer location
+				rc = previous;
+			}
+			previous = reader.getFilePointer();
+		}
+
+		return rc;
+	}
+

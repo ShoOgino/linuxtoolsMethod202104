@@ -1,0 +1,33 @@
+	/**
+	 * Prepare the setup options by returning each comma delimited option
+	 *
+	 * @param setupLine The single string containing all the setup options
+	 * @return A list of setup options
+	 */
+	private static List<String> prepareSetupOptions(String setupLine) {
+		List<String> rc = new ArrayList<String>();
+		String[] tempList = {};
+		// match the setup(...) pattern
+		Pattern pattern = Pattern.compile("\\bsetup\\b(\\s+)?\\((.*)\\)");
+		Matcher variableMatcher = pattern.matcher(setupLine);
+
+		if (variableMatcher.find()) {
+			setupLine = variableMatcher.group(2);
+		}
+
+		tempList = setupLine.split("(?=,)");
+
+		for (String str : tempList) {
+			if (isOptionLineKeyValuePair(str) && !str.trim().startsWith("#")) {
+				if (str.startsWith(",")) {
+					str = str.substring(1, str.length()).trim();
+				}
+				rc.add(str);
+			} else if (!str.trim().startsWith("#") && !rc.isEmpty()) {
+				rc.set(rc.size() - 1, rc.get(rc.size() - 1).concat(str.trim()));
+			}
+		}
+
+		return rc;
+	}
+
