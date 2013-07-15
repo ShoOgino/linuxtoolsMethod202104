@@ -1,0 +1,29 @@
+    @Override
+    public boolean appliesToTraceType(Class<? extends ITmfTrace> traceclass) {
+        boolean applies = false;
+
+        /* Get the module's applying tracetypes */
+        final IConfigurationElement[] tracetypeCE = fCe.getChildren(TmfAnalysisType.TRACETYPE_ELEM);
+        for (IConfigurationElement element : tracetypeCE) {
+            Class<?> applyclass;
+            try {
+                applyclass = getBundle().loadClass(element.getAttribute(TmfAnalysisType.CLASS_ATTR));
+                String classAppliesVal = element.getAttribute(TmfAnalysisType.APPLIES_ATTR);
+                boolean classApplies = true;
+                if (classAppliesVal != null) {
+                    classApplies = Boolean.valueOf(classAppliesVal);
+                }
+                if (classApplies) {
+                    applies = applyclass.isAssignableFrom(traceclass);
+                } else {
+                    applies = !applyclass.isAssignableFrom(traceclass);
+                }
+            } catch (ClassNotFoundException e) {
+                Activator.logError("Error in applies to trace", e); //$NON-NLS-1$
+            } catch (InvalidRegistryObjectException e) {
+                Activator.logError("Error in applies to trace", e); //$NON-NLS-1$
+            }
+        }
+        return applies;
+    }
+

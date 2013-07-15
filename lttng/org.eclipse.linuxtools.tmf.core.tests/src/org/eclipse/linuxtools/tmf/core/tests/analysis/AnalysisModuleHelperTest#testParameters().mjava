@@ -1,0 +1,59 @@
+    /**
+     * Test for the initialization of parameters from the extension points
+     */
+    @Test
+    public void testParameters() {
+        assumeTrue(CtfTmfTestTrace.KERNEL.exists());
+        CtfTmfTrace ctftrace = CtfTmfTestTrace.KERNEL.getTrace();
+        ITmfTrace trace = TmfTestTrace.A_TEST_10K.getTrace();
+
+        /*
+         * This analysis has a parameter, but no default value. we should be
+         * able to set the parameter
+         */
+        IAnalysisModuleHelper helper = TmfAnalysisManager.getAnalysisModule(AnalysisManagerTest.MODULE_PARAM);
+        IAnalysisModule module;
+        try {
+            module = helper.newModule(trace);
+        } catch (TmfAnalysisException e1) {
+            fail(e1.getMessage());
+            return;
+        }
+
+        assertNull(module.getParameter(TestAnalysis.PARAM_TEST));
+        module.setParameter(TestAnalysis.PARAM_TEST, 1);
+        assertEquals(1, module.getParameter(TestAnalysis.PARAM_TEST));
+
+        /* This module has a parameter with default value */
+        helper = TmfAnalysisManager.getAnalysisModule(AnalysisManagerTest.MODULE_PARAM_DEFAULT);
+        try {
+            module = helper.newModule(trace);
+        } catch (TmfAnalysisException e1) {
+            fail(e1.getMessage());
+            return;
+        }
+        assertEquals(3, module.getParameter(TestAnalysis.PARAM_TEST));
+        module.setParameter(TestAnalysis.PARAM_TEST, 1);
+        assertEquals(1, module.getParameter(TestAnalysis.PARAM_TEST));
+
+        /*
+         * This module does not have a parameter so setting it should throw an
+         * error
+         */
+        helper = TmfAnalysisManager.getAnalysisModule(AnalysisManagerTest.MODULE_CTF);
+        try {
+            module = helper.newModule(ctftrace);
+        } catch (TmfAnalysisException e1) {
+            fail(e1.getMessage());
+            return;
+        }
+        assertNull(module.getParameter(TestAnalysis.PARAM_TEST));
+        Exception exception = null;
+        try {
+            module.setParameter(TestAnalysis.PARAM_TEST, 1);
+        } catch (RuntimeException e) {
+            exception = e;
+        }
+        assertNotNull(exception);
+    }
+

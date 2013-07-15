@@ -1,0 +1,32 @@
+    @Override
+    public IAnalysisModule newModule(ITmfTrace trace) throws TmfAnalysisException {
+
+        /* Check that analysis can be executed */
+        if (!appliesToTraceType(trace.getClass())) {
+            throw new TmfAnalysisException(NLS.bind(Messages.TmfAnalysisModuleHelper_AnalysisDoesNotApply, getName()));
+        }
+
+        IAnalysisModule module = null;
+        try {
+            module = (IAnalysisModule) fCe.createExecutableExtension(TmfAnalysisType.ANALYSIS_MODULE_ATTR);
+            module.setName(getName());
+            module.setId(getId());
+            module.setAutomatic(isAutomatic());
+
+            /* Get the module's parameters */
+            final IConfigurationElement[] parametersCE = fCe.getChildren(TmfAnalysisType.PARAMETER_ELEM);
+            for (IConfigurationElement element : parametersCE) {
+                module.addParameter(element.getAttribute(TmfAnalysisType.NAME_ATTR));
+                String defaultValue = element.getAttribute(TmfAnalysisType.DEFAULT_VALUE_ATTR);
+                if (defaultValue != null) {
+                    module.setParameter(element.getAttribute(TmfAnalysisType.NAME_ATTR), defaultValue);
+                }
+            }
+            module.setTrace(trace);
+        } catch (CoreException e) {
+            Activator.logError("Error getting analysis modules from configuration files", e); //$NON-NLS-1$
+        }
+        return module;
+
+    }
+

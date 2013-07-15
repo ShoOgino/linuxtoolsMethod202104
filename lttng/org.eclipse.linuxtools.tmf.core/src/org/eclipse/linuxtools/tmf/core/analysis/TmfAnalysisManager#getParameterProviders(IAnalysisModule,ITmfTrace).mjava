@@ -1,0 +1,41 @@
+    /**
+     * Get a parameter provider that applies to the requested trace
+     *
+     * @param module
+     *            Analysis module
+     * @param trace
+     *            The trace
+     * @return A parameter provider if one applies to the trace, null otherwise
+     */
+    public static List<IAnalysisParameterProvider> getParameterProviders(IAnalysisModule module, ITmfTrace trace) {
+        List<IAnalysisParameterProvider> providerList = new ArrayList<IAnalysisParameterProvider>();
+        synchronized (fParameterProviders) {
+            if (!fParameterProviders.containsKey(module.getId())) {
+                return providerList;
+            }
+            for (Class<? extends IAnalysisParameterProvider> providerClass : fParameterProviders.get(module.getId())) {
+                try {
+                    IAnalysisParameterProvider provider = fParamProviderInstances.get(providerClass);
+                    if (provider == null) {
+                        provider = providerClass.newInstance();
+                        fParamProviderInstances.put(providerClass, provider);
+                    }
+                    if (provider != null) {
+                        if (provider.appliesToTrace(trace)) {
+                            providerList.add(provider);
+                        }
+                    }
+                } catch (IllegalArgumentException e) {
+                    Activator.logError(Messages.TmfAnalysisManager_ErrorParameterProvider, e);
+                } catch (SecurityException e) {
+                    Activator.logError(Messages.TmfAnalysisManager_ErrorParameterProvider, e);
+                } catch (InstantiationException e) {
+                    Activator.logError(Messages.TmfAnalysisManager_ErrorParameterProvider, e);
+                } catch (IllegalAccessException e) {
+                    Activator.logError(Messages.TmfAnalysisManager_ErrorParameterProvider, e);
+                }
+            }
+        }
+        return providerList;
+    }
+
