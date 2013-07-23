@@ -4,6 +4,7 @@
 	 */
 	public IHyperlink[] detectHyperlinks(ITextViewer textViewer,
 			IRegion region, boolean canShowMultipleHyperlinks) {
+		boolean patchExists = false;
 		if (region == null || textViewer == null) {
 			return null;
 		}
@@ -37,17 +38,25 @@
 					|| line.startsWith(PATCH_IDENTIFIER)) {
 				int delimiterIndex = line.indexOf(':') + 1;
 				String fileName = line.substring(delimiterIndex).trim();
+				patchExists = patchExists(original, fileName);
 				if (region.getOffset() > lineInfo.getOffset()
 						+ line.indexOf(fileName)) {
 					IRegion fileNameRegion = new Region(lineInfo.getOffset()
 							+ line.indexOf(fileName), fileName.length());
-					return new IHyperlink[] {
-							new SourcesFileHyperlink(original, UiUtils
-									.resolveDefines(editor.getSpecfile(),
-											fileName), fileNameRegion),
-							new SourcesFileDownloadHyperlink(original, UiUtils
-									.resolveDefines(editor.getSpecfile(),
-											fileName), fileNameRegion) };
+					if (line.startsWith(PATCH_IDENTIFIER) && !patchExists) {
+						return new IHyperlink[] {
+								new SourcesFileCreateHyperlink(original, UiUtils
+										.resolveDefines(editor.getSpecfile(),
+												fileName), fileNameRegion) };
+					} else {
+						return new IHyperlink[] {
+								new SourcesFileHyperlink(original, UiUtils
+										.resolveDefines(editor.getSpecfile(),
+												fileName), fileNameRegion),
+								new SourcesFileDownloadHyperlink(original, UiUtils
+										.resolveDefines(editor.getSpecfile(),
+												fileName), fileNameRegion) };
+					}
 				}
 			}
 		}
