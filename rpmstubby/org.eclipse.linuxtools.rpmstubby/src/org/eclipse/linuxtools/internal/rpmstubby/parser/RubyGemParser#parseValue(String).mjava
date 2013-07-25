@@ -1,0 +1,40 @@
+	/**
+	 * Parses a string to figure its value
+	 *
+	 * @param str
+	 *            The string parse
+	 * @return A list of objects that was found
+	 */
+	private List<String> parseValue(String str) {
+		List<String> rc = new ArrayList<String>();
+		String temp = str.trim();
+		Pattern pattern = null;
+		Matcher variableMatcher = null;
+
+		if (temp.matches(STRING)) {
+			pattern = Pattern.compile(STRING,
+					Pattern.CASE_INSENSITIVE);
+			variableMatcher = pattern.matcher(temp);
+			// "" matches group 1
+			if (temp.startsWith("\"") && variableMatcher.matches()) {
+				rc.add(variableMatcher.group(1));
+			} // '' matches group 2
+			else if (temp.startsWith("'") && variableMatcher.matches()) {
+				rc.add(variableMatcher.group(2));
+			} // %q|%Q match
+			else if ((temp.startsWith("%q") || temp.startsWith("%Q"))
+					&& variableMatcher.matches()) {
+				rc.add(variableMatcher.group(4));
+			}
+		} else if (temp.matches(LIST)) {
+			pattern = Pattern.compile(LIST,
+					Pattern.CASE_INSENSITIVE);
+			variableMatcher = pattern.matcher(temp);
+			if (variableMatcher.matches()) {
+				rc.addAll(parseList(variableMatcher.group(2)));
+			}
+		}
+
+		return rc;
+	}
+
