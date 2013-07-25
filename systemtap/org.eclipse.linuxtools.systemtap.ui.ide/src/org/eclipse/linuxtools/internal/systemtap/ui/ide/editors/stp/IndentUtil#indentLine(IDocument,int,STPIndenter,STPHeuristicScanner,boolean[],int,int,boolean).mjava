@@ -1,0 +1,74 @@
+	/**
+	 * Indents a single line using the heuristic scanner. Multiline comments are
+	 * indented as specified by the <code>CCommentAutoIndentStrategy</code>.
+	 * 
+	 * @param document the document
+	 * @param line the line to be indented
+	 * @param indenter the C indenter
+	 * @param scanner the heuristic scanner
+	 * @param commentLines the indent token comment booleans
+	 * @param lineIndex the zero-based line index
+	 * @param indentInsideLineComments option whether to indent inside line comments
+	 *             starting at column 0
+	 * @return <code>true</code> if the document was modified,
+	 *         <code>false</code> if not
+	 * @throws BadLocationException if the document got changed concurrently
+	 */
+	private static boolean indentLine(IDocument document, int line, STPIndenter indenter,
+			STPHeuristicScanner scanner, boolean[] commentLines, int lineIndex, int tabSize,
+			boolean indentInsideLineComments) throws BadLocationException {
+		IRegion currentLine= document.getLineInformation(line);
+		final int offset= currentLine.getOffset();
+		int wsStart= offset; // where we start searching for non-WS; after the "//" in single line comments
+		
+		String indent= null;
+		if (offset < document.getLength()) {
+			ITypedRegion partition= TextUtilities.getPartition(document, STPPartitionScanner.STP_PARTITIONING, offset, true);
+			ITypedRegion startingPartition= TextUtilities.getPartition(document, STPPartitionScanner.STP_PARTITIONING, offset, false);
+			String type= partition.getType();
+			if (type.equals(STPPartitionScanner.STP_MULTILINE_COMMENT)) {
+				indent= computeCommentIndent(document, line, scanner, startingPartition);
+			} else if (startingPartition.getType().equals(STPPartitionScanner.STP_CONDITIONAL)) {
+				indent= computePreprocessorIndent(document, line, startingPartition);
+			} else if (!commentLines[lineIndex] && startingPartition.getOffset() == offset && startingPartition.getType().equals(STPPartitionScanner.STP_COMMENT)) {
+				return false;
+			}
+		}
+		
+		// standard C code indentation
+		if (indent == null) {
+			StringBuilder computed= indenter.computeIndentation(offset);
+			if (computed != null)
+				indent= computed.toString();
+			else
+				indent= ""; //$NON-NLS-1$
+		}
+		
+		// change document:
+		// get current white space
+		int lineLength= currentLine.getLength();
+		int end= scanner.findNonWhitespaceForwardInAnyPartition(wsStart, offset + lineLength);
+		if (end == STPHeuristicScanner.NOT_FOUND)
+			end= offset + lineLength;
+		int length= end - offset;
+		String currentIndent= document.get(offset, length);
+		
+		// memorize the fact that a line is a single line comment (but not at column 0) and should be treated like code
+		// as opposed to commented out code, which should keep its slashes at column 0
+		// if 'indentInsideLineComments' is false, all comment lines are indented with the code
+		if (length > 0 || !indentInsideLineComments) {
+			ITypedRegion partition= TextUtilities.getPartition(document, STPPartitionScanner.STP_PARTITIONING, end, false);
+			if (partition.getOffset() == end && STPPartitionScanner.STP_COMMENT.equals(partition.getType())) {
+				commentLines[lineIndex]= true;
+			}
+		}
+		
+		// only change the document if it is a real change
+		if (!indent.equals(currentIndent)) {
+			document.replace(offset, length, indent);
+			return true;
+		}
+		
+		return false;
+	}
+

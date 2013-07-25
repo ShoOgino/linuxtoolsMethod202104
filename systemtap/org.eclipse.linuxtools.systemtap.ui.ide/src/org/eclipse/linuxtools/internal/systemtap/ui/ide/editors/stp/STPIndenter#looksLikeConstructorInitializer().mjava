@@ -1,0 +1,48 @@
+	/**
+	 * Test whether the colon at the current position marks a constructor initializer list.
+	 * 
+	 * @return <code>true</code> if this looks like a constructor initializer list.
+	 */
+	private boolean looksLikeConstructorInitializer() {
+		nextToken();
+		if (fToken != STPSymbols.TokenRPAREN) {
+			return false;
+		}
+		if (!skipScope()) {
+			return false;
+		}
+		nextToken();
+		if (fToken == STPSymbols.TokenTHROW) {
+			nextToken();
+			if (fToken != STPSymbols.TokenRPAREN) {
+				return false;
+			}
+			if (!skipScope()) {
+				return false;
+			}
+			nextToken();
+		}
+		if (fToken != STPSymbols.TokenIDENT) {
+			return false;
+		}
+		nextToken();
+		switch (fToken) {
+		case STPSymbols.TokenCOLON:
+			nextToken();
+			switch (fToken) {
+			case STPSymbols.TokenCOLON:  // A::A() :
+			case STPSymbols.TokenPUBLIC:  // public: A() :
+			case STPSymbols.TokenPROTECTED:
+			case STPSymbols.TokenPRIVATE:
+				return true;
+			}
+			return false;
+			
+		case STPSymbols.TokenLBRACE:  // class A { A() :
+		case STPSymbols.TokenRBRACE:
+		case STPSymbols.TokenSEMICOLON:
+			return true;
+		}
+		return false;
+	}
+

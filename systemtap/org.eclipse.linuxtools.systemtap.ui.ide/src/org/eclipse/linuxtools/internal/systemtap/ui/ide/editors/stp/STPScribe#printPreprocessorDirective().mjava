@@ -1,0 +1,47 @@
+	private void printPreprocessorDirective() {
+		int currentTokenStartPosition= scanner.getCurrentTokenStartPosition();
+		int currentTokenEndPosition= scanner.getCurrentTokenEndPosition() + 1;
+
+		scanner.resetTo(currentTokenStartPosition, currentTokenEndPosition);
+		int currentCharacter;
+		boolean isNewLine= false;
+		int nextCharacterStart= currentTokenStartPosition;
+		needSpace= false;
+		pendingSpace= false;
+		int previousStart= currentTokenStartPosition;
+
+		while (nextCharacterStart <= currentTokenEndPosition &&
+				(currentCharacter= scanner.getNextChar()) != -1) {
+			nextCharacterStart= scanner.getCurrentPosition();
+
+			switch (currentCharacter) {
+			case '\r':
+				isNewLine= true;
+				if (scanner.getNextChar('\n')) {
+					currentCharacter= '\n';
+					nextCharacterStart= scanner.getCurrentPosition();
+				}
+				break;
+			case '\n':
+				isNewLine= true;
+				break;
+			default:
+				if (isNewLine) {
+					column= 1;
+					line++;
+				} else {
+					column += (nextCharacterStart - previousStart);
+				}
+				isNewLine= false;
+			}
+			previousStart= nextCharacterStart;
+			scanner.setCurrentPosition(nextCharacterStart);
+		}
+		lastNumberOfNewLines= isNewLine ? 1 : 0;
+		needSpace= false;
+		if (currentAlignment != null) {
+			indentationLevel= currentAlignment.breakIndentationLevel;
+		}
+		scanner.resetTo(currentTokenEndPosition, scannerEndPosition);
+	}
+

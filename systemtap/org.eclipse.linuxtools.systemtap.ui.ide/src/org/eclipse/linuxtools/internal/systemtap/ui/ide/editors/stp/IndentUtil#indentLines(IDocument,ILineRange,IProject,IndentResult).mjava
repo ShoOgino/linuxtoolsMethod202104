@@ -1,0 +1,38 @@
+	/**
+	 * Indents the line range specified by <code>lines</code> in
+	 * <code>document</code>. The passed C project may be
+	 * <code>null</code>, it is used solely to obtain formatter preferences.
+	 * 
+	 * @param document the document to be changed
+	 * @param lines the line range to be indented
+	 * @param project the C project to get the formatter preferences from, or
+	 *        <code>null</code> if global preferences should be used
+	 * @param result the result from a previous call to <code>indentLines</code>,
+	 *        in order to maintain comment line properties, or <code>null</code>.
+	 *        Note that the passed result may be changed by the call.
+	 * @return an indent result that may be queried for changes and can be
+	 *         reused in subsequent indentation operations
+	 * @throws BadLocationException if <code>lines</code> is not a valid line
+	 *         range on <code>document</code>
+	 */
+	public static IndentResult indentLines(IDocument document, ILineRange lines, IProject project, IndentResult result) throws BadLocationException {
+		int numberOfLines= lines.getNumberOfLines();
+		
+		if (numberOfLines < 1)
+			return new IndentResult(null);
+		
+		result= reuseOrCreateToken(result, numberOfLines);
+		
+		STPHeuristicScanner scanner= new STPHeuristicScanner(document);
+		STPIndenter indenter= new STPIndenter(document, scanner, project);
+		boolean changed= false;
+		int tabSize= CodeFormatterUtil.getTabWidth(project);
+		boolean indentInsideLineComments= indentInsideLineComments(project);
+		for (int line= lines.getStartLine(), last= line + numberOfLines, i= 0; line < last; line++) {
+			changed |= indentLine(document, line, indenter, scanner, result.commentLinesAtColumnZero, i++, tabSize, indentInsideLineComments);
+		}
+		result.hasChanged= changed;
+		
+		return result;
+	}
+

@@ -1,0 +1,33 @@
+	/**
+	 * A closing char (e.g. right paren ')') is being inserted.  If one already exists
+	 * at current location in the document, skip over it and don't do an
+	 * insert.
+	 * 
+	 * @param d - document
+	 * @param c - insert text
+	 * @param ch - closing char being inserted
+	 */
+	private void smartInsertCloseChar(IDocument d, DocumentCommand c, char ch) {
+		if (c.offset < 1 || d.getLength() == 0)
+			return;
+
+		try {
+			if (d.getChar(c.offset) == ch) {
+				int backslashCount = 0;
+				int prevOffset = c.offset - 1;
+				// Look backwards for backslashes.  We will ignore if there are even number
+				while (prevOffset > 0 && d.getChar(prevOffset) == '\\') {
+					--prevOffset;
+					++backslashCount;
+				}
+				if ((backslashCount & 1) == 0) {
+					c.text = ""; //$NON-NLS-1$
+					c.offset++;
+				}
+			}
+		} catch (BadLocationException e) {
+			IDEPlugin.log(e);
+		}
+
+	}
+

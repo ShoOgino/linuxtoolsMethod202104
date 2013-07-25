@@ -1,0 +1,92 @@
+	private void printIndentationIfNecessary(StringBuilder buffer) {
+		switch (tabChar) {
+		case STPDefaultCodeFormatterOptions.TAB:
+			boolean useTabsForLeadingIndents= useTabsOnlyForLeadingIndents;
+			int numberOfLeadingIndents= numberOfIndentations;
+			int indentationsAsTab= 0;
+			if (useTabsForLeadingIndents) {
+				while (column <= indentationLevel) {
+					if (indentationsAsTab < numberOfLeadingIndents) {
+						buffer.append('\t');
+						indentationsAsTab++;
+						int complement= tabLength - ((column - 1) % tabLength); // amount of space
+						column += complement;
+						needSpace= false;
+					} else {
+						buffer.append(' ');
+						column++;
+						needSpace= false;
+					}
+				}
+			} else {
+				while (column <= indentationLevel - indentationLevel % tabLength) {
+					buffer.append('\t');
+					int complement= tabLength - ((column - 1) % tabLength); // amount of space
+					column += complement;
+					needSpace= false;
+				}
+				while (column <= indentationLevel) {
+					buffer.append(' ');
+					column++;
+					needSpace= false;
+				}
+			}
+			break;
+		case STPDefaultCodeFormatterOptions.SPACE:
+			while (column <= indentationLevel) {
+				buffer.append(' ');
+				column++;
+				needSpace= false;
+			}
+			break;
+		case STPDefaultCodeFormatterOptions.MIXED:
+			useTabsForLeadingIndents= useTabsOnlyForLeadingIndents;
+			numberOfLeadingIndents= numberOfIndentations;
+			indentationsAsTab= 0;
+			if (useTabsForLeadingIndents) {
+				final int columnForLeadingIndents= numberOfLeadingIndents * indentationSize;
+				while (column <= indentationLevel) {
+					if (column <= columnForLeadingIndents) {
+						if ((column - 1 + tabLength) <= indentationLevel) {
+							buffer.append('\t');
+							column += tabLength;
+						} else if ((column - 1 + indentationSize) <= indentationLevel) {
+							// print one indentation
+							for (int i= 0, max= indentationSize; i < max; i++) {
+								buffer.append(' ');
+								column++;
+							}
+						} else {
+							buffer.append(' ');
+							column++;
+						}
+					} else {
+						for (int i= column, max= indentationLevel; i <= max; i++) {
+							buffer.append(' ');
+							column++;
+						}
+					}
+					needSpace= false;
+				}
+			} else {
+				while (column <= indentationLevel) {
+					if ((column - 1 + tabLength) <= indentationLevel) {
+						buffer.append('\t');
+						column += tabLength;
+					} else if ((column - 1 + indentationSize) <= indentationLevel) {
+						// print one indentation
+						for (int i= 0, max= indentationSize; i < max; i++) {
+							buffer.append(' ');
+							column++;
+						}
+					} else {
+						buffer.append(' ');
+						column++;
+					}
+					needSpace= false;
+				}
+			}
+			break;
+		}
+	}
+

@@ -1,0 +1,168 @@
+	/**
+	 * Skips to the start of a statement that ends at the current position.
+	 *
+	 * @param danglingElse whether to indent aligned with the last <code>if</code>
+	 * @param isInBlock whether the current position is inside a block, which limits the search scope to
+	 *   the next scope introducer
+	 * @return the reference offset of the start of the statement
+	 */
+	private int skipToStatementStart(boolean danglingElse, boolean isInBlock) {
+		final int NOTHING= 0;
+		final int READ_PARENS= 1;
+		final int READ_IDENT= 2;
+		int mayBeMethodBody= NOTHING;
+		boolean isTypeBody= false;
+		int startLine = fLine;
+		while (true) {
+			int prevToken= fToken;
+			nextToken();
+
+			if (isInBlock) {
+				switch (fToken) {
+				// exit on all block introducers
+				case STPSymbols.TokenIF:
+				case STPSymbols.TokenELSE:
+				case STPSymbols.TokenCATCH:
+				case STPSymbols.TokenDO:
+				case STPSymbols.TokenWHILE:
+				case STPSymbols.TokenFOR:
+				case STPSymbols.TokenFOREACH:
+				case STPSymbols.TokenTRY:
+					fIndent += fPrefs.prefIndentBracesForBlocks ? 1 : 0;
+					return fPosition;
+				case STPSymbols.TokenCLASS:
+				case STPSymbols.TokenSTRUCT:
+				case STPSymbols.TokenUNION:
+					isTypeBody= true;
+					break;
+
+				case STPSymbols.TokenSWITCH:
+					fIndent= fPrefs.prefCaseIndent;
+					return fPosition;
+				}
+			}
+
+			if (fToken == STPSymbols.TokenSEMICOLON && fLine == startLine) {
+				// Skip semicolons on the same line. Otherwise we may never reach beginning of a 'for'
+				// statement.
+				continue;
+			}
+
+			switch (fToken) {
+			// scope introduction through: LPAREN, LBRACE, LBRACKET
+			// search stop on SEMICOLON, RBRACE, COLON, EOF
+			// -> the next token is the start of the statement (i.e. previousPos when backward scanning)
+			case STPSymbols.TokenLPAREN:
+				if (peekToken() == STPSymbols.TokenFOR) {
+					nextToken();  // Consume 'for'
+					fIndent = fPrefs.prefContinuationIndent;
+					return fPosition;
+				}
+				break;
+
+			case STPSymbols.TokenLBRACE:
+			case STPSymbols.TokenSEMICOLON:
+			case STPSymbols.TokenEOF:
+				if (isInBlock)
+					fIndent= getBlockIndent(mayBeMethodBody == READ_IDENT, isTypeBody);
+				return fPreviousPos;
+
+			case STPSymbols.TokenCOLON:
+				switch (prevToken) {
+				case STPSymbols.TokenPRIVATE:
+				case STPSymbols.TokenPROTECTED:
+				case STPSymbols.TokenPUBLIC:
+					continue; // Don't stop at colon in a class declaration
+
+				case STPSymbols.TokenVIRTUAL:
+					switch (peekToken()) {
+					case STPSymbols.TokenPRIVATE:
+					case STPSymbols.TokenPROTECTED:
+					case STPSymbols.TokenPUBLIC:
+						break;
+					default:
+						continue;
+					}
+				}
+				int pos= fPreviousPos;
+				if (!isConditional())
+					return pos;
+				break;
+
+			case STPSymbols.TokenRBRACE:
+				// RBRACE is a little tricky: it can be the end of an array definition, but
+				// usually it is the end of a previous block
+				pos= fPreviousPos; // store state
+				if (skipScope()) {
+					if (looksLikeArrayInitializerIntro()) {
+						continue; // it's an array
+					}
+					if (prevToken == STPSymbols.TokenSEMICOLON) {
+						// end of type def
+						continue;
+					}
+				}
+				if (isInBlock)
+					fIndent= getBlockIndent(mayBeMethodBody == READ_IDENT, isTypeBody);
+				return pos; // it's not - do as with all the above
+
+			// scopes: skip them
+			case STPSymbols.TokenRPAREN:
+				if (isInBlock)
+					mayBeMethodBody= READ_PARENS;
+				// fall thru
+				pos= fPreviousPos;
+				if (skipScope())
+					break;
+				else
+					return pos;
+			case STPSymbols.TokenRBRACKET:
+				pos= fPreviousPos;
+				if (skipScope())
+					break;
+				else
+					return pos;
+
+			// IF / ELSE: align the position after the conditional block with the if
+			// so we are ready for an else, except if danglingElse is false
+			// in order for this to work, we must skip an else to its if
+			case STPSymbols.TokenIF:
+				if (danglingElse)
+					return fPosition;
+				else
+					break;
+			case STPSymbols.TokenELSE:
+				// skip behind the next if, as we have that one covered
+				pos= fPosition;
+				if (skipNextIF())
+					break;
+				else
+					return pos;
+
+			case STPSymbols.TokenDO:
+				// align the WHILE position with its do
+				return fPosition;
+
+			case STPSymbols.TokenWHILE:
+				// this one is tricky: while can be the start of a while loop
+				// or the end of a do - while
+				pos= fPosition;
+				if (hasMatchingDo()) {
+					// continue searching from the DO on
+					break;
+				} else {
+					// continue searching from the WHILE on
+					fPosition= pos;
+					break;
+				}
+			case STPSymbols.TokenIDENT:
+				if (mayBeMethodBody == READ_PARENS)
+					mayBeMethodBody= READ_IDENT;
+				break;
+
+			default:
+				// keep searching
+			}
+		}
+	}
+

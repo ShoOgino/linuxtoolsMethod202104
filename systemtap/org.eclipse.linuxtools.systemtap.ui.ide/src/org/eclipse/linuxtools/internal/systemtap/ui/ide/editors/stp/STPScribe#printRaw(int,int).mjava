@@ -1,0 +1,110 @@
+	public void printRaw(int startOffset, int length) {
+		if (length <= 0) {
+			return;
+		}
+		int currentPosition= scanner.getCurrentPosition();
+		if (shouldSkip(currentPosition)) {
+			return;
+		}
+		if (startOffset > currentPosition) {
+			printComment();
+			currentPosition= scanner.getCurrentPosition();
+		}
+		if (startOffset + length < currentPosition) {
+			return;  // Don't move backwards
+		}
+		boolean savedPreserveNL= preserveNewLines;
+		boolean savedSkipOverInactive= skipOverInactive;
+		int savedScannerEndPos= scannerEndPosition;
+		preserveNewLines= true;
+		skipOverInactive= false;
+		scannerEndPosition= startOffset + length;
+		try {
+			scanner.resetTo(Math.max(startOffset, currentPosition), startOffset + length);
+			int parenLevel= 0;
+			while (true) {
+				boolean hasWhitespace= printComment();
+				currentToken= scanner.nextToken();
+				if (currentToken == null) {
+					if (hasWhitespace) {
+						space();
+					}
+					break;
+				}
+				if (pendingSpace) {
+					addInsertEdit(scanner.getCurrentTokenStartPosition(), SPACE);
+					pendingSpace= false;
+					needSpace= false;
+				}
+				switch (currentToken.type) {
+				case Token.tLBRACE: {
+					scanner.resetTo(scanner.getCurrentTokenStartPosition(), scannerEndPosition);
+					formatOpeningBrace(preferences.brace_position_for_block,
+							preferences.insert_space_before_opening_brace_in_block);
+					if (preferences.indent_statements_compare_to_block) {
+						indent();
+					}
+					break;
+				}
+				case Token.tRBRACE: {
+					scanner.resetTo(scanner.getCurrentTokenStartPosition(), scannerEndPosition);
+					if (preferences.indent_statements_compare_to_block) {
+						unIndent();
+					}
+					formatClosingBrace(preferences.brace_position_for_block);
+					break;
+				}
+				case Token.tLPAREN:
+					++parenLevel;
+					print(currentToken.getLength(), hasWhitespace);
+					if (parenLevel > 0) {
+						indentForContinuation();
+						if (column <= indentationLevel) {
+							// HACK: avoid indent in same line
+							column= indentationLevel + 1;
+						}
+					}
+					break;
+				case Token.tRPAREN:
+					--parenLevel;
+					if (parenLevel >= 0) {
+						unIndentForContinuation();
+					}
+					print(currentToken.getLength(), hasWhitespace);
+					break;
+				case Token.tSEMI:
+					print(currentToken.getLength(), preferences.insert_space_before_semicolon);
+					break;
+				case Token.t_catch:
+				case Token.t_else:
+					if (preferences.insert_new_line_before_else_in_if_statement) {
+						printNewLine(currentToken.offset);
+					} else {
+						hasWhitespace= true;
+					}
+					print(currentToken.getLength(), hasWhitespace);
+					break;
+				default:
+					if (currentToken.isVisibilityModifier()
+							&& !preferences.indent_access_specifier_compare_to_type_header) {
+						int indentLevel= indentationLevel;
+						if (indentationLevel > 0)
+							unIndent();
+						print(currentToken.getLength(), hasWhitespace);
+						while (indentationLevel < indentLevel) {
+							indent();
+						}
+					} else {
+						print(currentToken.getLength(), hasWhitespace);
+					}
+				}
+				hasWhitespace= false;
+			}
+		} finally {
+			scannerEndPosition= savedScannerEndPos;
+			scanner.resetTo(startOffset + length, scannerEndPosition);
+			skipOverInactive= savedSkipOverInactive;
+			preserveNewLines= savedPreserveNL;
+		}
+	}
+

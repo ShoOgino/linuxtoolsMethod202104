@@ -2,24 +2,29 @@
      * Populate an 'item' (a row in the tree) with the information found in the
      * interval. This method should only be called by the UI thread.
      */
-    private static void populateColumns(TreeItem item, ITmfStateInterval interval) {
+    private void populateColumns(TreeItem item, ITmfStateInterval interval) {
         try {
             ITmfStateValue state = interval.getStateValue();
+            String value ;
 
             // add the value in the 2nd column
             switch (state.getType()) {
             case INTEGER:
-                item.setText(VALUE_COL, String.valueOf(state.unboxInt()));
+                value = String.valueOf(state.unboxInt());
+                item.setText(TYPE_COL, Messages.TypeInteger);
                 break;
             case LONG:
-                item.setText(VALUE_COL, String.valueOf(state.unboxLong()));
+                value = String.valueOf(state.unboxLong());
+                item.setText(TYPE_COL, Messages.TypeLong);
                 break;
             case STRING:
-                item.setText(VALUE_COL, state.unboxStr());
+                value = state.unboxStr();
+                item.setText(TYPE_COL, Messages.TypeString);
                 break;
             case NULL:
             default:
-                item.setText(VALUE_COL, emptyString);
+                value = emptyString ;
+                item.setText(TYPE_COL, emptyString);
                 break;
             }
 
@@ -28,6 +33,14 @@
 
             TmfTimestamp endTime = new TmfTimestamp(interval.getEndTime(), ITmfTimestamp.NANOSECOND_SCALE);
             item.setText(END_TIME_COL, endTime.toString());
+
+            item.setBackground(Display.getDefault().getSystemColor(SWT.COLOR_WIDGET_BACKGROUND)) ;
+
+            if (!filterStatus && (!value.equals(item.getText(VALUE_COL)) || fCurrentTimestamp == startTime.getValue())) {
+                    item.setBackground(Display.getDefault().getSystemColor(SWT.COLOR_YELLOW));
+            }
+
+            item.setText(VALUE_COL, value) ;
 
         } catch (StateValueTypeException e) {
             /* Should not happen, we're case-switching on the specific types */

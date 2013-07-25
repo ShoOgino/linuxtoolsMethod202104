@@ -1,0 +1,99 @@
+	private int getPeerPosition(IDocument document, DocumentCommand command) {
+		if (document.getLength() == 0)
+			return 0;
+    	/*
+    	 * Search for scope closers in the pasted text and find their opening peers
+    	 * in the document.
+    	 */
+    	Document pasted= new Document(command.text);
+    	installPartitioner(pasted);
+    	int firstPeer= command.offset;
+
+    	STPHeuristicScanner pScanner= new STPHeuristicScanner(pasted);
+    	STPHeuristicScanner dScanner= new STPHeuristicScanner(document);
+
+    	// add scope relevant after context to peer search
+    	int afterToken= dScanner.nextToken(command.offset + command.length, STPHeuristicScanner.UNBOUND);
+    	try {
+			switch (afterToken) {
+			case STPSymbols.TokenRBRACE:
+				pasted.replace(pasted.getLength(), 0, "}"); //$NON-NLS-1$
+				break;
+			case STPSymbols.TokenRPAREN:
+				pasted.replace(pasted.getLength(), 0, ")"); //$NON-NLS-1$
+				break;
+			case STPSymbols.TokenRBRACKET:
+				pasted.replace(pasted.getLength(), 0, "]"); //$NON-NLS-1$
+				break;
+			}
+		} catch (BadLocationException e) {
+			// cannot happen
+			Assert.isTrue(false);
+		}
+
+    	int pPos= 0; // paste text position (increasing from 0)
+    	int dPos= Math.max(0, command.offset - 1); // document position (decreasing from paste offset)
+    	while (true) {
+    		int token= pScanner.nextToken(pPos, STPHeuristicScanner.UNBOUND);
+   			pPos= pScanner.getPosition();
+    		switch (token) {
+    			case STPSymbols.TokenLBRACE:
+    			case STPSymbols.TokenLBRACKET:
+    			case STPSymbols.TokenLPAREN:
+    				pPos= skipScope(pScanner, pPos, token);
+    				if (pPos == STPHeuristicScanner.NOT_FOUND)
+    					return firstPeer;
+    				break; // closed scope -> keep searching
+    			case STPSymbols.TokenRBRACE:
+    				int peer= dScanner.findOpeningPeer(dPos, '{', '}');
+    				dPos= peer - 1;
+    				if (peer == STPHeuristicScanner.NOT_FOUND)
+    					return firstPeer;
+    				firstPeer= peer;
+    				break; // keep searching
+    			case STPSymbols.TokenRBRACKET:
+    				peer= dScanner.findOpeningPeer(dPos, '[', ']');
+    				dPos= peer - 1;
+    				if (peer == STPHeuristicScanner.NOT_FOUND)
+    					return firstPeer;
+    				firstPeer= peer;
+    				break; // keep searching
+    			case STPSymbols.TokenRPAREN:
+    				peer= dScanner.findOpeningPeer(dPos, '(', ')');
+    				dPos= peer - 1;
+    				if (peer == STPHeuristicScanner.NOT_FOUND)
+    					return firstPeer;
+    				firstPeer= peer;
+    				break; // keep searching
+    				
+    			case STPSymbols.TokenCASE:
+    			case STPSymbols.TokenDEFAULT:
+    			    {
+    					STPIndenter indenter= new STPIndenter(document, dScanner, fProject);
+    					peer= indenter.findReferencePosition(dPos, false, MatchMode.MATCH_CASE);
+    					if (peer == STPHeuristicScanner.NOT_FOUND)
+    						return firstPeer;
+    					firstPeer= peer;
+    				}
+    				break; // keep searching
+
+    			case STPSymbols.TokenPUBLIC:
+    			case STPSymbols.TokenPROTECTED:
+    			case STPSymbols.TokenPRIVATE:
+				    {
+						STPIndenter indenter= new STPIndenter(document, dScanner, fProject);
+						peer= indenter.findReferencePosition(dPos, false, MatchMode.MATCH_ACCESS_SPECIFIER);
+						if (peer == STPHeuristicScanner.NOT_FOUND)
+							return firstPeer;
+						firstPeer= peer;
+					}
+    				break; // keep searching
+    				
+    			case STPSymbols.TokenEOF:
+    				return firstPeer;
+    			default:
+    				// keep searching
+    		}
+    	}
+    }
+

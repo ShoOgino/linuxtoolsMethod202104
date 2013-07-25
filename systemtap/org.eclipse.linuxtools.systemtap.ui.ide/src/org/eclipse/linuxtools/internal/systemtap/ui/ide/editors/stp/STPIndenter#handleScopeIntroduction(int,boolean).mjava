@@ -1,0 +1,98 @@
+	/**
+	 * Handles the introduction of a new scope. The current token must be one out
+	 * of <code>STPSymbols.TokenLPAREN</code>, <code>STPSymbols.TokenLBRACE</code>,
+	 * and <code>STPSymbols.TokenLBRACKET</code>. Returns as the reference position
+	 * either the token introducing the scope or - if available - the first
+	 * token after that.
+	 *
+	 * <p>Depending on the type of scope introduction, the indentation will align
+	 * (deep indenting) with the reference position (<code>fAlign</code> will be
+	 * set to the reference position) or <code>fIndent</code> will be set to
+	 * the number of indentation units.
+	 * </p>
+	 *
+	 * @param bound the bound for the search for the first token after the scope
+	 * introduction.
+	 * @param firstToken <code>true</code> if we are dealing with the first token after
+	 * the opening parenthesis.
+	 * @return the indent
+	 */
+	private int handleScopeIntroduction(int bound, boolean firstToken) {
+		int pos= fPosition; // store
+
+		switch (fToken) {
+		// scope introduction: special treat who special is
+		case STPSymbols.TokenLPAREN:
+			// special: method declaration deep indentation
+			if (looksLikeMethodDecl()) {
+				if (firstToken ? fPrefs.prefMethodDeclFirstParameterDeepIndent : fPrefs.prefMethodDeclDeepIndent) {
+					return setFirstElementAlignment(pos, bound);
+				} else {
+					fIndent= fPrefs.prefMethodDeclIndent;
+					return pos;
+				}
+			} else {
+				fPosition= pos;
+				if (looksLikeMethodCall()) {
+					if (firstToken ? fPrefs.prefMethodCallFirstParameterDeepIndent : fPrefs.prefMethodCallDeepIndent) {
+						return setFirstElementAlignment(pos, bound);
+					} else {
+						fIndent= fPrefs.prefMethodCallIndent;
+						return pos;
+					}
+				} else if (fPrefs.prefParenthesisDeepIndent) {
+					return setFirstElementAlignment(pos, bound);
+				}
+			}
+
+			// normal: return the parenthesis as reference
+			fIndent= fPrefs.prefParenthesisIndent;
+			return pos;
+
+		case STPSymbols.TokenLBRACE:
+			final boolean looksLikeArrayInitializerIntro= looksLikeArrayInitializerIntro();
+			// special: array initializer
+			if (looksLikeArrayInitializerIntro) {
+				if (fPrefs.prefArrayDeepIndent)
+					return setFirstElementAlignment(pos, bound);
+				else
+					fIndent= fPrefs.prefArrayIndent;
+			} else if (isNamespace() || isLinkageSpec()) {
+				fIndent= fPrefs.prefNamespaceBodyIndent;
+			} else if (looksLikeEnumDeclaration()) {
+				fIndent = fPrefs.prefTypeIndent;
+			} else {
+				int typeDeclPos = matchTypeDeclaration();
+				if (typeDeclPos == NOT_FOUND) {
+					fIndent= fPrefs.prefBlockIndent;
+				} else {
+					fIndent= fPrefs.prefAccessSpecifierIndent + fPrefs.prefTypeIndent;
+				}
+			}
+
+			// normal: skip to the statement start before the scope introducer
+			// opening braces are often on differently ending indents than e.g. a method definition
+			if (!looksLikeArrayInitializerIntro) {
+				fPosition= pos; // restore
+				return skipToStatementStart(true, true); // set to true to match the first if
+			} else {
+				return pos;
+			}
+
+		case STPSymbols.TokenLBRACKET:
+			// special: method declaration deep indentation
+			if (fPrefs.prefArrayDimensionsDeepIndent) {
+				return setFirstElementAlignment(pos, bound);
+			}
+
+			// normal: return the bracket as reference
+			fIndent= fPrefs.prefBracketIndent;
+			return pos; // restore
+
+		default:
+			// programming error
+			Assert.isTrue(false);
+			return -1; // dummy
+		}
+	}
+

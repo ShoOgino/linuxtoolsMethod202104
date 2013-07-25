@@ -1,0 +1,80 @@
+	private Token continuePPDirective(int c) {
+	    boolean done= false;
+	    while (!done) {
+	        switch(c) {
+	            case '\'':
+	                if (fTokenBuffer.length() > 1) {
+	                    if (fPreprocessorToken == 0) {
+	                        fPreprocessorToken= categorizePreprocessor(fTokenBuffer);
+	                    }
+	                    ungetChar(c);
+	                    return newPreprocessorToken();
+	                }
+	                matchCharLiteral();
+	                return newToken(Token.tCHAR);
+	                    
+	            case '"':
+	                if (fTokenBuffer.length() > 1) {
+	                    if (fPreprocessorToken==0) {
+	                        fPreprocessorToken= categorizePreprocessor(fTokenBuffer);
+	                    }
+	                    if (fPreprocessorToken==Token.tPREPROCESSOR_INCLUDE) {
+	                        matchStringLiteral();
+	                        c= getChar();
+	                        break;
+	                    } else {
+	                        ungetChar(c);
+	                        return newPreprocessorToken();
+	                    }
+	                }
+	                matchStringLiteral();
+	                return newToken(Token.tSTRING);
+	            case '/': {
+	                int next = getChar();
+	                if (next == '/') {
+	                    Token result= null;
+	                    if (fTokenBuffer.length() > 2) {
+	                        ungetChar(next);
+	                        ungetChar(c);
+	                        result= newPreprocessorToken();
+	                    } else {
+	                        matchSinglelineComment();
+	                        result= newToken(Token.tLINECOMMENT);
+	                    }
+	                    fPreprocessorToken= 0;
+	                    return result;
+	                }
+	                if (next == '*') {
+	                    if (fTokenBuffer.length() > 2) {
+	                        ungetChar(next);
+	                        ungetChar(c);
+	                        return newPreprocessorToken();
+	                    }
+	                    // multiline comment
+	                    if (matchMultilineComment()) {
+	                        fPreprocessorToken= 0;
+	                    }
+	                    return newToken(Token.tBLOCKCOMMENT);
+	                }
+	                c = next;
+	                break;
+	            }
+	            case '\n':
+	            case '\r':
+	            case EOFCHAR:
+	                done= true;
+	                break;
+	            default:
+	                c= getChar();
+	                break;
+	        }
+	    }
+	    ungetChar(c);
+	    Token result= null;
+	    if (fTokenBuffer.length() > 0) {
+	        result= newPreprocessorToken();
+	    }
+	    fPreprocessorToken= 0;
+	    return result;
+	}
+

@@ -3,14 +3,29 @@
      */
     protected synchronized void scheduleNext() {
         if (!isShutdown()) {
-            if ((fActiveTask = fHighPriorityTasks.poll()) != null) {
-                fExecutor.execute(fActiveTask);
-            } else if (fSuspendedTask != null) {
-                fActiveTask = fSuspendedTask;
-                fSuspendedTask = null;
-                fActiveTask.getThread().resume();
-            } else if ((fActiveTask = fLowPriorityTasks.poll()) != null) {
-                fExecutor.execute(fActiveTask);
+            if (fActiveTask == null) {
+                schedule();
+            } else if (fActiveTask.getExecType() == ExecutionType.FOREGROUND) {
+                if (fActiveTask.getThread().isCompleted()) {
+                    schedule();
+                } else {
+                    if (hasTasks()) {
+                        fActiveTask.getThread().suspend();
+                        fForegroundTasks.add(fActiveTask);
+                        schedule();
+                    }
+                }
+
+            } else if (fActiveTask.getExecType() == ExecutionType.BACKGROUND) {
+                if (fActiveTask.getThread().isCompleted()) {
+                    schedule();
+                } else {
+                    if (hasTasks()) {
+                        fActiveTask.getThread().suspend();
+                        fBackgroundTasks.add(fActiveTask);
+                        schedule();
+                    }
+                }
             }
         }
     }

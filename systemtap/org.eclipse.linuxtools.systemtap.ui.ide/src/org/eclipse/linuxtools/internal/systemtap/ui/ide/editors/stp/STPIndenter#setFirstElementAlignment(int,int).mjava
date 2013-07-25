@@ -1,0 +1,28 @@
+	/**
+	 * Sets the deep indent offset (<code>fAlign</code>) to either the offset
+	 * right after <code>scopeIntroducerOffset</code> or - if available - the
+	 * first C token after <code>scopeIntroducerOffset</code>, but before
+	 * <code>bound</code>.
+	 *
+	 * @param scopeIntroducerOffset the offset of the scope introducer
+	 * @param bound the bound for the search for another element
+	 * @return the reference position
+	 */
+	private int setFirstElementAlignment(int scopeIntroducerOffset, int bound) {
+		int firstPossible= scopeIntroducerOffset + 1; // align with the first position after the scope intro
+		fAlign= fScanner.findNonWhitespaceForwardInAnyPartition(firstPossible, bound);
+		if (fAlign == NOT_FOUND) {
+			fAlign= firstPossible;
+		} else {
+			try {
+				IRegion lineRegion = fDocument.getLineInformationOfOffset(scopeIntroducerOffset);
+				if (fAlign > lineRegion.getOffset() + lineRegion.getLength()) {
+					fAlign= firstPossible; 
+				}
+			} catch (BadLocationException e) {
+				// Ignore.
+			}
+		}
+		return fAlign;
+	}
+

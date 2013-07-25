@@ -1,0 +1,70 @@
+	public STPAlignment createAlignment(String name, int mode, int tieBreakRule, int count,
+			int sourceRestart, int continuationIndent, boolean adjust) {
+		STPAlignment alignment= new STPAlignment(name, mode, tieBreakRule, this, count, sourceRestart,
+				continuationIndent);
+		// adjust break indentation
+		if (adjust && memberAlignment != null) {
+			STPAlignment current= memberAlignment;
+			while (current.enclosing != null) {
+				current= current.enclosing;
+			}
+			if ((current.mode & STPAlignment.M_MULTICOLUMN) != 0) {
+				final int indentSize= indentationSize;
+				switch (current.chunkKind) {
+				case STPAlignment.CHUNK_METHOD:
+				case STPAlignment.CHUNK_TYPE:
+					if ((mode & STPAlignment.M_INDENT_BY_ONE) != 0) {
+						alignment.breakIndentationLevel= indentationLevel + indentSize;
+					} else {
+						alignment.breakIndentationLevel= indentationLevel +
+								continuationIndent * indentSize;
+					}
+					alignment.update();
+					break;
+				case STPAlignment.CHUNK_FIELD:
+					if ((mode & STPAlignment.M_INDENT_BY_ONE) != 0) {
+						alignment.breakIndentationLevel= current.originalIndentationLevel + indentSize;
+					} else {
+						alignment.breakIndentationLevel= current.originalIndentationLevel +
+								continuationIndent * indentSize;
+					}
+					alignment.update();
+					break;
+				}
+			} else {
+				switch (current.mode & STPAlignment.SPLIT_MASK) {
+				case STPAlignment.M_COMPACT_SPLIT:
+				case STPAlignment.M_COMPACT_FIRST_BREAK_SPLIT:
+				case STPAlignment.M_NEXT_PER_LINE_SPLIT:
+				case STPAlignment.M_NEXT_SHIFTED_SPLIT:
+				case STPAlignment.M_ONE_PER_LINE_SPLIT:
+					final int indentSize= indentationSize;
+					switch (current.chunkKind) {
+					case STPAlignment.CHUNK_METHOD:
+					case STPAlignment.CHUNK_TYPE:
+						if ((mode & STPAlignment.M_INDENT_BY_ONE) != 0) {
+							alignment.breakIndentationLevel= indentationLevel + indentSize;
+						} else {
+							alignment.breakIndentationLevel= indentationLevel +
+									continuationIndent * indentSize;
+						}
+						alignment.update();
+						break;
+					case STPAlignment.CHUNK_FIELD:
+						if ((mode & STPAlignment.M_INDENT_BY_ONE) != 0) {
+							alignment.breakIndentationLevel= current.originalIndentationLevel +
+									indentSize;
+						} else {
+							alignment.breakIndentationLevel= current.originalIndentationLevel +
+									continuationIndent * indentSize;
+						}
+						alignment.update();
+						break;
+					}
+					break;
+				}
+			}
+		}
+		return alignment;
+	}
+

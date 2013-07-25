@@ -1,0 +1,32 @@
+    /**
+     * Make sure that the default formats in TmfTimestampFormat get updated when
+     * updateDefaultFormats is called.
+     */
+    @Test
+    public void testUpdateDefaultFormats() {
+        IEclipsePreferences node = InstanceScope.INSTANCE.getNode(Activator.PLUGIN_ID);
+
+        String dateTimeTestValue = ITmfTimePreferencesConstants.TIME_HOUR_FMT + ":";
+        node.put(ITmfTimePreferencesConstants.DATIME, dateTimeTestValue);
+
+        String subSecTestValue = ITmfTimePreferencesConstants.SUBSEC_NANO_FMT + ":";
+        node.put(ITmfTimePreferencesConstants.SUBSEC, subSecTestValue);
+        try {
+            node.flush();
+        } catch (BackingStoreException e) {
+        }
+        TmfTimestampFormat.updateDefaultFormats();
+        String expected = dateTimeTestValue + "." + subSecTestValue;
+        String expected2 = "TTT." + subSecTestValue;
+        assertEquals(expected, TmfTimestampFormat.getDefaulTimeFormat().toPattern());
+        assertEquals(expected2, TmfTimestampFormat.getDefaulIntervalFormat().toPattern());
+        // Revert preferences
+        node.put(ITmfTimePreferencesConstants.DATIME, ITmfTimePreferencesConstants.TIME_HOUR_FMT);
+        node.put(ITmfTimePreferencesConstants.SUBSEC, ITmfTimePreferencesConstants.SUBSEC_NANO_FMT);
+        try {
+            node.flush();
+        } catch (BackingStoreException e) {
+        }
+        TmfTimestampFormat.updateDefaultFormats();
+    }
+

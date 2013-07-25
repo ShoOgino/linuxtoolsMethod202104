@@ -1,0 +1,44 @@
+	/**
+	 * Cuts the visual equivalent of <code>toDelete</code> characters out of the
+	 * indentation of line <code>line</code> in <code>document</code>. Leaves
+	 * leading comment signs alone if desired.
+	 *
+	 * @param document the document
+	 * @param line the line
+	 * @param toDelete the number of space equivalents to delete.
+	 * @param commentLines
+	 * @param relative
+	 * @param indentInsideLineComments option whether to indent inside line comments starting at column 0
+	 * @return number of characters deleted
+	 * @throws BadLocationException on concurrent document modification
+	 */
+	private static int cutIndent(IDocument document, int line, int toDelete, int tabSize, boolean[] commentLines, int relative, boolean indentInsideLineComments) throws BadLocationException {
+		IRegion region= document.getLineInformation(line);
+		int from= region.getOffset();
+		int endOffset= region.getOffset() + region.getLength();
+
+		if (indentInsideLineComments) {
+			// go behind line comments
+			while (from < endOffset - 2 && document.get(from, 2).equals(SLASHES))
+				from += 2;
+		}
+	
+		int to= from;
+		while (toDelete > 0 && to < endOffset) {
+			char ch= document.getChar(to);
+			if (!Character.isWhitespace(ch))
+				break;
+			toDelete -= computeVisualLength(ch, tabSize);
+			if (toDelete >= 0)
+				to++;
+			else
+				break;
+		}
+		
+		if (endOffset > to + 1 && document.get(to, 2).equals(SLASHES))
+			commentLines[relative]= true;
+
+		document.replace(from, to - from, ""); //$NON-NLS-1$
+		return to - from;
+	}
+

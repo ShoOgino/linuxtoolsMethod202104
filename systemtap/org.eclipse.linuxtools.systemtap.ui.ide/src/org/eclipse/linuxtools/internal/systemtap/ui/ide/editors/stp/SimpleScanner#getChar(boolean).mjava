@@ -1,0 +1,37 @@
+	private int getChar(boolean insideString) {
+	    int c = EOFCHAR;
+	    
+	    if (fContext.undoStackSize() != 0) {
+	        c = fContext.popUndo();
+	    } else {
+	        try {
+	            c = fContext.read();
+	        } catch (IOException e) {
+	            c = EOFCHAR;
+	        }
+	    }
+	    
+	    fTokenBuffer.append((char) c);
+	    
+	    if (!insideString && c == '\\') {
+	        c = getChar(false);
+	        if (c == '\r') {
+	            c = getChar(false);
+	            if (c == '\n') {
+	                c = getChar(false);
+	            }
+	        } else if (c == '\n') {
+	            c = getChar(false);
+	        } else if (c == 'U' || c == 'u') {
+	    		fUniversalCharBuffer.setLength(0);
+	    		fUniversalCharBuffer.append('\\').append((char) c);
+	        	c = getUniversalCharacter();
+	        } else {
+	        	ungetChar(c);
+	        	c = '\\';
+	        }
+	    }
+	    
+	    return c;
+	}
+

@@ -1,0 +1,121 @@
+	/**
+	 * Returns <code>true</code> if the current tokens look like a method
+	 * declaration header (i.e. only the return type and method name). The
+	 * heuristic calls <code>nextToken</code> and expects an identifier
+	 * (method name) and an optional return type declaration.
+	 *
+	 * @return <code>true</code> if the current position looks like a method
+	 *         declaration header.
+	 */
+	private boolean looksLikeMethodDecl() {
+		nextToken();
+		switch (fToken) {
+		case STPSymbols.TokenIDENT: // method name
+			int pos= fPosition;
+			nextToken();
+			// check destructor tilde
+			if (fToken == STPSymbols.TokenTILDE) {
+				return true;
+			}
+			if (skipQualifiers()) {
+				return true;
+			}
+			// optional brackets for array valued return types
+			while (skipBrackets()) {
+				nextToken();
+			}
+			while (skipPointerOperators()) {
+				nextToken();
+			}
+			switch (fToken) {
+			case STPSymbols.TokenIDENT:
+				return true;
+			case STPSymbols.TokenSEMICOLON:
+			case STPSymbols.TokenRBRACE:
+				fPosition= pos;
+				return true;
+			case STPSymbols.TokenLBRACE:
+				if (fScanner.looksLikeCompositeTypeDefinitionBackward(fPosition, STPHeuristicScanner.UNBOUND)) {
+					fPosition= pos;
+					return true;
+				}
+				break;
+			case STPSymbols.TokenCOMMA:
+				nextToken();
+				if (fToken == STPSymbols.TokenRPAREN) {
+					// field initializer
+					if (skipScope()) {
+						return looksLikeMethodDecl();
+					}
+				}
+				break;
+			case STPSymbols.TokenCOLON:
+				nextToken();
+				switch (fToken) {
+				case STPSymbols.TokenPUBLIC:
+				case STPSymbols.TokenPROTECTED:
+				case STPSymbols.TokenPRIVATE:
+					fPosition= pos;
+					return true;
+				case STPSymbols.TokenRPAREN:
+					// constructor initializer
+					if (skipScope()) {
+						pos = fPosition;
+						nextToken();
+						// optional throw
+						if (fToken == STPSymbols.TokenTHROW) {
+							nextToken();
+							if (fToken != STPSymbols.TokenRPAREN || !skipScope()) {
+								return false;
+							}
+						} else {
+							fPosition = pos;
+						}
+						return looksLikeMethodDecl();
+					}
+					break;
+				}
+			}
+			break;
+		case STPSymbols.TokenARROW:
+		case STPSymbols.TokenCOMMA:
+		case STPSymbols.TokenEQUAL:
+		case STPSymbols.TokenGREATERTHAN:
+		case STPSymbols.TokenLESSTHAN:
+		case STPSymbols.TokenMINUS:
+		case STPSymbols.TokenPLUS:
+		case STPSymbols.TokenSHIFTRIGHT:
+		case STPSymbols.TokenSHIFTLEFT:
+		case STPSymbols.TokenDELETE:
+		case STPSymbols.TokenNEW:
+			nextToken();
+			return fToken == STPSymbols.TokenOPERATOR;
+		case STPSymbols.TokenRPAREN:
+			nextToken();
+			if (fToken != STPSymbols.TokenLPAREN)
+				return false;
+			nextToken();
+			return fToken == STPSymbols.TokenOPERATOR;
+		case STPSymbols.TokenRBRACKET:
+			nextToken();
+			if (fToken != STPSymbols.TokenLBRACKET)
+				return false;
+			nextToken();
+			if (fToken == STPSymbols.TokenNEW || fToken == STPSymbols.TokenDELETE)
+				nextToken();
+			return fToken == STPSymbols.TokenOPERATOR;
+		case STPSymbols.TokenOTHER:
+			if (getTokenContent().length() == 1) {
+				nextToken();
+				if (fToken == STPSymbols.TokenOPERATOR)
+					return true;
+			}
+			if (getTokenContent().length() == 1) {
+				nextToken();
+				if (fToken == STPSymbols.TokenOPERATOR)
+					return true;
+			}
+		}
+		return false;
+	}
+

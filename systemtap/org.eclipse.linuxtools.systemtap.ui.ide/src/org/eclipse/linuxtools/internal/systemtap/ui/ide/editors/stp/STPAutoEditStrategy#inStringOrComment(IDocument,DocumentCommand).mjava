@@ -1,0 +1,64 @@
+	private boolean inStringOrComment(IDocument d, DocumentCommand c) {
+		int docLength = d.getLength();
+		if (c.offset == -1 || docLength == 0)
+			return false;
+		try {
+			ITypedRegion partition= TextUtilities.getPartition(d, fPartitioning, c.offset, false);
+			String partitionType = partition.getType();
+			if (c.offset > 0 && 
+					(STPPartitionScanner.STP_COMMENT.equals(partitionType)
+							|| STPPartitionScanner.STP_MULTILINE_COMMENT.equals(partitionType)
+							|| STPPartitionScanner.STP_STRING.equals(partitionType))) {
+				return true;
+			}
+			IRegion lineInfo = d.getLineInformationOfOffset(c.offset);
+			int offset = lineInfo.getOffset();
+			boolean inChar = false;
+			boolean inString = false;
+			boolean inComment = false;
+			for (int i = offset; i < c.offset; ++i) {
+				char ch = d.getChar(i);
+				switch (ch) {
+				case '\"':
+					if (!inChar)
+						inString = !inString;
+					break;
+				case '\'':
+					if (!inString)
+						inChar = !inChar;
+					break;
+				case '\\':
+					++i;
+					break;
+				case '/':
+					if (!inString && !inChar) {
+						ch = d.getChar(i + 1);
+						if (ch == '/')
+							return true; // We have a line comment
+						else if (ch == '*')
+							inComment = true;
+					}
+					break;
+				case '#':
+					if (!inString && !inChar)
+						return true;
+					break;
+				case '*':
+					if (!inString && !inChar) {
+						if (inComment) {
+							ch = d.getChar(i + 1);
+							if (ch == '/')
+								inComment = false;
+						}
+					}
+					break;
+				}
+			}
+			return inString || inChar || inComment;
+			
+		} catch (BadLocationException e) {
+			IDEPlugin.log(e);
+		}
+		return false; 
+	}
+

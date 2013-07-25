@@ -1,0 +1,93 @@
+	private void smartIndentAfterNewLine(IDocument d, DocumentCommand c) {
+		int docLength = d.getLength();
+		if (c.offset == -1 || docLength == 0)
+			return;
+
+		int addIndent= 0;
+		STPHeuristicScanner scanner= new STPHeuristicScanner(d);
+		try {
+			ITypedRegion partition= TextUtilities.getPartition(d, fPartitioning, c.offset, false);
+			if (STPPartitionScanner.STP_CONDITIONAL.equals(partition.getType()) && c.offset > 0 && d.getChar(c.offset-1) == '\\') {
+				scanner = new STPHeuristicScanner(d, fPartitioning, STPPartitionScanner.STP_CONDITIONAL);
+				addIndent= 1;
+			}
+
+			int line = d.getLineOfOffset(c.offset);
+			IRegion reg = d.getLineInformation(line);
+			int start = reg.getOffset();
+			int lineEnd = start + reg.getLength();
+
+			StringBuilder indent= null;
+			STPIndenter indenter= new STPIndenter(d, scanner, fProject);
+			indent= indenter.computeIndentation(c.offset);
+			if (indent == null) {
+				indent= new StringBuilder();
+			}
+			if (addIndent > 0 && indent.length() == 0) {
+				indent= indenter.createReusingIndent(indent, addIndent, 0);
+			}
+
+			StringBuilder buf = new StringBuilder(c.text + indent);
+			int contentStart = findEndOfWhiteSpace(d, c.offset, lineEnd);
+			c.length =  Math.max(contentStart - c.offset, 0);
+
+			// insert closing brace on new line after an unclosed opening brace
+			if (getBracketCount(d, start, c.offset, true) > 0 && fCloseBrace && !isClosedBrace(d, c.offset, c.length)) {
+				c.caretOffset = c.offset + buf.length();
+				c.shiftsCaret = false;
+
+				// copy old content of line behind insertion point to new line
+				// unless we think we are inserting an anonymous type definition
+				if (c.offset == 0 || !(computeAnonymousPosition(d, c.offset - 1, fPartitioning, lineEnd) != -1)) {
+					if (lineEnd - contentStart > 0) {
+						c.length =  lineEnd - c.offset;
+						buf.append(d.get(contentStart, lineEnd - contentStart).toCharArray());
+					}
+				}
+
+				buf.append(TextUtilities.getDefaultLineDelimiter(d));
+				StringBuilder reference = null;
+				int nonWS = findEndOfWhiteSpace(d, start, lineEnd);
+				if (nonWS < c.offset && d.getChar(nonWS) == '{')
+					reference = new StringBuilder(d.get(start, nonWS - start));
+				else
+					reference = indenter.getReferenceIndentation(c.offset);
+				if (reference != null)
+					buf.append(reference);
+				buf.append('}');
+				int bound= c.offset > 200 ? c.offset - 200 : STPHeuristicScanner.UNBOUND;
+				int bracePos = scanner.findOpeningPeer(c.offset - 1, bound, '{', '}');
+				if (bracePos != STPHeuristicScanner.NOT_FOUND) {
+					if (scanner.looksLikeCompositeTypeDefinitionBackward(bracePos, bound) ||
+							scanner.previousToken(bracePos - 1, bound) == STPSymbols.TokenEQUAL) {
+						buf.append(';');
+					}
+				}
+			}
+			// insert extra line upon new line between two braces
+			else if (c.offset > start && contentStart < lineEnd && d.getChar(contentStart) == '}') {
+				int firstCharPos = scanner.findNonWhitespaceBackward(c.offset - 1, start);
+				if (firstCharPos != STPHeuristicScanner.NOT_FOUND && d.getChar(firstCharPos) == '{') {
+					c.caretOffset = c.offset + buf.length();
+					c.shiftsCaret = false;
+
+					StringBuilder reference = null;
+					int nonWS = findEndOfWhiteSpace(d, start, lineEnd);
+					if (nonWS < c.offset && d.getChar(nonWS) == '{')
+						reference = new StringBuilder(d.get(start, nonWS - start));
+					else
+						reference = indenter.getReferenceIndentation(c.offset);
+
+					buf.append(TextUtilities.getDefaultLineDelimiter(d));
+
+					if (reference != null)
+						buf.append(reference);
+				}
+			}
+			c.text = buf.toString();
+
+		} catch (BadLocationException e) {
+			IDEPlugin.log(e);
+		}
+	}
+

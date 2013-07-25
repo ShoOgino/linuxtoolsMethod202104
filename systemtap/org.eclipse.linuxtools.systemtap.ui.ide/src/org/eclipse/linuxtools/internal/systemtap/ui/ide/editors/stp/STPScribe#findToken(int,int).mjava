@@ -1,0 +1,70 @@
+	/**
+	 * Searches for the next occurrence of the given token type.
+	 * If successful, returns the offset of the found token, otherwise -1.
+	 * The scanner position is left unchanged.
+	 * 
+	 * @param tokenType type of the token to look for
+	 * @param endPosition end position limiting the search
+	 * @return the position of the matching token, if found, otherwise -1.
+	 */
+	public int findToken(int tokenType, int endPosition) {
+		int startPosition= scanner.getCurrentPosition();
+		if (startPosition >= endPosition) {
+			return -1;
+		}
+		try {
+			int braceLevel= 0;
+			int parenLevel= 0;
+			switch (tokenType) {
+			case Token.tRBRACE:
+				++braceLevel;
+				break;
+			case Token.tRPAREN:
+				++parenLevel;
+				break;
+			}
+			Token token;
+			while ((token= scanner.nextToken()) != null) {
+				if (scanner.getCurrentTokenEndPosition() > endPosition)
+					return -1;
+
+				switch (token.type) {
+				case Token.tLBRACE:
+					if (tokenType != Token.tLBRACE) {
+						++braceLevel;
+					}
+					break;
+				case Token.tRBRACE:
+					--braceLevel;
+					break;
+				case Token.tLPAREN:
+					if (tokenType != Token.tLPAREN) {
+						++parenLevel;
+					}
+					break;
+				case Token.tRPAREN:
+					--parenLevel;
+					break;
+				case Token.tWHITESPACE:
+				case Token.tLINECOMMENT:
+				case Token.tBLOCKCOMMENT:
+				case Token.tPREPROCESSOR:
+				case Token.tPREPROCESSOR_DEFINE:
+				case Token.tPREPROCESSOR_INCLUDE:
+					continue;
+				}
+				if (braceLevel <= 0 && parenLevel <= 0) {
+					if (token.type == tokenType) {
+						return scanner.getCurrentTokenStartPosition();
+					}
+				}
+				if (braceLevel < 0 || parenLevel < 0) {
+					break;
+				}
+			}
+		} finally {
+			scanner.resetTo(startPosition, scannerEndPosition);
+		}
+		return -1;
+	}
+

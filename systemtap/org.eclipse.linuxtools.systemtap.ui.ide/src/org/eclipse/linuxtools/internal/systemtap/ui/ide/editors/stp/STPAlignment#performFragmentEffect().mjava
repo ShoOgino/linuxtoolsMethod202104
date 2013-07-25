@@ -1,0 +1,31 @@
+	// Performs alignment effect for current fragment.
+	public void performFragmentEffect() {
+		if ((this.mode & M_MULTICOLUMN) == 0) {
+			switch (this.mode & SPLIT_MASK) {
+				case STPAlignment.M_COMPACT_SPLIT:
+				case STPAlignment.M_COMPACT_FIRST_BREAK_SPLIT:
+				case STPAlignment.M_NEXT_PER_LINE_SPLIT:
+				case STPAlignment.M_NEXT_SHIFTED_SPLIT:
+				case STPAlignment.M_ONE_PER_LINE_SPLIT:
+					break;
+				default:
+					return;
+			}
+		}
+
+		if ((this.mode & M_INDENT_ON_COLUMN) != 0 && this.fragmentIndex > 0 &&
+				this.scribe.line > currentFragmentStartLine) {
+			// The previous fragment spans multiple line. Put the current fragment on a new line.
+			this.fragmentBreaks[this.fragmentIndex] = BREAK;
+			this.fragmentIndentations[this.fragmentIndex] = this.breakIndentationLevel;
+			wasSplit = true;
+		}
+		if (this.fragmentBreaks[this.fragmentIndex] == BREAK) {
+			this.scribe.startNewLine();
+		}
+		if (this.fragmentIndentations[this.fragmentIndex] > 0) {
+			this.scribe.indentationLevel = this.fragmentIndentations[this.fragmentIndex];
+		}
+		currentFragmentStartLine = this.scribe.line;
+	}
+

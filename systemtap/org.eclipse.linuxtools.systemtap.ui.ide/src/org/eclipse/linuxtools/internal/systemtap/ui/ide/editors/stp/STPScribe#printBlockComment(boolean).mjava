@@ -1,0 +1,80 @@
+	private void printBlockComment(boolean forceNewLine) {
+		int currentTokenStartPosition= scanner.getCurrentTokenStartPosition();
+		int currentTokenEndPosition= scanner.getCurrentTokenEndPosition() + 1;
+
+		scanner.resetTo(currentTokenStartPosition, currentTokenEndPosition);
+		int currentCharacter;
+		boolean isNewLine= false;
+		int start= currentTokenStartPosition;
+		int nextCharacterStart= currentTokenStartPosition;
+		printIndentationIfNecessary();
+		if (pendingSpace) {
+			addInsertEdit(currentTokenStartPosition, SPACE);
+		}
+		needSpace= false;
+		pendingSpace= false;
+		int previousStart= currentTokenStartPosition;
+
+		while (nextCharacterStart <= currentTokenEndPosition && (currentCharacter= scanner.getNextChar()) != -1) {
+			nextCharacterStart= scanner.getCurrentPosition();
+
+			switch (currentCharacter) {
+			case '\r':
+				if (isNewLine) {
+					line++;
+				}
+				start= previousStart;
+				isNewLine= true;
+				if (scanner.getNextChar('\n')) {
+					currentCharacter= '\n';
+					nextCharacterStart= scanner.getCurrentPosition();
+				}
+				break;
+			case '\n':
+				if (isNewLine) {
+					line++;
+				}
+				start= previousStart;
+				isNewLine= true;
+				break;
+			default:
+				if (isNewLine) {
+					if (Character.isWhitespace((char) currentCharacter)) {
+						int previousStartPosition= scanner.getCurrentPosition();
+						while (currentCharacter != -1 && currentCharacter != '\r' &&
+								currentCharacter != '\n' &&
+								Character.isWhitespace((char) currentCharacter)) {
+							previousStart= nextCharacterStart;
+							previousStartPosition= scanner.getCurrentPosition();
+							currentCharacter= scanner.getNextChar();
+							nextCharacterStart= scanner.getCurrentPosition();
+						}
+						if (currentCharacter == '\r' || currentCharacter == '\n') {
+							nextCharacterStart= previousStartPosition;
+						}
+					}
+					column= 1;
+					line++;
+
+					StringBuilder buffer= new StringBuilder();
+					buffer.append(lineSeparator);
+					printIndentationIfNecessary(buffer);
+					buffer.append(' ');
+
+					addReplaceEdit(start, previousStart - 1, String.valueOf(buffer));
+				} else {
+					column += (nextCharacterStart - previousStart);
+				}
+				isNewLine= false;
+			}
+			previousStart= nextCharacterStart;
+			scanner.setCurrentPosition(nextCharacterStart);
+		}
+		lastNumberOfNewLines= 0;
+		needSpace= false;
+		scanner.resetTo(currentTokenEndPosition, scannerEndPosition);
+		if (forceNewLine) {
+			startNewLine();
+		}
+	}
+

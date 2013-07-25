@@ -1,0 +1,37 @@
+	/**
+	 * Test whether an identifier encountered during scanning is part of
+	 * a type declaration, by scanning backward and ignoring any identifiers, commas,
+	 * and colons until we hit <code>class</code>, <code>struct</code>, <code>union</code>,
+	 * or <code>enum</code>.  If any braces, semicolons, or parentheses are encountered,
+	 * this is not a type declaration.
+	 * @return the reference offset of the start of the statement
+	 */
+	private int matchTypeDeclaration() {
+		while (true) {
+			nextToken();
+			if (fToken == STPSymbols.TokenIDENT
+					|| fToken == STPSymbols.TokenCOMMA
+					|| fToken == STPSymbols.TokenCOLON
+					|| fToken == STPSymbols.TokenPUBLIC
+					|| fToken == STPSymbols.TokenPROTECTED
+					|| fToken == STPSymbols.TokenPRIVATE) {
+				continue;
+			}
+			if (fToken == STPSymbols.TokenCLASS
+					|| fToken == STPSymbols.TokenSTRUCT
+					|| fToken == STPSymbols.TokenUNION) {
+				// inside a type declaration?  Only so if not preceded by '(' or ',' as in
+				// a parameter list.  To be safe, only accept ';' or EOF
+				int pos= fPosition;
+				nextToken();
+				if (fToken == STPSymbols.TokenSEMICOLON || fToken == STPSymbols.TokenEOF) {
+					return pos;
+				} else {
+					return NOT_FOUND;
+				}
+			} else {
+				return NOT_FOUND;
+			}
+		}
+	}
+

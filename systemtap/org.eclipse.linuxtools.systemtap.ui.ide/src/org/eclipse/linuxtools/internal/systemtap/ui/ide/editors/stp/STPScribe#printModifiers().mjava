@@ -1,0 +1,100 @@
+	/**
+	 */
+	public boolean printModifiers() {
+		int currentTokenStartPosition= scanner.getCurrentPosition();
+		if (shouldSkip(currentTokenStartPosition)) {
+			return false;
+		}
+		boolean isFirstModifier= true;
+		boolean hasComment= false;
+		while ((currentToken= scanner.nextToken()) != null) {
+			switch (currentToken.type) {
+			case Token.t_typedef:
+			case Token.t_extern:
+			case Token.t_static:
+			case Token.t_auto:
+			case Token.t_register:
+			case Token.t_const:
+			case Token.t_signed:
+			case Token.t_unsigned:
+			case Token.t_volatile:
+			case Token.t_virtual:
+			case Token.t_mutable:
+			case Token.t_explicit:
+			case Token.t_friend:
+			case Token.t_inline:
+			case Token.t_restrict:
+				print(currentToken.getLength(), !isFirstModifier);
+				isFirstModifier= false;
+				currentTokenStartPosition= scanner.getCurrentPosition();
+				break;
+			case Token.tBLOCKCOMMENT:
+				printBlockComment(false);
+				currentTokenStartPosition= scanner.getCurrentPosition();
+				hasComment= true;
+				break;
+			case Token.tLINECOMMENT:
+				printLineComment();
+				currentTokenStartPosition= scanner.getCurrentPosition();
+				break;
+			case Token.tWHITESPACE:
+				addDeleteEdit(scanner.getCurrentTokenStartPosition(), scanner.getCurrentTokenEndPosition());
+				int count= 0;
+				char[] whiteSpaces= scanner.getCurrentTokenSource();
+				for (int i= 0, max= whiteSpaces.length; i < max; i++) {
+					switch (whiteSpaces[i]) {
+					case '\r':
+						if ((i + 1) < max) {
+							if (whiteSpaces[i + 1] == '\n') {
+								i++;
+							}
+						}
+						count++;
+						break;
+					case '\n':
+						count++;
+					}
+				}
+				if (count >= 1 && hasComment) {
+					printNewLine();
+				}
+				currentTokenStartPosition= scanner.getCurrentPosition();
+				hasComment= false;
+				break;
+			case Token.tPREPROCESSOR:
+			case Token.tPREPROCESSOR_DEFINE:
+			case Token.tPREPROCESSOR_INCLUDE:
+				if (column != 1)
+					printNewLine(scanner.getCurrentTokenStartPosition());
+				printPreprocessorDirective();
+				printNewLine();
+				currentTokenStartPosition= scanner.getCurrentPosition();
+				hasComment= false;
+				break;
+			default:
+				if (currentToken.getType() == Token.tIDENTIFIER) {
+					if (currentToken.getText().startsWith("__")) { //$NON-NLS-1$
+						// assume this is a declspec modifier
+						print(currentToken.getLength(), !isFirstModifier);
+						isFirstModifier= false;
+						currentTokenStartPosition= scanner.getCurrentPosition();
+						if ((currentToken= scanner.nextToken()) != null) {
+							if (currentToken.getType() == Token.tLPAREN) {
+								if (skipToToken(Token.tRPAREN)) {
+									currentToken= scanner.nextToken();
+									currentToken= scanner.nextToken();
+									currentTokenStartPosition= scanner.getCurrentPosition();
+								}
+							}
+						}
+						break;
+					}
+				}
+				// Step back one token
+				scanner.resetTo(currentTokenStartPosition, scannerEndPosition);
+				return !isFirstModifier;
+			}
+		}
+		return !isFirstModifier;
+	}
+
