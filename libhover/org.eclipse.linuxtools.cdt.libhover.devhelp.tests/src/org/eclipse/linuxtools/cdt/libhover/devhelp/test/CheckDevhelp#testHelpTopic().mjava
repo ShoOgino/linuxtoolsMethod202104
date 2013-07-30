@@ -1,0 +1,25 @@
+	@Test
+	public void testHelpTopic() {
+		String bundlePath = FrameworkUtil.getBundle(this.getClass()).getLocation();
+		bundlePath = bundlePath.substring(bundlePath.indexOf('/')); // need to chop extraneious chars from front to get actual path
+		// Decision to make this a fragment means we get the host's bundle, not this
+		bundlePath = bundlePath.replaceFirst("libhover.devhelp", "libhover.devhelp.tests"); //$NON-NLS-1$ //$NON-NLS-2$
+		IPath x = new Path(bundlePath);
+		// For some reason the bundle gets the host of this fragment instead of this fragment bundle
+		x = x.append("devhelp/html"); //$NON-NLS-1$
+		IPreferenceStore ps = DevHelpPlugin.getDefault().getPreferenceStore();
+		ps.setValue(PreferenceConstants.DEVHELP_DIRECTORY, x.toOSString());
+		DevHelpToc toc = new DevHelpToc();
+		ITopic[] topics = toc.getTopics();
+		assertTrue(topics.length > 0);
+		ITopic topic = topics[0];
+		assertTrue(topic.getLabel().startsWith("test1")); //$NON-NLS-1$
+		ITopic[] subtopics = topic.getSubtopics();
+		assertTrue(subtopics.length > 3);
+		IUAElement[] elements = topic.getChildren();
+		assertTrue(elements.length > 3);
+		String href = topic.getHref();
+		assertEquals(href, "/org.eclipse.linuxtools.cdt.libhover.devhelp/test1/index.html"); //$NON-NLS-1$
+		assertTrue(topic.isEnabled(null));
+	}
+
