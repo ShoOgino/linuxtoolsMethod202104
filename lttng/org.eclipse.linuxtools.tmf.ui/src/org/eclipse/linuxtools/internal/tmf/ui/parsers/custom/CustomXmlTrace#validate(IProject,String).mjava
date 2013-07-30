@@ -1,7 +1,47 @@
     @Override
     public IStatus validate(IProject project, String path) {
-        if (fileExists(path)) {
-            return Status.OK_STATUS;
+        File xmlFile = new File(path);
+        if (xmlFile.exists() && xmlFile.isFile() && xmlFile.canRead() && xmlFile.length() > 0) {
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            DocumentBuilder db;
+            try {
+                db = dbf.newDocumentBuilder();
+
+                // The following allows xml parsing without access to the dtd
+                EntityResolver resolver = new EntityResolver() {
+                    @Override
+                    public InputSource resolveEntity(String publicId, String systemId) {
+                        return new InputSource(new ByteArrayInputStream(new byte[0]));
+                    }
+                };
+                db.setEntityResolver(resolver);
+
+                // The following catches xml parsing exceptions
+                db.setErrorHandler(new ErrorHandler() {
+                    @Override
+                    public void error(SAXParseException saxparseexception) throws SAXException {
+                    }
+
+                    @Override
+                    public void warning(SAXParseException saxparseexception) throws SAXException {
+                    }
+
+                    @Override
+                    public void fatalError(SAXParseException saxparseexception) throws SAXException {
+                        throw saxparseexception;
+                    }
+                });
+                db.parse(new FileInputStream(xmlFile));
+                return Status.OK_STATUS;
+            } catch (ParserConfigurationException e) {
+                return new Status(IStatus.ERROR, Activator.PLUGIN_ID, e.getMessage(), e);
+            } catch (FileNotFoundException e) {
+                return new Status(IStatus.ERROR, Activator.PLUGIN_ID, e.getMessage(), e);
+            } catch (SAXException e) {
+                return new Status(IStatus.ERROR, Activator.PLUGIN_ID, e.getMessage(), e);
+            } catch (IOException e) {
+                return new Status(IStatus.ERROR, Activator.PLUGIN_ID, e.getMessage(), e);
+            }
         }
         return new Status(IStatus.ERROR, Activator.PLUGIN_ID, Messages.CustomTrace_FileNotFound + ": " + path); //$NON-NLS-1$
     }
