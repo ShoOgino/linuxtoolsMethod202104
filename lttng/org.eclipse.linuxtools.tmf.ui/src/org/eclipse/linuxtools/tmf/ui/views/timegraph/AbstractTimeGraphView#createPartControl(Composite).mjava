@@ -1,22 +1,22 @@
     @Override
     public void createPartControl(Composite parent) {
-        fTimeGraphCombo = new TimeGraphCombo(parent, SWT.NONE, fWeight);
+        if (fColumns == null || fLabelProvider == null) {
+            fTimeGraphWrapper = new TimeGraphViewerWrapper(parent, SWT.NONE);
+        } else {
+            TimeGraphComboWrapper wrapper = new TimeGraphComboWrapper(parent, SWT.NONE);
+            fTimeGraphWrapper = wrapper;
+            TimeGraphCombo combo = wrapper.getTimeGraphCombo();
+            combo.setTreeContentProvider(new TreeContentProvider());
+            combo.setTreeLabelProvider(fLabelProvider);
+            combo.setTreeColumns(fColumns);
+            combo.setFilterContentProvider(new TreeContentProvider());
+            combo.setFilterLabelProvider(new TreeLabelProvider());
+            combo.setFilterColumns(fFilterColumns);
+        }
 
-        fTimeGraphCombo.setTreeContentProvider(new TreeContentProvider());
+        fTimeGraphWrapper.setTimeGraphProvider(fPresentation);
 
-        fTimeGraphCombo.setTreeLabelProvider(fLabelProvider);
-
-        fTimeGraphCombo.setTimeGraphProvider(fPresentation);
-
-        fTimeGraphCombo.setTreeColumns(fColumns);
-
-        fTimeGraphCombo.setFilterContentProvider(new TreeContentProvider());
-
-        fTimeGraphCombo.setFilterLabelProvider(new TreeLabelProvider());
-
-        fTimeGraphCombo.setFilterColumns(fFilterColumns);
-
-        fTimeGraphCombo.getTimeGraphViewer().addRangeListener(new ITimeGraphRangeListener() {
+        fTimeGraphWrapper.getTimeGraphViewer().addRangeListener(new ITimeGraphRangeListener() {
             @Override
             public void timeRangeUpdated(TimeGraphRangeUpdateEvent event) {
                 final long startTime = event.getStartTime();
@@ -30,7 +30,7 @@
             }
         });
 
-        fTimeGraphCombo.getTimeGraphViewer().addTimeListener(new ITimeGraphTimeListener() {
+        fTimeGraphWrapper.getTimeGraphViewer().addTimeListener(new ITimeGraphTimeListener() {
             @Override
             public void timeSelected(TimeGraphTimeEvent event) {
                 TmfNanoTimestamp startTime = new TmfNanoTimestamp(event.getBeginTime());
@@ -39,17 +39,17 @@
             }
         });
 
-        fTimeGraphCombo.addSelectionListener(new ITimeGraphSelectionListener() {
+        fTimeGraphWrapper.addSelectionListener(new ITimeGraphSelectionListener() {
             @Override
             public void selectionChanged(TimeGraphSelectionEvent event) {
                 // ITimeGraphEntry selection = event.getSelection();
             }
         });
 
-        fTimeGraphCombo.getTimeGraphViewer().setTimeFormat(TimeFormat.CALENDAR);
+        fTimeGraphWrapper.getTimeGraphViewer().setTimeFormat(TimeFormat.CALENDAR);
 
         IStatusLineManager statusLineManager = getViewSite().getActionBars().getStatusLineManager();
-        fTimeGraphCombo.getTimeGraphViewer().getTimeGraphControl().setStatusLineManager(statusLineManager);
+        fTimeGraphWrapper.getTimeGraphViewer().getTimeGraphControl().setStatusLineManager(statusLineManager);
 
         // View Action Handling
         makeActions();
@@ -61,6 +61,6 @@
         }
 
         // make selection available to other views
-        getSite().setSelectionProvider(fTimeGraphCombo.getTreeViewer());
+        getSite().setSelectionProvider(fTimeGraphWrapper.getSelectionProvider());
     }
 
