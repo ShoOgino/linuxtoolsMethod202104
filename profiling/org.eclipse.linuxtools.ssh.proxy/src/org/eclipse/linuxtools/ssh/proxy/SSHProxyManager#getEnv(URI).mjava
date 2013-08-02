@@ -1,0 +1,50 @@
+	@Override
+	public Map<String, String> getEnv(URI uri) throws CoreException {
+		Map<String, String> env = Collections.emptyMap();
+		SSHCommandLauncher cmdLauncher = new SSHCommandLauncher(uri);
+		Process p = cmdLauncher.execute(new Path("/bin/env"), new String[] {}, new String[] {}, null, null);
+		BufferedReader error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+		BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+		String errorLine;
+		try {
+			if((errorLine = error.readLine()) != null){
+				throw new IOException(errorLine);
+			}
+			error.close();
+		} catch (IOException e) {
+			Status status = new Status(IStatus.ERROR, e.getMessage(), Activator.PLUGIN_ID);
+			Activator.getDefault().getLog().log(status);
+			return Collections.emptyMap();
+		}
+		/*
+		 * It is common to export functions declaration in the environment so
+		 *  this pattern filters out them because they get truncated
+		 *  and might end up on failure.
+		 *
+		 * Patterns added in the env list:
+		 * var=value
+		 * var=value
+		 *
+		 * Patterns not added in the env list:
+		 * var=() { something
+		 *
+		 * TODO: implement a parser for function declarations so that they do not need to be excluded
+		 */
+		Pattern variablePattern = Pattern.compile("^(.+)=([^\\(\\)\\s{].*|)$");
+		Matcher m;
+		try {
+			String readLine = reader.readLine();
+			while (readLine != null) {
+				m = variablePattern.matcher(readLine);
+					if(m.matches())
+						env.put(m.group(1), m.group(2));
+					readLine = reader.readLine();
+				}
+			} catch (IOException e) {
+				Status status = new Status(IStatus.ERROR, e.getMessage(), Activator.PLUGIN_ID);
+				Activator.getDefault().getLog().log(status);
+				return Collections.emptyMap();
+			}
+		return env;
+	}
+

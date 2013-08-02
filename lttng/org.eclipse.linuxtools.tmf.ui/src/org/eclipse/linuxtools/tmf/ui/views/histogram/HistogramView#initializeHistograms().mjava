@@ -1,6 +1,7 @@
     private void initializeHistograms() {
         TmfTimeRange fullRange = updateTraceTimeRange();
-        long timestamp = fTraceManager.getCurrentTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+        long selectionBeginTime = fTraceManager.getSelectionBeginTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+        long selectionEndTime = fTraceManager.getSelectionEndTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
         long startTime = fTraceManager.getCurrentRange().getStartTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
         long duration = fTraceManager.getCurrentRange().getEndTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue() - startTime;
 
@@ -10,7 +11,7 @@
         fTimeRangeHistogram.clear();
         fTimeRangeHistogram.setFullRange(fTraceStartTime, fTraceEndTime);
         fTimeRangeHistogram.setTimeRange(startTime, duration);
-        fTimeRangeHistogram.setCurrentEvent(timestamp);
+        fTimeRangeHistogram.setSelection(selectionBeginTime, selectionEndTime);
 
         if ((fFullTraceRequest != null) && !fFullTraceRequest.isCompleted()) {
             fFullTraceRequest.cancel();
@@ -18,14 +19,15 @@
         fFullTraceHistogram.clear();
         fFullTraceHistogram.setFullRange(fTraceStartTime, fTraceEndTime);
         fFullTraceHistogram.setTimeRange(startTime, duration);
-        fFullTraceHistogram.setCurrentEvent(timestamp);
+        fFullTraceHistogram.setSelection(selectionBeginTime, selectionEndTime);
 
         fWindowStartTime = startTime;
         fWindowSpan = duration;
         fWindowEndTime = startTime + duration;
 
-        fCurrentTimestamp = timestamp;
-        fCurrentEventTimeControl.setValue(fCurrentTimestamp);
+        fSelectionBeginTime = selectionBeginTime;
+        fSelectionEndTime = selectionEndTime;
+        fCurrentEventTimeControl.setValue(fSelectionBeginTime);
 
         fTimeSpanControl.setValue(duration);
 

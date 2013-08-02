@@ -6,9 +6,8 @@
         Point size = getCtrlSize();
         if (DRAG_TRACE_ITEM == fDragState) {
             int nameWidth = fTimeProvider.getNameSpace();
-            int x = e.x - nameWidth;
-            if (x > 0 && size.x > nameWidth && fDragX != x) {
-                fDragX = x;
+            if (e.x > nameWidth && size.x > nameWidth && fDragX != e.x) {
+                fDragX = e.x;
                 double pixelsPerNanoSec = (size.x - nameWidth <= RIGHT_MARGIN) ? 0 : (double) (size.x - nameWidth - RIGHT_MARGIN) / (fTime1bak - fTime0bak);
                 long timeDelta = (long) ((pixelsPerNanoSec == 0) ? 0 : ((fDragX - fDragX0) / pixelsPerNanoSec));
                 long time1 = fTime1bak - timeDelta;
@@ -26,9 +25,16 @@
         } else if (DRAG_SPLIT_LINE == fDragState) {
             fDragX = e.x;
             fTimeProvider.setNameSpace(e.x);
+        } else if (DRAG_SELECTION == fDragState) {
+            if (fTimeProvider instanceof ITimeDataProvider2) {
+                fDragX = Math.min(Math.max(e.x, fTimeProvider.getNameSpace()), size.x - RIGHT_MARGIN);
+                redraw();
+                fTimeGraphScale.setDragRange(fDragX0, fDragX);
+            }
         } else if (DRAG_ZOOM == fDragState) {
             fDragX = Math.min(Math.max(e.x, fTimeProvider.getNameSpace()), size.x - RIGHT_MARGIN);
             redraw();
+            fTimeGraphScale.setDragRange(fDragX0, fDragX);
         } else if (DRAG_NONE == fDragState) {
             boolean mouseOverSplitLine = isOverSplitLine(e.x);
             if (fMouseOverSplitLine != mouseOverSplitLine) {
@@ -36,6 +42,7 @@
             }
             fMouseOverSplitLine = mouseOverSplitLine;
         }
-        updateCursor(e.x, e.y);
+        updateCursor(e.x, e.stateMask);
+        updateStatusLine(e.x);
     }
 

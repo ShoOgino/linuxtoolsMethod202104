@@ -5,7 +5,7 @@
 	 * lines are adjusted accordingly. The passed C project may be
 	 * <code>null</code>, it is used solely to obtain formatter
 	 * preferences.
-	 * 
+	 *
 	 * @param document the document to be changed
 	 * @param lines the line range to be shifted
 	 * @param project the C project to get the formatter preferences
@@ -22,32 +22,32 @@
 	 */
 	public static IndentResult shiftLines(IDocument document, ILineRange lines, IProject project, IndentResult result) throws BadLocationException {
 		int numberOfLines= lines.getNumberOfLines();
-		
+
 		if (numberOfLines < 1)
 			return new IndentResult(null);
-		
+
 		result= reuseOrCreateToken(result, numberOfLines);
 		result.hasChanged= false;
-		
+
 		STPHeuristicScanner scanner= new STPHeuristicScanner(document);
 		STPIndenter indenter= new STPIndenter(document, scanner, project);
-		
+
 		boolean indentInsideLineComments= indentInsideLineComments(project);
 		String current= getCurrentIndent(document, lines.getStartLine(), indentInsideLineComments);
 		StringBuilder correct= new StringBuilder(computeIndent(document, lines.getStartLine(), indenter, scanner));
-		
+
 		int tabSize= CodeFormatterUtil.getTabWidth(project);
 		StringBuilder addition= new StringBuilder();
 		int difference= subtractIndent(correct, current, addition, tabSize);
-		
+
 		if (difference == 0)
 			return result;
-			
+
 		if (result.leftmostLine == -1)
 			result.leftmostLine= getLeftMostLine(document, lines, tabSize, indentInsideLineComments);
-		
+
 		int maxReduction= computeVisualLength(getCurrentIndent(document, result.leftmostLine + lines.getStartLine(), indentInsideLineComments), tabSize);
-		
+
 		if (difference > 0) {
 			for (int line= lines.getStartLine(), last= line + numberOfLines, i= 0; line < last; line++)
 				addIndent(document, line, addition, result.commentLinesAtColumnZero, i++, indentInsideLineComments);
@@ -56,10 +56,10 @@
 			for (int line= lines.getStartLine(), last= line + numberOfLines, i= 0; line < last; line++)
 				cutIndent(document, line, reduction, tabSize, result.commentLinesAtColumnZero, i++, indentInsideLineComments);
 		}
-				
+
 		result.hasChanged= true;
-		
+
 		return result;
-		
+
 	}
 

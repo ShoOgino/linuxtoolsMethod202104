@@ -5,10 +5,6 @@
      */
     protected void moveCursor(final int keyCode) {
 
-        if (fScaledData.fCurrentBucket == HistogramScaledData.OUT_OF_RANGE_BUCKET) {
-            return;
-        }
-
         int index;
         switch (keyCode) {
 
@@ -18,17 +14,17 @@
                     index++;
                 }
                 if (index < fScaledData.fLastBucket) {
-                    fScaledData.fCurrentBucket = index;
+                    fScaledData.fSelectionBeginBucket = index;
                 }
                 break;
 
             case SWT.ARROW_RIGHT:
-                index = fScaledData.fCurrentBucket + 1;
+                index = Math.max(0, fScaledData.fSelectionBeginBucket + 1);
                 while (index < fScaledData.fWidth && fScaledData.fData[index] == 0) {
                     index++;
                 }
                 if (index < fScaledData.fLastBucket) {
-                    fScaledData.fCurrentBucket = index;
+                    fScaledData.fSelectionBeginBucket = index;
                 }
                 break;
 
@@ -38,17 +34,17 @@
                     index--;
                 }
                 if (index >= 0) {
-                    fScaledData.fCurrentBucket = index;
+                    fScaledData.fSelectionBeginBucket = index;
                 }
                 break;
 
             case SWT.ARROW_LEFT:
-                index = fScaledData.fCurrentBucket - 1;
+                index = Math.min(fScaledData.fLastBucket - 1, fScaledData.fSelectionBeginBucket - 1);
                 while (index >= 0 && fScaledData.fData[index] == 0) {
                     index--;
                 }
                 if (index >= 0) {
-                    fScaledData.fCurrentBucket = index;
+                    fScaledData.fSelectionBeginBucket = index;
                 }
                 break;
 
@@ -56,6 +52,9 @@
                 return;
         }
 
-        updateCurrentEventTime();
+        fScaledData.fSelectionEndBucket = fScaledData.fSelectionBeginBucket;
+        fSelectionBegin = getTimestamp(fScaledData.fSelectionBeginBucket);
+        fSelectionEnd = fSelectionBegin;
+        updateSelectionTime();
     }
 

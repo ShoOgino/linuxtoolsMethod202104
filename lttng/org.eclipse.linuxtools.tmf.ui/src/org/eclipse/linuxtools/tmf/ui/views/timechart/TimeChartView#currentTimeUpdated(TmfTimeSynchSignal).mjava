@@ -6,11 +6,21 @@
      */
     @TmfSignalHandler
     public void currentTimeUpdated(TmfTimeSynchSignal signal) {
-        final long time = signal.getCurrentTime().normalize(0, TIMESTAMP_SCALE).getValue();
+        final long beginTime = signal.getBeginTime().normalize(0, TIMESTAMP_SCALE).getValue();
+        final long endTime = signal.getEndTime().normalize(0, TIMESTAMP_SCALE).getValue();
         Display.getDefault().asyncExec(new Runnable() {
             @Override
             public void run() {
-                fViewer.setSelectedTime(time, true);
+                if (beginTime == endTime) {
+                    fViewer.setSelectedTime(beginTime, true);
+                    if (fStartTime != fViewer.getTime0() || fStopTime != fViewer.getTime1()) {
+                        fStartTime = fViewer.getTime0();
+                        fStopTime = fViewer.getTime1();
+                        itemize(fStartTime, fStopTime);
+                    }
+                } else {
+                    fViewer.setSelectionRange(beginTime, endTime);
+                }
             }
         });
     }

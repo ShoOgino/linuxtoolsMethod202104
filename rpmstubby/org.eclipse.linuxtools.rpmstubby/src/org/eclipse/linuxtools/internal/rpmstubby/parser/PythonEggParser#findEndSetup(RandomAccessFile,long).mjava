@@ -1,0 +1,36 @@
+	/**
+	 * Find the offset of when setup(...) ends based on the
+	 * position AFTER the closing bracket of setup()
+	 *
+	 * @param reader The file reader
+	 * @param startPosition The position of the start of setup(...
+	 * @return The position of the end of setup ...)
+	 * @throws IOException
+	 */
+	private static long findEndSetup(RandomAccessFile reader, long startPosition) throws IOException {
+		int bracketCounter = 0;
+		boolean flag = false;
+		boolean stop = false;
+		String line = "";
+
+		reader.seek(startPosition);
+		while ((line = reader.readLine()) != null && stop == false) {
+			for (char x : line.toCharArray()) {
+				if (x == '(') {
+					bracketCounter++;
+				} else if (x == ')') {
+					bracketCounter--;
+				}
+				if (flag && bracketCounter == 0) {
+					stop = true;
+				}
+				// prevent ending prematurely
+				if (bracketCounter != 0) {
+					flag = true;
+				}
+			}
+		}
+
+		return reader.getFilePointer();
+	}
+

@@ -1,0 +1,116 @@
+    /**
+     * Parses the domain information.
+     *
+     * @param output
+     *            - a command output array
+     * @param currentIndex
+     *            - current index in command output array
+     * @param channels
+     *            - list for returning channel information
+     * @param domainInfo
+     *            - The domain information
+     * @return the new current index in command output array
+     */
+    protected int parseDomain(String[] output, int currentIndex, List<IChannelInfo> channels, IDomainInfo domainInfo) {
+        int index = currentIndex;
+
+        // Channels:
+        // -------------
+        // - channnel1: [enabled]
+        //
+        // Attributes:
+        // overwrite mode: 0
+        // subbufers size: 262144
+        // number of subbufers: 4
+        // switch timer interval: 0
+        // read timer interval: 200
+        // output: splice()
+
+        while (index < output.length) {
+            String line = output[index];
+
+            if (isVersionSupported("2.2.0")) { //$NON-NLS-1$
+                Matcher bufferTypeMatcher = LTTngControlServiceConstants.BUFFER_TYPE_PATTERN.matcher(line);
+                if (bufferTypeMatcher.matches()) {
+                    domainInfo.setBufferType(getAttributeValue(line));
+                }
+            } else {
+                domainInfo.setBufferType(BufferTypeConstants.BUFFER_TYPE_UNKNOWN);
+            }
+            Matcher outerMatcher = LTTngControlServiceConstants.CHANNELS_SECTION_PATTERN.matcher(line);
+            Matcher noKernelChannelMatcher = LTTngControlServiceConstants.DOMAIN_NO_KERNEL_CHANNEL_PATTERN.matcher(line);
+            Matcher noUstChannelMatcher = LTTngControlServiceConstants.DOMAIN_NO_UST_CHANNEL_PATTERN.matcher(line);
+            if (outerMatcher.matches()) {
+                IChannelInfo channelInfo = null;
+                while (index < output.length) {
+                    String subLine = output[index];
+
+                    Matcher innerMatcher = LTTngControlServiceConstants.CHANNEL_PATTERN.matcher(subLine);
+                    if (innerMatcher.matches()) {
+                        channelInfo = new ChannelInfo(""); //$NON-NLS-1$
+                        // get channel name
+                        channelInfo.setName(innerMatcher.group(1));
+
+                        // get channel enablement
+                        channelInfo.setState(innerMatcher.group(2));
+
+                        // add channel
+                        channels.add(channelInfo);
+
+                    } else if (LTTngControlServiceConstants.OVERWRITE_MODE_ATTRIBUTE.matcher(subLine).matches()) {
+                        String value = getAttributeValue(subLine);
+                        if (channelInfo != null) {
+                            channelInfo.setOverwriteMode(!LTTngControlServiceConstants.OVERWRITE_MODE_ATTRIBUTE_FALSE.equals(value));
+                        }
+                    } else if (LTTngControlServiceConstants.SUBBUFFER_SIZE_ATTRIBUTE.matcher(subLine).matches()) {
+                        if (channelInfo != null) {
+                            channelInfo.setSubBufferSize(Long.valueOf(getAttributeValue(subLine)));
+                        }
+
+                    } else if (LTTngControlServiceConstants.NUM_SUBBUFFERS_ATTRIBUTE.matcher(subLine).matches()) {
+                        if (channelInfo != null) {
+                            channelInfo.setNumberOfSubBuffers(Integer.valueOf(getAttributeValue(subLine)));
+                        }
+
+                    } else if (LTTngControlServiceConstants.SWITCH_TIMER_ATTRIBUTE.matcher(subLine).matches()) {
+                        if (channelInfo != null) {
+                            channelInfo.setSwitchTimer(Long.valueOf(getAttributeValue(subLine)));
+                        }
+
+                    } else if (LTTngControlServiceConstants.READ_TIMER_ATTRIBUTE.matcher(subLine).matches()) {
+                        if (channelInfo != null) {
+                            channelInfo.setReadTimer(Long.valueOf(getAttributeValue(subLine)));
+                        }
+
+                    } else if (LTTngControlServiceConstants.OUTPUT_ATTRIBUTE.matcher(subLine).matches()) {
+                        if (channelInfo != null) {
+                            channelInfo.setOutputType(getAttributeValue(subLine));
+                        }
+
+                    } else if (LTTngControlServiceConstants.EVENT_SECTION_PATTERN.matcher(subLine).matches()) {
+                        List<IEventInfo> events = new ArrayList<IEventInfo>();
+                        index = parseEvents(output, index, events);
+                        if (channelInfo != null) {
+                            channelInfo.setEvents(events);
+                        }
+                        // we want to stay at the current index to be able to
+                        // exit the domain
+                        continue;
+                    } else if (LTTngControlServiceConstants.DOMAIN_KERNEL_PATTERN.matcher(subLine).matches()) {
+                        return index;
+
+                    } else if (LTTngControlServiceConstants.DOMAIN_UST_GLOBAL_PATTERN.matcher(subLine).matches()) {
+                        return index;
+                    }
+                    index++;
+                }
+            } else if (noKernelChannelMatcher.matches() || noUstChannelMatcher.matches()) {
+                // domain indicates that no channels were found -> return
+                index++;
+                return index;
+            }
+            index++;
+        }
+        return index;
+    }
+

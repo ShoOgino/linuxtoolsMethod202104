@@ -1,5 +1,5 @@
     /**
-     * Handler for the synch signal
+     * Handler for the time synch signal
      *
      * @param signal
      *            The signal that's received
@@ -9,7 +9,8 @@
         if (signal.getSource() == this || fTrace == null) {
             return;
         }
-        final long time = signal.getCurrentTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+        final long beginTime = signal.getBeginTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+        final long endTime = signal.getEndTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
 
         Display.getDefault().asyncExec(new Runnable() {
             @Override
@@ -17,10 +18,14 @@
                 if (fTimeGraphCombo.isDisposed()) {
                     return;
                 }
-                fTimeGraphCombo.getTimeGraphViewer().setSelectedTime(time, true);
+                if (beginTime == endTime) {
+                    fTimeGraphCombo.getTimeGraphViewer().setSelectedTime(beginTime, true);
+                } else {
+                    fTimeGraphCombo.getTimeGraphViewer().setSelectionRange(beginTime, endTime);
+                }
                 startZoomThread(fTimeGraphCombo.getTimeGraphViewer().getTime0(), fTimeGraphCombo.getTimeGraphViewer().getTime1());
 
-                synchingToTime(time);
+                synchingToTime(beginTime);
             }
         });
     }

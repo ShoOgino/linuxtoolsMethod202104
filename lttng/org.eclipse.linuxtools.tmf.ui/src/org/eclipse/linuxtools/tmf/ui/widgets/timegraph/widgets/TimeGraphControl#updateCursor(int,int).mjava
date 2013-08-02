@@ -1,26 +1,33 @@
-    /**
-     * <p>
-     * If the x, y position is over the vertical split line (name to time
-     * ranges), then change the cursor to a drag cursor to indicate the user the
-     * possibility of resizing
-     * </p>
-     *
-     * @param x
-     * @param y
-     */
-    void updateCursor(int x, int y) {
-        // if Wait cursor not active, check for the need to change to a drag
-        // cursor
-        if (!fIsWaitCursor) {
-            boolean isSplitLine = isOverSplitLine(x);
-            // No dragcursor is name space is fixed to zero
-            if (isSplitLine && !fIsDragCursor && fTimeProvider.getNameSpace() > 0) {
-                setCursor(fDragCursor);
-                fIsDragCursor = true;
-            } else if (!isSplitLine && fIsDragCursor) {
-                setCursor(null);
-                fIsDragCursor = false;
+    private void updateCursor(int x, int stateMask) {
+        // if Wait cursor not active, check for the need to change the cursor
+        if (getCursor() == fWaitCursor) {
+            return;
+        }
+        Cursor cursor = null;
+        if (fDragState == DRAG_SPLIT_LINE) {
+        } else if (fDragState == DRAG_SELECTION) {
+            cursor = fResizeCursor;
+        } else if (fDragState == DRAG_TRACE_ITEM) {
+            cursor = fDragCursor;
+        } else if (fDragState == DRAG_ZOOM) {
+            cursor = fZoomCursor;
+        } else if ((stateMask & SWT.MODIFIER_MASK) == SWT.CTRL) {
+            cursor = fDragCursor;
+        } else if ((stateMask & SWT.MODIFIER_MASK) == SWT.SHIFT) {
+            cursor = fResizeCursor;
+        } else {
+            if (!isOverSplitLine(x) &&fTimeProvider instanceof ITimeDataProvider2) {
+                long selectionBegin = ((ITimeDataProvider2) fTimeProvider).getSelectionBegin();
+                long selectionEnd = ((ITimeDataProvider2) fTimeProvider).getSelectionEnd();
+                int xBegin = getXForTime(selectionBegin);
+                int xEnd = getXForTime(selectionEnd);
+                if (Math.abs(x - xBegin) < SNAP_WIDTH || Math.abs(x - xEnd) < SNAP_WIDTH) {
+                    cursor = fResizeCursor;
+                }
             }
+        }
+        if (getCursor() != cursor) {
+            setCursor(cursor);
         }
     }
 

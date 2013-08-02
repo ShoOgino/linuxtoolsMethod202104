@@ -1,0 +1,35 @@
+	/**
+	 * Parse the Ruby gemspec file
+	 *
+	 */
+	public void parse() {
+		List<String> rawSetupDefinitions = new ArrayList<String>();
+		List<String> lSetupDefinitions = new ArrayList<String>();
+		String line = "";
+		long startPos;
+		long endPos;
+		try {
+			RandomAccessFile raf = new RandomAccessFile(file.getRawLocation()
+					.makeAbsolute().toFile(), "r");
+			startPos = findStart(raf);
+			endPos = findEnd(raf, startPos);
+
+			raf.seek(startPos);
+			while ((line = raf.readLine()) != null
+					&& raf.getFilePointer() < endPos) {
+				rawSetupDefinitions.add(line);
+			}
+
+			lSetupDefinitions = prepareOptions(rawSetupDefinitions);
+
+			for (String str : lSetupDefinitions) {
+				parseLine(str);
+			}
+			raf.close();
+		} catch (FileNotFoundException e) {
+			StubbyLog.logError(e);
+		} catch (IOException e) {
+			StubbyLog.logError(e);
+		}
+	}
+
