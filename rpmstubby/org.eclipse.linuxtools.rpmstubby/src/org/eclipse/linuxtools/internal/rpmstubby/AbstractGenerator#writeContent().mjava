@@ -14,7 +14,12 @@
 			StubbyLog.logError(new CoreException(status));
 		}
 		IContainer container = (IContainer) resource;
-		final IFile file = container.getFile(new Path(specfileName));
+		IResource specsFolder = container.getProject().findMember("SPECS"); //$NON-NLS-1$
+		IFile file = container.getFile(new Path(specfileName));
+		if (specsFolder != null) {
+			file = ((IFolder) specsFolder).getFile(new Path(specfileName));
+		}
+		final IFile openFile = file;
 		try {
 			InputStream stream = contentInputStream;
 			if (file.exists()) {
@@ -33,7 +38,7 @@
 						IWorkbenchPage page = PlatformUI.getWorkbench()
 								.getActiveWorkbenchWindow().getActivePage();
 						try {
-							IDE.openEditor(page, file, true);
+							IDE.openEditor(page, openFile, true);
 						} catch (PartInitException e) {
 							StubbyLog.logError(e);
 						}

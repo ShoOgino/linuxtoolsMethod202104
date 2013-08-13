@@ -5,7 +5,7 @@
         Display.getDefault().asyncExec(new Runnable() {
             @Override
             public void run() {
-                if (fTimeGraphCombo.isDisposed()) {
+                if (fTimeGraphWrapper.isDisposed()) {
                     return;
                 }
                 ITimeGraphEntry[] entries = null;
@@ -19,8 +19,8 @@
                 if (fEntryComparator != null) {
                     Arrays.sort(entries, fEntryComparator);
                 }
-                fTimeGraphCombo.setInput(entries);
-                fTimeGraphCombo.getTimeGraphViewer().setTimeBounds(fStartTime, fEndTime);
+                fTimeGraphWrapper.setInput(entries);
+                fTimeGraphWrapper.getTimeGraphViewer().setTimeBounds(fStartTime, fEndTime);
 
                 long selectionBeginTime = fTrace == null ? 0 : fTraceManager.getSelectionBeginTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
                 long selectionEndTime = fTrace == null ? 0 : fTraceManager.getSelectionEndTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
@@ -28,11 +28,13 @@
                 long endTime = fTrace == null ? 0 : fTraceManager.getCurrentRange().getEndTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
                 startTime = Math.max(startTime, fStartTime);
                 endTime = Math.min(endTime, fEndTime);
-                fTimeGraphCombo.getTimeGraphViewer().setSelectionRange(selectionBeginTime, selectionEndTime);
-                fTimeGraphCombo.getTimeGraphViewer().setStartFinishTime(startTime, endTime);
+                fTimeGraphWrapper.getTimeGraphViewer().setSelectionRange(selectionBeginTime, selectionEndTime);
+                fTimeGraphWrapper.getTimeGraphViewer().setStartFinishTime(startTime, endTime);
 
-                for (TreeColumn column : fTimeGraphCombo.getTreeViewer().getTree().getColumns()) {
-                    column.pack();
+                if (fTimeGraphWrapper instanceof TimeGraphComboWrapper) {
+                    for (TreeColumn column : ((TimeGraphComboWrapper) fTimeGraphWrapper).getTreeViewer().getTree().getColumns()) {
+                        column.pack();
+                    }
                 }
 
                 startZoomThread(startTime, endTime);
