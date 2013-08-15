@@ -10,11 +10,12 @@
         /* Default values for those fields */
         long eventID = EventDeclaration.UNSET_EVENT_ID;
         long timestamp = 0;
-
-        if (lostEventsInThisPacket > lostSoFar) {
+        if (hasLost) {
+            hasLost = false;
             EventDefinition eventDef = EventDeclaration.getLostEventDeclaration().createDefinition(streamInputReader);
+            ((IntegerDefinition) eventDef.getFields().getDefinitions().get(CTFStrings.LOST_EVENTS_FIELD)).setValue(lostEventsInThisPacket);
+            ((IntegerDefinition) eventDef.getFields().getDefinitions().get(CTFStrings.LOST_EVENTS_DURATION)).setValue(lostEventsDuration);
             eventDef.setTimestamp(this.lastTimestamp);
-            ++lostSoFar;
             return eventDef;
         }
 
@@ -31,7 +32,10 @@
                 eventID = ((SimpleDatatypeDefinition) idDef).getIntegerValue();
             } // else, eventID remains 0
 
-            /* Get the timestamp from the event header (may be overridden later on) */
+            /*
+             * Get the timestamp from the event header (may be overridden later
+             * on)
+             */
             IntegerDefinition timestampDef = sehd.lookupInteger("timestamp"); //$NON-NLS-1$
             if (timestampDef != null) {
                 timestamp = calculateTimestamp(timestampDef);
@@ -53,7 +57,10 @@
                     eventID = ((IntegerDefinition) idIntegerDef).getValue();
                 }
 
-                /* Get the timestamp. This would overwrite any previous timestamp definition */
+                /*
+                 * Get the timestamp. This would overwrite any previous
+                 * timestamp definition
+                 */
                 Definition def = variantCurrentField.lookupDefinition("timestamp"); //$NON-NLS-1$
                 if (def instanceof IntegerDefinition) {
                     timestamp = calculateTimestamp((IntegerDefinition) def);

@@ -5,6 +5,7 @@
      *            The index entry of the packet to switch to.
      */
     void setCurrentPacket(StreamInputPacketIndexEntry currentPacket) {
+        StreamInputPacketIndexEntry prevPacket = null;
         this.currentPacket = currentPacket;
 
         if (this.currentPacket != null) {
@@ -47,8 +48,23 @@
 
                 /* Read number of lost events */
                 lostEventsInThisPacket = (int) this.getCurrentPacket().getLostEvents();
-                lostSoFar = 0;
-
+                if (lostEventsInThisPacket != 0) {
+                    hasLost = true;
+                    /*
+                     * Compute the duration of the lost event time range. If the
+                     * current packet is the first packet, duration will be set
+                     * to 1.
+                     */
+                    long lostEventsStartTime;
+                    int index = this.streamInputReader.getStreamInput().getIndex().getEntries().indexOf(currentPacket);
+                    if (index == 0) {
+                        lostEventsStartTime = currentPacket.getTimestampBegin() + 1;
+                    } else {
+                        prevPacket = this.streamInputReader.getStreamInput().getIndex().getEntries().get(index - 1);
+                        lostEventsStartTime = prevPacket.getTimestampEnd();
+                    }
+                    lostEventsDuration = Math.abs(lostEventsStartTime - currentPacket.getTimestampBegin());
+                }
             }
 
             /*
