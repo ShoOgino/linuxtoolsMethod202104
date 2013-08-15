@@ -1,0 +1,53 @@
+    /**
+     * Deletes a project
+     *
+     * @param project
+     *            Project to delete
+     * @throws CoreException
+     *             Thrown by the resource deletion
+     */
+    public static void deleteProject(TmfProjectElement project) throws CoreException {
+        /* Delete experiments */
+        for (ITmfProjectModelElement element : project.getExperimentsFolder().getChildren()) {
+            if (element instanceof TmfExperimentElement) {
+                TmfExperimentElement experiment = (TmfExperimentElement) element;
+                IResource resource = experiment.getResource();
+
+                /* Close the experiment if open */
+                experiment.closeEditors();
+
+                IPath path = resource.getLocation();
+                if (path != null) {
+                    /* Delete supplementary files */
+                    experiment.deleteSupplementaryFolder();
+                }
+
+                /* Finally, delete the experiment */
+                resource.delete(true, null);
+            }
+        }
+
+        /* Delete traces */
+        for (ITmfProjectModelElement element : project.getTracesFolder().getChildren()) {
+            if (element instanceof TmfTraceElement) {
+                TmfTraceElement trace = (TmfTraceElement) element;
+                IResource resource = trace.getResource();
+
+                /* Close the trace if open */
+                trace.closeEditors();
+
+                IPath path = resource.getLocation();
+                if (path != null) {
+                    /* Delete supplementary files */
+                    trace.deleteSupplementaryFolder();
+                }
+
+                /* Finally, delete the trace */
+                resource.delete(true, new NullProgressMonitor());
+            }
+        }
+
+        /* Delete the project itself */
+        project.getResource().delete(true, null);
+    }
+
