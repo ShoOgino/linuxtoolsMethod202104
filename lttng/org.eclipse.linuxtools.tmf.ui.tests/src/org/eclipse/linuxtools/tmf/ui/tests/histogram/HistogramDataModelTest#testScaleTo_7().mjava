@@ -13,16 +13,15 @@
         // (int)(width / barWith) = 2
         // -> 2 bars -> expected result needs two buckets (scaled data)
         //
-        // buckets (in model) per bar = last bucket id / nbBars + 1 (plus 1 to cover all used buckets)
+        // buckets (in model) per bar = last bucket id / nbBars + 1 (plus 1 to
+        // cover all used buckets)
         // -> buckets per bar = 50 / 2 + 1 = 26
         // -> first entry in expected result is 26 * 4 = 104
         // -> second entry in expected result is 22 * 4 + 9 = 97
         final int[] expectedResult = new int[] { 104, 97 };
 
         HistogramDataModel model = new HistogramDataModel(nbBuckets);
-        for (int i = 0; i < nbEvents; i++) {
-            model.countEvent(i, i);
-        }
+        countEventsInModel(nbEvents, model);
 
         // verify scaled data
         HistogramScaledData result = model.scaleTo(width, maxHeight, barWidth);
@@ -34,22 +33,14 @@
         assertEquals(0, result.fFirstEventTime);
         assertEquals(1, result.fLastBucket);
         assertEquals(104, result.fMaxValue);
-        assertEquals((double)maxHeight/104, result.fScalingFactor, DELTA);
+        assertEquals((double) maxHeight / 104, result.fScalingFactor, DELTA);
         assertEquals(maxHeight, result.fHeight);
         assertEquals(width, result.fWidth);
         assertEquals(barWidth, result.fBarWidth);
 
-        for (int i = 0; i < result.fData.length; i++) {
-            assertEquals(expectedResult[i], result.fData[i]);
-        }
+        assertArrayEquals(expectedResult, result.fData);
 
         // verify model
-        assertEquals(nbEvents, model.getNbEvents());
-        assertEquals(nbBuckets, model.getNbBuckets());
-        assertEquals(4, model.getBucketDuration());
-        assertEquals(0, model.getFirstBucketTime());
-        assertEquals(0, model.getStartTime());
-        assertEquals(nbEvents - 1, model.getEndTime());
-        assertEquals(4 * nbBuckets, model.getTimeLimit());
+        testModelConsistency(model, nbBuckets, nbEvents, 4, 0, 0, nbEvents - 1, 4 * nbBuckets);
     }
 
