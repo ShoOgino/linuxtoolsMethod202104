@@ -10,11 +10,20 @@
      *            - a URL for control channel (networkUrl has to be null, dataUrl has to be set)
      * @param dataUrl
      *            - a URL for data channel (networkUrl has to be null, controlUrl has to be set)
+     * @param isSnapshot
+     *            - true for snapshot session else false
      * @param monitor
      *            - a progress monitor
-     * @return the session information
      * @throws ExecutionException
      *             If the command fails
      */
-    ISessionInfo createSession(String sessionName, String networkUrl, String controlUrl, String dataUrl, IProgressMonitor monitor) throws ExecutionException;
+    public void createSession(String sessionName, String networkUrl, String controlUrl, String dataUrl, boolean isSnapshot, IProgressMonitor monitor) throws ExecutionException {
+        ISessionInfo sessionInfo = getControlService().createSession(sessionName, networkUrl, controlUrl, dataUrl, isSnapshot, monitor);
+
+        if (sessionInfo != null) {
+            TraceSessionComponent session = new TraceSessionComponent(sessionInfo.getName(), TraceSessionGroup.this);
+            addChild(session);
+            session.getConfigurationFromNode(monitor);
+        }
+    }
 

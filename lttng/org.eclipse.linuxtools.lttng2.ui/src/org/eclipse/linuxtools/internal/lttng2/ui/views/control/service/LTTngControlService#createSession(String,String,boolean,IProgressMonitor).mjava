@@ -1,5 +1,5 @@
     @Override
-    public ISessionInfo createSession(String sessionName, String sessionPath, IProgressMonitor monitor) throws ExecutionException {
+    public ISessionInfo createSession(String sessionName, String sessionPath, boolean isSnapshot, IProgressMonitor monitor) throws ExecutionException {
 
         String newName = formatParameter(sessionName);
         String newPath = formatParameter(sessionPath);
@@ -9,6 +9,10 @@
         if (newPath != null && !"".equals(newPath)) { //$NON-NLS-1$
             command.append(LTTngControlServiceConstants.OPTION_OUTPUT_PATH);
             command.append(newPath);
+        }
+
+        if (isSnapshot) {
+            command.append(LTTngControlServiceConstants.OPTION_SNAPSHOT);
         }
 
         ICommandResult result = executeCommand(command.toString(), monitor);
@@ -44,13 +48,20 @@
         SessionInfo sessionInfo = new SessionInfo(name);
 
         // Verify session path
-        if ((path == null) || ((sessionPath != null) && (!path.contains(sessionPath)))) {
+        if (!isSnapshot &&
+                ((path == null) || ((sessionPath != null) && (!path.contains(sessionPath))))) {
             // Unexpected path
             throw new ExecutionException(Messages.TraceControl_CommandError + " " + command + "\n" + //$NON-NLS-1$ //$NON-NLS-2$
                     Messages.TraceControl_UnexpectedPathError + ": " + name); //$NON-NLS-1$
         }
 
-        sessionInfo.setSessionPath(path);
+        if (isSnapshot) {
+            // Make it a snapshot session - content of snapshot info need to
+            // set afterwards using getSession() or getSnapshotInfo()
+            sessionInfo.setSnapshotInfo(new SnapshotInfo("")); //$NON-NLS-1$
+        } else {
+            sessionInfo.setSessionPath(path);
+        }
 
         return sessionInfo;
 

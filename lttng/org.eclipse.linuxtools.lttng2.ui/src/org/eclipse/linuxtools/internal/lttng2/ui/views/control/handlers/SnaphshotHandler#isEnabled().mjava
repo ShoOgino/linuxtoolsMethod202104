@@ -1,0 +1,40 @@
+    @Override
+    public boolean isEnabled() {
+        // Get workbench page for the Control View
+        IWorkbenchPage page = getWorkbenchPage();
+        if (page == null) {
+            return false;
+        }
+
+        List<TraceSessionComponent> sessions = new ArrayList<TraceSessionComponent>(0);
+
+        // Check if one session is selected
+        ISelection selection = page.getSelection(ControlView.ID);
+        if (selection instanceof StructuredSelection) {
+            StructuredSelection structered = ((StructuredSelection) selection);
+            for (Iterator<?> iterator = structered.iterator(); iterator.hasNext();) {
+                Object element = iterator.next();
+                if (element instanceof TraceSessionComponent) {
+                    // Add only if corresponding TraceSessionComponent is an active snapshot session and not destroyed
+                    TraceSessionComponent session = (TraceSessionComponent) element;
+                    if(session.isSnapshotSession() &&
+                            session.getSessionState() == TraceSessionState.ACTIVE &&
+                            !session.isDestroyed()) {
+                        sessions.add(session);
+                    }
+                }
+            }
+        }
+        boolean isEnabled = !sessions.isEmpty();
+        fLock.lock();
+        try {
+            fSessions = null;
+            if (isEnabled) {
+                fSessions = sessions;
+            }
+        } finally {
+            fLock.unlock();
+        }
+        return isEnabled;
+    }
+

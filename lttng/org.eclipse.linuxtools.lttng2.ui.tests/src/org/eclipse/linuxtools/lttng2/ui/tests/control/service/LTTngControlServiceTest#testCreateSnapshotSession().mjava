@@ -1,0 +1,37 @@
+    @Test
+    public void testCreateSnapshotSession() {
+        try {
+            fShell.setScenario(SCEN_CREATE_SNAPSHOT_SESSION);
+
+            ISessionInfo sessionInfo = fService.createSession("mysession", null, true, new NullProgressMonitor());
+            assertNotNull(sessionInfo);
+            assertEquals("mysession", sessionInfo.getName());
+            assertTrue(sessionInfo.isSnapshotSession());
+            assertEquals("", sessionInfo.getSessionPath());
+            assertTrue(!sessionInfo.isStreamedTrace());
+
+            assertEquals(TraceSessionState.INACTIVE, sessionInfo.getSessionState());
+
+            String[] names = fService.getSessionNames(new NullProgressMonitor());
+            assertEquals(names[0], "mysession");
+
+            ISnapshotInfo snapshotInfo = fService.getSnapshotInfo("mysession", new NullProgressMonitor());
+            assertNotNull(snapshotInfo);
+            assertEquals("snapshot-1", snapshotInfo.getName());
+            assertEquals("/home/user/lttng-traces/mysession-20130913-141651", snapshotInfo.getSnapshotPath());
+            assertEquals(1, snapshotInfo.getId());
+            assertTrue(!snapshotInfo.isStreamedSnapshot());
+
+            // we need to set the snapshotInfo to so that the session path is set correctly
+            sessionInfo.setSnapshotInfo(snapshotInfo);
+            assertEquals("/home/user/lttng-traces/mysession-20130913-141651", sessionInfo.getSessionPath());
+
+            fService.recordSnapshot("mysession", new NullProgressMonitor());
+
+            fService.destroySession("mysession", new NullProgressMonitor());
+
+        } catch (ExecutionException e) {
+            fail(e.toString());
+        }
+    }
+

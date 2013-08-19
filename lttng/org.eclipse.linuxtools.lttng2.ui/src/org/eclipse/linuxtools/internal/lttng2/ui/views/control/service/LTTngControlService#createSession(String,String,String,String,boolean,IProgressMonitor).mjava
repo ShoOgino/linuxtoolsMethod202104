@@ -1,8 +1,12 @@
     @Override
-    public ISessionInfo createSession(String sessionName, String networkUrl, String controlUrl, String dataUrl, IProgressMonitor monitor) throws ExecutionException {
+    public ISessionInfo createSession(String sessionName, String networkUrl, String controlUrl, String dataUrl, boolean isSnapshot, IProgressMonitor monitor) throws ExecutionException {
 
         String newName = formatParameter(sessionName);
         StringBuffer command = createCommand(LTTngControlServiceConstants.COMMAND_CREATE_SESSION, newName);
+
+        if (isSnapshot) {
+            command.append(LTTngControlServiceConstants.OPTION_SNAPSHOT);
+        }
 
         if (networkUrl != null) {
             command.append(LTTngControlServiceConstants.OPTION_NETWORK_URL);
@@ -51,20 +55,24 @@
 
         // Verify session path
         if (networkUrl != null) {
-            if (path == null) {
+            if (!isSnapshot && (path == null)) {
                 // Unexpected path
                 throw new ExecutionException(Messages.TraceControl_CommandError + " " + command + "\n" + //$NON-NLS-1$ //$NON-NLS-2$
                         Messages.TraceControl_UnexpectedPathError + ": " + name); //$NON-NLS-1$
             }
 
-            sessionInfo.setSessionPath(path);
-
-            // Check file protocol
-            Matcher matcher = LTTngControlServiceConstants.TRACE_FILE_PROTOCOL_PATTERN.matcher(path);
-            if (matcher.matches()) {
+            if (isSnapshot) {
                 sessionInfo.setStreamedTrace(false);
+            } else {
+                sessionInfo.setSessionPath(path);
+                // Check file protocol
+                Matcher matcher = LTTngControlServiceConstants.TRACE_FILE_PROTOCOL_PATTERN.matcher(path);
+                if (matcher.matches()) {
+                    sessionInfo.setStreamedTrace(false);
+                }
             }
         }
+
         // When using controlUrl and dataUrl the full session path is not known yet
         // and will be set later on when listing the session
 

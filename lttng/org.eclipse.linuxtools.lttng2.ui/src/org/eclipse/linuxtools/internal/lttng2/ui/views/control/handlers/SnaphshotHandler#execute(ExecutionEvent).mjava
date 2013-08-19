@@ -1,0 +1,36 @@
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+        fLock.lock();
+        try {
+            // Make a copy for thread safety
+            final List<TraceSessionComponent> sessions = new ArrayList<TraceSessionComponent>();
+            sessions.addAll(fSessions);
+
+            Job job = new Job(Messages.TraceControl_RecordSnapshotJob) {
+                @Override
+                protected IStatus run(IProgressMonitor monitor) {
+                    MultiStatus status = new MultiStatus(Activator.PLUGIN_ID, IStatus.OK, null, null);
+                    for (Iterator<TraceSessionComponent> iterator = sessions.iterator(); iterator.hasNext();) {
+                        try {
+                            // record snapshot for all selected sessions sequentially
+                            TraceSessionComponent session = iterator.next();
+                            session.recordSnapshot(monitor);
+                            if (monitor.isCanceled()) {
+                                status.add(Status.CANCEL_STATUS);
+                                break;
+                            }
+                        } catch (ExecutionException e) {
+                            status.add(new Status(IStatus.ERROR, Activator.PLUGIN_ID, Messages.TraceControl_RecordSnapshotFailure, e));
+                        }
+                    }
+                    return status;
+                }
+            };
+            job.setUser(true);
+            job.schedule();
+        } finally {
+            fLock.unlock();
+        }
+        return null;
+    }
+

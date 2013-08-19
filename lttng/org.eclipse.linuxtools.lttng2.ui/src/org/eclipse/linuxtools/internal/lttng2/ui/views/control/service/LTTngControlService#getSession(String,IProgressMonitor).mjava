@@ -24,16 +24,28 @@
                 continue;
             }
 
-            matcher = LTTngControlServiceConstants.TRACE_NETWORK_PATH_PATTERN.matcher(line);
+            matcher = LTTngControlServiceConstants.TRACE_SNAPSHOT_SESSION_PATTERN.matcher(line);
             if (matcher.matches()) {
-                sessionInfo.setStreamedTrace(true);
-            }
-
-            matcher = LTTngControlServiceConstants.TRACE_SESSION_PATH_PATTERN.matcher(line);
-            if (matcher.matches()) {
-                sessionInfo.setSessionPath(matcher.group(1).trim());
+                sessionInfo.setSessionState(matcher.group(2));
+                // real name will be set later
+                ISnapshotInfo snapshotInfo = new SnapshotInfo(""); //$NON-NLS-1$
+                sessionInfo.setSnapshotInfo(snapshotInfo);
                 index++;
                 continue;
+            }
+
+            if (!sessionInfo.isSnapshotSession()) {
+                matcher = LTTngControlServiceConstants.TRACE_NETWORK_PATH_PATTERN.matcher(line);
+                if (matcher.matches()) {
+                    sessionInfo.setStreamedTrace(true);
+                }
+
+                matcher = LTTngControlServiceConstants.TRACE_SESSION_PATH_PATTERN.matcher(line);
+                if (matcher.matches()) {
+                    sessionInfo.setSessionPath(matcher.group(1).trim());
+                    index++;
+                    continue;
+                }
             }
 
             matcher = LTTngControlServiceConstants.DOMAIN_KERNEL_PATTERN.matcher(line);
@@ -80,6 +92,12 @@
             }
             index++;
         }
+
+        if (sessionInfo.isSnapshotSession()) {
+            ISnapshotInfo snapshot = getSnapshotInfo(sessionName, monitor);
+            sessionInfo.setSnapshotInfo(snapshot);
+        }
+
         return sessionInfo;
     }
 
