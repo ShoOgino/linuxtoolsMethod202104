@@ -12,6 +12,13 @@
             fIsIndexing = true;
         }
 
+        // No need to build the index, it has been restored
+        if (!fTraceIndex.isCreatedFromScratch()) {
+            // Set some trace attributes that depends on indexing
+            fTrace.broadcast(new TmfTraceUpdatedSignal(this, fTrace, new TmfTimeRange(fTraceIndex.getTimeRange().getStartTime(), fTraceIndex.getTimeRange().getEndTime()), fTraceIndex.getNbEvents()));
+            return;
+        }
+
         // The monitoring job
         final Job job = new Job("Indexing " + fTrace.getName() + "...") { //$NON-NLS-1$ //$NON-NLS-2$
             @Override
@@ -54,6 +61,9 @@
 
             @Override
             public void handleSuccess() {
+                fTraceIndex.setTimeRange(fTrace.getTimeRange());
+                fTraceIndex.setNbEvents(fTrace.getNbEvents());
+                fTraceIndex.setIndexComplete();
                 updateTraceStatus();
             }
 

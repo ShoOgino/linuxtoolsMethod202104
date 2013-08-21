@@ -1,0 +1,26 @@
+    @Override
+    public synchronized int getCheckpointSize() {
+        int totalCheckpointSize = 0;
+        try {
+            if (fTraces != null) {
+                for (final ITmfTrace trace : fTraces) {
+                    if (!(trace instanceof ITmfPersistentlyIndexable)) {
+                        return 0;
+                    }
+
+                    ITmfPersistentlyIndexable persistableIndexTrace = (ITmfPersistentlyIndexable) trace;
+                    int currentTraceCheckpointSize = persistableIndexTrace.getCheckpointSize();
+                    if (currentTraceCheckpointSize <= 0) {
+                        return 0;
+                    }
+                    totalCheckpointSize += currentTraceCheckpointSize;
+                    totalCheckpointSize += 8; // each entry in the TmfLocationArray has a rank in addition of the location
+                }
+            }
+        } catch (UnsupportedOperationException e) {
+            return 0;
+        }
+
+        return totalCheckpointSize;
+    }
+

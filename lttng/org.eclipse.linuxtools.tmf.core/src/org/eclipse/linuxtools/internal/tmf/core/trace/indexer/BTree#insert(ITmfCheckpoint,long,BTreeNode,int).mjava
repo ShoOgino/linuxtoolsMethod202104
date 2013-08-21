@@ -1,0 +1,98 @@
+    private void insert(ITmfCheckpoint checkpoint, long nodeOffset, BTreeNode pParent, int iParent) {
+        BTreeNode parent = pParent;
+        BTreeNode node = fNodeCache.getNode(nodeOffset);
+
+        // If this node is full (last entry isn't null), split it
+        if (node.getEntry(fMaxNumEntries - 1) != null) {
+
+            ITmfCheckpoint median = node.getEntry(fMedianEntry);
+            if (median.compareTo(checkpoint) == 0) {
+                // Found it
+                return;
+            }
+
+            // Split it.
+            // Create the new node and move the larger entries over.
+            BTreeNode newnode = allocateNode();
+            fNodeCache.addNode(newnode);
+            long newNodeOffset = newnode.getOffset();
+            for (int i = 0; i < fMedianEntry; ++i) {
+                newnode.setEntry(i, node.getEntry(fMedianEntry + 1 + i));
+                node.setEntry(fMedianEntry + 1 + i, null);
+                newnode.setChild(i, node.getChild(fMedianEntry + 1 + i));
+                node.setChild(fMedianEntry + 1 + i, BTreeNode.NULL_CHILD);
+            }
+            newnode.setChild(fMedianEntry, node.getChild(fMaxNumEntries));
+            node.setChild(fMaxNumEntries, BTreeNode.NULL_CHILD);
+
+            if (parent == null) {
+                parent = allocateNode();
+                setRootNode(parent);
+                parent.setChild(0, nodeOffset);
+            } else {
+                // Insert the median into the parent.
+                for (int i = fMaxNumEntries - 2; i >= iParent; --i) {
+                    ITmfCheckpoint r = parent.getEntry(i);
+                    if (r != null) {
+                        parent.setEntry(i + 1, r);
+                        parent.setChild(i + 2, parent.getChild(i + 1));
+                    }
+                }
+            }
+
+            fNodeCache.getNode(parent.getOffset());
+
+            parent.setEntry(iParent, median);
+            parent.setChild(iParent + 1, newNodeOffset);
+
+            node.setEntry(fMedianEntry, null);
+
+            // Set the node to the correct one to follow.
+            if (checkpoint.compareTo(median) > 0) {
+                node = newnode;
+            }
+        }
+
+        // Binary search to find the insert point.
+        int lower = 0;
+        int upper = fMaxNumEntries - 1;
+        while (lower < upper && node.getEntry(upper - 1) == null) {
+            upper--;
+        }
+
+        while (lower < upper) {
+            int middle = (lower + upper) / 2;
+            ITmfCheckpoint check = node.getEntry(middle);
+            if (check == null) {
+                upper = middle;
+            } else {
+                int compare = check.compareTo(checkpoint);
+                if (compare > 0) {
+                    upper = middle;
+                } else if (compare < 0) {
+                    lower = middle + 1;
+                } else {
+                    // Found it, no insert
+                    return;
+                }
+            }
+        }
+        final int i = lower;
+        long child = node.getChild(i);
+        if (child != BTreeNode.NULL_CHILD) {
+            // Visit the children.
+            insert(checkpoint, child, node, i);
+        } else {
+            // We are at the leaf, add us in.
+            // First copy everything after over one.
+            for (int j = fMaxNumEntries - 2; j >= i; --j) {
+                ITmfCheckpoint r = node.getEntry(j);
+                if (r != null) {
+                    node.setEntry(j + 1, r);
+                }
+            }
+            node.setEntry(i, checkpoint);
+            return;
+        }
+    }
+

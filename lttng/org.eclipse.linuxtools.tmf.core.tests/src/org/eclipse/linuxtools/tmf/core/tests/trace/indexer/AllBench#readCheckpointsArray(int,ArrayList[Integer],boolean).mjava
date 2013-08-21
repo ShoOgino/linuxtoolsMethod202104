@@ -1,0 +1,25 @@
+    private void readCheckpointsArray(int checkpointsNum, ArrayList<Integer> list, boolean random) {
+        FlatArray array;
+        int REPEAT = 10;
+        long time = 0;
+        long cacheMisses = 0;
+        for (int j = 0; j < REPEAT; j++) {
+            long old = System.currentTimeMillis();
+            array = new FlatArray(file, fTrace);
+            for (int i = 0; i < checkpointsNum; i++) {
+                Integer randomCheckpoint = list.get(i);
+                TmfCheckpoint checkpoint = new TmfCheckpoint(new TmfTimestamp(12345 + randomCheckpoint), new TmfLongLocation(123456L + randomCheckpoint), 0);
+                long found = array.binarySearch(checkpoint);
+                assertEquals(randomCheckpoint.intValue(), found);
+            }
+            time += (System.currentTimeMillis() - old);
+            cacheMisses = array.getCacheMisses();
+            array.dispose();
+            if (reportProgress) {
+                System.out.print(".");
+            }
+        }
+
+        System.out.println("Read " + (random ? "(random)" : "(linear)") + "time average: " + (float) time / REPEAT + "            (cache miss: " + cacheMisses + ")");
+    }
+

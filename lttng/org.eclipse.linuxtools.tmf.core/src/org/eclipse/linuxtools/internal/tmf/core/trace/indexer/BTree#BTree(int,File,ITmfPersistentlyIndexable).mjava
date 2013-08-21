@@ -1,0 +1,27 @@
+    /**
+     * Constructs a BTree for a given trace from scratch or from an existing
+     * file. The degree is used to calibrate the number of entries in each node
+     * which can affect performance. When the BTree is created from scratch, it
+     * is populated by subsequent calls to {@link #insert}.
+     *
+     * @param degree
+     *            the degree to use in the tree
+     * @param file
+     *            the file to use as the persistent storage
+     * @param trace
+     *            the trace
+     */
+    public BTree(int degree, File file, ITmfPersistentlyIndexable trace) {
+        super(file, trace);
+
+        fMaxNumEntries = 2 * degree - 1;
+        fMaxNumChildren = 2 * degree;
+        fMedianEntry = degree - 1;
+
+        fNodeByteBuffer = ByteBuffer.allocate(getNodeSize());
+        fNodeByteBuffer.clear();
+        fNodeCache = new BTreeNodeCache(this);
+        BTreeNode rootNode = isCreatedFromScratch() ? allocateNode() : fNodeCache.getNode(fBTreeHeader.fRoot);
+        setRootNode(rootNode);
+    }
+

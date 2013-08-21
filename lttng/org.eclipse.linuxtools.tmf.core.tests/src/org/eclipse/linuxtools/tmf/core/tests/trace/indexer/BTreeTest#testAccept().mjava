@@ -1,0 +1,34 @@
+    /**
+     * Tests that accepts find the correct checkpoint and ends with a perfect
+     * match
+     */
+    @Test
+    public void testAccept() {
+        for (int i = 0; i < CHECKPOINTS_INSERT_NUM; i++) {
+            TmfCheckpoint checkpoint = new TmfCheckpoint(new TmfTimestamp(i), new TmfLongLocation((long) i), 0);
+            fBTree.insert(checkpoint);
+        }
+
+        final TmfCheckpoint checkpoint = new TmfCheckpoint(new TmfTimestamp(123), new TmfLongLocation(123L), 0);
+
+        class TestVisitor implements IBTreeVisitor {
+            public int fLastCompare = 0;
+            ITmfCheckpoint fFoundCheckpoint;
+
+            @Override
+            public int compare(ITmfCheckpoint checkRec) {
+                fLastCompare = checkRec.compareTo(checkpoint);
+                if (fLastCompare == 0) {
+                    fFoundCheckpoint = checkRec;
+                }
+                return fLastCompare;
+            }
+        }
+        final TestVisitor t = new TestVisitor();
+
+        fBTree.accept(t);
+
+        assertEquals(checkpoint, t.fFoundCheckpoint);
+        assertEquals(0, t.fLastCompare);
+    }
+

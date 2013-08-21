@@ -1,0 +1,31 @@
+    /**
+     * Try to restore the index from disk. Try to open the file and check the
+     * version. Returns the loaded header or null if it could not be loaded.
+     *
+     * @return the loaded header or null if it could not be loaded.
+     */
+    private CheckpointCollectionFileHeader tryRestore() {
+        CheckpointCollectionFileHeader header = null;
+
+        try {
+            fRandomAccessFile = new RandomAccessFile(fFile, "r"); //$NON-NLS-1$
+            fFileChannel = fRandomAccessFile.getChannel();
+        } catch (FileNotFoundException e) {
+            Activator.logError(MessageFormat.format(Messages.ErrorOpeningIndex, fFile), e);
+            return null;
+        }
+
+        try {
+            header = createHeader(fRandomAccessFile);
+            if (header.fVersion != VERSION || header.getSubVersion() != getSubVersion()) {
+                return null;
+            }
+            serializeInTimeRange(header);
+        } catch (IOException e) {
+            Activator.logError(MessageFormat.format(Messages.IOErrorReadingHeader, fFile), e);
+            return null;
+        }
+
+        return header;
+    }
+
