@@ -14,6 +14,11 @@
     protected int parseDomain(String[] output, int currentIndex, List<IChannelInfo> channels, IDomainInfo domainInfo) {
         int index = currentIndex;
 
+        // if kernel set the buffer type to shared
+        if (domainInfo.isKernel()) {
+            domainInfo.setBufferType(BufferType.BUFFER_SHARED);
+        }
+
         // Channels:
         // -------------
         // - channnel1: [enabled]
@@ -32,10 +37,17 @@
             if (isVersionSupported("2.2.0")) { //$NON-NLS-1$
                 Matcher bufferTypeMatcher = LTTngControlServiceConstants.BUFFER_TYPE_PATTERN.matcher(line);
                 if (bufferTypeMatcher.matches()) {
-                    domainInfo.setBufferType(getAttributeValue(line));
+                    String bufferTypeString = getAttributeValue(line);
+                    if (BufferType.BUFFER_PER_PID.getInName().equals(bufferTypeString)) {
+                        domainInfo.setBufferType(BufferType.BUFFER_PER_PID);
+                    } else if (BufferType.BUFFER_PER_UID.getInName().equals(bufferTypeString)) {
+                        domainInfo.setBufferType(BufferType.BUFFER_PER_UID);
+                    } else {
+                        domainInfo.setBufferType(BufferType.BUFFER_TYPE_UNKNOWN);
+                    }
                 }
             } else {
-                domainInfo.setBufferType(BufferTypeConstants.BUFFER_TYPE_UNKNOWN);
+                domainInfo.setBufferType(BufferType.BUFFER_TYPE_UNKNOWN);
             }
             Matcher outerMatcher = LTTngControlServiceConstants.CHANNELS_SECTION_PATTERN.matcher(line);
             Matcher noKernelChannelMatcher = LTTngControlServiceConstants.DOMAIN_NO_KERNEL_CHANNEL_PATTERN.matcher(line);
@@ -53,6 +65,9 @@
 
                         // get channel enablement
                         channelInfo.setState(innerMatcher.group(2));
+
+                        // set BufferType
+                        channelInfo.setBufferType(domainInfo.getBufferType());
 
                         // add channel
                         channels.add(channelInfo);

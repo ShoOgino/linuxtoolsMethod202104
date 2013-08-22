@@ -1,0 +1,41 @@
+	/**
+	 * Clean up the contents of the file and remove all the comments, END
+	 * blocks, and block comments.
+	 *
+	 * @param scanner
+	 *            The scanner of the file to be read.
+	 * @return The cleaned up content.
+	 */
+	private static String cleanUpContent(Scanner scanner) {
+		String rc = "";
+		String line = "";
+		boolean flagEND = true;
+		boolean flagBC = true;
+		while (scanner.hasNext()) {
+			line = scanner.nextLine();
+			// ignore lines between ENDS
+			if (containsBeginEND(line)) {
+				flagEND = false;
+			} else if (matchesEndEND(line)) {
+				line = scanner.nextLine();
+				flagEND = true; // true
+			}
+			// ignore lines between =someword and =cut
+			if (matchesBeginBC(line)) {
+				flagBC = false;
+			} else if (matchesEndBC(line)) {
+				line = scanner.nextLine();
+				flagBC = true;
+			}
+			// remove the comments
+			if (matchesLineWithComment(line)) {
+				line = line.replaceAll(COMMENT, "");
+			}
+			// if not empty line or within comment/END block
+			if (flagEND && flagBC && !line.trim().equals("")) {
+				rc = rc.concat(line + '\n');
+			}
+		}
+		return rc;
+	}
+

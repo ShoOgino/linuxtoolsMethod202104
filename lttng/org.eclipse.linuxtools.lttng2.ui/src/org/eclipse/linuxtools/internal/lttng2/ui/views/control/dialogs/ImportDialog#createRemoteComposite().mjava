@@ -9,7 +9,7 @@
 
         IFileServiceSubSystem fsss = proxy.getFileServiceSubSystem();
 
-        IRemoteFile remoteFolder = fsss.getRemoteFileObject(fSession.getSessionPath(), new NullProgressMonitor());
+        final IRemoteFile remoteFolder = fsss.getRemoteFileObject(fSession.getSessionPath(), new NullProgressMonitor());
 
         fFolderViewer = new CheckboxTreeViewer(contextGroup, SWT.BORDER);
         GridData data = new GridData(GridData.FILL_BOTH);
@@ -42,6 +42,12 @@
         });
         fFolderViewer.setInput(remoteFolder);
 
+        // Select all traces by default
+        Object[] children = remoteFolder.getContents(RemoteChildrenContentsType.getInstance());
+        for (int i = 0; i < children.length; i++) {
+            fFolderViewer.setSubtreeChecked(children[i], true);
+        }
+
         Group projectGroup = new Group(fDialogComposite, SWT.SHADOW_NONE);
         projectGroup.setText(Messages.TraceControl_ImportDialogProjectsGroupName);
         layout = new GridLayout(1, true);
@@ -50,6 +56,7 @@
 
         fProjects = new ArrayList<IProject>();
         List<String> projectNames = new ArrayList<String>();
+
         for (IProject project : ResourcesPlugin.getWorkspace().getRoot().getProjects()) {
             if (project.isOpen() && project.hasNature(TmfProjectNature.ID)) {
                 fProjects.add(project);
@@ -61,6 +68,11 @@
         fCombo.setToolTipText(Messages.TraceControl_ImportDialogProjectsTooltip);
         fCombo.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, false, 1, 1));
         fCombo.setItems(projectNames.toArray(new String[projectNames.size()]));
+
+        if (fDefaultProjectName != null) {
+            int select = projectNames.indexOf(fDefaultProjectName);
+            fCombo.select(select);
+        }
 
         Group overrideGroup = new Group(fDialogComposite, SWT.SHADOW_NONE);
         layout = new GridLayout(1, true);
