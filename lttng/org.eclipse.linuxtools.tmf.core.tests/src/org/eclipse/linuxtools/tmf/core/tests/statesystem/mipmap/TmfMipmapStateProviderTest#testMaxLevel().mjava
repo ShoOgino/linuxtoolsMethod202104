@@ -1,0 +1,39 @@
+    /**
+     * Test a single query to the state system for the maxLevel.
+     *
+     * Make sure the state system has data.
+     *
+     */
+    @Test
+    public void testMaxLevel() {
+        assertNotNull(ssq);
+        try {
+            Random rn = new Random();
+            long time = Math.max(INTERVAL, rn.nextLong() % END_TIME);
+            List<ITmfStateInterval> intervals = ssq.queryFullState(time);
+
+            int maxMipmapQuark = ssq.getQuarkAbsolute(TEST_ATTRIBUTE_NAME, AbstractTmfMipmapStateProvider.MAX_STRING);
+            int nbLevelMax = intervals.get(maxMipmapQuark).getStateValue().unboxInt();
+            assertEquals(NB_LEVELS, nbLevelMax);
+
+            int minMipmapQuark = ssq.getQuarkAbsolute(TEST_ATTRIBUTE_NAME, AbstractTmfMipmapStateProvider.MIN_STRING);
+            int nbLevelMin = intervals.get(minMipmapQuark).getStateValue().unboxInt();
+            assertEquals(NB_LEVELS, nbLevelMin);
+
+            int avgMipmapQuark = ssq.getQuarkAbsolute(TEST_ATTRIBUTE_NAME, AbstractTmfMipmapStateProvider.AVG_STRING);
+            int nbLevelAvg = intervals.get(avgMipmapQuark).getStateValue().unboxInt();
+            assertEquals(NB_LEVELS, nbLevelAvg);
+
+        } catch (TimeRangeException e) {
+            fail(e.getMessage());
+        } catch (StateSystemDisposedException e) {
+            fail(e.getMessage());
+        } catch (AttributeNotFoundException e) {
+            fail(e.getMessage());
+        } catch (StateValueTypeException e) {
+            fail(e.getMessage());
+        }
+        assertTrue(true);
+
+    }
+

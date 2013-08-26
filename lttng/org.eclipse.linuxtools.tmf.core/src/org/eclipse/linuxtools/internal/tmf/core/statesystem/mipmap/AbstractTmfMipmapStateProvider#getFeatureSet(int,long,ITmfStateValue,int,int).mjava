@@ -1,0 +1,41 @@
+    private Set<ITmfMipmapFeature> getFeatureSet(int baseQuark, long ts, ITmfStateValue value, int mipmapFeatureBits, int resolution) {
+        Set<ITmfMipmapFeature> features = featureMap.get(baseQuark);
+        if (features != null) {
+            return features;
+        }
+        features = new LinkedHashSet<ITmfMipmapFeature>();
+        if (value.isNull()) {
+            return features;
+        }
+        featureMap.put(baseQuark, features);
+        if (resolution > 1) {
+            try {
+                if ((mipmapFeatureBits & MAX) != 0) {
+                    int featureQuark = ss.getQuarkRelativeAndAdd(baseQuark, MAX_STRING);
+                    ss.modifyAttribute(ts, TmfStateValue.newValueInt(0), featureQuark);
+                    MaxMipmapFeature mf = new MaxMipmapFeature(baseQuark, featureQuark, resolution, ss);
+                    features.add(mf);
+                }
+                if ((mipmapFeatureBits & MIN) != 0) {
+                    int featureQuark = ss.getQuarkRelativeAndAdd(baseQuark, MIN_STRING);
+                    ss.modifyAttribute(ts, TmfStateValue.newValueInt(0), featureQuark);
+                    MinMipmapFeature mf = new MinMipmapFeature(baseQuark, featureQuark, resolution, ss);
+                    features.add(mf);
+                }
+                if ((mipmapFeatureBits & AVG) != 0) {
+                    int featureQuark = ss.getQuarkRelativeAndAdd(baseQuark, AVG_STRING);
+                    ss.modifyAttribute(ts, TmfStateValue.newValueInt(0), featureQuark);
+                    AvgMipmapFeature mf = new AvgMipmapFeature(baseQuark, featureQuark, resolution, ss);
+                    features.add(mf);
+                }
+            } catch (TimeRangeException e) {
+                e.printStackTrace();
+            } catch (AttributeNotFoundException e) {
+                e.printStackTrace();
+            } catch (StateValueTypeException e) {
+                e.printStackTrace();
+            }
+        }
+        return features;
+    }
+

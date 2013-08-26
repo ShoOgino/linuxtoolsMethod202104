@@ -1,0 +1,36 @@
+    /**
+     * Return the minimum value of an attribute over a time range
+     *
+     * @param t1
+     *            The start time of the range
+     * @param t2
+     *            The end time of the range
+     * @param quark
+     *            The quark of the attribute
+     * @return The minimum value of the attribute in this range
+     */
+    public ITmfStateValue queryRangeMin(long t1, long t2, int quark) {
+        ITmfStateValue min = TmfStateValue.nullValue();
+        try {
+            List<ITmfStateInterval> intervals = queryAttributeRange(t1, t2, quark, AbstractTmfMipmapStateProvider.MIN_STRING);
+            if (intervals.size() == 0) {
+                return TmfStateValue.nullValue();
+            }
+            for (ITmfStateInterval si : intervals) {
+                ITmfStateValue value = si.getStateValue();
+                if (value.getType() == Type.DOUBLE) {
+                    if (min.isNull() || si.getStateValue().unboxDouble() < min.unboxDouble()) {
+                        min = si.getStateValue();
+                    }
+                } else {
+                    if (min.isNull() || si.getStateValue().unboxLong() < min.unboxLong()) {
+                        min = si.getStateValue();
+                    }
+                }
+            }
+        } catch (StateValueTypeException e) {
+            e.printStackTrace();
+        }
+        return min;
+    }
+

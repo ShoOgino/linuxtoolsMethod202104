@@ -1,0 +1,49 @@
+    /**
+     * Compute and update the mipmap level attribute from the lower-level
+     * state interval list
+     *
+     * @param level
+     *            The mipmap level to update
+     * @param endTime
+     *            The end timestamp to use for the mipmap interval
+     */
+    protected void updateMipmapLevel(int level, long endTime) {
+        try {
+            /* get the lower-level interval list */
+            List<ITmfStateInterval> lowerIntervals = intervals.get(level - 1);
+            if (lowerIntervals.size() == 0) {
+                return;
+            }
+
+            /* get the start time from the first interval in the lower-level list */
+            long startTime = lowerIntervals.get(0).getStartTime();
+
+            /* compute the mipmap value */
+            ITmfStateValue value = computeMipmapValue(lowerIntervals, startTime, endTime);
+
+            /* clear the lower-level list */
+            lowerIntervals.clear();
+
+            /* get or create the current-level quark */
+            int levelQuark = ss.getQuarkRelativeAndAdd(mipmapQuark, String.valueOf(level));
+            if (!checkLevelExists(level)) {
+                addLevelQuark(levelQuark);
+                ss.updateOngoingState(TmfStateValue.newValueInt(level), mipmapQuark);
+                intervals.add(new ArrayList<ITmfStateInterval>(getMipmapResolution()));
+            }
+
+            /* add new interval to current-level list */
+            ITmfStateInterval interval = new TmfStateInterval(startTime, endTime, levelQuark, value);
+            intervals.get(level).add(interval);
+
+            /* update the current-level attribute */
+            ss.modifyAttribute(startTime, value, levelQuark);
+        } catch (StateValueTypeException e) {
+            e.printStackTrace();
+        } catch (AttributeNotFoundException e) {
+            e.printStackTrace();
+        } catch (TimeRangeException e) {
+            e.printStackTrace();
+        }
+    }
+

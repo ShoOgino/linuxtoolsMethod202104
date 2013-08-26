@@ -1,0 +1,21 @@
+    /**
+     * Startup code, build a state system with n attributes always going up
+     * linearly
+     */
+    @BeforeClass
+    public static void init() {
+        TmfMipmapStateProviderStub mmp = new TmfMipmapStateProviderStub(RESOLUTION, Type.LONG);
+        IStateHistoryBackend be = new InMemoryBackend(0);
+        ssq = new StateSystem(be);
+        sso = new TmfStateSystemOperations(ssq);
+        mmp.assignTargetStateSystem(ssq);
+
+        for (long time = START_TIME; time <= END_TIME; time += INTERVAL) {
+            long value = time / INTERVAL;
+            ITmfEvent event = mmp.createEvent(time, value);
+            mmp.processEvent(event);
+        }
+        mmp.dispose();
+        ssq.waitUntilBuilt();
+    }
+

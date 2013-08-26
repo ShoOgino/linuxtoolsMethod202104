@@ -1,0 +1,36 @@
+    /**
+     * Return the maximum value of an attribute over a time range
+     *
+     * @param t1
+     *            The start time of the range
+     * @param t2
+     *            The end time of the range
+     * @param quark
+     *            The quark of the attribute
+     * @return The maximum value of the attribute in this range
+     */
+    public ITmfStateValue queryRangeMax(long t1, long t2, int quark) {
+        ITmfStateValue max = TmfStateValue.nullValue();
+        try {
+            List<ITmfStateInterval> intervals = queryAttributeRange(t1, t2, quark, AbstractTmfMipmapStateProvider.MAX_STRING);
+            if (intervals.size() == 0) {
+                return TmfStateValue.nullValue();
+            }
+            for (ITmfStateInterval si : intervals) {
+                ITmfStateValue value = si.getStateValue();
+                if (value.getType() == Type.DOUBLE) {
+                    if (max.isNull() || si.getStateValue().unboxDouble() > max.unboxDouble()) {
+                        max = si.getStateValue();
+                    }
+                } else {
+                    if (max.isNull() || si.getStateValue().unboxLong() > max.unboxLong()) {
+                        max = si.getStateValue();
+                    }
+                }
+            }
+        } catch (StateValueTypeException e) {
+            e.printStackTrace();
+        }
+        return max;
+    }
+

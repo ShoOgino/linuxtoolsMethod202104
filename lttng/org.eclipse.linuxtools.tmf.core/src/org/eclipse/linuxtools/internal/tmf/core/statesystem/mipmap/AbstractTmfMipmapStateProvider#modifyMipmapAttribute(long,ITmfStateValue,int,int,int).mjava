@@ -1,0 +1,41 @@
+    /**
+     * Modify a mipmap attribute. The base attribute is modified and the mipmap
+     * attributes for the feature(s) specified in the mipmap feature bitmap are
+     * created and/or updated.<br>
+     * Note: The mipmapFeatureBits and resolution are only used on the first
+     * call of this method for a particular attribute, and the mipmap features
+     * for this attribute are then activated until the end of the trace.<br>
+     * Note: The base attribute should only be modified by calling this method.
+     *
+     * @param ts
+     *            The timestamp of the event
+     * @param value
+     *            The value of the base attribute
+     * @param baseQuark
+     *            The quark of the base attribute
+     * @param mipmapFeatureBits
+     *            The mipmap feature bit(s)
+     * @param resolution
+     *            The mipmap resolution (must be greater than 1)
+     * @throws TimeRangeException
+     *             If the requested time is outside of the trace's range
+     * @throws AttributeNotFoundException
+     *             If the requested attribute quark is invalid
+     * @throws StateValueTypeException
+     *             If the inserted state value's type does not match what is
+     *             already assigned to this attribute.
+     * @see #MAX
+     * @see #MIN
+     * @see #AVG
+     */
+    public void modifyMipmapAttribute(long ts, ITmfStateValue value, int baseQuark, int mipmapFeatureBits, int resolution)
+            throws TimeRangeException, AttributeNotFoundException, StateValueTypeException {
+        ss.modifyAttribute(ts, value, baseQuark);
+        if (value.getType() == Type.LONG || value.getType() == Type.INTEGER || value.getType() == Type.DOUBLE || value.isNull()) {
+            Set<ITmfMipmapFeature> features = getFeatureSet(baseQuark, ts, value, mipmapFeatureBits, resolution);
+            for (ITmfMipmapFeature mf : features) {
+                mf.updateMipmap(value, ts);
+            }
+        }
+    }
+

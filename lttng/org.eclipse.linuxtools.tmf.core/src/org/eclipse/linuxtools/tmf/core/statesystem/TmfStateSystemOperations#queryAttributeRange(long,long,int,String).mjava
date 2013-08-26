@@ -1,0 +1,39 @@
+    private List<ITmfStateInterval> queryAttributeRange(long t1, long t2, int baseQuark, String featureString) {
+        Pair<Long, Long> timeRange = new Pair<Long, Long>(t1, t2);
+        int mipmapQuark = -1;
+        List<ITmfStateInterval> intervals = new ArrayList<ITmfStateInterval>();
+        try {
+            try {
+                mipmapQuark = ss.getQuarkRelative(baseQuark, featureString);
+            } catch (AttributeNotFoundException e) {
+                /* Not a mipmap attribute, query the base attribute */
+                if (t1 == t2) {
+                    ITmfStateInterval interval = ss.querySingleState(t1, baseQuark);
+                    if (!interval.getStateValue().isNull()) {
+                        intervals.add(interval);
+                    }
+                } else {
+                    for (ITmfStateInterval interval : ss.queryHistoryRange(baseQuark, t1, t2)) {
+                        if (!interval.getStateValue().isNull()) {
+                            intervals.add(interval);
+                        }
+                    }
+                }
+                return intervals;
+            }
+            ITmfStateInterval maxLevelInterval = ss.querySingleState(timeRange.getSecond(), mipmapQuark);
+            int levelMax = maxLevelInterval.getStateValue().unboxInt();
+            queryMipmapAttributeRange(0, levelMax, baseQuark, mipmapQuark, timeRange, intervals);
+            return intervals;
+        } catch (AttributeNotFoundException e) {
+            e.printStackTrace();
+        } catch (TimeRangeException e) {
+            e.printStackTrace();
+        } catch (StateValueTypeException e) {
+            e.printStackTrace();
+        } catch (StateSystemDisposedException e) {
+            /* Ignored */
+        }
+        return intervals;
+    }
+
