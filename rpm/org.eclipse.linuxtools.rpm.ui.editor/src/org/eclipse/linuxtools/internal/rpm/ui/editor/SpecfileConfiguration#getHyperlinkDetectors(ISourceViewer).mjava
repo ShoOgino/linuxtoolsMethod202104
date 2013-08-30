@@ -6,6 +6,35 @@
 		if (sourceViewer == null) {
 			return null;
 		}
-		return getRegisteredHyperlinkDetectors(sourceViewer);
+		Map<?, ?> targets = getHyperlinkDetectorTargets(sourceViewer);
+		HyperlinkDetectorRegistry hlDetectorRegistry = EditorsUI.getHyperlinkDetectorRegistry();
+		HyperlinkDetectorDescriptor[] hlDetectorDescriptor = hlDetectorRegistry.getHyperlinkDetectorDescriptors();
+		List<IHyperlinkDetector> tempHDList = new ArrayList<IHyperlinkDetector>();
+
+		for (Map.Entry<?, ?> entry : targets.entrySet()) {
+			for (HyperlinkDetectorDescriptor hdd : hlDetectorDescriptor) {
+				try {
+					AbstractHyperlinkDetector ahld = hdd.createHyperlinkDetector();
+					// filter using target id and not instance of URLHyperlinkDetector
+					// so that an option to open url with unresolved macros won't show
+					// however, allow URLHyperlinkWithMacroDetector
+					if (hdd.getTargetId().equals(entry.getKey()) &&
+							(!(ahld instanceof URLHyperlinkDetector) || ahld instanceof URLHyperlinkWithMacroDetector)) {
+						ahld.setContext((IAdaptable)entry.getValue());
+						tempHDList.add(ahld);
+					}
+				} catch (CoreException e) {
+					SpecfileLog.logError(e);
+				}
+			}
+		}
+
+		if (!tempHDList.isEmpty()) {
+			IHyperlinkDetector[] rc = new IHyperlinkDetector[tempHDList.size()];
+			rc = tempHDList.toArray(rc);
+			return rc;
+		} else {
+			return null;
+		}
 	}
 
