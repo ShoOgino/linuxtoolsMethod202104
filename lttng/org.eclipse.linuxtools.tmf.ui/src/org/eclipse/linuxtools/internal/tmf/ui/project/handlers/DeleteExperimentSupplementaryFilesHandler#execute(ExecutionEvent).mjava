@@ -32,7 +32,10 @@
                 TmfExperimentElement experiment = (TmfExperimentElement) element;
 
                 IResource[] resources = experiment.getSupplementaryResources();
-                resourcesList.addAll(Arrays.asList(resources));
+                // List to know which resources belong to the experiment
+                List<IResource> experimentResources = Arrays.asList(resources);
+
+                resourcesList.addAll(experimentResources);
 
                 // Map to know which trace to close for each resource
                 HashMap<IResource, TmfTraceElement> traceMap = new HashMap<IResource, TmfTraceElement>();
@@ -61,7 +64,12 @@
 
                 // Delete the selected resources
                 for (IResource resource : resourcesToDelete) {
-                    traceMap.get(resource).closeEditors();
+                    if (experimentResources.contains(resource)) {
+                        experiment.closeEditors();
+                    } else {
+                        traceMap.get(resource).closeEditors();
+                    }
+
                     try {
                         resource.delete(true, new NullProgressMonitor());
                     } catch (CoreException e) {
