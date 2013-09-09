@@ -1,0 +1,41 @@
+	/**
+	 * Adds a file to this project at the specified <code>path</code>
+	 * and the provided <code>filename</code>. If segments of <code>path</code>
+	 * do not exist, they will be created.
+	 * 
+	 * @param destPath The path relative to the project (use '/' as path separator).
+	 * @param filename The name of the to be created file
+	 * @param fileInputStream A stream to the new files content.
+	 */
+	public IFile addFileToProject(String destPath, String filename, InputStream fileInputStream) throws CoreException {
+		String[] pathSegments = destPath.split("/");
+		
+		IContainer parent = this.testProject;
+		for (String segment: pathSegments) {
+			if (segment.equals("")) {
+				continue; // ignore
+			}
+			IResource segmentResource = parent.findMember(new Path(IPath.SEPARATOR + segment));
+			if (segmentResource == null) {
+				// create folder
+				IFolder newFolder = parent.getFolder(new Path(segment));
+				newFolder.create(false, true, null);
+				parent = newFolder;
+			} else {
+				// resource existed
+				parent = (IContainer)segmentResource;
+			}
+		}
+		// Finally add the file
+		IFile newFile = parent.getFile(new Path(filename));
+		if (fileInputStream == null) {
+			throw new IllegalStateException("fileInputStream must not be null");
+		}
+		newFile.create(fileInputStream, false, null);
+		
+		// refresh project
+		this.testProject.refreshLocal(IResource.DEPTH_INFINITE, null);
+		
+		return newFile;
+	}
+
