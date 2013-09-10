@@ -1,42 +1,24 @@
-	public void testRecordString() {
-		ILaunchConfigurationWorkingCopy tempConfig = null;
-		try {
-			tempConfig = config.copy("test-config");
-			tempConfig.setAttribute(PerfPlugin.ATTR_Record_Realtime, true);
-			tempConfig.setAttribute(PerfPlugin.ATTR_Record_Verbose, true);
-			tempConfig.setAttribute(PerfPlugin.ATTR_Multiplex, true);
+	@Test
+	public void testRecordString() throws CoreException {
+		ILaunchConfigurationWorkingCopy tempConfig = config.copy("test-config");
+		tempConfig.setAttribute(PerfPlugin.ATTR_Record_Realtime, true);
+		tempConfig.setAttribute(PerfPlugin.ATTR_Record_Verbose, true);
+		tempConfig.setAttribute(PerfPlugin.ATTR_Multiplex, true);
 
-			ArrayList<String> selectedEvents = new ArrayList<String>();
-			selectedEvents.add("cpu-cycles");
-			selectedEvents.add("cache-misses");
-			selectedEvents.add("cpu-clock");
-			tempConfig.setAttribute(PerfPlugin.ATTR_SelectedEvents,	selectedEvents);
+		ArrayList<String> selectedEvents = new ArrayList<String>();
+		selectedEvents.add("cpu-cycles");
+		selectedEvents.add("cache-misses");
+		selectedEvents.add("cpu-clock");
+		tempConfig.setAttribute(PerfPlugin.ATTR_SelectedEvents, selectedEvents);
 
-			tempConfig.setAttribute(PerfPlugin.ATTR_DefaultEvent, false);
-
-		} catch (CoreException e) {
-			fail();
-		}
+		tempConfig.setAttribute(PerfPlugin.ATTR_DefaultEvent, false);
 
 		String[] recordString = PerfCore.getRecordString(tempConfig);
 		assertNotNull(recordString);
 
-		String[] expectedString = { PerfPlugin.PERF_COMMAND,
-				"record",
-				"-f",
-				"-r",
-				"-v",
-				"-M",
-				"-e",
-				"cpu-cycles",
-				"-e",
-				"cache-misses",
-				"-e",
-				"cpu-clock" };
-		assertTrue(recordString.length == expectedString.length);
-
-		for (int i = 0; i < recordString.length; i++) {
-			assertTrue(recordString[i].equals(expectedString[i]));
-		}
+		String[] expectedString = { PerfPlugin.PERF_COMMAND, "record", "-f",
+				"-r", "-v", "-M", "-e", "cpu-cycles", "-e", "cache-misses",
+				"-e", "cpu-clock" };
+		assertArrayEquals(expectedString, recordString);
 	}
 

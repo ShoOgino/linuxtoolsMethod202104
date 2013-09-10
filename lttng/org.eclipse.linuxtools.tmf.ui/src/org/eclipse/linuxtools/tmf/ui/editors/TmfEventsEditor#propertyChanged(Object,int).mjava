@@ -9,10 +9,15 @@
             super.setInput(new FileEditorInput(fFile));
             fEventsTable.dispose();
             if (fTrace != null) {
+                setPartName(fTrace.getName());
                 fEventsTable = createEventsTable(fParent, fTrace.getCacheSize());
                 fEventsTable.addSelectionChangedListener(this);
                 fEventsTable.setTrace(fTrace, true);
                 fEventsTable.refreshBookmarks(fFile);
+                if (fPendingGotoMarker != null) {
+                    fEventsTable.gotoMarker(fPendingGotoMarker);
+                    fPendingGotoMarker = null;
+                }
 
                 /* ensure start time is set */
                 final ITmfContext context = fTrace.seekEvent(0);
@@ -21,6 +26,7 @@
 
                 broadcast(new TmfTraceOpenedSignal(this, fTrace, fFile));
             } else {
+                setPartName(getEditorInput().getName());
                 fEventsTable = new TmfEventsTable(fParent, 0);
                 fEventsTable.addSelectionChangedListener(this);
             }

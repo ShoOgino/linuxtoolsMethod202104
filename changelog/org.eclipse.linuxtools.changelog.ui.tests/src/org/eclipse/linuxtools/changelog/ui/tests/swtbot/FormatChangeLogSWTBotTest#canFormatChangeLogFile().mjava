@@ -1,9 +1,8 @@
 	/**
 	 * Simple test for ChangeLog formatting.
-	 * 
+	 *
 	 * @throws Exception
 	 */
-	@SuppressWarnings({ "unchecked" })
 	@Test
 	public void canFormatChangeLogFile() throws Exception {
 		// add a ChangeLog file
@@ -20,7 +19,7 @@
 			"\t* src/org/eclipse/linuxtools/changelog/tests/ui/utils/ProjectExplorerTreeItemAppearsCondition.java: New file.\n";
 		project.addFileToProject("/", "ChangeLog", new ByteArrayInputStream(changelogContent.getBytes()));
 		assertNotNull(project.getTestProject().findMember(new Path("/ChangeLog")));
-		
+
 		// select ChangeLog file
 		String teamProviderString = "n/a";
 		SWTBotTreeItem projectItem = ProjectExplorer.expandProject(projectExplorerViewTree, PROJECT_NAME, teamProviderString);
@@ -30,25 +29,25 @@
 		SWTBotPreferences.TIMEOUT = oldTimeout;
 		SWTBotTreeItem changeLogItem = ProjectExplorer.getProjectItem(projectItem, "ChangeLog");
 		changeLogItem.doubleClick(); // should open ChangeLog file
-		
+
 		oldTimeout = SWTBotPreferences.TIMEOUT;
 		SWTBotPreferences.TIMEOUT = 3 * 5000;
 		// Wait for ChangeLog editor to open
-		Matcher<?> editorMatcher = Matchers.allOf(
+		Matcher<IEditorReference> editorMatcher = allOf(
 				IsInstanceOf.instanceOf(IEditorReference.class),
 				withPartName("ChangeLog")
 				);
-		bot.waitUntil(Conditions.waitForEditor((Matcher<IEditorReference>) editorMatcher));		
+		bot.waitUntil(Conditions.waitForEditor(editorMatcher));
 		SWTBotEditor swtBoteditor = bot.activeEditor();
 		assertEquals("ChangeLog", swtBoteditor.getTitle());
-		
+
 		SWTBotEclipseEditor swtBotEclipseEditor = swtBoteditor.toTextEditor();
-		
+
 		// Add two extra lines after the first date line
 		swtBotEclipseEditor.insertText(1, 0, "\n\n");
 		// Should have 3 empty lines between date-line and first file entry
 		swtBotEclipseEditor.selectRange(1, 0, 3);
-		
+
 		// format: ESC CTRL+F
 		swtBotEclipseEditor.pressShortcut(Keystrokes.ESC);
 		swtBotEclipseEditor.pressShortcut(Keystrokes.CTRL, KeyStroke.getInstance("F"));
@@ -56,7 +55,7 @@
 		String secondLine = swtBotEclipseEditor.getTextOnLine(1);
 		String thirdLine = swtBotEclipseEditor.getTextOnLine(2);
 		// FIXME: These assertions are lame.
-		assertEquals("", secondLine);
-		assertTrue(!"".equals(thirdLine));
+		assertTrue(secondLine.isEmpty());
+		assertTrue(!thirdLine.isEmpty());
 	}
 
