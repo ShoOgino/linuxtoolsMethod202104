@@ -1,19 +1,42 @@
     @Override
     protected void eventHandle(ITmfEvent event) {
-        String functionEntryName = functionEntry(event);
+        if (!considerEvent(event)) {
+            return;
+        }
         try {
+            /* Check if the event is a function entry */
+            String functionEntryName = functionEntry(event);
             if (functionEntryName != null) {
                 long timestamp = event.getTimestamp().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
-                String thread = threadName(event);
+                String thread = getThreadName(event);
                 int quark = ss.getQuarkAbsoluteAndAdd(THREADS, thread, CALL_STACK);
                 ITmfStateValue value = TmfStateValue.newValueString(functionEntryName);
                 ss.pushAttribute(timestamp, value, quark);
-            } else if (functionExit(event) != null) {
-                long timestamp = event.getTimestamp().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
-                String thread = threadName(event);
-                int quark = ss.getQuarkAbsoluteAndAdd(THREADS, thread, CALL_STACK);
-                ss.popAttribute(timestamp, quark);
+                return;
             }
+
+            /* Check if the event is a function exit */
+            String functionExitName = functionExit(event);
+            if (functionExitName != null) {
+                long timestamp = event.getTimestamp().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+                String thread = getThreadName(event);
+                int quark = ss.getQuarkAbsoluteAndAdd(THREADS, thread, CALL_STACK);
+                ITmfStateValue poppedValue = ss.popAttribute(timestamp, quark);
+                String poppedName = (poppedValue == null ? NO_FUNCTION : poppedValue.unboxStr());
+
+                /*
+                 * Verify that the value we are popping matches the one in the
+                 * event field, unless the latter is undefined.
+                 */
+                if (!functionExitName.equals(UNDEFINED) &&
+                        !functionExitName.equals(poppedName)) {
+                    Activator.logWarning(NLS.bind(
+                            Messages.CallStackStateProvider_UnmatchedPoppedValue,
+                            functionExitName,
+                            poppedName));
+                }
+            }
+
         } catch (TimeRangeException e) {
             e.printStackTrace();
         } catch (AttributeNotFoundException e) {
