@@ -1,27 +1,26 @@
 	@Override
 	public void apply(IMarker marker, IDocument document) {
-		this.document = document;
 		try {
-			IASTNode astNode = getIASTNode(marker);
+			IASTNode astNode = getIASTNode(marker, document);
 			if(astNode != null) {
 				int nodeLength = astNode.getFileLocation().getNodeLength();
 				int nodeOffset = astNode.getFileLocation().getNodeOffset();
 				String content = document.get(nodeOffset, nodeLength);
 				if(content.contains(DELETE)){
-					String allocFunction = getAllocFunction(marker);
+					String allocFunction = getAllocFunction(marker, document);
 					if(allocFunction.contains(NEW)){
 						content = document.get(nodeOffset, nodeLength).replace(DELETE, DELETE + "[]"); //$NON-NLS-1$
 						document.replace(nodeOffset, nodeLength, content);
 					} else {
-						addParentheses(astNode);
+						addParentheses(astNode, document);
 						if(content.contains("[")){ //$NON-NLS-1$
-							removeBrackets(astNode);
+							removeBrackets(astNode, document);
 						}
 						content = document.get(nodeOffset, nodeLength).replace(DELETE, FREE);
 						document.replace(nodeOffset, nodeLength, content);
 					}
 				} else if(content.contains(FREE)){
-					if(getAllocFunction(marker).contains("[")){ //$NON-NLS-1$
+					if(getAllocFunction(marker, document).contains("[")){ //$NON-NLS-1$
 						content = content.concat("[]"); //$NON-NLS-1$
 					}
 					content = content.replace(FREE, DELETE);
