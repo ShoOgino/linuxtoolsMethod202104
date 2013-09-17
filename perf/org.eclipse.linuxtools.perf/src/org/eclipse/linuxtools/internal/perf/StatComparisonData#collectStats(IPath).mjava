@@ -4,11 +4,16 @@
 	 * @param file file to collect from
 	 * @return List containing statistics entries from the given file.
 	 */
-	public static ArrayList<PMStatEntry> collectStats(File statFile) {
+	public static ArrayList<PMStatEntry> collectStats(IPath file) {
 		ArrayList<PMStatEntry> result = new ArrayList<PMStatEntry>();
 		BufferedReader statReader = null;
+		URI fileURI = null;
 		try {
-			statReader = new BufferedReader(new FileReader(statFile));
+			fileURI = new URI(file.toPortableString());
+			IRemoteFileProxy proxy = null;
+			proxy = RemoteProxyManager.getInstance().getFileProxy(fileURI);
+			IFileStore newDataFileStore = proxy.getResource(fileURI.getPath());
+			statReader = new BufferedReader(new InputStreamReader(newDataFileStore.openInputStream(EFS.NONE, null)));
 
 			// pattern for a valid perf stat entry
 			Pattern entryPattern = Pattern.compile(PMStatEntry.getString(Type.ENTRY_PATTERN));
@@ -62,6 +67,10 @@
 		} catch (FileNotFoundException e) {
 			PerfPlugin.getDefault().openError(e, Messages.MsgError);
 		} catch (IOException e) {
+			PerfPlugin.getDefault().openError(e, Messages.MsgError);
+		} catch (CoreException e) {
+			PerfPlugin.getDefault().openError(e, Messages.MsgError);
+		} catch (URISyntaxException e) {
 			PerfPlugin.getDefault().openError(e, Messages.MsgError);
 		} finally {
 			try {
