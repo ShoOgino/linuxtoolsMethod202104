@@ -1,0 +1,40 @@
+    /**
+     * Delete the trace resource, remove it from experiments and delete its
+     * supplementary files
+     *
+     * @param progressMonitor
+     *            a progress monitor, or null if progress reporting is not
+     *            desired
+     *
+     * @throws CoreException
+     *             thrown when IResource.delete fails
+     * @since 2.2
+     */
+    public void delete(IProgressMonitor progressMonitor) throws CoreException {
+        closeEditors();
+
+        IPath path = fResource.getLocation();
+        if (path != null && (getParent() instanceof TmfTraceFolder)) {
+            TmfExperimentFolder experimentFolder = getProject().getExperimentsFolder();
+
+            // Propagate the removal to traces
+            for (ITmfProjectModelElement experiment : experimentFolder.getChildren()) {
+                List<ITmfProjectModelElement> toRemove = new LinkedList<ITmfProjectModelElement>();
+                for (ITmfProjectModelElement child : experiment.getChildren()) {
+                    if (child.getName().equals(getName())) {
+                        toRemove.add(child);
+                    }
+                }
+                for (ITmfProjectModelElement child : toRemove) {
+                    ((TmfExperimentElement) experiment).removeTrace((TmfTraceElement) child);
+                }
+            }
+
+            // Delete supplementary files
+            deleteSupplementaryFolder();
+        }
+
+        // Finally, delete the trace
+        fResource.delete(true, progressMonitor);
+    }
+

@@ -1,0 +1,62 @@
+    private void importBookmarks(IResource traceRes, IProgressMonitor monitor) {
+        for (TracePackageElement o : fImportTraceElement.getChildren()) {
+            if (o instanceof TracePackageBookmarkElement && o.isChecked()) {
+
+                // Get element
+                IFile bookmarksFile = null;
+                List<TmfTraceElement> traces = fTmfTraceFolder.getTraces();
+                for (TmfTraceElement t : traces) {
+                    if (t.getName().equals(traceRes.getName())) {
+                        try {
+                            bookmarksFile = t.createBookmarksFile();
+
+                            // Make sure that if a bookmark is double-clicked first
+                            // before opening the trace, it opens the right editor
+
+                            // Get the editor id from the extension point
+                            String traceEditorId = t.getEditorId();
+                            final String editorId = (traceEditorId != null) ? traceEditorId : TmfEventsEditor.ID;
+                            IDE.setDefaultEditor(bookmarksFile, editorId);
+
+                        } catch (CoreException e) {
+                            Activator.getDefault().logError(MessageFormat.format(Messages.TracePackageImportOperation_ErrorCreatingBookmarkFile, traceRes.getName()), e);
+                        }
+                        break;
+                    }
+                }
+
+                if (bookmarksFile == null) {
+                    break;
+                }
+
+                TracePackageBookmarkElement bookmarkElement = (TracePackageBookmarkElement) o;
+
+                List<Map<String, String>> bookmarks = bookmarkElement.getBookmarks();
+                for (Map<String, String> attrs : bookmarks) {
+                    IMarker createMarker = null;
+                    try {
+                        createMarker = bookmarksFile.createMarker(IMarker.BOOKMARK);
+                    } catch (CoreException e) {
+                        Activator.getDefault().logError(MessageFormat.format(Messages.TracePackageImportOperation_ErrorCreatingBookmark, traceRes.getName()), e);
+                    }
+                    if (createMarker != null && createMarker.exists()) {
+                        try {
+                            for (String key : attrs.keySet()) {
+                                String value = attrs.get(key);
+                                if (key.equals(IMarker.LOCATION)) {
+                                    createMarker.setAttribute(IMarker.LOCATION, Integer.valueOf(value).intValue());
+                                } else {
+                                    createMarker.setAttribute(key, value);
+                                }
+                            }
+                        } catch (CoreException e) {
+                            Activator.getDefault().logError(MessageFormat.format(Messages.TracePackageImportOperation_ErrorCreatingBookmark, traceRes.getName()), e);
+                        }
+                    }
+                }
+            }
+        }
+
+        monitor.worked(1);
+    }
+

@@ -1,0 +1,53 @@
+    /**
+     * Run the operation. The status (result) of the operation can be obtained
+     * with {@link #getStatus}
+     *
+     * @param progressMonitor
+     *            the progress monitor to use to display progress and receive
+     *            requests for cancellation
+     */
+    @Override
+    public void run(IProgressMonitor progressMonitor) {
+
+        try {
+            int totalWork = getNbCheckedElements(fTraceExportElements) * 2;
+            progressMonitor.beginTask(Messages.TracePackageExportOperation_GeneratingPackage, totalWork);
+
+            fExportFolder = createExportFolder(progressMonitor);
+
+            Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+            Element createElement = doc.createElement(ITracePackageConstants.TMF_EXPORT_ELEMENT);
+            Node tmfNode = doc.appendChild(createElement);
+
+            for (TracePackageTraceElement tracePackageElement : fTraceExportElements) {
+                exportTrace(progressMonitor, tmfNode, tracePackageElement);
+            }
+
+            Transformer transformer = TransformerFactory.newInstance().newTransformer();
+            transformer.setOutputProperty(OutputKeys.INDENT, "yes"); //$NON-NLS-1$
+            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4"); //$NON-NLS-1$ //$NON-NLS-2$
+            DOMSource source = new DOMSource(doc);
+            StringWriter buffer = new StringWriter();
+            StreamResult result = new StreamResult(buffer);
+            transformer.transform(source, result);
+            String content = buffer.getBuffer().toString();
+
+            ModalContext.checkCanceled(progressMonitor);
+
+            exportManifest(content);
+
+            setStatus(exportToArchive(progressMonitor, totalWork));
+
+            fExportFolder.delete(true, new SubProgressMonitor(progressMonitor, 1, SubProgressMonitor.PREPEND_MAIN_LABEL_TO_SUBTASK));
+
+            progressMonitor.done();
+
+        } catch (Exception e) {
+            if (e instanceof InterruptedException) {
+                setStatus(Status.CANCEL_STATUS);
+            } else {
+                setStatus(new Status(IStatus.ERROR, Activator.PLUGIN_ID, org.eclipse.linuxtools.internal.tmf.ui.project.wizards.tracepkg.Messages.TracePackage_ErrorOperation, e));
+            }
+        }
+    }
+

@@ -1,0 +1,41 @@
+    @Override
+    protected Object createElementViewerInput() {
+
+        final TracePackageExtractManifestOperation op = new TracePackageExtractManifestOperation(getFilePathValue());
+
+        try {
+            getContainer().run(true, true, new IRunnableWithProgress() {
+
+                @Override
+                public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
+                    monitor.beginTask(Messages.ImportTracePackageWizardPage_ReadingPackage, 10);
+                    op.run(monitor);
+                    monitor.done();
+                }
+
+            });
+
+            IStatus status = op.getStatus();
+            if (status.getSeverity() == IStatus.ERROR) {
+                handleErrorStatus(status);
+            }
+        } catch (InvocationTargetException e1) {
+            handleError(Messages.TracePackageExtractManifestOperation_ErrorReadingManifest, e1);
+        } catch (InterruptedException e1) {
+            // Canceled
+        }
+
+        TracePackageElement resultElement = op.getResultElement();
+        if (resultElement == null) {
+            return null;
+        }
+
+        for (TracePackageElement e : resultElement.getChildren()) {
+            if (e instanceof TracePackageFilesElement) {
+                e.setEnabled(false);
+            }
+        }
+
+        return new TracePackageElement[] { resultElement };
+    }
+

@@ -1,0 +1,25 @@
+    private void exportSupplementaryFiles(IProgressMonitor monitor, Node traceNode, TmfTraceElement traceElement, TracePackageSupplFilesElement element) throws InterruptedException, CoreException {
+        Document doc = traceNode.getOwnerDocument();
+        if (element.getChildren().length > 0) {
+            IFolder suppFilesFolder = fExportFolder.getFolder(TmfCommonConstants.TRACE_SUPPLEMENATARY_FOLDER_NAME);
+            if (!suppFilesFolder.exists()) {
+                suppFilesFolder.create(IResource.FORCE, true, new SubProgressMonitor(monitor, 1, SubProgressMonitor.PREPEND_MAIN_LABEL_TO_SUBTASK));
+            }
+            IFolder traceSuppFilesFolder = suppFilesFolder.getFolder(traceElement.getResource().getName());
+            traceSuppFilesFolder.create(IResource.FORCE, true, new SubProgressMonitor(monitor, 1, SubProgressMonitor.PREPEND_MAIN_LABEL_TO_SUBTASK));
+
+            for (TracePackageElement child : element.getChildren()) {
+                TracePackageSupplFileElement supplFile = (TracePackageSupplFileElement) child;
+                ModalContext.checkCanceled(monitor);
+                IResource res = supplFile.getResource();
+                res.refreshLocal(0, new SubProgressMonitor(monitor, 1, SubProgressMonitor.PREPEND_MAIN_LABEL_TO_SUBTASK));
+                createExportResource(traceSuppFilesFolder, res);
+                Element suppFileElement = doc.createElement(ITracePackageConstants.SUPPLEMENTARY_FILE_ELEMENT);
+                suppFileElement.setAttribute(ITracePackageConstants.SUPPLEMENTARY_FILE_NAME_ATTRIB, res.getName());
+                traceNode.appendChild(suppFileElement);
+            }
+
+            fResources.add(suppFilesFolder);
+        }
+    }
+

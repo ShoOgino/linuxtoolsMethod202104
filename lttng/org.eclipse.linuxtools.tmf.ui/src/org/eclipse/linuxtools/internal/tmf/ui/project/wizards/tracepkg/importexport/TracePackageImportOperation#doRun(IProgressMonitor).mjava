@@ -1,0 +1,51 @@
+    private void doRun(IProgressMonitor progressMonitor) {
+        try {
+            setStatus(deleteExistingTrace(progressMonitor));
+            if (getStatus().getSeverity() != IStatus.OK) {
+                return;
+            }
+
+            TracePackageElement[] children = fImportTraceElement.getChildren();
+            for (TracePackageElement element : children) {
+                ModalContext.checkCanceled(progressMonitor);
+
+                if (element instanceof TracePackageFilesElement) {
+                    TracePackageFilesElement traceFilesElement = (TracePackageFilesElement) element;
+                    setStatus(importTraceFiles(progressMonitor, traceFilesElement));
+
+                } else if (element instanceof TracePackageSupplFilesElement) {
+                    TracePackageSupplFilesElement suppFilesElement = (TracePackageSupplFilesElement) element;
+                    setStatus(importSupplFiles(progressMonitor, suppFilesElement));
+                }
+
+                if (getStatus().getSeverity() != IStatus.OK) {
+                    return;
+                }
+            }
+
+            String traceName = fImportTraceElement.getText();
+            IResource traceRes = fTmfTraceFolder.getResource().findMember(traceName);
+            if (traceRes == null || !traceRes.exists()) {
+                setStatus(new Status(IStatus.ERROR, Activator.PLUGIN_ID, MessageFormat.format(Messages.ImportTracePackageWizardPage_ErrorFindingImportedTrace, traceName)));
+                return;
+            }
+
+            TraceTypeHelper traceType = TmfTraceType.getInstance().getTraceType(fImportTraceElement.getTraceType());
+            if (traceType == null) {
+                setStatus(new Status(IStatus.ERROR, Activator.PLUGIN_ID, MessageFormat.format(Messages.ImportTracePackageWizardPage_ErrorSettingTraceType, fImportTraceElement.getTraceType(), traceName)));
+                return;
+            }
+
+            try {
+                TmfTraceType.setTraceType(traceRes.getFullPath(), traceType);
+            } catch (CoreException e) {
+                setStatus(new Status(IStatus.ERROR, Activator.PLUGIN_ID, MessageFormat.format(Messages.ImportTracePackageWizardPage_ErrorSettingTraceType, fImportTraceElement.getTraceType(), traceName), e));
+            }
+
+            importBookmarks(traceRes, progressMonitor);
+
+        } catch (InterruptedException e) {
+            setStatus(Status.CANCEL_STATUS);
+        }
+    }
+

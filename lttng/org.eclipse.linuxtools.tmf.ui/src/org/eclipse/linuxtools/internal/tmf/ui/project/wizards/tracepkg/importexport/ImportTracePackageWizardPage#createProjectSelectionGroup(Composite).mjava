@@ -1,0 +1,57 @@
+    private void createProjectSelectionGroup(Composite parent) {
+
+        Composite projectSelectionGroup = new Composite(parent, SWT.NONE);
+        GridLayout layout = new GridLayout();
+        layout.numColumns = 3;
+        projectSelectionGroup.setLayout(layout);
+        projectSelectionGroup.setLayoutData(new GridData(
+                GridData.HORIZONTAL_ALIGN_FILL | GridData.VERTICAL_ALIGN_FILL));
+
+        Label projectLabel = new Label(projectSelectionGroup, SWT.NONE);
+        projectLabel.setText(Messages.ImportTracePackageWizardPage_Project);
+
+        fProjectText = new Text(projectSelectionGroup, SWT.BORDER | SWT.SINGLE | SWT.READ_ONLY);
+        GridData data = new GridData(GridData.HORIZONTAL_ALIGN_FILL
+                | GridData.GRAB_HORIZONTAL);
+        data.grabExcessHorizontalSpace = true;
+        fProjectText.setLayoutData(data);
+
+        fOpenedTmfProjects = TraceUtils.getOpenedTmfProjects();
+
+        // No project to import to, create a default project if it doesn't exist
+        if (fOpenedTmfProjects.isEmpty()) {
+            IProject defaultProject = ResourcesPlugin.getWorkspace().getRoot().getProject(TmfCommonConstants.DEFAULT_TRACE_PROJECT_NAME);
+            if (!defaultProject.exists()) {
+                IProject project = TmfProjectRegistry.createProject(TmfCommonConstants.DEFAULT_TRACE_PROJECT_NAME, null, null);
+                TmfImportHelper.forceFolderRefresh(project.getFolder(TmfTraceFolder.TRACE_FOLDER_NAME));
+                fOpenedTmfProjects.add(project);
+            }
+        }
+
+        if (!fOpenedTmfProjects.isEmpty()) {
+            selectProject(fOpenedTmfProjects.get(0));
+        }
+
+        Button button = new Button(projectSelectionGroup,
+                SWT.PUSH);
+        button.setText(Messages.ImportTracePackageWizardPage_SelectProjectButton);
+        button.addListener(SWT.Selection, new Listener() {
+            @Override
+            public void handleEvent(Event event) {
+                ElementListSelectionDialog d = new ElementListSelectionDialog(getContainer().getShell(), new WorkbenchLabelProvider());
+
+                d.setBlockOnOpen(true);
+                d.setTitle(Messages.ImportTracePackageWizardPage_SelectProjectDialogTitle);
+
+                d.setElements(fOpenedTmfProjects.toArray(new IProject[] {}));
+
+                d.open();
+                if (d.getFirstResult() != null) {
+                    IProject project = (IProject) d.getFirstResult();
+                    selectProject(project);
+                }
+            }
+        });
+        setButtonLayoutData(button);
+    }
+

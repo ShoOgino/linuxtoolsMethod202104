@@ -1,0 +1,55 @@
+    private IStatus importFiles(ArchiveFile archiveFile, List<String> fileNames, IPath pathInArchive, IPath destinationContainerPath, IProgressMonitor monitor) {
+        List<ArchiveProviderElement> objects = new ArrayList<ArchiveProviderElement>();
+        Enumeration<?> entries = archiveFile.entries();
+        while (entries.hasMoreElements()) {
+            ArchiveEntry entry = (ArchiveEntry) entries.nextElement();
+            String entryName = entry.getName();
+            IPath fullArchivePath = new Path(entryName);
+            if (fullArchivePath.hasTrailingSeparator()) {
+                // We only care about file entries as the folders will get created by the ImportOperation
+                continue;
+            }
+
+            for (String fileName : fileNames) {
+                // Check if this archive entry matches the searched file name at this archive location
+                IPath searchedArchivePath = pathInArchive.append(fileName);
+                if (fileNameMatches(searchedArchivePath.toString(), entryName)) {
+                    // Traces/kernel/metadata
+                    // kernel/metadata, the ImportOperation will take care of creating the kernel folder
+                    IPath destinationPath = fullArchivePath.removeFirstSegments(pathInArchive.segmentCount());
+                    // metadata
+                    String resourceLabel = fullArchivePath.lastSegment();
+
+                    ArchiveProviderElement pe = new ArchiveProviderElement(destinationPath.toString(), resourceLabel, archiveFile, entry);
+                    objects.add(pe);
+                    break;
+                }
+            }
+        }
+
+        ImportProvider provider = new ImportProvider();
+
+        ImportOperation operation = new ImportOperation(destinationContainerPath,
+                null, provider, this,
+                objects);
+        operation.setCreateContainerStructure(true);
+        operation.setOverwriteResources(true);
+
+        try {
+            operation.run(new SubProgressMonitor(monitor, fileNames.size(), SubProgressMonitor.PREPEND_MAIN_LABEL_TO_SUBTASK));
+            archiveFile.close();
+        } catch (InvocationTargetException e) {
+            return new Status(IStatus.ERROR, Activator.PLUGIN_ID, org.eclipse.linuxtools.internal.tmf.ui.project.wizards.tracepkg.Messages.TracePackage_ErrorOperation, e);
+        } catch (InterruptedException e) {
+            return Status.CANCEL_STATUS;
+        } catch (IOException e) {
+            return new Status(IStatus.ERROR, Activator.PLUGIN_ID, org.eclipse.linuxtools.internal.tmf.ui.project.wizards.tracepkg.Messages.TracePackage_ErrorOperation, e);
+        }
+
+        if (provider.getException() != null) {
+            return new Status(IStatus.ERROR, Activator.PLUGIN_ID, org.eclipse.linuxtools.internal.tmf.ui.project.wizards.tracepkg.Messages.TracePackage_ErrorOperation, provider.getException());
+        }
+
+        return operation.getStatus();
+    }
+

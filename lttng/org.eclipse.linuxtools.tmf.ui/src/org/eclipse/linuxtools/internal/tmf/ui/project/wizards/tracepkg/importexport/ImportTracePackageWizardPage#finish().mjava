@@ -1,0 +1,37 @@
+    /**
+     * Finish the wizard page
+     *
+     * @return true on success
+     */
+    public boolean finish() {
+        if (!checkForOverwrite()) {
+            return false;
+        }
+
+        saveWidgetValues();
+
+        TracePackageElement[] input = (TracePackageElement[]) getElementViewer().getInput();
+        TracePackageTraceElement traceElement = (TracePackageTraceElement) input[0];
+        final TracePackageImportOperation importOperation = new TracePackageImportOperation(fValidatedFilePath, traceElement, fTmfTraceFolder);
+
+        try {
+            getContainer().run(true, true, new IRunnableWithProgress() {
+                @Override
+                public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
+                    importOperation.run(monitor);
+                }
+            });
+
+            IStatus status = importOperation.getStatus();
+            if (status.getSeverity() == IStatus.ERROR) {
+                handleErrorStatus(status);
+            }
+
+        } catch (InvocationTargetException e) {
+            handleError(Messages.ImportTracePackageWizardPage_ErrorOperation, e);
+        } catch (InterruptedException e) {
+        }
+
+        return importOperation.getStatus().getSeverity() == IStatus.OK;
+    }
+
