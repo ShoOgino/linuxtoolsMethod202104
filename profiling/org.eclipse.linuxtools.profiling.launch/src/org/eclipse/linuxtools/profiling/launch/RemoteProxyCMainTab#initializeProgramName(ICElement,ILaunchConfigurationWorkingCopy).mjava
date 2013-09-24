@@ -37,11 +37,25 @@
 			binary = (IBinary) cElement;
 		}
 
+		String projectDir = EMPTY_STRING;
+		ConfigUtils configUtils = new ConfigUtils(config);
+		IProject project = null;
+		try {
+			project = ConfigUtils.getProject(configUtils.getProjectName());
+		} catch (CoreException e) {
+			setErrorMessage(fPreviouslyCheckedWorkingDirErrorMsg = ProxyLaunchMessages.error_accessing_working_directory);
+		}
+		if(project != null){
+			try {
+				projectDir = RemoteProxyManager.getInstance().getRemoteProjectLocation(project);
+			} catch (CoreException e) {
+				setErrorMessage(fPreviouslyCheckedWorkingDirErrorMsg = ProxyLaunchMessages.error_accessing_working_directory);
+			}
+		}
+
+		String path = EMPTY_STRING;
 		if (binary != null) {
-			String path;
 			path = binary.getResource().getProjectRelativePath().toOSString();
-			config.setAttribute(
-					ICDTLaunchConfigurationConstants.ATTR_PROGRAM_NAME, path);
 			if (!renamed) {
 				String name = binary.getElementName();
 				int index = name.lastIndexOf('.');
@@ -53,6 +67,8 @@
 				renamed = true;
 			}
 		}
+		config.setAttribute(
+				ICDTLaunchConfigurationConstants.ATTR_PROGRAM_NAME, projectDir + IPath.SEPARATOR + path);
 
 		if (!renamed) {
 			String name = getLaunchConfigurationDialog().generateName(
