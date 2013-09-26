@@ -1,17 +1,37 @@
 	private void refreshRegexRows() {
-		int numberOfColumns = numberOfColumnsSpinner.getSelection();
-		int currentNumberOfColumns = textFieldsComposite.getChildren().length/3;
 
-		while (currentNumberOfColumns < numberOfColumns){
+		try{
+			pattern = Pattern.compile(regularExpressionText.getText());
+			matcher = pattern.matcher(sampleOutputText.getText());
+			this.regexErrorMessage = ""; //$NON-NLS-1$
+		}catch (PatternSyntaxException e){
+			this.regexErrorMessage = e.getMessage();
+			return;
+		}
+		if (regularExpressionText.getText().contains("()")){ //$NON-NLS-1$
+			this.regexErrorMessage = Messages.SystemTapScriptGraphOptionsTab_6;
+			return;
+		}
+
+		int desiredNumberOfColumns =  matcher.groupCount();
+
+		while (numberOfVisibleColumns < desiredNumberOfColumns){
 			addColumn();
-			currentNumberOfColumns++;
 		}
 
-		while (currentNumberOfColumns > numberOfColumns){
+		while (numberOfVisibleColumns > desiredNumberOfColumns){
 			removeColumn();
-			currentNumberOfColumns--;
 		}
 
-		refreshRegEx();
+		// Set values
+		Control[] children = textFieldsComposite.getChildren();
+		for (int i = 0; i < numberOfVisibleColumns; i++) {
+			if (!matcher.matches()){
+				((Label)children[i*2+1]).setText(""); //$NON-NLS-1$
+			} else {
+				((Label)children[i*2+1]).setText(" " +matcher.group(i+1)); //$NON-NLS-1$
+			}
+		}
+
 	}
 
