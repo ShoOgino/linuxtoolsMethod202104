@@ -2,50 +2,52 @@
 	public void performApply(ILaunchConfigurationWorkingCopy configuration) {
 		configuration.setAttribute(RUN_WITH_CHART, this.runWithChartCheckButton.getSelection());
 
-		configuration.setAttribute(REGULARE_EXPRESSION, regularExpressionText.getText());
-		configuration.setAttribute(SAMPLE_OUTPUT, sampleOutputText.getText());
+		int numberOfRegexs = getNumberOfRegexs();
+		for (int r = 0; r < numberOfRegexs; r++) {
+			// Save data sets, and clear removed ones.
+			configuration.setAttribute(REGULAR_EXPRESSION + r, regularExpressionCombo.getItem(r));
+			configuration.setAttribute(SAMPLE_OUTPUT + r, outputList.get(r));
 
-		Control[] textBoxes = this.textFieldsComposite.getChildren();
-		int numberOfColumns = textBoxes.length/2;
-		configuration.setAttribute(NUMBER_OF_COLUMNS, numberOfColumns);
-
-		for (int i = 0; i < numberOfColumns; i++) {
-			String text = ((Text)textBoxes[i*2]).getText();
-			configuration.setAttribute(REGEX_BOX+i, text);
-		}
-		//clear what's unused
-		for (int i = numberOfColumns; i < oldNumColumns; i++) {
-			configuration.setAttribute(REGEX_BOX+i, (String) null);
-		}
-		oldNumColumns = numberOfColumns;
-
-		int numberOfExtras = (badGraphs.size() == 0) ? 0 : cachedNames.size();
-		configuration.setAttribute(NUMBER_OF_EXTRAS, numberOfExtras);
-		for (int i = 0; i < numberOfExtras; i++) {
-			configuration.setAttribute(EXTRA_BOX+i, cachedNames.get(i));
-		}
-		for (int i = numberOfExtras; i < oldNumExtras; i++) {
-			configuration.setAttribute(EXTRA_BOX+i, (String) null);
-		}
-		oldNumExtras = numberOfExtras;
-
-		// Save graphs.
-		TableItem[] list = this.graphsTable.getItems();
-		configuration.setAttribute(NUMBER_OF_GRAPHS, list.length);
-		for (int i = 0; i < list.length; i++) {
-			GraphData graphData = (GraphData)list[i].getData();
-			configuration.setAttribute(GRAPH_TITLE + i, graphData.title);
-
-			configuration.setAttribute(GRAPH_KEY + i, graphData.key);
-			configuration.setAttribute(GRAPH_X_SERIES + i, graphData.xSeries);
-			configuration.setAttribute(GRAPH_ID + i, graphData.graphID);
-
-			configuration.setAttribute(GRAPH_Y_SERIES_LENGTH + i, graphData.ySeries.length);
-			for (int j = 0; j < graphData.ySeries.length; j++) {
-				configuration.setAttribute(GRAPH_Y_SERIES + i + "_" + j, graphData.ySeries[j]); //$NON-NLS-1$
+			ArrayList<String> columnNames = columnNamesList.get(r);
+			int numberOfColumns = columnNames.size();
+			for (int i = 0; i < numberOfColumns; i++) {
+				configuration.setAttribute(get2DConfigData(REGEX_BOX, r, i), columnNames.get(i));
 			}
-		}
+			cleanUpConfigurationItem(configuration, NUMBER_OF_COLUMNS, REGEX_BOX, r, numberOfColumns);
+			configuration.setAttribute(NUMBER_OF_COLUMNS + r, numberOfColumns);
 
-		addGraphButton.setEnabled(numberOfColumns > 0);
+			// If the current regex has graphs with missing data, store all cached names
+			// in the configuration so that they will be easily restorable for next time.
+			Stack<String> extranames = cachedNamesList.get(r);
+			int numberOfExtras = findBadGraphs(r) == null ? 0 : extranames.size();
+			for (int i = 0; i < numberOfExtras; i++) {
+				configuration.setAttribute(get2DConfigData(EXTRA_BOX, r, i), extranames.get(i));
+			}
+			cleanUpConfigurationItem(configuration, NUMBER_OF_EXTRAS, EXTRA_BOX, r, numberOfExtras);
+			configuration.setAttribute(NUMBER_OF_EXTRAS + r, numberOfExtras);
+
+			// Save new graphs, and clear removed ones.
+			LinkedList<GraphData> list = graphsDataList.get(r);
+			int numberOfGraphs = list.size();
+			for (int i = 0; i < numberOfGraphs; i++) {
+				GraphData graphData = list.get(i);
+				configuration.setAttribute(get2DConfigData(GRAPH_TITLE, r, i), graphData.title);
+				configuration.setAttribute(get2DConfigData(GRAPH_KEY, r, i), graphData.key);
+				configuration.setAttribute(get2DConfigData(GRAPH_X_SERIES, r, i), graphData.xSeries);
+				configuration.setAttribute(get2DConfigData(GRAPH_ID, r, i), graphData.graphID);
+
+				int ySeriesLength = graphData.ySeries.length;
+				for (int j = 0; j < ySeriesLength; j++) {
+					configuration.setAttribute(get2DConfigData(GRAPH_Y_SERIES, r, i + "_" + j), //$NON-NLS-1$
+							graphData.ySeries[j]);
+				}
+				cleanUpConfigurationGraphYSeries(configuration, r, i, ySeriesLength);
+				configuration.setAttribute(get2DConfigData(GRAPH_Y_SERIES_LENGTH, r, i), ySeriesLength);
+			}
+			cleanUpConfigurationGraphs(configuration, r, numberOfGraphs);
+			configuration.setAttribute(NUMBER_OF_GRAPHS + r, numberOfGraphs);
+		}
+		cleanUpConfiguration(configuration, numberOfRegexs);
+		configuration.setAttribute(NUMBER_OF_REGEXS, numberOfRegexs);
 	}
 
