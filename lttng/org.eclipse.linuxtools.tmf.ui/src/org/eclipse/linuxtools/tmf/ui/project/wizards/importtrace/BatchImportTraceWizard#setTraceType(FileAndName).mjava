@@ -4,47 +4,13 @@
         IResource resource = ResourcesPlugin.getWorkspace().getRoot().findMember(path);
         if (resource != null) {
             try {
-                // Set the trace properties for this resource
-                boolean traceTypeOK = false;
-                String traceBundle = null, traceTypeId = null, traceIcon = null;
-                traceTypeId = traceToImport.getTraceTypeId();
-                IConfigurationElement ce = TmfTraceType.getInstance().getTraceAttributes(traceTypeId);
-                if ((ce != null) && (ce.getContributor() != null)) {
-                    traceTypeOK = true;
-                    traceBundle = ce.getContributor().getName();
-                    traceTypeId = ce.getAttribute(TmfTraceType.ID_ATTR);
-                    traceIcon = ce.getAttribute(TmfTraceType.ICON_ATTR);
+                // Set the trace type for this resource
+                String traceTypeId = traceToImport.getTraceTypeId();
+                TraceTypeHelper traceType = TmfTraceType.getInstance().getTraceType(traceTypeId);
+                if (traceType != null) {
+                    TmfTraceType.setTraceType(path, traceType);
                 }
-                final String traceType = traceTypeId;
-                final boolean startsWithTxt = traceType.startsWith(TmfTraceType.CUSTOM_TXT_CATEGORY);
-                final boolean startsWithXML = traceType.startsWith(TmfTraceType.CUSTOM_XML_CATEGORY);
-                if (!traceTypeOK && (startsWithTxt || startsWithXML)) {
-                    final char SEPARATOR = ':';
-                    // do custom trace stuff here
-                    traceTypeOK = true;
-                    String traceTypeToken[] = traceType.split(":", 2); //$NON-NLS-1$
-                    if (traceTypeToken.length == 2) {
-                        traceBundle =
-                                Activator.getDefault().getBundle().getSymbolicName();
-                        if (startsWithTxt) {
-                            traceTypeId = CustomTxtTrace.class.getCanonicalName() + SEPARATOR + traceTypeToken[1];
-                        }
-                        else {
-                            traceTypeId = CustomXmlTrace.class.getCanonicalName() + SEPARATOR + traceTypeToken[1];
-                        }
-                        traceIcon = DEFAULT_TRACE_ICON_PATH;
-                    } else {
-                        traceTypeOK = false;
-                    }
-                }
-                if (traceTypeOK) {
-                    resource.setPersistentProperty(TmfCommonConstants.TRACEBUNDLE,
-                            traceBundle);
-                    resource.setPersistentProperty(TmfCommonConstants.TRACETYPE,
-                            traceTypeId);
-                    resource.setPersistentProperty(TmfCommonConstants.TRACEICON,
-                            traceIcon);
-                }
+
                 TmfProjectElement tmfProject =
                         TmfProjectRegistry.getProject(resource.getProject());
                 if (tmfProject != null) {
