@@ -1,0 +1,46 @@
+    /**
+     * Add lost event to the correct bucket, compacting the if needed.
+     *
+     * @param timeRange
+     *            time range of a lost event
+     * @param nbLostEvents
+     *            the number of lost events
+     * @param fullRange
+     *            Full range or time range for histogram request
+     * @since 2.2
+     */
+    public void countLostEvent(TmfTimeRange timeRange, long nbLostEvents, boolean fullRange) {
+
+        // Validate
+        if (timeRange.getStartTime().getValue() < 0 || timeRange.getEndTime().getValue() < 0) {
+            return;
+        }
+
+        // Compact as needed
+        if (fullRange) {
+            while (timeRange.getEndTime().getValue() >= fTimeLimit) {
+                mergeBuckets();
+            }
+        }
+
+        int indexStart = (int) ((timeRange.getStartTime().getValue() - fFirstBucketTime) / fBucketDuration);
+        int indexEnd = (int) ((timeRange.getEndTime().getValue() - fFirstBucketTime) / fBucketDuration);
+        int nbBucketRange = (indexEnd - indexStart) + 1;
+
+        int lostEventPerBucket = (int) Math.ceil((double) nbLostEvents / nbBucketRange);
+        long lastLostCol = Math.max(1, nbLostEvents - lostEventPerBucket * (nbBucketRange - 1));
+
+        // Increment the right bucket, bear in mind that ranges make it almost certain that some lost events are out of range
+        for (int index = indexStart; index <= indexEnd && index < fLostEventsBuckets.length; index++) {
+            if (index == (indexStart + nbBucketRange - 1)) {
+                fLostEventsBuckets[index] += lastLostCol;
+            } else {
+                fLostEventsBuckets[index] += lostEventPerBucket;
+            }
+        }
+
+        fNbEvents++;
+
+        fireModelUpdateNotification(nbLostEvents);
+    }
+

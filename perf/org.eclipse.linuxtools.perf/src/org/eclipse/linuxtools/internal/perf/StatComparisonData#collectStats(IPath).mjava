@@ -1,0 +1,87 @@
+	/**
+	 * Collect statistics entries from the specified stat data file.
+	 *
+	 * @param file file to collect from
+	 * @return List containing statistics entries from the given file.
+	 */
+	public static ArrayList<PMStatEntry> collectStats(IPath file) {
+		ArrayList<PMStatEntry> result = new ArrayList<PMStatEntry>();
+		BufferedReader statReader = null;
+		URI fileURI = null;
+		try {
+			fileURI = new URI(file.toPortableString());
+			IRemoteFileProxy proxy = null;
+			proxy = RemoteProxyManager.getInstance().getFileProxy(fileURI);
+			IFileStore newDataFileStore = proxy.getResource(fileURI.getPath());
+			statReader = new BufferedReader(new InputStreamReader(newDataFileStore.openInputStream(EFS.NONE, null)));
+
+			// pattern for a valid perf stat entry
+			Pattern entryPattern = Pattern.compile(PMStatEntry.getString(Type.ENTRY_PATTERN));
+
+			// pattern for last stat entry (seconds elapsed):
+			Pattern totalTimePattern = Pattern.compile(PMStatEntry.getString(Type.TIME_PATTERN));
+
+			String line;
+			while((line = statReader.readLine()) != null ){
+				line = line.trim();
+				Matcher match = entryPattern.matcher(line);
+				String samples, event, usage, units, delta, scale;
+				PMStatEntry statEntry;
+
+				if(match.find()){
+
+					// extract information from groups
+					samples = match.group(1);
+					event = match.group(2);
+					usage = match.group(6);
+					units = match.group(7);
+					delta = match.group(9);
+					scale = match.group(13);
+
+					// create stat entry
+					statEntry = new PMStatEntry(toFloat(samples), event,
+							toFloat(usage), units, toFloat(delta),
+							toFloat(scale));
+
+					// add stat entry to results list
+					result.add(statEntry);
+
+				} else if(line.contains(PMStatEntry.TIME)){
+
+					// match seconds elapsed pattern
+					match = totalTimePattern.matcher(line);
+					if(match.find()){
+						samples = match.group(1);
+						event = match.group(2);
+						delta = match.group(4);
+
+						// create stat entry
+						statEntry = new PMStatEntry(toFloat(samples),
+								event, 0, null, toFloat(delta), 0);
+
+						result.add(statEntry);
+					}
+				}
+			}
+			return result;
+		} catch (FileNotFoundException e) {
+			PerfPlugin.getDefault().openError(e, Messages.MsgError);
+		} catch (IOException e) {
+			PerfPlugin.getDefault().openError(e, Messages.MsgError);
+		} catch (CoreException e) {
+			PerfPlugin.getDefault().openError(e, Messages.MsgError);
+		} catch (URISyntaxException e) {
+			PerfPlugin.getDefault().openError(e, Messages.MsgError);
+		} finally {
+			try {
+				if (statReader != null) {
+					statReader.close();
+				}
+			} catch (IOException e) {
+				PerfPlugin.getDefault().openError(e, Messages.PerfResourceLeak_title);
+			}
+		}
+
+		return result;
+	}
+

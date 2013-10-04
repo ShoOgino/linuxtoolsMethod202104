@@ -1,17 +1,21 @@
 	public void performCommand(String[] cmd, int fd) {
 		BufferedReader buffData = null;
 		BufferedReader buffTemp = null;
-
+		URI pathWorkDirURI = null;
 		try {
 
-			Process proc;
-			if (workDir != null) {
-				Path path = new Path(workDir.getAbsolutePath());
-				IFileStore workDirStore = EFS.getLocalFileSystem().getStore(path);
-				proc = RuntimeProcessFactory.getFactory().exec(cmd, null, workDirStore, null);
-			} else {
-				proc = RuntimeProcessFactory.getFactory().exec(cmd, null);
+			Process proc = null;
+			RemoteConnection exeRC = null;
+			try {
+				pathWorkDirURI = new URI(pathWorkDir.toOSString());
+				exeRC = new RemoteConnection(pathWorkDirURI);
+			} catch (RemoteConnectionException e) {
+				MessageDialog.openError(Display.getCurrent().getActiveShell(), Messages.MsgProxyError, Messages.MsgProxyError);
+			} catch (URISyntaxException e) {
+				MessageDialog.openError(Display.getCurrent().getActiveShell(), Messages.MsgProxyError, Messages.MsgProxyError);
 			}
+			IFileStore workDirStore = exeRC.getRmtFileProxy().getResource(pathWorkDirURI.getPath());
+			proc = RuntimeProcessFactory.getFactory().exec(cmd, null, workDirStore, project);
 			StringBuffer data = new StringBuffer();
 			StringBuffer temp = new StringBuffer();
 
@@ -30,13 +34,10 @@
 				readStream(buffData, data);
 				readStream(buffTemp, temp);
 				break;
-				}
-
+			}
 			joinAll();
 			text = data.toString();
 			printToConsole(proc, temp.toString());
-
-
 		} catch (IOException e) {
 			text = ""; //$NON-NLS-1$
 		} catch (InterruptedException e){
