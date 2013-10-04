@@ -1,6 +1,6 @@
     /**
-     * Request 'n' events of a given type for the given time range (given
-     * priority). Events are returned in blocks of the given size.
+     * Request 'n' events of a given type, for the given time range, at the
+     * given priority.
      *
      * @param dataType
      *            The requested data type.
@@ -17,22 +17,33 @@
      *            events in the time range.
      * @param priority
      *            The requested execution priority.
-     * @since 3.0
      */
     public TmfEventRequest(Class<? extends ITmfEvent> dataType,
             TmfTimeRange range,
             long index,
             int nbRequested,
             ExecutionType priority) {
-        super(dataType, index, nbRequested, priority);
-        fRange = range;
 
+        fRequestId = fRequestNumber++;
+        fDataType = dataType;
+        fIndex = index;
+        fNbRequested = nbRequested;
+        fExecType = priority;
+        fRange = range;
+        fNbRead = 0;
+
+        fRequestRunning = false;
+        fRequestCompleted = false;
+        fRequestFailed = false;
+        fRequestCanceled = false;
+
+        /* Setup the request tracing if it's enabled */
         if (TmfCoreTracer.isRequestTraced()) {
             String type = getClass().getName();
             type = type.substring(type.lastIndexOf('.') + 1);
             @SuppressWarnings("nls")
             String message = "CREATED "
-                    + (getExecType() == ITmfDataRequest.ExecutionType.BACKGROUND ? "(BG)" : "(FG)")
+                    + (getExecType() == ExecutionType.BACKGROUND ? "(BG)" : "(FG)")
                     + " Type=" + type + " Index=" + getIndex() + " NbReq=" + getNbRequested()
                     + " Range=" + getRange()
                     + " DataType=" + getDataType().getSimpleName();

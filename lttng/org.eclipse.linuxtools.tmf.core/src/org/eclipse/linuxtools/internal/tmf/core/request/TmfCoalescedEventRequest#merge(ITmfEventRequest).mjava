@@ -1,4 +1,20 @@
     private void merge(ITmfEventRequest request) {
+        long start = request.getIndex();
+        long end = Math.min(start + request.getNbRequested(), TmfEventRequest.ALL_DATA);
+
+        if (start < fIndex) {
+            if (fNbRequested != TmfEventRequest.ALL_DATA) {
+                fNbRequested += (fIndex - start);
+            }
+            fIndex = start;
+        }
+        if ((request.getNbRequested() == TmfEventRequest.ALL_DATA) ||
+                (fNbRequested == TmfEventRequest.ALL_DATA)) {
+            fNbRequested = TmfEventRequest.ALL_DATA;
+        } else {
+            fNbRequested = (int) Math.max(end - fIndex, fNbRequested);
+        }
+
         ITmfTimestamp startTime = request.getRange().getStartTime();
         ITmfTimestamp endTime = request.getRange().getEndTime();
         if (!fRange.contains(startTime) && fRange.getStartTime().compareTo(startTime) > 0) {
