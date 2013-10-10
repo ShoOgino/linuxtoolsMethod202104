@@ -1,8 +1,8 @@
-    private void putIntBE(int index, int length, int value) {
+    private void putIntLE(long index, int length, int value) {
         assert ((length > 0) && (length <= BIT_INT));
-        int end = index + length;
-        int startByte = index / BIT_CHAR;
-        int endByte = (end + (BIT_CHAR - 1)) / BIT_CHAR;
+        long end = index + length;
+        int startByte = (int) (index / BIT_CHAR);
+        int endByte = (int) ((end + (BIT_CHAR - 1)) / BIT_CHAR);
         int currByte, lshift, cshift, mask, cmask;
         int correctedValue = value;
 
@@ -17,10 +17,10 @@
 
         /* sub byte */
         if (startByte == (endByte - 1)) {
-            lshift = (BIT_CHAR - (end % BIT_CHAR)) % BIT_CHAR;
+            lshift = (int) (index % BIT_CHAR);
             mask = ~((~0) << lshift);
-            if ((index % BIT_CHAR) > 0) {
-                mask |= (~(0)) << (BIT_CHAR - (index % BIT_CHAR));
+            if ((end % BIT_CHAR) > 0) {
+                mask |= (~(0)) << (end % BIT_CHAR);
             }
             cmask = correctedValue << lshift;
             /*
@@ -33,28 +33,27 @@
             return;
         }
 
-        /* head byte contains MSB */
-        currByte = endByte - 1;
-        cshift = end % BIT_CHAR;
+        /* head byte */
+        currByte = startByte;
+        cshift = (int) (index % BIT_CHAR);
         if (cshift > 0) {
-            lshift = BIT_CHAR - cshift;
-            mask = ~((~0) << lshift);
-            cmask = correctedValue << lshift;
+            mask = ~((~0) << cshift);
+            cmask = correctedValue << cshift;
             cmask &= ~mask;
             int b = this.buf.get(currByte) & 0xFF;
             this.buf.put(currByte, (byte) ((b & mask) | cmask));
-            correctedValue >>>= cshift;
-            currByte--;
+            correctedValue >>>= BIT_CHAR - cshift;
+            currByte++;
         }
 
         /* middle byte(s) */
-        for (; currByte >= (startByte + 1); currByte--) {
+        for (; currByte < (endByte - 1); currByte++) {
             this.buf.put(currByte, (byte) correctedValue);
             correctedValue >>>= BIT_CHAR;
         }
-        /* end byte contains LSB */
-        if ((index % BIT_CHAR) > 0) {
-            mask = (~0) << (BIT_CHAR - (index % BIT_CHAR));
+        /* end byte */
+        if ((end % BIT_CHAR) > 0) {
+            mask = (~0) << (end % BIT_CHAR);
             cmask = correctedValue & ~mask;
             int b = this.buf.get(currByte) & 0xFF;
             this.buf.put(currByte, (byte) ((b & mask) | cmask));
