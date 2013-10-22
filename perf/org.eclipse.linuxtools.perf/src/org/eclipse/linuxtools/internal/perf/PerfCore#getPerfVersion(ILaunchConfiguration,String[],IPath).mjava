@@ -1,5 +1,5 @@
 	//Gets the current version of perf
-	public static String getPerfVersion(ILaunchConfiguration config, String[] environ, IPath workingDir) {
+	public static Version getPerfVersion(ILaunchConfiguration config, String[] environ, IPath workingDir) {
 		IProject project = getProject(config);
 		Process p = null;
 		IRemoteFileProxy proxy = null;
@@ -25,7 +25,17 @@
 			}
 		}
 
+		if (p == null) {
+			return null;
+		}
+
 		BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
-		return spitStream(input, "Perf --version", null);
+		String perfVersion = spitStream(input, "Perf --version", null);
+		int index = perfVersion.indexOf('-');
+		if (index > 0) {
+			perfVersion = perfVersion.substring(0, index);
+		}
+		perfVersion = perfVersion.replace("perf version", "").trim(); //$NON-NLS-1$ //$NON-NLS-2$
+		return new Version(perfVersion);
 	}
 
