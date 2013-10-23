@@ -18,8 +18,15 @@
 					if (consoleIterator instanceof ScriptConsole){
 						activeConsole = (ScriptConsole) consoleIterator;
 						if(activeConsole.getName().endsWith(name)) {
-							//Stop any script currently running
-							activeConsole.stop();
+							//Stop any script currently running, and terminate stream listeners.
+							if (activeConsole.isRunning()) {
+								activeConsole.onCmdStopThread.interrupt();
+								activeConsole.stop();
+								if (activeConsole.errorDaemon != null) {
+									activeConsole.cmd.removeErrorStreamListener(activeConsole.errorDaemon);
+								}
+								activeConsole.cmd.removeInputStreamListener(activeConsole.consoleDaemon);
+							}
 							//Remove output from last run
 							activeConsole.clearConsole();
 							activeConsole.setName(name);

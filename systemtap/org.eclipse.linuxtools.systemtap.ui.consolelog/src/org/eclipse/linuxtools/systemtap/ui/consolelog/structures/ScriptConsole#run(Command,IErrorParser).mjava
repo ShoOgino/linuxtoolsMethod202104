@@ -1,19 +1,53 @@
-	private void run(Command cmd, IErrorParser errorParser){
-		createConsoleDaemon();
-		if (errorParser != null) {
+	private void run(final Command cmd, IErrorParser errorParser){
+		final Runnable onCmdStop = new Runnable() {
+			@Override
+			public void run() {
+				try {
+					synchronized (cmd) {
+						cmd.wait();
+					}
+					onCmdStopActions();
+				} catch (InterruptedException e) {
+					return;
+				}
+			}
+		};
+		Runnable onCmdStart = new Runnable() {
+			@Override
+			public void run() {
+				if (stopCommandThread != null && stopCommandThread.isAlive()) {
+					try {
+						stopCommandThread.join();
+					} catch (InterruptedException e) {
+						return;
+					}
+				}
+				createConsoleDaemon();
+				if (errorDaemon != null) {
+					cmd.addErrorStreamListener(errorDaemon);
+				}
+				cmd.addInputStreamListener(consoleDaemon);
+				try {
+					cmd.start();
+				} catch (CoreException e) {
+					ExceptionErrorDialog.openError(e.getMessage(), e);
+					notifyConsoleObservers(false);
+					cmd.dispose();
+					return;
+				}
+				notifyConsoleObservers(true);
+				onCmdStopThread = new Thread(onCmdStop);
+				onCmdStopThread.start();
+			}
+		};
+
+        if (errorParser != null) {
 			createErrorDaemon(errorParser);
 		}
-	    if (errorDaemon != null) {
-	    	cmd.addErrorStreamListener(errorDaemon);
-	    }
-        cmd.addInputStreamListener(consoleDaemon);
-        try {
-			cmd.start();
-		} catch (CoreException e) {
-			ExceptionErrorDialog.openError(e.getMessage(), e);
-		}
-        activate();
-        notifyConsoleObservers(true);
-        ConsolePlugin.getDefault().getConsoleManager().showConsoleView(this);
+		activate();
+		ConsolePlugin.getDefault().getConsoleManager().showConsoleView(this);
+
+		onCmdStartThread = new Thread(onCmdStart);
+        onCmdStartThread.start();
 	}
 
