@@ -1,0 +1,47 @@
+	protected ILaunchConfiguration findLaunchConfiguration(String scriptPath, String scriptProject) {
+		ILaunchConfiguration configuration = null;
+		ArrayList<ILaunchConfiguration> candidateConfigurations = new ArrayList<ILaunchConfiguration>();
+		try {
+			ILaunchManager launchManager = DebugPlugin.getDefault().getLaunchManager();
+			ILaunchConfiguration[] configs = launchManager
+					.getLaunchConfigurations(getLaunchConfigType());
+
+			for (ILaunchConfiguration config: configs){
+				if (config.getAttribute(SystemTapScriptLaunchConfigurationTab.SCRIPT_PATH_ATTR, "").equals(scriptPath)){ //$NON-NLS-1$
+					candidateConfigurations.add(config);
+				}
+			}
+
+			int candidateCount = candidateConfigurations.size();
+			if (candidateCount == 0) {
+				LinkedList<String> configNames = new LinkedList<String>();
+				configs = launchManager.getLaunchConfigurations();
+				for (ILaunchConfiguration config : configs) {
+					configNames.add(config.getName());
+				}
+				String configName = (scriptProject == null ? "" : scriptProject + " ") //$NON-NLS-1$ //$NON-NLS-2$
+						+ Path.fromOSString(scriptPath).lastSegment();
+				String wcName = configName;
+				int conflict_index, conflict_count = 0;
+				while ((conflict_index = configNames.indexOf(wcName)) != -1) {
+					wcName = configName.concat(String.format(" (%d)", ++conflict_count)); //$NON-NLS-1$
+					configNames.remove(conflict_index);
+				}
+
+				ILaunchConfigurationType type = getLaunchConfigType();
+				ILaunchConfigurationWorkingCopy wc = type.newInstance(null, wcName);
+				wc.setAttribute(SystemTapScriptLaunchConfigurationTab.SCRIPT_PATH_ATTR, scriptPath);
+				configuration = wc.doSave();
+			} else if (candidateCount == 1) {
+				configuration = candidateConfigurations.get(0);
+			} else {
+				configuration = chooseConfiguration(candidateConfigurations,
+						ILaunchManager.RUN_MODE);
+			}
+		} catch (CoreException e) {
+			ExceptionErrorDialog.openError(Messages.SystemTapScriptLaunchShortcut_couldNotFindConfig, e);
+		}
+
+		return configuration;
+	}
+
