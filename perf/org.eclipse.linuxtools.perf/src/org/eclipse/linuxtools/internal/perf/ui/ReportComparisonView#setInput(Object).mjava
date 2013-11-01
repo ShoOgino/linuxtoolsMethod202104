@@ -1,0 +1,53 @@
+	@Override
+	public void setInput(Object input) {
+		if (input instanceof ICompareInput) {
+			fInput = (ICompareInput) input;
+
+			if (fInput.getAncestor() != null ||
+					(fInput.getKind() & Differencer.DIRECTION_MASK) != 0) {
+				setStyledText(Messages.CompUnsupported);
+			} else {
+				// get corresponding files
+				IPath oldDatum;
+				IPath newDatum;
+				IProject proj = null;
+
+				if (fInput.getLeft() instanceof ResourceNode) {
+					ResourceNode left = (ResourceNode) fInput.getLeft();
+					IResource oldData = left.getResource();
+					oldDatum = oldData.getLocation();
+					proj = oldData.getProject();
+				} else {
+					IEncodedStreamContentAccessor lStream = (IEncodedStreamContentAccessor) fInput.getLeft();
+					oldDatum = generateTempFile(lStream);
+				}
+
+				if (fInput.getRight() instanceof ResourceNode) {
+					ResourceNode right = (ResourceNode) fInput.getRight();
+					IResource newData = right.getResource();
+					newDatum = newData.getLocation();
+					proj = newData.getProject();
+				} else {
+					IEncodedStreamContentAccessor rStream = (IEncodedStreamContentAccessor) fInput.getRight();
+					newDatum = generateTempFile(rStream);
+				}
+
+				String title = MessageFormat.format(Messages.ContentDescription_0,
+						new Object[] { oldDatum.toFile().getName(), newDatum.toFile().getName() });
+
+				// create comparison data and run comparison.
+				ReportComparisonData diffData;
+				if (reverse) {
+					diffData = new ReportComparisonData(title, oldDatum, newDatum, proj);
+				} else {
+					diffData = new ReportComparisonData(title, newDatum, oldDatum, proj);
+				}
+				diffData.parse();
+
+				setStyledText(diffData.getPerfData());
+			}
+		}
+
+		fComposite.layout();
+	}
+

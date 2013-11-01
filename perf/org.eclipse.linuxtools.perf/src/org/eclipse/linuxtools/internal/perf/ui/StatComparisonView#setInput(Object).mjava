@@ -1,0 +1,48 @@
+	@Override
+	public void setInput(Object input) {
+		if (input instanceof ICompareInput) {
+			fInput = (ICompareInput) input;
+
+			if (fInput.getAncestor() != null ||
+					(fInput.getKind() & Differencer.DIRECTION_MASK) != 0) {
+				setStyledText(Messages.CompUnsupported);
+			} else {
+				// get corresponding files
+				IPath oldDatum;
+				IPath newDatum;
+
+				if (fInput.getLeft() instanceof ResourceNode) {
+					ResourceNode left = (ResourceNode) fInput.getLeft();
+					oldDatum = left.getResource().getLocation();
+				} else {
+					IEncodedStreamContentAccessor lStream = (IEncodedStreamContentAccessor) fInput.getLeft();
+					oldDatum = generateTempFile(lStream);
+				}
+
+				if (fInput.getRight() instanceof ResourceNode) {
+					ResourceNode right = (ResourceNode) fInput.getRight();
+					newDatum = right.getResource().getLocation();
+				} else {
+					IEncodedStreamContentAccessor rStream = (IEncodedStreamContentAccessor) fInput.getRight();
+					newDatum = generateTempFile(rStream);
+				}
+
+				String title = MessageFormat.format(Messages.ContentDescription_0,
+						new Object[] { oldDatum.toFile().getName(), newDatum.toFile().getName() });
+
+				// create comparison data and run comparison.
+				StatComparisonData diffData;
+				if (reverse) {
+					diffData = new StatComparisonData(title, newDatum, oldDatum);
+				} else {
+					diffData = new StatComparisonData(title, oldDatum, newDatum);
+				}
+				diffData.runComparison();
+				updateData(diffData);
+			}
+
+		}
+
+		fComposite.layout();
+	}
+
