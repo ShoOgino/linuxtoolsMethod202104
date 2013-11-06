@@ -7,14 +7,29 @@
 	 * @since 2.0
 	 */
 	public void runLocally(String[] command, String[] envVars, IErrorParser errorParser) {
+		// Don't start a new command if one is already waiting to be started.
+		if (onCmdStartThread != null && onCmdStartThread.isAlive()) {
+			return;
+		}
 		cmd = new Command(command, envVars);
+
 		this.stopCommand = new Runnable() {
+			private Command stopcmd = cmd;
+			String stopString = getStopString();
+
 			@Override
 			public void run() {
 				try {
-					RuntimeProcessFactory.getFactory().exec(getStopString(), null, null);
+					do {
+						RuntimeProcessFactory.getFactory().exec(stopString, null, null);
+						synchronized (stopcmd) {
+							stopcmd.wait(RETRY_STOP_TIME);
+						}
+					} while (stopcmd.isRunning());
 				} catch (IOException e) {
 					ExceptionErrorDialog.openError(Localization.getString("ScriptConsole.ErrorKillingStap"), e); //$NON-NLS-1$
+				} catch (InterruptedException e) {
+					//Wait was interrupted. Exit.
 				}
 			}
 		};

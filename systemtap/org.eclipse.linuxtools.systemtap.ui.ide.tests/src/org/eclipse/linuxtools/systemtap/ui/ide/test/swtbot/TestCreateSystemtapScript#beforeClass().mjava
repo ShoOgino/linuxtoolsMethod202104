@@ -1,10 +1,12 @@
 	@BeforeClass
 	public static void beforeClass() {
 		bot = new SWTWorkbenchBot();
+		stapInstalled = true;
 
 		// Dismiss "Systemtap not installed" dialog(s) if present.
 		try {
 			SWTBotShell shell = bot.shell("Cannot Run Systemtap").activate();
+			stapInstalled = false;
 			shell.close();
 
 			shell = bot.shell("Cannot Run Systemtap").activate();
@@ -20,6 +22,17 @@
 			bot.button("Cancel").click();
 		} catch (WidgetNotFoundException e) {
 			//ignore
+		}
+
+		// Set SystemTap IDE perspective.
+		bot.perspectiveByLabel("SystemTap IDE").activate();
+		bot.sleep(500);
+		for (SWTBotShell sh : bot.shells()) {
+			if (sh.getText().startsWith("SystemTap IDE")) {
+				sh.activate();
+				bot.sleep(500);
+				break;
+			}
 		}
 
 		// Create a Systemtap project.

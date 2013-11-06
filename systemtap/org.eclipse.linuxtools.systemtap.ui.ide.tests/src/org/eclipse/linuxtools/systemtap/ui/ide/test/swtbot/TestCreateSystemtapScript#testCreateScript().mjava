@@ -6,7 +6,8 @@
 		// Write a script
 		SWTBotEclipseEditor editor = bot.editorByTitle(scriptName).toTextEditor();
 		editor.typeText(0, editor.getText().length(), "\nprobe begin{log(\"began");
-		editor.typeText(0, editor.getText().length() - 1, "; exit(");
+		editor.typeText(0, editor.getText().length() - 1, "); exit(");
+		editor.typeText(0, editor.getText().length(), "}");
 		editor.save();
 
 		// Focus on project explorer view.
@@ -27,12 +28,17 @@
 		SWTBotTree runConfigurationsTree = bot.tree();
 		runConfigurationsTree.select("SystemTap").contextMenu("New").click();
 
-		bot.button("Run").click();
-		bot.waitUntil(new ShellIsClosed(shell));
+		if (stapInstalled) {
+			bot.button("Run").click();
+			bot.waitUntil(new ShellIsClosed(shell));
 
-		SWTBotView console = bot.viewByTitle("Console");
-		console.setFocus();
-		assert(console.bot().label().getText().contains(scriptName));
-		bot.waitUntil(new StapHasExited(), 10000);
+			SWTBotView console = bot.viewById("org.eclipse.ui.console.ConsoleView");
+			console.setFocus();
+			assertTrue(console.bot().label().getText().contains(scriptName));
+			bot.waitUntil(new StapHasExited(), 10000);
+		} else {
+			bot.button("Close").click();
+			bot.waitUntil(new ShellIsClosed(shell));
+		}
 	}
 

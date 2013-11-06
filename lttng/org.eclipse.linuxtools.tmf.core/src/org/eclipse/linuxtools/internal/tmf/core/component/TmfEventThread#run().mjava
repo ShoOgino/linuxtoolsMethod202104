@@ -22,11 +22,22 @@
             TmfCoreTracer.traceRequest(fRequest, "read first event"); //$NON-NLS-1$
 
             while (event != null && !fProvider.isCompleted(fRequest, event, nbRead)) {
-                pausedLatch.await();
 
                 TmfCoreTracer.traceEvent(fProvider, fRequest, event);
                 if (fRequest.getDataType().isInstance(event)) {
                     fRequest.handleData(event);
+                }
+
+                // Pause execution if requested
+
+                while (fIsPaused) {
+                    synchronized (fSynchObject) {
+                        try {
+                            fSynchObject.wait();
+                        } catch (InterruptedException e) {
+                            // continue
+                        }
+                    }
                 }
 
                 // To avoid an unnecessary read passed the last event requested
