@@ -1,0 +1,26 @@
+    /** Test Class setup */
+    @BeforeClass
+    public static void init() {
+        if (Display.getCurrent() != null && Display.getCurrent().getThread() == Thread.currentThread()) {
+            fail("SWTBot test needs to run in a non-UI thread. Make sure that \"Run in UI thread\" is unchecked in your launch configuration or"
+                    + " that useUIThread is set to false in the pom.xml");
+        }
+
+        /* set up for swtbot */
+        SWTBotPreferences.TIMEOUT = 50000; /* 50 second timeout */
+        fLogger.addAppender(new NullAppender());
+        fBot = new SWTWorkbenchBot();
+
+        final List<SWTBotView> openViews = fBot.views();
+        for (SWTBotView view : openViews) {
+            if (view.getTitle().equals("Welcome")) {
+                view.close();
+                fBot.waitUntil(ConditionHelpers.ViewIsClosed(view));
+            }
+        }
+
+        switchToTracingPerspective();
+        /* finish waiting for eclipse to load */
+        waitForJobs();
+    }
+

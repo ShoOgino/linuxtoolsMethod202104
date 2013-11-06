@@ -1,0 +1,42 @@
+    private static TmfEventsEditor openEditor() {
+        final SWTBotView projectExplorerBot = fBot.viewById(IPageLayout.ID_PROJECT_EXPLORER);
+        projectExplorerBot.setFocus();
+
+        final SWTBotTree tree = fBot.tree();
+        final SWTBotTreeItem treeItem = tree.getTreeItem(TRACE_PROJECT_NAME);
+        treeItem.expand();
+
+        List<String> nodes = treeItem.getNodes();
+        String nodeName = "";
+        for (String node : nodes) {
+            if (node.startsWith("Traces")) {
+                nodeName = node;
+            }
+        }
+        fBot.waitUntil(ConditionHelpers.IsTreeChildNodeAvailable(nodeName, treeItem));
+        treeItem.getNode(nodeName).expand();
+        fBot.waitUntil(ConditionHelpers.IsTreeChildNodeAvailable(TRACE_NAME, treeItem.getNode(nodeName)));
+        treeItem.getNode(nodeName).getNode(TRACE_NAME).select();
+        treeItem.getNode(nodeName).getNode(TRACE_NAME).doubleClick();
+        delay(1000);
+        waitForJobs();
+
+        final IEditorPart iep[] = new IEditorPart[1];
+        UIThreadRunnable.syncExec(new VoidResult() {
+            @Override
+            public void run() {
+                IEditorReference[] ieds = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().getEditorReferences();
+                assertNotNull(ieds);
+                iep[0] = null;
+                for (IEditorReference ied : ieds) {
+                    if (ied.getTitle().equals(TRACE_NAME)) {
+                        iep[0] = ied.getEditor(true);
+                        break;
+                    }
+                }
+            }
+        });
+        assertNotNull(iep[0]);
+        return (TmfEventsEditor) iep[0];
+    }
+
