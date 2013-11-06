@@ -1,0 +1,33 @@
+    private static void populateAnalysisModules() {
+        fModules = new ArrayList<>();
+        IPath pathToFiles = XmlUtils.getXmlFilesPath();
+        File fFolder = pathToFiles.toFile();
+        if (!(fFolder.isDirectory() && fFolder.exists())) {
+            return;
+        }
+        for (File xmlFile : fFolder.listFiles()) {
+            if (!XmlUtils.xmlValidate(xmlFile).isOK()) {
+                continue;
+            }
+
+            try {
+                /* Load the XML File */
+                DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+                DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
+                Document doc = dBuilder.parse(xmlFile);
+                doc.getDocumentElement().normalize();
+
+                /* get State Providers modules */
+                NodeList stateproviderNodes = doc.getElementsByTagName(TmfXmlStrings.STATE_PROVIDER);
+                for (int i = 0; i < stateproviderNodes.getLength(); i++) {
+                    Element node = (Element) stateproviderNodes.item(i);
+
+                    IAnalysisModuleHelper helper = new TmfAnalysisModuleHelperXml(xmlFile, node, XmlAnalysisModuleType.STATE_SYSTEM);
+                    fModules.add(helper);
+                }
+            } catch (ParserConfigurationException | SAXException | IOException e) {
+                Activator.logError("Error opening XML file", e); //$NON-NLS-1$
+            }
+        }
+    }
+

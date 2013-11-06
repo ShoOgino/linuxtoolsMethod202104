@@ -1,0 +1,33 @@
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        FileDialog dlg = new FileDialog(new Shell(), SWT.OPEN);
+        dlg.setFilterNames(new String[] { Messages.ImportXmlHandler_ImportXmlFile + " (*.xml)" }); //$NON-NLS-1$
+        dlg.setFilterExtensions(new String[] { "*.xml" }); //$NON-NLS-1$
+
+        String fn = dlg.open();
+        if (fn != null) {
+            File file = new File(fn);
+            IStatus status = XmlUtils.xmlValidate(file);
+            if (status.isOK()) {
+                status = XmlUtils.addXmlFile(file);
+                if (status.isOK()) {
+                    XmlAnalysisModuleSource.notifyModuleChange();
+                    /*
+                     * FIXME: It refreshes the list of analysis under a trace,
+                     * but since modules are instantiated when the trace opens,
+                     * the changes won't apply to an opened trace, it needs to
+                     * be closed then reopened
+                     */
+                    refreshProject();
+                } else {
+                    TraceUtils.displayErrorMsg(Messages.ImportXmlHandler_ImportXmlFile, status.getMessage());
+                }
+            } else {
+                TraceUtils.displayErrorMsg(Messages.ImportXmlHandler_ImportXmlFile, status.getMessage());
+            }
+        }
+
+        return null;
+    }
+

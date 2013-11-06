@@ -1,0 +1,27 @@
+    /**
+     * Test that XML modules are available through the analysis manager
+     */
+    @Test
+    public void testPopulateModulesWithAnalysisManager() {
+
+        /*
+         * Make sure module sources are initialized. When run as unit test, the
+         * XML module source is sometimes missing
+         */
+        TmfAnalysisManager.initializeModuleSources();
+
+        Map<String, IAnalysisModuleHelper> modules = TmfAnalysisManager.getAnalysisModules();
+        assertFalse(findStateSystemModule(modules.values()));
+
+        /* use the valid XML test file */
+        File testXmlFile = TmfXmlTestFiles.VALID_FILE.getFile();
+        if ((testXmlFile == null) || !testXmlFile.exists()) {
+            fail("XML test file does not exist");
+        }
+
+        XmlUtils.addXmlFile(testXmlFile);
+        XmlAnalysisModuleSource.notifyModuleChange();
+        modules = TmfAnalysisManager.getAnalysisModules();
+        assertTrue(findStateSystemModule(modules.values()));
+    }
+
