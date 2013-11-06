@@ -1,0 +1,35 @@
+    private void openEditor() {
+        final List<IEditorReference> editorRefs = new ArrayList<>();
+        UIThreadRunnable.syncExec(new VoidResult() {
+            @Override
+            public void run() {
+                IEditorReference[] ieds = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().getEditorReferences();
+                editorRefs.addAll(Arrays.asList(ieds));
+            }
+
+        });
+        assertFalse(editorRefs.isEmpty());
+        IEditorPart iep = null;
+        for (IEditorReference ied : editorRefs) {
+            if (ied.getTitle().equals(ctt.getTrace().getName())) {
+                iep = ied.getEditor(true);
+                break;
+            }
+        }
+        assertNotNull(iep);
+        fDesired1 = getEvent(100);
+        fDesired2 = getEvent(10000);
+        final TmfEventsEditor tmfEd = (TmfEventsEditor) iep;
+        UIThreadRunnable.syncExec(new VoidResult() {
+            @Override
+            public void run() {
+                tmfEd.setFocus();
+                tmfEd.selectionChanged(new SelectionChangedEvent(tmfEd, new StructuredSelection(fDesired1)));
+            }
+        });
+
+        waitForJobs();
+        delay(1000);
+        assertNotNull(tmfEd);
+    }
+
