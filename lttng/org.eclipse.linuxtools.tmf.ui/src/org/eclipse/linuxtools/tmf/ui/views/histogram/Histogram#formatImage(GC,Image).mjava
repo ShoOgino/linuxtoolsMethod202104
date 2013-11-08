@@ -38,14 +38,6 @@
                 }
             }
 
-            // Add a dashed line as a delimiter
-            int delimiterIndex = (int) ((getDataModel().getEndTime() - scaledData.getFirstBucketTime()) / scaledData.fBucketDuration) + 1;
-            drawDelimiter(imageGC, fLastEventColor, height, delimiterIndex);
-
-            // Fill the area to the right of delimiter with background color
-            imageGC.setBackground(fFillColor);
-            imageGC.fillRectangle(delimiterIndex + 1, 0, width - (delimiterIndex + 1), height);
-
             // Draw the selection bars
             int alpha = imageGC.getAlpha();
             imageGC.setAlpha(100);
@@ -59,10 +51,23 @@
             if (endBucket >= 0 && endBucket < limit && endBucket != beginBucket) {
                 imageGC.drawLine(endBucket, 0, endBucket, height);
             }
-            if (endBucket - beginBucket > 1) {
-                imageGC.fillRectangle(beginBucket + 1, 0, endBucket - beginBucket - 1, height);
+            if (Math.abs(endBucket - beginBucket) > 1) {
+                if (endBucket > beginBucket) {
+                    imageGC.fillRectangle(beginBucket + 1, 0, endBucket - beginBucket - 1, height);
+                } else {
+                    imageGC.fillRectangle(endBucket + 1, 0, beginBucket - endBucket - 1, height);
+                }
             }
             imageGC.setAlpha(alpha);
+
+            // Add a dashed line as a delimiter
+            int delimiterIndex = (int) ((getDataModel().getEndTime() - scaledData.getFirstBucketTime()) / scaledData.fBucketDuration) + 1;
+            drawDelimiter(imageGC, fLastEventColor, height, delimiterIndex);
+
+            // Fill the area to the right of delimiter with background color
+            imageGC.setBackground(fFillColor);
+            imageGC.fillRectangle(delimiterIndex + 1, 0, width - (delimiterIndex + 1), height);
+
         } catch (final Exception e) {
             // Do nothing
         }
