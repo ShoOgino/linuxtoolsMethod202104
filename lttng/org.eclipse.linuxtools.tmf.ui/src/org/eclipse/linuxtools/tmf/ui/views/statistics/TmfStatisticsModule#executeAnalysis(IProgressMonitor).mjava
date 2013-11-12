@@ -1,0 +1,43 @@
+    @Override
+    protected boolean executeAnalysis(IProgressMonitor monitor) throws TmfAnalysisException {
+        ITmfTrace trace = getTrace();
+        if (trace == null) {
+            /* This analysis's trace should not be null when this is called */
+            throw new IllegalStateException();
+        }
+
+        /*
+         * Since these sub-analyzes are not built from an extension point, we
+         * have to assign the trace ourselves. Very important to do so before
+         * calling schedule()!
+         */
+        totalsModule.setTrace(trace);
+        eventTypesModule.setTrace(trace);
+
+        IStatus status1 = totalsModule.schedule();
+        IStatus status2 = eventTypesModule.schedule();
+        if (!status1.isOK() || !status2.isOK()) {
+            return false;
+        }
+
+        /*
+         * The "execute" of this trace will encompass the "execute" of the two
+         * sub-analyzes.
+         */
+        if (!totalsModule.waitForCompletion(monitor) ||
+                !eventTypesModule.waitForCompletion(monitor)) {
+            return false;
+        }
+
+        ITmfStateSystem totalsSS = totalsModule.getStateSystem();
+        ITmfStateSystem eventTypesSS = eventTypesModule.getStateSystem();
+
+        if (totalsSS == null || eventTypesSS == null) {
+            /* Better safe than sorry... */
+            throw new IllegalStateException();
+        }
+
+        fStatistics = new TmfStateStatistics(trace, totalsSS, eventTypesSS);
+        return true;
+    }
+
