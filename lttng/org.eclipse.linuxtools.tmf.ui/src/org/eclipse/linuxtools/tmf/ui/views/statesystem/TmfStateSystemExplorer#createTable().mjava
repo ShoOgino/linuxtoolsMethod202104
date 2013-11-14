@@ -22,24 +22,41 @@
              * We will first do all the queries for this trace, then update that
              * sub-tree in the UI thread.
              */
-            final Map<String, ITmfStateSystem> sss = currentTrace.getStateSystems();
+            Map<String, ITmfStateSystemAnalysisModule> modules = currentTrace.getAnalysisModules(ITmfStateSystemAnalysisModule.class);
+            final Map<String, ITmfStateSystem> sss = new HashMap<String, ITmfStateSystem>();
             final Map<String, List<ITmfStateInterval>> fullStates =
                     new LinkedHashMap<String, List<ITmfStateInterval>>();
-            for (Map.Entry<String, ITmfStateSystem> entry : sss.entrySet()) {
-                String ssName = entry.getKey();
-                ITmfStateSystem ss = entry.getValue();
-                ss.waitUntilBuilt();
-                if (ts == -1 || ts < ss.getStartTime() || ts > ss.getCurrentEndTime()) {
-                    ts = ss.getStartTime();
+            for (Entry<String, ITmfStateSystemAnalysisModule> entry : modules.entrySet()) {
+                /*
+                 * FIXME: For now, this view is a way to execute and display
+                 * state system. But with phase 2 of analysis API, we won't want
+                 * to run state system that have not been requested. We will
+                 * leave the title, but there won't be anything underneath.
+                 */
+                ITmfStateSystemAnalysisModule module = entry.getValue();
+                if (module instanceof IAnalysisModule) {
+                    IAnalysisModule mod = (IAnalysisModule) module;
+                    mod.schedule();
+                    mod.waitForCompletion(new NullProgressMonitor());
                 }
-                try {
-                    fullStates.put(ssName, ss.queryFullState(ts));
-                } catch (TimeRangeException e) {
-                    /* We already checked the limits ourselves */
-                    throw new RuntimeException();
-                } catch (StateSystemDisposedException e) {
-                    /* Probably shutting down, cancel and return */
-                    return;
+                for (Entry<String, ITmfStateSystem> ssEntry : module.getStateSystems().entrySet()) {
+                    String ssName = ssEntry.getKey();
+                    ITmfStateSystem ss = ssEntry.getValue();
+                    sss.put(ssName, ss);
+                    if (ss != null) {
+                        if (ts == -1 || ts < ss.getStartTime() || ts > ss.getCurrentEndTime()) {
+                            ts = ss.getStartTime();
+                        }
+                        try {
+                            fullStates.put(ssName, ss.queryFullState(ts));
+                        } catch (TimeRangeException e) {
+                            /* We already checked the limits ourselves */
+                            throw new IllegalStateException();
+                        } catch (StateSystemDisposedException e) {
+                            /* Probably shutting down, cancel and return */
+                            return;
+                        }
+                    }
                 }
             }
 
@@ -65,7 +82,9 @@
                          * Calling with quark '-1' here to start with the root
                          * attribute, then it will be called recursively.
                          */
-                        addChildren(ss, fullState, -1, item);
+                        if (ss != null) {
+                            addChildren(ss, fullState, -1, item);
+                        }
                     }
 
                     /* Expand the first-level tree items */

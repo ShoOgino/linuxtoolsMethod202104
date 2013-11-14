@@ -1,0 +1,36 @@
+    @Override
+    protected boolean executeAnalysis(final IProgressMonitor monitor) {
+
+        final ITmfStateProvider htInput = createStateProvider();
+
+        /* FIXME: State systems should make use of the monitor, to be cancelled */
+        try {
+            /* Get the state system according to backend */
+            StateSystemBackendType backend = getBackendType();
+            String directory;
+            switch (backend) {
+            case FULL:
+                directory = TmfTraceManager.getSupplementaryFileDir(getTrace());
+                final File htFile = new File(directory + getSsFileName());
+                fStateSystem = TmfStateSystemFactory.newFullHistory(htFile, htInput, true);
+                break;
+            case PARTIAL:
+                directory = TmfTraceManager.getSupplementaryFileDir(getTrace());
+                final File htPartialFile = new File(directory + getSsFileName());
+                fStateSystem = TmfStateSystemFactory.newPartialHistory(htPartialFile, htInput, true);
+                break;
+            case INMEM:
+                fStateSystem = TmfStateSystemFactory.newInMemHistory(htInput, true);
+                break;
+            case NULL:
+                fStateSystem = TmfStateSystemFactory.newNullHistory(htInput);
+                break;
+            default:
+                break;
+            }
+        } catch (TmfTraceException e) {
+            return false;
+        }
+        return true;
+    }
+
