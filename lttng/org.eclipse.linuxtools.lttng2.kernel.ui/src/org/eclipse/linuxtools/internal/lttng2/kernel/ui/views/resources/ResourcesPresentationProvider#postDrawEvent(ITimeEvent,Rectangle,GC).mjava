@@ -23,7 +23,11 @@
             return;
         }
 
-        ITmfStateSystem ss = entry.getTrace().getStateSystems().get(LttngKernelTrace.STATE_ID);
+        LttngKernelAnalysisModule module = entry.getTrace().getAnalysisModules(LttngKernelAnalysisModule.class).get(LttngKernelAnalysisModule.ID);
+        ITmfStateSystem ss = module.getStateSystem();
+        if (ss == null) {
+            return;
+        }
         long time = event.getTime();
         try {
             while (time < event.getTime() + event.getDuration()) {
@@ -75,12 +79,8 @@
                     }
                 }
             }
-        } catch (AttributeNotFoundException e) {
-            e.printStackTrace();
-        } catch (TimeRangeException e) {
-            e.printStackTrace();
-        } catch (StateValueTypeException e) {
-            e.printStackTrace();
+        } catch (AttributeNotFoundException | TimeRangeException | StateValueTypeException e) {
+            Activator.getDefault().logError("Error in ResourcesPresentationProvider", e); //$NON-NLS-1$
         } catch (StateSystemDisposedException e) {
             /* Ignored */
         }

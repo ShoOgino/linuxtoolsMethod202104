@@ -11,13 +11,18 @@
             if (aTrace instanceof LttngKernelTrace) {
                 ArrayList<ControlFlowEntry> entryList = new ArrayList<>();
                 LttngKernelTrace ctfKernelTrace = (LttngKernelTrace) aTrace;
-                ITmfStateSystem ssq = ctfKernelTrace.getStateSystems().get(LttngKernelTrace.STATE_ID);
+                LttngKernelAnalysisModule module = ctfKernelTrace.getAnalysisModules(LttngKernelAnalysisModule.class).get(LttngKernelAnalysisModule.ID);
+                module.schedule();
+                if (!module.waitForCompletion(new NullProgressMonitor())) {
+                    continue;
+                }
+                ITmfStateSystem ssq = module.getStateSystem();
                 if (ssq == null) {
-                    return;
+                    continue;
                 }
                 ssq.waitUntilBuilt();
                 if (ssq.isCancelled()) {
-                    return;
+                    continue;
                 }
                 long start = ssq.getStartTime();
                 long end = ssq.getCurrentEndTime() + 1;

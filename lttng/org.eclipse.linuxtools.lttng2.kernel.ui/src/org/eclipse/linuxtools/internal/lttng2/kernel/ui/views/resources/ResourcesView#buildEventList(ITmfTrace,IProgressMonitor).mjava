@@ -10,13 +10,18 @@
             }
             if (aTrace instanceof LttngKernelTrace) {
                 LttngKernelTrace lttngKernelTrace = (LttngKernelTrace) aTrace;
-                ITmfStateSystem ssq = lttngKernelTrace.getStateSystems().get(LttngKernelTrace.STATE_ID);
+                LttngKernelAnalysisModule module = lttngKernelTrace.getAnalysisModules(LttngKernelAnalysisModule.class).get(LttngKernelAnalysisModule.ID);
+                module.schedule();
+                if (!module.waitForCompletion(new NullProgressMonitor())) {
+                    continue;
+                }
+                ITmfStateSystem ssq = module.getStateSystem();
                 if (ssq == null) {
-                    return;
+                    continue;
                 }
                 ssq.waitUntilBuilt();
                 if (ssq.isCancelled()) {
-                    return;
+                    continue;
                 }
                 long startTime = ssq.getStartTime();
                 long endTime = ssq.getCurrentEndTime() + 1;
@@ -63,7 +68,11 @@
                 return;
             }
             LttngKernelTrace lttngKernelTrace = traceEntry.getTrace();
-            ITmfStateSystem ssq = lttngKernelTrace.getStateSystems().get(LttngKernelTrace.STATE_ID);
+            LttngKernelAnalysisModule module = lttngKernelTrace.getAnalysisModules(LttngKernelAnalysisModule.class).get(LttngKernelAnalysisModule.ID);
+            ITmfStateSystem ssq = module.getStateSystem();
+            if (ssq == null) {
+                continue;
+            }
             long startTime = ssq.getStartTime();
             long endTime = ssq.getCurrentEndTime() + 1;
             long resolution = (endTime - startTime) / getDisplayWidth();
