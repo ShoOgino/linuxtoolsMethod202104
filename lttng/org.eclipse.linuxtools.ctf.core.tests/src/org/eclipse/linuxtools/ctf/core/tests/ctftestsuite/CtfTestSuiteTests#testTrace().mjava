@@ -1,0 +1,36 @@
+    /**
+     * Test opening and reading the trace
+     */
+    @Test
+    public void testTrace() {
+        CTFTrace trace = null;
+        CTFTraceReader reader = null;
+        try {
+            /* Instantiate the trace object (which implies parsing the metadata) */
+            trace = new CTFTrace(fTracePath);
+
+            /* Read the trace until the end */
+            reader = new CTFTraceReader(trace);
+            reader.getCurrentEventDef();
+            while (reader.advance()) {
+                assertNotNull(reader.getCurrentEventDef());
+            }
+
+            if (!fExpectSuccess) {
+                fail("Trace was expected to fail parsing: " + fTracePath);
+            }
+        } catch (CTFReaderException e) {
+            if (fExpectSuccess) {
+                fail("Trace was expected to succeed, but failed parsing: " + fTracePath);
+            }
+        } finally {
+            if (reader != null) {
+                reader.dispose();
+            }
+            if (trace != null) {
+                trace.dispose();
+            }
+
+        }
+    }
+
