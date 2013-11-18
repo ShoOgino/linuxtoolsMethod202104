@@ -1,0 +1,55 @@
+    /**
+     * Verify the contents of the last, complex event
+     */
+    @Test
+    public void testLastEvent() {
+        /*
+         * Last event as seen in Babeltrace:
+         * [19:00:00.001334568] (+0.000000001) Complex Test Event: { }, {
+         *     uint_35 = 0xDDF00D,
+         *     int_16 = -12345,
+         *     complex_structure = {
+         *         variant_selector = ( INT16_TYPE : container = 1 ),
+         *         a_string = "Test string",
+         *         variant_value = { INT16_TYPE = -200 },
+         *         inner_structure = {
+         *             seq_len = 0xA,
+         *             a_sequence = [ [0] = 4, [1] = 3, [2] = 2, [3] = 1, [4] = 0, [5] = -1, [6] = -2, [7] = -3, [8] = -4, [9] = -5 ]
+         *         }
+         *     }
+         * }
+         */
+
+        CtfTmfEvent event = getEvent(100001);
+        assertEquals("Complex Test Event", event.getEventName());
+        assertEquals(1334568, event.getTimestamp().getValue());
+        assertEquals(0xddf00d, ((Long) event.getContent().getField("uint_35").getValue()).intValue());
+        assertEquals(-12345, ((Long) event.getContent().getField("int_16").getValue()).intValue());
+
+        ITmfEventField[] complexStruct =
+                (ITmfEventField[]) event.getContent().getField("complex_structure").getValue();
+
+        assertEquals("variant_selector", complexStruct[0].getName());
+        CtfEnumPair variant1 = (CtfEnumPair) complexStruct[0].getValue();
+        assertEquals("INT16_TYPE", variant1.getStringValue());
+        assertEquals(Long.valueOf(1), variant1.getLongValue());
+
+        assertEquals("a_string", complexStruct[1].getName());
+        assertEquals("Test string", complexStruct[1].getValue());
+
+        assertEquals("variant_value", complexStruct[2].getName());
+        ITmfEventField variantField = (ITmfEventField) complexStruct[2].getValue();
+        assertEquals("INT16_TYPE", variantField.getName());
+        assertEquals(Long.valueOf(-200), variantField.getValue());
+
+        ITmfEventField[] innerStruct = (ITmfEventField[]) complexStruct[3].getValue();
+
+        assertEquals("seq_len", innerStruct[0].getName());
+        assertEquals(Long.valueOf(10), innerStruct[0].getValue());
+
+        assertEquals("a_sequence", innerStruct[1].getName());
+        long[] seqValues = (long[]) innerStruct[1].getValue();
+        long[] expectedValues = { 4, 3, 2, 1, 0, -1, -2, -3, -4, -5 };
+        assertArrayEquals(expectedValues, seqValues);
+    }
+
