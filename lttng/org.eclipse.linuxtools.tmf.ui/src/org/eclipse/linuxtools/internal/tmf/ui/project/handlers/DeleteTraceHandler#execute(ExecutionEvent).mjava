@@ -21,39 +21,8 @@
             Object element = iterator.next();
             if (element instanceof TmfTraceElement) {
                 final TmfTraceElement trace = (TmfTraceElement) element;
-                IResource resource = trace.getResource();
                 try {
-                    // Close the trace if open
-                    trace.closeEditors();
-
-                    IPath path = resource.getLocation();
-                    if (path != null) {
-                        if (trace.getParent() instanceof TmfTraceFolder) {
-                            // Propagate the removal to experiments
-                            TmfExperimentFolder experimentFolder = trace.getProject().getExperimentsFolder();
-                            for (ITmfProjectModelElement experiment : experimentFolder.getChildren()) {
-                                List<ITmfProjectModelElement> toRemove = new LinkedList<ITmfProjectModelElement>();
-                                for (ITmfProjectModelElement child : experiment.getChildren()) {
-                                    if (child.getName().equals(trace.getName())) {
-                                        toRemove.add(child);
-                                    }
-                                }
-                                for (ITmfProjectModelElement child : toRemove) {
-                                    ((TmfExperimentElement) experiment).removeTrace((TmfTraceElement) child);
-                                }
-                            }
-
-                            // Delete supplementary files
-                            trace.deleteSupplementaryFolder();
-
-                        } else if (trace.getParent() instanceof TmfExperimentElement) {
-                            TmfExperimentElement experimentElement = (TmfExperimentElement) trace.getParent();
-                            experimentElement.removeTrace(trace);
-                        }
-                    }
-
-                    // Finally, delete the trace
-                    resource.delete(true, new NullProgressMonitor());
+                    trace.delete(null);
 
                     // Refresh the project
                     trace.getProject().refresh();

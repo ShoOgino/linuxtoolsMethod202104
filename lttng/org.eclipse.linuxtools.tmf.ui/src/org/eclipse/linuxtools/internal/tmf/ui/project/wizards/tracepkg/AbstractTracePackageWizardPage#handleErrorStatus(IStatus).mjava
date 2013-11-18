@@ -1,0 +1,55 @@
+    /**
+     * Handle error status
+     *
+     * @param status
+     *            the error status
+     */
+    protected void handleErrorStatus(IStatus status) {
+
+        Throwable exception = status.getException();
+        String message = status.getMessage().length() > 0 ? status.getMessage() : org.eclipse.linuxtools.internal.tmf.ui.project.wizards.tracepkg.Messages.TracePackage_ErrorOperation;
+
+        if (!status.isMultiStatus()) {
+            handleError(message, exception);
+            return;
+        }
+
+        // Build a string with all the children status messages, exception
+        // messages and stack traces
+        StringBuilder sb = new StringBuilder();
+        for (IStatus childStatus : status.getChildren()) {
+            StringBuilder childSb = new StringBuilder();
+            if (!childStatus.getMessage().isEmpty()) {
+                childSb.append(childStatus.getMessage() + '\n');
+            }
+
+            Throwable childException = childStatus.getException();
+            if (childException != null) {
+                String reason = childException.getMessage();
+                // Some system exceptions have no message
+                if (reason == null) {
+                    reason = childException.toString();
+                }
+
+                String stackMessage = getExceptionStackMessage(childException);
+                if (stackMessage == null) {
+                    stackMessage = reason;
+                }
+
+                childSb.append(stackMessage);
+            }
+
+            if (childSb.length() > 0) {
+                childSb.insert(0, '\n');
+                sb.append(childSb.toString());
+            }
+        }
+
+        // ErrorDialog only prints the call stack for a CoreException
+        exception = new CoreException(new Status(IStatus.ERROR, Activator.PLUGIN_ID, IStatus.ERROR, sb.toString(), null));
+        final Status statusWithException = new Status(IStatus.ERROR, Activator.PLUGIN_ID, IStatus.ERROR, org.eclipse.linuxtools.internal.tmf.ui.project.wizards.tracepkg.Messages.TracePackage_ErrorMultipleProblems, exception);
+
+        Activator.getDefault().logError(message, exception);
+        ErrorDialog.openError(getContainer().getShell(), org.eclipse.linuxtools.internal.tmf.ui.project.wizards.tracepkg.Messages.TracePackage_InternalErrorTitle, message, statusWithException);
+    }
+

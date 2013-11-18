@@ -1,0 +1,25 @@
+    private void exportTrace(IProgressMonitor monitor, Node tmfNode, TracePackageTraceElement tracePackageElement) throws InterruptedException, CoreException {
+        TmfTraceElement traceElement = tracePackageElement.getTraceElement();
+        Element traceXmlElement = tmfNode.getOwnerDocument().createElement(ITracePackageConstants.TRACE_ELEMENT);
+        traceXmlElement.setAttribute(ITracePackageConstants.TRACE_NAME_ATTRIB, traceElement.getResource().getName());
+        traceXmlElement.setAttribute(ITracePackageConstants.TRACE_TYPE_ATTRIB, traceElement.getTraceType());
+        Node traceNode = tmfNode.appendChild(traceXmlElement);
+
+        for (TracePackageElement element : tracePackageElement.getChildren()) {
+            ModalContext.checkCanceled(monitor);
+            if (!element.isChecked()) {
+                continue;
+            }
+
+            if (element instanceof TracePackageSupplFilesElement) {
+                exportSupplementaryFiles(monitor, traceNode, traceElement, (TracePackageSupplFilesElement) element);
+            } else if (element instanceof TracePackageBookmarkElement) {
+                exportBookmarks(monitor, traceNode, (TracePackageBookmarkElement) element);
+            } else if (element instanceof TracePackageFilesElement) {
+                exportTraceFiles(monitor, traceNode, (TracePackageFilesElement) element);
+            }
+
+            monitor.worked(1);
+        }
+    }
+

@@ -1,0 +1,24 @@
+    private void displayErrorDialog(String message, Throwable exception) {
+        if (exception == null) {
+            final Status s = new Status(IStatus.ERROR, Activator.PLUGIN_ID, message);
+            ErrorDialog.openError(getContainer().getShell(), org.eclipse.linuxtools.internal.tmf.ui.project.wizards.tracepkg.Messages.TracePackage_InternalErrorTitle, null, s);
+            return;
+        }
+
+        String reason = exception.getMessage();
+        // Some system exceptions have no message
+        if (reason == null) {
+            reason = exception.toString();
+        }
+
+        String stackMessage = getExceptionStackMessage(exception);
+        if (stackMessage == null || stackMessage.isEmpty()) {
+            stackMessage = reason;
+        }
+
+        // ErrorDialog only prints the call stack for a CoreException
+        CoreException coreException = new CoreException(new Status(IStatus.ERROR, Activator.PLUGIN_ID, IStatus.ERROR, stackMessage, exception));
+        final Status s = new Status(IStatus.ERROR, Activator.PLUGIN_ID, IStatus.ERROR, reason, coreException);
+        ErrorDialog.openError(getContainer().getShell(), org.eclipse.linuxtools.internal.tmf.ui.project.wizards.tracepkg.Messages.TracePackage_InternalErrorTitle, message, s);
+    }
+

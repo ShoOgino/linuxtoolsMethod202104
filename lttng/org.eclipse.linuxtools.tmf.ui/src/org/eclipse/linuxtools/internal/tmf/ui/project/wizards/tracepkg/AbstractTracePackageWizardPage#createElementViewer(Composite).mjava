@@ -1,0 +1,51 @@
+    /**
+     * Create the element viewer
+     *
+     * @param parent
+     *            the parent composite
+     */
+    protected void createElementViewer(Composite parent) {
+        fElementViewer = new CheckboxTreeViewer(parent, SWT.SINGLE | SWT.H_SCROLL | SWT.V_SCROLL | SWT.BORDER | SWT.CHECK);
+
+        fElementViewer.addCheckStateListener(new ICheckStateListener() {
+            @Override
+            public void checkStateChanged(CheckStateChangedEvent event) {
+                TracePackageElement element = (TracePackageElement) event.getElement();
+                if (!element.isEnabled()) {
+                    fElementViewer.setChecked(element, element.isChecked());
+                } else {
+                    setSubtreeChecked(fElementViewer, element, true, event.getChecked());
+                }
+                maintainCheckIntegrity(element);
+                updateApproximateSelectedSize();
+                updatePageCompletion();
+            }
+
+            private void maintainCheckIntegrity(final TracePackageElement element) {
+                TracePackageElement parentElement = element.getParent();
+                boolean allChecked = true;
+                boolean oneChecked = false;
+                if (parentElement != null) {
+                    if (parentElement.getChildren() != null) {
+                        for (TracePackageElement child : parentElement.getChildren()) {
+                            boolean checked = fElementViewer.getChecked(child) && !fElementViewer.getGrayed(child);
+                            oneChecked |= checked;
+                            allChecked &= checked;
+                        }
+                    }
+                    if (oneChecked && !allChecked) {
+                        fElementViewer.setGrayChecked(parentElement, true);
+                    } else {
+                        fElementViewer.setGrayed(parentElement, false);
+                        fElementViewer.setChecked(parentElement, allChecked);
+                    }
+                    maintainCheckIntegrity(parentElement);
+                }
+            }
+        });
+        GridData layoutData = new GridData(GridData.FILL_BOTH);
+        fElementViewer.getTree().setLayoutData(layoutData);
+        fElementViewer.setContentProvider(new TracePackageContentProvider());
+        fElementViewer.setLabelProvider(new TracePackageLabelProvider());
+    }
+
