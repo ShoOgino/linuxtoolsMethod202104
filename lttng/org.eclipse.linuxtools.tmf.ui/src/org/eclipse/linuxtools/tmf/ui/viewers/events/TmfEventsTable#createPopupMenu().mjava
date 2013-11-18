@@ -157,6 +157,41 @@
             }
         };
 
+        final IAction exportToTextAction = new Action(Messages.TmfEventsTable_Export_to_text) {
+            @Override
+            public void run() {
+                IWorkbenchPage activePage = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+                IHandlerService handlerService = (IHandlerService) activePage.getActiveEditor().getSite().getService(IHandlerService.class);
+                ICommandService cmdService = (ICommandService) activePage.getActiveEditor().getSite().getService(ICommandService.class);
+                try {
+                    HashMap<String, Object> parameters = new HashMap<String, Object>();
+                    StringBuilder header = new StringBuilder();
+                    boolean needTab = false;
+                    for (TableColumn tc: fTable.getColumns()) {
+                        if (needTab) {
+                            header.append('\t');
+                        }
+                        header.append(tc.getText());
+                        needTab = true;
+                    }
+                    Command command = cmdService.getCommand(ExportToTextCommandHandler.COMMAND_ID);
+                    ParameterizedCommand cmd = ParameterizedCommand.generateCommand(command,parameters);
+                    IEvaluationContext context = handlerService.getCurrentState();
+                    context.addVariable(ExportToTextCommandHandler.TMF_EVENT_TABLE_HEADER_ID, header.toString());
+                    context.addVariable(ExportToTextCommandHandler.TMF_EVENT_TABLE_PARAMETER_ID, TmfEventsTable.this);
+                    handlerService.executeCommandInContext(cmd, null, context);
+                } catch (ExecutionException e) {
+                    displayException(e);
+                } catch (NotDefinedException e) {
+                    displayException(e);
+                } catch (NotEnabledException e) {
+                    displayException(e);
+                } catch (NotHandledException e) {
+                    displayException(e);
+                }
+            }
+        };
+
         final IAction showSearchBarAction = new Action(Messages.TmfEventsTable_ShowSearchBarActionText) {
             @Override
             public void run() {
@@ -238,6 +273,7 @@
                 } else if (!fRawViewer.isVisible()) {
                     tablePopupMenu.add(showRawAction);
                 }
+                tablePopupMenu.add(exportToTextAction);
                 tablePopupMenu.add(new Separator());
 
                 if (item != null) {
