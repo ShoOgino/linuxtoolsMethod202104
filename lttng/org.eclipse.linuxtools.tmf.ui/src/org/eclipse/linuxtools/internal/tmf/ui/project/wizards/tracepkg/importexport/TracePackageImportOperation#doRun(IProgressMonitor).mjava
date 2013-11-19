@@ -36,16 +36,29 @@
                     return;
                 }
 
-                TraceTypeHelper traceType = TmfTraceType.getInstance().getTraceType(traceElement.getTraceType());
-                if (traceType == null) {
-                    setStatus(new Status(IStatus.ERROR, Activator.PLUGIN_ID, MessageFormat.format(Messages.ImportTracePackageWizardPage_ErrorSettingTraceType, traceElement.getTraceType(), traceName)));
-                    return;
+                TraceTypeHelper traceType = null;
+                String traceTypeStr = traceElement.getTraceType();
+                if (traceTypeStr != null) {
+                    traceType = TmfTraceType.getInstance().getTraceType(traceTypeStr);
+                    if (traceType == null) {
+                        setStatus(new Status(IStatus.ERROR, Activator.PLUGIN_ID, MessageFormat.format(Messages.ImportTracePackageWizardPage_ErrorSettingTraceType, traceElement.getTraceType(), traceName)));
+                        return;
+                    }
+                } else {
+                    try {
+                        progressMonitor.subTask(MessageFormat.format(Messages.TracePackageImportOperation_DetectingTraceType, traceName));
+                        traceType = TmfTraceType.getInstance().selectTraceType(traceRes.getLocation().toOSString(), null, null);
+                    } catch (TmfTraceImportException e) {
+                        // Could not figure out the type
+                    }
                 }
 
-                try {
-                    TmfTraceType.setTraceType(traceRes.getFullPath(), traceType);
-                } catch (CoreException e) {
-                    setStatus(new Status(IStatus.ERROR, Activator.PLUGIN_ID, MessageFormat.format(Messages.ImportTracePackageWizardPage_ErrorSettingTraceType, traceElement.getTraceType(), traceName), e));
+                if (traceType != null) {
+                    try {
+                        TmfTraceType.setTraceType(traceRes.getFullPath(), traceType);
+                    } catch (CoreException e) {
+                        setStatus(new Status(IStatus.ERROR, Activator.PLUGIN_ID, MessageFormat.format(Messages.ImportTracePackageWizardPage_ErrorSettingTraceType, traceElement.getTraceType(), traceName), e));
+                    }
                 }
 
                 importBookmarks(traceRes, traceElement, progressMonitor);

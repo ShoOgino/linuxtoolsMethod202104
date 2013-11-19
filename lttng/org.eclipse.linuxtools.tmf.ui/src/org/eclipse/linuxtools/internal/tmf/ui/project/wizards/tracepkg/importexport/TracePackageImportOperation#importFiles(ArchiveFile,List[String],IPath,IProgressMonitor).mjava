@@ -1,4 +1,4 @@
-    private IStatus importFiles(ArchiveFile archiveFile, List<String> fileNames, IPath pathInArchive, IPath destinationContainerPath, IProgressMonitor monitor) {
+    private IStatus importFiles(ArchiveFile archiveFile, List<String> fileNames, IPath destinationContainerPath, IProgressMonitor monitor) {
         List<ArchiveProviderElement> objects = new ArrayList<ArchiveProviderElement>();
         Enumeration<?> entries = archiveFile.entries();
         while (entries.hasMoreElements()) {
@@ -11,13 +11,19 @@
             }
 
             for (String fileName : fileNames) {
+
+                // Examples: Traces/kernel/     .tracing/testtexttrace.txt/statistics.ht
+                IPath searchedArchivePath = new Path(fileName);
+
                 // Check if this archive entry matches the searched file name at this archive location
-                IPath searchedArchivePath = pathInArchive.append(fileName);
                 if (fileNameMatches(searchedArchivePath.toString(), entryName)) {
-                    // Traces/kernel/metadata
-                    // kernel/metadata, the ImportOperation will take care of creating the kernel folder
-                    IPath destinationPath = fullArchivePath.removeFirstSegments(pathInArchive.segmentCount());
-                    // metadata
+                    // Traces/     .tracing/testtexttrace.txt/
+                    IPath searchedArchivePathContainer = searchedArchivePath.removeLastSegments(1);
+
+                    // Traces/kernel/metadata -> kernel/metadata   .tracing/testtexttrace.txt/statistics.ht -> statistics.ht
+                    // Note: The ImportOperation will take care of creating the kernel folder
+                    IPath destinationPath = fullArchivePath.makeRelativeTo(searchedArchivePathContainer);
+                    // metadata    statistics.ht
                     String resourceLabel = fullArchivePath.lastSegment();
 
                     ArchiveProviderElement pe = new ArchiveProviderElement(destinationPath.toString(), resourceLabel, archiveFile, entry);
