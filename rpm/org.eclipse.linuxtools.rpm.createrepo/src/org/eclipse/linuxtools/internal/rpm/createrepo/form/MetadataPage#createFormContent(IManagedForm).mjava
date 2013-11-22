@@ -1,0 +1,88 @@
+	/*
+	 * (non-Javadoc)
+	 * @see org.eclipse.ui.forms.editor.FormPage#createFormContent(org.eclipse.ui.forms.IManagedForm)
+	 */
+	@Override
+	protected void createFormContent(IManagedForm managedForm) {
+		// setting up the form page
+		super.createFormContent(managedForm);
+		GridLayout layout = new GridLayout();
+		GridData data = new GridData();
+		toolkit = managedForm.getToolkit();
+		form = managedForm.getForm();
+		form.setText(Messages.MetadataPage_formHeaderText);
+		form.setImage(Activator.getImageDescriptor(HEADER_ICON).createImage());
+		ToolBarManager toolbarManager = (ToolBarManager) form.getToolBarManager();
+		toolkit.decorateFormHeading(form.getForm());
+
+		// add the menuContribution from MANIFEST.MF to the form
+		IMenuService menuService = (IMenuService) getSite().getService(IMenuService.class);
+		menuService.populateContributionManager(toolbarManager, MENU_URI);
+		toolbarManager.update(true);
+
+		layout = new GridLayout();
+		layout.marginWidth = 6; layout.marginHeight = 12;
+		form.getBody().setLayout(layout);
+
+		//--------------------------------- REVISION SECTION START ----------
+		// Section and its client area to manage updating revision info
+		Section revSection = toolkit.createSection(form.getBody(), Section.DESCRIPTION
+				| Section.TITLE_BAR);
+		layout = new GridLayout();
+		data = new GridData();
+		data.verticalAlignment = GridData.FILL;
+		data.horizontalAlignment = GridData.FILL;
+		data.grabExcessHorizontalSpace = true;
+		revSection.setText(Messages.MetadataPage_sectionTitleRevision);
+		revSection.setDescription(Messages.MetadataPage_sectionInstructionRevision);
+		revSection.setLayoutData(data);
+
+		// the client area containing the editing fields
+		Composite sectionClient = toolkit.createComposite(revSection);
+		layout = new GridLayout(2, false);
+		layout.marginWidth = 1; layout.marginHeight = 7;
+		sectionClient.setLayout(layout);
+
+		revisionTxt = createTextFieldWithLabel(sectionClient, Messages.MetadataPage_labelRevision);
+		revSection.setClient(sectionClient);
+		//---------- REVISION SECTION END
+
+		//--------------------------------- TAGS SECTION START ----------
+		// Section and its client area to manage tags
+		Section tagSection = toolkit.createSection(form.getBody(), Section.DESCRIPTION
+				| Section.TITLE_BAR);
+		layout = new GridLayout();
+		tagSection.setText(Messages.MetadataPage_sectionTitleTags);
+		tagSection.setDescription(Messages.MetadataPage_sectionInstructionTags);
+		tagSection.setLayoutData(expandComposite());
+
+		// the client area containing the tags
+		Composite sectionClientTags = toolkit.createComposite(tagSection);
+		layout = new GridLayout(2, false);
+		layout.marginWidth = 1; layout.marginHeight = 7;
+		sectionClientTags.setLayout(layout);
+
+		// TODO: create custom tree to handle tags in specific categories (distro, content, repo)
+		tagsTree = toolkit.createTree(sectionClientTags, SWT.BORDER | SWT.MULTI | SWT.HORIZONTAL
+				| SWT.VERTICAL | SWT.LEFT_TO_RIGHT | SWT.SMOOTH);
+		tagsTree.setLayoutData(expandComposite());
+
+		// everything to do with the buttons
+		buttonList = toolkit.createComposite(sectionClientTags);
+		layout = new GridLayout();
+		data = new GridData(SWT.BEGINNING, SWT.FILL, false, true);
+		layout.marginWidth = 0; layout.marginHeight = 0;
+		buttonList.setLayout(layout);
+		buttonList.setLayoutData(data);
+		createPushButton(buttonList, Messages.MetadataPage_buttonAddTag,
+				toolkit).addSelectionListener(new AddTagButtonListener());
+		createPushButton(buttonList, Messages.MetadataPage_buttonEditTag,
+				toolkit).addSelectionListener(new EditTagButtonListener());
+		createPushButton(buttonList, Messages.MetadataPage_buttonRemoveTag,
+				toolkit).addSelectionListener(new RemoveTagButtonListener());
+		tagSection.setClient(sectionClientTags);
+		//---------- TAGS SECTION END
+
+		managedForm.refresh();
+	}
+
