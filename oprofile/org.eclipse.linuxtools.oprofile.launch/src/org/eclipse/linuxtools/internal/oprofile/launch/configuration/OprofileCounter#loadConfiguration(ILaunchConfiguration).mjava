@@ -5,22 +5,26 @@
 	public void loadConfiguration(ILaunchConfiguration config) {
 		try {
 			_enabled = config.getAttribute(OprofileLaunchPlugin.ATTR_COUNTER_ENABLED(number), false);
+			int numEvents = config.getAttribute(OprofileLaunchPlugin.ATTR_NUMBER_OF_EVENTS(number), 1);
+			daemonEvent = new OprofileDaemonEvent[numEvents];
 
-			String str = config.getAttribute(OprofileLaunchPlugin.ATTR_COUNTER_EVENT(number), ""); //$NON-NLS-1$
-			daemonEvent.setEvent(_eventFromString(str));
+			for (int i = 0; i < numEvents; i++) {
+				String str = config.getAttribute(OprofileLaunchPlugin.ATTR_COUNTER_EVENT(number, i), ""); //$NON-NLS-1$
+				int maskValue = config.getAttribute(OprofileLaunchPlugin.ATTR_COUNTER_UNIT_MASK(number), OpUnitMask.SET_DEFAULT_MASK);
 
-			if (daemonEvent.getEvent() == null) {
-				return;
+				daemonEvent[i] = new OprofileDaemonEvent();
+				daemonEvent[i].setEvent(_eventFromString(str));
+
+				if (daemonEvent[i].getEvent() == null) {
+					continue;
+				}
+
+				daemonEvent[i].getEvent().getUnitMask().setMaskValue(maskValue);
+				daemonEvent[i].setProfileKernel(config.getAttribute(OprofileLaunchPlugin.ATTR_COUNTER_PROFILE_KERNEL(number), false));
+				daemonEvent[i].setProfileUser(config.getAttribute(OprofileLaunchPlugin.ATTR_COUNTER_PROFILE_USER(number), false));
+
+				daemonEvent[i].setResetCount(config.getAttribute(OprofileLaunchPlugin.ATTR_COUNTER_COUNT(number), OprofileDaemonEvent.COUNT_UNINITIALIZED));
 			}
-			
-			
-			int maskValue =  config.getAttribute(OprofileLaunchPlugin.ATTR_COUNTER_UNIT_MASK(number), OpUnitMask.SET_DEFAULT_MASK);
-			daemonEvent.getEvent().getUnitMask().setMaskValue(maskValue);
-			
-			daemonEvent.setProfileKernel(config.getAttribute(OprofileLaunchPlugin.ATTR_COUNTER_PROFILE_KERNEL(number), false));
-			daemonEvent.setProfileUser(config.getAttribute(OprofileLaunchPlugin.ATTR_COUNTER_PROFILE_USER(number), false));
-			
-			daemonEvent.setResetCount(config.getAttribute(OprofileLaunchPlugin.ATTR_COUNTER_COUNT(number), OprofileDaemonEvent.COUNT_UNINITIALIZED));
 		} catch (CoreException ce) {
 			
 		}

@@ -20,7 +20,8 @@
 					counters[i].loadConfiguration(config);
 
 					for (CounterSubTab counterSubTab : counterSubTabs){
-						if(counterSubTab.enabledCheck.getSelection() && counterSubTab.eventList.getList().getSelectionIndex() == -1){
+						int nr = counterSubTab.counter.getNumber();
+						if(counterSubTab.enabledCheck.getSelection() && config.getAttribute(OprofileLaunchPlugin.ATTR_NUMBER_OF_EVENTS(nr), 0) == 0){
 							valid = false;
 						}
 					}
@@ -28,22 +29,25 @@
 					if (counters[i].getEnabled()) {
 						++numEnabledEvents;
 
-						if (counters[i].getEvent() == null) {
-							valid = false;
-							break;
-						}
+						for (OpEvent event : counters[i].getEvents()) {
+							if (event == null) {
+								valid = false;
+								break;
+							}
 
-						// First check min count
-						int min = counters[i].getEvent().getMinCount();
-						if (counters[i].getCount() < min) {
-							valid = false;
-							break;
-						}
+							// First check min count
+							int min = event.getMinCount();
+							if (counters[i].getCount() < min) {
+								valid = false;
+								break;
+							}
 
-						// Next ask oprofile if it is valid
-						if (!checkEventSetupValidity(counters[i].getNumber(), counters[i].getEvent().getText(), counters[i].getEvent().getUnitMask().getMaskValue())) {
-							valid = false;
-							break;
+							// Next ask oprofile if it is valid
+							if (!checkEventSetupValidity(
+									counters[i].getNumber(), event.getText(), event.getUnitMask().getMaskValue())) {
+								valid = false;
+								break;
+							}
 						}
 					}
 				}

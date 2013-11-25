@@ -3,21 +3,33 @@
 		 * and updates the UnitMask and event description text box.
 		 */
 		private void handleEventListSelectionChange() {
-			int index = eventList.getList().getSelectionIndex();
-			if (index != -1){
-				OpEvent event = (OpEvent) eventList.getElementAt(index);
-				counter.setEvent(event);
-				eventDescText.setText(event.getTextDescription());
-				unitMaskViewer.displayEvent(event);
+			int [] indices = eventList.getList().getSelectionIndices();
+			if (indices.length != 0) {
+				ArrayList<OpEvent> tmp = new ArrayList<OpEvent> ();
+				for (int index : indices) {
+					OpEvent event = (OpEvent) eventList.getElementAt(index);
+					tmp.add(event);
+					eventDescText.setText(event.getTextDescription());
+					unitMaskViewer.displayEvent(event);
+				}
 
-				// Check the min count to update the error message (events can have
+				// Check the min count to update the error message (events
+				// can have
 				// different minimum reset counts)
-				int min = counter.getEvent().getMinCount();
-				if ((counter.getCount() < min) && (!defaultEventCheck.getSelection())){
+				int min = Integer.MIN_VALUE;
+				for (OpEvent ev : tmp) {
+					// We want the largest of the min values
+					if (ev.getMinCount() > min) {
+						min = ev.getMinCount();
+					}
+				}
+				if ((counter.getCount() < min)
+						&& (!defaultEventCheck.getSelection())) {
 					setErrorMessage(getMinCountErrorMessage(min));
 				}
+
+				counter.setEvents(tmp.toArray(new OpEvent[0]));
 			} else {
-				counter.setEvent(null);
 				eventDescText.setText(""); //$NON-NLS-1$
 				if(unitMaskViewer != null){
 					unitMaskViewer.displayEvent(null);
