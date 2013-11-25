@@ -3,5 +3,19 @@
 		 * @see org.eclipse.swt.events.SelectionAdapter#widgetSelected(org.eclipse.swt.events.SelectionEvent)
 		 */
 		@Override
-		public void widgetSelected(SelectionEvent e) { }
+		public void widgetSelected(SelectionEvent e) {
+			IWorkbench workbench = PlatformUI.getWorkbench();
+			Shell shell = workbench.getModalDialogShellProvider().getShell();
+			FileDialog fileDialog = new FileDialog(shell, SWT.SINGLE);
+			fileDialog.setFilterExtensions(EXTENSION_FILTERS);
+			if (fileDialog.open() != null) {
+				File externalFile = new File(fileDialog.getFilterPath(), fileDialog.getFileName());
+				try {
+					project.importRPM(externalFile);
+					refreshTree();
+				} catch (CoreException e1) {
+					Activator.logError(Messages.ImportButtonListener_error, e1);
+				}
+			}
+		}
 

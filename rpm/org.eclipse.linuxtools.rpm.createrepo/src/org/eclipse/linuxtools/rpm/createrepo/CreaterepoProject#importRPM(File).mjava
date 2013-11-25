@@ -1,0 +1,26 @@
+	/**
+	 * Import an RPM file outside of the eclipse workspace.
+	 *
+	 * @param externalFile The external file to import.
+	 * @throws CoreException Thrown when failure to create a workspace file.
+	 */
+	public void importRPM(File externalFile) throws CoreException {
+		// must put imported RPMs into the content folder; create if missing
+		if (content == null) {
+			createContentFolder();
+		}
+		IFile file = getContentFolder().getFile(new Path(externalFile.getName()));
+		if (!file.exists()) {
+			try {
+				file.create(new FileInputStream(externalFile), false, monitor);
+			} catch (FileNotFoundException e) {
+				IStatus status = new Status(
+						IStatus.ERROR,
+						FrameworkUtil.getBundle(CreaterepoProject.class).getSymbolicName(),
+						Messages.CreaterepoProject_errorGettingFile, null);
+				throw new CoreException(status);
+			}
+			getProject().refreshLocal(IResource.DEPTH_INFINITE, monitor);
+		}
+	}
+
