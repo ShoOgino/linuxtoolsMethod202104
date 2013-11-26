@@ -7,10 +7,9 @@
 		//Set the layout data
 		Composite comp = new Composite(parent, SWT.NULL);
 		comp.setLayout(new GridLayout());
-		comp.setLayoutData(new GridData(GridData.FILL_BOTH));
 
 		Group cmpGraphOptsGraph = new Group(comp, SWT.SHADOW_ETCHED_IN);
-		cmpGraphOptsGraph.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+		cmpGraphOptsGraph.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, false, false));
 		RowLayout rowLayout = new RowLayout();
 		rowLayout.type = SWT.HORIZONTAL;
 		rowLayout.spacing = 10;
@@ -31,14 +30,8 @@
 			}
 		}
 
-		//Add the title widgets
-		//data1 = new FormData();
-		//data1.top = new FormAttachment(cmpGraphOptsGraph, 10);
-
 		Group cmpGraphOptsSeries = new Group(comp, SWT.SHADOW_ETCHED_IN);
-		cmpGraphOptsSeries.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-		//rowLayout = new RowLayout(SWT.VERTICAL);
-		//rowLayout.fill = true;
+		cmpGraphOptsSeries.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 		GridLayout layout = new GridLayout();
 		layout.numColumns = 2;
 		cmpGraphOptsSeries.setLayout(layout);
@@ -54,7 +47,6 @@
 		txtTitle.addModifyListener(new ModifyListener() {
 			@Override
 			public void modifyText(ModifyEvent e) {
-				getWizard().getContainer().updateButtons();
 				checkErrors();
 			}
 		});
@@ -64,11 +56,12 @@
 
 		cboYItems = new Combo[!edit ? labels.length : Math.max(labels.length, model.getYSeries().length)];
 		lblYItems = new Label[cboYItems.length];
+		deleted = new boolean[cboYItems.length + 1];
 
 		Label lblXItem = new Label(cmpGraphOptsSeries, SWT.NONE);
 		lblXItem.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false));
 		lblXItem.setText(Localization.getString("SelectGraphAndSeriesWizardPage.XSeries")); //$NON-NLS-1$
-		cboXItem = new Combo(cmpGraphOptsSeries, SWT.DROP_DOWN);
+		cboXItem = new Combo(cmpGraphOptsSeries, SWT.DROP_DOWN|SWT.READ_ONLY);
 		cboXItem.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 		cboXItem.addSelectionListener(new ComboSelectionListener());
 		cboXItem.add(Localization.getString("SelectGraphAndSeriesWizardPage.RowID")); //$NON-NLS-1$
@@ -76,8 +69,8 @@
 		for(int i=0; i<cboYItems.length; i++) {
 			lblYItems[i] = new Label(cmpGraphOptsSeries, SWT.NONE);
 			lblYItems[i].setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false));
-			lblYItems[i].setText(Localization.getString("SelectGraphAndSeriesWizardPage.YSeries") + i + ":"); //$NON-NLS-1$ //$NON-NLS-2$
-			cboYItems[i] = new Combo(cmpGraphOptsSeries, SWT.DROP_DOWN);
+			lblYItems[i].setText(MessageFormat.format(Localization.getString("SelectGraphAndSeriesWizardPage.YSeries"), new Integer(i))); //$NON-NLS-1$
+			cboYItems[i] = new Combo(cmpGraphOptsSeries, SWT.DROP_DOWN|SWT.READ_ONLY);
 			cboYItems[i].setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 			cboYItems[i].addSelectionListener(new ComboSelectionListener());
 
@@ -95,23 +88,28 @@
 		}
 
 		int selected;
-		boolean cvisible = edit;
 		if (!edit) {
 			cboXItem.select(0);
+			cboYItems[0].select(0);
 		} else {
 			selected = model.getXSeries();
 			if (selected < labels.length){
 				cboXItem.select(selected + 1);
 			} else {
-				cboXItem.setText(Localization.getString("SelectGraphAndSeriesWizardPage.Deleted")); //$NON-NLS-1$
+				cboXItem.add(Localization.getString("SelectGraphAndSeriesWizardPage.Deleted"), 0); //$NON-NLS-1$
+				cboXItem.select(0);
+				deleted[0] = true;
 			}
 			selected = model.getYSeries()[0];
 			if (selected < labels.length) {
 				cboYItems[0].select(selected);
 			} else {
-				cboYItems[0].setText(Localization.getString("SelectGraphAndSeriesWizardPage.Deleted")); //$NON-NLS-1$
+				cboYItems[0].add(Localization.getString("SelectGraphAndSeriesWizardPage.Deleted"), 0); //$NON-NLS-1$
+				cboYItems[0].select(0);
+				deleted[1] = true;
 			}
 		}
+		boolean cvisible = true;
 		for(int i=1; i<cboYItems.length; i++) {
 			if (!edit || model.getYSeries().length <= i) {
 				cboYItems[i].select(selected = 0);
@@ -120,7 +118,9 @@
 				if (selected < labels.length){
 					cboYItems[i].select(selected + 1);
 				} else {
-					cboYItems[i].setText(Localization.getString("SelectGraphAndSeriesWizardPage.Deleted")); //$NON-NLS-1$
+					cboYItems[i].add(Localization.getString("SelectGraphAndSeriesWizardPage.Deleted"), 0); //$NON-NLS-1$
+					cboYItems[i].select(0);
+					deleted[i+1] = true;
 				}
 			}
 			cboYItems[i].setVisible(cvisible);

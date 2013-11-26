@@ -1,15 +1,31 @@
     @Override
     public void mouseUp(MouseEvent event) {
-        if (fMouseDown) {
-            fMouseDown = false;
-            // Check if mouse click without move; if so, just set the current event time
-            if (event.x == fStartPosition) {
-                super.mouseDown(event);
-                return;
+        if (fDragState == DRAG_RANGE && event.button == fDragButton) {
+            fDragState = DRAG_NONE;
+            fDragButton = 0;
+            if (!fMouseMoved) {
+                // if single click without move, center on the click
+                long startTime = getTimestamp(event.x) - fRangeDuration / 2;
+                fRangeStartTime = Math.max(getStartTime(), Math.min(getEndTime() - fRangeDuration, startTime));
             }
-
             ((HistogramView) fParentView).updateTimeRange(fRangeStartTime, fRangeStartTime + fRangeDuration);
-
+            return;
+        } else if (fDragState == DRAG_ZOOM && event.button == fDragButton) {
+            fDragState = DRAG_NONE;
+            fDragButton = 0;
+            if (fRangeDuration < 0) {
+                fRangeStartTime = fRangeStartTime + fRangeDuration;
+                fRangeDuration = -fRangeDuration;
+            }
+            if (fRangeDuration > 0) {
+                ((HistogramView) fParentView).updateTimeRange(fRangeStartTime, fRangeStartTime + fRangeDuration);
+            } else {
+                fRangeStartTime = fZoom.getStartTime();
+                fRangeDuration = fZoom.getDuration();
+                fCanvas.redraw();
+            }
+            return;
         }
+        super.mouseUp(event);
     }
 

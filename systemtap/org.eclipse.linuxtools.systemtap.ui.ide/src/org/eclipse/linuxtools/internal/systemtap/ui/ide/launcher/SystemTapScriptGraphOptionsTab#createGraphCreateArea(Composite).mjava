@@ -54,7 +54,7 @@
 		addGraphButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				SelectGraphAndSeriesWizard wizard = new SelectGraphAndSeriesWizard(getDataset(), null);
+				SelectGraphAndSeriesWizard wizard = new SelectGraphAndSeriesWizard(getCurrentDataset(), null);
 				IWorkbench workbench = PlatformUI.getWorkbench();
 				wizard.init(workbench, null);
 				WizardDialog dialog = new WizardDialog(workbench
@@ -66,9 +66,8 @@
 
 				if (null != gd) {
 					TableItem item = new TableItem(graphsTable, SWT.NONE);
-					item.setText(GraphFactory.getGraphName(gd.graphID) + ":" //$NON-NLS-1$
-							+ gd.title);
-					item.setData(gd);
+					graphsData.add(gd);
+					setUpGraphTableItem(item, gd, false);
 					updateLaunchConfigurationDialog();
 				}
 			}
@@ -78,15 +77,15 @@
 		duplicateGraphButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				GraphData gd = (GraphData) selectedTableItem.getData();
+				GraphData gd = ((GraphData) selectedTableItem.getData()).getCopy();
 
 				TableItem item = new TableItem(graphsTable, SWT.NONE);
-				item.setText(GraphFactory.getGraphName(gd.graphID) + ":" //$NON-NLS-1$
-						+ gd.title);
-				item.setData(gd);
-				if (badGraphs.contains(selectedTableItem)) {
-					badGraphs.add(item);
-					markGraphTableItem(item, true);
+				graphsData.add(gd);
+				if (badGraphs.contains(selectedTableItem.getData())) {
+					badGraphs.add(gd);
+					setUpGraphTableItem(item, gd, true);
+				} else {
+					setUpGraphTableItem(item, gd, false);
 				}
 				updateLaunchConfigurationDialog();
 			}
@@ -98,7 +97,7 @@
 		editGraphButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				SelectGraphAndSeriesWizard wizard = new SelectGraphAndSeriesWizard(getDataset(),
+				SelectGraphAndSeriesWizard wizard = new SelectGraphAndSeriesWizard(getCurrentDataset(),
 						(GraphData) selectedTableItem.getData());
 				IWorkbench workbench = PlatformUI.getWorkbench();
 				wizard.init(workbench, null);
@@ -108,14 +107,14 @@
 				dialog.open();
 
 				GraphData gd = wizard.getGraphData();
-
-				if (null != gd) {
-					selectedTableItem.setText(GraphFactory.getGraphName(gd.graphID) + ":" //$NON-NLS-1$
-							+ gd.title);
-					selectedTableItem.setData(gd);
-					if (badGraphs.contains(selectedTableItem)){
-						findBadGraphs(selectedTableItem);
-					}
+				if (null == gd) {
+					return;
+				}
+				GraphData old_gd = (GraphData) selectedTableItem.getData();
+				if (!gd.equals(old_gd)) {
+					badGraphs.remove(old_gd);
+					setUpGraphTableItem(selectedTableItem, gd, false);
+					graphsData.set(graphsTable.indexOf(selectedTableItem), gd);
 					updateLaunchConfigurationDialog();
 				}
 			}
@@ -125,7 +124,9 @@
 		removeGraphButton.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
-				badGraphs.remove(selectedTableItem);
+				GraphData gd = (GraphData) selectedTableItem.getData();
+				graphsData.remove(gd);
+				badGraphs.remove(gd);
 				selectedTableItem.dispose();
 				setSelectionControlsEnabled(false);
 				updateLaunchConfigurationDialog();

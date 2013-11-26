@@ -1,0 +1,40 @@
+	/**
+	 * Marks all graphs belonging to the indicated regular expression that are
+	 * missing column data, or unmarks graphs that aren't missing data.
+	 * @param	regex The index of the regular expression to check for invalid graphs.
+	 * @return	An appropriate error message if an invalid graph is found, or if the
+	 * selected regular expression parses nothing.
+	 */
+	private String findBadGraphs(int regex) {
+		boolean foundBad = false;
+		int numberOfColumns = columnNamesList.get(regex).size();
+		for (GraphData gd : graphsDataList.get(regex)) {
+			boolean removed = false;
+			if (gd.xSeries >= numberOfColumns) {
+				removed = true;
+			}
+			for (int s = 0; s < gd.ySeries.length && !removed; s++) {
+				if (gd.ySeries[s] >= numberOfColumns) {
+					removed = true;
+				}
+			}
+			if (removed) {
+				foundBad = true;
+				if (!badGraphs.contains(gd)) {
+					badGraphs.add(gd);
+					setUpGraphTableItem(findGraphTableItem(gd), null, true);
+				}
+			} else if (badGraphs.contains(gd)) {
+				badGraphs.remove(gd);
+				setUpGraphTableItem(findGraphTableItem(gd), null, false);
+			}
+		}
+		if (numberOfColumns == 0) {
+			return Messages.SystemTapScriptGraphOptionsTab_9;
+		}
+		if (foundBad) {
+			return Messages.SystemTapScriptGraphOptionsTab_8;
+		}
+		return null;
+	}
+

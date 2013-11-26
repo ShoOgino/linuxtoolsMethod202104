@@ -1,7 +1,6 @@
     @Override
     public void mouseMove(MouseEvent event) {
-
-        if (fMouseDown) {
+        if (fDragState == DRAG_RANGE) {
             int nbBuckets = event.x - fStartPosition;
             long delta = nbBuckets * fScaledData.fBucketDuration;
             long newStart = fZoom.getStartTime() + delta;
@@ -14,7 +13,15 @@
                 newStart = newEnd - fZoom.getDuration();
             }
             fRangeStartTime = newStart;
-            fDataModel.complete();
+            fCanvas.redraw();
+            fMouseMoved = true;
+            return;
+        } else if (fDragState == DRAG_ZOOM) {
+            long endTime = Math.max(getStartTime(), Math.min(getEndTime(), getTimestamp(event.x)));
+            fRangeDuration = endTime - fRangeStartTime;
+            fCanvas.redraw();
+            return;
         }
+        super.mouseMove(event);
     }
 

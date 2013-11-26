@@ -1,45 +1,43 @@
 	/**
 	 * Checks for conflicts in data selection. (An example of a conflict
 	 * is two Y-series fields set to the same output value.)
-	 * @return True if there is no conflict, false otherwise.
+	 * @return <code>true</code> if there is no conflict, <code>false</code> otherwise.
+	 * Also visually marks conficting series.
 	 */
 	private boolean isSeriesUnique() {
-		if("".equals(txtTitle.getText().trim())) { //$NON-NLS-1$
-			return false;
-		}
-		if(null != txtKey && txtKey.isEnabled() && txtKey.getText().length() <= 0) {
-			return false;
-		}
+		boolean foundDuplicate = false;
 
-		if (cboXItem.getText().contentEquals(Localization.getString("SelectGraphAndSeriesWizardPage.Deleted"))) { //$NON-NLS-1$
-			return false;
+		// Undo duplicate marking, as it is to be updated.
+		markAsDuplicate(cboXItem, false);
+		for (int i = 0; i < cboYItems.length; i++) {
+			markAsDuplicate(cboYItems[i], false);
 		}
 
 		for(int j,i=0; i<cboYItems.length; i++) {
-			if (cboYItems[i].getText().contentEquals(Localization.getString("SelectGraphAndSeriesWizardPage.Deleted"))) { //$NON-NLS-1$
-				return false;
-			}
-			if(cboYItems[i].isVisible()) {
+			if(cboYItems[i].isVisible() && !deleted[i+1]) {
 				for(j=i+1; j<cboYItems.length; j++) {
-					if(cboYItems[j].isVisible()) {
-						if(0 > cboYItems[i].getSelectionIndex())
-							return false;
-						else if(0 > cboYItems[j].getSelectionIndex())
-							return false;
-						else if(cboYItems[i].getItem(cboYItems[i].getSelectionIndex()).equals(cboYItems[j].getItem(cboYItems[j].getSelectionIndex()))) {
-							return false;
+					try {
+						if(!deleted[j+1] && cboYItems[j].isVisible() && cboYItems[i].getItem(cboYItems[i].getSelectionIndex())
+								.equals(cboYItems[j].getItem(cboYItems[j].getSelectionIndex()))) {
+								markAsDuplicate(cboYItems[i], true);
+								markAsDuplicate(cboYItems[j], true);
+								foundDuplicate = true;
 						}
+					} catch (Exception e) {
+						// If a cboYItem has no item selected, don't mark any duplicates. Ignore.
 					}
 				}
-				if(0 > cboYItems[i].getSelectionIndex())
-					return false;
-				else if(0 > cboXItem.getSelectionIndex())
-					return false;
-				else if(cboYItems[i].getItem(cboYItems[i].getSelectionIndex()).equals(cboXItem.getItem(cboXItem.getSelectionIndex()))) {
-					return false;
+				try {
+					if(!deleted[0] && cboYItems[i].getItem(cboYItems[i].getSelectionIndex()).equals(cboXItem.getItem(cboXItem.getSelectionIndex()))) {
+						markAsDuplicate(cboYItems[i], true);
+						markAsDuplicate(cboXItem, true);
+						foundDuplicate = true;
+					}
+				} catch (Exception e) {
+					// Ignore for same reason as above.
 				}
 			}
 		}
-		return true;
+		return !foundDuplicate;
 	}
 

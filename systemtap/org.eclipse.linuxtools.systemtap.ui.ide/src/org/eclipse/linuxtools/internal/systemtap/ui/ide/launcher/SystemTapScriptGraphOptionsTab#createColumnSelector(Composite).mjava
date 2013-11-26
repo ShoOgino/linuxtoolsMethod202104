@@ -6,42 +6,118 @@
 		GridLayout twoColumns = new GridLayout();
 		twoColumns.numColumns = 2;
 
+		GridLayout threeColumns = new GridLayout();
+		threeColumns.numColumns = 3;
+
+		Composite regexButtonLayout = new Composite(parent, SWT.NONE);
+		regexButtonLayout.setLayout(threeColumns);
+		regexButtonLayout.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+
+		Label selectedRegexLabel = new Label(regexButtonLayout, SWT.NONE);
+		selectedRegexLabel.setText(Messages.SystemTapScriptGraphOptionsTab_regexLabel);
+		selectedRegexLabel.setToolTipText(Messages.SystemTapScriptGraphOptionsTab_regexTooltip);
+		regularExpressionCombo = new Combo(regexButtonLayout, SWT.DROP_DOWN);
+		regularExpressionCombo.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+		regularExpressionCombo.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				int selected = regularExpressionCombo.getSelectionIndex();
+				if (selected == selectedRegex) {
+					return;
+				}
+
+				// If deselecting an empty regular expression, delete it automatically.
+				if (regularExpressionCombo.getItem(selectedRegex).equals("")  //$NON-NLS-1$
+						&& graphsDataList.get(selectedRegex).size() == 0
+						&& outputList.get(selectedRegex).equals("")) { //$NON-NLS-1$
+
+					// If the deselected regex is the last one in the combo, just quit.
+					// Otherwise, the deleted blank entry would be replaced by another blank entry.
+					if (selected == regularExpressionCombo.getItemCount() - 1) {
+						regularExpressionCombo.select(selectedRegex); // To keep the text blank.
+						return;
+					}
+					removeRegex(false);
+					if (selected > selectedRegex) {
+						selected--;
+					}
+				}
+
+				// When selecting the "Add New Regex" item in the combo (which is always the last item),
+				// update all appropriate values to make room for a new regular expression.
+				if (selected == regularExpressionCombo.getItemCount() - 1 && getNumberOfRegexs() < MAX_NUMBER_OF_REGEXS) {
+					outputList.add(""); //$NON-NLS-1$
+					regexErrorMessages.add(null);
+					columnNamesList.add(new ArrayList<String>());
+					cachedNamesList.add(new Stack<String>());
+					graphsDataList.add(new LinkedList<GraphData>());
+
+					// Remove "Add New Regex" from the selected combo item; make it blank.
+					regularExpressionCombo.setItem(selected, ""); //$NON-NLS-1$
+					regularExpressionCombo.select(selected);
+					updateRegexSelection(selected, false);
+					updateLaunchConfigurationDialog();
+
+					// Enable the "remove" button if only one item was present before.
+					// (Don't do this _every_ time something is added.)
+					if (getNumberOfRegexs() == 2) {
+						removeRegexButton.setEnabled(true);
+					}
+					if (getNumberOfRegexs() < MAX_NUMBER_OF_REGEXS) {
+						regularExpressionCombo.add(Messages.SystemTapScriptGraphOptionsTab_regexAddNew);
+					}
+				} else {
+					updateRegexSelection(selected, false);
+				}
+			}
+		});
+		regularExpressionCombo.addModifyListener(regexListener);
+
+		removeRegexButton = new Button(regexButtonLayout, SWT.PUSH);
+		removeRegexButton.setLayoutData(new GridData(SWT.BEGINNING, SWT.BEGINNING, false, false));
+		removeRegexButton.setText(Messages.SystemTapScriptGraphOptionsTab_regexRemove);
+		removeRegexButton.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				IWorkbench workbench = PlatformUI.getWorkbench();
+				MessageDialog dialog = new MessageDialog(workbench
+						.getActiveWorkbenchWindow().getShell(), Messages.SystemTapScriptGraphOptionsTab_removeRegexTitle, null,
+						MessageFormat.format(Messages.SystemTapScriptGraphOptionsTab_removeRegexAsk,
+								regularExpressionCombo.getItem(selectedRegex)),
+						MessageDialog.QUESTION, new String[]{"Yes", "No"}, 0); //$NON-NLS-1$ //$NON-NLS-2$
+				int result = dialog.open();
+				if (result == 0) { //Yes
+					removeRegex(true);
+				}
+			}
+		});
+
 		Composite regexSummaryComposite = new Composite(parent, SWT.NONE);
 		regexSummaryComposite.setLayout(twoColumns);
 		regexSummaryComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-
-		Label regularExpressionLabel = new Label(regexSummaryComposite, SWT.NONE);
-		regularExpressionLabel.setText(Messages.ParsingWizardPage_RegularExpression + ":"); //$NON-NLS-1$
-		regularExpressionLabel.setToolTipText(Messages.SystemTapScriptGraphOptionsTab_regexTooltip);
-		regularExpressionText = new Text(regexSummaryComposite, SWT.BORDER);
-		regularExpressionText.setToolTipText(Messages.SystemTapScriptGraphOptionsTab_regexTooltip);
-		regularExpressionText.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-		regularExpressionText.addModifyListener(regExListener);
 
 		Label sampleOutputLabel = new Label(regexSummaryComposite, SWT.NONE);
 		sampleOutputLabel.setText(Messages.SystemTapScriptGraphOptionsTab_sampleOutputLabel);
 		sampleOutputLabel.setToolTipText(Messages.SystemTapScriptGraphOptionsTab_sampleOutputTooltip);
 		this.sampleOutputText = new Text(regexSummaryComposite, SWT.BORDER);
 		this.sampleOutputText.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-		this.sampleOutputText.addModifyListener(regExListener);
+		this.sampleOutputText.addModifyListener(sampleOutputListener);
 		sampleOutputText.setToolTipText(Messages.SystemTapScriptGraphOptionsTab_sampleOutputTooltip);
 
-		GridLayout threeColumnLayout = new GridLayout();
-		threeColumnLayout.numColumns = 3;
-		threeColumnLayout.makeColumnsEqualWidth = true;
 		Composite expressionTableLabels = new Composite(parent, SWT.NONE);
-		expressionTableLabels.setLayout(threeColumnLayout);
+		expressionTableLabels.setLayout(twoColumns);
 		expressionTableLabels.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 
 		Label label = new Label(expressionTableLabels, SWT.NONE);
-		label.setText(Messages.ParsingWizardPage_Title);
-		label.setAlignment(SWT.CENTER);
+		label.setText(Messages.SystemTapScriptGraphOptionsTab_columnTitle);
+		label.setAlignment(SWT.LEFT);
 		GridData data = new GridData(SWT.FILL, SWT.FILL, false, false);
 		data.widthHint = 200;
 
 		label.setLayoutData(data);
 
 		label = new Label(expressionTableLabels, SWT.NONE);
+		label.setAlignment(SWT.CENTER);
 		label.setText(Messages.SystemTapScriptGraphOptionsTab_extractedValueLabel);
 		label.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 
@@ -56,7 +132,5 @@
 		regexTextScrolledComposite.setContent(textFieldsComposite);
 		regexTextScrolledComposite.setExpandHorizontal(true);
 		regexTextScrolledComposite.setExpandVertical(false);
-
-		refreshRegexRows();
 	}
 

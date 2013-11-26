@@ -1,29 +1,22 @@
     @Override
     public void mouseDown(final MouseEvent event) {
-        if (fDataModel.getNbEvents() > 0 && fScaledData.fLastBucket >= event.x) {
-            if ((event.stateMask & SWT.MODIFIER_MASK) == 0) {
-                fScaledData.fSelectionBeginBucket = event.x;
-                fScaledData.fSelectionEndBucket = event.x;
-                fSelectionBegin = getTimestamp(event.x);
-                fSelectionEnd = fSelectionBegin;
-            } else if ((event.stateMask & SWT.MODIFIER_MASK) == SWT.SHIFT) {
-                if (fSelectionBegin == fSelectionEnd) {
-                    if (event.x < fScaledData.fSelectionBeginBucket) {
-                        fScaledData.fSelectionBeginBucket = event.x;
-                        fSelectionBegin = getTimestamp(event.x);
-                    } else {
-                        fScaledData.fSelectionEndBucket = event.x;
-                        fSelectionEnd = getTimestamp(event.x);
-                    }
-                } else if (Math.abs(event.x - fScaledData.fSelectionBeginBucket) <= Math.abs(event.x - fScaledData.fSelectionEndBucket)) {
-                    fScaledData.fSelectionBeginBucket = event.x;
-                    fSelectionBegin = getTimestamp(event.x);
-                } else {
-                    fScaledData.fSelectionEndBucket = event.x;
-                    fSelectionEnd = getTimestamp(event.x);
+        if (event.button == 1 && fDragState == DRAG_NONE && fDataModel.getNbEvents() != 0) {
+            fDragState = DRAG_SELECTION;
+            fDragButton = event.button;
+            if ((event.stateMask & SWT.MODIFIER_MASK) == SWT.SHIFT) {
+                if (Math.abs(event.x - fScaledData.fSelectionBeginBucket) < Math.abs(event.x - fScaledData.fSelectionEndBucket)) {
+                    fScaledData.fSelectionBeginBucket = fScaledData.fSelectionEndBucket;
+                    fSelectionBegin = fSelectionEnd;
                 }
+                fSelectionEnd = Math.min(getTimestamp(event.x), getEndTime());
+                fScaledData.fSelectionEndBucket = (int) ((fSelectionEnd - fScaledData.fFirstBucketTime) / fScaledData.fBucketDuration);
+            } else {
+                fSelectionBegin = Math.min(getTimestamp(event.x), getEndTime());
+                fScaledData.fSelectionBeginBucket = (int) ((fSelectionBegin - fScaledData.fFirstBucketTime) / fScaledData.fBucketDuration);
+                fSelectionEnd = fSelectionBegin;
+                fScaledData.fSelectionEndBucket = fScaledData.fSelectionBeginBucket;
             }
-            updateSelectionTime();
+            fCanvas.redraw();
         }
     }
 

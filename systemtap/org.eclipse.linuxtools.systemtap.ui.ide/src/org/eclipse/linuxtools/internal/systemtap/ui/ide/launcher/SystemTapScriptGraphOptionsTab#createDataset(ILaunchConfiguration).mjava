@@ -1,15 +1,25 @@
-	public static IDataSet createDataset(ILaunchConfiguration configuration) {
-		int n;
+	/**
+	 * Creates a data set corresponding to the titles given to each output column
+	 * from each of a run configuration's regular expressions.
+	 * @param configuration
+	 * @return
+	 */
+	public static ArrayList<IDataSet> createDataset(ILaunchConfiguration configuration) {
 		try {
-			n = configuration.getAttribute(NUMBER_OF_COLUMNS, 0);
-			ArrayList<String> labels = new ArrayList<String>(n);
+			int numberOfRegexs = configuration.getAttribute(NUMBER_OF_REGEXS, 0);
+			ArrayList<IDataSet> datasets = new ArrayList<IDataSet>(numberOfRegexs);
 
-			for (int i = 0; i < n; i++) {
-				String text = configuration.getAttribute(REGEX_BOX + i, (String) null);
-				labels.add(text);
+			for (int r = 0; r < numberOfRegexs; r++) {
+				int numberOfColumns = configuration.getAttribute(NUMBER_OF_COLUMNS + r, 0);
+				ArrayList<String> labels = new ArrayList<String>(numberOfColumns);
+
+				for (int c = 0; c < numberOfColumns; c++) {
+					labels.add(configuration.getAttribute(get2DConfigData(REGEX_BOX, r, c), "")); //$NON-NLS-1$
+				}
+				datasets.add(DataSetFactory.createDataSet(RowDataSet.ID, labels.toArray(new String[] {})));
 			}
 
-			return DataSetFactory.createDataSet(RowDataSet.ID, labels.toArray(new String[] {}));
+			return datasets;
 		} catch (CoreException e) {
 			ExceptionErrorDialog.openError(Messages.SystemTapScriptGraphOptionsTab_1, e);
 		}
