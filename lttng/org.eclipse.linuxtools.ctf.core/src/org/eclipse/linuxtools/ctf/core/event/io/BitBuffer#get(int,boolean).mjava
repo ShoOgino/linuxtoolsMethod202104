@@ -1,0 +1,42 @@
+    /**
+     * Relative <i>get</i> method for reading long of <i>length</i> bits.
+     *
+     * Reads <i>length</i> bits starting at the current position. The result is
+     * signed extended if <i>signed</i> is true. The current position is
+     * increased of <i>length</i> bits.
+     *
+     * @param length
+     *            The length in bits of this integer
+     * @param signed
+     *            The sign extended flag
+     * @return The long value read from the buffer
+     * @throws CTFReaderException
+     *             An error occurred reading the data. If more than 64 bits at a
+     *             time are read, or the buffer is read beyond its end, this
+     *             exception will be raised.
+     */
+    public long get(int length, boolean signed) throws CTFReaderException {
+        if (length > BIT_LONG) {
+            throw new CTFReaderException("Cannot read a long longer than 64 bits. Rquested: " + length); //$NON-NLS-1$
+        }
+        if (length > BIT_INT) {
+            final int highShift = length - BIT_INT;
+            long a = getInt();
+            long b = getInt(highShift, false);
+            long retVal;
+            /* Cast the signed-extended int into a unsigned int. */
+            a &= 0xFFFFFFFFL;
+            b &= (1L << highShift) - 1L;
+
+            retVal = (this.byteOrder == ByteOrder.BIG_ENDIAN) ? ((a << highShift) | b) : ((b << BIT_INT) | a);
+            /* sign extend */
+            if (signed) {
+                int signExtendBits = BIT_LONG - length;
+                retVal = (retVal << signExtendBits) >> signExtendBits;
+            }
+            return retVal;
+        }
+        long retVal = getInt(length, signed);
+        return (signed ? retVal : (retVal & 0xFFFFFFFFL));
+    }
+

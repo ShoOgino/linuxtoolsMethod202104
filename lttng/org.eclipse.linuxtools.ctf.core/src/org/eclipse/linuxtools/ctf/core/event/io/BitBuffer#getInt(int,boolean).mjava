@@ -14,7 +14,7 @@
      *             An error occurred reading the data. When the buffer is read
      *             beyond its end, this exception will be raised.
      */
-    public int getInt(int length, boolean signed) throws CTFReaderException {
+    private int getInt(int length, boolean signed) throws CTFReaderException {
 
         /* Nothing to read. */
         if (length == 0) {
@@ -32,9 +32,15 @@
         int val = 0;
         boolean gotIt = false;
 
-        /* Try a fast read when the position is byte-aligned by using the */
-        /* native methods of ByteBuffer. */
-        if (this.pos % BitBuffer.BIT_CHAR == 0) {
+        /*
+         * Try a fast read when the position is byte-aligned by using
+         * java.nio.ByteBuffer's native methods
+         */
+        /*
+         * A faster alignment detection as the compiler cannot guaranty that pos
+         * is always positive.
+         */
+        if ((this.pos & (BitBuffer.BIT_CHAR - 1)) == 0) {
             switch (length) {
             case BitBuffer.BIT_CHAR:
                 // Byte
