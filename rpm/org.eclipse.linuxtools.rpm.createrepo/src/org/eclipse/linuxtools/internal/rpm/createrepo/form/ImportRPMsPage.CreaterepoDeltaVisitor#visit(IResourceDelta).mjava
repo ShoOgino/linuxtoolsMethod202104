@@ -1,0 +1,39 @@
+		/*
+		 * (non-Javadoc)
+		 * @see org.eclipse.core.resources.IResourceDeltaVisitor#visit(org.eclipse.core.resources.IResourceDelta)
+		 */
+		@Override
+		public boolean visit(IResourceDelta delta) {
+			// exit if the project is being removed or closed
+			if (delta.getKind() == IResourceDelta.REMOVED ||
+					(delta.getFlags() | delta.getKind()) == (IResourceDelta.OPEN | IResourceDelta.CHANGED)) {
+				return false;
+			}
+			// get the files that were removed and exit if nothing was removed
+			IResourceDelta[] removedFiles = delta.getAffectedChildren(IResourceDelta.REMOVED);
+			if (removedFiles.length <= 0) {
+				return false;
+			}
+			// check if at least 1 of the files removed is an RPM and break out if so
+			boolean rpmsDeleted = false;
+			for (IResourceDelta resourceDelta : removedFiles) {
+				String extension = resourceDelta.getResource().getFileExtension();
+				if (extension != null && extension.equals(ICreaterepoConstants.RPM_FILE_EXTENSION)) {
+					rpmsDeleted = true;
+					break;
+				}
+			}
+			// exit if none of the removed files is an RPM; no need to update list
+			if (!rpmsDeleted) {
+				return false;
+			}
+			// deals with updating the UI of the page
+			PlatformUI.getWorkbench().getDisplay().asyncExec(new Runnable() {
+				@Override
+				public void run() {
+					refreshTree();
+				}
+			});
+			return false;
+		}
+
