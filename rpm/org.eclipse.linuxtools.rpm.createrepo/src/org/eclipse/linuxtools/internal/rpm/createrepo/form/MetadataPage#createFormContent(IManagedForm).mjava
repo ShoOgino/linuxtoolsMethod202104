@@ -44,6 +44,10 @@
 		sectionClient.setLayout(layout);
 
 		revisionTxt = createTextFieldWithLabel(sectionClient, Messages.MetadataPage_labelRevision);
+		String prefRevisionTxt = eclipsePreferences.get(CreaterepoPreferenceConstants.PREF_REVISION, ICreaterepoConstants.EMPTY_STRING);
+		if (!prefRevisionTxt.isEmpty()) {
+			revisionTxt.setText(prefRevisionTxt);
+		}
 		revSection.setClient(sectionClient);
 		//---------- REVISION SECTION END
 
@@ -62,9 +66,51 @@
 		layout.marginWidth = 1; layout.marginHeight = 7;
 		sectionClientTags.setLayout(layout);
 
-		// TODO: create custom tree to handle tags in specific categories (distro, content, repo)
-		tagsTree = toolkit.createTree(sectionClientTags, SWT.BORDER | SWT.MULTI | SWT.HORIZONTAL
+		tagTxt = createTextFieldWithLabel(sectionClientTags, Messages.MetadataPage_labelTags);
+		tagTxt.addSelectionListener(new SelectionAdapter() {
+			/*
+			 * (non-Javadoc)
+			 * @see org.eclipse.swt.events.SelectionListener#widgetDefaultSelected(org.eclipse.swt.events.SelectionEvent)
+			 */
+			@Override
+			public void widgetDefaultSelected(SelectionEvent e) {
+				addTag();
+			}
+		});
+
+		tagsTreeViewer = new TreeViewer(sectionClientTags, SWT.BORDER | SWT.SINGLE | SWT.HORIZONTAL
 				| SWT.VERTICAL | SWT.LEFT_TO_RIGHT | SWT.SMOOTH);
+		tagsTreeViewer.setContentProvider(new CreaterepoTreeContentProvider());
+		tagsTreeViewer.setLabelProvider(new CreaterepoTreeLabelProvider());
+		CreaterepoCategoryModel test = new CreaterepoCategoryModel(project);
+		tagsTreeViewer.setInput(test);
+		// change the tag text field on change (make editing tag easier)
+		tagsTreeViewer.addSelectionChangedListener(new ISelectionChangedListener() {
+			@Override
+			public void selectionChanged(SelectionChangedEvent event) {
+				if (tagsTree.getSelectionCount() == 1) {
+					TreeItem treeItem = tagsTree.getSelection()[0];
+					if (!(treeItem.getData() instanceof CreaterepoTreeCategory)) {
+						String tag = (String) treeItem.getData();
+						tagTxt.setText(tag);
+					} else {
+						tagTxt.setText(ICreaterepoConstants.EMPTY_STRING);
+					}
+				}
+			}
+		});
+		// expand or shrink a category
+		tagsTreeViewer.addDoubleClickListener(new IDoubleClickListener() {
+			@Override
+			public void doubleClick(DoubleClickEvent event) {
+				IStructuredSelection selection = (IStructuredSelection) tagsTreeViewer.getSelection();
+				if (selection.getFirstElement() instanceof CreaterepoTreeCategory) {
+					CreaterepoTreeCategory category = (CreaterepoTreeCategory) selection.getFirstElement();
+					tagsTreeViewer.setExpandedState(category, !tagsTreeViewer.getExpandedState(category));
+				}
+			}
+		});
+		tagsTree = tagsTreeViewer.getTree();
 		tagsTree.setLayoutData(expandComposite());
 
 		// everything to do with the buttons
@@ -82,7 +128,7 @@
 				toolkit).addSelectionListener(new RemoveTagButtonListener());
 		tagSection.setClient(sectionClientTags);
 		//---------- TAGS SECTION END
-
+		refreshTree();
 		managedForm.refresh();
 	}
 
