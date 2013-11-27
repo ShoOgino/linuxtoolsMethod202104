@@ -1,23 +1,24 @@
 	protected void updateWorkingDirFromConfig(ILaunchConfiguration config) {
 		if (workingDirText != null) {
-			String workingDir = EMPTY_STRING;
+			String projectDir = EMPTY_STRING;
 			try {
-				workingDir = config.getAttribute(ATTR_REMOTE_WORKING_DIRECTORY_NAME, EMPTY_STRING);
+				projectDir = config.getAttribute(ATTR_REMOTE_WORKING_DIRECTORY_NAME, EMPTY_STRING);
 			} catch (CoreException ce) {
 				ProfileLaunchPlugin.log(ce);
 			}
 
-			if (workingDir.equals(EMPTY_STRING)){
-					if(this.fProjText != null){
-						IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
-						IProject project = root.getProject(this.fProjText.getText());
-						if(project != null){
-							workingDir = project.getLocationURI().toString();
-						}
+			if (projectDir.equals(EMPTY_STRING)){
+				if(this.fProjText != null){
+					IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+					IProject project = root.getProject(this.fProjText.getText());
+					try {
+						projectDir = RemoteProxyManager.getInstance().getRemoteProjectLocation(project);
+					} catch (CoreException e) {
+						setErrorMessage(fPreviouslyCheckedWorkingDirErrorMsg = ProxyLaunchMessages.error_accessing_working_directory);
 					}
+				}
 			}
-
-			workingDirText.setText(workingDir);
+			workingDirText.setText(projectDir);
 		}
 	}
 

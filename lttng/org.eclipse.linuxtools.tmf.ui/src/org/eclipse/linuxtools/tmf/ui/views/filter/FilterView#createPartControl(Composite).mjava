@@ -10,13 +10,25 @@
             @Override
             public void selectionChanged(SelectionChangedEvent event) {
                 if (!(event.getSelection().isEmpty()) && event.getSelection() instanceof IStructuredSelection) {
-                    fDeleteAction.setEnabled(true);
                     fExportAction.setEnabled(true);
                 } else {
-                    fDeleteAction.setEnabled(false);
                     fExportAction.setEnabled(false);
                 }
             }
         });
+        this.getSite().setSelectionProvider(fViewer.getTreeViewer());
+
+        // Adds root context menu
+        MenuManager menuManager = new MenuManager();
+        menuManager.setRemoveAllWhenShown(true);
+        menuManager.addMenuListener(new IMenuListener() {
+            @Override
+            public void menuAboutToShow(IMenuManager manager) {
+                fViewer.fillContextMenu(manager);
+            }
+        });
+        Menu contextMenu = menuManager.createContextMenu(fViewer.getTreeViewer().getTree());
+        fViewer.getTreeViewer().getTree().setMenu(contextMenu);
+        this.getSite().registerContextMenu(menuManager, fViewer.getTreeViewer());
     }
 
