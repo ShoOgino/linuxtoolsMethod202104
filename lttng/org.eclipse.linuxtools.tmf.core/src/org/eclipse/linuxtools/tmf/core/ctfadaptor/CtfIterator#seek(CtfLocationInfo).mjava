@@ -3,7 +3,8 @@
      *
      * @param ctfLocationData
      *            The LocationData representing the position to seek to
-     * @return boolean
+     * @return boolean True if the seek was successful, false if there was an
+     *         error seeking.
      * @since 2.0
      */
     public synchronized boolean seek(final CtfLocationInfo ctfLocationData) {
@@ -17,12 +18,16 @@
         /* Adjust the timestamp depending on the trace's offset */
         long currTimestamp = ctfLocationData.getTimestamp();
         final long offsetTimestamp = this.getCtfTmfTrace().getCTFTrace().timestampNanoToCycles(currTimestamp);
-        if (offsetTimestamp < 0) {
-            ret = super.seek(0L);
-        } else {
-            ret = super.seek(offsetTimestamp);
+        try {
+            if (offsetTimestamp < 0) {
+                ret = super.seek(0L);
+            } else {
+                ret = super.seek(offsetTimestamp);
+            }
+        } catch (CTFReaderException e) {
+            Activator.logError(e.getMessage(), e);
+            return false;
         }
-
         /*
          * Check if there is already one or more events for that timestamp, and
          * assign the location index correctly
