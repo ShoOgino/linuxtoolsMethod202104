@@ -2,6 +2,18 @@
 	public void launch(ILaunchConfiguration configuration, String mode,
 			ILaunch launch, IProgressMonitor monitor) throws CoreException {
 
+		// Wait for other stap launches' consoles to be initiated before starting a new launch.
+		ILaunchManager manager = DebugPlugin.getDefault().getLaunchManager();
+		for (ILaunch olaunch : manager.getLaunches()) {
+			if (olaunch.equals(launch)) {
+				continue;
+			}
+			if (olaunch instanceof SystemTapScriptLaunch && ((SystemTapScriptLaunch) olaunch).getConsole() == null) {
+				throw new CoreException(new Status(IStatus.ERROR, getPluginID(),
+						Messages.SystemTapScriptLaunchError_waitForConsoles));
+			}
+		}
+
 		if (!SystemTapScriptGraphOptionsTab.isValidLaunch(configuration)) {
 			throw new CoreException(new Status(IStatus.ERROR, getPluginID(), Messages.SystemTapScriptLaunchError_graph));
 		}
@@ -81,6 +93,7 @@
 			action.addComandLineOptions(value);
 		}
 
+		action.setLaunch((SystemTapScriptLaunch) launch);
 		action.execute(null);
 	}
 

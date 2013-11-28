@@ -1,10 +1,10 @@
 	/**
-	 * This method is used to get a reference to a <code>ScriptConsole</code>.  If there
+	 * This method is used to create a reference to a new <code>ScriptConsole</code>.  If there
 	 * is already an console that has the same name as that provided it will be stopped,
 	 * cleared and returned to the caller to use.  If there is no console matching the
 	 * provided name then a new <code>ScriptConsole</code> will be created for use.
-	 * @param name The name of the console that should be returned if available.
-	 * @return The console with the provided name, or a new instance if none exist.
+	 * @param name The name of the console that should be created & returned.
+	 * @return A console of the specified name, or <code>null</code> if there is an error.
 	 */
 	public static ScriptConsole getInstance(String name) {
 		ScriptConsole console = null;
@@ -20,17 +20,25 @@
 						if(activeConsole.getName().endsWith(name)) {
 							//Stop any script currently running, and terminate stream listeners.
 							if (activeConsole.isRunning()) {
-								activeConsole.onCmdStopThread.interrupt();
 								activeConsole.stop();
 								if (activeConsole.errorDaemon != null) {
 									activeConsole.cmd.removeErrorStreamListener(activeConsole.errorDaemon);
 								}
-								activeConsole.cmd.removeInputStreamListener(activeConsole.consoleDaemon);
+								if (activeConsole.consoleDaemon != null) {
+									activeConsole.cmd.removeInputStreamListener(activeConsole.consoleDaemon);
+								}
+							}
+							if (activeConsole.onCmdStopThread != null && activeConsole.onCmdStopThread.isAlive()) {
+								activeConsole.onCmdStopThread.interrupt();
+								try {
+									activeConsole.onCmdStopThread.join(JOIN_WAIT_TIME);
+								} catch (InterruptedException e) {}
 							}
 							//Remove output from last run
 							activeConsole.clearConsole();
 							activeConsole.setName(name);
 							console = activeConsole;
+							break;
 						}
 					}
 				}

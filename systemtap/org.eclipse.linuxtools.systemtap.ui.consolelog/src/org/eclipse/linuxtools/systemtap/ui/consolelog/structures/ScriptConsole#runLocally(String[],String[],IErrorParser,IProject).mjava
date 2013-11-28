@@ -9,7 +9,7 @@
 	 */
 	public void runLocally(String[] command, String[] envVars, IErrorParser errorParser, IProject project) {
 		// Don't start a new command if one is already waiting to be started.
-		if (onCmdStartThread != null && onCmdStartThread.isAlive()) {
+		if (waitingToStart()) {
 			return;
 		}
 		cmd = new Command(command, envVars, project);
@@ -22,12 +22,12 @@
 			@Override
 			public void run() {
 				try {
-					do {
-						RuntimeProcessFactory.getFactory().exec(stopString, null, proj);
-						synchronized (stopcmd) {
+					synchronized (stopcmd) {
+						while (stopcmd.isRunning()) {
+							RuntimeProcessFactory.getFactory().exec(stopString, null, proj);
 							stopcmd.wait(RETRY_STOP_TIME);
 						}
-					} while (stopcmd.isRunning());
+					}
 				} catch (IOException e) {
 					ExceptionErrorDialog.openError(Localization.getString("ScriptConsole.ErrorKillingStap"), e); //$NON-NLS-1$
 				} catch (InterruptedException e) {
