@@ -6,6 +6,16 @@
      * @return The newly-created TmfStateValue object
      */
     public static TmfStateValue newValueInt(int intValue) {
-        return new IntegerStateValue(intValue);
+        /* Lookup in cache for the existence of the same value. */
+        int offset = intValue & (INT_CACHE_SIZE - 1);
+        IntegerStateValue cached = intCache[offset];
+        if (cached != null && cached.unboxInt() == intValue) {
+            return cached;
+        }
+
+        /* Not in cache, create a new value and cache it. */
+        IntegerStateValue newValue = new IntegerStateValue(intValue);
+        intCache[offset] = newValue;
+        return newValue;
     }
 
