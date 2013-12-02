@@ -30,24 +30,25 @@
 
         } else if (fieldDef instanceof ArrayDefinition) {
             ArrayDefinition arrayDef = (ArrayDefinition) fieldDef;
-            ArrayDeclaration arrayDecl = arrayDef.getDeclaration();
 
             if (arrayDef.isString()) {
                 /* This is an array of UTF-8 bytes, a.k.a. a String! */
                 field = new CTFStringField(fieldName, fieldDef.toString());
 
-            } else if (arrayDecl.getElementType() instanceof IntegerDeclaration) {
-                /* This is a an array of CTF Integers */
-                long[] values = new long[arrayDecl.getLength()];
-                for (int i = 0; i < arrayDecl.getLength(); i++) {
-                    values[i] = ((IntegerDefinition) arrayDef.getElem(i)).getValue();
-                }
-                field = new CTFIntegerArrayField(fieldName, values,
-                        ((IntegerDeclaration) arrayDecl.getElementType()).getBase(),
-                        ((IntegerDeclaration) arrayDecl.getElementType()).isSigned());
-            }
-            /* Add other types of arrays here */
+            } else {
+                /* Arrays of elements of any other type */
+                Definition[] definitions = arrayDef.getDefinitions();
+                CtfTmfEventField[] elements = new CtfTmfEventField[definitions.length];
 
+                /* Parse the elements of the array. */
+                for (int i = 0; i < definitions.length; i++) {
+                    CtfTmfEventField curField = CtfTmfEventField.parseField(
+                            definitions[i], fieldName + '[' + i + ']');
+                    elements[i] = curField;
+                }
+
+                field = new CTFArrayField(fieldName, elements);
+            }
         } else if (fieldDef instanceof SequenceDefinition) {
             SequenceDefinition seqDef = (SequenceDefinition) fieldDef;
             SequenceDeclaration seqDecl = seqDef.getDeclaration();
