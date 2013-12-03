@@ -10,54 +10,26 @@
 		this.setLayout(layout);
 		checkOptions = new ArrayList<>();
 
-		label = new Label(this, SWT.HORIZONTAL | SWT.BORDER | SWT.BOLD | SWT.CENTER);
-		scale = scales[7];
-		label.setText("-"); //$NON-NLS-1$
+		checkOptionComp = new Composite(this, style);
+		checkOptionComp.setLayout(new RowLayout(SWT.VERTICAL));
 		FormData data = new FormData();
-		data.bottom = new FormAttachment(100,-4);
-		data.left = new FormAttachment(0, 2);
-		data.width = 15;
-		label.setLayoutData(data);
-		label.setFont(new Font(parent.getDisplay(), "Arial", 10, SWT.BOLD )); //$NON-NLS-1$
-		zoomScale = new Scale(this,SWT.HORIZONTAL);
-		zoomScale.setMinimum(0);
-		zoomScale.setMaximum(14);
-		zoomScale.setIncrement(1);
-		zoomScale.setPageIncrement(1);
-		zoomScale.setSelection(7);
-		zoomScale.setToolTipText("Increase/Decrease the no of X axis ticks"); //$NON-NLS-1$
-		data = new FormData();
-		data.left = new FormAttachment(label,2);
-		data.bottom = new FormAttachment(100, -4);
-		data.right = new FormAttachment(100, -20);
-		zoomScale.setLayoutData(data);
+		data.bottom = new FormAttachment(100, 0);
+		data.right = new FormAttachment(100, 0);
+		checkOptionComp.setLayoutData(data);
 
-		pluslabel = new Label(this, SWT.HORIZONTAL | SWT.BOLD | SWT.BORDER | SWT.CENTER);
-		pluslabel.setText("+"); //$NON-NLS-1$
-		pluslabel.setFont(new Font(parent.getDisplay(), "Arial", 10, SWT.BOLD)); //$NON-NLS-1$
-		data = new FormData();
-		data.left = new FormAttachment(zoomScale,2);
-		data.bottom = new FormAttachment(100,-4);
-		data.width = 15;
-		pluslabel.setLayoutData(data);
+		builder = GraphFactory.createGraph(this, style, gd, ds);
+		xControl = GraphFactory.createGraphXControl(this, style);
+		yControl = GraphFactory.createGraphYControl(this, style);
 
-		builder = GraphFactory.createGraph(this, style,gd, ds);
-		data = new FormData();
-		data.top = new FormAttachment(0,0);
-		data.bottom = new FormAttachment(label,-5);
-		data.right = new FormAttachment(100,0);
-		data.left = new FormAttachment(0,0);
-		builder.build();
-
-
-
-		builder.setLayoutData(data);
-
-		zoomScale.addSelectionListener(scaleListener);
-
-		//The scale zoom scrool doesn't make sense for charts without axis
-		if (builder instanceof AbstractChartWithoutAxisBuilder) {
-			this.configure(false);
+		if (xControl instanceof IUpdateListener) {
+			builder.addUpdateListener((IUpdateListener) xControl);
 		}
+		if (yControl instanceof IUpdateListener) {
+			builder.addUpdateListener((IUpdateListener) yControl);
+		}
+
+		configure(true);
+
+		builder.build();
 	}
 

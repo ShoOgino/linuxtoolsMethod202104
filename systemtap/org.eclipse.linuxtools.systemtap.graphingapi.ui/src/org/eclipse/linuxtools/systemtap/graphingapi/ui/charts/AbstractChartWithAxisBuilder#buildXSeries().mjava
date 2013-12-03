@@ -4,34 +4,47 @@
 	@Override
 	protected void buildXSeries() {
 		Object data[][] = adapter.getData();
-		if (data == null || data.length == 0)
+		if (data == null || data.length == 0) {
 			return;
+		}
 
-		int totalMaxItems = (int)Math.round(this.maxItems * scale);
-		int start = 0, len = Math.min(totalMaxItems, data.length), leny = data[0].length-1;
-		if (totalMaxItems < data.length) {
-			start = data.length - totalMaxItems;
+		int start = 0, len = Math.min(this.maxItems, data.length), leny = data[0].length-1;
+		if (this.maxItems < data.length) {
+			start = data.length - this.maxItems;
 		}
 
 		Double[] all_valx = new Double[len];
 		Double[][] all_valy = new Double[leny][len];
+		double maxX, maxY, minX, minY;
+		// Will want to centre view around points, so be as accurate with max/min as possible.
+		maxX = maxY = Double.NEGATIVE_INFINITY;
+		minX = minY = Double.POSITIVE_INFINITY;
 
-		ISeries allSeries[] = chart.getSeriesSet().getSeries();
+		// Read in from the data array all x/y points to plot.
+		// In the case of an empty (null) value in either axis, ignore both x & y axis data for that point.
 		for (int i = 0; i < len; i++) {
 			for (int j = 0; j < leny + 1; j++) {
 				Double val = getDoubleOrNullValue(data[start + i][j]);
 				if (j == 0) {
 					if (val != null) {
 						all_valx[i] = val;
+						maxX = Math.max(val, maxX);
+						minX = Math.min(val, minX);
 					} else {
 						break;
 					}
 				} else if (val != null) {
 					all_valy[j-1][i] = val;
+					maxY = Math.max(val, maxY);
+					minY = Math.min(val, minY);
 				}
 			}
 		}
 
+		// Now create dense arrays of x/y values that exclude null values,
+		// and plot those values to the chart.
+
+		ISeries allSeries[] = chart.getSeriesSet().getSeries();
 		for (int i = 0; i < leny; i++) {
 			ISeries series;
 			if (i >= allSeries.length) {
@@ -60,7 +73,8 @@
 			series.setYSeries(valy_trim);
 		}
 
-		chart.getAxisSet().adjustRange();
+		applyRangeX(minX, maxX);
+		applyRangeY(minY, maxY);
 		chart.redraw();
 	}
 
