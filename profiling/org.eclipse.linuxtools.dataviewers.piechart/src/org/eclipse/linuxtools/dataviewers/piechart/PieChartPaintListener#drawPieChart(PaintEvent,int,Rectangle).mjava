@@ -3,6 +3,7 @@
         int nelemSeries = series.length;
         double sumTotal = 0;
 
+        pieSliceAngles[chartnum] = new int[nelemSeries - 1]; // Don't need first angle; it's always 0
         for (int i = 0; i < nelemSeries; i++) {
             sumTotal += series[i];
         }
@@ -10,9 +11,9 @@
         GC gc = e.gc;
         gc.setLineWidth(1);
 
-        int pieWidth = Math.min(bounds.width - X_GAP, bounds.height);
         int pieX = bounds.x + (bounds.width - pieWidth) / 2;
         int pieY = bounds.y + (bounds.height - pieWidth) / 2;
+        pieCenters[chartnum] = new Point(pieX + pieWidth / 2, pieY + pieWidth / 2);
         if (sumTotal == 0) {
 			gc.drawOval(pieX, pieY, pieWidth, pieWidth);
 		} else {
@@ -21,6 +22,11 @@
             int incrementAngle = 0;
             int initialAngle = 90;
             for (int i = 0; i < nelemSeries; i++) {
+                // Stored angles increase in clockwise direction from 0 degrees at 12:00
+                if (i > 0) {
+                    pieSliceAngles[chartnum][i - 1] = 90 - initialAngle;
+                }
+
                 gc.setBackground(((IBarSeries) chart.getSeriesSet().getSeries()[i]).getBarColor());
 
                 if (i == (nelemSeries - 1)) {
@@ -34,6 +40,7 @@
                 incrementAngle += sweepAngle;
                 initialAngle += (-sweepAngle);
             }
+            gc.drawLine(pieCenters[chartnum].x, pieCenters[chartnum].y, pieCenters[chartnum].x, pieCenters[chartnum].y - pieWidth / 2);
         }
 
         Font font = new Font(Display.getDefault(), FONT, 12, SWT.BOLD);
