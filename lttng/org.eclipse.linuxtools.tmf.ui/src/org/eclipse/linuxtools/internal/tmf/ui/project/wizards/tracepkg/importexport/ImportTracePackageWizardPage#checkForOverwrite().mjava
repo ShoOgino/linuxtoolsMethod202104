@@ -1,11 +1,39 @@
     private boolean checkForOverwrite() {
-        TracePackageTraceElement traceElement = (TracePackageTraceElement) ((TracePackageElement[]) getElementViewer().getInput())[0];
-        String traceName = traceElement.getText();
+        TracePackageElement[] traceElements = (TracePackageElement[]) getElementViewer().getInput();
+        List<TracePackageTraceElement> noImportTraces = new ArrayList<TracePackageTraceElement>();
+        boolean noToAll = false;
+        for (TracePackageElement packageElement : traceElements) {
+            TracePackageTraceElement traceElement = (TracePackageTraceElement) packageElement;
+            if (!AbstractTracePackageOperation.isFilesChecked(traceElement)) {
+                continue;
+            }
 
-        List<TmfTraceElement> traces = fTmfTraceFolder.getTraces();
-        for (TmfTraceElement t : traces) {
-            if (t.getName().equals(traceName)) {
-                return MessageDialog.openQuestion(getContainer().getShell(), null, Messages.ImportTracePackageWizardPage_AlreadyExists);
+            if (noToAll) {
+                noImportTraces.add(traceElement);
+                continue;
+            }
+
+            String traceName = traceElement.getText();
+            if (traceExists(traceName)) {
+                int returnCode = promptForOverwrite(traceName);
+                final String[] response = new String[] { IDialogConstants.NO_TO_ALL_LABEL, IDialogConstants.NO_LABEL, IDialogConstants.YES_TO_ALL_LABEL, IDialogConstants.YES_LABEL };
+                if (response[returnCode].equals(IDialogConstants.YES_TO_ALL_LABEL)) {
+                    break;
+                } else if (response[returnCode].equals(IDialogConstants.NO_TO_ALL_LABEL)) {
+                    noToAll = true;
+                    noImportTraces.add(traceElement);
+                } else if (response[returnCode].equals(IDialogConstants.NO_LABEL)) {
+                    noImportTraces.add(traceElement);
+                }
+            }
+        }
+
+        // Unselect the traces that the user decided not to import
+        for (TracePackageTraceElement t : noImportTraces) {
+            for (TracePackageElement e : t.getChildren()) {
+                if (e instanceof TracePackageFilesElement) {
+                    ((TracePackageFilesElement) e).setChecked(false);
+                }
             }
         }
 

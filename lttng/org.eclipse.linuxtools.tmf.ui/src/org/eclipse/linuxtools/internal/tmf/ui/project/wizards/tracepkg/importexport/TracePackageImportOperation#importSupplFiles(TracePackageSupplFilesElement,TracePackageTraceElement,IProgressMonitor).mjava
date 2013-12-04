@@ -1,0 +1,30 @@
+    private IStatus importSupplFiles(TracePackageSupplFilesElement suppFilesElement, TracePackageTraceElement traceElement, IProgressMonitor monitor) {
+        List<String> fileNames = new ArrayList<String>();
+        for (TracePackageElement child : suppFilesElement.getChildren()) {
+            TracePackageSupplFileElement supplFile = (TracePackageSupplFileElement) child;
+            fileNames.add(supplFile.getText());
+        }
+
+        if (!fileNames.isEmpty()) {
+            List<TmfTraceElement> traces = fTmfTraceFolder.getTraces();
+            TmfTraceElement tmfTraceElement = null;
+            for (TmfTraceElement t : traces) {
+                if (t.getName().equals(traceElement.getText())) {
+                    tmfTraceElement = t;
+                    break;
+                }
+            }
+
+            if (tmfTraceElement != null) {
+                ArchiveFile archiveFile = getSpecifiedArchiveFile();
+                tmfTraceElement.refreshSupplementaryFolder();
+                String traceName = tmfTraceElement.getResource().getName();
+                // Project/.tracing/tracename
+                IPath destinationContainerPath = tmfTraceElement.getTraceSupplementaryFolder(traceName).getFullPath();
+                return importFiles(archiveFile, fileNames, destinationContainerPath, monitor);
+            }
+        }
+
+        return Status.OK_STATUS;
+    }
+

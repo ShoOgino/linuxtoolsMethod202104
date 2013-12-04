@@ -1,17 +1,28 @@
     @Override
     public Object execute(ExecutionEvent event) throws ExecutionException {
-        ExportTracePackageWizard w = new ExportTracePackageWizard();
         IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
-
         if (window == null) {
             return false;
         }
 
         ISelection currentSelection = HandlerUtil.getCurrentSelection(event);
         IStructuredSelection sec = StructuredSelection.EMPTY;
+        List<TmfTraceElement> selectedTraces = new ArrayList<TmfTraceElement>();
         if (currentSelection instanceof IStructuredSelection) {
             sec = (IStructuredSelection) currentSelection;
+            Object[] selectedElements = sec.toArray();
+            for (Object selectedElement : selectedElements) {
+                if (selectedElement instanceof TmfTraceElement) {
+                    TmfTraceElement tmfTraceElement = (TmfTraceElement) selectedElement;
+                    selectedTraces.add(tmfTraceElement.getElementUnderTraceFolder());
+                } else if (selectedElement instanceof TmfTraceFolder) {
+                    TmfTraceFolder tmfTraceFolder = (TmfTraceFolder) selectedElement;
+                    selectedTraces = tmfTraceFolder.getTraces();
+                }
+            }
         }
+
+        ExportTracePackageWizard w = new ExportTracePackageWizard(selectedTraces);
 
         w.init(PlatformUI.getWorkbench(), sec);
         WizardDialog dialog = new WizardDialog(window.getShell(), w);

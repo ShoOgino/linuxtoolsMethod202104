@@ -8,7 +8,7 @@
      */
     @Override
     public void run(IProgressMonitor progressMonitor) {
-        TracePackageElement element = null;
+        TracePackageElement[] elements = null;
         try {
             progressMonitor.worked(1);
             ArchiveFile archiveFile = getSpecifiedArchiveFile();
@@ -35,7 +35,7 @@
                     validateManifest(inputStream);
 
                     inputStream = archiveFile.getInputStream(entry);
-                    element = loadElementsFromManifest(inputStream);
+                    elements = loadElementsFromManifest(inputStream);
                     break;
                 }
 
@@ -46,10 +46,15 @@
                 setStatus(Status.OK_STATUS);
             }
             else {
-                setStatus(new Status(IStatus.ERROR, Activator.PLUGIN_ID, MessageFormat.format(Messages.TracePackageExtractManifestOperation_ErrorManifestNotFound, ITracePackageConstants.MANIFEST_FILENAME)));
+                elements = generateElementsFromArchive();
+                if (elements.length > 0) {
+                    setStatus(Status.OK_STATUS);
+                } else {
+                    setStatus(new Status(IStatus.ERROR, Activator.PLUGIN_ID, MessageFormat.format(Messages.TracePackageExtractManifestOperation_ErrorManifestNotFound, ITracePackageConstants.MANIFEST_FILENAME)));
+                }
             }
 
-            fResultElement = element;
+            fResultElements = elements;
 
         } catch (InterruptedException e) {
             setStatus(Status.CANCEL_STATUS);
