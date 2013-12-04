@@ -5,9 +5,20 @@
      * @param signal the signal to process
      */
     @TmfSignalHandler
-    public void currentTimeUpdated(TmfTimeSynchSignal signal) {
-        // Because this can't happen :-)
-        assert (signal != null);
+    public void currentTimeUpdated(final TmfTimeSynchSignal signal) {
+        if (Display.getCurrent() == null) {
+            // Make sure the signal is handled in the UI thread
+            Display.getDefault().asyncExec(new Runnable() {
+                @Override
+                public void run() {
+                    if (fParent.isDisposed()) {
+                        return;
+                    }
+                    currentTimeUpdated(signal);
+                }
+            });
+            return;
+        }
 
         // Update the selected time range
         ITmfTimestamp beginTime = signal.getBeginTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE);

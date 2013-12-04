@@ -3,9 +3,20 @@
      * @param signal the signal to process
      */
     @TmfSignalHandler
-    public void timeRangeUpdated(TmfRangeSynchSignal signal) {
-        // Because this can't happen :-)
-        assert (signal != null);
+    public void timeRangeUpdated(final TmfRangeSynchSignal signal) {
+        if (Display.getCurrent() == null) {
+            // Make sure the signal is handled in the UI thread
+            Display.getDefault().asyncExec(new Runnable() {
+                @Override
+                public void run() {
+                    if (fParent.isDisposed()) {
+                        return;
+                    }
+                    timeRangeUpdated(signal);
+                }
+            });
+            return;
+        }
 
         if (fTrace != null) {
             // Validate the time range
