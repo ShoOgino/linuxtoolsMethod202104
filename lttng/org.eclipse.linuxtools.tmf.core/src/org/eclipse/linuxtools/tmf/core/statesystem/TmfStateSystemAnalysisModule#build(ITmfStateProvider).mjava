@@ -1,0 +1,27 @@
+    private void build(ITmfStateProvider provider) {
+        if ((fStateSystem == null) || (fHtBackend == null)) {
+            throw new IllegalArgumentException();
+        }
+
+        ITmfEventRequest request = fRequest;
+        if ((request != null) && (!request.isCompleted())) {
+            request.cancel();
+        }
+
+        request = new StateSystemEventRequest(provider);
+        provider.getTrace().sendRequest(request);
+
+        /*
+         * Only now that we've actually started the build, we'll update the
+         * class fields, so that they become visible for other callers.
+         */
+        fStateProvider = provider;
+        fRequest = request;
+
+        try {
+             fRequest.waitForCompletion();
+        } catch (InterruptedException e) {
+             e.printStackTrace();
+        }
+    }
+
