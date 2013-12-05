@@ -1,0 +1,26 @@
+    /**
+     * Factory constructor for Double state values
+     *
+     * @param value
+     *            The double value to contain
+     * @return The newly-created TmfStateValue object
+     */
+    public static TmfStateValue newValueDouble(double value) {
+        /* Lookup in cache for the existence of the same value. */
+        int offset = (int) Double.doubleToLongBits(value) & (DOUBLE_CACHE_SIZE - 1);
+        DoubleStateValue cached = doubleCache[offset];
+
+        /*
+         * We're using Double.compare() instead of .equals(), because .compare()
+         * works when both values are Double.NaN.
+         */
+        if (cached != null && Double.compare(cached.unboxDouble(), value) == 0) {
+            return cached;
+        }
+
+        /* Not in cache, create a new value and cache it. */
+        DoubleStateValue newValue = new DoubleStateValue(value);
+        doubleCache[offset] = newValue;
+        return newValue;
+    }
+

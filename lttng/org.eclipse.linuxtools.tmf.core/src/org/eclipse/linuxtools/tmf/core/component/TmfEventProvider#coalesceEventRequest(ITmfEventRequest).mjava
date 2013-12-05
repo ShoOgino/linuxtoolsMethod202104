@@ -1,0 +1,22 @@
+    /**
+     * Add an existing requests to the list of coalesced ones
+     *
+     * @param request
+     *            The request to add to the list
+     */
+    protected void coalesceEventRequest(ITmfEventRequest request) {
+        synchronized (fLock) {
+            for (TmfCoalescedEventRequest coalescedRequest : fPendingCoalescedRequests) {
+                if (coalescedRequest.isCompatible(request)) {
+                    coalescedRequest.addRequest(request);
+                    if (TmfCoreTracer.isRequestTraced()) {
+                        TmfCoreTracer.traceRequest(request, "COALESCED with " + coalescedRequest.getRequestId()); //$NON-NLS-1$
+                        TmfCoreTracer.traceRequest(coalescedRequest, "now contains " + coalescedRequest.getSubRequestIds()); //$NON-NLS-1$
+                    }
+                    return;
+                }
+            }
+            newCoalescedEventRequest(request);
+        }
+    }
+

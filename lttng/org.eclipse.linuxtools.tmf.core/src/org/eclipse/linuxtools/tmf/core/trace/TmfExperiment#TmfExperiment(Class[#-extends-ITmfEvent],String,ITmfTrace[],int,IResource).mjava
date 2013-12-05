@@ -16,14 +16,20 @@
     public TmfExperiment(final Class<? extends ITmfEvent> type, final String path, final ITmfTrace[] traces, final int indexPageSize, IResource resource) {
         setCacheSize(indexPageSize);
         setStreamingInterval(0);
-        setIndexer(new TmfCheckpointIndexer(this, indexPageSize));
         setParser(this);
+        fTraces = traces;
         try {
             super.initialize(resource, path, type);
         } catch (TmfTraceException e) {
             e.printStackTrace();
         }
 
-        fTraces = traces;
+        if (resource != null) {
+            try {
+                this.synchronizeTraces();
+            } catch (TmfTraceException e) {
+                Activator.logError("Error synchronizing experiment", e); //$NON-NLS-1$
+            }
+        }
     }
 

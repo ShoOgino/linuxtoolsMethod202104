@@ -1,0 +1,43 @@
+    /**
+     * Synchronizes the traces of an experiment.
+     *
+     * @param doSync
+     *            Whether to actually synchronize or just try opening a sync
+     *            file
+     * @return The synchronization object
+     * @throws TmfTraceException
+     *             propagate TmfTraceExceptions
+     * @since 3.0
+     */
+    public synchronized SynchronizationAlgorithm synchronizeTraces(boolean doSync) throws TmfTraceException {
+
+        /* Set up the path to the synchronization file we'll use */
+        IResource resource = this.getResource();
+        String supplDirectory = null;
+
+        try {
+            /* get the directory where the file will be stored. */
+            if (resource != null) {
+                supplDirectory = resource.getPersistentProperty(TmfCommonConstants.TRACE_SUPPLEMENTARY_FOLDER);
+            }
+        } catch (CoreException e) {
+            throw new TmfTraceException(e.toString(), e);
+        }
+
+        final File syncFile = (supplDirectory != null) ? new File(supplDirectory + File.separator + SYNCHRONIZATION_FILE_NAME) : null;
+
+        final SynchronizationAlgorithm syncAlgo = SynchronizationManager.synchronizeTraces(syncFile, fTraces, doSync);
+
+        final TmfTraceSynchronizedSignal signal = new TmfTraceSynchronizedSignal(this, syncAlgo);
+
+        /* Broadcast in separate thread to prevent deadlock */
+        new Thread() {
+            @Override
+            public void run() {
+                broadcast(signal);
+            }
+        }.start();
+
+        return syncAlgo;
+    }
+

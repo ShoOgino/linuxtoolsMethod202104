@@ -1,0 +1,33 @@
+    /**
+     * Toolbar icon to import the function address-to-name mapping file.
+     */
+    private Action getImportMappingAction() {
+        if (fImportMappingAction != null) {
+            return fImportMappingAction;
+        }
+        fImportMappingAction = new Action() {
+            @Override
+            public void run() {
+                FileDialog dialog = new FileDialog(getViewSite().getShell());
+                dialog.setText(Messages.CallStackView_ImportMappingDialogTitle);
+                String filePath = dialog.open();
+                if (filePath == null) {
+                    /* No file was selected, don't change anything */
+                    return;
+                }
+                /*
+                 * Start the mapping import in a separate thread (we do not want
+                 * to UI thread to do this).
+                 */
+                Job job = new ImportMappingJob(new File(filePath));
+                job.schedule();
+            }
+        };
+
+        fImportMappingAction.setText(Messages.CallStackView_ImportMappingButtonText);
+        fImportMappingAction.setToolTipText(Messages.CallStackView_ImportMappingButtonTooltip);
+        fImportMappingAction.setImageDescriptor(Activator.getDefault().getImageDescripterFromPath(IMPORT_MAPPING_ICON_PATH));
+
+        return fImportMappingAction;
+    }
+

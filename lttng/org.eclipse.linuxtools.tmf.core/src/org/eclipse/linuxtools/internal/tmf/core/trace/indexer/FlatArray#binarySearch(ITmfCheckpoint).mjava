@@ -1,0 +1,38 @@
+    /**
+     * Search for a checkpoint and return the rank.
+     *
+     * @param checkpoint
+     *            the checkpoint to search
+     * @return the checkpoint rank of the searched checkpoint, if it is
+     *         contained in the index; otherwise, (-(insertion point) - 1).
+     */
+    @Override
+    public long binarySearch(ITmfCheckpoint checkpoint) {
+        if (getHeader().fSize == 1) {
+            return 0;
+        }
+
+        long lower = 0;
+        long upper = getHeader().fSize - 1;
+        long lastMiddle = -1;
+        long middle = 0;
+        while (lower <= upper && lastMiddle != middle) {
+            lastMiddle = middle;
+            middle = (lower + upper) / 2;
+            ITmfCheckpoint found = get(middle);
+            incCacheMisses();
+            int compare = checkpoint.compareTo(found);
+            if (compare == 0) {
+                return middle;
+            }
+
+            if (compare < 0) {
+                upper = middle;
+            } else {
+                lower = middle + 1;
+            }
+        }
+        long insertionPoint = lower;
+        return -(insertionPoint) - 1;
+    }
+

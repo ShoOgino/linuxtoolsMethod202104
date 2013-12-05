@@ -1,0 +1,43 @@
+    /**
+     * Test the {@link TmfAnalysisModuleHelperCE#newModule(ITmfTrace)} method
+     * for the 2 modules
+     */
+    @Test
+    public void testNewModule() {
+        /* Test analysis module with traceStub */
+        Exception exception = null;
+        IAnalysisModule module = null;
+        try {
+            module = fModule.newModule(TmfTestTrace.A_TEST_10K.getTrace());
+        } catch (TmfAnalysisException e) {
+            exception = e;
+        }
+        assertNull(exception);
+        assertNotNull(module);
+        assertTrue(module instanceof TestAnalysis);
+
+        /* Test Analysis module with ctf trace, should return an exception */
+        assumeTrue(CtfTmfTestTrace.KERNEL.exists());
+        CtfTmfTraceStub ctfTrace = (CtfTmfTraceStub) CtfTmfTestTrace.KERNEL.getTrace();
+        module = null;
+        try {
+            module = fModule.newModule(ctfTrace);
+        } catch (TmfAnalysisException e) {
+            exception = e;
+        }
+        assertNotNull(exception);
+        assertEquals(NLS.bind(Messages.TmfAnalysisModuleHelper_AnalysisDoesNotApply, fModule.getName()), exception.getMessage());
+
+        /* Test analysis CTF module with ctf trace stub */
+        exception = null;
+        module = null;
+        try {
+            module = fCtfModule.newModule(ctfTrace);
+        } catch (TmfAnalysisException e) {
+            exception = e;
+        }
+        assertNull(exception);
+        assertNotNull(module);
+        assertTrue(module instanceof TestCtfAnalysis);
+    }
+

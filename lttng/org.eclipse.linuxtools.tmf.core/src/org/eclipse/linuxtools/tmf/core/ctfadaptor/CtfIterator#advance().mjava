@@ -1,22 +1,23 @@
-    /**
-     * Method advance go to the next event
-     * @return boolean successful or not
-     */
     @Override
     public synchronized boolean advance() {
-        long index = curLocation.getLocationInfo().getIndex();
-        long timestamp = curLocation.getLocationInfo().getTimestamp();
-        boolean ret = super.advance();
+        long index = fCurLocation.getLocationInfo().getIndex();
+        long timestamp = fCurLocation.getLocationInfo().getTimestamp();
+        boolean ret = false;
+        try {
+            ret = super.advance();
+        } catch (CTFReaderException e) {
+            Activator.logError(e.getMessage(), e);
+        }
 
         if (ret) {
             final long timestampValue = getCurrentEvent().getTimestamp().getValue();
             if (timestamp == timestampValue) {
-                curLocation = new CtfLocation(timestampValue, index + 1);
+                fCurLocation = new CtfLocation(timestampValue, index + 1);
             } else {
-                curLocation = new CtfLocation(timestampValue, 0L);
+                fCurLocation = new CtfLocation(timestampValue, 0L);
             }
         } else {
-            curLocation = NULL_LOCATION;
+            fCurLocation = NULL_LOCATION;
         }
         return ret;
     }

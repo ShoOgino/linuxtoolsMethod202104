@@ -1,0 +1,26 @@
+    @Override
+    public void updateMipmap(ITmfStateValue value, long ts) {
+        /* if the value did not change, ignore it */
+        if (currentValue.equals(value)) {
+            return;
+        }
+
+        /* if the ongoing state value is not null, create and store a state interval */
+        if (!currentValue.isNull()) {
+            ITmfStateInterval interval = new TmfStateInterval(currentStartTime, ts, getLevelQuark(0), currentValue);
+            intervals.get(0).add(interval);
+        }
+
+        /* if the new value is not null, update the mipmap levels that are full */
+        if (!value.isNull()) {
+            int level = 0;
+            while (intervals.get(level).size() == getMipmapResolution()) {
+                updateMipmapLevel(++level, ts);
+            }
+        }
+
+        /* store the new value as the ongoing state value */
+        currentValue = value;
+        currentStartTime = ts;
+    }
+

@@ -1,0 +1,32 @@
+    /** Get the callstack for the given timestamp, for this particular trace */
+    static String[] getCallStack(LttngUstTrace trace, String processName, long timestamp) {
+        try {
+            ITmfStateSystem ss = trace.getStateSystems().get(SSID);
+            int stackAttribute = ss.getQuarkAbsolute("Threads", processName, "CallStack");
+            List<ITmfStateInterval> state = ss.queryFullState(timestamp);
+            int depth = state.get(stackAttribute).getStateValue().unboxInt();
+
+            int stackTop = ss.getQuarkRelative(stackAttribute, String.valueOf(depth));
+            ITmfStateValue top = state.get(stackTop).getStateValue();
+            assertEquals(top, ss.querySingleStackTop(timestamp, stackAttribute).getStateValue());
+
+            String[] ret = new String[depth];
+            for (int i = 0; i < depth; i++) {
+                int quark = ss.getQuarkRelative(stackAttribute, String.valueOf(i + 1));
+                ret[i] = state.get(quark).getStateValue().unboxStr();
+            }
+            return ret;
+
+        } catch (AttributeNotFoundException e) {
+            fail(e.getMessage());
+        } catch (TimeRangeException e) {
+            fail(e.getMessage());
+        } catch (StateSystemDisposedException e) {
+            fail(e.getMessage());
+        } catch (StateValueTypeException e) {
+            fail(e.getMessage());
+        }
+        fail();
+        return null;
+    }
+

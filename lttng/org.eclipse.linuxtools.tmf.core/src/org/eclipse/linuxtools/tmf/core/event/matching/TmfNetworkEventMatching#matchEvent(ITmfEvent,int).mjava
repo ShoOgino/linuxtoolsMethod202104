@@ -1,0 +1,89 @@
+    /**
+     * Matches one event
+     *
+     * @param event
+     *            The event to match
+     * @param traceno
+     *            The number of the trace this event belongs to
+     */
+    @Override
+    public void matchEvent(ITmfEvent event, int traceno) {
+        if (!(getEventDefinition(event.getTrace()) instanceof ITmfNetworkMatchDefinition)) {
+            return;
+        }
+        ITmfNetworkMatchDefinition def = (ITmfNetworkMatchDefinition) getEventDefinition(event.getTrace());
+
+        Direction evType = def.getDirection(event);
+        if (evType == null) {
+            return;
+        }
+
+        /* Get the event's unique fields */
+        List<Object> eventKey = def.getUniqueField(event);
+        List<Map<List<Object>, ITmfEvent>> unmatchedTbl, companionTbl;
+
+        /* Point to the appropriate table */
+        switch (evType) {
+        case IN:
+            unmatchedTbl = fUnmatchedIn;
+            companionTbl = fUnmatchedOut;
+            break;
+        case OUT:
+            unmatchedTbl = fUnmatchedOut;
+            companionTbl = fUnmatchedIn;
+            break;
+        default:
+            return;
+        }
+
+        boolean found = false;
+        TmfEventDependency dep = null;
+        /* Search for the event in the companion table */
+        for (Map<List<Object>, ITmfEvent> map : companionTbl) {
+            if (map.containsKey(eventKey)) {
+                found = true;
+                ITmfEvent companionEvent = map.get(eventKey);
+
+                /* Remove the element from the companion table */
+                map.remove(eventKey);
+
+                /* Create the dependency object */
+                switch (evType) {
+                case IN:
+                    dep = new TmfEventDependency(companionEvent, event);
+                    break;
+                case OUT:
+                    dep = new TmfEventDependency(event, companionEvent);
+                    break;
+                default:
+                    break;
+
+                }
+            }
+        }
+
+        /*
+         * If no companion was found, add the event to the appropriate unMatched
+         * lists
+         */
+        if (found) {
+            getProcessingUnit().addMatch(dep);
+        } else {
+            /*
+             * If an event is already associated with this key, do not add it
+             * again, we keep the first event chronologically, so if its match
+             * is eventually found, it is associated with the first send or
+             * receive event. At best, it is a good guess, at worst, the match
+             * will be too far off to be accurate. Too bad!
+             *
+             * TODO: maybe instead of just one event, we could have a list of
+             * events as value for the unmatched table. Not necessary right now
+             * though
+             */
+            if (!unmatchedTbl.get(traceno).containsKey(eventKey)) {
+                unmatchedTbl.get(traceno).put(eventKey, event);
+            }
+        }
+
+    }
+

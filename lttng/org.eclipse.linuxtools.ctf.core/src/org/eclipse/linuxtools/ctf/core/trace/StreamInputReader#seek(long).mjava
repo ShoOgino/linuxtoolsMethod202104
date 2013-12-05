@@ -1,12 +1,14 @@
     /**
      * Changes the location of the trace file reader so that the current event
-     * is the first event with a timestamp greater than the given timestamp.
+     * is the first event with a timestamp greater or equal the given timestamp.
      *
      * @param timestamp
      *            The timestamp to seek to.
      * @return The offset compared to the current position
+     * @throws CTFReaderException
+     *             if an error occurs
      */
-    public long seek(long timestamp) {
+    public long seek(long timestamp) throws CTFReaderException {
         long offset = 0;
 
         gotoPacket(timestamp);
@@ -28,9 +30,11 @@
         }
 
         /*
-         * Advance until A. we reached the end of the trace file (which means
-         * the given timestamp is after the last event), or B. we found the
-         * first event with a timestamp greater than the given timestamp.
+         * Advance until either of these conditions are met
+         * <ul>
+         *  <li> reached the end of the trace file (the given timestamp is after the last event), </li>
+         *  <li> found the first event with a timestamp greater  or equal the given timestamp. </li>
+         * </ul>
          */
         readNextEvent();
         boolean done = (this.getCurrentEvent() == null);

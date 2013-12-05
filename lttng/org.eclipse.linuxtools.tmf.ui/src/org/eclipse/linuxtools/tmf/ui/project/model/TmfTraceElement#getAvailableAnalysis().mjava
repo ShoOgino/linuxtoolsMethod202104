@@ -1,0 +1,51 @@
+    /**
+     * Get the list of analysis elements
+     *
+     * @return Array of analysis elements
+     * @since 3.0
+     */
+    public List<TmfAnalysisElement> getAvailableAnalysis() {
+        List<TmfAnalysisElement> list = new ArrayList<TmfAnalysisElement>();
+
+        TraceTypeHelper helper = TmfTraceType.getInstance().getTraceType(getTraceType());
+
+        Class<? extends ITmfTrace> traceClass = null;
+
+        if (helper == null && fTraceTypeId != null) {
+            if (fTraceTypeId.startsWith(CustomTxtTrace.class.getCanonicalName())) {
+                for (CustomTxtTraceDefinition def : CustomTxtTraceDefinition.loadAll()) {
+                    if (fTraceTypeId.equals(CustomTxtTrace.class.getCanonicalName() + ":" + def.definitionName)) { //$NON-NLS-1$
+                        traceClass = CustomTxtTrace.class;
+                    }
+                }
+            }
+            if (fTraceTypeId.startsWith(CustomXmlTrace.class.getCanonicalName())) {
+                for (CustomXmlTraceDefinition def : CustomXmlTraceDefinition.loadAll()) {
+                    if (fTraceTypeId.equals(CustomXmlTrace.class.getCanonicalName() + ":" + def.definitionName)) { //$NON-NLS-1$
+                        traceClass = CustomTxtTrace.class;
+                    }
+                }
+            }
+        } else if (helper != null) {
+            traceClass = helper.getTraceClass();
+        }
+
+        if (traceClass == null) {
+            return list;
+        }
+
+        /** Get the base path to put the resource to */
+        IPath path = fResource.getFullPath();
+
+        for (IAnalysisModuleHelper module : TmfAnalysisManager.getAnalysisModules(traceClass).values()) {
+
+            /** No need for the resource to exist, nothing will be done with it */
+            IFolder newresource = ResourcesPlugin.getWorkspace().getRoot().getFolder(path.append(module.getId()));
+
+            TmfAnalysisElement analysis = new TmfAnalysisElement(module.getName(), newresource, this, module.getId());
+            list.add(analysis);
+        }
+
+        return list;
+    }
+

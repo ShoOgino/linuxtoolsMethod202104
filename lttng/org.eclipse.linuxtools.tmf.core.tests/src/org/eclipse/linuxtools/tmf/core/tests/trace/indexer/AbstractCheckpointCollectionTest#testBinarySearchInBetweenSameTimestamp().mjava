@@ -1,0 +1,28 @@
+    /**
+     * Tests that binarySearch finds the correct checkpoint when searching for a
+     * checkpoint with a null location. It should return the previous checkpoint
+     * from the first checkpoint that matches the timestamp.
+     */
+    @Test
+    public void testBinarySearchInBetweenSameTimestamp() {
+        int checkpointNum = 0;
+        for (; checkpointNum < 100; checkpointNum++) {
+            TmfCheckpoint checkpoint = new TmfCheckpoint(new TmfTimestamp(0), new TmfLongLocation((long) checkpointNum), checkpointNum);
+            fCheckpointCollection.insert(checkpoint);
+        }
+
+        for (; checkpointNum < 200; checkpointNum++) {
+            TmfCheckpoint checkpoint = new TmfCheckpoint(new TmfTimestamp(1), new TmfLongLocation((long) checkpointNum), checkpointNum);
+            fCheckpointCollection.insert(checkpoint);
+        }
+
+        final TmfCheckpoint searchedCheckpoint = new TmfCheckpoint(new TmfTimestamp(1), null, 0);
+
+        long found = fCheckpointCollection.binarySearch(searchedCheckpoint);
+
+        int expectedInsertionPoint = 99;
+        int expectedRank = -(expectedInsertionPoint + 2);
+
+        assertEquals(expectedRank, found);
+    }
+

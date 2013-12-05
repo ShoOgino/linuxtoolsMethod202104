@@ -1,0 +1,35 @@
+        /**
+         * Calculates slopes and ordinate at origin of fLmax and fLmin to obtain
+         * and approximation of the synchronization at this time
+         */
+        private void approximateSync() {
+            /**
+             * Line slopes functions
+             *
+             * Lmax = alpha_max T + beta_min
+             *
+             * Lmin = alpha_min T + beta_max
+             */
+            if ((fLmax[0] != null) || (fLmin[0] != null)) {
+                fAlphamax = fLmax[1].getAlpha(fLmax[0]);
+                fBetamin = fLmax[1].getBeta(fAlphamax);
+                fAlphamin = fLmin[1].getAlpha(fLmin[0]);
+                fBetamax = fLmin[1].getBeta(fAlphamin);
+                fAlpha = fAlphamax.add(fAlphamin).divide(BigDecimal.valueOf(2), fMc);
+                fBeta = fBetamin.add(fBetamax).divide(BigDecimal.valueOf(2), fMc);
+                if ((fLmax[0] == null) || (fLmin[0] == null)) {
+                    fQuality = SyncQuality.APPROXIMATE;
+                }
+                else if (fAlphamax.compareTo(fAlphamin) > 0) {
+                    fQuality = SyncQuality.ACCURATE;
+                } else {
+                    /* Lines intersect, not good */
+                    fQuality = SyncQuality.FAIL;
+                }
+            } else if (((fLmax[0] == null) && (fLmin[1] == null))
+                    || ((fLmax[1] == null) && (fLmin[0] == null))) {
+                /* Either there is no upper hull point or no lower hull */
+                fQuality = SyncQuality.INCOMPLETE;
+            }
+        }
+

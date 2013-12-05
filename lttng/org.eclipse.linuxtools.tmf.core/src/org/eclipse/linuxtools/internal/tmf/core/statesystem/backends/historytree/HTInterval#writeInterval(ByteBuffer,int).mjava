@@ -22,8 +22,7 @@
 
         case TYPE_NULL:
         case TYPE_INTEGER:
-            /* We write the 'valueOffset' field as a straight value. In the case
-             * of a null value, it will be unboxed as -1 */
+            /* We write the 'valueOffset' field as a straight value. */
             try {
                 buffer.putInt(sv.unboxInt());
             } catch (StateValueTypeException e) {
@@ -78,6 +77,28 @@
                 e.printStackTrace();
             }
             assert (buffer.position() == endPosOfStringEntry);
+            buffer.reset();
+            break;
+
+        case TYPE_DOUBLE:
+            /* we use the valueOffset as an offset. */
+            buffer.putInt(endPosOfStringEntry - stringsEntrySize);
+            buffer.mark();
+            buffer.position(endPosOfStringEntry - stringsEntrySize);
+
+            /* Write the Double in the Strings section */
+            try {
+                buffer.putDouble(sv.unboxDouble());
+            } catch (StateValueTypeException e) {
+                /*
+                 * This should not happen, since the value told us it was of
+                 * type Double (corrupted value?)
+                 */
+                e.printStackTrace();
+            }
+            if (buffer.position() != endPosOfStringEntry) {
+                throw new IllegalStateException();
+            }
             buffer.reset();
             break;
 

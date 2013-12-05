@@ -7,9 +7,16 @@
      * @since 2.0
      */
     public static TmfStateValue newValueLong(long longValue) {
-        if (longValue == -1) {
-            return nullValue();
+        /* Lookup in cache for the existence of the same value. */
+        int offset = (int) longValue & (LONG_CACHE_SIZE - 1);
+        LongStateValue cached = longCache[offset];
+        if (cached != null && cached.unboxLong() == longValue) {
+            return cached;
         }
-        return new LongStateValue(longValue);
+
+        /* Not in cache, create a new value and cache it. */
+        LongStateValue newValue = new LongStateValue(longValue);
+        longCache[offset] = newValue;
+        return newValue;
     }
 

@@ -1,0 +1,30 @@
+    /**
+     * Test the handling of generic UST traces who do not contain the required
+     * information.
+     */
+    @Test
+    public void testOtherUstTrace() {
+        /* Initialize the trace */
+        final LttngUstTrace ustTrace = new LttngUstTrace();
+        IStatus valid = ustTrace.validate(null, otherUstTrace.getPath());
+        assertTrue(valid.isOK());
+        try {
+            ustTrace.initTrace((IResource) null, otherUstTrace.getPath(), CtfTmfEvent.class);
+        } catch (TmfTraceException e) {
+            fail(e.getMessage());
+        }
+        TestUtils.openTrace(ustTrace);
+
+        /* Make sure the generated state system exists, but is empty */
+        ITmfStateSystem ss = ustTrace.getStateSystems().get(TestUtils.SSID);
+        assertNotNull(ss);
+        assertTrue(ss.getStartTime() >= ustTrace.getStartTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue());
+        assertEquals(0, ss.getNbAttributes());
+
+        /* Dispose the trace */
+        ustTrace.dispose();
+        File suppDir = new File(TmfTraceManager.getSupplementaryFileDir(ustTrace));
+        TestUtils.deleteDirectory(suppDir);
+        assertFalse(suppDir.exists());
+    }
+

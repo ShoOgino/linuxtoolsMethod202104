@@ -1,0 +1,15 @@
+    @Override
+    public ITmfTimestampTransform getTimestampTransform(String name) {
+        for (ConvexHull traceSync : fSyncs) {
+            if (traceSync.isTraceSynced(name)) {
+                /*
+                 * Since there are many traces, maybe the reference trace is
+                 * also synchronized, so we need to chain sync formulas
+                 */
+                ITmfTimestampTransform refTt = getTimestampTransform(traceSync.getReferenceTrace());
+                return refTt.composeWith(traceSync.getTimestampTransform(name));
+            }
+        }
+        return TmfTimestampTransform.IDENTITY;
+    }
+

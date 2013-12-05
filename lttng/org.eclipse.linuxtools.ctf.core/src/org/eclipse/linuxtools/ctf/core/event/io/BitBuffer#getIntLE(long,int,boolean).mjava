@@ -1,0 +1,53 @@
+    private int getIntLE(long index, int length, boolean signed) {
+        assert ((length > 0) && (length <= BIT_INT));
+        long end = index + length;
+        int startByte = (int) (index / BIT_CHAR);
+        int endByte = (int) ((end + (BIT_CHAR - 1)) / BIT_CHAR);
+        int currByte, lshift, cshift, mask, cmask, cache, mod;
+        int value = 0;
+
+        currByte = endByte - 1;
+        cache = fBuffer.get(currByte) & 0xFF;
+        mod = (int) (end % BIT_CHAR);
+        lshift = (mod > 0) ? mod : BIT_CHAR;
+        boolean isNeg = (cache & (1 << (lshift - 1))) != 0;
+        if (signed && isNeg) {
+            value = ~0;
+        }
+        if (startByte == (endByte - 1)) {
+            cmask = cache >>> (index % BIT_CHAR);
+            if (((length) % BIT_CHAR) > 0) {
+                mask = ~((~0) << length);
+                cmask &= mask;
+            }
+            value <<= length;
+            value |= cmask;
+            return value;
+        }
+        cshift = (int) (end % BIT_CHAR);
+        if (cshift > 0) {
+            mask = ~((~0) << cshift);
+            cmask = cache & mask;
+            value <<= cshift;
+            value |= cmask;
+            currByte--;
+        }
+        for (; currByte >= (startByte + 1); currByte--) {
+            value <<= BIT_CHAR;
+            value |= fBuffer.get(currByte) & 0xFF;
+        }
+        lshift = (int) (index % BIT_CHAR);
+        if (lshift > 0) {
+            mask = ~((~0) << (BIT_CHAR - lshift));
+            cmask = fBuffer.get(currByte) & 0xFF;
+            cmask >>>= lshift;
+            cmask &= mask;
+            value <<= (BIT_CHAR - lshift);
+            value |= cmask;
+        } else {
+            value <<= BIT_CHAR;
+            value |= fBuffer.get(currByte) & 0xFF;
+        }
+        return value;
+    }
+

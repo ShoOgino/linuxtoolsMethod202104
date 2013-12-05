@@ -1,0 +1,33 @@
+    /**
+     * Opens an existing synchronization file
+     *
+     * @return The synchronization algorithm contained in the file
+     * @throws IOException
+     *             Exception returned file functions
+     */
+    public SynchronizationAlgorithm openExistingSync() throws IOException {
+
+        if (fSyncFile == null) {
+            return null;
+        }
+
+        /* Set the position after the header */
+        FileInputStream fis = new FileInputStream(fSyncFile);
+        FileChannel fc = fis.getChannel().position(HEADER_SIZE);
+
+        /* Read the input stream */
+        ObjectInputStream ois = new ObjectInputStream(fis);
+        SyncAlgorithmFullyIncremental syncAlgo = null;
+        try {
+            syncAlgo = (SyncAlgorithmFullyIncremental) ois.readObject();
+        } catch (ClassNotFoundException e) {
+
+        }
+        ois.close();
+        fc.close();
+
+        fis.close();
+
+        return syncAlgo;
+    }
+

@@ -9,7 +9,7 @@
     public int getFilteredEventIndex(final long rank) {
         int current;
         int startRank;
-        TmfDataRequest request;
+        TmfEventRequest request;
         final ITmfFilter filter = fFilter;
         synchronized (this) {
             int start = 0;
@@ -45,13 +45,14 @@
 
         final int index = current * fCacheSize;
 
-        class DataRequest extends TmfDataRequest {
+        class DataRequest extends TmfEventRequest {
             ITmfFilter requestFilter;
             int requestRank;
             int requestIndex;
 
             DataRequest(Class<? extends ITmfEvent> dataType, ITmfFilter reqFilter, int start, int nbRequested) {
-                super(dataType, start, nbRequested);
+                super(dataType, TmfTimeRange.ETERNITY, start, nbRequested,
+                        TmfEventRequest.ExecutionType.FOREGROUND);
                 requestFilter = reqFilter;
                 requestRank = start;
                 requestIndex = index;
@@ -78,8 +79,8 @@
             }
         }
 
-        request = new DataRequest(ITmfEvent.class, filter, startRank, TmfDataRequest.ALL_DATA);
-        ((ITmfDataProvider) fTrace).sendRequest(request);
+        request = new DataRequest(ITmfEvent.class, filter, startRank, ITmfEventRequest.ALL_DATA);
+        ((ITmfEventProvider) fTrace).sendRequest(request);
         try {
             request.waitForCompletion();
             return ((DataRequest) request).getFilteredIndex();

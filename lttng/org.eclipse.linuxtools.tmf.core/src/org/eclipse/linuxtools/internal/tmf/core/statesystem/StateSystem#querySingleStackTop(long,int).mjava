@@ -2,12 +2,14 @@
     public ITmfStateInterval querySingleStackTop(long t, int stackAttributeQuark)
             throws StateValueTypeException, AttributeNotFoundException,
             TimeRangeException, StateSystemDisposedException {
-        Integer curStackDepth = querySingleState(t, stackAttributeQuark).getStateValue().unboxInt();
+        ITmfStateValue curStackStateValue = querySingleState(t, stackAttributeQuark).getStateValue();
 
-        if (curStackDepth == -1) {
+        if (curStackStateValue.isNull()) {
             /* There is nothing stored in this stack at this moment */
             return null;
-        } else if (curStackDepth < -1 || curStackDepth == 0) {
+        }
+        Integer curStackDepth = curStackStateValue.unboxInt();
+        if (curStackDepth <= 0) {
             /*
              * This attribute is an integer attribute, but it doesn't seem like
              * it's used as a stack-attribute...

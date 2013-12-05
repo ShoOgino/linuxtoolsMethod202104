@@ -1,0 +1,53 @@
+    private void accept(long nodeOffset, IBTreeVisitor visitor) {
+
+        if (nodeOffset == BTreeNode.NULL_CHILD) {
+            return;
+        }
+
+        BTreeNode node = fNodeCache.getNode(nodeOffset);
+
+        // Binary search to find first entry greater or equal.
+        int lower = 0;
+        int upper = fMaxNumEntries - 1;
+        while (lower < upper && node.getEntry(upper - 1) == null) {
+            upper--;
+        }
+        while (lower < upper) {
+            int middle = (lower + upper) / 2;
+            ITmfCheckpoint middleCheckpoint = node.getEntry(middle);
+            if (middleCheckpoint == null) {
+                upper = middle;
+            } else {
+                int compare = visitor.compare(middleCheckpoint);
+                if (compare == 0) {
+                    return;
+                } else if (compare > 0) {
+                    upper = middle;
+                } else {
+                    lower = middle + 1;
+                }
+            }
+        }
+
+        // Start with first record greater or equal, reuse comparison
+        // results.
+        int i = lower;
+        for (; i < fMaxNumEntries; ++i) {
+            ITmfCheckpoint record = node.getEntry(i);
+            if (record == null) {
+                break;
+            }
+
+            int compare = visitor.compare(record);
+            if (compare > 0) {
+                // Start point is to the left.
+                accept(node.getChild(i), visitor);
+                return;
+            } else if (compare == 0) {
+                return;
+            }
+        }
+        accept(node.getChild(i), visitor);
+        return;
+    }
+

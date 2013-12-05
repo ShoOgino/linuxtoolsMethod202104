@@ -1,0 +1,65 @@
+    private void putIntBE(long index, int length, int value) {
+        assert ((length > 0) && (length <= BIT_INT));
+        long end = index + length;
+        int startByte = (int) (index / BIT_CHAR);
+        int endByte = (int) ((end + (BIT_CHAR - 1)) / BIT_CHAR);
+        int currByte, lshift, cshift, mask, cmask;
+        int correctedValue = value;
+
+        /*
+         * mask v high bits. Works for unsigned and two complement signed
+         * numbers which value do not overflow on length bits.
+         */
+
+        if (length < BIT_INT) {
+            correctedValue &= ~(~0 << length);
+        }
+
+        /* sub byte */
+        if (startByte == (endByte - 1)) {
+            lshift = (int) ((BIT_CHAR - (end % BIT_CHAR)) % BIT_CHAR);
+            mask = ~((~0) << lshift);
+            if ((index % BIT_CHAR) > 0) {
+                mask |= (~(0)) << (BIT_CHAR - (index % BIT_CHAR));
+            }
+            cmask = correctedValue << lshift;
+            /*
+             * low bits are cleared because of left-shift and high bits are
+             * already cleared
+             */
+            cmask &= ~mask;
+            int b = fBuffer.get(startByte) & 0xFF;
+            fBuffer.put(startByte, (byte) ((b & mask) | cmask));
+            return;
+        }
+
+        /* head byte contains MSB */
+        currByte = endByte - 1;
+        cshift = (int) (end % BIT_CHAR);
+        if (cshift > 0) {
+            lshift = BIT_CHAR - cshift;
+            mask = ~((~0) << lshift);
+            cmask = correctedValue << lshift;
+            cmask &= ~mask;
+            int b = fBuffer.get(currByte) & 0xFF;
+            fBuffer.put(currByte, (byte) ((b & mask) | cmask));
+            correctedValue >>>= cshift;
+            currByte--;
+        }
+
+        /* middle byte(s) */
+        for (; currByte >= (startByte + 1); currByte--) {
+            fBuffer.put(currByte, (byte) correctedValue);
+            correctedValue >>>= BIT_CHAR;
+        }
+        /* end byte contains LSB */
+        if ((index % BIT_CHAR) > 0) {
+            mask = (~0) << (BIT_CHAR - (index % BIT_CHAR));
+            cmask = correctedValue & ~mask;
+            int b = fBuffer.get(currByte) & 0xFF;
+            fBuffer.put(currByte, (byte) ((b & mask) | cmask));
+        } else {
+            fBuffer.put(currByte, (byte) correctedValue);
+        }
+    }
+
