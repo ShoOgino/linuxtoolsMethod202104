@@ -9,10 +9,20 @@
      *             just catch this exception.
      */
     synchronized HTNode readNodeFromDisk(int seqNumber) throws ClosedChannelException {
-        HTNode readNode;
+        /* Do a cache lookup */
+        int offset = seqNumber & (CACHE_SIZE - 1);
+        HTNode readNode = fNodeCache[offset];
+        if (readNode != null && readNode.getSequenceNumber() == seqNumber) {
+          return readNode;
+        }
+
+        /* Lookup on disk */
         try {
             seekFCToNodePos(fcIn, seqNumber);
             readNode = HTNode.readNode(tree, fcIn);
+
+            /* Put the node in the cache. */
+            fNodeCache[offset] = readNode;
             return readNode;
         } catch (ClosedChannelException e) {
             throw e;
