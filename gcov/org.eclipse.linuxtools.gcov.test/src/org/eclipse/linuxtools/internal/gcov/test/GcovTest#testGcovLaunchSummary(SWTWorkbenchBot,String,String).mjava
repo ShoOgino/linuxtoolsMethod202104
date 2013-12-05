@@ -1,33 +1,55 @@
-	private static void testGcovLaunchSummary(SWTWorkbenchBot bot, String projectName, String binName) throws Exception {
+	private static void testGcovLaunchSummary(SWTWorkbenchBot bot, String projectName, String binName) {
 		IProject project = ResourcesPlugin.getWorkspace().getRoot().getProject(projectName);
 		String binLocation = project.getFile(binName).getLocation().toOSString();
 		IPath binPath = new Path(binLocation);
 		IFile binFile = ResourcesPlugin.getWorkspace().getRoot().getFile(binPath);
-		
-		SWTBot viewBot = bot.viewByTitle("Project Explorer").bot();
-		SWTBotShell wbShell = bot.activeShell();
+
+		SWTBot viewBot = projectExplorer.bot();
 
 		SWTBotTree treeBot = viewBot.tree();
 		treeBot.setFocus();
 		// We need to select the binary, but in the tree, it may have additional info appended to the
 		// name such as [x86_64/le].  So, we look at all nodes of the project and look for the one that
 		// starts with our binary file name.  We can then select the node.
-		List<String> nodes = treeBot.expandNode(projectName).getNodes();
+		projectExplorer.bot().tree().select(projectName).contextMenu("Go Into").click();
+		bot.waitUntil(Conditions.waitForWidget(WidgetMatcherFactory.withText(projectName), projectExplorer.getWidget()));
+
+		SWTBotTreeItem[] nodes = treeBot.getAllItems();
 		String binNodeName = binFile.getName();
-		for (String item: nodes) {
-			if (item.startsWith(binFile.getName())) {
-				binNodeName = item;
+		for (SWTBotTreeItem node : nodes) {
+			if (node.getText().startsWith(binNodeName)) {
+				node.select();
 				break;
 			}
 		}
-		treeBot.expandNode(projectName).select(binNodeName);
+		Assert.assertTrue(treeBot.selectionCount() != 0);
 		String menuItem = "Profiling Tools";
 		String subMenuItem = "1 Profile Code Coverage";
 		click(contextMenu(treeBot, menuItem, subMenuItem));
 
-		wbShell.activate();
+		final boolean result[] = new boolean[1];
+		Display.getDefault().syncExec(new Runnable() {
+
+			@Override
+			public void run() {
+				try {
+					PlatformUI.getWorkbench().getActiveWorkbenchWindow()
+							.getActivePage()
+							.showView("org.eclipse.linuxtools.gcov.view");
+					result[0] = true;
+				} catch (PartInitException e) {
+					result[0] = false;
+				}
+			}
+		});
+		if (!result[0]) {
+			Assert.fail();
+		}
 		SWTBotView botView = bot.viewByTitle("gcov");
 
 		botView.close();
+		SWTBotToolbarButton forwardButton = projectExplorer.toolbarPushButton("Forward");
+		projectExplorer.toolbarPushButton("Back to Workspace").click();
+		bot.waitUntil(Conditions.widgetIsEnabled(forwardButton));
 	}
 

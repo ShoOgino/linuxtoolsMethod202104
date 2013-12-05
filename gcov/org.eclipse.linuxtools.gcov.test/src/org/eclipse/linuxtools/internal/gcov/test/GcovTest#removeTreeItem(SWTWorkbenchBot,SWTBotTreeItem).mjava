@@ -1,0 +1,27 @@
+	private static void removeTreeItem(SWTWorkbenchBot bot,
+			SWTBotTreeItem treeItem) {
+		String shellTitle = "Delete Resources";
+		treeItem.contextMenu("Delete").click();
+		SWTBotShell deleteShell = bot.shell(shellTitle);
+		deleteShell.activate();
+		bot.button("OK").click();
+		// Another shell (with the same name!) may appear if resources aren't synced.
+		// If it does appear, it will be a child of the first shell.
+		try {
+			bot.waitUntil(Conditions.shellCloses(deleteShell), 1000);
+		} catch (TimeoutException e) {
+			SWTBotShell deleteShell2;
+			try {
+				deleteShell2 = bot.shell(shellTitle, deleteShell.widget);
+			} catch (WidgetNotFoundException e2) {
+				// If the other shell isn't found, that means the first one just didn't close.
+				throw e;
+			}
+			System.out.println("Deleting out-of-sync resources - new \"Delete Resources\" shell found");
+			deleteShell2.activate();
+			bot.button("Continue").click();
+			bot.waitUntil(Conditions.shellCloses(deleteShell2));
+			bot.waitUntil(Conditions.shellCloses(deleteShell));
+		}
+	}
+
