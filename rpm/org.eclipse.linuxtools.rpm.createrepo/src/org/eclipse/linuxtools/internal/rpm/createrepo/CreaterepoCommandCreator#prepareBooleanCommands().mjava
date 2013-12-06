@@ -1,0 +1,37 @@
+	/**
+	 * These commands are either added to the execution or not, depending
+	 * on the enabled status from the preferences.
+	 *
+	 * @return The command options to add.
+	 */
+	public List<String> prepareBooleanCommands() {
+		List<String> commands = new ArrayList<String>();
+		if (delta) {
+			commands.add(ICreaterepoConstants.DASH.concat(CreaterepoPreferenceConstants.PREF_DELTA_ENABLE));
+		}
+		for (String arg : BOOLEAN_COMMANDS) {
+			// if project preferences are enabled, use the preferences from there
+			boolean value = project ? projectPreferences.getBoolean(arg, preferenceStore.getDefaultBoolean(arg))
+					: preferenceStore.getBoolean(arg);
+			// if the value returned is true, that means the switch should be added
+			if (value) {
+				if (arg.equals(CreaterepoPreferenceConstants.PREF_UNIQUE_MD_NAME)) {
+					arg = ICreaterepoConstants.DASH.concat("unique-").concat(arg); //$NON-NLS-1$
+				} else {
+					arg = ICreaterepoConstants.DASH.concat(arg);
+				}
+				commands.add(arg);
+			} else {
+				// only add the switch if its one of these options
+				if (arg.equals(CreaterepoPreferenceConstants.PREF_UNIQUE_MD_NAME)) {
+					arg = ICreaterepoConstants.DASH.concat("simple-").concat(arg); //$NON-NLS-1$
+					commands.add(arg);
+				} else if (arg.equals(CreaterepoPreferenceConstants.PREF_GENERATE_DB)) {
+					arg = ICreaterepoConstants.DASH.concat("no-").concat(arg); //$NON-NLS-1$
+					commands.add(arg);
+				}
+			}
+		}
+		return commands;
+	}
+
