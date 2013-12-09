@@ -1,18 +1,22 @@
 	@Override
 	public void run() {
 		boolean defaultSessionExists = false;
+		String defaultSessionName = null;
+		String eventName = null;
 		UiModelRoot modelRoot = UiModelRoot.getDefault();
-		
+
 		if (modelRoot.hasChildren()) {
 			IUiModelElement[] events = modelRoot.getChildren();
 			for (IUiModelElement e : events) {
 				if (e instanceof UiModelError)
 					break;
-				
+
 				IUiModelElement[] sessions = e.getChildren();
 				for (IUiModelElement s : sessions) {
 					if (((UiModelSession)s).isDefaultSession()) {
 						defaultSessionExists = true;
+						defaultSessionName = s.getLabelText();
+						eventName = s.getParent().getLabelText();
 						break;
 					}
 				}
@@ -20,7 +24,7 @@
 					break;
 			}
 		}
-		
+
 		if (defaultSessionExists) {
 			//the following code was originially written by Keith Seitz
 			InputDialog dialog = new InputDialog(OprofileUiPlugin.getActiveWorkbenchShell(),
@@ -28,11 +32,15 @@
 					OprofileUiMessages.getString("savedialog.message"),    //$NON-NLS-1$
 					OprofileUiMessages.getString("savedialog.initial"),   //$NON-NLS-1$
 					new SaveSessionValidator());
-			
+
 			int result = dialog.open();
 			if (result == Window.OK) {
 				try {
 					OprofileCorePlugin.getDefault().getOpcontrolProvider().saveSession(dialog.getValue());
+					// remove the default session
+					OprofileCorePlugin.getDefault().getOpcontrolProvider().deleteSession(defaultSessionName, eventName);
+					// clear out collected data by this session
+					OprofileCorePlugin.getDefault().getOpcontrolProvider().reset();
 					OprofileUiPlugin.getDefault().getOprofileView().refreshView();
 				} catch (OpcontrolException oe) {
 					OprofileCorePlugin.showErrorDialog("opcontrolProvider", oe); //$NON-NLS-1$
