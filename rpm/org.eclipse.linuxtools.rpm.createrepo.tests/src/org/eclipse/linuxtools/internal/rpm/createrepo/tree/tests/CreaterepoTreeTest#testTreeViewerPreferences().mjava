@@ -1,0 +1,41 @@
+	/**
+	 * Test if the treeviewer properly loads the preferences.
+	 *
+	 * @throws CoreException
+	 * @throws BackingStoreException
+	 */
+	@Test
+	public void testTreeViewerPreferences() throws CoreException, BackingStoreException {
+		addTestPreferences();
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					initViewer();
+				} catch (CoreException e) {
+					fail();
+				}
+				for (TreeItem treeItem : tree.getItems()) {
+					if (treeItem.getData() instanceof CreaterepoTreeCategory) {
+						CreaterepoTreeCategory category = (CreaterepoTreeCategory) treeItem.getData();
+						// make sure the categories are still correct
+						assertTrue(CORRECT_CATEGORIES.containsKey(category.getName()));
+						// assert that the number of tags stored is the correct amount
+						assertEquals(CORRECT_CATEGORIES.get(category.getName()).intValue(), category.getTags().size());
+					}
+				}
+				// do 1 test to make sure the tags were properly stored/loaded
+				for (TreeItem treeItem : tree.getItems()) {
+					if (treeItem.getData() instanceof CreaterepoTreeCategory) {
+						CreaterepoTreeCategory category = (CreaterepoTreeCategory) treeItem.getData();
+						// only check 1 category's tags, as all are loaded the same way
+						if (category.getName().equals(CreaterepoPreferenceConstants.PREF_DISTRO_TAG)) {
+							assertTrue(Arrays.equals(DISTRO_TAGS, category.getTags().toArray()));
+							break;
+						}
+					}
+				}
+			}
+		});
+	}
+
