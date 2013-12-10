@@ -5,8 +5,6 @@
      *             If there was a problem parsing the metadata
      */
     public void parse() throws CTFReaderException {
-        CTFReaderException tempException = null;
-
         FileInputStream fis = null;
         FileChannel metadataFileChannel = null;
 
@@ -51,43 +49,39 @@
             gen.generate();
 
         } catch (FileNotFoundException e) {
-            tempException = new CTFReaderException("Cannot find metadata file!"); //$NON-NLS-1$
+            throw new CTFReaderException("Cannot find metadata file!"); //$NON-NLS-1$
         } catch (IOException e) {
             /* This would indicate a problem with the ANTLR library... */
-            tempException = new CTFReaderException(e);
+            throw new CTFReaderException(e);
         } catch (ParseException e) {
-            tempException = new CTFReaderException(e);
+            throw new CTFReaderException(e);
         } catch (RecognitionException e) {
-            tempException = new CtfAntlrException(e);
+            throw new CtfAntlrException(e);
         } catch (RewriteCardinalityException e){
-            tempException = new CtfAntlrException(e);
-        }
-
-        /* Ghetto resource management. Java 7 will deliver us from this... */
-        if (metadataTextInput != null) {
-            try {
-                metadataTextInput.close();
-            } catch (IOException e) {
-                // Do nothing
+            throw new CtfAntlrException(e);
+        } finally {
+            /* Ghetto resource management. Java 7 will deliver us from this... */
+            if (metadataTextInput != null) {
+                try {
+                    metadataTextInput.close();
+                } catch (IOException e) {
+                    // Do nothing
+                }
             }
-        }
-        if (metadataFileChannel != null) {
-            try {
-                metadataFileChannel.close();
-            } catch (IOException e) {
-                // Do nothing
+            if (metadataFileChannel != null) {
+                try {
+                    metadataFileChannel.close();
+                } catch (IOException e) {
+                    // Do nothing
+                }
             }
-        }
-        if (fis != null) {
-            try {
-                fis.close();
-            } catch (IOException e) {
-                // Do nothing
+            if (fis != null) {
+                try {
+                    fis.close();
+                } catch (IOException e) {
+                    // Do nothing
+                }
             }
-        }
-
-        if (tempException != null) {
-            throw tempException;
         }
     }
 
