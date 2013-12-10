@@ -1,0 +1,49 @@
+	/**
+	 * Test if tags can be edited correctly.
+	 */
+	@Test
+	public void testEditTags() {
+		// run in UI thread because accessing the tree in the metadata page
+		Display.getDefault().syncExec(new Runnable() {
+			@Override
+			public void run() {
+				String tagName = "testTag"; //$NON-NLS-1$
+				String tagName2 = "testTag2"; //$NON-NLS-1$
+				String newTagName = "renameTag"; //$NON-NLS-1$
+				String prefValueToBe = ""; //$NON-NLS-1$
+				Tree tree = metadataPageBot.widget(WidgetMatcherFactory.widgetOfType(Tree.class));
+				// 0 = distro, 1 = content, 2 = repo
+				int category = 1;
+				// select the category and the test tags to it
+				tree.select(tree.getItem(category));
+				metadataPageBot.textWithLabel(Messages.MetadataPage_labelTags).setText(tagName);
+				metadataPageBot.button(Messages.MetadataPage_buttonAddTag).click();
+				metadataPageBot.textWithLabel(Messages.MetadataPage_labelTags).setText(tagName2);
+				metadataPageBot.button(Messages.MetadataPage_buttonAddTag).click();
+				CreaterepoTreeCategory test = (CreaterepoTreeCategory) tree.getItem(category).getData();
+				assertEquals(2, test.getTags().size());
+				// it should be content = {testTag1, testTag2} now
+				prefValueToBe = tagName + ICreaterepoConstants.DELIMITER + tagName2;
+				assertTrue(isPreferencesCorrect(CreaterepoPreferenceConstants.PREF_CONTENT_TAG, prefValueToBe));
+				// select the first test tag that was created and edit it with a new unique tag
+				tree.select(tree.getItem(category).getItem(0));
+				metadataPageBot.textWithLabel(Messages.MetadataPage_labelTags).setText(newTagName);
+				metadataPageBot.button(Messages.MetadataPage_buttonEditTag).click();
+				assertEquals(2, test.getTags().size());
+				assertEquals(newTagName, test.getTags().get(0));
+				// it should be content = {renameTag, testTag2} now
+				prefValueToBe = newTagName + ICreaterepoConstants.DELIMITER + tagName2;
+				assertTrue(isPreferencesCorrect(CreaterepoPreferenceConstants.PREF_CONTENT_TAG, prefValueToBe));
+				// select the second test tag and try to rename it as the same name as the first tag, this should not happen
+				tree.select(tree.getItem(category).getItem(1));
+				metadataPageBot.textWithLabel(Messages.MetadataPage_labelTags).setText(newTagName);
+				metadataPageBot.button(Messages.MetadataPage_buttonEditTag).click();
+				assertEquals(2, test.getTags().size());
+				assertNotEquals(newTagName, test.getTags().get(1));
+				// it should still be content = {renameTag, testTag2}
+				prefValueToBe = newTagName + ICreaterepoConstants.DELIMITER + tagName2;
+				assertTrue(isPreferencesCorrect(CreaterepoPreferenceConstants.PREF_CONTENT_TAG, prefValueToBe));
+			}
+		});
+	}
+
