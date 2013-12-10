@@ -1,18 +1,35 @@
     /**
-     * Generic "read node" method, which checks if the node is in memory first,
-     * and if it's not it goes to disk to retrieve it.
+     * This method here isn't private, if we know for sure the node cannot be in
+     * memory it's a bit faster to use this directly (when opening a file from
+     * disk for example)
      *
-     * @param seqNumber
-     *            Sequence number of the node we want
-     * @return The wanted node in object form
      * @throws ClosedChannelException
-     *             If the channel was closed before we could read
+     *             Usually happens because the file was closed while we were
+     *             reading. Instead of using a big reader-writer lock, we'll
+     *             just catch this exception.
      */
-    HTNode readNode(int seqNumber) throws ClosedChannelException {
-        HTNode node = readNodeFromMemory(seqNumber);
-        if (node == null) {
-            return readNodeFromDisk(seqNumber);
+    synchronized HTNode readNode(int seqNumber) throws ClosedChannelException {
+        /* Do a cache lookup */
+        int offset = seqNumber & (CACHE_SIZE - 1);
+        HTNode readNode = fNodeCache[offset];
+        if (readNode != null && readNode.getSequenceNumber() == seqNumber) {
+          return readNode;
         }
-        return node;
+
+        /* Lookup on disk */
+        try {
+            seekFCToNodePos(fcIn, seqNumber);
+            readNode = HTNode.readNode(fConfig, fcIn);
+
+            /* Put the node in the cache. */
+            fNodeCache[offset] = readNode;
+            return readNode;
+        } catch (ClosedChannelException e) {
+            throw e;
+        } catch (IOException e) {
+            /* Other types of IOExceptions shouldn't happen at this point though */
+            e.printStackTrace();
+            return null;
+        }
     }
 
