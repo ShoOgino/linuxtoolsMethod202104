@@ -1,0 +1,33 @@
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+
+        fLock.lock();
+        try {
+            final TraceSessionGroup sessionGroup = fSessionGroup;
+
+            // Open dialog box for the node name and address
+            final ISelectCommandScriptDialog dialog = TraceControlDialogFactory.getInstance().getCommandScriptDialog();
+
+            if (dialog.open() != Window.OK) {
+                return null;
+            }
+
+            Job job = new Job(Messages.TraceControl_ExecuteScriptJob) {
+                @Override
+                protected IStatus run(IProgressMonitor monitor) {
+                    try {
+                        sessionGroup.executeCommands(monitor, dialog.getCommands());
+                    } catch (ExecutionException e) {
+                        return new Status(IStatus.ERROR, Activator.PLUGIN_ID, Messages.TraceControl_CreateSessionFailure, e);
+                    }
+                    return Status.OK_STATUS;
+                }
+            };
+            job.setUser(true);
+            job.schedule();
+        } finally {
+            fLock.unlock();
+        }
+        return null;
+    }
+
