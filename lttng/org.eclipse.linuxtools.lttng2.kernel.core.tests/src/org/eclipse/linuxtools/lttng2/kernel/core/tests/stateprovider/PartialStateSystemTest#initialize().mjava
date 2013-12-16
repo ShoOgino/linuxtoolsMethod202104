@@ -4,15 +4,21 @@
     @BeforeClass
     public static void initialize() {
         assumeTrue(testTrace.exists());
-        try {
-            stateFile = File.createTempFile("test-partial", ".ht");
+        stateFile = new File(TmfTraceManager.getSupplementaryFileDir(testTrace.getTrace()) + TEST_FILE_NAME);
+        if (stateFile.exists()) {
+            stateFile.delete();
+        }
 
-            input = new LttngKernelStateProvider(testTrace.getTrace());
-            ssq = TmfStateSystemFactory.newPartialHistory(stateFile, input, true);
-        } catch (IOException e) {
-            fail();
-        } catch (TmfTraceException e) {
+        TestLttngKernelAnalysisModule module = new TestLttngKernelAnalysisModule(TEST_FILE_NAME);
+        try {
+            module.setTrace(testTrace.getTrace());
+        } catch (TmfAnalysisException e) {
             fail();
         }
+        module.schedule();
+        assertTrue(module.waitForCompletion(new NullProgressMonitor()));
+        ssq = module.getStateSystem();
+
+        assertNotNull(ssq);
     }
 

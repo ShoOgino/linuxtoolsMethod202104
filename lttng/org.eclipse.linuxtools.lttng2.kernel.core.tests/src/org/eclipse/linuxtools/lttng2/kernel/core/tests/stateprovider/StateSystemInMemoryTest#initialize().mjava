@@ -4,7 +4,16 @@
     @BeforeClass
     public static void initialize() {
         assumeTrue(testTrace.exists());
-        input = new LttngKernelStateProvider(testTrace.getTrace());
-        ssq = TmfStateSystemFactory.newInMemHistory(input, true);
+
+        TestLttngKernelAnalysisModule module = new TestLttngKernelAnalysisModule();
+        try {
+            module.setTrace(testTrace.getTrace());
+        } catch (TmfAnalysisException e) {
+            fail();
+        }
+        module.schedule();
+        assertTrue(module.waitForCompletion(new NullProgressMonitor()));
+        ssq = module.getStateSystem();
+        assertNotNull(ssq);
     }
 
