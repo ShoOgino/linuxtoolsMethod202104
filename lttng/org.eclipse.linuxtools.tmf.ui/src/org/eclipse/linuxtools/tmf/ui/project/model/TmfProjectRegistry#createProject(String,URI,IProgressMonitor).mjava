@@ -10,48 +10,54 @@
      * @return the IProject object or null
      * @since 2.0
      */
-    public static IProject createProject(String projectName, URI projectLocation, IProgressMonitor monitor) {
+    public static IProject createProject(String projectName, final URI projectLocation, IProgressMonitor monitor) {
 
-        IWorkspace workspace = ResourcesPlugin.getWorkspace();
+        final IWorkspace workspace = ResourcesPlugin.getWorkspace();
         IWorkspaceRoot root = workspace.getRoot();
-        IProject project = root.getProject(projectName);
-        try {
-            if (!project.exists()) {
-                IProjectDescription description = workspace.newProjectDescription(project.getName());
-                if (projectLocation != null) {
-                    description.setLocationURI(projectLocation);
+        final IProject project = root.getProject(projectName);
+        WorkspaceModifyOperation action = new WorkspaceModifyOperation() {
+            @Override
+            protected void execute(IProgressMonitor progressMonitor) throws CoreException, InvocationTargetException, InterruptedException {
+                if (!project.exists()) {
+                    IProjectDescription description = workspace.newProjectDescription(project.getName());
+                    if (projectLocation != null) {
+                        description.setLocationURI(projectLocation);
+                    }
+                    project.create(description, progressMonitor);
                 }
-                project.create(description, monitor);
+
+                if (!project.isOpen()) {
+                    project.open(progressMonitor);
+                }
+
+                IProjectDescription description = project.getDescription();
+                description.setNatureIds(new String[] { TmfProjectNature.ID });
+                project.setDescription(description, null);
+
+                IFolder folder = project.getFolder(TmfTraceFolder.TRACE_FOLDER_NAME);
+                if (!folder.exists()) {
+                    folder.create(true, true, null);
+                }
+
+                folder = project.getFolder(TmfExperimentFolder.EXPER_FOLDER_NAME);
+                if (!folder.exists()) {
+                    folder.create(true, true, null);
+                }
+
+                // create folder for supplementary tracing files
+                folder = project.getFolder(TmfCommonConstants.TRACE_SUPPLEMENATARY_FOLDER_NAME);
+
+                if (!folder.exists()) {
+                    folder.create(true, true, null);
+                }
             }
-
-            if (!project.isOpen()) {
-                project.open(monitor);
-            }
-
-            IProjectDescription description = project.getDescription();
-            description.setNatureIds(new String[] { TmfProjectNature.ID });
-            project.setDescription(description, null);
-
-            IFolder folder = project.getFolder(TmfTraceFolder.TRACE_FOLDER_NAME);
-            if (!folder.exists()) {
-                folder.create(true, true, null);
-            }
-
-            folder = project.getFolder(TmfExperimentFolder.EXPER_FOLDER_NAME);
-            if (!folder.exists()) {
-                folder.create(true, true, null);
-            }
-
-            // create folder for supplementary tracing files
-            folder = project.getFolder(TmfCommonConstants.TRACE_SUPPLEMENATARY_FOLDER_NAME);
-
-            if (!folder.exists()) {
-                folder.create(true, true, null);
-            }
-            return project;
-        } catch (CoreException e) {
+        };
+        try {
+            PlatformUI.getWorkbench().getProgressService().run(false, false, action);
+        } catch (InvocationTargetException e) {
             Activator.getDefault().logError("Error creating TMF project " + project.getName(), e); //$NON-NLS-1$
+        } catch (InterruptedException e) {
         }
-        return null;
+        return project;
     }
 

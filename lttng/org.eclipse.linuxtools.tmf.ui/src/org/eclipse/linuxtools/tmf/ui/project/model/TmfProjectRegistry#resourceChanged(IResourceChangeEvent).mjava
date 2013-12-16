@@ -1,0 +1,25 @@
+    /**
+     * @since 3.0
+     */
+    @Override
+    public void resourceChanged(IResourceChangeEvent event) {
+        if (event.getType() == IResourceChangeEvent.POST_CHANGE) {
+            for (IResourceDelta delta : event.getDelta().getAffectedChildren()) {
+                if (delta.getResource() instanceof IProject) {
+                    IProject project = (IProject) delta.getResource();
+                    try {
+                        if (delta.getKind() == IResourceDelta.CHANGED &&
+                                project.isOpen() && project.hasNature(TmfProjectNature.ID)) {
+                            TmfProjectElement projectElement = getProject(project, true);
+                            projectElement.refresh();
+                        } else if (delta.getKind() == IResourceDelta.REMOVED) {
+                            registry.remove(project);
+                        }
+                    } catch (CoreException e) {
+                        Activator.getDefault().logError("Error handling resource change event for " + project.getName(), e); //$NON-NLS-1$
+                    }
+                }
+            }
+        }
+    }
+
