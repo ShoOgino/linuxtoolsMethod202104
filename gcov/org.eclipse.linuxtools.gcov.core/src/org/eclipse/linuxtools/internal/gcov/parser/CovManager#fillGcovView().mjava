@@ -1,0 +1,42 @@
+    /**
+     * fill the model by count results
+     * @throws CoreException
+     *             , IOException, InterruptedException
+     */
+
+    public void fillGcovView() {
+        // process counts for summary level
+        int summaryTotal = 0, summaryInstrumented = 0, summaryExecuted = 0;
+        for (Folder f : allFolders) {
+            summaryTotal += f.getNumLines();
+            summaryInstrumented += f.getLinesInstrumented();
+            summaryExecuted += f.getLinesExecuted();
+        }
+
+        // fill rootNode model: the entry of the contentProvider
+        rootNode = new CovRootTreeElement(Messages.CovManager_Summary, summaryTotal, summaryExecuted,
+                summaryInstrumented);
+        IBinaryObject binaryObject = STSymbolManager.sharedInstance.getBinaryObject(new Path(binaryPath));
+
+        for (Folder fldr : allFolders) {
+            String folderLocation = fldr.getPath();
+            CovFolderTreeElement fldrTreeElem = new CovFolderTreeElement(rootNode, folderLocation, fldr.getNumLines(),
+                    fldr.getLinesExecuted(), fldr.getLinesInstrumented());
+            rootNode.addChild(fldrTreeElem);
+
+            for (SourceFile src : fldr.getSrcFiles()) {
+                CovFileTreeElement srcTreeElem = new CovFileTreeElement(fldrTreeElem, src.getName(), src.getNumLines(),
+                        src.getLinesExecuted(), src.getLinesInstrumented());
+                fldrTreeElem.addChild(srcTreeElem);
+
+                for (GcnoFunction fnctn : src.getFnctns()) {
+                    String name = fnctn.getName();
+                    name = STSymbolManager.sharedInstance.demangle(binaryObject, name, project);
+                    srcTreeElem.addChild(new CovFunctionTreeElement(srcTreeElem, name, fnctn.getSrcFile(), fnctn
+                            .getFirstLineNmbr(), fnctn.getCvrge().getLinesExecuted(), fnctn.getCvrge()
+                            .getLinesInstrumented()));
+                }
+            }
+        }
+    }
+

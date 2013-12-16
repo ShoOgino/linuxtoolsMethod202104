@@ -1,0 +1,24 @@
+    /**
+     * Retrieve a list containing gcda paths from a binary file
+     * @return
+     * @throws InterruptedException
+     */
+    public List<String> getGCDALocations() throws InterruptedException {
+        IBinaryObject binaryObject = STSymbolManager.sharedInstance.getBinaryObject(new Path(binaryPath));
+        String binaryPath = binaryObject.getPath().toOSString();
+        List<String> l = new LinkedList<>();
+        Process p;
+        p = getStringsProcess(Messages.CovManager_Strings, binaryPath);
+        if (p == null) {
+            Status status = new Status(IStatus.ERROR, Activator.PLUGIN_ID, IStatus.ERROR,
+                    Messages.CovManager_Retrieval_Error, new IOException());
+            Activator.getDefault().getLog().log(status);
+            return l;
+        }
+        ThreadConsumer t = new ThreadConsumer(p, l);
+        t.start();
+        p.waitFor();
+        t.join();
+        return l;
+    }
+
