@@ -19,7 +19,7 @@
                     }
                 }
                 else {
-                    List<File> subList = new ArrayList<File>();
+                    List<File> subList = new ArrayList<>();
                     IPath path = fTargetFolder.getFullPath();
                     File parentFile = traceToImport.getFile();
                     final boolean isFile = parentFile.isFile();
@@ -28,12 +28,12 @@
                         if (fOverwrite || !resource.exists()) {
                             subList.add(parentFile);
                             parentFile = parentFile.getParentFile();
-                            final FileInputStream source = new FileInputStream(traceToImport.getFile());
-                            if (resource.exists()) {
-                                resource.delete(IResource.FORCE, new NullProgressMonitor());
+                            try (final FileInputStream source = new FileInputStream(traceToImport.getFile());) {
+                                if (resource.exists()) {
+                                    resource.delete(IResource.FORCE, new NullProgressMonitor());
+                                }
+                                resource.create(source, true, new NullProgressMonitor());
                             }
-                            resource.create(source, true, new NullProgressMonitor());
-                            source.close();
                             setTraceType(traceToImport);
                             success = true;
                         }
