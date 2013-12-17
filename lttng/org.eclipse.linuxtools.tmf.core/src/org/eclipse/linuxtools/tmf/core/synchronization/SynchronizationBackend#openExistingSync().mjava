@@ -11,23 +11,17 @@
             return null;
         }
 
-        /* Set the position after the header */
-        FileInputStream fis = new FileInputStream(fSyncFile);
-        FileChannel fc = fis.getChannel().position(HEADER_SIZE);
+        try (/* Set the position after the header */
+                FileInputStream fis = new FileInputStream(fSyncFile);
+                FileChannel fc = fis.getChannel().position(HEADER_SIZE);
+                /* Read the input stream */
+                ObjectInputStream ois = new ObjectInputStream(fis);) {
 
-        /* Read the input stream */
-        ObjectInputStream ois = new ObjectInputStream(fis);
-        SyncAlgorithmFullyIncremental syncAlgo = null;
-        try {
-            syncAlgo = (SyncAlgorithmFullyIncremental) ois.readObject();
+            return (SynchronizationAlgorithm) ois.readObject();
         } catch (ClassNotFoundException e) {
-
+            return null;
         }
-        ois.close();
-        fc.close();
 
-        fis.close();
 
-        return syncAlgo;
     }
 

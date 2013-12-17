@@ -8,7 +8,6 @@
      *            The greatest timestamp present in the history tree
      */
     void closeTree(long requestedEndTime) {
-        FileChannel fc;
         ByteBuffer buffer;
         int i, res;
 
@@ -27,13 +26,12 @@
             treeIO.writeNode(latestBranch.get(i));
         }
 
-        fc = treeIO.getFcOut();
-        buffer = ByteBuffer.allocate(TREE_HEADER_SIZE);
-        buffer.order(ByteOrder.LITTLE_ENDIAN);
-        buffer.clear();
+        try (FileChannel fc = treeIO.getFcOut();) {
+            buffer = ByteBuffer.allocate(TREE_HEADER_SIZE);
+            buffer.order(ByteOrder.LITTLE_ENDIAN);
+            buffer.clear();
 
-        /* Save the config of the tree to the header of the file */
-        try {
+            /* Save the config of the tree to the header of the file */
             fc.position(0);
 
             buffer.putInt(HISTORY_FILE_MAGIC_NUMBER);
@@ -58,12 +56,12 @@
             /* done writing the file header */
 
         } catch (IOException e) {
-            /* We should not have any problems at this point... */
-        } finally {
-            try {
-                fc.close();
-            } catch (IOException e) {
-            }
+            /*
+             * If we were able to write so far, there should not be any problem
+             * at this point...
+             */
+            // FIXME still, the IOException should be propagated upwards
+            throw new RuntimeException();
         }
         return;
     }

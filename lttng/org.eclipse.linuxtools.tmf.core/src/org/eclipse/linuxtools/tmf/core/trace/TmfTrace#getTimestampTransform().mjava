@@ -8,18 +8,12 @@
             File sync_file = getSyncFormulaFile();
             if (sync_file != null && sync_file.exists()) {
 
-                try {
-                    FileInputStream fis = new FileInputStream(sync_file);
-                    ObjectInputStream ois = new ObjectInputStream(fis);
+                try (FileInputStream fis = new FileInputStream(sync_file);
+                        ObjectInputStream ois = new ObjectInputStream(fis);) {
+
                     fTsTransform = (ITmfTimestampTransform) ois.readObject();
 
-                    ois.close();
-                    fis.close();
-                } catch (ClassNotFoundException e1) {
-                    fTsTransform = TmfTimestampTransform.IDENTITY;
-                } catch (FileNotFoundException e1) {
-                    fTsTransform = TmfTimestampTransform.IDENTITY;
-                } catch (IOException e1) {
+                } catch (ClassNotFoundException | IOException e) {
                     fTsTransform = TmfTimestampTransform.IDENTITY;
                 }
             } else {

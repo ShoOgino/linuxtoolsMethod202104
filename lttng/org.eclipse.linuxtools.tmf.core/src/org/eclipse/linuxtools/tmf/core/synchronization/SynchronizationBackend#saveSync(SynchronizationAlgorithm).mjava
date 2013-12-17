@@ -12,20 +12,13 @@
             return;
         }
 
-        FileChannel fc;
-        FileOutputStream fos;
-        ObjectOutputStream oos;
-        ByteBuffer buffer;
-        int res;
-
-        fos = new FileOutputStream(fSyncFile, false);
-        fc = fos.getChannel();
-
-        buffer = ByteBuffer.allocate(HEADER_SIZE);
-        buffer.clear();
-
         /* Save the header of the file */
-        try {
+        try (FileOutputStream fos = new FileOutputStream(fSyncFile, false);
+                FileChannel fc = fos.getChannel();) {
+
+            ByteBuffer buffer = ByteBuffer.allocate(HEADER_SIZE);
+            buffer.clear();
+
             fc.position(0);
 
             buffer.putInt(SYNC_FILE_MAGIC_NUMBER);
@@ -33,26 +26,22 @@
             buffer.putInt(FILE_VERSION);
 
             buffer.flip();
-            res = fc.write(buffer);
+            int res = fc.write(buffer);
             assert (res <= HEADER_SIZE);
             /* done writing the file header */
 
             fc.position(HEADER_SIZE);
 
-            oos = new ObjectOutputStream(fos);
-            oos.writeObject(syncAlgo);
-            oos.close();
-
-        } catch (IOException e) {
-            /* We should not have any problems at this point... */
-            Activator.logError("Error saving trace synchronization data", e); //$NON-NLS-1$
-        } finally {
-            try {
-                fc.close();
-                fos.close();
-            } catch (IOException e) {
-                Activator.logError("Error closing synchronization file", e); //$NON-NLS-1$
+            try (ObjectOutputStream oos = new ObjectOutputStream(fos);) {
+                oos.writeObject(syncAlgo);
             }
+
+        } catch (FileNotFoundException e) {
+            /* Send this upwards */
+            throw e;
+        } catch (IOException e) {
+            /* Handle other cases of IOException's */
+            Activator.logError("Error saving trace synchronization data", e); //$NON-NLS-1$
         }
         return;
 

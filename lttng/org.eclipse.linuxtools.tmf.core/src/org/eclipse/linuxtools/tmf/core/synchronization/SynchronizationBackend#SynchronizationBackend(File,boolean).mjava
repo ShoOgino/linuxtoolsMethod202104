@@ -36,36 +36,30 @@
             return;
         }
 
-        FileInputStream fis = new FileInputStream(syncFile);
-        ByteBuffer buffer = ByteBuffer.allocate(HEADER_SIZE);
-        FileChannel fc = fis.getChannel();
-        buffer.clear();
-        fc.read(buffer);
-        buffer.flip();
+        try (FileInputStream fis = new FileInputStream(syncFile);
+                FileChannel fc = fis.getChannel();) {
+            ByteBuffer buffer = ByteBuffer.allocate(HEADER_SIZE);
+            buffer.clear();
+            fc.read(buffer);
+            buffer.flip();
 
-        /*
-         * Check the magic number,to make sure we're opening the right type of
-         * file
-         */
-        res = buffer.getInt();
-        if (res != SYNC_FILE_MAGIC_NUMBER) {
-            fc.close();
-            fis.close();
-            throw new IOException("Selected file does not" + //$NON-NLS-1$
-                    "look like a synchronization file"); //$NON-NLS-1$
+            /*
+             * Check the magic number,to make sure we're opening the right type
+             * of file
+             */
+            res = buffer.getInt();
+            if (res != SYNC_FILE_MAGIC_NUMBER) {
+                throw new IOException("Selected file does not" + //$NON-NLS-1$
+                        "look like a synchronization file"); //$NON-NLS-1$
+            }
+
+            res = buffer.getInt(); /* Major version number */
+            if (res != FILE_VERSION) {
+                throw new IOException("Select synchronization file is of an older " //$NON-NLS-1$
+                        + "format. Synchronization will have to be computed again."); //$NON-NLS-1$
+            }
+
+            res = buffer.getInt(); /* Minor version number */
         }
-
-        res = buffer.getInt(); /* Major version number */
-        if (res != FILE_VERSION) {
-            fc.close();
-            fis.close();
-            throw new IOException("Select synchronization file is of an older " //$NON-NLS-1$
-                    + "format. Synchronization will have to be computed again."); //$NON-NLS-1$
-        }
-
-        res = buffer.getInt(); /* Minor version number */
-
-        fc.close();
-        fis.close();
     }
 
