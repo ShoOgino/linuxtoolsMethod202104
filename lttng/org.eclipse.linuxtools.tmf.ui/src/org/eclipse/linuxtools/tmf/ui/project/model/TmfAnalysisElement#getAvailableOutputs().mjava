@@ -1,43 +1,16 @@
     /**
-     * Get the list of analysis elements
+     * Get the list of analysis output model elements under this analysis
      *
-     * @return Array of analysis elements
+     * @return Array of analysis output elements
      */
     public List<TmfAnalysisOutputElement> getAvailableOutputs() {
-        List<TmfAnalysisOutputElement> list = new ArrayList<>();
-
-        IAnalysisModuleHelper helper = TmfAnalysisManager.getAnalysisModule(fAnalysisId);
-        if (helper == null) {
-            return list;
-        }
-
-        /** Get base path for resource */
-        IPath path = getProject().getTracesFolder().getPath();
-        if (fResource instanceof IFolder) {
-            path = ((IFolder) fResource).getFullPath();
-        }
-
-        /* We can get a list of available outputs once the analysis is instantiated when the trace is opened */
-        ITmfProjectModelElement parent = getParent();
-        if (parent instanceof TmfTraceElement) {
-            ITmfTrace trace = ((TmfTraceElement) parent).getTrace();
-            if (trace == null) {
-                return list;
-            }
-
-            IAnalysisModule module = trace.getAnalysisModule(fAnalysisId);
-            if (module == null) {
-                return list;
-            }
-
-            for (IAnalysisOutput output : module.getOutputs()) {
-                if (fResource instanceof IFolder) {
-                    IFolder newresource = ResourcesPlugin.getWorkspace().getRoot().getFolder(path.append(output.getName()));
-                    TmfAnalysisOutputElement out = new TmfAnalysisOutputElement(output.getName(), newresource, this, output);
-                    list.add(out);
-                }
+        List<ITmfProjectModelElement> children = getChildren();
+        List<TmfAnalysisOutputElement> outputs = new ArrayList<>();
+        for (ITmfProjectModelElement child : children) {
+            if (child instanceof TmfAnalysisOutputElement) {
+                outputs.add((TmfAnalysisOutputElement) child);
             }
         }
-        return list;
+        return outputs;
     }
 

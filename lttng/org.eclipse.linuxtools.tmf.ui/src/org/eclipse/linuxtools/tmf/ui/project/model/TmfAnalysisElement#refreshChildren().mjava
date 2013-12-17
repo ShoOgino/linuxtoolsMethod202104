@@ -1,0 +1,53 @@
+    @Override
+    void refreshChildren() {
+        /* Refresh the outputs of this analysis */
+        Map<String, TmfAnalysisOutputElement> childrenMap = new HashMap<>();
+        for (TmfAnalysisOutputElement output : getAvailableOutputs()) {
+            childrenMap.put(output.getName(), output);
+        }
+
+        IAnalysisModuleHelper helper = TmfAnalysisManager.getAnalysisModule(fAnalysisId);
+        if (helper == null) {
+            deleteOutputs();
+            return;
+        }
+
+        /** Get base path for resource */
+        IPath path = getProject().getTracesFolder().getPath();
+        if (fResource instanceof IFolder) {
+            path = ((IFolder) fResource).getFullPath();
+        }
+
+        /*
+         * We can get a list of available outputs once the analysis is
+         * instantiated when the trace is opened
+         */
+        ITmfProjectModelElement parent = getParent();
+        if (parent instanceof TmfTraceElement) {
+            ITmfTrace trace = ((TmfTraceElement) parent).getTrace();
+            if (trace == null) {
+                deleteOutputs();
+                return;
+            }
+
+            IAnalysisModule module = trace.getAnalysisModule(fAnalysisId);
+            if (module == null) {
+                deleteOutputs();
+                return;
+            }
+
+            for (IAnalysisOutput output : module.getOutputs()) {
+                TmfAnalysisOutputElement outputElement = childrenMap.remove(output.getName());
+                if (outputElement == null) {
+                    IFolder newresource = ResourcesPlugin.getWorkspace().getRoot().getFolder(path.append(output.getName()));
+                    outputElement = new TmfAnalysisOutputElement(output.getName(), newresource, this, output);
+                }
+                outputElement.refreshChildren();
+            }
+        }
+        /* Remove outputs that are not children of this analysis anymore */
+        for (TmfAnalysisOutputElement output : childrenMap.values()) {
+            removeChild(output);
+        }
+    }
+
