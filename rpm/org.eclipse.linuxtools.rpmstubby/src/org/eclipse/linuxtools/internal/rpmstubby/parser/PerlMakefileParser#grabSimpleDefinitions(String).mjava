@@ -5,49 +5,50 @@
 	 *            The content to grab the key->value pairs from.
 	 */
 	private void grabSimpleDefinitions(String content) {
-		Scanner scanner = new Scanner(content);
-		Stack<Character> brackets = new Stack<Character>();
-		String key = "";
-		String value = "";
-		String tempVar = "";
-		String line = "";
-		String[] tmp;
-		int flags = 0;
+		try (Scanner scanner = new Scanner(content)) {
+			Stack<Character> brackets = new Stack<>();
+			String key = "";
+			String value = "";
+			String tempVar = "";
+			String line = "";
+			String[] tmp;
+			int flags = 0;
 
-		while (scanner.hasNext()) {
-			line = scanner.nextLine();
-			if (matchesSimpleAssignment(line)) {
-				tmp = line.split("=");
-				key = removeVariableSigils(tmp[0]).toLowerCase().replaceAll(
-						"\\W", "");
-				value = tmp[1];
-				if (containsOpener(value)) {
-					flags |= IN_BRACKETS;
-				} else {
-					mVariableDefinitions.put(key, value);
-				}
-			} else if (containsMakefileFunction(line)) {
-				flags |= MAKE_FUNCTION;
-				flags |= IN_BRACKETS;
-			}
-			if ((flags & IN_BRACKETS) == IN_BRACKETS) {
-				checkBrackets(brackets, line);
-				tempVar = tempVar.concat(line.trim());
-				if (brackets.isEmpty()) {
-					if ((flags & MAKE_FUNCTION) == MAKE_FUNCTION) {
-						mVariableDefinitions.putAll(extractFunction(tempVar));
+			while (scanner.hasNext()) {
+				line = scanner.nextLine();
+				if (matchesSimpleAssignment(line)) {
+					tmp = line.split("=");
+					key = removeVariableSigils(tmp[0]).toLowerCase()
+							.replaceAll("\\W", "");
+					value = tmp[1];
+					if (containsOpener(value)) {
+						flags |= IN_BRACKETS;
 					} else {
-						tmp = tempVar.split("=[^>]");
-						key = removeVariableSigils(tmp[0]).toLowerCase()
-								.replaceAll("\\W", "");
-						value = tmp[1];
 						mVariableDefinitions.put(key, value);
 					}
-					tempVar = "";
-					flags &= 0;
+				} else if (containsMakefileFunction(line)) {
+					flags |= MAKE_FUNCTION;
+					flags |= IN_BRACKETS;
+				}
+				if ((flags & IN_BRACKETS) == IN_BRACKETS) {
+					checkBrackets(brackets, line);
+					tempVar = tempVar.concat(line.trim());
+					if (brackets.isEmpty()) {
+						if ((flags & MAKE_FUNCTION) == MAKE_FUNCTION) {
+							mVariableDefinitions
+									.putAll(extractFunction(tempVar));
+						} else {
+							tmp = tempVar.split("=[^>]");
+							key = removeVariableSigils(tmp[0]).toLowerCase()
+									.replaceAll("\\W", "");
+							value = tmp[1];
+							mVariableDefinitions.put(key, value);
+						}
+						tempVar = "";
+						flags &= 0;
+					}
 				}
 			}
 		}
-		scanner.close();
 	}
 
