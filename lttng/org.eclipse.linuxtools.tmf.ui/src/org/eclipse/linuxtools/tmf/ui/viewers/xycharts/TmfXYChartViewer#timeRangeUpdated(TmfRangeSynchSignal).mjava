@@ -1,0 +1,30 @@
+    /**
+     * Signal handler for handling of the time range synch signal.
+     *
+     * @param signal
+     *            The time range synch signal {@link TmfRangeSynchSignal}
+     */
+    @TmfSignalHandler
+    public void timeRangeUpdated(TmfRangeSynchSignal signal) {
+
+        if (fTrace != null) {
+            // Validate the time range
+            TmfTimeRange range = signal.getCurrentRange().getIntersection(fTrace.getTimeRange());
+            if (range == null) {
+                return;
+            }
+
+            if (signal.getSource() != this) {
+                // Update the time range
+                long windowStartTime = range.getStartTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+                long windowEndTime = range.getEndTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+                long windowDuration = windowEndTime - windowStartTime;
+
+                setWindowStartTime(windowStartTime);
+                setWindowEndTime(windowEndTime);
+                setWindowDuration(windowDuration);
+            }
+        }
+        updateContent();
+    }
+
