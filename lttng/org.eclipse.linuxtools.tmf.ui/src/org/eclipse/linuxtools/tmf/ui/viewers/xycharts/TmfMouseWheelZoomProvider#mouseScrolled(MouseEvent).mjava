@@ -1,0 +1,35 @@
+    // ------------------------------------------------------------------------
+    // MouseWheelListener
+    // ------------------------------------------------------------------------
+    @Override
+    public synchronized void mouseScrolled(MouseEvent event) {
+        ITmfChartTimeProvider viewer = getChartViewer();
+
+        long oldDuration = viewer.getWindowDuration();
+
+        if (oldDuration == 0) {
+            return;
+        }
+
+        // Compute the new time range
+        long newDuration = oldDuration;
+        double ratio = 1.0;
+        if (event.count > 0) {
+            ratio = ZOOM_FACTOR;
+            newDuration = Math.round(ZOOM_FACTOR * oldDuration);
+        } else {
+            ratio = 1.0 / ZOOM_FACTOR;
+            newDuration = (long) Math.ceil(oldDuration * ratio);
+        }
+        newDuration = Math.max(MIN_WINDOW_SIZE, newDuration);
+
+        // Center the zoom on mouse position, distribute new duration and adjust for boundaries.
+        IAxis xAxis = getChart().getAxisSet().getXAxis(0);
+        long timeAtXPos = limitXDataCoordinate(xAxis.getDataCoordinate(event.x)) + viewer.getTimeOffset();
+        // Note: ratio = newDuration/oldDuration
+        long newWindowStartTime = timeAtXPos - Math.round(ratio * (timeAtXPos - viewer.getWindowStartTime()));
+        long newWindowEndTime = validateWindowEndTime(newWindowStartTime, newWindowStartTime + newDuration);
+        newWindowStartTime = validateWindowStartTime(newWindowStartTime);
+        viewer.updateWindow(newWindowStartTime, newWindowEndTime);
+    }
+
