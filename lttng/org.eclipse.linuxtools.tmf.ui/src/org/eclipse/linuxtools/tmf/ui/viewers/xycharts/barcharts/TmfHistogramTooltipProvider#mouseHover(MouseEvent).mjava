@@ -1,0 +1,59 @@
+    @Override
+    public void mouseHover(MouseEvent e) {
+        if (getChartViewer().getWindowDuration() != 0) {
+            IAxis xAxis = getChart().getAxisSet().getXAxis(0);
+            IAxis yAxis = getChart().getAxisSet().getYAxis(0);
+
+            double xCoordinate = xAxis.getDataCoordinate(e.x);
+
+            ISeries[] series = getChart().getSeriesSet().getSeries();
+
+            if ((xCoordinate < 0) || (series.length == 0)) {
+                return;
+            }
+
+            double y = 0.0;
+            double rangeStart = 0.0;
+            double rangeEnd = 0.0;
+
+            // Consider first series only
+            double[] xS = series[0].getXSeries();
+            double[] yS = series[0].getYSeries();
+
+            if ((xS == null) || (yS == null)) {
+                return;
+            }
+
+            for (int i = 0; i < xS.length - 1; i++) {
+                int pixel = xAxis.getPixelCoordinate(xS[i]);
+                if (pixel <= e.x) {
+                    rangeStart = xS[i];
+                    rangeEnd = (long) xS[i + 1];
+                    if (xCoordinate >= rangeStart) {
+                        y = yS[i + 1];
+                    } else {
+                        y = yS[i];
+                    }
+                }
+            }
+
+            ITmfChartTimeProvider viewer = getChartViewer();
+
+            /* set tooltip of closest data point */
+            StringBuffer buffer = new StringBuffer();
+            buffer.append("Range=["); //$NON-NLS-1$
+            buffer.append(new TmfTimestamp((long) rangeStart + viewer.getTimeOffset(), ITmfTimestamp.NANOSECOND_SCALE).toString());
+            buffer.append(',');
+            buffer.append(new TmfTimestamp((long) rangeEnd + viewer.getTimeOffset(), ITmfTimestamp.NANOSECOND_SCALE).toString());
+            buffer.append("]\n"); //$NON-NLS-1$
+            buffer.append("y="); //$NON-NLS-1$
+            buffer.append((long) y);
+            getChart().getPlotArea().setToolTipText(buffer.toString());
+
+            fHighlightX = e.x;
+            fHighlightY = yAxis.getPixelCoordinate(y);
+            fIsHighlight = true;
+            getChart().redraw();
+        }
+    }
+

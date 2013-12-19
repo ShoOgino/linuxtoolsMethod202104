@@ -1,0 +1,40 @@
+    /**
+     * Draw the given series on the chart
+     *
+     * @param series
+     *            The series to display
+     * @param x
+     *            The X values. It can be computed with
+     *            {@link TmfBarChartViewer#getXAxis}
+     *            The values are stored in the internal time representation.
+     *            To get the trace time one has to add the time offset
+     *            {@link #getTimeOffset()}.
+     * @param y
+     *            The Y values that were computed by the extended class
+     */
+    protected void drawChart(final ISeries series, final double[] x, final double[] y) {
+        // Run in GUI thread to make sure that chart is ready after restart
+        final Display display = getDisplay();
+        if (display.isDisposed()) {
+            return;
+        }
+
+        display.syncExec(new Runnable() {
+            @Override
+            public void run() {
+                if (display.isDisposed()) {
+                    return;
+                }
+                Chart swtChart = getSwtChart();
+                IAxisTick xTick = swtChart.getAxisSet().getXAxis(0).getTick();
+                xTick.setFormat(new TmfChartTimeStampFormat(getTimeOffset()));
+                series.setXSeries(x);
+                series.setYSeries(y);
+                xTick.setTickMarkStepHint(256);
+
+                swtChart.getAxisSet().adjustRange();
+                swtChart.redraw();
+            }
+        });
+    }
+
