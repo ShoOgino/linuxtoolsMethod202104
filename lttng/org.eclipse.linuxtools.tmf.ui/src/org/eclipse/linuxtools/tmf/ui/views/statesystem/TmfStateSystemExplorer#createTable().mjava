@@ -22,40 +22,41 @@
              * We will first do all the queries for this trace, then update that
              * sub-tree in the UI thread.
              */
-            Map<String, ITmfStateSystemAnalysisModule> modules = currentTrace.getAnalysisModules(ITmfStateSystemAnalysisModule.class);
+            Map<String, ITmfAnalysisModuleWithStateSystems> modules = currentTrace.getAnalysisModules(ITmfAnalysisModuleWithStateSystems.class);
             final Map<String, ITmfStateSystem> sss = new HashMap<>();
             final Map<String, List<ITmfStateInterval>> fullStates =
                     new LinkedHashMap<>();
-            for (Entry<String, ITmfStateSystemAnalysisModule> entry : modules.entrySet()) {
+            for (Entry<String, ITmfAnalysisModuleWithStateSystems> entry : modules.entrySet()) {
                 /*
                  * FIXME: For now, this view is a way to execute and display
                  * state system. But with phase 2 of analysis API, we won't want
                  * to run state system that have not been requested. We will
                  * leave the title, but there won't be anything underneath.
                  */
-                ITmfStateSystemAnalysisModule module = entry.getValue();
+                ITmfAnalysisModuleWithStateSystems module = entry.getValue();
                 if (module instanceof IAnalysisModule) {
                     IAnalysisModule mod = (IAnalysisModule) module;
                     mod.schedule();
                     mod.waitForCompletion(new NullProgressMonitor());
                 }
-                for (Entry<String, ITmfStateSystem> ssEntry : module.getStateSystems().entrySet()) {
-                    String ssName = ssEntry.getKey();
-                    ITmfStateSystem ss = ssEntry.getValue();
+                for (ITmfStateSystem ss : module.getStateSystems()) {
+                    if (ss == null) {
+                        continue;
+                    }
+                    String ssName = module.getStateSystemId(ss);
                     sss.put(ssName, ss);
-                    if (ss != null) {
-                        if (ts == -1 || ts < ss.getStartTime() || ts > ss.getCurrentEndTime()) {
-                            ts = ss.getStartTime();
-                        }
-                        try {
-                            fullStates.put(ssName, ss.queryFullState(ts));
-                        } catch (TimeRangeException e) {
-                            /* We already checked the limits ourselves */
-                            throw new IllegalStateException();
-                        } catch (StateSystemDisposedException e) {
-                            /* Probably shutting down, cancel and return */
-                            return;
-                        }
+
+                    if (ts == -1 || ts < ss.getStartTime() || ts > ss.getCurrentEndTime()) {
+                        ts = ss.getStartTime();
+                    }
+                    try {
+                        fullStates.put(ssName, ss.queryFullState(ts));
+                    } catch (TimeRangeException e) {
+                        /* We already checked the limits ourselves */
+                        throw new IllegalStateException();
+                    } catch (StateSystemDisposedException e) {
+                        /* Probably shutting down, cancel and return */
+                        return;
                     }
                 }
             }
