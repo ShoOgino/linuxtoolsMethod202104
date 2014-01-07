@@ -1,0 +1,51 @@
+	@Override
+	public Object execute(ExecutionEvent event) {
+		FileDialog dialog = new FileDialog(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), SWT.OPEN);
+		dialog.setFilterExtensions(new String[]{Messages.DataSetFileExtension});
+		dialog.setText(Messages.ImportDataSetAction_DialogTitle);
+		String path = dialog.open();
+		if (path == null) {
+			return null;
+		}
+
+		IDataSet dataset = null;
+		BufferedReader br = null;
+		try {
+			File file = new File(path);
+			FileReader fr = new FileReader(file);
+			br = new BufferedReader(fr);
+			String id = br.readLine();
+
+			String[] titles = br.readLine().split(", "); //$NON-NLS-1$
+			if (id.equals(RowDataSet.ID)) {
+				dataset = new RowDataSet(titles);
+			} else if (id.equals(TableDataSet.ID)) {
+				dataset = new TableDataSet(titles);
+			} else {
+				throw new IOException();
+			}
+			dataset.readFromFile(file);
+
+			String title = path.substring(path.lastIndexOf('/')+1);
+			IWorkbenchPage p = PlatformUI.getWorkbench().showPerspective(IDEPerspective.ID, PlatformUI.getWorkbench().getActiveWorkbenchWindow());
+			GraphSelectorEditor ivp = (GraphSelectorEditor)p.openEditor(new GraphSelectorEditorInput(title), GraphSelectorEditor.ID);
+			ivp.createScriptSets(path, Arrays.asList(title), Arrays.asList(dataset));
+		} catch (FileNotFoundException fnfe) {
+			ExceptionErrorDialog.openError(Messages.ImportDataSetAction_FileNotFound, fnfe);
+		} catch (IOException ioe) {
+			ExceptionErrorDialog.openError(Messages.ImportDataSetAction_FileInvalid, ioe);
+		} catch (WorkbenchException we) {
+			ExceptionErrorDialog.openError(Messages.RunScriptChartAction_couldNotSwitchToGraphicPerspective, we);
+		} finally {
+			if (br != null) {
+				try {
+					br.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		return null;
+	}
+
