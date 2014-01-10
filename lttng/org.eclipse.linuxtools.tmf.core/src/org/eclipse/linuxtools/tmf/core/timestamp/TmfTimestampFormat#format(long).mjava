@@ -9,32 +9,23 @@
         // Split the timestamp value into its sub-components
         long date = value / 1000000; // milliseconds since January 1, 1970, 00:00:00 GMT
         long sec = value / 1000000000;    // seconds since January 1, 1970, 00:00:00 GMT
-        long ms  = Math.abs(value) % 1000000000 / 1000000;  // milliseconds
-        long cs  = Math.abs(value) % 1000000    / 1000;     // microseconds
-        long ns  = Math.abs(value) % 1000;                  // nanoseconds
+        long ms  = Math.abs((value % 1000000000) / 1000000); // milliseconds
+        long cs  = Math.abs((value % 1000000)    / 1000);    // microseconds
+        long ns  = Math.abs(value % 1000);                   // nanoseconds
 
         // Adjust for negative value when formatted as a date
-        if (value < 0 && ms + cs + ns > 0 && !fPattern.contains("T")) { //$NON-NLS-1$
+        if (value < 0 && ms + cs + ns > 0 && !super.toPattern().contains(fOpenBracket + "T")) { //$NON-NLS-1$
             date -= 1;
             long nanosec = 1000000000 - (1000000 * ms + 1000 * cs + ns);
             ms = nanosec / 1000000;
-            cs = nanosec % 1000000 / 1000;
+            cs = (nanosec % 1000000) / 1000;
             ns = nanosec % 1000;
         }
 
-        // Let the base class fill the stuff it knows about
+        // Let the base class format the date/time pattern
         StringBuffer result = new StringBuffer(super.format(date));
-
-        // In the case where there is no separation between 2 supplementary
-        // fields, the pattern will have the form "..'[pat-1]''[pat-2]'.." and
-        // the base class format() will interpret the 2 adjacent quotes as a
-        // wanted character in the result string as ("..[pat-1]'[pat-2]..").
-        // Remove these extra quotes before filling the supplementary fields.
-        int loc = result.indexOf(fCloseBracket + "'" + fOpenBracket); //$NON-NLS-1$
-        while (loc != -1) {
-            result.deleteCharAt(loc + fCloseBracket.length());
-            loc = result.indexOf(fCloseBracket + "'" + fOpenBracket); //$NON-NLS-1$
-        }
+        // Append the sub-second pattern
+        result.append(fSubSecPattern);
 
         // Fill in our extensions
         for (String pattern : fSupplPatterns) {
@@ -69,9 +60,9 @@
                     break;
             }
 
-            // Substitute the placeholder with the formatted value
+            // Substitute the placeholder pattern with the formatted value
             String ph = new StringBuffer(fOpenBracket + pattern + fCloseBracket).toString();
-            loc = result.indexOf(ph);
+            int loc = result.indexOf(ph);
             result.replace(loc, loc + length + fOpenBracket.length() + fCloseBracket.length(), fmtVal);
         }
 
