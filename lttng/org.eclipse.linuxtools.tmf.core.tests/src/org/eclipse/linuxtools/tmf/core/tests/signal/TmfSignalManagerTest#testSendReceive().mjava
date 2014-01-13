@@ -1,0 +1,46 @@
+    /**
+     * Test send and receive including synch signals.
+     */
+    @Test
+    public void testSendReceive() {
+        final int NB_HANDLERS = 10;
+        TestSignalHandler[] signalReceivers = new TestSignalHandler[NB_HANDLERS];
+        for (int i = 0; i < NB_HANDLERS; i++) {
+            signalReceivers[i] = new TestSignalHandler();
+        }
+        final TestSignal1 firstSignal = new TestSignal1(signalSender);
+        final TestSignal2 secondSignal = new TestSignal2(signalSender);
+
+        final Class<?>[] expectedOrder = new Class[] {
+                TmfStartSynchSignal.class, TestSignal1.class, TmfEndSynchSignal.class,
+                TmfStartSynchSignal.class, TestSignal2.class, TmfEndSynchSignal.class };
+
+        try {
+            signalSender.sendSignal(firstSignal);
+            signalSender.sendSignal(secondSignal);
+
+            for (int i = 0; i < NB_HANDLERS; i++) {
+                assertEquals(expectedOrder.length, signalReceivers[i].receivedSignals.size());
+
+                for (int k = 0; k < expectedOrder.length; k++) {
+                    assertEquals(signalReceivers[i].receivedSignals.get(k).getClass(), expectedOrder[k]);
+                }
+
+                for (int k = 0; k < expectedOrder.length; k += 3) {
+                    // Verify signal IDs
+                    int startSyncId = signalReceivers[i].receivedSignals.get(k).getReference();
+                    int signalId = signalReceivers[i].receivedSignals.get(k + 1).getReference();
+                    int endSyncId = signalReceivers[i].receivedSignals.get(k + 2).getReference();
+
+                    assertEquals(startSyncId, signalId);
+                    assertEquals(startSyncId, endSyncId);
+                }
+            }
+        } finally {
+            // Make sure that handlers are disposed in any case (success or not success)
+            for (int i = 0; i < NB_HANDLERS; i++) {
+                signalReceivers[i].dispose();
+            }
+        }
+    }
+

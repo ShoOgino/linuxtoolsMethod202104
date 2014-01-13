@@ -1,0 +1,42 @@
+    /**
+     * Test broadcastAsync()
+     */
+    @Test
+    public void testBroadcastAsync() {
+        TestSignalHandlerNested signalResender = new TestSignalHandlerNested(false);
+
+        final int NB_HANDLERS = 10;
+        final CountDownLatch latch = new CountDownLatch(NB_HANDLERS);
+        TestSignalHandler[] signalReceivers = new TestSignalHandler[NB_HANDLERS];
+        for (int i = 0; i < NB_HANDLERS; i++) {
+            signalReceivers[i] = new TestSignalHandler(false, latch);
+        }
+
+        final Class<?>[] expectedOrder = new Class[] {
+                TestSignal1.class, TestSignal2.class, TestSignal3.class, TestSignal4.class
+        };
+
+        try {
+            final TestSignal1 mainSignal = new TestSignal1(signalSender);
+            signalSender.sendSignal(mainSignal);
+
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+            }
+
+            for (int i = 0; i < NB_HANDLERS; i++) {
+                assertEquals(expectedOrder.length, signalReceivers[i].receivedSignals.size());
+                for (int k = 0; k < expectedOrder.length; k++) {
+                    assertEquals(signalReceivers[i].receivedSignals.get(k).getClass(), expectedOrder[k]);
+                }
+            }
+        } finally {
+            // Make sure that handlers are disposed in any case (success or not success)
+            for (int i = 0; i < NB_HANDLERS; i++) {
+                signalReceivers[i].dispose();
+            }
+            signalResender.dispose();
+        }
+    }
+

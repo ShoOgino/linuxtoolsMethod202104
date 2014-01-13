@@ -1,0 +1,58 @@
+    /**
+     * Test nesting signals. Verify that they are handled in the same thread.
+     */
+    @Test
+    public void testNestedSignals() {
+        TestSignalHandlerNested signalResender = new TestSignalHandlerNested();
+        TestSignalHandler signalReceiver = new TestSignalHandler();
+
+        final TestSignal1 mainSignal = new TestSignal1(signalSender);
+
+        final Class<?>[] expectedOrder = new Class[] {
+                TmfStartSynchSignal.class,
+                    TmfStartSynchSignal.class,
+                    TestSignal2.class,
+                    TmfEndSynchSignal.class,
+                    TmfStartSynchSignal.class,
+                        TmfStartSynchSignal.class,
+                        TestSignal4.class,
+                        TmfEndSynchSignal.class,
+                    TestSignal3.class,
+                    TmfEndSynchSignal.class,
+                TestSignal1.class,
+                TmfEndSynchSignal.class
+        };
+
+        /*
+         *  Index of signals in array signalReceiver.receivedSignals which have
+         *  to have the same signal ID.
+         */
+
+        final int[] sameSigNoIndex = new int[] {
+                0, 10, 11, 1, 2, 3, 4, 8, 9, 5, 6, 7
+        };
+
+        try {
+            signalSender.sendSignal(mainSignal);
+
+            assertEquals(expectedOrder.length, signalReceiver.receivedSignals.size());
+
+            for (int i = 0; i < expectedOrder.length; i++) {
+                assertEquals(signalReceiver.receivedSignals.get(i).getClass(), expectedOrder[i]);
+            }
+
+            for (int i = 0; i < sameSigNoIndex.length; i+=3) {
+                // Verify signal IDs
+                int startSyncId = signalReceiver.receivedSignals.get(sameSigNoIndex[i]).getReference();
+                int signalId = signalReceiver.receivedSignals.get(sameSigNoIndex[i + 1]).getReference();
+                int endSyncId = signalReceiver.receivedSignals.get(sameSigNoIndex[i + 2]).getReference();
+                assertEquals(startSyncId, signalId);
+                assertEquals(startSyncId, endSyncId);
+            }
+        } finally {
+            // Make sure that handlers are disposed in any case (success or not success)
+            signalResender.dispose();
+            signalReceiver.dispose();
+        }
+    }
+
