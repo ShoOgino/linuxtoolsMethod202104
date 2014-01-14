@@ -1,0 +1,66 @@
+    @Override
+    protected void eventHandle(ITmfEvent event) {
+        String name = event.getType().getName();
+        switch (name) {
+        case UstMemoryStrings.MALLOC: {
+            Long ptr = (Long) event.getContent().getField(UstMemoryStrings.FIELD_PTR).getValue();
+            if (ZERO.equals(ptr)) {
+                return;
+            }
+            Long size = (Long) event.getContent().getField(UstMemoryStrings.FIELD_SIZE).getValue();
+            setMem(event, ptr, size);
+        }
+            break;
+        case UstMemoryStrings.FREE: {
+            Long ptr = (Long) event.getContent().getField(UstMemoryStrings.FIELD_PTR).getValue();
+            if (ZERO.equals(ptr)) {
+                return;
+            }
+            setMem(event, ptr, ZERO);
+        }
+            break;
+        case UstMemoryStrings.CALLOC: {
+            Long ptr = (Long) event.getContent().getField(UstMemoryStrings.FIELD_PTR).getValue();
+            if (ZERO.equals(ptr)) {
+                return;
+            }
+            Long nmemb = (Long) event.getContent().getField(UstMemoryStrings.FIELD_NMEMB).getValue();
+            Long size = (Long) event.getContent().getField(UstMemoryStrings.FIELD_SIZE).getValue();
+            setMem(event, ptr, size * nmemb);
+        }
+            break;
+        case UstMemoryStrings.REALLOC: {
+            Long ptr = (Long) event.getContent().getField(UstMemoryStrings.FIELD_PTR).getValue();
+            if (ZERO.equals(ptr)) {
+                return;
+            }
+            Long newPtr = (Long) event.getContent().getField(UstMemoryStrings.FIELD_INPTR).getValue();
+            Long size = (Long) event.getContent().getField(UstMemoryStrings.FIELD_SIZE).getValue();
+            setMem(event, ptr, ZERO);
+            setMem(event, newPtr, size);
+        }
+            break;
+        case UstMemoryStrings.MEMALIGN: {
+            Long ptr = (Long) event.getContent().getField(UstMemoryStrings.FIELD_PTR).getValue();
+            if (ZERO.equals(ptr)) {
+                return;
+            }
+            Long size = (Long) event.getContent().getField(UstMemoryStrings.FIELD_SIZE).getValue();
+            setMem(event, ptr, size);
+        }
+            break;
+        case UstMemoryStrings.POSIX_MEMALIGN: {
+            Long ptr = (Long) event.getContent().getField(UstMemoryStrings.FIELD_OUTPTR).getValue();
+            if (ZERO.equals(ptr)) {
+                return;
+            }
+            Long size = (Long) event.getContent().getField(UstMemoryStrings.FIELD_SIZE).getValue();
+            setMem(event, ptr, size);
+        }
+            break;
+        default:
+            break;
+        }
+
+    }
+
