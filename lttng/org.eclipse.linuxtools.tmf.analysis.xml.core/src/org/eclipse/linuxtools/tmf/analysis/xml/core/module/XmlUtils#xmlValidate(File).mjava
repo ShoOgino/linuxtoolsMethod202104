@@ -1,0 +1,31 @@
+    /**
+     * Validate the XML file input with the XSD schema
+     *
+     * @param xmlFile
+     *            XML file to validate
+     * @return True if the XML validates
+     */
+    public static IStatus xmlValidate(File xmlFile) {
+        URL url = XmlUtils.class.getResource(XSD);
+        SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+        Source xmlSource = new StreamSource(xmlFile);
+        try {
+            Schema schema = schemaFactory.newSchema(url);
+            Validator validator = schema.newValidator();
+            validator.validate(xmlSource);
+        } catch (SAXParseException e) {
+            String error = NLS.bind(Messages.XmlUtils_XmlParseError, e.getLineNumber(), e.getLocalizedMessage());
+            Activator.logError(error);
+            return new Status(IStatus.ERROR,  Activator.PLUGIN_ID, error, e);
+        } catch (SAXException e) {
+            String error = NLS.bind(Messages.XmlUtils_XmlValidationError, e.getLocalizedMessage());
+            Activator.logError(error);
+            return new Status(IStatus.ERROR,  Activator.PLUGIN_ID, error, e);
+        } catch (IOException e) {
+            String error = Messages.XmlUtils_XmlValidateError;
+            Activator.logError("IO exception occurred", e); //$NON-NLS-1$
+            return new Status(IStatus.ERROR,  Activator.PLUGIN_ID, error, e);
+        }
+        return Status.OK_STATUS;
+    }
+

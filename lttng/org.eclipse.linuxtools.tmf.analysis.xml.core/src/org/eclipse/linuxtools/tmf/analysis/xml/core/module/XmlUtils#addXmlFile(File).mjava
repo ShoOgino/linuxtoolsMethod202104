@@ -1,0 +1,37 @@
+    /**
+     * Adds an XML file to the plugin's path. The XML file should have been
+     * validated using the {@link XmlUtils#xmlValidate(File)} method before
+     * calling this method.
+     *
+     * @param fromFile
+     *            The XML file to add
+     * @return Whether the file was successfully added
+     */
+    public static IStatus addXmlFile(File fromFile) {
+
+        /* Copy file to path */
+        File toFile = getXmlFilesPath().addTrailingSeparator().append(fromFile.getName()).toFile();
+
+        try {
+            if (!toFile.exists()) {
+                toFile.createNewFile();
+            }
+        } catch (IOException e) {
+            String error = Messages.XmlUtils_ErrorCopyingFile;
+            Activator.logError(error, e);
+            return new Status(IStatus.ERROR,  Activator.PLUGIN_ID, error, e);
+        }
+
+        try (FileInputStream fis = new FileInputStream(fromFile);
+                FileOutputStream fos = new FileOutputStream(toFile);
+                FileChannel source = fis.getChannel();
+                FileChannel destination = fos.getChannel();) {
+            destination.transferFrom(source, 0, source.size());
+        } catch (IOException e) {
+            String error = Messages.XmlUtils_ErrorCopyingFile;
+            Activator.logError(error, e);
+            return new Status(IStatus.ERROR,  Activator.PLUGIN_ID, error, e);
+        }
+        return Status.OK_STATUS;
+    }
+
