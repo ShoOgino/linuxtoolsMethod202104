@@ -1,0 +1,23 @@
+    /**
+     * Refreshes the trace type filed by reading the trace type persistent
+     * property of the resource reference.
+     *
+     * If trace type is null after refresh, set it to the generic trace type
+     * (for seamless upgrade)
+     */
+    @Override
+    public void refreshTraceType() {
+        super.refreshTraceType();
+        if (getTraceType() == null) {
+            IConfigurationElement ce = TmfTraceType.getInstance().getTraceAttributes(TmfTraceType.DEFAULT_EXPERIMENT_TYPE);
+            if (ce != null) {
+                try {
+                    IFolder experimentFolder = getResource();
+                    experimentFolder.setPersistentProperty(TmfCommonConstants.TRACETYPE, ce.getAttribute(TmfTraceType.ID_ATTR));
+                    super.refreshTraceType();
+                } catch (InvalidRegistryObjectException | CoreException e) {
+                }
+            }
+        }
+    }
+

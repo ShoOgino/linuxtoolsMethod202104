@@ -1,0 +1,32 @@
+    /**
+     * Initialize statically at startup by getting extensions from the platform
+     * extension registry.
+     * @since 3.0
+     */
+    public static void init() {
+        IConfigurationElement[] config = Platform.getExtensionRegistry().getConfigurationElementsFor(TmfTraceType.TMF_TRACE_TYPE_ID);
+        for (IConfigurationElement ce : config) {
+            String elementName = ce.getName();
+            if (elementName.equals(TmfTraceType.EXPERIMENT_ELEM)) {
+                String traceTypeId = ce.getAttribute(TmfTraceType.ID_ATTR);
+                sfTraceTypeAttributes.put(traceTypeId, ce);
+            } else if (elementName.equals(TmfTraceType.CATEGORY_ELEM)) {
+                String categoryId = ce.getAttribute(TmfTraceType.ID_ATTR);
+                sfTraceCategories.put(categoryId, ce);
+            }
+        }
+
+        /*
+         * Read the corresponding tmf.ui "tracetypeui" extension point for this
+         * trace type, if it exists.
+         */
+        config = Platform.getExtensionRegistry().getConfigurationElementsFor(TmfTraceTypeUIUtils.TMF_TRACE_TYPE_UI_ID);
+        for (IConfigurationElement ce : config) {
+            String elemName = ce.getName();
+            if (TmfTraceTypeUIUtils.EXPERIMENT_ELEM.equals(elemName)) {
+                String traceType = ce.getAttribute(TmfTraceTypeUIUtils.TRACETYPE_ATTR);
+                sfTraceTypeUIAttributes.put(traceType, ce);
+            }
+        }
+    }
+
