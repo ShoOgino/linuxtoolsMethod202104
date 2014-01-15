@@ -1,0 +1,47 @@
+    /**
+     * Reopen a trace or experiment from a project element in the provided
+     * editor
+     *
+     * @param traceElement
+     *            the {@link TmfTraceElement} to open
+     * @param editor
+     *            the reusable editor
+     * @since 3.0
+     */
+    public static void reopenTraceFromElement(final TmfCommonProjectElement traceElement, final IReusableEditor editor) {
+
+        final IFile file;
+        try {
+            file = traceElement.createBookmarksFile();
+        } catch (final CoreException e) {
+            Activator.getDefault().logError(NLS.bind(Messages.TmfOpenTraceHelper_ErrorOpeningElement, traceElement.getTypeName()) + ' ' + traceElement.getName());
+            TraceUtils.displayErrorMsg(NLS.bind(Messages.TmfOpenTraceHelper_OpenElement, traceElement.getTypeName()),
+                    NLS.bind(Messages.TmfOpenTraceHelper_ErrorElement, traceElement.getTypeName()) + ENDL + ENDL + e.getMessage());
+            return;
+        }
+
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+
+                final ITmfTrace trace = openProjectElement(traceElement, file);
+                if (trace == null) {
+                    return;
+                }
+
+                final IEditorInput editorInput = new TmfEditorInput(file, trace);
+
+                Display.getDefault().asyncExec(new Runnable() {
+                    @Override
+                    public void run() {
+                        final IWorkbench wb = PlatformUI.getWorkbench();
+                        final IWorkbenchPage activePage = wb.getActiveWorkbenchWindow().getActivePage();
+                        activePage.reuseEditor(editor, editorInput);
+                        activePage.activate(editor);
+                    }
+                });
+            }
+        };
+        thread.start();
+    }
+

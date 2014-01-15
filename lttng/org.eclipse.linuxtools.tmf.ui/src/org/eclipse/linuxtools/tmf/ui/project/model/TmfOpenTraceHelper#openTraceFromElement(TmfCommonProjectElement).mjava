@@ -1,18 +1,20 @@
     /**
-     * Open a trace from a trace element. If the trace is already opened, its
+     * Open a trace (or experiment) from a project element. If the trace is already opened, its
      * editor is activated and brought to top.
      *
      * @param traceElement
      *            the {@link TmfTraceElement} to open
+     * @since 3.0
      */
-    public static void openTraceFromElement(final TmfTraceElement traceElement) {
+    public static void openTraceFromElement(final TmfCommonProjectElement traceElement) {
 
         final IFile file;
         try {
             file = traceElement.createBookmarksFile();
         } catch (final CoreException e) {
-            Activator.getDefault().logError(Messages.TmfOpenTraceHelper_ErrorOpeningTrace + ' ' + traceElement.getName());
-            TraceUtils.displayErrorMsg(Messages.TmfOpenTraceHelper_OpenTrace, Messages.TmfOpenTraceHelper_ErrorTrace + ENDL + ENDL + e.getMessage());
+            Activator.getDefault().logError(NLS.bind(Messages.TmfOpenTraceHelper_ErrorOpeningElement, traceElement.getTypeName()) + ' ' + traceElement.getName());
+            TraceUtils.displayErrorMsg(NLS.bind(Messages.TmfOpenTraceHelper_OpenElement, traceElement.getTypeName()),
+                    NLS.bind(Messages.TmfOpenTraceHelper_ErrorElement, traceElement.getTypeName()) + ENDL + ENDL + e.getMessage());
             return;
         }
 
@@ -28,21 +30,8 @@
             @Override
             public void run() {
 
-                final ITmfTrace trace = traceElement.instantiateTrace();
-                final ITmfEvent traceEvent = traceElement.instantiateEvent();
-                if ((trace == null) || (traceEvent == null)) {
-                    TraceUtils.displayErrorMsg(Messages.TmfOpenTraceHelper_OpenTrace, Messages.TmfOpenTraceHelper_NoTraceType);
-                    if (trace != null) {
-                        trace.dispose();
-                    }
-                    return;
-                }
-
-                try {
-                    trace.initTrace(traceElement.getResource(), traceElement.getLocation().getPath(), traceEvent.getClass());
-                } catch (final TmfTraceException e) {
-                    TraceUtils.displayErrorMsg(Messages.TmfOpenTraceHelper_OpenTrace, Messages.TmfOpenTraceHelper_InitError + ENDL + ENDL + e);
-                    trace.dispose();
+                final ITmfTrace trace = openProjectElement(traceElement, file);
+                if (trace == null) {
                     return;
                 }
 
@@ -59,8 +48,9 @@
                             IDE.setDefaultEditor(file, editorId);
                             // editor should dispose the trace on close
                         } catch (final PartInitException e) {
-                            TraceUtils.displayErrorMsg(Messages.TmfOpenTraceHelper_OpenTrace, Messages.TmfOpenTraceHelper_ErrorOpeningTrace + ENDL + ENDL + e.getMessage());
-                            Activator.getDefault().logError(Messages.TmfOpenTraceHelper_ErrorOpeningTrace + ' ' + traceElement.getName());
+                            TraceUtils.displayErrorMsg(NLS.bind(Messages.TmfOpenTraceHelper_OpenElement, traceElement.getTypeName()),
+                                    NLS.bind(Messages.TmfOpenTraceHelper_ErrorOpeningElement, traceElement.getTypeName()) + ENDL + ENDL + e.getMessage());
+                            Activator.getDefault().logError(NLS.bind(Messages.TmfOpenTraceHelper_ErrorOpeningElement, traceElement.getTypeName()) + ' ' + traceElement.getName());
                             trace.dispose();
                         }
                     }

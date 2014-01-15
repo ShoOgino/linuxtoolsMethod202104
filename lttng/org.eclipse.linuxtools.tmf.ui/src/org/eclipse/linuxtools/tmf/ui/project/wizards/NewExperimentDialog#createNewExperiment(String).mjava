@@ -11,6 +11,18 @@
                         throw new OperationCanceledException();
                     }
                     experimentFolder.create(false, true, monitor);
+
+                    /*
+                     * Experiments can be set to the default experiment type. No
+                     * need to force user to select an experiment type
+                     */
+                    IConfigurationElement ce = TmfTraceType.getInstance().getTraceAttributes(TmfTraceType.DEFAULT_EXPERIMENT_TYPE);
+                    if (ce != null) {
+                        try {
+                            experimentFolder.setPersistentProperty(TmfCommonConstants.TRACETYPE, ce.getAttribute(TmfTraceType.ID_ATTR));
+                        } catch (InvalidRegistryObjectException | CoreException e) {
+                        }
+                    }
                     if (monitor.isCanceled()) {
                         throw new OperationCanceledException();
                     }
@@ -21,12 +33,10 @@
         };
         try {
             PlatformUI.getWorkbench().getProgressService().busyCursorWhile(operation);
-        } catch (InterruptedException exception) {
+        } catch (InterruptedException | RuntimeException exception) {
             return null;
         } catch (InvocationTargetException exception) {
             MessageDialog.openError(getShell(), "", NLS.bind("", exception.getTargetException().getMessage())); //$NON-NLS-1$ //$NON-NLS-2$
-            return null;
-        } catch (RuntimeException exception) {
             return null;
         }
 
