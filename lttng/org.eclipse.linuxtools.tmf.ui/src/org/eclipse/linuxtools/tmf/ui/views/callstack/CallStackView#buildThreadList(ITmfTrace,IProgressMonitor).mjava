@@ -14,10 +14,13 @@
                 return;
             }
             ITmfStateSystem ss = aTrace.getStateSystems().get(CallStackStateProvider.ID);
-            if (ss == null || !ss.waitUntilBuilt()) {
-                String threadName = Messages.CallStackView_StackInfoNotAvailable + ' ' + '(' + aTrace.getName() + ')';
-                ThreadEntry threadEntry = new ThreadEntry(aTrace, threadName, -1, 0, 0);
-                entryList.add(threadEntry);
+            if (ss == null) {
+                addUnavailableEntry(aTrace, entryList);
+                continue;
+            }
+            ss.waitUntilBuilt();
+            if (ss.isCancelled()) {
+                addUnavailableEntry(aTrace, entryList);
                 continue;
             }
             long startTime = ss.getStartTime();
