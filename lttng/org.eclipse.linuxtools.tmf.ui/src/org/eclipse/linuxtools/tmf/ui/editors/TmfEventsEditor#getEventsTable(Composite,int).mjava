@@ -1,7 +1,4 @@
     private TmfEventsTable getEventsTable(final Composite parent, final int cacheSize) {
-        if (fTrace instanceof TmfExperiment) {
-            return getExperimentEventsTable((TmfExperiment) fTrace, parent, cacheSize);
-        }
         TmfEventsTable eventsTable = null;
         try {
             if (fTrace.getResource() == null) {
@@ -17,9 +14,14 @@
             if (traceType.startsWith(CustomXmlTrace.class.getCanonicalName())) {
                 return new CustomEventsTable(((CustomXmlTrace) fTrace).getDefinition(), parent, cacheSize);
             }
-            for (final IConfigurationElement ce : TmfTraceTypeUIUtils.getTypeUIElements()) {
+            TraceElementType type = TraceElementType.TRACE;
+            if (fTrace instanceof TmfExperiment) {
+                type = TraceElementType.EXPERIMENT;
+            }
+            for (final IConfigurationElement ce : TmfTraceTypeUIUtils.getTypeUIElements(type)) {
                 if (ce.getAttribute(TmfTraceTypeUIUtils.TRACETYPE_ATTR).equals(traceType)) {
                     final IConfigurationElement[] eventsTableTypeCE = ce.getChildren(TmfTraceTypeUIUtils.EVENTS_TABLE_TYPE_ELEM);
+
                     if (eventsTableTypeCE.length != 1) {
                         break;
                     }
@@ -35,6 +37,9 @@
                     eventsTable = (TmfEventsTable) constructor.newInstance(args);
                     break;
                 }
+            }
+            if (fTrace instanceof TmfExperiment && (eventsTable == null)) {
+                eventsTable = getExperimentEventsTable((TmfExperiment) fTrace, parent, cacheSize);
             }
         } catch (final InvalidRegistryObjectException e) {
             Activator.getDefault().logError("Error getting TmfEventsTable", e); //$NON-NLS-1$
