@@ -4,11 +4,17 @@
             if (fRequestPendingCounter > 0) {
                 return;
             }
+
             if (fPendingCoalescedRequests.size() > 0) {
-                for (ITmfEventRequest request : fPendingCoalescedRequests) {
-                    dispatchRequest(request);
+                Iterator<TmfCoalescedEventRequest> iter = fPendingCoalescedRequests.iterator();
+                while (iter.hasNext()) {
+                    ExecutionType type = (fIsTimeout ? ExecutionType.BACKGROUND : ExecutionType.FOREGROUND);
+                    ITmfEventRequest request = iter.next();
+                    if (type == request.getExecType()) {
+                        dispatchRequest(request);
+                        iter.remove();
+                    }
                 }
-                fPendingCoalescedRequests.clear();
             }
         }
     }
