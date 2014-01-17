@@ -7,6 +7,20 @@
 	 * the active stack of cached names, or a default name if one doesn't exist.
 	 */
 	private void addColumn(String nameToAdd) {
+		// Show the "shift" buttons of the previous column, if it exists.
+		if (this.numberOfVisibleColumns > 0) {
+			textFieldsComposite.getChildren()[(this.numberOfVisibleColumns - 1) * 4].setVisible(true);
+			textFieldsComposite.getChildren()[(this.numberOfVisibleColumns - 1) * 4 + 1].setVisible(true);
+		}
+
+		// Add buttons for shifting column names up/down in the list.
+		Button buttonUp = new Button(textFieldsComposite, SWT.PUSH);
+		buttonUp.setText(Messages.SystemTapScriptGraphOptionsTab_columnShiftUp);
+		buttonUp.setVisible(false);
+		Button buttonDown = new Button(textFieldsComposite, SWT.PUSH);
+		buttonDown.setText(Messages.SystemTapScriptGraphOptionsTab_columnShiftDown);
+		buttonDown.setVisible(false);
+
 		Text text = new Text(textFieldsComposite, SWT.BORDER);
 		GridData data = new GridData(SWT.FILL, SWT.FILL, false, false);
 		data.minimumWidth = 200;
@@ -32,5 +46,49 @@
 
 		textFieldsComposite.layout();
 		textFieldsComposite.pack();
+
+		// Special value: if an empty string is given, don't add button listeners.
+		if (nameToAdd == "") { //$NON-NLS-1$
+			return;
+		}
+
+		// Add button listeners for shifting column names.
+		buttonUp.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				Control clickedButton = (Control) e.widget;
+				Control[] children = textFieldsComposite.getChildren();
+				int currentColumn = 0;
+				for (; currentColumn < numberOfVisibleColumns - 1; currentColumn++) {
+					if (children[currentColumn*4].equals(clickedButton)) {
+						break;
+					}
+				}
+				String edgeName = ((Text)children[currentColumn*4 + 2]).getText();
+				for (int i = currentColumn; i < numberOfVisibleColumns - 1; i++) {
+					((Text)children[i*4 + 2]).setText(((Text)children[(i + 1)*4 + 2]).getText());
+				}
+				((Text)children[(numberOfVisibleColumns - 1)*4 + 2]).setText(edgeName);
+			}
+		});
+
+		buttonDown.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				Control clickedButton = (Control) e.widget;
+				Control[] children = textFieldsComposite.getChildren();
+				int currentColumn = 0;
+				for (; currentColumn < numberOfVisibleColumns - 1; currentColumn++) {
+					if (children[currentColumn*4 + 1].equals(clickedButton)) {
+						break;
+					}
+				}
+				String edgeName = ((Text)children[(numberOfVisibleColumns - 1)*4 + 2]).getText();
+				for (int i = numberOfVisibleColumns - 1; i > currentColumn; i--) {
+					((Text)children[i*4 + 2]).setText(((Text)children[(i - 1)*4 + 2]).getText());
+				}
+				((Text)children[currentColumn*4 + 2]).setText(edgeName);
+			}
+		});
 	}
 
