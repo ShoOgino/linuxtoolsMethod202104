@@ -1,0 +1,34 @@
+    /**
+     * Parse the metadata file.
+     *
+     * @throws CTFReaderException
+     *             If there was a problem parsing the metadata
+     * @since 3.0
+     */
+    public void parseFile() throws CTFReaderException {
+
+        /*
+         * Reader. It will contain a StringReader if we are using packet-based
+         * metadata and it will contain a FileReader if we have text-based
+         * metadata.
+         */
+
+        try (FileInputStream fis = new FileInputStream(getMetadataPath());
+                FileChannel metadataFileChannel = fis.getChannel();
+                /* Check if metadata is packet-based, if not it is text based */
+                Reader metadataTextInput =
+                        (isPacketBased(metadataFileChannel) ?
+                        readBinaryMetaData(metadataFileChannel) :
+                        new FileReader(getMetadataPath()));) {
+
+            readMetaDataText(metadataTextInput);
+
+        } catch (FileNotFoundException e) {
+            throw new CTFReaderException("Cannot find metadata file!"); //$NON-NLS-1$
+        } catch (IOException | ParseException e) {
+            throw new CTFReaderException(e);
+        } catch (RecognitionException | RewriteCardinalityException e) {
+            throw new CtfAntlrException(e);
+        }
+    }
+
