@@ -5,20 +5,21 @@
 			wizard.init(workbench, null);
 			WizardDialog dialog = new WizardDialog(workbench.getActiveWorkbenchWindow().getShell(), wizard);
 			dialog.create();
-			dialog.open();
+			int result = dialog.open();
 
-			IDataSetFilter filter = wizard.getFilter();
-			wizard.dispose();
-
-			if(null != filter) {
+			if(result != Window.CANCEL) {
+				IDataSetFilter filter = wizard.getFilter();
+				removeFiltersMenuItem.setEnabled(true);
 				filteredDataSet.addFilter(filter);
 				table.removeAll();
 				handleUpdateEvent();
 
 				MenuItem item = new MenuItem(filterMenu, SWT.CASCADE);
-				item.setText(AvailableFilterTypes.getFilterName(filter.getID()));
+				item.setText(MessageFormat.format(Localization.getString("DataGrid.FilterLabel"), //$NON-NLS-1$
+						AvailableFilterTypes.getFilterName(filter.getID()), dataSet.getTitles()[filter.getColumn()], filter.getInfo()));
 				item.setData(filter);
 				item.addSelectionListener(new RemoveFilterSelection());
 			}
+			wizard.dispose();
 		}
 

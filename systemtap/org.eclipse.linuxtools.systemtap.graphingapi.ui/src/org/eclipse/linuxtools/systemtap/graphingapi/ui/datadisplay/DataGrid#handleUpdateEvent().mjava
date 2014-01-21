@@ -1,6 +1,8 @@
 	@Override
 	public void handleUpdateEvent() {
-		if(table.isDisposed()) return;
+		if(table.isDisposed()) {
+			return;
+		}
 
 		table.getDisplay().asyncExec(new Runnable() {
 			@Override
@@ -10,6 +12,7 @@
 				}
 				TableItem item;
 				int startLocation, endLocation = filteredDataSet.getRowCount();
+				boolean rowsAdded = endLocation != table.getItemCount();
 
 				if(FULL_UPDATE == (style & FULL_UPDATE)) {
 					//Remove extra items so save memory.
@@ -50,12 +53,16 @@
 				col.pack();
 				if(!manualResize) {
 					TableColumn[] cols = table.getColumns();
-					for(int i=1; i<cols.length; i++)
+					for(int i=1; i<cols.length; i++) {
 						cols[i].pack();
+					}
 				}
 				//Use if we want to set focus to newly added item
-				if(prefs.getBoolean(GraphingAPIPreferenceConstants.P_JUMP_NEW_TABLE_ENTRY))
-					table.showItem(table.getItem(table.getItemCount()-1));
+				if(prefs.getBoolean(GraphingAPIPreferenceConstants.P_JUMP_NEW_TABLE_ENTRY)
+						&& table.getItemCount() > 1 && rowsAdded) {
+					table.select(table.getItemCount()-1);
+				}
+				formatMenuItem.setEnabled(table.getItemCount() > 0);
 			}
 		});
 	}
