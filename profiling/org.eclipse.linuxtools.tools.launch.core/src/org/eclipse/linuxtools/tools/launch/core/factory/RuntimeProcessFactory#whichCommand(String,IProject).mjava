@@ -20,24 +20,28 @@
 				IPath whichPath = new Path(proxy.toPath(whichUri));
 				IRemoteCommandLauncher launcher = RemoteProxyManager.getInstance().getLauncher(project);
 				Process pProxy = launcher.execute(whichPath, new String[]{command}, envp, null, new NullProgressMonitor());
-				if (pProxy != null){
-					BufferedReader error = new BufferedReader(new InputStreamReader(pProxy.getErrorStream()));
-					BufferedReader reader = new BufferedReader(new InputStreamReader(pProxy.getInputStream()));
+				if (pProxy != null) {
+
 					String errorLine;
-					if((errorLine = error.readLine()) != null){
-						throw new IOException(errorLine);
+					try (BufferedReader error = new BufferedReader(
+							new InputStreamReader(pProxy.getErrorStream()))) {
+						if ((errorLine = error.readLine()) != null) {
+							throw new IOException(errorLine);
+						}
 					}
-					error.close();
-					String readLine = reader.readLine();
-					ArrayList<String> lines = new ArrayList<String>();
-					while (readLine != null) {
-						lines.add(readLine);
-						readLine = reader.readLine();
+					ArrayList<String> lines = new ArrayList<>();
+					try (BufferedReader reader = new BufferedReader(
+							new InputStreamReader(pProxy.getInputStream()))) {
+						String readLine = reader.readLine();
+						while (readLine != null) {
+							lines.add(readLine);
+							readLine = reader.readLine();
+						}
 					}
-					reader.close();
 					if (!lines.isEmpty()) {
 						if (project.getLocationURI() != null) {
-							if (project.getLocationURI().toString().startsWith("rse:")) { //$NON-NLS-1$
+							if (project.getLocationURI().toString()
+									.startsWith("rse:")) { //$NON-NLS-1$
 								// RSE output
 								if (lines.size() > 1) {
 									command = lines.get(lines.size() - 2);
