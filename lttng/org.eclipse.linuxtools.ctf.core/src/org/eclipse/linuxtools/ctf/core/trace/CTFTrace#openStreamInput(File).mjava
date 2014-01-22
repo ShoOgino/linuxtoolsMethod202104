@@ -1,6 +1,6 @@
     /**
      * Tries to open the given file, reads the first packet header of the file
-     * and check its validity.
+     * and check its validity. This will add a file to a stream as a streaminput
      *
      * @param streamFile
      *            A trace file in the trace directory.
@@ -8,8 +8,9 @@
      *            Which index in the class' streamFileChannel array this file
      *            must use
      * @throws CTFReaderException
+     *             if there is a file error
      */
-    private void openStreamInput(File streamFile) throws CTFReaderException {
+    private Stream openStreamInput(File streamFile) throws CTFReaderException {
         MappedByteBuffer byteBuffer;
         BitBuffer streamBitBuffer;
         Stream stream;
@@ -20,15 +21,19 @@
                     + streamFile.getPath());
         }
 
+        FileInputStream fis = null;
         try {
             /* Open the file and get the FileChannel */
-            FileInputStream fis = new FileInputStream(streamFile);
-            fileInputStreams.add(fis);
+            fis = new FileInputStream(streamFile);
+            fFileInputStreams.add(fis);
             fc = fis.getChannel();
 
             /* Map one memory page of 4 kiB */
             byteBuffer = fc.map(MapMode.READ_ONLY, 0, (int) Math.min(fc.size(), 4096L));
         } catch (IOException e) {
+            if (fis != null) {
+                fFileInputStreams.remove(fis);
+            }
             /* Shouldn't happen at this stage if every other check passed */
             throw new CTFReaderException(e);
         }
@@ -36,12 +41,12 @@
         /* Create a BitBuffer with this mapping and the trace byte order */
         streamBitBuffer = new BitBuffer(byteBuffer, this.getByteOrder());
 
-        if (packetHeaderDef != null) {
+        if (fPacketHeaderDef != null) {
             /* Read the packet header */
-            packetHeaderDef.read(streamBitBuffer);
+            fPacketHeaderDef.read(streamBitBuffer);
 
             /* Check the magic number */
-            IntegerDefinition magicDef = (IntegerDefinition) packetHeaderDef
+            IntegerDefinition magicDef = (IntegerDefinition) fPacketHeaderDef
                     .lookupDefinition("magic"); //$NON-NLS-1$
             int magic = (int) magicDef.getValue();
             if (magic != Utils.CTF_MAGIC) {
@@ -49,7 +54,7 @@
             }
 
             /* Check UUID */
-            ArrayDefinition uuidDef = (ArrayDefinition) packetHeaderDef
+            ArrayDefinition uuidDef = (ArrayDefinition) fPacketHeaderDef
                     .lookupDefinition("uuid"); //$NON-NLS-1$
             if (uuidDef != null) {
                 byte[] uuidArray = new byte[Utils.UUID_LEN];
@@ -62,26 +67,26 @@
 
                 UUID otheruuid = Utils.makeUUID(uuidArray);
 
-                if (!this.uuid.equals(otheruuid)) {
+                if (!fUuid.equals(otheruuid)) {
                     throw new CTFReaderException("UUID mismatch"); //$NON-NLS-1$
                 }
             }
 
             /* Read the stream ID */
-            Definition streamIDDef = packetHeaderDef.lookupDefinition("stream_id"); //$NON-NLS-1$
+            Definition streamIDDef = fPacketHeaderDef.lookupDefinition("stream_id"); //$NON-NLS-1$
 
             if (streamIDDef instanceof IntegerDefinition) { // this doubles as a
                                                             // null check
                 long streamID = ((IntegerDefinition) streamIDDef).getValue();
-                stream = streams.get(streamID);
+                stream = fStreams.get(streamID);
             } else {
                 /* No stream_id in the packet header */
-                stream = streams.get(null);
+                stream = fStreams.get(null);
             }
 
         } else {
             /* No packet header, we suppose there is only one stream */
-            stream = streams.get(null);
+            stream = fStreams.get(null);
         }
 
         if (stream == null) {
@@ -93,5 +98,7 @@
 
         /* Add a reference to the streamInput in the stream */
         stream.addInput(streamInput);
+
+        return stream;
     }
 

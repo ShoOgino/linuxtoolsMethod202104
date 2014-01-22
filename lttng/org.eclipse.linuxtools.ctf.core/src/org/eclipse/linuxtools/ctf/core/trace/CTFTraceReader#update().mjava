@@ -1,0 +1,39 @@
+    /**
+     * Update the priority queue to make it match the parent trace
+     *
+     * @throws CTFReaderException
+     *             An error occured
+     *
+     * @since 3.0
+     */
+    public void update() throws CTFReaderException {
+        Set<StreamInputReader> readers = new HashSet<>();
+        for (Stream stream : fTrace.getStreams()) {
+            Set<StreamInput> streamInputs = stream.getStreamInputs();
+            for (StreamInput streamInput : streamInputs) {
+                /*
+                 * Create a reader.
+                 */
+                StreamInputReader streamInputReader = new StreamInputReader(
+                        streamInput);
+
+                /*
+                 * Add it to the group.
+                 */
+                if (!fStreamInputReaders.contains(streamInputReader)) {
+                    streamInputReader.readNextEvent();
+                    fStreamInputReaders.add(streamInputReader);
+                    readers.add(streamInputReader);
+                }
+            }
+        }
+        long[] temp = fEventCountPerTraceFile;
+        fEventCountPerTraceFile = new long[readers.size() + temp.length];
+        for (StreamInputReader reader : readers) {
+            fPrio.add(reader);
+        }
+        for (int i = 0; i < temp.length; i++) {
+            fEventCountPerTraceFile[i] = temp[i];
+        }
+    }
+

@@ -7,6 +7,7 @@
         /* List files not called metadata and not hidden. */
         File[] files = path.listFiles(METADATA_FILE_FILTER);
         Arrays.sort(files, METADATA_COMPARATOR);
+
         /* Try to open each file */
         for (File streamFile : files) {
             openStreamInput(streamFile);
@@ -16,22 +17,7 @@
         for (Stream stream : getStreams()) {
             Set<StreamInput> inputs = stream.getStreamInputs();
             for (StreamInput s : inputs) {
-                /*
-                 * Copy the events
-                 */
-                Iterator<Entry<Long, IEventDeclaration>> it = s.getStream()
-                        .getEvents().entrySet().iterator();
-                while (it.hasNext()) {
-                    Entry<Long, IEventDeclaration> pairs = it.next();
-                    Long eventNum = pairs.getKey();
-                    IEventDeclaration eventDec = pairs.getValue();
-                    getEvents(s.getStream().getId()).put(eventNum, eventDec);
-                }
-
-                /*
-                 * index the trace
-                 */
-                s.setupIndex();
+                addStream(s);
             }
         }
     }
