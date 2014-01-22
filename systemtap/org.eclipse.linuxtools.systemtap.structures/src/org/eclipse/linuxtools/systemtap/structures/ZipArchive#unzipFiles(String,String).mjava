@@ -5,9 +5,7 @@
 	 * @param destination The location you wish to unzip files to.
 	 */
 	public static void unzipFiles(String zipFileName, String destination) {
-		try {
-			ZipFile zf = new ZipFile(zipFileName);
-
+		try (ZipFile zf = new ZipFile(zipFileName)) {
 			for (Enumeration<?> entries = zf.entries(); entries.hasMoreElements();) {
 				ZipEntry zipEntry = (ZipEntry)entries.nextElement();
 				String zipEntryName = zipEntry.getName();
@@ -19,13 +17,11 @@
 				}
 
 				if (!zipEntryName.endsWith("/")) { //$NON-NLS-1$
-					OutputStream out = new FileOutputStream(destination + zipEntryName);
-					InputStream in = zf.getInputStream(zipEntry);
-
-					transferData(in, out);
-
-					out.close();
-					in.close();
+					try (OutputStream out = new FileOutputStream(destination
+							+ zipEntryName);
+							InputStream in = zf.getInputStream(zipEntry)) {
+						transferData(in, out);
+					}
 				}
 			}
 		} catch (IOException e) {}
