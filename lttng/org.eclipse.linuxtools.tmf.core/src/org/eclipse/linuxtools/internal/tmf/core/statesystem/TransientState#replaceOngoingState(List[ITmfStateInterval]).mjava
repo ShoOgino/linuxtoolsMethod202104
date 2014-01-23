@@ -9,16 +9,22 @@
      *            "ongoing state". Their end times don't matter, we will only
      *            check their value and start times.
      */
-    public synchronized void replaceOngoingState(List<ITmfStateInterval> newStateIntervals) {
-        int size = newStateIntervals.size();
-        ongoingStateInfo = new ArrayList<>(size);
-        ongoingStateStartTimes = new ArrayList<>(size);
-        stateValueTypes = new ArrayList<>(size);
+    public void replaceOngoingState(List<ITmfStateInterval> newStateIntervals) {
+        final int size = newStateIntervals.size();
 
-        for (ITmfStateInterval interval : newStateIntervals) {
-            ongoingStateInfo.add(interval.getStateValue());
-            ongoingStateStartTimes.add(interval.getStartTime());
-            stateValueTypes.add(interval.getStateValue().getType());
+        rwl.writeLock().lock();
+        try {
+            ongoingStateInfo = new ArrayList<>(size);
+            ongoingStateStartTimes = new ArrayList<>(size);
+            stateValueTypes = new ArrayList<>(size);
+
+            for (ITmfStateInterval interval : newStateIntervals) {
+                ongoingStateInfo.add(interval.getStateValue());
+                ongoingStateStartTimes.add(interval.getStartTime());
+                stateValueTypes.add(interval.getStateValue().getType());
+            }
+        } finally {
+            rwl.writeLock().unlock();
         }
     }
 

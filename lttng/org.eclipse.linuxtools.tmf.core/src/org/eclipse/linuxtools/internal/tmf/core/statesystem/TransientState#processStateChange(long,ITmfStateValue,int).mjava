@@ -15,59 +15,64 @@
      *             If the state value to be inserted is of a different type of
      *             what was inserted so far for this attribute.
      */
-    public synchronized void processStateChange(long eventTime,
-            ITmfStateValue value, int quark) throws TimeRangeException,
-            AttributeNotFoundException, StateValueTypeException {
+    public void processStateChange(long eventTime, ITmfStateValue value, int quark)
+            throws TimeRangeException, AttributeNotFoundException, StateValueTypeException {
+        rwl.writeLock().lock();
         assert (this.isActive);
 
-        Type expectedSvType = stateValueTypes.get(quark);
-        checkValidAttribute(quark);
+        try {
+            Type expectedSvType = stateValueTypes.get(quark);
+            checkValidAttribute(quark);
 
-        /*
-         * Make sure the state value type we're inserting is the same as the
-         * one registered for this attribute.
-         */
-        if (expectedSvType == Type.NULL) {
             /*
-             * The value hasn't been used yet, set it to the value
-             * we're currently inserting (which might be null/-1 again).
+             * Make sure the state value type we're inserting is the same as the
+             * one registered for this attribute.
              */
-            stateValueTypes.set(quark, value.getType());
-        } else if ((value.getType() != Type.NULL) && (value.getType() != expectedSvType)) {
-            /*
-             * We authorize inserting null values in any type of attribute,
-             * but for every other types, it needs to match our expectations!
-             */
-            throw new StateValueTypeException();
-        }
+            if (expectedSvType == Type.NULL) {
+                /*
+                 * The value hasn't been used yet, set it to the value we're
+                 * currently inserting (which might be null/-1 again).
+                 */
+                stateValueTypes.set(quark, value.getType());
+            } else if ((value.getType() != Type.NULL) && (value.getType() != expectedSvType)) {
+                /*
+                 * We authorize inserting null values in any type of attribute,
+                 * but for every other types, it needs to match our
+                 * expectations!
+                 */
+                throw new StateValueTypeException();
+            }
 
-        /* Update the Transient State's lastestTime, if needed */
-        if (latestTime < eventTime) {
-            latestTime = eventTime;
-        }
+            if (ongoingStateInfo.get(quark).equals(value)) {
+                /*
+                 * This is the case where the new value and the one already
+                 * present in the Builder are the same. We do not need to create
+                 * an interval, we'll just keep the current one going.
+                 */
+                return;
+            }
 
-        if (ongoingStateInfo.get(quark).equals(value)) {
-            /*
-             * This is the case where the new value and the one already present
-             * in the Builder are the same. We do not need to create an
-             * interval, we'll just keep the current one going.
-             */
-            return;
-        }
+            if (ongoingStateStartTimes.get(quark) < eventTime) {
+                /*
+                 * These two conditions are necessary to create an interval and
+                 * update ongoingStateInfo.
+                 */
+                backend.insertPastState(ongoingStateStartTimes.get(quark),
+                        eventTime - 1, /* End Time */
+                        quark, /* attribute quark */
+                        ongoingStateInfo.get(quark)); /* StateValue */
 
-        if (ongoingStateStartTimes.get(quark) < eventTime) {
-            /*
-             * These two conditions are necessary to create an interval and
-             * update ongoingStateInfo.
-             */
-            backend.insertPastState(ongoingStateStartTimes.get(quark),
-                    eventTime - 1, /* End Time */
-                    quark, /* attribute quark */
-                    ongoingStateInfo.get(quark)); /* StateValue */
+                ongoingStateStartTimes.set(quark, eventTime);
+            }
+            ongoingStateInfo.set(quark, value);
 
-            ongoingStateStartTimes.set(quark, eventTime);
+            /* Update the Transient State's lastestTime, if needed */
+            if (latestTime < eventTime) {
+                latestTime = eventTime;
+            }
+
+        } finally {
+            rwl.writeLock().unlock();
         }
-        ongoingStateInfo.set(quark, value);
-        return;
     }
 

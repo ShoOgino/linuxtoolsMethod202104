@@ -9,34 +9,40 @@
      *            change)
      */
     public void closeTransientState(long endTime) {
-        assert (this.isActive);
+        rwl.writeLock().lock();
+        try {
+            assert (this.isActive);
 
-        for (int i = 0; i < ongoingStateInfo.size(); i++) {
-            if (ongoingStateStartTimes.get(i) > endTime) {
-                /*
-                 * Handle the cases where trace end > timestamp of last state
-                 * change. This can happen when inserting "future" changes.
-                 */
-                continue;
-            }
-            try {
-                backend.insertPastState(ongoingStateStartTimes.get(i),
-                        endTime, /* End Time */
-                        i, /* attribute quark */
-                        ongoingStateInfo.get(i)); /* StateValue */
+            for (int i = 0; i < ongoingStateInfo.size(); i++) {
+                if (ongoingStateStartTimes.get(i) > endTime) {
+                    /*
+                     * Handle the cases where trace end > timestamp of last
+                     * state change. This can happen when inserting "future"
+                     * changes.
+                     */
+                    continue;
+                }
+                try {
+                    backend.insertPastState(ongoingStateStartTimes.get(i),
+                            endTime, /* End Time */
+                            i, /* attribute quark */
+                            ongoingStateInfo.get(i)); /* StateValue */
 
-            } catch (TimeRangeException e) {
-                /*
-                 * This shouldn't happen, since we control where the interval's
-                 * start time comes from
-                 */
-                throw new IllegalStateException(e);
+                } catch (TimeRangeException e) {
+                    /*
+                     * This shouldn't happen, since we control where the
+                     * interval's start time comes from
+                     */
+                    throw new IllegalStateException(e);
+                }
             }
+
+            ongoingStateInfo.clear();
+            ongoingStateStartTimes.clear();
+            this.isActive = false;
+
+        } finally {
+            rwl.writeLock().unlock();
         }
-
-        ongoingStateInfo.clear();
-        ongoingStateStartTimes.clear();
-        this.isActive = false;
-        return;
     }
 

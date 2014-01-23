@@ -3,16 +3,21 @@
      * Ongoing... tables can stay in sync with the number of attributes in the
      * attribute tree, namely when we add sub-path attributes.
      */
-    public synchronized void addEmptyEntry() {
-        /*
-         * Since this is a new attribute, we suppose it was in the "null state"
-         * since the beginning (so we can have intervals covering for all
-         * timestamps). A null interval will then get added at the first state
-         * change.
-         */
-        ongoingStateInfo.add(TmfStateValue.nullValue());
-        stateValueTypes.add(Type.NULL);
+    public void addEmptyEntry() {
+        rwl.writeLock().lock();
+        try {
+            /*
+             * Since this is a new attribute, we suppose it was in the
+             * "null state" since the beginning (so we can have intervals
+             * covering for all timestamps). A null interval will then get added
+             * at the first state change.
+             */
+            ongoingStateInfo.add(TmfStateValue.nullValue());
+            stateValueTypes.add(Type.NULL);
 
-        ongoingStateStartTimes.add(backend.getStartTime());
+            ongoingStateStartTimes.add(backend.getStartTime());
+        } finally {
+            rwl.writeLock().unlock();
+        }
     }
 
