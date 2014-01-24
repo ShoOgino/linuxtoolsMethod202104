@@ -9,15 +9,16 @@
          * The intervals are sorted by end time, so we can binary search to get
          * the first possible interval, then only compare their start times.
          */
-
-        Iterator<ITmfStateInterval> iter = serachforEndTime(intervals, t);
-        for (int modCount = 0; iter.hasNext() && modCount < currentStateInfo.size();) {
-            ITmfStateInterval entry = iter.next();
-            final long entryStartTime = entry.getStartTime();
-            if (entryStartTime <= t) {
-                /* Add this interval to the returned values */
-                currentStateInfo.set(entry.getAttribute(), entry);
-                modCount++;
+        synchronized (intervals) {
+            Iterator<ITmfStateInterval> iter = serachforEndTime(intervals, t);
+            for (int modCount = 0; iter.hasNext() && modCount < currentStateInfo.size();) {
+                ITmfStateInterval entry = iter.next();
+                final long entryStartTime = entry.getStartTime();
+                if (entryStartTime <= t) {
+                    /* Add this interval to the returned values */
+                    currentStateInfo.set(entry.getAttribute(), entry);
+                    modCount++;
+                }
             }
         }
     }
