@@ -7,17 +7,19 @@
 	 */
 	protected boolean checkOpcontrolProcess(Process p) throws OpcontrolException {
 		if (p != null) {
-			BufferedReader errout = new BufferedReader(new InputStreamReader(p.getErrorStream()));
-			BufferedReader stdout = new BufferedReader(new InputStreamReader(p.getInputStream()));
 			String errOutput = ""; //$NON-NLS-1$
 			String output = "", s; //$NON-NLS-1$
-			try {
+			try (BufferedReader errout = new BufferedReader(
+					new InputStreamReader(p.getErrorStream()));
+					BufferedReader stdout = new BufferedReader(
+							new InputStreamReader(p.getInputStream()))) {
 				while ((s = errout.readLine()) != null) {
 					errOutput += s + "\n"; //$NON-NLS-1$
 				}
 				// Unfortunately, when piped through consolehelper stderr output
 				// is redirected to stdout. Need to read stdout and do some
-				// string matching in order to give some better advice as to how to
+				// string matching in order to give some better advice as to how
+				// to
 				// alleviate the nmi_watchdog problem. See RH BZ #694631
 				while ((s = stdout.readLine()) != null) {
 					output += s + "\n"; //$NON-NLS-1$
@@ -27,8 +29,10 @@
 
 				int ret = p.waitFor();
 				if (ret != 0) {
-					OpControlErrorHandler errHandler = OpControlErrorHandler.getInstance();
-					OpcontrolException ex = errHandler.handleError(output, errOutput);
+					OpControlErrorHandler errHandler = OpControlErrorHandler
+							.getInstance();
+					OpcontrolException ex = errHandler.handleError(output,
+							errOutput);
 					throw ex;
 				}
 
@@ -36,9 +40,7 @@
 					return true;
 				}
 
-			} catch (IOException ioe) {
-				ioe.printStackTrace();
-			} catch (InterruptedException e) {
+			} catch (IOException|InterruptedException e) {
 				e.printStackTrace();
 			}
 		}

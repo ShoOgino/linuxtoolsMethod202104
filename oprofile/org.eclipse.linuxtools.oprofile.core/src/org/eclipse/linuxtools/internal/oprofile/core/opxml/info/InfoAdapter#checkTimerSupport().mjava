@@ -4,19 +4,21 @@
 	public static void checkTimerSupport() {
 
 		try {
-			proxy = RemoteProxyManager.getInstance().getFileProxy(Oprofile.OprofileProject.getProject());
+			proxy = RemoteProxyManager.getInstance().getFileProxy(
+					Oprofile.OprofileProject.getProject());
 			IFileStore fileStore = proxy.getResource(CPUTYPE);
-			if(fileStore.fetchInfo().exists()){
-				InputStream is = fileStore.openInputStream(EFS.NONE, new NullProgressMonitor());
-				BufferedReader bi = new BufferedReader(new InputStreamReader(is));
-			String cpuType = bi.readLine();
-			bi.close();
-			if (cpuType.equals(TIMER)) {
-				hasTimerSupport = true;
-			} else {
-				hasTimerSupport = false;
-			}
-
+			if (fileStore.fetchInfo().exists()) {
+				try (InputStream is = fileStore.openInputStream(EFS.NONE,
+						new NullProgressMonitor());
+						BufferedReader bi = new BufferedReader(
+								new InputStreamReader(is))) {
+					String cpuType = bi.readLine();
+					if (cpuType.equals(TIMER)) {
+						hasTimerSupport = true;
+					} else {
+						hasTimerSupport = false;
+					}
+				}
 			}
 		} catch (FileNotFoundException e) {
 			hasTimerSupport = true;
