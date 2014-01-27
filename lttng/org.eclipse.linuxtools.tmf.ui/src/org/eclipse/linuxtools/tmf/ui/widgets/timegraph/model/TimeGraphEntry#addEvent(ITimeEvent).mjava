@@ -1,15 +1,21 @@
     /**
      * Add an event to this entry's event list. If necessary, update the start
-     * and end time of the entry.
+     * and end time of the entry. If the event list's last event starts at the
+     * same time as the event to add, it is replaced by the new event.
      *
      * @param event
-     *            The time event
+     *            The time event to add
      */
     public void addEvent(ITimeEvent event) {
         long start = event.getTime();
         long end = start + event.getDuration();
         synchronized (fEventList) {
-            fEventList.add(event);
+            int lastIndex = fEventList.size() - 1;
+            if (lastIndex >= 0 && fEventList.get(lastIndex).getTime() == event.getTime()) {
+                fEventList.set(lastIndex, event);
+            } else {
+                fEventList.add(event);
+            }
             if (fStartTime == -1 || start < fStartTime) {
                 fStartTime = start;
             }

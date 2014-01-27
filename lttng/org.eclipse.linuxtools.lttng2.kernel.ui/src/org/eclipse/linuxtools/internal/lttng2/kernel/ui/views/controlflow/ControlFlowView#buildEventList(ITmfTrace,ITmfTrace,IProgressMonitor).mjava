@@ -1,0 +1,104 @@
+    @Override
+    protected void buildEventList(final ITmfTrace trace, ITmfTrace parentTrace, IProgressMonitor monitor) {
+        LttngKernelAnalysisModule module = trace.getAnalysisModules(LttngKernelAnalysisModule.class).get(LttngKernelAnalysisModule.ID);
+        if (module == null) {
+            return;
+        }
+        module.schedule();
+        module.waitForInitialization();
+        ITmfStateSystem ssq = module.getStateSystem();
+        if (ssq == null) {
+            return;
+        }
+
+        List<ControlFlowEntry> entryList = new ArrayList<>();
+        Map<Integer, ControlFlowEntry> entryMap = new HashMap<>();
+
+        long start = ssq.getStartTime();
+        setStartTime(Math.min(getStartTime(), start));
+
+        boolean complete = false;
+        while (!complete) {
+            if (monitor.isCanceled()) {
+                return;
+            }
+            complete = ssq.waitUntilBuilt(BUILD_UPDATE_TIMEOUT);
+            if (ssq.isCancelled()) {
+                return;
+            }
+            long end = ssq.getCurrentEndTime();
+            if (start == end && !complete) { // when complete execute one last time regardless of end time
+                continue;
+            }
+            setEndTime(Math.max(getEndTime(), end + 1));
+            List<Integer> threadQuarks = ssq.getQuarks(Attributes.THREADS, "*"); //$NON-NLS-1$
+            for (int threadQuark : threadQuarks) {
+                if (monitor.isCanceled()) {
+                    return;
+                }
+                String threadName = ssq.getAttributeName(threadQuark);
+                int threadId = -1;
+                try {
+                    threadId = Integer.parseInt(threadName);
+                } catch (NumberFormatException e1) {
+                    continue;
+                }
+                if (threadId <= 0) { // ignore the 'unknown' (-1) and swapper (0) threads
+                    continue;
+                }
+                try {
+                    int execNameQuark = ssq.getQuarkRelative(threadQuark, Attributes.EXEC_NAME);
+                    List<ITmfStateInterval> execNameIntervals = ssq.queryHistoryRange(execNameQuark, start, end);
+                    for (ITmfStateInterval execNameInterval : execNameIntervals) {
+                        if (monitor.isCanceled()) {
+                            return;
+                        }
+                        ControlFlowEntry entry = entryMap.get(threadId);
+                        if (!execNameInterval.getStateValue().isNull() &&
+                                execNameInterval.getStateValue().getType() == ITmfStateValue.Type.STRING) {
+                            String execName = execNameInterval.getStateValue().unboxStr();
+                            long startTime = execNameInterval.getStartTime();
+                            long endTime = execNameInterval.getEndTime() + 1;
+                            if (entry == null) {
+                                int ppid = -1;
+                                int ppidQuark = ssq.getQuarkRelative(threadQuark, Attributes.PPID);
+                                ITmfStateInterval ppidInterval = ssq.querySingleState(startTime, ppidQuark);
+                                if (!ppidInterval.getStateValue().isNull()) {
+                                    ppid = ppidInterval.getStateValue().unboxInt();
+                                }
+                                entry = new ControlFlowEntry(threadQuark, trace, execName, threadId, ppid, startTime, endTime);
+                                entryList.add(entry);
+                                entryMap.put(threadId, entry);
+                            } else {
+                                // update the name of the entry to the latest execName
+                                entry.setName(execName);
+                                entry.updateEndTime(endTime);
+                            }
+                        } else {
+                            entryMap.remove(threadId);
+                        }
+                    }
+                } catch (AttributeNotFoundException | TimeRangeException | StateValueTypeException e) {
+                    e.printStackTrace();
+                } catch (StateSystemDisposedException e) {
+                    /* Ignored */
+                }
+            }
+
+            updateTree(entryList, parentTrace);
+
+            if (parentTrace.equals(getTrace())) {
+                refresh();
+            }
+
+            for (ControlFlowEntry entry : entryList) {
+                if (monitor.isCanceled()) {
+                    return;
+                }
+                buildStatusEvents(entry.getTrace(), entry, monitor, start, end);
+            }
+
+            start = end;
+        }
+    }
+

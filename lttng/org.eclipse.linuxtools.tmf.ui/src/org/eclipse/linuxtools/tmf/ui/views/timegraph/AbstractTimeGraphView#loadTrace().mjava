@@ -2,10 +2,14 @@
         synchronized (fEntryListMap) {
             fEntryList = fEntryListMap.get(fTrace);
             if (fEntryList == null) {
+                setStartTime(Long.MAX_VALUE);
+                setEndTime(Long.MIN_VALUE);
                 synchronized (fBuildThreadMap) {
-                    BuildThread buildThread = new BuildThread(fTrace, getName());
-                    fBuildThreadMap.put(fTrace, buildThread);
-                    buildThread.start();
+                    for (ITmfTrace trace : TmfTraceManager.getTraceSet(fTrace)) {
+                        BuildThread buildThread = new BuildThread(trace, fTrace, getName());
+                        fBuildThreadMap.put(trace, buildThread);
+                        buildThread.start();
+                    }
                 }
             } else {
                 fStartTime = fTrace.getStartTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();

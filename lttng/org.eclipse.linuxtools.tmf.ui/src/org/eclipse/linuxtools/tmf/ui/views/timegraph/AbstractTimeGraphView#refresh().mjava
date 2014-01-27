@@ -8,18 +8,24 @@
                 if (fTimeGraphWrapper.isDisposed()) {
                     return;
                 }
-                ITimeGraphEntry[] entries = null;
+                boolean hasEntries = false;
                 synchronized (fEntryListMap) {
                     fEntryList = fEntryListMap.get(fTrace);
                     if (fEntryList == null) {
-                        fEntryList = new ArrayList<>();
+                        fEntryList = new CopyOnWriteArrayList<>();
+                    } else if (fEntryComparator != null) {
+                        List<TimeGraphEntry> list = new ArrayList<>(fEntryList);
+                        Collections.sort(list, fEntryComparator);
+                        fEntryList.clear();
+                        fEntryList.addAll(list);
                     }
-                    entries = fEntryList.toArray(new ITimeGraphEntry[0]);
+                    hasEntries = fEntryList.size() != 0;
                 }
-                if (fEntryComparator != null) {
-                    Arrays.sort(entries, fEntryComparator);
+                if (fEntryList != fTimeGraphWrapper.getInput()) {
+                    fTimeGraphWrapper.setInput(fEntryList);
+                } else {
+                    fTimeGraphWrapper.refresh();
                 }
-                fTimeGraphWrapper.setInput(entries);
                 fTimeGraphWrapper.getTimeGraphViewer().setTimeBounds(fStartTime, fEndTime);
 
                 long selectionBeginTime = fTrace == null ? 0 : fTraceManager.getSelectionBeginTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
@@ -31,9 +37,12 @@
                 fTimeGraphWrapper.getTimeGraphViewer().setSelectionRange(selectionBeginTime, selectionEndTime);
                 fTimeGraphWrapper.getTimeGraphViewer().setStartFinishTime(startTime, endTime);
 
-                if (fTimeGraphWrapper instanceof TimeGraphComboWrapper) {
+                if (fTimeGraphWrapper instanceof TimeGraphComboWrapper && !fPackDone) {
                     for (TreeColumn column : ((TimeGraphComboWrapper) fTimeGraphWrapper).getTreeViewer().getTree().getColumns()) {
                         column.pack();
+                    }
+                    if (hasEntries) {
+                        fPackDone = true;
                     }
                 }
 

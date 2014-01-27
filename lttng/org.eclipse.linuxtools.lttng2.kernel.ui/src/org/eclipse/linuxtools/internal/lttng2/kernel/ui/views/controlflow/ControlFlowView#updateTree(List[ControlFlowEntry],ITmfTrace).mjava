@@ -1,0 +1,30 @@
+    private void updateTree(List<ControlFlowEntry> entryList, ITmfTrace parentTrace) {
+        List<TimeGraphEntry> rootListToAdd = new ArrayList<>();
+        List<TimeGraphEntry> rootListToRemove = new ArrayList<>();
+        List<TimeGraphEntry> rootList = getEntryList(parentTrace);
+
+        for (ControlFlowEntry entry : entryList) {
+            boolean root = (entry.getParent() == null);
+            if (root && entry.getParentThreadId() > 0) {
+                for (ControlFlowEntry parent : entryList) {
+                    if (parent.getThreadId() == entry.getParentThreadId() &&
+                            entry.getStartTime() >= parent.getStartTime() &&
+                            entry.getStartTime() <= parent.getEndTime()) {
+                        parent.addChild(entry);
+                        root = false;
+                        if (rootList != null && rootList.contains(entry)) {
+                            rootListToRemove.add(entry);
+                        }
+                        break;
+                    }
+                }
+            }
+            if (root && (rootList == null || !rootList.contains(entry))) {
+                rootListToAdd.add(entry);
+            }
+        }
+
+        addToEntryList(parentTrace, rootListToAdd);
+        removeFromEntryList(parentTrace, rootListToRemove);
+    }
+

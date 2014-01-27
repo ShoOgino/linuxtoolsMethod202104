@@ -1,0 +1,33 @@
+    private void buildStatusEvents(ITmfTrace trace, ControlFlowEntry entry, IProgressMonitor monitor, long start, long end) {
+        if (start < entry.getEndTime() && end > entry.getStartTime()) {
+            LttngKernelAnalysisModule module = entry.getTrace().getAnalysisModules(LttngKernelAnalysisModule.class).get(LttngKernelAnalysisModule.ID);
+            if (module == null) {
+                return;
+            }
+            ITmfStateSystem ssq = module.getStateSystem();
+            if (ssq == null) {
+                return;
+            }
+
+            long startTime = Math.max(start, entry.getStartTime());
+            long endTime = Math.min(end + 1, entry.getEndTime());
+            long resolution = Math.max(1, (end - ssq.getStartTime()) / getDisplayWidth());
+            List<ITimeEvent> eventList = getEventList(entry, startTime, endTime, resolution, monitor);
+            if (monitor.isCanceled()) {
+                return;
+            }
+            for (ITimeEvent event : eventList) {
+                entry.addEvent(event);
+            }
+            if (trace.equals(getTrace())) {
+                redraw();
+            }
+        }
+        for (ITimeGraphEntry child : entry.getChildren()) {
+            if (monitor.isCanceled()) {
+                return;
+            }
+            buildStatusEvents(trace, (ControlFlowEntry) child, monitor, start, end);
+        }
+    }
+
