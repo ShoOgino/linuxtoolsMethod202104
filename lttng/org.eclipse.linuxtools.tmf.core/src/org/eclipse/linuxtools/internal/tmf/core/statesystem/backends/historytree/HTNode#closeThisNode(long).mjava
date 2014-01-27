@@ -6,24 +6,28 @@
      *            The nodeEnd time that the node will have
      */
     public void closeThisNode(long endtime) {
-        assert (endtime >= this.nodeStart);
+        rwl.writeLock().lock();
+        try {
+            assert (endtime >= this.nodeStart);
 
-        if (intervals.size() > 0) {
-            /*
-             * Sort the intervals by ascending order of their end time. This
-             * speeds up lookups a bit
-             */
-            Collections.sort(intervals);
+            if (intervals.size() > 0) {
+                /*
+                 * Sort the intervals by ascending order of their end time. This
+                 * speeds up lookups a bit
+                 */
+                Collections.sort(intervals);
 
-            /*
-             * Make sure there are no intervals in this node with their EndTime
-             * > the one requested. Only need to check the last one since they
-             * are now sorted
-             */
-            assert (endtime >= intervals.get(intervals.size() - 1).getEndTime());
+                /*
+                 * Make sure there are no intervals in this node with their
+                 * EndTime > the one requested. Only need to check the last one
+                 * since they are now sorted
+                 */
+                assert (endtime >= intervals.get(intervals.size() - 1).getEndTime());
+            }
+
+            this.nodeEnd = endtime;
+        } finally {
+            rwl.writeLock().unlock();
         }
-
-        this.nodeEnd = endtime;
-        return;
     }
 

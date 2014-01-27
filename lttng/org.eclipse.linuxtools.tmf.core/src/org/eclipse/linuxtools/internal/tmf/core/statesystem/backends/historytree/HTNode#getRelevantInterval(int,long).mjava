@@ -11,24 +11,27 @@
      * @throws TimeRangeException If 't' is invalid
      */
     public HTInterval getRelevantInterval(int key, long t) throws TimeRangeException {
-        int startIndex;
-        HTInterval curInterval;
-
-        if (intervals.size() == 0) {
-            return null;
-        }
-
-        startIndex = getStartIndexFor(t);
-
-        for (int i = startIndex; i < intervals.size(); i++) {
-            curInterval = intervals.get(i);
-            if (curInterval.getAttribute() == key
-                    && curInterval.getStartTime() <= t
-                    && curInterval.getEndTime() >= t) {
-                return curInterval;
+        rwl.readLock().lock();
+        try {
+            if (intervals.size() == 0) {
+                return null;
             }
+
+            int startIndex = getStartIndexFor(t);
+
+            for (int i = startIndex; i < intervals.size(); i++) {
+                HTInterval curInterval = intervals.get(i);
+                if (curInterval.getAttribute() == key
+                        && curInterval.getStartTime() <= t
+                        && curInterval.getEndTime() >= t) {
+                    return curInterval;
+                }
+            }
+            /* We didn't find the relevant information in this node */
+            return null;
+
+        } finally {
+            rwl.readLock().unlock();
         }
-        /* We didn't find the relevant information in this node */
-        return null;
     }
 
