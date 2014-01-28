@@ -8,61 +8,60 @@
      *            The greatest timestamp present in the history tree
      */
     public void closeTree(long requestedEndTime) {
-        ByteBuffer buffer;
-        int i, res;
-
-        /*
-         * Work-around the "empty branches" that get created when the root node
-         * becomes full. Overwrite the tree's end time with the original wanted
-         * end-time, to ensure no queries are sent into those empty nodes.
-         *
-         * This won't be needed once extended nodes are implemented.
-         */
-        this.treeEnd = requestedEndTime;
-
-        /* Close off the latest branch of the tree */
-        for (i = 0; i < latestBranch.size(); i++) {
-            latestBranch.get(i).closeThisNode(treeEnd);
-            treeIO.writeNode(latestBranch.get(i));
-        }
-
-        try (FileChannel fc = treeIO.getFcOut();) {
-            buffer = ByteBuffer.allocate(TREE_HEADER_SIZE);
-            buffer.order(ByteOrder.LITTLE_ENDIAN);
-            buffer.clear();
-
-            /* Save the config of the tree to the header of the file */
-            fc.position(0);
-
-            buffer.putInt(HISTORY_FILE_MAGIC_NUMBER);
-
-            buffer.putInt(FILE_VERSION);
-            buffer.putInt(config.getProviderVersion());
-
-            buffer.putInt(config.getBlockSize());
-            buffer.putInt(config.getMaxChildren());
-
-            buffer.putInt(nodeCount);
-
-            /* root node seq. nb */
-            buffer.putInt(latestBranch.get(0).getSequenceNumber());
-
-            /* start time of this history */
-            buffer.putLong(latestBranch.get(0).getNodeStart());
-
-            buffer.flip();
-            res = fc.write(buffer);
-            assert (res <= TREE_HEADER_SIZE);
-            /* done writing the file header */
-
-        } catch (IOException e) {
+        /* This is an important operation, queries can wait */
+        synchronized (latestBranch) {
             /*
-             * If we were able to write so far, there should not be any problem
-             * at this point...
+             * Work-around the "empty branches" that get created when the root
+             * node becomes full. Overwrite the tree's end time with the
+             * original wanted end-time, to ensure no queries are sent into
+             * those empty nodes.
+             *
+             * This won't be needed once extended nodes are implemented.
              */
-            // FIXME still, the IOException should be propagated upwards
-            throw new RuntimeException();
+            this.treeEnd = requestedEndTime;
+
+            /* Close off the latest branch of the tree */
+            for (int i = 0; i < latestBranch.size(); i++) {
+                latestBranch.get(i).closeThisNode(treeEnd);
+                treeIO.writeNode(latestBranch.get(i));
+            }
+
+            try (FileChannel fc = treeIO.getFcOut();) {
+                ByteBuffer buffer = ByteBuffer.allocate(TREE_HEADER_SIZE);
+                buffer.order(ByteOrder.LITTLE_ENDIAN);
+                buffer.clear();
+
+                /* Save the config of the tree to the header of the file */
+                fc.position(0);
+
+                buffer.putInt(HISTORY_FILE_MAGIC_NUMBER);
+
+                buffer.putInt(FILE_VERSION);
+                buffer.putInt(config.getProviderVersion());
+
+                buffer.putInt(config.getBlockSize());
+                buffer.putInt(config.getMaxChildren());
+
+                buffer.putInt(nodeCount);
+
+                /* root node seq. nb */
+                buffer.putInt(latestBranch.get(0).getSequenceNumber());
+
+                /* start time of this history */
+                buffer.putLong(latestBranch.get(0).getNodeStart());
+
+                buffer.flip();
+                int res = fc.write(buffer);
+                assert (res <= TREE_HEADER_SIZE);
+                /* done writing the file header */
+
+            } catch (IOException e) {
+                /*
+                 * If we were able to write so far, there should not be any
+                 * problem at this point...
+                 */
+                throw new RuntimeException("State system write error"); //$NON-NLS-1$
+            }
         }
-        return;
     }
 
