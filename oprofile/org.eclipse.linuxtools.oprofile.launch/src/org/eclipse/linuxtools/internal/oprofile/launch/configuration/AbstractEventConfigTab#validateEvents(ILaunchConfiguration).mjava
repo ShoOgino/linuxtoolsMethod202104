@@ -24,6 +24,20 @@
 						if(counterSubTab.enabledCheck.getSelection() && config.getAttribute(OprofileLaunchPlugin.ATTR_NUMBER_OF_EVENTS(nr), 0) == 0){
 							valid = false;
 						}
+						// if target list is empty valid is false
+						// target event list item count
+						int count = counterSubTab.selectedEventList.getList().getItemCount();
+						if(count == 0)
+						{
+							valid = false;
+						}
+						// number of event is  allowed in opcontrol binary is equal to number of h/w counter
+						if(OprofileProject.OPCONTROL_BINARY.equals(OprofileProject.getProfilingBinary()) && count > counters.length)
+						{
+							Object[] args = new Object[] { counters.length };
+							setErrorMessage(MessageFormat.format(OprofileLaunchMessages.getString("tab.event.opcontrol.validation.msg"),args));
+							valid = false;
+						}
 					}
 
 					if (counters[i].getEnabled()) {
@@ -38,6 +52,11 @@
 							// First check min count
 							int min = event.getMinCount();
 							if (counters[i].getCount() < min) {
+								Object[] args = new Object[] { min };
+								setErrorMessage(MessageFormat
+										.format(OprofileLaunchMessages
+												.getString("tab.event.counterSettings.count.too-small"),
+												args));
 								valid = false;
 								break;
 							}
@@ -45,6 +64,8 @@
 							// Next ask oprofile if it is valid
 							if (!checkEventSetupValidity(
 									counters[i].getNumber(), event.getText(), event.getUnitMask().getMaskValue())) {
+								Object[] args = new Object[] { event.getText() };
+								setErrorMessage(MessageFormat.format(OprofileLaunchMessages.getString("tab.event.validation.msg"), args));
 								valid = false;
 								break;
 							}
