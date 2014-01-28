@@ -1,10 +1,38 @@
-    private static TracePackageElement[] loadElementsFromManifest(InputStream inputStream) throws IOException, SAXException, ParserConfigurationException {
+    /**
+     * Load package elements from a manifest (input stream)
+     *
+     * The manifest looks like this:
+     *
+     * <?xml version="1.0" encoding="UTF-8" standalone="no"?>
+     * <tmf-export>
+     *     <trace name="trace2" type="org.eclipse.linuxtools.lttng2.kernel.tracetype">
+     *         <file name="Traces/trace2"/> <supplementary-file name=".tracing/trace2/stateHistory.ht"/>
+     *         <bookmarks>
+     *             <bookmark location="4" message= "15:50:47.314 069 885, channel0_0, sys_recvmsg, fd=16, msg=0x7faada7d1ae0, flags=256" />
+     *         </bookmarks>
+     *     </trace>
+     * </tmf-export>
+     *
+     * See schema/export-manifest.xsd for details.
+     *
+     * @param inputStream
+     *            the input stream that contains the manifest
+     * @return the loaded elements
+     * @throws IOException
+     *             when an error occurs when parsing
+     * @throws SAXException
+     *             when an error occurs when parsing
+     * @throws ParserConfigurationException
+     *             when an error occurs when parsing
+     */
+    public static TracePackageElement[] loadElementsFromManifest(InputStream inputStream) throws IOException, SAXException, ParserConfigurationException {
+
         List<TracePackageElement> packageElements = new ArrayList<>();
         TracePackageElement element = null;
         Document doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(inputStream);
 
         NodeList traceElements = doc.getDocumentElement().getElementsByTagName(ITracePackageConstants.TRACE_ELEMENT);
-        for (int i = 0; i < traceElements.getLength(); ++i) {
+        for (int i = 0; i < traceElements.getLength(); i++) {
             Node traceNode = traceElements.item(i);
             if (traceNode.getNodeType() == Node.ELEMENT_NODE) {
                 Element traceElement = (Element) traceNode;
@@ -14,7 +42,7 @@
 
                 List<TracePackageElement> children = new ArrayList<>();
                 NodeList fileElements = traceElement.getElementsByTagName(ITracePackageConstants.TRACE_FILE_ELEMENT);
-                for (int j = 0; j < fileElements.getLength(); ++j) {
+                for (int j = 0; j < fileElements.getLength(); j++) {
                     Node fileNode = fileElements.item(j);
                     if (fileNode.getNodeType() == Node.ELEMENT_NODE) {
                         Element fileElement = (Element) fileNode;
@@ -28,7 +56,7 @@
                 // Supplementary files
                 List<TracePackageSupplFileElement> suppFiles = new ArrayList<>();
                 NodeList suppFilesElements = traceElement.getElementsByTagName(ITracePackageConstants.SUPPLEMENTARY_FILE_ELEMENT);
-                for (int j = 0; j < suppFilesElements.getLength(); ++j) {
+                for (int j = 0; j < suppFilesElements.getLength(); j++) {
                     Node suppFileNode = suppFilesElements.item(j);
                     if (suppFileNode.getNodeType() == Node.ELEMENT_NODE) {
                         Element suppFileElement = (Element) suppFileNode;
@@ -39,24 +67,24 @@
                 }
 
                 if (!suppFiles.isEmpty()) {
-                    supplFilesElement.setChildren(suppFiles.toArray(new TracePackageElement[] {}));
+                    supplFilesElement.setChildren(suppFiles.toArray(EMPTY_ARRAY));
                     children.add(supplFilesElement);
                 }
 
                 // bookmarks
                 List<Map<String, String>> bookmarkAttribs = new ArrayList<>();
                 NodeList bookmarksElements = traceElement.getElementsByTagName(ITracePackageConstants.BOOKMARKS_ELEMENT);
-                for (int j = 0; j < bookmarksElements.getLength(); ++j) {
+                for (int j = 0; j < bookmarksElements.getLength(); j++) {
                     Node bookmarksNode = bookmarksElements.item(j);
                     if (bookmarksNode.getNodeType() == Node.ELEMENT_NODE) {
                         NodeList bookmarkElements = traceElement.getElementsByTagName(ITracePackageConstants.BOOKMARK_ELEMENT);
-                        for (int k = 0; k < bookmarkElements.getLength(); ++k) {
+                        for (int k = 0; k < bookmarkElements.getLength(); k++) {
                             Node bookmarkNode = bookmarkElements.item(k);
                             if (bookmarkNode.getNodeType() == Node.ELEMENT_NODE) {
                                 Element bookmarkElement = (Element) bookmarkNode;
                                 NamedNodeMap attributesMap = bookmarkElement.getAttributes();
                                 Map<String, String> attribs = new HashMap<>();
-                                for (int l = 0; l < attributesMap.getLength(); ++l) {
+                                for (int l = 0; l < attributesMap.getLength(); l++) {
                                     Node item = attributesMap.item(l);
                                     attribs.put(item.getNodeName(), item.getNodeValue());
                                 }
@@ -69,10 +97,10 @@
                     children.add(new TracePackageBookmarkElement(element, bookmarkAttribs));
                 }
 
-                element.setChildren(children.toArray(new TracePackageElement[] {}));
+                element.setChildren(children.toArray(EMPTY_ARRAY));
                 packageElements.add(element);
             }
         }
-        return packageElements.toArray(new TracePackageElement[] {});
+        return packageElements.toArray(EMPTY_ARRAY);
     }
 
