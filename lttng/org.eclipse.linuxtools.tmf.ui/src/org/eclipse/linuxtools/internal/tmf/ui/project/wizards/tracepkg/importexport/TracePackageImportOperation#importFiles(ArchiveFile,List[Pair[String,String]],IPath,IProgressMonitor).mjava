@@ -1,4 +1,4 @@
-    private IStatus importFiles(ArchiveFile archiveFile, List<String> fileNames, IPath destinationContainerPath, IProgressMonitor monitor) {
+    private IStatus importFiles(ArchiveFile archiveFile, List<Pair<String, String>> fileNameAndLabelPairs, IPath destinationContainerPath, IProgressMonitor monitor) {
         List<ArchiveProviderElement> objects = new ArrayList<>();
         Enumeration<?> entries = archiveFile.entries();
         while (entries.hasMoreElements()) {
@@ -10,21 +10,28 @@
                 continue;
             }
 
-            for (String fileName : fileNames) {
+            for (Pair<String, String> fileNameAndLabel : fileNameAndLabelPairs) {
 
                 // Examples: Traces/kernel/     .tracing/testtexttrace.txt/statistics.ht
-                IPath searchedArchivePath = new Path(fileName);
+                IPath searchedArchivePath = new Path(fileNameAndLabel.getFirst());
 
                 // Check if this archive entry matches the searched file name at this archive location
-                if (fileNameMatches(searchedArchivePath.toString(), entryName)) {
+                boolean fileMatch = entryName.equalsIgnoreCase(searchedArchivePath.toString());
+                // For example Traces/kernel/metadata matches Traces/kernel/
+                boolean folderMatch = entryName.startsWith(searchedArchivePath + "/"); //$NON-NLS-1$
+
+                if (fileMatch || folderMatch) {
                     // Traces/     .tracing/testtexttrace.txt/
                     IPath searchedArchivePathContainer = searchedArchivePath.removeLastSegments(1);
 
                     // Traces/kernel/metadata -> kernel/metadata   .tracing/testtexttrace.txt/statistics.ht -> statistics.ht
                     // Note: The ImportOperation will take care of creating the kernel folder
                     IPath destinationPath = fullArchivePath.makeRelativeTo(searchedArchivePathContainer);
+
                     // metadata    statistics.ht
-                    String resourceLabel = fullArchivePath.lastSegment();
+                    // We don't use the label when the entry is a folder match because the labels for individual files
+                    // under the folder are not specified in the manifest so just use the last segment.
+                    String resourceLabel = folderMatch ? fullArchivePath.lastSegment() : fileNameAndLabel.getSecond();
 
                     ArchiveProviderElement pe = new ArchiveProviderElement(destinationPath.toString(), resourceLabel, archiveFile, entry);
                     objects.add(pe);
@@ -42,7 +49,7 @@
         operation.setOverwriteResources(true);
 
         try {
-            operation.run(new SubProgressMonitor(monitor, fileNames.size(), SubProgressMonitor.PREPEND_MAIN_LABEL_TO_SUBTASK));
+            operation.run(new SubProgressMonitor(monitor, fileNameAndLabelPairs.size(), SubProgressMonitor.PREPEND_MAIN_LABEL_TO_SUBTASK));
             archiveFile.close();
         } catch (InvocationTargetException e) {
             return new Status(IStatus.ERROR, Activator.PLUGIN_ID, org.eclipse.linuxtools.internal.tmf.ui.project.wizards.tracepkg.Messages.TracePackage_ErrorOperation, e);
