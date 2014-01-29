@@ -1,0 +1,26 @@
+        private void importResource(File fileSystemObject, IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
+            File parentFolder = new File(fileSystemObject.getParent());
+            List<File> subList = new ArrayList<>();
+            subList.add(fileSystemObject);
+            FileSystemStructureProvider fileSystemStructureProvider = FileSystemStructureProvider.INSTANCE;
+
+            // TODO have own IOverwriteQuery implementation for proper handling of overwrite and renaming
+            IOverwriteQuery myQueryImpl = new IOverwriteQuery() {
+                @Override
+                public String queryOverwrite(String file) {
+                    return fOverwrite ? IOverwriteQuery.ALL : IOverwriteQuery.NO_ALL;
+                }
+            };
+
+            monitor.setTaskName(Messages.ImportTraceWizard_ImportOperationTaskName + " " + fileSystemObject.getAbsolutePath()); //$NON-NLS-1$
+            ImportOperation operation = new ImportOperation(fContainerPath, parentFolder, fileSystemStructureProvider, myQueryImpl, subList);
+            operation.setContext(getShell());
+
+            operation.setCreateContainerStructure(false);
+            operation.setOverwriteResources(fOverwrite);
+            operation.setCreateLinks(fLink);
+            operation.setVirtualFolders(false);
+
+            operation.run(new SubProgressMonitor(monitor, 1, SubProgressMonitor.PREPEND_MAIN_LABEL_TO_SUBTASK));
+       }
+

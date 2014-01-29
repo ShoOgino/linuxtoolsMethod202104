@@ -1,113 +1,66 @@
     /**
      * Finish the import.
      *
-     * @return <code>true</code> if successful else false
+     * @return <code>true</code> if successful else <code>false</code>
      */
     public boolean finish() {
-        // Ensure source is valid
-        File sourceDir = new File(getSourceDirectoryName());
-        if (!sourceDir.isDirectory()) {
-            setErrorMessage(Messages.ImportTraceWizard_InvalidTraceDirectory);
-            return false;
-        }
+        IDialogSettings settings = getDialogSettings();
+        settings.put(IMPORT_WIZARD_IMPORT_UNRECOGNIZED_ID, fImportUnrecognizedButton.getSelection());
 
-        try {
-            sourceDir.getCanonicalPath();
-        } catch (IOException e) {
-            MessageDialog.openInformation(getContainer().getShell(), Messages.ImportTraceWizard_Information,
-                    Messages.ImportTraceWizard_InvalidTraceDirectory);
-            return false;
+        String traceTypeName = fTraceTypes.getText();
+        String traceId = null;
+        if (!AUTO_DETECT.equals(traceTypeName)) {
+            String tokens[] = traceTypeName.split(SEPARATOR, 2);
+            if (tokens.length < 2) {
+                return false;
+            }
+            traceId = TmfTraceType.getInstance().getTraceTypeId(tokens[0], tokens[1]);
         }
 
         // Save directory for next import operation
         fRootDirectory = getSourceDirectoryName();
 
-        List<FileSystemElement> selectedResources = getSelectedResources();
-        Iterator<FileSystemElement> resources = selectedResources.iterator();
+        final TraceValidateAndImportOperation operation = new TraceValidateAndImportOperation(traceId, getContainerFullPath(),
+                fImportUnrecognizedButton.getSelection(), fOverwriteExistingResourcesCheckbox.getSelection(), fCreateLinksInWorkspaceButton.getSelection());
 
-        // Use a map to end up with unique resources (getSelectedResources() can
-        // return duplicates)
-        Map<String, File> fileSystemObjects = new HashMap<>();
-        while (resources.hasNext()) {
-            File file = (File) resources.next().getFileSystemObject();
-            String key = file.getAbsolutePath();
-            fileSystemObjects.put(key, file);
-        }
-
-        if (fileSystemObjects.size() > 0) {
-            boolean ok = importResources(fileSystemObjects);
-            String traceTypeName = fTraceTypes.getText();
-            boolean traceTypeOK = false;
-            TraceTypeHelper traceTypeHelper = null;
-
-            if (!traceTypeName.isEmpty()) {
-                // Trace type was selected
-                String temp[] = traceTypeName.split(SEPARATOR, 2);
-                if (temp.length < 2) {
-                    Activator.getDefault().logError("Error with trace type " + traceTypeName); //$NON-NLS-1$
-                    return false;
+        IStatus status = Status.OK_STATUS;
+        try {
+            getContainer().run(true, true, new IRunnableWithProgress() {
+                @Override
+                public void run(IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
+                    operation.run(monitor);
+                    monitor.done();
                 }
-                final String traceId = TmfTraceType.getInstance().getTraceTypeId(temp[0], temp[1]);
-                if (traceId != null) {
-                    traceTypeHelper = TmfTraceType.getInstance().getTraceType(traceId);
-                    if (traceTypeHelper == null || !TmfTraceTypeUIUtils.validateTrace(TmfTraceType.getInstance(), traceId, getSelectedResources())) {
-                        setMessage(null);
-                        setErrorMessage(Messages.ImportTraceWizard_TraceValidationFailed);
-                        return false;
-                    }
+            });
 
-                    traceTypeOK = true;
+            status = operation.getStatus();
+        } catch (InvocationTargetException e) {
+            status = new Status(IStatus.ERROR, Activator.PLUGIN_ID, Messages.ImportTraceWizard_ImportProblem, e);
+        } catch (InterruptedException e) {
+            status = Status.CANCEL_STATUS;
+        } finally {
+            if (!status.isOK()) {
+                if (status.getSeverity() == IStatus.CANCEL) {
+                    setMessage(Messages.ImportTraceWizard_ImportOperationCancelled);
+                    setErrorMessage(null);
                 } else {
+                    if (status.getException() != null) {
+                        displayErrorDialog(status.getMessage() + ": " + status.getException()); //$NON-NLS-1$
+                    }
                     setMessage(null);
-                    setErrorMessage(Messages.ImportTraceWizard_TraceValidationFailed);
-                    return false;
+                    setErrorMessage(Messages.ImportTraceWizard_ImportProblem);
                 }
+                return false;
             }
-
-            if (ok && traceTypeOK) {
-                // Tag the selected traces with their type
-                List<String> files = new ArrayList<>(fileSystemObjects.keySet());
-                Collections.sort(files, new Comparator<String>() {
-                    @Override
-                    public int compare(String o1, String o2) {
-                        String v1 = o1 + File.separatorChar;
-                        String v2 = o2 + File.separatorChar;
-                        return v1.compareTo(v2);
-                    }
-                });
-                // After sorting, traces correspond to the unique prefixes
-                String prefix = null;
-                for (int i = 0; i < files.size(); i++) {
-                    File file = fileSystemObjects.get(files.get(i));
-                    String name = file.getAbsolutePath() + File.separatorChar;
-                    if (fTargetFolder != null && (prefix == null || !name.startsWith(prefix))) {
-                        prefix = name; // new prefix
-                        IResource resource = fTargetFolder.findMember(file.getName());
-                        if (resource != null) {
-                            try {
-                                TmfTraceTypeUIUtils.setTraceType(resource.getFullPath(), traceTypeHelper);
-
-                                TmfProjectElement tmfProject = TmfProjectRegistry.getProject(resource.getProject());
-                                if (tmfProject != null) {
-                                    for (TmfTraceElement traceElement : tmfProject.getTracesFolder().getTraces()) {
-                                        if (traceElement.getName().equals(resource.getName())) {
-                                            traceElement.refreshTraceType();
-                                            break;
-                                        }
-                                    }
-                                }
-                            } catch (CoreException e) {
-                                Activator.getDefault().logError("Error importing trace resource " + resource.getName(), e); //$NON-NLS-1$
-                            }
-                        }
-                    }
-                }
-            }
-            return ok;
         }
-
-        MessageDialog.openInformation(getContainer().getShell(), Messages.ImportTraceWizard_Information,
-                Messages.ImportTraceWizard_SelectTraceNoneSelected);
-        return false;
+        if (operation.getUnrecognizedTraces().size() > 0) {
+            StringBuilder unrecognizedTraces = new StringBuilder();
+            for(String trace: operation.getUnrecognizedTraces()) {
+                unrecognizedTraces.append(System.getProperty("line.separator")).append(trace); //$NON-NLS-1$
+            }
+            displayErrorDialog(Messages.ImportTraceWizard_NoValidTraceTypeFound + ":" + unrecognizedTraces.toString()); //$NON-NLS-1$
+        }
+        setErrorMessage(null);
+        return true;
     }
 

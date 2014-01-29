@@ -1,3 +1,6 @@
+    // ------------------------------------------------------------------------
+    // Trace Type Group
+    // ------------------------------------------------------------------------
     private final void createTraceTypeGroup(Composite parent) {
         Composite composite = new Composite(parent, SWT.NONE);
         GridLayout layout = new GridLayout();
@@ -14,14 +17,18 @@
         typeLabel.setFont(parent.getFont());
 
         // Trace type combo
-        fTraceTypes = new Combo(composite, SWT.BORDER);
+        fTraceTypes = new Combo(composite, SWT.BORDER | SWT.READ_ONLY);
         GridData data = new GridData(SWT.FILL, SWT.FILL, true, false, 2, 1);
         fTraceTypes.setLayoutData(data);
         fTraceTypes.setFont(parent.getFont());
 
         String[] availableTraceTypes = TmfTraceType.getInstance().getAvailableTraceTypes();
-        fTraceTypes.setItems(availableTraceTypes);
-
+        String[] traceTypeList = new String[availableTraceTypes.length + 1];
+        traceTypeList[0] = AUTO_DETECT;
+        for (int i = 0; i < availableTraceTypes.length; i++) {
+            traceTypeList[i + 1] = availableTraceTypes[i];
+        }
+        fTraceTypes.setItems(traceTypeList);
         fTraceTypes.addSelectionListener(new SelectionListener() {
             @Override
             public void widgetSelected(SelectionEvent e) {
@@ -32,5 +39,19 @@
             public void widgetDefaultSelected(SelectionEvent e) {
             }
         });
+        fTraceTypes.select(0);
+
+        fImportUnrecognizedButton = new Button(composite, SWT.CHECK);
+        fImportUnrecognizedButton.setSelection(true);
+        fImportUnrecognizedButton.setText(Messages.ImportTraceWizard_ImportUnrecognized);
+
+        IDialogSettings settings = getDialogSettings();
+        boolean value;
+        if (settings.get(IMPORT_WIZARD_IMPORT_UNRECOGNIZED_ID) == null) {
+            value = true;
+        } else {
+            value = settings.getBoolean(IMPORT_WIZARD_IMPORT_UNRECOGNIZED_ID);
+        }
+        fImportUnrecognizedButton.setSelection(value);
     }
 

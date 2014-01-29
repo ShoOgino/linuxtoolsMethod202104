@@ -3,6 +3,25 @@
         if (event.widget == directoryBrowseButton) {
             handleSourceDirectoryBrowseButtonPressed();
         }
+
+        // Avoid overwriting destination path without repeatedly trigger
+        // call of handleEvent();
+        synchronized (fIsDestinationChanged) {
+            if (fIsDestinationChanged == false) {
+                event.display.asyncExec(new Runnable() {
+                    @Override
+                    public void run() {
+                        synchronized (fIsDestinationChanged) {
+                            fIsDestinationChanged = true;
+                            String path = fTargetFolder.getFullPath().toOSString();
+                            setContainerFieldValue(path);
+                        }
+                    }
+                });
+            } else {
+                fIsDestinationChanged = false;
+            }
+        }
         super.handleEvent(event);
     }
 

@@ -1,0 +1,20 @@
+        private void validateAndImportTrace(File file, TraceTypeHelper traceTypeHelper, boolean sendValidationError, IProgressMonitor monitor)
+                throws InvocationTargetException, InterruptedException, CoreException, TmfTraceImportException {
+
+            if (traceTypeHelper == null) {
+                throw new TmfTraceImportException(Messages.ImportTraceWizard_TraceTypeNotFound);
+            }
+
+            String path = file.getAbsolutePath();
+
+            if (TmfTraceType.getInstance().validate(traceTypeHelper.getCanonicalName(), path)) {
+                importResource(file, monitor);
+                IResource eclipseResource = fTargetFolder.findMember(file.getName());
+                TmfTraceTypeUIUtils.setTraceType(eclipseResource.getFullPath(), traceTypeHelper);
+                return;
+            }
+            if (sendValidationError) {
+                throw new TmfTraceImportException(MessageFormat.format(Messages.ImportTraceWizard_TraceValidationFailed, path));
+            }
+        }
+

@@ -1,0 +1,50 @@
+        public void run(IProgressMonitor progressMonitor) {
+            String currentPath = null;
+            final Map<String, FileSystemElement> folderResources = new HashMap<>();
+            try {
+                List<FileSystemElement> resources = getSelectedResources();
+              Iterator<FileSystemElement> resourcesEnum = resources.iterator();
+              SubMonitor subMonitor = SubMonitor.convert(progressMonitor, resources.size());
+//              subMonitor.beginTask("Importing: ", resources.size());
+
+              while (resourcesEnum.hasNext()) {
+                    ModalContext.checkCanceled(progressMonitor);
+                    currentPath = null;
+                    FileSystemElement resource = resourcesEnum.next();
+                    File resourceFile = (File) resource.getFileSystemObject();
+                    String resourcePath = resourceFile.getAbsolutePath();
+                    currentPath = resourcePath;
+                    SubMonitor sub = subMonitor.newChild(1);
+                    if (resource.isDirectory()) {
+                        if (!folderResources.containsKey(resourcePath)) {
+                            if (isDirectoryTrace(resource)) {
+                                folderResources.put(resourcePath, resource);
+                                validateAndImportDirectoryTrace(resource, sub);
+                            }
+                        }
+                    } else {
+                        FileSystemElement parent = resource.getParent();
+                        File file = (File) parent.getFileSystemObject();
+                        String parentPath = file.getAbsolutePath();
+                        currentPath = parentPath;
+                        if (!folderResources.containsKey(parentPath)) {
+                            if (isDirectoryTrace(parent)) {
+                                folderResources.put(parentPath, parent);
+                                validateAndImportDirectoryTrace(parent, sub);
+                            } else {
+                                if (resourceFile.exists()) {
+                                    validateAndImportFileTrace(resource, sub);
+                                }
+                            }
+                        }
+                    }
+                }
+                setStatus(Status.OK_STATUS);
+            } catch (InterruptedException e) {
+                setStatus(Status.CANCEL_STATUS);
+            } catch (Exception e) {
+                setStatus(new Status(IStatus.ERROR, Activator.PLUGIN_ID, Messages.ImportTraceWizard_ImportProblem + ": " + //$NON-NLS-1$
+                        (currentPath != null ? currentPath : "") , e)); //$NON-NLS-1$
+            }
+        }
+

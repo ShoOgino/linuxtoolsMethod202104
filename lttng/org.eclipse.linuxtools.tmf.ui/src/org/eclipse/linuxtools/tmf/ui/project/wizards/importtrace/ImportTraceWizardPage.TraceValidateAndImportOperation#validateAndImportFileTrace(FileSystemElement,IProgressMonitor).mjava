@@ -1,0 +1,25 @@
+        private void validateAndImportFileTrace(FileSystemElement resource, IProgressMonitor monitor)
+                throws TmfTraceImportException, CoreException, InvocationTargetException, InterruptedException {
+
+            File file = (File) resource.getFileSystemObject();
+            String path = file.getAbsolutePath();
+            TraceTypeHelper traceTypeHelper = null;
+            boolean sendValidationError = true;
+            if (fTraceType == null) {
+                // TODO add automatic trace type selection for trace file
+                if (fImportUnrecognizedTraces) {
+                    importResource(file, monitor);
+                    fUnrecognizedResources.add(path);
+                }
+                return;
+            }
+
+            if (TmfTraceType.getInstance().isDirectoryTraceType(fTraceType)) {
+                return;
+            }
+            sendValidationError = false;
+            traceTypeHelper = TmfTraceType.getInstance().getTraceType(fTraceType);
+            validateAndImportTrace(file, traceTypeHelper, sendValidationError, monitor);
+            return;
+        }
+
