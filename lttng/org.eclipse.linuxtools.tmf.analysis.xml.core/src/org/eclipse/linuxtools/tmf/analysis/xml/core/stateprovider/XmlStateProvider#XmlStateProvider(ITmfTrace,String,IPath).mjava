@@ -13,5 +13,35 @@
         super(trace, ITmfEvent.class, stateid);
         fStateId = stateid;
         fFilePath = file;
+        Element doc = loadXMLNode();
+        if (doc == null) {
+            fLocations = new HashSet<>();
+            return;
+        }
+
+        /* parser for defined Values */
+        NodeList definedStateNodes = doc.getElementsByTagName(TmfXmlStrings.DEFINED_VALUE);
+        for (int i = 0; i < definedStateNodes.getLength(); i++) {
+            Element element = (Element) definedStateNodes.item(i);
+            fDefinedValues.put(element.getAttribute(TmfXmlStrings.NAME), element.getAttribute(TmfXmlStrings.VALUE));
+        }
+
+        /* parser for the locations */
+        NodeList locationNodes = doc.getElementsByTagName(TmfXmlStrings.LOCATION);
+        Set<TmfXmlLocation> locations = new HashSet<>();
+        for (int i = 0; i < locationNodes.getLength(); i++) {
+            Element element = (Element) locationNodes.item(i);
+            TmfXmlLocation location = new TmfXmlLocation(element, this);
+            locations.add(location);
+        }
+        fLocations = Collections.unmodifiableSet(locations);
+
+        /* parser for the event handlers */
+        NodeList nodes = doc.getElementsByTagName(TmfXmlStrings.EVENT_HANDLER);
+        for (int i = 0; i < nodes.getLength(); i++) {
+            Element element = (Element) nodes.item(i);
+            TmfXmlEventHandler handler = new TmfXmlEventHandler(element, this);
+            fEventHandlers.add(handler);
+        }
     }
 

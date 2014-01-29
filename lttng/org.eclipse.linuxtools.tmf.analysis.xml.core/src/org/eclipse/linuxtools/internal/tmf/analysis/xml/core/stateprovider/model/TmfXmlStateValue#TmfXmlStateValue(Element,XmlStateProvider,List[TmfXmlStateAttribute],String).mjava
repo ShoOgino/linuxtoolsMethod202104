@@ -1,0 +1,103 @@
+    private TmfXmlStateValue(Element node, XmlStateProvider provider, List<TmfXmlStateAttribute> attributes, String eventField) {
+        fPath = attributes;
+        fProvider = provider;
+        fEventField = eventField;
+        if (!node.getNodeName().equals(TmfXmlStrings.STATE_VALUE)) {
+            throw new IllegalArgumentException("TmfXmlStateValue constructor: Element is not a stateValue"); //$NON-NLS-1$
+        }
+
+        /* Process the XML Element state value */
+        String type = node.getAttribute(TmfXmlStrings.TYPE);
+        String value = fProvider.getAttributeValue(node.getAttribute(TmfXmlStrings.VALUE));
+        /* Check if there is an increment for the value */
+        fIncrement = Boolean.valueOf(node.getAttribute(TmfXmlStrings.INCREMENT));
+
+        switch (type) {
+        case TmfXmlStrings.TYPE_INT: {
+            /* Integer value */
+            ITmfStateValue stateValue = TmfStateValue.newValueInt(Integer.parseInt(value));
+            fStateValue = new TmfXmlStateValueTmf(stateValue);
+            break;
+        }
+        case TmfXmlStrings.TYPE_LONG: {
+            /* Long value */
+            ITmfStateValue stateValue = TmfStateValue.newValueLong(Long.parseLong(value));
+            fStateValue = new TmfXmlStateValueTmf(stateValue);
+            break;
+        }
+        case TmfXmlStrings.TYPE_STRING: {
+            /* String value */
+            ITmfStateValue stateValue = TmfStateValue.newValueString(value);
+            fStateValue = new TmfXmlStateValueTmf(stateValue);
+            break;
+        }
+        case TmfXmlStrings.TYPE_NULL: {
+            /* Null value */
+            ITmfStateValue stateValue = TmfStateValue.nullValue();
+            fStateValue = new TmfXmlStateValueTmf(stateValue);
+            break;
+        }
+        case TmfXmlStrings.EVENT_FIELD:
+            /* Event field */
+            fStateValue = new TmfXmlStateValueEventField(value);
+            break;
+        case TmfXmlStrings.TYPE_EVENT_NAME:
+            /* The value is the event name */
+            fStateValue = new TmfXmlStateValueEventName();
+            break;
+        case TmfXmlStrings.TYPE_DELETE:
+            /* Deletes the value of an attribute */
+            fStateValue = new TmfXmlStateValueDelete();
+            break;
+        case TmfXmlStrings.TYPE_QUERY:
+            /* Value is the result of a query */
+            List<Element> children = XmlUtils.getChildElements(node);
+            List<TmfXmlStateAttribute> childAttributes = new ArrayList<>();
+            for (Element child : children) {
+                TmfXmlStateAttribute queryAttribute = new TmfXmlStateAttribute(child, fProvider);
+                childAttributes.add(queryAttribute);
+            }
+            fStateValue = new TmfXmlStateValueQuery(childAttributes);
+            break;
+        default:
+            throw new IllegalArgumentException(String.format("TmfXmlStateValue constructor: unexpected element %s for stateValue type", type)); //$NON-NLS-1$
+        }
+
+        /*
+         * Forced type allows to convert the value to a certain type : For
+         * example, a process's TID in an event field may arrive with a LONG
+         * format but we want to store the data in an INT
+         */
+        switch (node.getAttribute(TmfXmlStrings.FORCED_TYPE)) {
+        case TmfXmlStrings.TYPE_STRING:
+            fForcedType = ValueForcedType.STRING;
+            break;
+        case TmfXmlStrings.TYPE_INT:
+            fForcedType = ValueForcedType.INT;
+            break;
+        case TmfXmlStrings.TYPE_LONG:
+            fForcedType = ValueForcedType.LONG;
+            break;
+        default:
+            fForcedType = ValueForcedType.NULL;
+        }
+
+        /*
+         * Stack Actions : allow to define a stack with PUSH/POP/PEEK methods
+         */
+        String stack = node.getAttribute(TmfXmlStrings.ATTRIBUTE_STACK);
+        switch (stack) {
+        case TmfXmlStrings.STACK_PUSH:
+            fStack = ValueTypeStack.PUSH;
+            break;
+        case TmfXmlStrings.STACK_POP:
+            fStack = ValueTypeStack.POP;
+            break;
+        case TmfXmlStrings.STACK_PEEK:
+            fStack = ValueTypeStack.PEEK;
+            break;
+        default:
+            fStack = ValueTypeStack.NULL;
+        }
+    }
+

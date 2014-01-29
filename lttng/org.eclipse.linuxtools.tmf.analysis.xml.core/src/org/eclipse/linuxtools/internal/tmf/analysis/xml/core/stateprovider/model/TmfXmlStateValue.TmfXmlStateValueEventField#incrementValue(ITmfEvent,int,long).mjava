@@ -1,0 +1,28 @@
+        @Override
+        public void incrementValue(ITmfEvent event, int quark, long timestamp) throws StateValueTypeException, TimeRangeException, AttributeNotFoundException {
+            ITmfStateSystemBuilder ss = fProvider.getAssignedStateSystem();
+            ITmfStateValue incrementValue = getValue(event);
+            switch (incrementValue.getType()) {
+            case INTEGER: {
+                int increment = incrementValue.unboxInt();
+                int currentValue = ss.queryOngoingState(quark).unboxInt();
+                ITmfStateValue value = TmfStateValue.newValueInt(increment + currentValue);
+                processValue(quark, timestamp, value);
+                break;
+            }
+            case LONG: {
+                long incrementLong = incrementValue.unboxLong();
+                long currentValue = ss.queryOngoingState(quark).unboxLong();
+                ITmfStateValue value = TmfStateValue.newValueLong(incrementLong + currentValue);
+                processValue(quark, timestamp, value);
+                break;
+            }
+            case DOUBLE:
+            case NULL:
+            case STRING:
+            default:
+                Activator.logWarning(String.format("TmfXmlStateValue: The event field increment %s is not a number type but a %s", fFieldName, incrementValue.getType())); //$NON-NLS-1$
+                break;
+            }
+        }
+
