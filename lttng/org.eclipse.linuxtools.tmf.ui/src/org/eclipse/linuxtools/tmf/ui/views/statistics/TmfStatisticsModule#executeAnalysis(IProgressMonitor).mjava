@@ -20,14 +20,9 @@
             return false;
         }
 
-        /*
-         * The "execute" of this trace will encompass the "execute" of the two
-         * sub-analyzes.
-         */
-        if (!totalsModule.waitForCompletion(monitor) ||
-                !eventTypesModule.waitForCompletion(monitor)) {
-            return false;
-        }
+        /* Wait until the two modules are initialized */
+        totalsModule.waitForInitialization();
+        eventTypesModule.waitForInitialization();
 
         ITmfStateSystem totalsSS = totalsModule.getStateSystem();
         ITmfStateSystem eventTypesSS = eventTypesModule.getStateSystem();
@@ -38,6 +33,18 @@
         }
 
         fStatistics = new TmfStateStatistics(totalsSS, eventTypesSS);
+
+        /* fStatistics is now set, consider this module initialized */
+        fInitialized.countDown();
+
+        /*
+         * The rest of this "execute" will encompass the "execute" of the two
+         * sub-analyzes.
+         */
+        if (!totalsModule.waitForCompletion(monitor) ||
+                !eventTypesModule.waitForCompletion(monitor)) {
+            return false;
+        }
         return true;
     }
 
