@@ -1,0 +1,33 @@
+    @Override
+    public synchronized TmfContext seekEvent(ITmfLocation location) {
+        TextTraceContext context = new TextTraceContext(NULL_LOCATION, ITmfContext.UNKNOWN_RANK);
+        if (NULL_LOCATION.equals(location) || fFile == null) {
+            return context;
+        }
+        try {
+            if (location == null) {
+                fFile.seek(0);
+            } else if (location.getLocationInfo() instanceof Long) {
+                fFile.seek((Long) location.getLocationInfo());
+            }
+            long rawPos = fFile.getFilePointer();
+            String line = fFile.getNextLine();
+            while (line != null) {
+                Matcher matcher = getFirstLinePattern().matcher(line);
+                if (matcher.find()) {
+                    context.setLocation(new TmfLongLocation(rawPos));
+                    context.firstLineMatcher = matcher;
+                    context.firstLine = line;
+                    context.nextLineLocation = fFile.getFilePointer();
+                    return context;
+                }
+                rawPos = fFile.getFilePointer();
+                line = fFile.getNextLine();
+            }
+            return context;
+        } catch (IOException e) {
+            Activator.logError("Error seeking file: " + getPath(), e); //$NON-NLS-1$
+            return context;
+        }
+    }
+

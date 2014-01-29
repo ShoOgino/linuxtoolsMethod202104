@@ -1,0 +1,48 @@
+    /**
+     * Parse the next event. The context is advanced.
+     *
+     * @param tmfContext
+     *            the context
+     * @return the next event or null
+     */
+    protected synchronized T parse(ITmfContext tmfContext) {
+        if (fFile == null) {
+            return null;
+        }
+        if (!(tmfContext instanceof TextTraceContext)) {
+            return null;
+        }
+        TextTraceContext context = (TextTraceContext) tmfContext;
+        if (context.getLocation() == null || !(context.getLocation().getLocationInfo() instanceof Long) || NULL_LOCATION.equals(context.getLocation())) {
+            return null;
+        }
+
+        T event = parseFirstLine(context.firstLineMatcher, context.firstLine);
+
+        try {
+            if (fFile.getFilePointer() != context.nextLineLocation) {
+                fFile.seek(context.nextLineLocation);
+            }
+            long rawPos = fFile.getFilePointer();
+            String line = fFile.getNextLine();
+            while (line != null) {
+                Matcher matcher = getFirstLinePattern().matcher(line);
+                if (matcher.find()) {
+                    context.setLocation(new TmfLongLocation(rawPos));
+                    context.firstLineMatcher = matcher;
+                    context.firstLine = line;
+                    context.nextLineLocation = fFile.getFilePointer();
+                    return event;
+                }
+                parseNextLine(event, line);
+                rawPos = fFile.getFilePointer();
+                line = fFile.getNextLine();
+            }
+        } catch (IOException e) {
+            Activator.logError("Error reading file: " + getPath(), e); //$NON-NLS-1$
+        }
+
+        context.setLocation(NULL_LOCATION);
+        return event;
+    }
+
