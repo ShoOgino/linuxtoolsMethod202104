@@ -1,0 +1,39 @@
+    /**
+     * Test the module executes correctly
+     */
+    @Test
+    public void testModuleExecution() {
+        assumeTrue(CtfTmfTestTrace.KERNEL.exists());
+
+        Document doc = getXmlDocumentFromFile(TmfXmlTestFiles.VALID_FILE.getFile());
+        assertNotNull(doc);
+
+        /* get State Providers modules */
+        NodeList stateproviderNodes = doc.getElementsByTagName(TmfXmlStrings.STATE_PROVIDER);
+
+        Element node = (Element) stateproviderNodes.item(0);
+        fModule = new XmlStateSystemModule();
+        String moduleId = node.getAttribute(TmfXmlStrings.ANALYSIS_ID);
+        fModule.setId(moduleId);
+
+        fModule.setXmlFile(new Path(TmfXmlTestFiles.VALID_FILE.getFile().getAbsolutePath()));
+        NodeList head = node.getElementsByTagName(TmfXmlStrings.HEAD);
+        XmlHeadInfo headInfo = null;
+        if (head.getLength() == 1) {
+            headInfo = new XmlHeadInfo(head.item(0));
+        }
+        fModule.setHeadInfo(headInfo);
+
+        try {
+            ITmfTrace trace = CtfTmfTestTrace.KERNEL.getTrace();
+            fModule.setTrace(trace);
+            fModule.schedule();
+            assertTrue(fModule.waitForCompletion(new NullProgressMonitor()));
+        } catch (TmfAnalysisException e) {
+            fail("Cannot set trace " + e.getMessage());
+        } finally {
+            CtfTmfTestTrace.KERNEL.dispose();
+        }
+
+    }
+
