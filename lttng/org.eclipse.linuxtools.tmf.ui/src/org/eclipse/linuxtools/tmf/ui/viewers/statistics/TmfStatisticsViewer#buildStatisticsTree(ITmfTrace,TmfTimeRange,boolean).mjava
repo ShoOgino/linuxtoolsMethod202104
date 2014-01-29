@@ -44,15 +44,12 @@
                 Thread statsThread = new Thread("Statistics update") { //$NON-NLS-1$
                     @Override
                     public void run() {
-                        /* Wait until the analysis is ready */
-                        if (!statsMod.waitForCompletion(new NullProgressMonitor())) {
-                            return;
-                        }
-
+                        /* Wait until the analysis is ready to be queried */
+                        statsMod.waitForInitialization();
                         ITmfStatistics stats = statsMod.getStatistics();
                         if (stats == null) {
                             /* It should have worked, but didn't */
-                            return;
+                            throw new IllegalStateException();
                         }
 
                         /*
@@ -62,6 +59,29 @@
                         long start = timeRange.getStartTime().normalize(0, TIME_SCALE).getValue();
                         long end = timeRange.getEndTime().normalize(0, TIME_SCALE).getValue();
 
+                        /*
+                         * Wait on the state system object we are going to query.
+                         *
+                         * TODO Eventually this could be exposed through the
+                         * TmfStateSystemAnalysisModule directly.
+                         */
+                        ITmfStateSystem ss = statsMod.getStateSystem(TmfStatisticsEventTypesModule.ID);
+                        if (ss == null) {
+                            /* It should be instantiated after the
+                             * statsMod.waitForInitialization() above. */
+                            throw new IllegalStateException();
+                        }
+
+                        /*
+                         * Periodically update the statistics while they are
+                         * being built (or, if the back-end is already completely
+                         * built, it will skip over the while() immediately.
+                         */
+                        while(!ss.waitUntilBuilt(LIVE_UPDATE_DELAY)) {
+                            Map<String, Long> map = stats.getEventTypesInRange(start, end);
+                            updateStats(isGlobal, map);
+                        }
+                        /* Query one last time for the final values */
                         Map<String, Long> map = stats.getEventTypesInRange(start, end);
                         updateStats(isGlobal, map);
                     }
