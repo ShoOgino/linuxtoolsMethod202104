@@ -1,0 +1,79 @@
+        /**
+         * Imports a trace resource to project. In case of name collision the
+         * user will be asked to confirm overwriting the existing trace,
+         * overwriting or skipping the trace to be imported.
+         *
+         * @param fileSystemElement
+         *            trace file system object to import
+         * @param monitor
+         *            a progress monitor
+         * @return true if trace was imported else false
+         *
+         * @throws InvocationTargetException
+         *             if problems during import operation
+         * @throws InterruptedException
+         *             if cancelled
+         * @throws CoreException
+         *             if problems with workspace
+         */
+        private boolean importResource(TraceFileSystemElement fileSystemElement, IProgressMonitor monitor)
+                throws InvocationTargetException, InterruptedException, CoreException {
+            ImportConfirmation mode = checkForNameClashes(fileSystemElement);
+            switch (mode) {
+            case RENAME:
+            case RENAME_ALL:
+                rename(fileSystemElement);
+                break;
+            case OVERWRITE:
+            case OVERWRITE_ALL:
+                delete(fileSystemElement, monitor);
+                break;
+            case CONTINUE:
+                break;
+            case SKIP:
+            case SKIP_ALL:
+            default:
+                return false;
+            }
+
+            List<TraceFileSystemElement> subList = new ArrayList<>();
+
+            IPath containerPath = fContainerPath;
+            FileSystemElement parentFolder = fileSystemElement.getParent();
+
+            if (fileSystemElement.isDirectory() && (!fLink)) {
+                containerPath = containerPath.addTrailingSeparator().append(fileSystemElement.getLabel());
+
+                Object[] array = fileSystemElement.getFiles().getChildren();
+                for (int i = 0; i < array.length; i++) {
+                    subList.add((TraceFileSystemElement)array[i]);
+                }
+                parentFolder = fileSystemElement;
+
+            } else {
+                subList.add(fileSystemElement);
+            }
+
+
+            ImportProvider fileSystemStructureProvider = new ImportProvider();
+
+            IOverwriteQuery myQueryImpl = new IOverwriteQuery() {
+                @Override
+                public String queryOverwrite(String file) {
+                    return IOverwriteQuery.NO_ALL;
+                }
+            };
+
+            monitor.setTaskName(Messages.ImportTraceWizard_ImportOperationTaskName + " " + ((File)fileSystemElement.getFileSystemObject()).getAbsolutePath()); //$NON-NLS-1$
+            ImportOperation operation = new ImportOperation(containerPath, parentFolder, fileSystemStructureProvider, myQueryImpl, subList);
+            operation.setContext(getShell());
+
+            operation.setCreateContainerStructure(false);
+            operation.setOverwriteResources(false);
+            operation.setCreateLinks(fLink);
+            operation.setVirtualFolders(false);
+
+            operation.run(new SubProgressMonitor(monitor, 1, SubProgressMonitor.PREPEND_MAIN_LABEL_TO_SUBTASK));
+            return true;
+        }
+

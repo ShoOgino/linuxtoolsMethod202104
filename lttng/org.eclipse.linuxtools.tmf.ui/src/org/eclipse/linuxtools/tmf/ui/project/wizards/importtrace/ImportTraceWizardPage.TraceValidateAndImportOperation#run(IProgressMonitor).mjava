@@ -1,39 +1,38 @@
         public void run(IProgressMonitor progressMonitor) {
             String currentPath = null;
-            final Map<String, FileSystemElement> folderResources = new HashMap<>();
+            final Map<String, TraceFileSystemElement> folderElements = new HashMap<>();
             try {
-                List<FileSystemElement> resources = getSelectedResources();
-              Iterator<FileSystemElement> resourcesEnum = resources.iterator();
-              SubMonitor subMonitor = SubMonitor.convert(progressMonitor, resources.size());
-//              subMonitor.beginTask("Importing: ", resources.size());
+                List<TraceFileSystemElement> fileSystemElements = getSelectedResources();
+                Iterator<TraceFileSystemElement> fileSystemElementsIter = fileSystemElements.iterator();
+                SubMonitor subMonitor = SubMonitor.convert(progressMonitor, fileSystemElements.size());
 
-              while (resourcesEnum.hasNext()) {
+                while (fileSystemElementsIter.hasNext()) {
                     ModalContext.checkCanceled(progressMonitor);
                     currentPath = null;
-                    FileSystemElement resource = resourcesEnum.next();
-                    File resourceFile = (File) resource.getFileSystemObject();
-                    String resourcePath = resourceFile.getAbsolutePath();
+                    TraceFileSystemElement element = fileSystemElementsIter.next();
+                    File fileResource = (File) element.getFileSystemObject();
+                    String resourcePath = fileResource.getAbsolutePath();
                     currentPath = resourcePath;
                     SubMonitor sub = subMonitor.newChild(1);
-                    if (resource.isDirectory()) {
-                        if (!folderResources.containsKey(resourcePath)) {
-                            if (isDirectoryTrace(resource)) {
-                                folderResources.put(resourcePath, resource);
-                                validateAndImportDirectoryTrace(resource, sub);
+                    if (element.isDirectory()) {
+                        if (!folderElements.containsKey(resourcePath)) {
+                            if (isDirectoryTrace(element)) {
+                                folderElements.put(resourcePath, element);
+                                validateAndImportDirectoryTrace(element, sub);
                             }
                         }
                     } else {
-                        FileSystemElement parent = resource.getParent();
-                        File file = (File) parent.getFileSystemObject();
-                        String parentPath = file.getAbsolutePath();
+                        TraceFileSystemElement parentElement = (TraceFileSystemElement)element.getParent();
+                        File parentFile = (File) parentElement.getFileSystemObject();
+                        String parentPath = parentFile.getAbsolutePath();
                         currentPath = parentPath;
-                        if (!folderResources.containsKey(parentPath)) {
-                            if (isDirectoryTrace(parent)) {
-                                folderResources.put(parentPath, parent);
-                                validateAndImportDirectoryTrace(parent, sub);
+                        if (!folderElements.containsKey(parentPath)) {
+                            if (isDirectoryTrace(parentElement)) {
+                                folderElements.put(parentPath, parentElement);
+                                validateAndImportDirectoryTrace(parentElement, sub);
                             } else {
-                                if (resourceFile.exists()) {
-                                    validateAndImportFileTrace(resource, sub);
+                                if (fileResource.exists()) {
+                                    validateAndImportFileTrace(element, sub);
                                 }
                             }
                         }

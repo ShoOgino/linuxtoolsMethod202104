@@ -1,0 +1,23 @@
+        private ImportConfirmation checkForNameClashes(TraceFileSystemElement fileSystemElement) throws InterruptedException {
+
+            String traceName = ((File)fileSystemElement.getFileSystemObject()).getName();
+
+            // handle rename
+            if (getExistingTrace(traceName) != null) {
+                if ((fConfirmationMode == ImportConfirmation.RENAME_ALL) ||
+                    (fConfirmationMode == ImportConfirmation.OVERWRITE_ALL) ||
+                    (fConfirmationMode == ImportConfirmation.SKIP_ALL)) {
+                    return fConfirmationMode;
+                }
+
+                int returnCode = promptForOverwrite(traceName);
+                if (returnCode < 0) {
+                    // Cancel
+                    throw new InterruptedException();
+                }
+                fConfirmationMode = ImportConfirmation.values()[returnCode];
+                return fConfirmationMode;
+            }
+            return ImportConfirmation.CONTINUE;
+        }
+
