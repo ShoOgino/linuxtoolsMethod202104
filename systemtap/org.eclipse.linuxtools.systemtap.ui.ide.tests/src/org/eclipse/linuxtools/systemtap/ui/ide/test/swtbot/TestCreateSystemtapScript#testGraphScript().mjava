@@ -48,7 +48,7 @@
 
 		// Add a graph.
 		bot.button(Messages.SystemTapScriptGraphOptionsTab_AddGraphButton).click();
-		setupGraph("Values");
+		setupGraphWithTests("Values");
 
 		// Make a second regex, and a graph for it.
 		shell.setFocus();
@@ -71,7 +71,7 @@
 		assertEquals("", text.getText());
 
 		bot.button(Messages.SystemTapScriptGraphOptionsTab_AddGraphButton).click();
-		setupGraph("Others");
+		setupGraphWithTests("Others");
 
 		// Apply the changes, then close the menu & reopen it to make sure settings were saved.
 		shell.setFocus();
@@ -101,23 +101,23 @@
 
 		// If Systemtap is not installed, don't test graph output. Otherwise, do.
 		if (!stapInstalled) {
-			bot.button("Close").click();
-			bot.waitUntil(new ShellIsClosed(shell));
 			return;
 		}
 
 		bot.button("Run").click();
 		bot.waitUntil(new ShellIsClosed(shell));
-		bot.sleep(2500); // Let the script run for a moment
 		SWTBotView console = bot.viewById("org.eclipse.ui.console.ConsoleView");
 		console.setFocus();
 		bot.waitUntil(new StapHasExited()); // The script should end on its own
 
-		bot.sleep(1000); // Give time for the table to be fully constructed
-		SWTBotEditor graphDisplay = bot.activeEditor();
-		graphDisplay.setFocus();
-		graphDisplay.bot().cTabItem(MessageFormat.format(Messages.SystemTapScriptGraphOptionsTab_graphSetTitleBase, 1)).activate();
-		graphDisplay.bot().cTabItem("Data View").activate();
+		// Give time for the table to be fully constructed
+		SWTBotEditor graphEditor = bot.activeEditor();
+		bot.waitUntil(new TableHasUpdated(graphEditor, 1, 10));
+		bot.waitUntil(new TableHasUpdated(graphEditor, 2, 4));
+
+		graphEditor.setFocus();
+		graphEditor.bot().cTabItem(MessageFormat.format(Messages.SystemTapScriptGraphOptionsTab_graphSetTitleBase, 1)).activate();
+		graphEditor.bot().cTabItem("Data View").activate();
 		SWTBotTable dataTable = bot.table(0);
 		List<String> colNames = dataTable.columns();
 		assertEquals(3, colNames.size());
@@ -126,8 +126,8 @@
 		assertEquals("3", dataTable.cell(3, 1));
 		assertEquals("6", dataTable.cell(3, 2));
 
-		graphDisplay.bot().cTabItem(MessageFormat.format(Messages.SystemTapScriptGraphOptionsTab_graphSetTitleBase, 2)).activate();
-		graphDisplay.bot().cTabItem("Data View").activate();
+		graphEditor.bot().cTabItem(MessageFormat.format(Messages.SystemTapScriptGraphOptionsTab_graphSetTitleBase, 2)).activate();
+		graphEditor.bot().cTabItem("Data View").activate();
 		dataTable = bot.table(0);
 		colNames = dataTable.columns();
 		assertEquals(3, colNames.size());

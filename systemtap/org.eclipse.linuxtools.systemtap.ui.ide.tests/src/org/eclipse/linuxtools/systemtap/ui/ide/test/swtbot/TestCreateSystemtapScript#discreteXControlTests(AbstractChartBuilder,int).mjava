@@ -1,0 +1,119 @@
+	private void discreteXControlTests(final AbstractChartBuilder cb, int numAxisItems) {
+		// Check that default range shows 100% of data.
+		IAxis axis = cb.getChart().getAxisSet().getXAxis(0);
+		Range range = axis.getRange();
+		assertTrue(range.upper - range.lower == axis.getCategorySeries().length - 1 && range.upper - range.lower == numAxisItems - 1);
+
+		// Check that scroll buttons are disabled at 100% range.
+		SWTBotButton firstButton = bot.button(org.eclipse.linuxtools.systemtap.graphingapi.ui.widgets.Messages.GraphDiscreteXControl_First);
+		SWTBotButton leftButton = bot.button(org.eclipse.linuxtools.systemtap.graphingapi.ui.widgets.Messages.GraphDiscreteXControl_Left);
+		SWTBotButton rightButton = bot.button(org.eclipse.linuxtools.systemtap.graphingapi.ui.widgets.Messages.GraphDiscreteXControl_Right);
+		SWTBotButton lastButton = bot.button(org.eclipse.linuxtools.systemtap.graphingapi.ui.widgets.Messages.GraphDiscreteXControl_Last);
+		assertTrue(!firstButton.isEnabled());
+		assertTrue(!leftButton.isEnabled());
+		assertTrue(!rightButton.isEnabled());
+		assertTrue(!lastButton.isEnabled());
+
+		// Test zooming in. The amount of zoom is arbitrary for this test--just make sure zooming happened.
+		SWTBotButton zoomInButton = bot.button(org.eclipse.linuxtools.systemtap.graphingapi.ui.widgets.Messages.GraphDiscreteXControl_ZoomIn);
+		SWTBotButton zoomOutButton = bot.button(org.eclipse.linuxtools.systemtap.graphingapi.ui.widgets.Messages.GraphDiscreteXControl_ZoomOut);
+		SWTBotButton allButton = bot.button(org.eclipse.linuxtools.systemtap.graphingapi.ui.widgets.Messages.GraphDiscreteXControl_All);
+		assertTrue(zoomInButton.isEnabled());
+		assertTrue(!zoomOutButton.isEnabled());
+		assertTrue(!allButton.isEnabled());
+		zoomInButton.click();
+		assertTrue(zoomOutButton.isEnabled());
+		assertTrue(allButton.isEnabled());
+
+		// By default, zooming in should zoom in on the end of the axis, not the beginning.
+		range = axis.getRange();
+		assertTrue(range.upper == numAxisItems - 1 && range.lower > 0);
+
+		// Left scrolling should now be enabled.
+		assertTrue(firstButton.isEnabled());
+		assertTrue(leftButton.isEnabled());
+		assertTrue(!rightButton.isEnabled());
+		assertTrue(!lastButton.isEnabled());
+
+		// Test scrolling left. Again, the specific amount is arbitrary, just make sure scrolling happened.
+		leftButton.click();
+		range = axis.getRange();
+		assertTrue(range.upper < numAxisItems - 1);
+		int rstore = (int) range.lower;
+		assertTrue(rightButton.isEnabled());
+		assertTrue(lastButton.isEnabled());
+
+		// Zooming out should bring the range back to 100%.
+		zoomOutButton.click();
+		range = axis.getRange();
+		assertTrue(range.upper - range.lower == numAxisItems - 1);
+		assertTrue(zoomInButton.isEnabled());
+		assertTrue(!zoomOutButton.isEnabled());
+		assertTrue(!allButton.isEnabled());
+		assertTrue(!firstButton.isEnabled());
+		assertTrue(!leftButton.isEnabled());
+		assertTrue(!rightButton.isEnabled());
+		assertTrue(!lastButton.isEnabled());
+
+		// For convenience, zooming out after having scrolled somewhere should make zooming in
+		// zoom back to the area that was scrolled to.
+		zoomInButton.click();
+		assertTrue(rstore == axis.getRange().lower);
+
+		// Scrolling right should take the range back to the end of the axis.
+		rightButton.click();
+		range = axis.getRange();
+		assertTrue(range.upper == numAxisItems - 1 && range.lower > 0);
+		assertTrue(firstButton.isEnabled());
+		assertTrue(leftButton.isEnabled());
+		assertTrue(!rightButton.isEnabled());
+		assertTrue(!lastButton.isEnabled());
+
+		// Zoom in as much as possible (range should show only one item),
+		// and step right/left. Add a loop limit for safety.
+		for (int i = 0; i < numAxisItems; i++) {
+			range = axis.getRange();
+			if (range.upper == range.lower) {
+				break;
+			}
+			zoomInButton.click();
+		}
+		range = axis.getRange();
+		assertTrue(range.upper == range.lower && range.upper == numAxisItems - 1);
+		assertTrue(!zoomInButton.isEnabled());
+		for (int i = 0; i < numAxisItems; i++) {
+			if (axis.getRange().lower == 0) {
+				break;
+			}
+			leftButton.click();
+			assertTrue(axis.getRange().lower < range.lower);
+			range = axis.getRange();
+			assertTrue(range.lower == range.upper);
+		}
+		assertTrue(axis.getRange().lower == 0);
+		for (int i = 0; i < numAxisItems; i++) {
+			if (axis.getRange().upper == numAxisItems - 1) {
+				break;
+			}
+			rightButton.click();
+			assertTrue(axis.getRange().upper > range.upper);
+			range = axis.getRange();
+			assertTrue(range.lower == range.upper);
+		}
+		assertTrue(axis.getRange().upper == numAxisItems - 1);
+
+		firstButton.click();
+		assertTrue(axis.getRange().lower == 0);
+		assertTrue(!firstButton.isEnabled());
+		assertTrue(!leftButton.isEnabled());
+		assertTrue(rightButton.isEnabled());
+		assertTrue(lastButton.isEnabled());
+
+		lastButton.click();
+		assertTrue(axis.getRange().upper == numAxisItems - 1);
+		assertTrue(firstButton.isEnabled());
+		assertTrue(leftButton.isEnabled());
+		assertTrue(!rightButton.isEnabled());
+		assertTrue(!lastButton.isEnabled());
+	}
+
