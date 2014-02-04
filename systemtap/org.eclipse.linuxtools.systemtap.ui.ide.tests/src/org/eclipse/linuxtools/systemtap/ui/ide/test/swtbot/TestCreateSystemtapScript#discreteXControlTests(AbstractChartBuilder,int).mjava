@@ -1,8 +1,11 @@
-	private void discreteXControlTests(final AbstractChartBuilder cb, int numAxisItems) {
+	private void discreteXControlTests(AbstractChartBuilder cb, int numAxisItems) {
 		// Check that default range shows 100% of data.
 		IAxis axis = cb.getChart().getAxisSet().getXAxis(0);
 		Range range = axis.getRange();
+		double scale = cb.getScale();
+		double scroll = cb.getScroll();
 		assertTrue(range.upper - range.lower == axis.getCategorySeries().length - 1 && range.upper - range.lower == numAxisItems - 1);
+		assertTrue(scale == 1.0 && scroll == 1.0);
 
 		// Check that scroll buttons are disabled at 100% range.
 		SWTBotButton firstButton = bot.button(org.eclipse.linuxtools.systemtap.graphingapi.ui.widgets.Messages.GraphDiscreteXControl_First);
@@ -25,9 +28,9 @@
 		assertTrue(zoomOutButton.isEnabled());
 		assertTrue(allButton.isEnabled());
 
-		// By default, zooming in should zoom in on the end of the axis, not the beginning.
+		// By default, zooming in should zoom in on the end of the axis (newest data).
 		range = axis.getRange();
-		assertTrue(range.upper == numAxisItems - 1 && range.lower > 0);
+		assertTrue(range.upper == numAxisItems - 1 && range.lower > 0 && cb.getScale() < scale && cb.getScroll() == 1.0);
 
 		// Left scrolling should now be enabled.
 		assertTrue(firstButton.isEnabled());
@@ -38,7 +41,7 @@
 		// Test scrolling left. Again, the specific amount is arbitrary, just make sure scrolling happened.
 		leftButton.click();
 		range = axis.getRange();
-		assertTrue(range.upper < numAxisItems - 1);
+		assertTrue(range.upper < numAxisItems - 1 && cb.getScroll() < scroll);
 		int rstore = (int) range.lower;
 		assertTrue(rightButton.isEnabled());
 		assertTrue(lastButton.isEnabled());
@@ -46,7 +49,7 @@
 		// Zooming out should bring the range back to 100%.
 		zoomOutButton.click();
 		range = axis.getRange();
-		assertTrue(range.upper - range.lower == numAxisItems - 1);
+		assertTrue(range.upper - range.lower == numAxisItems - 1 && cb.getScale() == 1.0 && cb.getScroll() < scroll);
 		assertTrue(zoomInButton.isEnabled());
 		assertTrue(!zoomOutButton.isEnabled());
 		assertTrue(!allButton.isEnabled());
@@ -57,13 +60,14 @@
 
 		// For convenience, zooming out after having scrolled somewhere should make zooming in
 		// zoom back to the area that was scrolled to.
+		scroll = cb.getScroll();
 		zoomInButton.click();
-		assertTrue(rstore == axis.getRange().lower);
+		assertTrue(rstore == axis.getRange().lower && scroll == cb.getScroll());
 
 		// Scrolling right should take the range back to the end of the axis.
 		rightButton.click();
 		range = axis.getRange();
-		assertTrue(range.upper == numAxisItems - 1 && range.lower > 0);
+		assertTrue(range.upper == numAxisItems - 1 && range.lower > 0 && cb.getScroll() > scroll);
 		assertTrue(firstButton.isEnabled());
 		assertTrue(leftButton.isEnabled());
 		assertTrue(!rightButton.isEnabled());
