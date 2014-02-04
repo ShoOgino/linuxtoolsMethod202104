@@ -3,7 +3,7 @@
      * exists, it will be opened directly. If not, it will be created from
      * scratch.
      */
-    private void createFullHistory(ITmfStateProvider provider, File htFile) throws TmfTraceException {
+    private void createFullHistory(String id, ITmfStateProvider provider, File htFile) throws TmfTraceException {
 
         /* If the target file already exists, do not rebuild it uselessly */
         // TODO for now we assume it's complete. Might be a good idea to check
@@ -13,8 +13,9 @@
            /* Load an existing history */
             final int version = provider.getVersion();
             try {
-                fHtBackend = new HistoryTreeBackend(htFile, version);
-                fStateSystem = new StateSystem(fHtBackend, false);
+                IStateHistoryBackend backend = new HistoryTreeBackend(htFile, version);
+                fHtBackend = backend;
+                fStateSystem = new StateSystem(id, backend, false);
                 fInitialized.countDown();
                 return;
             } catch (IOException e) {
@@ -30,9 +31,10 @@
         final int QUEUE_SIZE = 10000;
 
         try {
-            fHtBackend = new ThreadedHistoryTreeBackend(htFile,
+            IStateHistoryBackend backend = new ThreadedHistoryTreeBackend(htFile,
                     provider.getStartTime(), provider.getVersion(), QUEUE_SIZE);
-            fStateSystem = new StateSystem(fHtBackend);
+            fHtBackend = backend;
+            fStateSystem = new StateSystem(id, backend);
             provider.assignTargetStateSystem(fStateSystem);
             build(provider);
         } catch (IOException e) {
