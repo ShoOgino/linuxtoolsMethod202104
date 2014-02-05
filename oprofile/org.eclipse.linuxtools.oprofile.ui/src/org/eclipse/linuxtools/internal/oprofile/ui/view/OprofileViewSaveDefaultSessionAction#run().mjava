@@ -11,67 +11,74 @@
 				if (e instanceof UiModelError)
 					break;
 
-				if(e instanceof UiModelSession ){
+				if (e instanceof UiModelSession) {
 
-					if (((UiModelSession)e).isDefaultSession()) {
+					if (((UiModelSession) e).isDefaultSession()) {
 						defaultSessionExists = true;
 						defaultSessionName = e.getLabelText();
-						modelEvents = ((UiModelSession)e).getChildren();
+						modelEvents = ((UiModelSession) e).getChildren();
 						break;
 					}
 
-				if (defaultSessionExists)
-					break;
-			}
-		}
-
-		if (defaultSessionExists) {
-			//the following code was originially written by Keith Seitz
-			InputDialog dialog = new InputDialog(OprofileUiPlugin.getActiveWorkbenchShell(),
-					OprofileUiMessages.getString("savedialog.title"),    //$NON-NLS-1$
-					OprofileUiMessages.getString("savedialog.message"),    //$NON-NLS-1$
-					OprofileUiMessages.getString("savedialog.initial"),   //$NON-NLS-1$
-					new SaveSessionValidator());
-
-			int result = dialog.open();
-			if (result == Window.OK) {
-				try {
-					OprofileCorePlugin.getDefault().getOpcontrolProvider().saveSession(dialog.getValue());
-					// remove the default session
-					for (int i = 0; i < modelEvents.length; i++) {
-						OprofileCorePlugin
-								.getDefault()
-								.getOpcontrolProvider()
-								.deleteSession(defaultSessionName,
-										modelEvents[i].getLabelText());
-					}
-					// clear out collected data by this session
-					// if opcontol is used
-					if (!Oprofile.OprofileProject.OPERF_BINARY
-							.equals(Oprofile.OprofileProject
-									.getProfilingBinary())) {
-						OprofileCorePlugin.getDefault().getOpcontrolProvider()
-								.reset();
-					}
-					else
-					{
-						// remove oprofile_data so current event no longer be there
-						OprofileViewDeleteSessionAction
-								.deleteOperfDataFolder(Oprofile.OprofileProject
-										.getProject()
-										.getFolder(
-												Oprofile.OprofileProject.OPERF_DATA));
-					}
-					OprofileUiPlugin.getDefault().getOprofileView().refreshView();
-				} catch (OpcontrolException oe) {
-					OprofileCorePlugin.showErrorDialog("opcontrolProvider", oe); //$NON-NLS-1$
+					if (defaultSessionExists)
+						break;
 				}
 			}
-		} else {
-			MessageDialog.openError(OprofileUiPlugin.getActiveWorkbenchShell(),
-					OprofileUiMessages.getString("defaultsessiondialog.nodefaultsession.title"),  //$NON-NLS-1$
-					OprofileUiMessages.getString("defaultsessiondialog.nodefaultsession.message")); //$NON-NLS-1$
+
+			if (defaultSessionExists) {
+				// the following code was originially written by Keith Seitz
+				InputDialog dialog = new InputDialog(
+						OprofileUiPlugin.getActiveWorkbenchShell(),
+						OprofileUiMessages.getString("savedialog.title"), //$NON-NLS-1$
+						OprofileUiMessages.getString("savedialog.message"), //$NON-NLS-1$
+						OprofileUiMessages.getString("savedialog.initial"), //$NON-NLS-1$
+						new SaveSessionValidator());
+
+				int result = dialog.open();
+				if (result == Window.OK) {
+					try {
+						OprofileCorePlugin.getDefault().getOpcontrolProvider()
+								.saveSession(dialog.getValue());
+						// remove the default session
+						for (int i = 0; i < modelEvents.length; i++) {
+							OprofileCorePlugin
+									.getDefault()
+									.getOpcontrolProvider()
+									.deleteSession(defaultSessionName,
+											modelEvents[i].getLabelText());
+						}
+						// clear out collected data by this session
+						// if opcontol is used
+						if (!Oprofile.OprofileProject.OPERF_BINARY
+								.equals(Oprofile.OprofileProject
+										.getProfilingBinary())) {
+							OprofileCorePlugin.getDefault()
+									.getOpcontrolProvider().reset();
+						} else {
+							// remove oprofile_data so current event no longer
+							// be there
+							OprofileViewDeleteSessionAction
+									.deleteOperfDataFolder(Oprofile.OprofileProject
+											.getProject()
+											.getFolder(
+													Oprofile.OprofileProject.OPERF_DATA));
+						}
+						OprofileUiPlugin.getDefault().getOprofileView()
+								.refreshView();
+					} catch (OpcontrolException oe) {
+						OprofileCorePlugin.showErrorDialog(
+								"opcontrolProvider", oe); //$NON-NLS-1$
+					}
+				}
+			} else {
+				MessageDialog
+						.openError(
+								OprofileUiPlugin.getActiveWorkbenchShell(),
+								OprofileUiMessages
+										.getString("defaultsessiondialog.nodefaultsession.title"), //$NON-NLS-1$
+								OprofileUiMessages
+										.getString("defaultsessiondialog.nodefaultsession.message")); //$NON-NLS-1$
+			}
 		}
-	}
 	}
 
