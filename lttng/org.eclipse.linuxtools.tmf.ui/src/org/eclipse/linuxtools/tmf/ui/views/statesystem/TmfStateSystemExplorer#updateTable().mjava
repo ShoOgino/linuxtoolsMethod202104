@@ -22,6 +22,7 @@
                     final int traceNb1 = traceNb;
                     final int ssNb1 = ssNb;
                     if (ss != null) {
+                        final String ssName = module.getStateSystemId(ss);
                         ts = (ts == -1 ? ss.getStartTime() : ts);
                         try {
                             final List<ITmfStateInterval> fullState = ss.queryFullState(ts);
@@ -33,10 +34,19 @@
                                      * system
                                      */
                                     TreeItem traceItem = fTree.getItem(traceNb1);
-                                    TreeItem item = traceItem.getItem(ssNb1);
-                                    /* Update it, then its children, recursively */
-                                    item.setText(VALUE_COL, emptyString);
-                                    updateChildren(ss, fullState, -1, item);
+                                    /* Find the item corresponding to this state system */
+                                    TreeItem item = null;
+                                    for (TreeItem ssItem : traceItem.getItems()) {
+                                        if (ssItem.getText(ATTRIBUTE_NAME_COL).equals(ssName)) {
+                                            item = ssItem;
+                                            break;
+                                        }
+                                    }
+                                    if (item != null) {
+                                        /* Update it, then its children, recursively */
+                                        item.setText(VALUE_COL, emptyString);
+                                        updateChildren(ss, fullState, -1, item);
+                                    }
                                 }
                             });
 
