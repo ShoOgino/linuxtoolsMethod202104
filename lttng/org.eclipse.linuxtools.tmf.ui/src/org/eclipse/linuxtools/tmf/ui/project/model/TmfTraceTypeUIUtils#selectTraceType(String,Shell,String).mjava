@@ -17,11 +17,25 @@
      */
     public static TraceTypeHelper selectTraceType(String path, Shell shell, String traceTypeHint) throws TmfTraceImportException {
         TmfTraceType type = TmfTraceType.getInstance();
-        List<TraceTypeHelper> validCandidates = new ArrayList<>();
-        final Iterable<String> traceTypes = type.getTraceTypeIDs();
-        for (String traceType : traceTypes) {
-            if (type.validate(traceType, path)) {
-                validCandidates.add(type.getTraceTypeHelper(traceType));
+
+        Comparator<Pair<Integer, TraceTypeHelper>> comparator = new Comparator<Pair<Integer, TraceTypeHelper>>() {
+            @Override
+            public int compare(Pair<Integer, TraceTypeHelper> o1, Pair<Integer, TraceTypeHelper> o2) {
+                int res = -o1.getFirst().compareTo(o2.getFirst()); // invert so that highest confidence is first
+                if (res == 0) {
+                    res = o1.getSecond().getName().compareTo(o2.getSecond().getName());
+                }
+                return res;
+            }
+        };
+        TreeSet<Pair<Integer, TraceTypeHelper>> validCandidates = new TreeSet<>(comparator);
+        final Iterable<TraceTypeHelper> traceTypeHelpers = type.getTraceTypeHelpers();
+        for (TraceTypeHelper traceTypeHelper : traceTypeHelpers) {
+            int confidence = traceTypeHelper.validateWithConfidence(path);
+            if (confidence >= 0) {
+                // insert in the tree map, ordered by confidence (highest confidence first) then name
+                Pair<Integer, TraceTypeHelper> element = new Pair<>(confidence, traceTypeHelper);
+                validCandidates.add(element);
             }
         }
 
@@ -30,27 +44,32 @@
             final String errorMsg = Messages.TmfOpenTraceHelper_NoTraceTypeMatch + path;
             throw new TmfTraceImportException(errorMsg);
         } else if (validCandidates.size() != 1) {
-            List<TraceTypeHelper> reducedCandidates = reduce(validCandidates);
-            for (TraceTypeHelper tth : reducedCandidates) {
-                if (tth.getCanonicalName().equals(traceTypeHint)) {
-                    traceTypeToSet = tth;
+            List<Pair<Integer, TraceTypeHelper>> candidates = new ArrayList<>(validCandidates);
+            List<Pair<Integer, TraceTypeHelper>> reducedCandidates = reduce(candidates);
+            for (Pair<Integer, TraceTypeHelper> candidatePair : reducedCandidates) {
+                TraceTypeHelper candidate = candidatePair.getSecond();
+                if (candidate.getCanonicalName().equals(traceTypeHint)) {
+                    traceTypeToSet = candidate;
+                    break;
                 }
             }
             if (traceTypeToSet == null) {
                 if (reducedCandidates.size() == 0) {
                     throw new TmfTraceImportException(Messages.TmfOpenTraceHelper_ReduceError);
                 } else if (reducedCandidates.size() == 1) {
-                    traceTypeToSet = reducedCandidates.get(0);
-                } else {
-                    if (shell == null) {
-                        traceTypeToSet = reducedCandidates.get(0);
-                    } else {
-                        traceTypeToSet = getTraceTypeToSet(type, reducedCandidates, shell);
+                    traceTypeToSet = reducedCandidates.get(0).getSecond();
+                } else if (shell == null) {
+                    Pair<Integer, TraceTypeHelper> candidate = reducedCandidates.get(0);
+                    // if the best match has lowest confidence, don't select it
+                    if (candidate.getFirst() > 0) {
+                        traceTypeToSet = candidate.getSecond();
                     }
+                } else {
+                    traceTypeToSet = getTraceTypeToSet(type, reducedCandidates, shell);
                 }
             }
         } else {
-            traceTypeToSet = validCandidates.get(0);
+            traceTypeToSet = validCandidates.first().getSecond();
         }
         return traceTypeToSet;
     }
