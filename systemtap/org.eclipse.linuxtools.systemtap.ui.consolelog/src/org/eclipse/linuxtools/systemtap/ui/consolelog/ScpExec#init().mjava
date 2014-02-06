@@ -1,29 +1,22 @@
 	@Override
 	protected IStatus init() {
-		String user = ConsoleLogPlugin.getDefault().getPreferenceStore()
-				.getString(ConsoleLogPreferenceConstants.SCP_USER);
-		String host = ConsoleLogPlugin.getDefault().getPreferenceStore()
-				.getString(ConsoleLogPreferenceConstants.HOST_NAME);
-		String password = ConsoleLogPlugin.getDefault()
-				.getPreferenceStore()
-				.getString(ConsoleLogPreferenceConstants.SCP_PASSWORD);
-
 		try {
 			channel = SystemtapProcessFactory.execRemote(
-					new String[] { command }, System.out, System.err, user, host, password);
+					new String[] { command }, System.out, System.err, remoteOptions.getUserName(), remoteOptions.getHostName(), remoteOptions.getPassword());
 
 			errorGobbler = new StreamGobbler(channel.getExtInputStream());
 			inputGobbler = new StreamGobbler(channel.getInputStream());
 
 			this.transferListeners();
 			return Status.OK_STATUS;
-		} catch (JSchException e) {
-			IStatus status = new Status(IStatus.ERROR, ConsoleLogPlugin.PLUGIN_ID, Messages.ScpExec_FileTransferFailed, e);
-			ErrorDialog.openError(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), Messages.ScpExec_Error, e.getMessage(), status);
-			return status;
-		} catch (IOException e) {
-			IStatus status = new Status(IStatus.ERROR, ConsoleLogPlugin.PLUGIN_ID, Messages.ScpExec_FileTransferFailed, e);
-			ErrorDialog.openError(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), Messages.ScpExec_Error, e.getMessage(), status);
+		} catch (final JSchException|IOException e) {
+			final IStatus status = new Status(IStatus.ERROR, ConsoleLogPlugin.PLUGIN_ID, Messages.ScpExec_FileTransferFailed, e);
+			Display.getDefault().asyncExec(new Runnable() {
+				@Override
+				public void run() {
+					ErrorDialog.openError(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), Messages.ScpExec_Error, e.getMessage(), status);
+				}
+			});
 			return status;
 		}
 	}

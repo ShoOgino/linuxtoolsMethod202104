@@ -29,17 +29,21 @@
 					cmd.addErrorStreamListener(errorDaemon);
 				}
 				cmd.addInputStreamListener(consoleDaemon);
+				onCmdStopThread = new Thread(onCmdStop);
+				onCmdStopThread.start();
 				try {
 					cmd.start();
-				} catch (CoreException e) {
-					ExceptionErrorDialog.openError(e.getMessage(), e);
-					notifyConsoleObservers(false);
+				} catch (final CoreException e) {
+					Display.getDefault().asyncExec(new Runnable() {
+						@Override
+						public void run() {
+							ExceptionErrorDialog.openError(e.getMessage(), e);
+						}
+					});
 					cmd.dispose();
 					return;
 				}
-				notifyConsoleObservers(true);
-				onCmdStopThread = new Thread(onCmdStop);
-				onCmdStopThread.start();
+				notifyConsoleObservers();
 			}
 		};
 

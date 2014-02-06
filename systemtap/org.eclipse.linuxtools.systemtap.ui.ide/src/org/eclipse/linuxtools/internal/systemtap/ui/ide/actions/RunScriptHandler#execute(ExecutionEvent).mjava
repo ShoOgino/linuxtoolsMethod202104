@@ -4,14 +4,12 @@
 	 * Finally, it gets an instance of <code>ScriptConsole</code> to run the script.
 	 */
 	@Override
-	public Object execute(ExecutionEvent event){
+	public Object execute(ExecutionEvent event) throws ExecutionException {
 		findTargetEditor();
 		final boolean local = getRunLocal();
 		if(isValid()) {
-			if(!local) {
-				if (!prepareNonLocalScript()) {
-					return null;
-				}
+			if(!local && !prepareNonLocalScript()) {
+				return null;
 			}
 			final String[] script = buildStandardScript();
 			final String[] envVars = getEnvironmentVariables();
@@ -41,7 +39,7 @@
 						}
 						synchronized (console) {
 							if (!local) {
-								console.run(script, envVars, new StapErrorParser());
+								console.run(script, envVars, remoteOptions, new StapErrorParser());
 							} else {
 								console.runLocally(script, envVars, new StapErrorParser(), getProject());
 							}
