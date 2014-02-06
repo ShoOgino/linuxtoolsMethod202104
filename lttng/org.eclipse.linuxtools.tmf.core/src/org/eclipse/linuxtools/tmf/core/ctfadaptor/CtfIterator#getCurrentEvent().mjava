@@ -3,11 +3,15 @@
      *
      * @return CtfTmfEvent The current event
      */
-    public CtfTmfEvent getCurrentEvent() {
+    public synchronized CtfTmfEvent getCurrentEvent() {
         final StreamInputReader top = super.getPrio().peek();
         if (top != null) {
-            return CtfTmfEventFactory.createEvent(top.getCurrentEvent(),
-                    top.getFilename(), fTrace);
+            if (!fCurLocation.equals(fPreviousLocation)) {
+                fPreviousLocation = fCurLocation;
+                fPreviousEvent = CtfTmfEventFactory.createEvent(top.getCurrentEvent(),
+                        top.getFilename(), fTrace);
+            }
+            return fPreviousEvent;
         }
         return null;
     }
