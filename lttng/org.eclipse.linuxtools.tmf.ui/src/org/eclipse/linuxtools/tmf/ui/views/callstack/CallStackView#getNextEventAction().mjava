@@ -14,7 +14,10 @@
                         try {
                             CallStackEntry callStackEntry = (CallStackEntry) entry;
                             ITmfTrace trace = callStackEntry.getTrace();
-                            ITmfStateSystem ss = trace.getStateSystems().get(CallStackStateProvider.ID);
+                            ITmfStateSystem ss = getCallStackStateSystem(trace);
+                            if (ss == null) {
+                                return;
+                            }
                             long time = Math.max(ss.getStartTime(), Math.min(ss.getCurrentEndTime(), viewer.getSelectionBegin()));
                             ThreadEntry threadEntry = (ThreadEntry) callStackEntry.getParent();
                             int quark = ss.getQuarkRelative(threadEntry.getThreadQuark(), CallStackStateProvider.CALL_STACK);
@@ -27,6 +30,7 @@
                             fTimeGraphCombo.setSelection(selectedEntry);
                             viewer.getTimeGraphControl().fireSelectionChanged();
                             startZoomThread(viewer.getTime0(), viewer.getTime1());
+
                         } catch (AttributeNotFoundException e) {
                             Activator.getDefault().logError("Error querying state system", e); //$NON-NLS-1$
                         } catch (TimeRangeException e) {

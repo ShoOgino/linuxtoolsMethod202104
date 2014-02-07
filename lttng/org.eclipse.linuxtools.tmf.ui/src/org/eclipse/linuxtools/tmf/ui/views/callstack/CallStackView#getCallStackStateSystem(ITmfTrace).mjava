@@ -1,0 +1,32 @@
+    @Nullable
+    static ITmfStateSystem getCallStackStateSystem(ITmfTrace trace) {
+        /*
+         * Since we cannot know the exact analysis ID (in separate plugins), we
+         * will search using the analysis type.
+         */
+        Iterable<AbstractCallStackAnalysis> modules =
+                trace.getAnalysisModulesOfClass(AbstractCallStackAnalysis.class);
+        Iterator<AbstractCallStackAnalysis> it = modules.iterator();
+        if (!it.hasNext()) {
+            /* This trace does not provide a call-stack analysis */
+            return null;
+        }
+
+        /*
+         * We only look at the first module we find.
+         *
+         * TODO Handle the advanced case where one trace provides more than one
+         * call-stack analysis.
+         */
+        AbstractCallStackAnalysis module = it.next();
+        /* This analysis is not automatic, we need to schedule it on-demand */
+        module.schedule();
+        module.waitForInitialization();
+        ITmfStateSystem ss = module.getStateSystem();
+        if (ss == null) {
+            /* If we've waited for initialization, 'ss' should not be null */
+            throw new IllegalStateException();
+        }
+        return ss;
+    }
+
