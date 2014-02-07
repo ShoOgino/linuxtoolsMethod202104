@@ -6,17 +6,10 @@
             throw new IllegalStateException();
         }
 
-        /*
-         * Since these sub-analyzes are not built from an extension point, we
-         * have to assign the trace ourselves. Very important to do so before
-         * calling schedule()!
-         */
-        totalsModule.setTrace(trace);
-        eventTypesModule.setTrace(trace);
-
         IStatus status1 = totalsModule.schedule();
         IStatus status2 = eventTypesModule.schedule();
-        if (!status1.isOK() || !status2.isOK()) {
+        if (!(status1.isOK() && status2.isOK())) {
+            cancelSubAnalyses();
             return false;
         }
 
@@ -41,8 +34,8 @@
          * The rest of this "execute" will encompass the "execute" of the two
          * sub-analyzes.
          */
-        if (!totalsModule.waitForCompletion(monitor) ||
-                !eventTypesModule.waitForCompletion(monitor)) {
+        if (!(totalsModule.waitForCompletion(monitor) &&
+                eventTypesModule.waitForCompletion(monitor))) {
             return false;
         }
         return true;
