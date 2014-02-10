@@ -1,44 +1,6 @@
 	@Override
 	public Process execute(IPath commandPath, String[] args, String[] env,
-			IPath changeToDirectory, IProgressMonitor monitor)
-			throws CoreException {
-		StringBuilder cmd = new StringBuilder();
-
-		if (changeToDirectory != null)
-			cmd.append("cd " + changeToDirectory.toString() + "; "); //$NON-NLS-1$ //$NON-NLS-2$
-
-		cmd.append(commandPath.toString());
-		cmd.append(" "); //$NON-NLS-1$
-		if (args != null)
-			for (String s : args) {
-				cmd.append("\"" + s + "\""); //$NON-NLS-1$ //$NON-NLS-2$
-				cmd.append(" "); //$NON-NLS-1$
-			}
-
-		try{
-			ChannelExec channel = createChannelExec();
-
-			if (env != null)
-				for (String s : env) {
-					String[] tokens = s.split("=", 2); //$NON-NLS-1$
-					switch (tokens.length) {
-						case 1:
-							channel.setEnv(tokens[0], null);
-							break;
-						case 2:
-							channel.setEnv(tokens[0], tokens[1]);
-							break;
-						default:
-							Activator.log(IStatus.WARNING, Messages.SSHCommandLauncher_malformed_env_var_string + s);
-					}
-				}
-
-			channel.setCommand(cmd.toString());
-			channel.connect();
-			fProcess = new SSHProcess(channel);
-			return fProcess;
-		} catch (JSchException e) {
-			throw new CoreException(new Status(IStatus.ERROR, Activator.PLUGIN_ID, Messages.SSHCommandLauncher_execution_problem + e.getMessage()));
-		}
+			IPath changeToDirectory, IProgressMonitor monitor) throws CoreException {
+		return execute(commandPath, args, env, changeToDirectory, monitor, null);
 	}
 

@@ -1,4 +1,4 @@
-	public void performCommand(String[] cmd, int fd) {
+	public void performCommand(String[] cmd, String file) {
 		BufferedReader buffData = null;
 		BufferedReader buffTemp = null;
 		URI pathWorkDirURI = null;
@@ -15,26 +15,13 @@
 				MessageDialog.openError(Display.getCurrent().getActiveShell(), Messages.MsgProxyError, Messages.MsgProxyError);
 			}
 			IFileStore workDirStore = exeRC.getRmtFileProxy().getResource(pathWorkDirURI.getPath());
-			proc = RuntimeProcessFactory.getFactory().exec(cmd, null, workDirStore, project);
-			StringBuffer data = new StringBuffer();
-			StringBuffer temp = new StringBuffer();
+			proc = RuntimeProcessFactory.getFactory().exec(cmd, null, workDirStore, project, new PTY());
+			DebugPlugin.newProcess(launch, proc, ""); //$NON-NLS-1$
+			proc.waitFor();
 
-			switch (fd) {
-			case 2:
-				buffData = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
-				buffTemp = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-				readStream(buffTemp, temp);
-				readStream(buffData, data);
-				break;
-			case 1:
-				// fall through to default case
-			default:
-				buffData = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-				buffTemp = new BufferedReader(new InputStreamReader(proc.getErrorStream()));
-				readStream(buffData, data);
-				readStream(buffTemp, temp);
-				break;
-			}
+			StringBuffer data = new StringBuffer();
+			buffData = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+			readStream(buffData, data);
 			joinAll();
 			text = data.toString();
 		} catch (IOException e) {
