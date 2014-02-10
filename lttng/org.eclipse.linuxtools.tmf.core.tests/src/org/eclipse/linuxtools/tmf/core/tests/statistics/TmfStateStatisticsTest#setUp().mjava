@@ -1,0 +1,30 @@
+    /**
+     * Test setup
+     */
+    @Before
+    public void setUp() {
+        fTrace = testTrace.getTrace();
+
+        /* Prepare the two analysis-backed state systems */
+        TmfStatisticsTotalsModule totalsMod = new TmfStatisticsTotalsModule();
+        TmfStatisticsEventTypesModule eventTypesMod = new TmfStatisticsEventTypesModule();
+        try {
+            totalsMod.setTrace(fTrace);
+            eventTypesMod.setTrace(fTrace);
+        } catch (TmfAnalysisException e) {
+            fail();
+        }
+
+        totalsMod.schedule();
+        eventTypesMod.schedule();
+        assertTrue(totalsMod.waitForCompletion());
+        assertTrue(eventTypesMod.waitForCompletion());
+
+        ITmfStateSystem totalsSS = totalsMod.getStateSystem();
+        ITmfStateSystem eventTypesSS = eventTypesMod.getStateSystem();
+        assertNotNull(totalsSS);
+        assertNotNull(eventTypesSS);
+
+        backend = new TmfStateStatistics(totalsSS, eventTypesSS);
+    }
+
