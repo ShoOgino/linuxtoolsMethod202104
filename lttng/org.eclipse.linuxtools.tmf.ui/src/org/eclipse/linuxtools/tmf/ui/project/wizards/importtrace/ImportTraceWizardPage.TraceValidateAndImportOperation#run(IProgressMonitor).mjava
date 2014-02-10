@@ -2,9 +2,31 @@
             String currentPath = null;
             final Map<String, TraceFileSystemElement> folderElements = new HashMap<>();
             try {
-                List<TraceFileSystemElement> fileSystemElements = getSelectedResources();
+
+                final ArrayList<TraceFileSystemElement> fileSystemElements = new ArrayList<>();
+                IElementFilter passThroughFilter = new IElementFilter() {
+
+                    @Override
+                    public void filterElements(Collection elements, IProgressMonitor monitor) {
+                        fileSystemElements.addAll(elements);
+                    }
+                    @Override
+                    public void filterElements(Object[] elements, IProgressMonitor monitor) {
+                        for (int i = 0; i < elements.length; i++) {
+                            fileSystemElements.add((TraceFileSystemElement)elements[i]);
+                        }
+                    }
+                };
+
+                // List fileSystemElements will be filled using the passThroughFilter
+                SubMonitor subMonitor = SubMonitor.convert(progressMonitor, 1);
+                getSelectedResources(passThroughFilter, subMonitor);
+
+                // Check if operation was cancelled.
+                ModalContext.checkCanceled(subMonitor);
+
                 Iterator<TraceFileSystemElement> fileSystemElementsIter = fileSystemElements.iterator();
-                SubMonitor subMonitor = SubMonitor.convert(progressMonitor, fileSystemElements.size());
+                subMonitor = SubMonitor.convert(progressMonitor, fileSystemElements.size());
 
                 while (fileSystemElementsIter.hasNext()) {
                     ModalContext.checkCanceled(progressMonitor);
