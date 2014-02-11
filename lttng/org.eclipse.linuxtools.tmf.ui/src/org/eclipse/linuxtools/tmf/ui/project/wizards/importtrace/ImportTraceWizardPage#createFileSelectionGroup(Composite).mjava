@@ -1,0 +1,43 @@
+    @Override
+    protected void createFileSelectionGroup(Composite parent) {
+
+        // This Composite is only used for widget alignment purposes
+        Composite composite = new Composite(parent, SWT.NONE);
+        composite.setFont(parent.getFont());
+        GridLayout layout = new GridLayout();
+        composite.setLayout(layout);
+        composite.setLayoutData(new GridData(GridData.FILL_BOTH));
+
+        final int PREFERRED_LIST_HEIGHT = 150;
+
+        fFolderViewer = new CheckboxTreeViewer(composite, SWT.BORDER);
+        GridData data = new GridData(GridData.FILL_BOTH);
+        data.heightHint = PREFERRED_LIST_HEIGHT;
+        fFolderViewer.getTree().setLayoutData(data);
+        fFolderViewer.getTree().setFont(parent.getFont());
+
+        fFolderViewer.setContentProvider(getFileProvider());
+        fFolderViewer.setLabelProvider(new WorkbenchLabelProvider());
+        fFolderViewer.addCheckStateListener(new ICheckStateListener() {
+            @Override
+            public void checkStateChanged(CheckStateChangedEvent event) {
+                Object elem = event.getElement();
+                if (elem instanceof FileSystemElement) {
+                    FileSystemElement element = (FileSystemElement) elem;
+                    if (fFolderViewer.getGrayed(element)) {
+                        fFolderViewer.setSubtreeChecked(element, false);
+                        fFolderViewer.setGrayed(element, false);
+                    } else if (event.getChecked()) {
+                        fFolderViewer.setSubtreeChecked(event.getElement(), true);
+                    } else {
+                        fFolderViewer.setParentsGrayed(element, true);
+                        if (!element.isDirectory()) {
+                            fFolderViewer.setGrayed(element, false);
+                        }
+                    }
+                    updateWidgetEnablements();
+                }
+            }
+        });
+    }
+

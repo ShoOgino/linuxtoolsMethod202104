@@ -1,0 +1,55 @@
+    private boolean importResources(Map<String, File> fileSystemObjects) {
+
+        // Determine the sorted canonical list of items to import
+        List<File> fileList = new ArrayList<>();
+        for (Entry<String, File> entry : fileSystemObjects.entrySet()) {
+            fileList.add(entry.getValue());
+        }
+        Collections.sort(fileList, new Comparator<File>() {
+            @Override
+            public int compare(File o1, File o2) {
+                String v1 = o1.getAbsolutePath() + File.separatorChar;
+                String v2 = o2.getAbsolutePath() + File.separatorChar;
+                return v1.compareTo(v2);
+            }
+        });
+
+        // Perform a distinct import operation for everything that has the same
+        // prefix
+        // (distinct prefixes correspond to traces - we don't want to re-create
+        // parent structures)
+        boolean ok = true;
+        boolean isLinked = createLinksInWorkspaceButton.getSelection();
+        for (int i = 0; i < fileList.size(); i++) {
+            File resource = fileList.get(i);
+            File parentFolder = new File(resource.getParent());
+
+            List<File> subList = new ArrayList<>();
+            subList.add(resource);
+            if (resource.isDirectory()) {
+                String prefix = resource.getAbsolutePath() + File.separatorChar;
+                boolean hasSamePrefix = true;
+                for (int j = i + 1; j < fileList.size() && hasSamePrefix; j++) {
+                    File res = fileList.get(j);
+                    hasSamePrefix = res.getAbsolutePath().startsWith(prefix);
+                    if (hasSamePrefix) {
+                        // Import children individually if not linked
+                        if (!isLinked) {
+                            subList.add(res);
+                        }
+                        i = j;
+                    }
+                }
+            }
+
+            // Perform the import operation for this subset
+            FileSystemStructureProvider fileSystemStructureProvider = FileSystemStructureProvider.INSTANCE;
+            ImportOperation operation = new ImportOperation(getContainerFullPath(), parentFolder, fileSystemStructureProvider, this,
+                    subList);
+            operation.setContext(getShell());
+            ok = executeImportOperation(operation);
+        }
+
+        return ok;
+    }
+
