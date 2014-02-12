@@ -13,14 +13,26 @@
         }
 
         /* Prepare the files */
-        File stateFile = File.createTempFile("test-values", ".ht");
-        stateFile.deleteOnExit();
         File logFile = File.createTempFile("TestValues", ".java");
+        final CtfTmfTrace trace = testTrace.getTrace();
         try (PrintWriter writer = new PrintWriter(new FileWriter(logFile), true);) {
-
             /* Build and query the state system */
-            ITmfStateProvider input = new LttngKernelStateProvider(testTrace.getTrace());
-            ITmfStateSystem ssq = TmfStateSystemFactory.newFullHistory(stateFile, input, true);
+            TmfStateSystemAnalysisModule module = new TmfStateSystemAnalysisModule() {
+                @Override
+                protected ITmfStateProvider createStateProvider() {
+                    return new LttngKernelStateProvider(trace);
+                }
+                @Override
+                protected String getSsFileName() {
+                    return "test-values";
+                }
+            };
+            module.setTrace(trace);
+            module.setId("test-values");
+            module.schedule();
+            module.waitForCompletion();
+            ITmfStateSystem ssq = module.getStateSystem();
+
             List<ITmfStateInterval> fullState = ssq.queryFullState(targetTimestamp);
 
             /* Start printing the java file's contents */
