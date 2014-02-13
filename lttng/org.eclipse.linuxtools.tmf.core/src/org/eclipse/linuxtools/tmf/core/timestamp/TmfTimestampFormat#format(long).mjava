@@ -27,17 +27,12 @@
         // Append the sub-second pattern
         result.append(fSubSecPattern);
 
+        int fractionDigitsPrinted = 0;
         // Fill in our extensions
         for (String pattern : fSupplPatterns) {
             int length = pattern.length();
-
-            // Prepare the format buffer
-            StringBuffer fmt = new StringBuffer(length);
-            for (int i = 0; i < length; i++) {
-                fmt.append("0"); //$NON-NLS-1$
-            }
-            DecimalFormat dfmt = new DecimalFormat(fmt.toString());
-            String fmtVal = ""; //$NON-NLS-1$;
+            long val = 0;
+            int bufLength = 0;
 
             // Format the proper value as per the pattern
             switch (pattern.charAt(0)) {
@@ -45,19 +40,35 @@
                     if (value < 0 && sec == 0) {
                         result.insert(0, '-');
                     }
-                    fmtVal = dfmt.format(sec);
+                    val = sec;
+                    bufLength = Math.min(length, 10);
                     break;
                 case 'S':
-                    fmtVal = dfmt.format(ms);
+                    val = 1000000 * ms + 1000 * cs + ns;
+                    bufLength = 9;
                     break;
                 case 'C':
-                    fmtVal = dfmt.format(cs);
+                    val = cs;
+                    bufLength = Math.min(length, 3);
                     break;
                 case 'N':
-                    fmtVal = dfmt.format(ns);
+                    val = ns;
+                    bufLength = Math.min(length, 3);
                     break;
                 default:
                     break;
+            }
+
+            // Prepare the format buffer
+            StringBuffer fmt = new StringBuffer();
+            for (int i = 0; i < bufLength; i++) {
+                fmt.append("0"); //$NON-NLS-1$
+            }
+            DecimalFormat dfmt = new DecimalFormat(fmt.toString());
+            String fmtVal = dfmt.format(val);
+            if (pattern.charAt(0) == 'S') {
+                fmtVal = fmtVal.substring(fractionDigitsPrinted, Math.min(bufLength, fractionDigitsPrinted + length));
+                fractionDigitsPrinted += fmtVal.length();
             }
 
             // Substitute the placeholder pattern with the formatted value

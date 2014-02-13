@@ -6,11 +6,14 @@
      * It also keeps track of the corresponding quoted fields so they can be
      * properly populated later on (by format()).
      *
-     * @param pattern the 'extended' pattern
-     * @param addQuotes true to add single quotes around tags
+     * @param pattern
+     *            the 'extended' pattern
+     * @param includeQuotes
+     *            true to include quotes from pattern and add single quotes
+     *            around tags
      * @return the quoted and bracketed pattern
      */
-    private String quoteSpecificTags(final String pattern, boolean addQuotes) {
+    private String quoteSpecificTags(final String pattern, boolean includeQuotes) {
 
         StringBuffer result = new StringBuffer();
 
@@ -19,7 +22,9 @@
 
         for (int i = 0; i < length; i++) {
             char c = pattern.charAt(i);
-            result.append(c);
+            if (c != '\'' || includeQuotes) {
+                result.append(c);
+            }
             if (c == '\'') {
                 // '' is treated as a single quote regardless of being
                 // in a quoted section.
@@ -34,25 +39,34 @@
                 inQuote = !inQuote;
                 continue;
             }
-            if (!inQuote) {
-                if (fSupplPatternLetters.indexOf(c) != -1) {
-                    StringBuilder pat = new StringBuilder();
-                    pat.append(c);
-                    if (addQuotes) {
-                        result.insert(result.length() - 1, "'"); //$NON-NLS-1$
+            if (!inQuote && (fSupplPatternLetters.indexOf(c) != -1)) {
+                if (pattern.charAt(0) == fDecimalSeparator) {
+                    if (fSubSecPatternChars.indexOf(c) == -1) {
+                        // do not quote non-sub-second pattern letters in sub-second pattern
+                        continue;
                     }
-                    result.insert(result.length() - 1, fOpenBracket);
-                    while ((i + 1) < length && pattern.charAt(i + 1) == c) {
-                        result.append(c);
-                        pat.append(c);
-                        i++;
+                } else {
+                    if (fSubSecPatternChars.indexOf(c) != -1) {
+                        // do not quote sub-second pattern letters in date and time pattern
+                        continue;
                     }
-                    result.append(fCloseBracket);
-                    if (addQuotes) {
-                        result.append("'"); //$NON-NLS-1$
-                    }
-                    fSupplPatterns.add(pat.toString());
                 }
+                StringBuilder pat = new StringBuilder();
+                pat.append(c);
+                if (includeQuotes) {
+                    result.insert(result.length() - 1, "'"); //$NON-NLS-1$
+                }
+                result.insert(result.length() - 1, fOpenBracket);
+                while ((i + 1) < length && pattern.charAt(i + 1) == c) {
+                    result.append(c);
+                    pat.append(c);
+                    i++;
+                }
+                result.append(fCloseBracket);
+                if (includeQuotes) {
+                    result.append("'"); //$NON-NLS-1$
+                }
+                fSupplPatterns.add(pat.toString());
             }
         }
         return result.toString();
