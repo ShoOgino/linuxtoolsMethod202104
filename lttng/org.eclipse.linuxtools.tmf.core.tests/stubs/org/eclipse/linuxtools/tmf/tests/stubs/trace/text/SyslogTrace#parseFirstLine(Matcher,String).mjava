@@ -1,0 +1,40 @@
+    @Override
+    protected SyslogEvent parseFirstLine(Matcher matcher, String line) {
+
+        ITmfTimestamp timestamp = null;
+
+        try {
+            synchronized (TIMESTAMP_SIMPLEDATEFORMAT) {
+                TIMESTAMP_SIMPLEDATEFORMAT.setTimeZone(TmfTimestampFormat.getDefaulTimeFormat().getTimeZone());
+                Date date = TIMESTAMP_SIMPLEDATEFORMAT.parse(matcher.group(1));
+                GregorianCalendar calendar = new GregorianCalendar();
+                calendar.setTime(date);
+                calendar.set(Calendar.YEAR, CURRENT.get(Calendar.YEAR));
+                if (calendar.after(CURRENT)) {
+                    calendar.set(Calendar.YEAR, CURRENT.get(Calendar.YEAR) - 1);
+                }
+                long ms = calendar.getTimeInMillis();
+                timestamp = new TmfTimestamp(ms, TIMESTAMP_SCALE);
+            }
+        } catch (ParseException e) {
+            timestamp = new TmfTimestamp();
+        }
+
+        TextTraceEventContent content = new TextTraceEventContent(SyslogEventType.LABELS);
+        content.setValue(new StringBuffer(line));
+        content.setFieldValue(Index.TIMESTAMP, matcher.group(1));
+        content.setFieldValue(Index.HOST, matcher.group(2));
+        content.setFieldValue(Index.LOGGER, matcher.group(3));
+        content.setFieldValue(Index.MESSAGE, new StringBuffer(matcher.group(4) != null ? matcher.group(4) : "")); //$NON-NLS-1$
+
+        SyslogEvent event = new SyslogEvent(
+                this,
+                timestamp,
+                "", //$NON-NLS-1$
+                SyslogEventType.INSTANCE,
+                content,
+                ""); //$NON-NLS-1$
+
+        return event;
+    }
+
