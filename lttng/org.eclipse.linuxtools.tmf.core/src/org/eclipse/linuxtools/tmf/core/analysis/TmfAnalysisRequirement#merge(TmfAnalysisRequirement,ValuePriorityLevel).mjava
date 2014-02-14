@@ -1,0 +1,54 @@
+    /**
+     * Merges the values of the specified requirement with those of this
+     * requirement. All new values will retain their priority value level. If a
+     * value was already inside the current requirement, the current priority
+     * level will be overridden if the new priority level is higher.
+     *
+     * @param subRequirement
+     *            The requirement to be merged into the current one
+     * @param maxSubRequirementValueLevel
+     *            The level associated with all the new values or currently
+     *            lower priority ones
+     * @return True if the merge was successful
+     */
+    public Boolean merge(TmfAnalysisRequirement subRequirement, ValuePriorityLevel maxSubRequirementValueLevel) {
+        /* Two requirements can't be merged if their types are different */
+        if (!isSameType(subRequirement)) {
+            return false;
+        }
+
+        Set<String> values = subRequirement.getValues();
+        for (String value : values) {
+            /*
+             * Sub-requirement value levels are limited to
+             * maxSubRequirementValueLevel, so the level associated with the
+             * values in the merge is the minimum value between
+             * maxSubRequirementValueLevel and its true level.
+             */
+            int minLevel = Math.min(subRequirement.getValueLevel(value).ordinal(), maxSubRequirementValueLevel.ordinal());
+            ValuePriorityLevel subRequirementValueLevel = ValuePriorityLevel.values()[minLevel];
+
+            if (fValues.containsKey(value)) {
+                /*
+                 * If a value is already in a requirement, we update the level
+                 * by the highest value between the current level in the
+                 * requirement and the level of the value in the
+                 * sub-requirement.
+                 */
+                ValuePriorityLevel requirementValueLevel = getValueLevel(value);
+
+                int newValueLevel = Math.max(requirementValueLevel.ordinal(), subRequirementValueLevel.ordinal());
+                ValuePriorityLevel highestLevel = ValuePriorityLevel.values()[newValueLevel];
+                addValue(value, highestLevel);
+            }
+            else {
+                addValue(value, subRequirementValueLevel);
+            }
+        }
+
+        /* Merge the information */
+        fInformation.addAll(subRequirement.getInformation());
+
+        return true;
+    }
+
