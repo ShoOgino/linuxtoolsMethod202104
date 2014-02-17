@@ -1,0 +1,38 @@
+    /**
+     * Add children node to an entry. It will create all necessary entries.
+     */
+    private void addChildren(ITmfStateSystem ss, List<ITmfStateInterval> fullState, int rootQuark, TmfTreeViewerEntry root, long timestamp) {
+        try {
+            for (int quark : ss.getSubAttributes(rootQuark, false)) {
+
+                ITmfStateInterval interval = fullState.get(quark);
+
+                StateSystemEntry entry = new StateSystemEntry(ss.getAttributeName(quark), quark, ss.getFullAttributePath(quark),
+                        interval.getStateValue(),
+                        new TmfTimestamp(interval.getStartTime(), ITmfTimestamp.NANOSECOND_SCALE),
+                        new TmfTimestamp(interval.getEndTime(), ITmfTimestamp.NANOSECOND_SCALE));
+
+                /* Add this node's children recursively */
+                addChildren(ss, fullState, quark, entry, timestamp);
+
+                /**
+                 * <pre>
+                 * Do not add this entry to root if
+                 * 1- the filter status is ON
+                 * AND
+                 * 2- the entry has no children
+                 * AND
+                 * 3- the start time is not the current timestamp
+                 * </pre>
+                 */
+                if (!(fFilterStatus && !entry.hasChildren() && (interval.getStartTime() != timestamp))) {
+                    root.addChild(entry);
+                }
+            }
+
+        } catch (AttributeNotFoundException e) {
+            /* Should not happen, we're iterating on known attributes */
+            throw new RuntimeException();
+        }
+    }
+

@@ -1,0 +1,57 @@
+    /*
+     * Update the values of the entries. It will also create trace and state
+     * system entries if they do not exist yet.
+     */
+    private List<ITmfTreeViewerEntry> updateEntriesList(List<ITmfTreeViewerEntry> entries, long timestamp) {
+        for (final ITmfTrace trace : TmfTraceManager.getTraceSet(getTrace())) {
+            if (trace == null) {
+                continue;
+            }
+            ITmfTreeViewerEntry traceEntry = null;
+            for (ITmfTreeViewerEntry entry : entries) {
+                if (entry.getName().equals(trace.getName())) {
+                    traceEntry = entry;
+                }
+            }
+            if (traceEntry == null) {
+                traceEntry = buildEntriesForTrace(trace, timestamp, entries);
+            }
+
+            /* Find the state system entries for this trace */
+            Iterable<ITmfAnalysisModuleWithStateSystems> modules = trace.getAnalysisModulesOfClass(ITmfAnalysisModuleWithStateSystems.class);
+            for (ITmfAnalysisModuleWithStateSystems module : modules) {
+                module.schedule();
+                for (ITmfStateSystem ss : module.getStateSystems()) {
+                    if (ss == null) {
+                        continue;
+                    }
+                    ITmfTreeViewerEntry ssEntry = null;
+                    for (ITmfTreeViewerEntry entry : traceEntry.getChildren()) {
+                        if (entry.getName().equals(ss.getSSID())) {
+                            ssEntry = entry;
+                        }
+                    }
+
+                    if (ssEntry == null) {
+                        /* The state system entry has not been built yet */
+                        buildEntriesForStateSystem(ss, timestamp, (TmfTreeViewerEntry) traceEntry);
+                    } else if (ssEntry.hasChildren()) {
+                        /*
+                         * Typical case at this point, update the data from the
+                         * state system
+                         */
+                        updateEntriesForStateSystem(ss, timestamp, (TmfTreeViewerEntry) ssEntry);
+                    } else {
+                        /*
+                         * The state system existed but entries were not filled,
+                         * that would occur if for instance the values were out
+                         * of range at the first query.
+                         */
+                        fillEntriesForStateSystem(ss, timestamp, (TmfTreeViewerEntry) ssEntry);
+                    }
+                }
+            }
+        }
+        return entries;
+    }
+

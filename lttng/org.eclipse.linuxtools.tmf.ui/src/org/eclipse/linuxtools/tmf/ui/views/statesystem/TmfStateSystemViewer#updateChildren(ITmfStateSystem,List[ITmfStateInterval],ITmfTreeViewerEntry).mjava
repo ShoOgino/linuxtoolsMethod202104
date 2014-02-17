@@ -1,0 +1,23 @@
+    /**
+     * Update the values of existing entries.
+     */
+    private void updateChildren(ITmfStateSystem ss, List<ITmfStateInterval> fullState, ITmfTreeViewerEntry root) {
+        for (ITmfTreeViewerEntry entry : root.getChildren()) {
+            if (entry instanceof StateSystemEntry) {
+                /*
+                 * FIXME: if new sub attributes were added since the element was
+                 * built, then then will not be added
+                 */
+                StateSystemEntry ssEntry = (StateSystemEntry) entry;
+                ITmfStateInterval interval = fullState.get(ssEntry.getQuark());
+                if (interval != null) {
+                    ssEntry.update(interval.getStateValue(), new TmfTimestamp(interval.getStartTime(), ITmfTimestamp.NANOSECOND_SCALE),
+                            new TmfTimestamp(interval.getEndTime(), ITmfTimestamp.NANOSECOND_SCALE));
+                }
+
+                /* Update this node's children recursively */
+                updateChildren(ss, fullState, ssEntry);
+            }
+        }
+    }
+
