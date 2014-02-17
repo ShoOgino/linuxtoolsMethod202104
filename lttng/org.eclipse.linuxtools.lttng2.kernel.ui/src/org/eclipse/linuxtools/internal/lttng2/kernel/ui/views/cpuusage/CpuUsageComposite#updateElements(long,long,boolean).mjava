@@ -1,0 +1,42 @@
+    @Override
+    protected ITmfTreeViewerEntry updateElements(long start, long end, boolean isSelection) {
+        if (isSelection || (start == end)) {
+            return null;
+        }
+        if (getTrace() == null || fModule == null) {
+            return null;
+        }
+        ITmfStateSystem ss = fModule.getStateSystem();
+        /* Don't wait for the module completion, when it's ready, we'll know */
+        if (ss == null) {
+            return null;
+        }
+
+        /* Initialize the data */
+        Map<String, Long> cpuUsageMap = fModule.getCpuUsageInRange(Math.max(start, getStartTime()), Math.min(end, getEndTime()));
+
+        TmfTreeViewerEntry root = new TmfTreeViewerEntry(""); //$NON-NLS-1$
+        List<ITmfTreeViewerEntry> entryList = root.getChildren();
+
+        for (Entry<String, Long> entry : cpuUsageMap.entrySet()) {
+            /*
+             * Process only entries representing the total of all CPUs and that
+             * have time on CPU
+             */
+            if (entry.getValue() == 0) {
+                continue;
+            }
+            if (!entry.getKey().startsWith(LttngKernelCpuUsageAnalysis.TOTAL)) {
+                continue;
+            }
+            String[] strings = entry.getKey().split(LttngKernelCpuUsageAnalysis.SPLIT_STRING, 2);
+
+            if ((strings.length > 1) && !(strings[1].equals(LttngKernelCpuUsageAnalysis.TID_ZERO))) {
+                CpuUsageEntry obj = new CpuUsageEntry(strings[1], getProcessName(strings[1]), (double) entry.getValue() / (double) (end - start) * 100, entry.getValue());
+                entryList.add(obj);
+            }
+        }
+
+        return root;
+    }
+
