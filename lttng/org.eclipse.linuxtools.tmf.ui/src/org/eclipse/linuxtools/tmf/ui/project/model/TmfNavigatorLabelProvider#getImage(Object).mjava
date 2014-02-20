@@ -4,11 +4,22 @@
         if (element instanceof TmfTraceElement) {
             TmfTraceElement trace = (TmfTraceElement) element;
             try {
-                if (trace.getResource().getPersistentProperty(TmfCommonConstants.TRACETYPE) == null) {
+                String traceType = trace.getResource().getPersistentProperty(TmfCommonConstants.TRACETYPE);
+                if (traceType == null) {
                     return fUnknownTraceIcon;
                 }
+
+                IConfigurationElement traceUIAttributes = TmfTraceTypeUIUtils.getTraceUIAttributes(traceType);
                 String name = trace.getResource().getPersistentProperty(TmfCommonConstants.TRACEBUNDLE);
                 String icon = trace.getResource().getPersistentProperty(TmfCommonConstants.TRACEICON);
+                if (traceUIAttributes != null) {
+                    String iconAttr = traceUIAttributes.getAttribute(TmfTraceTypeUIUtils.ICON_ATTR);
+                    if (iconAttr != null) {
+                        name = traceUIAttributes.getContributor().getName();
+                        icon = iconAttr;
+                    }
+                }
+
                 if (name != null && icon != null) {
                     Bundle bundle = Platform.getBundle(name);
                     if (bundle != null) {
