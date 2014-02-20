@@ -23,10 +23,10 @@
 		assertTrue(button.isEnabled());
 		button.click();
 		String title = "Info";
-		setupGraphGeneral(title, 1, LineChartBuilder.ID, true);
+		setupGraphGeneral(title, 1, "org.eclipse.linuxtools.systemtap.graphingapi.ui.charts.linechartbuilder", true);
 		shell.setFocus();
 		button.click();
-		setupGraphGeneral(title, 1, BarChartBuilder.ID, true);
+		setupGraphGeneral(title, 1, "org.eclipse.linuxtools.systemtap.graphingapi.ui.charts.barchartbuilder", true);
 		shell.setFocus();
 
 		bot.button("Run").click();
@@ -41,22 +41,18 @@
 		final Matcher<AbstractChartBuilder> matcher = widgetOfType(AbstractChartBuilder.class);
 		AbstractChartBuilder cb = bot.widget(matcher);
 		bot.waitUntil(new ChartHasUpdated(cb.getChart(), 1));
-		checkTooltipAtDataPoint(cb, 0, 0, new Point(0, 20), MessageFormat.format(
-				org.eclipse.linuxtools.systemtap.graphingapi.ui.charts.Messages.BarChartBuilder_ToolTipCoords,
-				"Column 1", "5"), true);
+		String tooltipFormat = "{0}: {1}";
+		checkTooltipAtDataPoint(cb, 0, 0, new Point(0, 20), MessageFormat.format(tooltipFormat, "Column 1", "5"), true);
 
 		graphEditor.bot().cTabItem("Info - Line Graph").activate();
 		cb = bot.widget(matcher);
 		bot.waitUntil(new ChartHasUpdated(cb.getChart(), 2));
-		checkTooltipAtDataPoint(cb, 0, 1, null, MessageFormat.format(
-				org.eclipse.linuxtools.systemtap.graphingapi.ui.charts.Messages.AbstractChartWithAxisBuilder_ToolTipCoords,
-				"Column 1", "2", "6"), true);
+		tooltipFormat = "Series: {0}\nx: {1}\ny: {2}";
+		checkTooltipAtDataPoint(cb, 0, 1, null, MessageFormat.format(tooltipFormat,	"Column 1", "2", "6"), true);
 
 		// The tooltip should disappear when a point moves away from the mouse, without need for mouse movement.
 		bot.waitUntil(new ChartHasUpdated(cb.getChart(), -1));
-		checkTooltipAtDataPoint(cb, 0, -1, null, MessageFormat.format(
-				org.eclipse.linuxtools.systemtap.graphingapi.ui.charts.Messages.AbstractChartWithAxisBuilder_ToolTipCoords,
-				"Column 1", "2", "6"), false);
+		checkTooltipAtDataPoint(cb, 0, -1, null, MessageFormat.format(tooltipFormat, "Column 1", "2", "6"), false);
 
 		ScriptConsole.stopAll();
 		bot.waitUntil(new StapHasExited());
