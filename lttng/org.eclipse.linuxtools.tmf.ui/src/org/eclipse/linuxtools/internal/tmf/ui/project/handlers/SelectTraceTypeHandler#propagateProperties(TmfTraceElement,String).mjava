@@ -1,32 +1,24 @@
-    private static IStatus propagateProperties(TmfTraceElement trace, String traceType)
+    private static IStatus propagateProperties(TmfTraceElement traceElement, String traceType)
             throws CoreException {
 
-        IResource svResource = trace.getResource();
-        String svTraceType = svResource.getPersistentProperty(TmfCommonConstants.TRACETYPE);
+        IResource resource = traceElement.getResource();
+        String svTraceType = resource.getPersistentProperty(TmfCommonConstants.TRACETYPE);
+        TraceTypeHelper svTraceTypeHelper = TmfTraceType.getInstance().getTraceType(svTraceType);
 
-        setProperties(trace.getResource(), traceType);
-        trace.refreshTraceType();
-        final IStatus validateTraceType = validateTraceType(trace);
+        TraceTypeHelper traceTypeHelper = TmfTraceType.getInstance().getTraceType(traceType);
+        TmfTraceTypeUIUtils.setTraceType(resource, traceTypeHelper);
+        final IStatus validateTraceType = validateTraceType(traceElement);
         if (!validateTraceType.isOK()) {
-            setProperties(trace.getResource(), svTraceType);
-            trace.refreshTraceType();
+            TmfTraceTypeUIUtils.setTraceType(resource, svTraceTypeHelper);
             return validateTraceType;
         }
 
-        trace.refreshTraceType();
-
-        if (trace.getParent() instanceof TmfTraceFolder) {
-            TmfExperimentFolder experimentFolder = trace.getProject().getExperimentsFolder();
-            for (final ITmfProjectModelElement experiment : experimentFolder.getChildren()) {
-                for (final ITmfProjectModelElement child : experiment.getChildren()) {
-                    if (child instanceof TmfTraceElement) {
-                        TmfTraceElement linkedTrace = (TmfTraceElement) child;
-                        if (linkedTrace.getName().equals(trace.getName())) {
-                            IResource resource = linkedTrace.getResource();
-                            setProperties(resource, traceType);
-                            linkedTrace.refreshTraceType();
-                        }
-                    }
+        TmfExperimentFolder experimentFolder = traceElement.getProject().getExperimentsFolder();
+        for (final TmfExperimentElement experiment : experimentFolder.getExperiments()) {
+            for (final TmfTraceElement child : experiment.getTraces()) {
+                if (child.getName().equals(traceElement.getName())) {
+                    TmfTraceTypeUIUtils.setTraceType(child.getResource(), traceTypeHelper);
+                    break;
                 }
             }
         }
