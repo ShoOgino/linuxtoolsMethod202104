@@ -8,59 +8,59 @@
      */
     void setCurrentPacket(StreamInputPacketIndexEntry currentPacket) throws CTFReaderException {
         StreamInputPacketIndexEntry prevPacket = null;
-        this.currentPacket = currentPacket;
+        fCurrentPacket = currentPacket;
 
-        if (this.currentPacket != null) {
+        if (fCurrentPacket != null) {
             /*
              * Change the map of the BitBuffer.
              */
             ByteBuffer bb = null;
             try {
-                bb = streamInputReader.getStreamInput().getByteBufferAt(
-                                this.currentPacket.getOffsetBytes(),
-                                (this.currentPacket.getPacketSizeBits() + 7) / 8);
+                bb = fStreamInputReader.getStreamInput().getByteBufferAt(
+                                fCurrentPacket.getOffsetBytes(),
+                                (fCurrentPacket.getPacketSizeBits() + 7) / 8);
             } catch (IOException e) {
                 throw new CTFReaderException(e.getMessage(), e);
             }
 
-            bitBuffer.setByteBuffer(bb);
+            fBitBuffer.setByteBuffer(bb);
 
             /*
              * Read trace packet header.
              */
-            if (tracePacketHeaderDef != null) {
-                tracePacketHeaderDef.read(bitBuffer);
+            if (fTracePacketHeaderDef != null) {
+                fTracePacketHeaderDef.read(fBitBuffer);
             }
 
             /*
              * Read stream packet context.
              */
             if (getStreamPacketContextDef() != null) {
-                getStreamPacketContextDef().read(bitBuffer);
+                getStreamPacketContextDef().read(fBitBuffer);
 
                 /* Read CPU ID */
-                if (this.getCurrentPacket().getTarget() != null) {
-                    this.currentCpu = (int) this.getCurrentPacket().getTargetId();
+                if (getCurrentPacket().getTarget() != null) {
+                    fCurrentCpu = (int) getCurrentPacket().getTargetId();
                 }
 
                 /* Read number of lost events */
-                lostEventsInThisPacket = (int) this.getCurrentPacket().getLostEvents();
-                if (lostEventsInThisPacket != 0) {
-                    hasLost = true;
+                fLostEventsInThisPacket = (int) getCurrentPacket().getLostEvents();
+                if (fLostEventsInThisPacket != 0) {
+                    fHasLost = true;
                     /*
                      * Compute the duration of the lost event time range. If the
                      * current packet is the first packet, duration will be set
                      * to 1.
                      */
                     long lostEventsStartTime;
-                    int index = this.streamInputReader.getStreamInput().getIndex().getEntries().indexOf(currentPacket);
+                    int index = fStreamInputReader.getStreamInput().getIndex().getEntries().indexOf(currentPacket);
                     if (index == 0) {
                         lostEventsStartTime = currentPacket.getTimestampBegin() + 1;
                     } else {
-                        prevPacket = this.streamInputReader.getStreamInput().getIndex().getEntries().get(index - 1);
+                        prevPacket = fStreamInputReader.getStreamInput().getIndex().getEntries().get(index - 1);
                         lostEventsStartTime = prevPacket.getTimestampEnd();
                     }
-                    lostEventsDuration = Math.abs(lostEventsStartTime - currentPacket.getTimestampBegin());
+                    fLostEventsDuration = Math.abs(lostEventsStartTime - currentPacket.getTimestampBegin());
                 }
             }
 
@@ -68,11 +68,11 @@
              * Use the timestamp begin of the packet as the reference for the
              * timestamp reconstitution.
              */
-            lastTimestamp = currentPacket.getTimestampBegin();
+            fLastTimestamp = currentPacket.getTimestampBegin();
         } else {
-            bitBuffer.setByteBuffer(null);
+            fBitBuffer.setByteBuffer(null);
 
-            lastTimestamp = 0;
+            fLastTimestamp = 0;
         }
     }
 
