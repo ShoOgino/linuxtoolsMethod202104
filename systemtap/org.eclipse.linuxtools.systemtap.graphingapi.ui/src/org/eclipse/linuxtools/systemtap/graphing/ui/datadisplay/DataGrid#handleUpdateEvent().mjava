@@ -11,17 +11,15 @@
 					return;
 				}
 				TableItem item;
-				int startLocation, endLocation = filteredDataSet.getRowCount();
-				boolean rowsAdded = endLocation != table.getItemCount();
+				int startLocation;
+				int endLocation = filteredDataSet.getRowCount();
+				int maxItems = prefs.getInt(GraphingPreferenceConstants.P_MAX_DATA_ITEMS);
+				int oldSelection = table.getSelectionIndex();
 
-				if(FULL_UPDATE == (style & FULL_UPDATE)) {
-					//Remove extra items so save memory.
-					removedItems += table.getItemCount();
-					table.removeAll();
-					startLocation = 0;
-				} else {
-					startLocation = table.getItemCount()+removedItems;
-				}
+				//Remove old items to refresh table, and only read in as many items as will fit.
+				//Note that a full refresh is necessary in order for filtered data to appear correctly.
+				table.removeAll();
+				startLocation = Math.max(endLocation-maxItems, 0);
 
 				//Add all the new items to the table
 				Object[] os;
@@ -38,14 +36,9 @@
 						}
 					}
 				}
-
-				if(FULL_UPDATE != (style & FULL_UPDATE)) {
-					//Remove extra items so save memory.
-					if(table.getItemCount() > prefs.getInt(GraphingPreferenceConstants.P_MAX_DATA_ITEMS)) {
-						int items = table.getItemCount()-prefs.getInt(GraphingPreferenceConstants.P_MAX_DATA_ITEMS);
-						table.remove(0, items-1);
-						removedItems += items;
-					}
+				//Re-select the old table selection, if there was one
+				if (oldSelection != -1) {
+					table.select(oldSelection);
 				}
 
 				//Resize the columns
@@ -57,10 +50,17 @@
 						cols[i].pack();
 					}
 				}
-				//Use if we want to set focus to newly added item
+
+				//Use if we want to set focus to newly added item.
+				//Run async so the table can be fully constructed before jumping to an entry.
 				if(prefs.getBoolean(GraphingPreferenceConstants.P_JUMP_NEW_TABLE_ENTRY)
-						&& table.getItemCount() > 1 && rowsAdded) {
-					table.select(table.getItemCount()-1);
+						&& table.getItemCount() > 0) {
+					table.getDisplay().asyncExec(new Runnable() {
+						@Override
+						public void run() {
+							table.showItem(table.getItem(table.getItemCount()-1));
+						}
+					});
 				}
 				formatMenuItem.setEnabled(table.getItemCount() > 0);
 			}
