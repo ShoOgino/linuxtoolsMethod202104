@@ -38,7 +38,7 @@
 			}
 		});
 
-		Button button = createPushButton(kernelComp, "Browse", null);
+		Button button = createPushButton(kernelComp, Messages.PerfOptionsTab_Browse, null);
 		final Shell shell = top.getShell();
 		button.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -69,7 +69,8 @@
 		chkShowStat.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent se) {
-				handleShowStatSelection();
+				Version perfVersion = PerfCore.getPerfVersion(lastConfig);
+				handleShowStatSelection(perfVersion);
 			}
 		});
 		statRunCount = new Spinner(showStatComp, SWT.BORDER);
@@ -94,7 +95,17 @@
 		});
 		chkKernelSourceLineNumbers = createCheckButtonHelper(chkBoxComp, PerfPlugin.STRINGS_Kernel_SourceLineNumbers);
 		chkRecordRealtime = createCheckButtonHelper(chkBoxComp, PerfPlugin.STRINGS_Record_Realtime);
-		chkMultiplexEvents = createCheckButtonHelper(chkBoxComp, PerfPlugin.STRINGS_Multiplex);
+
+		// A disabled button does not respond to mouse events so use a composite.
+		final Composite multiplexEventsComp = new Composite(chkBoxComp, SWT.NONE);
+		multiplexEventsComp.setLayout(chkBoxLayout);
+		multiplexEventsComp.addListener(SWT.MouseHover, new Listener() {
+			@Override
+			public void handleEvent(Event event) {
+				multiplexEventsComp.setToolTipText(Messages.PerfOptionsTab_Requires_LTE + multiplexEventsVersion);
+			}
+		});
+		chkMultiplexEvents = createCheckButtonHelper(multiplexEventsComp, PerfPlugin.STRINGS_Multiplex);
 
 		scrollTop.setContent(top);
 		recomputeSize();

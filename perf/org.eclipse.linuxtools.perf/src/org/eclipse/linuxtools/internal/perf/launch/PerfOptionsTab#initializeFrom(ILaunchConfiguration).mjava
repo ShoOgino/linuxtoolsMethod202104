@@ -1,21 +1,29 @@
 	@Override
 	public void initializeFrom(ILaunchConfiguration config) {
 
+		// Keep track of the last configuration loaded
+		lastConfig = config;
+		Version perfVersion = PerfCore.getPerfVersion(config);
+
 		try {
+
+			if (perfVersion != null && multiplexEventsVersion.compareTo(perfVersion) > 0) {
+				chkMultiplexEvents.setSelection(config.getAttribute(PerfPlugin.ATTR_Multiplex, PerfPlugin.ATTR_Multiplex_default));
+			}
+
 			txtKernelLocation.setText(config.getAttribute(PerfPlugin.ATTR_Kernel_Location, PerfPlugin.ATTR_Kernel_Location_default));
 			chkRecordRealtime.setSelection(config.getAttribute(PerfPlugin.ATTR_Record_Realtime, PerfPlugin.ATTR_Record_Realtime_default));
 			chkRecordVerbose.setSelection(config.getAttribute(PerfPlugin.ATTR_Record_Verbose, PerfPlugin.ATTR_Record_Verbose_default));
 			chkSourceLineNumbers.setSelection(config.getAttribute(PerfPlugin.ATTR_SourceLineNumbers, PerfPlugin.ATTR_SourceLineNumbers_default));
 			chkKernelSourceLineNumbers.setSelection(config.getAttribute(PerfPlugin.ATTR_Kernel_SourceLineNumbers, PerfPlugin.ATTR_Kernel_SourceLineNumbers_default));
 
-			chkMultiplexEvents.setSelection(config.getAttribute(PerfPlugin.ATTR_Multiplex, PerfPlugin.ATTR_Multiplex_default));
 			chkModuleSymbols.setSelection(config.getAttribute(PerfPlugin.ATTR_ModuleSymbols, PerfPlugin.ATTR_ModuleSymbols_default));
 			chkHideUnresolvedSymbols.setSelection(config.getAttribute(PerfPlugin.ATTR_HideUnresolvedSymbols, PerfPlugin.ATTR_HideUnresolvedSymbols_default));
 			chkShowSourceDisassembly.setSelection(config.getAttribute(PerfPlugin.ATTR_ShowSourceDisassembly, PerfPlugin.ATTR_ShowSourceDisassembly_default));
 			chkShowStat.setSelection(config.getAttribute(PerfPlugin.ATTR_ShowStat, PerfPlugin.ATTR_ShowStat_default));
 			int runCount = config.getAttribute(PerfPlugin.ATTR_StatRunCount, PerfPlugin.ATTR_StatRunCount_default);
 			statRunCount.setSelection(runCount);
-			handleShowStatSelection();
+			handleShowStatSelection(perfVersion);
 		} catch (CoreException e) {
 			// do nothing
 		}
