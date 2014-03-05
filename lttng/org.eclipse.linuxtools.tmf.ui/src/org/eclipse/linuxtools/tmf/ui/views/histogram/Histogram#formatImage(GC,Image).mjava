@@ -18,8 +18,11 @@
             // Draw the histogram bars
             final int limit = width < scaledData.fWidth ? width : scaledData.fWidth;
             double factor = HistogramScaledData.hideLostEvents ? scaledData.fScalingFactor : scaledData.fScalingFactorCombined;
+            final boolean showTracesColors = showTraces();
             for (int i = 0; i < limit; i++) {
-                final int value = (int) Math.ceil(scaledData.fData[i] * factor);
+                HistogramBucket hb = scaledData.fData[i];
+                int totalNbEvents = hb.getNbEvents();
+                int value = (int) Math.ceil(totalNbEvents * factor);
                 int x = i + fOffset;
 
                 // in Linux, the last pixel in a line is not drawn,
@@ -35,8 +38,24 @@
                 }
 
                 // then draw normal events second, to overwrite that extra pixel
-                imageGC.setForeground(fHistoBarColor);
-                imageGC.drawLine(x, height - value, x, height);
+                if (!hb.isEmpty()) {
+                    if (showTracesColors) {
+                        for (int traceIndex = 0; traceIndex < hb.getNbTraces(); traceIndex++) {
+                            int nbEventsForTrace = hb.getNbEvent(traceIndex);
+                            if (nbEventsForTrace > 0) {
+                                Color c = fHistoBarColors[traceIndex % fHistoBarColors.length];
+                                imageGC.setForeground(c);
+                                imageGC.drawLine(x, height - value, x, height);
+                                totalNbEvents -= nbEventsForTrace;
+                                value = (int) Math.ceil(totalNbEvents * scaledData.fScalingFactor);
+                            }
+                        }
+                    } else {
+                        Color c = fHistoBarColors[0];
+                        imageGC.setForeground(c);
+                        imageGC.drawLine(x, height - value, x, height);
+                    }
+                }
             }
 
             // Draw the selection bars

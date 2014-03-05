@@ -5,10 +5,12 @@
      *            The current event Count (for notification purposes)
      * @param timestamp
      *            The timestamp of the event to count
-     *
+     * @param trace
+     *            The event trace
+     * @since 3.0
      */
     @Override
-    public void countEvent(long eventCount, long timestamp) {
+    public void countEvent(long eventCount, long timestamp, ITmfTrace trace) {
 
         // Validate
         if (timestamp < 0) {
@@ -16,7 +18,7 @@
         }
 
         // Set the start/end time if not already done
-        if ((fFirstBucketTime == 0) && (fLastBucket == 0) && (fBuckets[0] == 0) && (timestamp > 0)) {
+        if ((fFirstBucketTime == 0) && (fLastBucket == 0) && (fBuckets[0] == null) && (timestamp > 0)) {
             fFirstBucketTime = timestamp;
             fFirstEventTime = timestamp;
             updateEndTime();
@@ -58,7 +60,14 @@
 
         // Increment the right bucket
         int index = (int) ((timestamp - fFirstBucketTime) / fBucketDuration);
-        fBuckets[index]++;
+        if (fBuckets[index] == null) {
+            fBuckets[index] = new HistogramBucket(getNbTraces());
+        }
+        Integer traceIndex = fTraceMap.get(trace);
+        if (traceIndex == null) {
+            traceIndex = 0;
+        }
+        fBuckets[index].addEvent(traceIndex);
         fNbEvents++;
         if (fLastBucket < index) {
             fLastBucket = index;
