@@ -1,0 +1,98 @@
+    /**
+     * Test to edit a custom txt trace and compare the xml
+     *
+     * @throws IOException
+     *             the xml file is not accessible, this is bad
+     * @throws FileNotFoundException
+     *             the xml file wasn't written, this is bad
+     */
+    @Test
+    public void testEdit() throws FileNotFoundException, IOException {
+        File xmlFile = ResourcesPlugin.getWorkspace().getRoot().getLocation().append(".metadata/.plugins/org.eclipse.linuxtools.tmf.core/custom_txt_parsers.xml").toFile();
+        try (FileWriter fw = new FileWriter(xmlFile)) {
+            String xmlContent = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n" +
+                    "<CustomTxtTraceDefinitionList>\n" +
+                    "<Definition name=\"Demo trace\">\n" +
+                    "<TimeStampOutputFormat>sss</TimeStampOutputFormat>\n" +
+                    "<InputLine>\n" +
+                    "<Cardinality max=\"2147483647\" min=\"0\"/>\n" +
+                    "<RegEx>\\s*(\\d*)\\s(.*)</RegEx>\n" +
+                    "<InputData action=\"0\" format=\"sss\" name=\"Time Stamp\"/>\n" +
+                    "<InputData action=\"0\" name=\"Message\"/>\n" +
+                    "</InputLine>\n" +
+                    "<OutputColumn name=\"Time Stamp\"/>\n" +
+                    "<OutputColumn name=\"Message\"/>\n" +
+                    "</Definition>\n" +
+                    "<Definition name=\"dmesg\">\n" +
+                    "<TimeStampOutputFormat>sssssss.ssssss</TimeStampOutputFormat>\n" +
+                    "<InputLine>\n" +
+                    "<Cardinality max=\"2147483647\" min=\"0\"/>\n" +
+                    "<RegEx>^[([0-9]*\\.[0.9]*)]\\s(.*)</RegEx>\n" +
+                    "<InputData action=\"0\" format=\"sssss.sssss\" name=\"Time Stamp\"/>\n" +
+                    "<InputData action=\"0\" name=\"Message\"/>\n" +
+                    "</InputLine>\n" +
+                    "<OutputColumn name=\"Time Stamp\"/>\n" +
+                    "<OutputColumn name=\"Message\"/>\n" +
+                    "</Definition>\n" +
+                    "</CustomTxtTraceDefinitionList>";
+            fw.write(xmlContent);
+            fw.flush();
+        }
+        SWTBotUtil.createProject(PROJECT_NAME);
+        SWTBotView proejctExplorerBot = fBot.viewByTitle("Project Explorer");
+        proejctExplorerBot.show();
+        SWTBotTreeItem treeItem = proejctExplorerBot.bot().tree().getTreeItem(PROJECT_NAME);
+        treeItem.select();
+        treeItem.expand();
+        SWTBotTreeItem treeNode = null;
+        for (String node : treeItem.getNodes()) {
+            if (node.startsWith("Trace")) {
+                treeNode = treeItem.getNode(node);
+                break;
+            }
+
+        }
+        assertNotNull(treeNode);
+        treeNode.contextMenu("Manage Custom Parsers...").click();
+        fBot.list().select(fBot.list().getItems()[0]);
+        fBot.button("Edit...").click();
+
+        fBot.textWithLabel("Log type:").setText(PROJECT_NAME);
+        fBot.textWithLabel("Time Stamp format:").setText("ss");
+        fBot.comboBox(1).setSelection("Time Stamp");
+        fBot.textWithLabel("format:").setText("ss");
+        fBot.button(2).click();
+        SWTBotTreeItem[] treeItems = fBot.tree().getAllItems();
+        SWTBotTreeItem eventLine[] = new SWTBotTreeItem[2];
+        for (SWTBotTreeItem item : treeItems) {
+            if (item.getText().startsWith("Root Line 1")) {
+                eventLine[0] = item;
+            }
+            if (item.getText().startsWith("Root Line 2")) {
+                eventLine[1] = item;
+            }
+        }
+        treeItems = fBot.tree().getAllItems();
+        assertNotNull(eventLine[0]);
+        assertNotNull(eventLine[1]);
+        fBot.styledText().setText("12 Hello\nWorld\n23 Goodbye\ncruel world");
+        eventLine[0].select();
+        SWTBotUtil.waitForJobs();
+        fBot.textWithLabel("Regular expression:").setText("\\s*(\\d\\d)\\s(.*\\S)");
+        eventLine[1].select();
+        fBot.textWithLabel("Regular expression:").setText("([^0-9]*)");
+        fBot.button(7).click();
+        fBot.comboBox("Set").setSelection("Append with |");
+        fBot.button("Highlight All").click();
+        fBot.button("Next >").click();
+        fBot.button("Finish").click();
+        fBot.list().select(PROJECT_NAME);
+        String xmlPart = extractTestXml(xmlFile, PROJECT_NAME);
+        assertEquals(EXPECTED_TEST_DEFINITION, xmlPart);
+        fBot.button("Delete").click();
+        fBot.button("Yes").click();
+        fBot.button("Close").click();
+        xmlPart = extractTestXml(xmlFile, PROJECT_NAME);
+        assertEquals("", xmlPart);
+    }
+
