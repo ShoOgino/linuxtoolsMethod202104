@@ -11,23 +11,20 @@
 			return;
 		TreeDefinitionNode t = (TreeDefinitionNode)o;
 		String filename = t.getDefinition();
-		Path p = new Path(filename);
-
-		IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
-		PathEditorInput input = new PathEditorInput(p);
-		try {
-			IEditorPart editorPart = window.getActivePage().openEditor(input, STPEditor.ID);
+		File file = new File(filename);
+		OpenFileAction open = new OpenFileAction();
+		open.run(file);
+		if (open.isSuccessful()) {
+			IEditorPart editorPart = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage().getActiveEditor();
 			STPEditor editor = (STPEditor)editorPart;
 			int line;
 
-			if(t.getData().toString().startsWith("probe")) //$NON-NLS-1$
+			if (!(t.getData() instanceof FunctionNodeData))
 				line = probeFind(t, editor);
 			else
 				line = functionFind(t, editor);
 
 			editor.jumpToLocation(++line, 0);
-		} catch (PartInitException e) {
-			ExceptionErrorDialog.openError(Messages.ScriptRunAction_errorDialogTitle, e);
 		}
 	}
 
