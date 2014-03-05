@@ -3,13 +3,19 @@
      */
     @Test
     public void testEventLookup() {
-        assertTrue(fixture.hasEvent("sched_switch"));
-        assertFalse(fixture.hasEvent("Sched_switch"));
+        Set<ITmfEventType> eventTypes = fixture.getContainedEventTypes();
+        Set<String> eventNames = TmfEventTypeCollectionHelper.getEventNames(eventTypes);
+        assertTrue(eventNames.contains("sched_switch"));
+        assertFalse(eventNames.contains("Sched_switch"));
         String[] events = { "sched_switch", "sched_wakeup", "timer_init" };
-        assertTrue(fixture.hasAllEvents(events));
-        assertTrue(fixture.hasAtLeastOneOfEvents(events));
+        assertTrue(eventNames.containsAll(Arrays.asList(events)));
+        Set<String> copy = new HashSet<>(eventNames);
+        copy.retainAll(Arrays.asList(events));
+        assertFalse(copy.isEmpty());
         String[] names = { "inexistent", "sched_switch", "SomeThing" };
-        assertTrue(fixture.hasAtLeastOneOfEvents(names));
-        assertFalse(fixture.hasAllEvents(names));
+        copy = new HashSet<>(eventNames);
+        copy.retainAll(Arrays.asList(names));
+        assertTrue(!copy.isEmpty());
+        assertFalse(eventNames.containsAll(Arrays.asList(names)));
     }
 
