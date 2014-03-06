@@ -41,14 +41,22 @@
         };
         try {
             executor.execute(selectRecordQuery);
-            ITraceStatusDMData data = selectRecordQuery.get(); // blocks
+            ITraceStatusDMData data;
+            if (fIsTimeoutEnabled) {
+                data = selectRecordQuery.get(fTimeout, TimeUnit.MILLISECONDS); // blocks until time out
+            } else {
+                data = selectRecordQuery.get(); // blocks
+            }
+
             frameNum = data.getNumberOfCollectedFrame();
         } catch (InterruptedException e) {
-
-        } catch (java.util.concurrent.ExecutionException e) {
-
+            Activator.logError("Interruption exception", e); //$NON-NLS-1$
+        } catch (ExecutionException e) {
+            Activator.logError("GDB exception", e); //$NON-NLS-1$
         } catch (RejectedExecutionException e) {
-
+            Activator.logError("Request rejected exception", e); //$NON-NLS-1$
+        } catch (TimeoutException e) {
+            Activator.logError("Timeout", e); //$NON-NLS-1$
         } finally {
             tracker.dispose();
         }

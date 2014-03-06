@@ -42,7 +42,12 @@
         try {
             // Execute the above query
             executor.execute(getFrameDataQuery);
-            ITraceRecordDMData data = getFrameDataQuery.get(); // blocking call
+            ITraceRecordDMData data;
+            if (fIsTimeoutEnabled) {
+                data = getFrameDataQuery.get(fTimeout, TimeUnit.MILLISECONDS); // blocking call until time out
+            } else {
+                data = getFrameDataQuery.get();
+            }
 
             if (data == null) {
                 return null;
@@ -83,8 +88,8 @@
             return createExceptionEvent(rank, "GDB exception"); //$NON-NLS-1$
         } catch (RejectedExecutionException e) {
             return createExceptionEvent(rank, "Request rejected exception"); //$NON-NLS-1$
-        } catch (Exception e) {
-            return createExceptionEvent(rank, "General exception"); //$NON-NLS-1$
+        } catch (TimeoutException e) {
+            return createExceptionEvent(rank, "Timeout"); //$NON-NLS-1$
         }
 
         finally {

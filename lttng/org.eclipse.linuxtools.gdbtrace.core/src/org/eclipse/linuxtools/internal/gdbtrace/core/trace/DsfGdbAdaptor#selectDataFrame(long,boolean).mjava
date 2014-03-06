@@ -63,13 +63,23 @@
         };
         try {
             executor.execute(selectRecordQuery);
-            selectRecordQuery.get(); // blocks
+            if (fIsTimeoutEnabled) {
+                selectRecordQuery.get(fTimeout, TimeUnit.MILLISECONDS); // blocks until time out
+            } else {
+                selectRecordQuery.get(); // blocks
+            }
         } catch (InterruptedException e) {
             status = false;
-        } catch (java.util.concurrent.ExecutionException e) {
+            Activator.logError("Interruption exception", e); //$NON-NLS-1$
+        } catch (ExecutionException e) {
             status = false;
+            Activator.logError("GDB exception", e); //$NON-NLS-1$
         } catch (RejectedExecutionException e) {
             status = false;
+            Activator.logError("Request rejected exception", e); //$NON-NLS-1$
+        } catch (TimeoutException e) {
+            status = false;
+            Activator.logError("Timeout", e); //$NON-NLS-1$
         } finally {
             tracker.dispose();
         }

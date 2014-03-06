@@ -33,7 +33,12 @@
                             };
                             try {
                                 executor.execute(getCurrentRecordQuery);
-                                ITraceRecordDMContext record = getCurrentRecordQuery.get();
+                                ITraceRecordDMContext record;
+                                if (DsfGdbAdaptor.this.fIsTimeoutEnabled) {
+                                    record = getCurrentRecordQuery.get(fTimeout, TimeUnit.MILLISECONDS);
+                                } else {
+                                    record = getCurrentRecordQuery.get();
+                                }
                                 // If we get a trace record, it means that this can be used
                                 if (record != null && record.getRecordId() != null) {
                                     int recordId = Integer.parseInt(record.getRecordId());
@@ -41,8 +46,13 @@
                                     break;
                                 }
                             } catch (InterruptedException e) {
-                            } catch (java.util.concurrent.ExecutionException e) {
+                                Activator.logError("Interruption exception", e); //$NON-NLS-1$
+                            } catch (ExecutionException e) {
+                                Activator.logError("GDB exception", e); //$NON-NLS-1$
                             } catch (RejectedExecutionException e) {
+                                Activator.logError("Request rejected exception", e); //$NON-NLS-1$
+                            } catch (TimeoutException e) {
+                                Activator.logError("Timeout", e); //$NON-NLS-1$
                             } finally {
                                 tracker.dispose();
                             }
