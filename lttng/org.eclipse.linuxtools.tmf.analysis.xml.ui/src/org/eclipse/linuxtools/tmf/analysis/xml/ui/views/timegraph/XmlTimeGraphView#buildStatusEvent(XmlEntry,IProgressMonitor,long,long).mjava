@@ -1,0 +1,20 @@
+    private void buildStatusEvent(XmlEntry traceEntry, IProgressMonitor monitor, long start, long end) {
+        long resolution = (end - start) / getDisplayWidth();
+        long startTime = Math.max(start, traceEntry.getStartTime());
+        long endTime = Math.min(end + 1, traceEntry.getEndTime());
+        List<ITimeEvent> eventList = getEventList(traceEntry, startTime, endTime, resolution, monitor);
+        if (monitor.isCanceled()) {
+            return;
+        }
+        traceEntry.setEventList(eventList);
+        redraw();
+
+        for (TimeGraphEntry entry : traceEntry.getChildren()) {
+            if (monitor.isCanceled()) {
+                return;
+            }
+            XmlEntry xmlEntry = (XmlEntry) entry;
+            buildStatusEvent(xmlEntry, monitor, start, end);
+        }
+    }
+

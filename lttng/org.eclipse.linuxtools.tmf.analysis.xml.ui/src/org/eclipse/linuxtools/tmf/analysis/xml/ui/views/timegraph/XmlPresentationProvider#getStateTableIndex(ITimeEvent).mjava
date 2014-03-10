@@ -1,0 +1,30 @@
+    @Override
+    public int getStateTableIndex(ITimeEvent event) {
+        if (event instanceof TimeEvent && ((TimeEvent) event).hasValue()) {
+            TimeEvent tcEvent = (TimeEvent) event;
+
+            XmlEntry entry = (XmlEntry) event.getEntry();
+            int value = tcEvent.getValue();
+
+            if (entry.getType() == EntryDisplayType.DISPLAY) {
+                Integer index = stateIndex.get(value);
+                if (index == null) {
+                    /* Colors won't be refreshed yet, return something known */
+                    index = TRANSPARENT;
+                    stateIndex.put(value, stateValues.size());
+                    StateItem item = new StateItem(calcColor(stateValues.size()), String.valueOf(value));
+                    stateValues.add(item);
+                    Display.getDefault().asyncExec(new Runnable() {
+                        @Override
+                        public void run() {
+                            fireColorSettingsChanged();
+                        }
+                    });
+                }
+                return index;
+            }
+        }
+
+        return INVISIBLE;
+    }
+

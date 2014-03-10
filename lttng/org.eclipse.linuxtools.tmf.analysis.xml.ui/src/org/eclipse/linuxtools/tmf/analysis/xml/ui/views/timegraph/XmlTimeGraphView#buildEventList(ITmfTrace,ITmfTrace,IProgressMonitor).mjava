@@ -1,0 +1,110 @@
+    @Override
+    protected void buildEventList(ITmfTrace trace, ITmfTrace parentTrace, IProgressMonitor monitor) {
+
+        /*
+         * Get the view element from the XML file. If the element can't be
+         * found, return.
+         */
+        String id = fId;
+        if (id == null) {
+            return;
+        }
+        Element viewElement = XmlUtils.getElementInFile(fFilePath, TmfXmlUiStrings.TIME_GRAPH_VIEW, id);
+        if (viewElement == null) {
+            return;
+        }
+        ITimeGraphPresentationProvider2 pres = this.getPresentationProvider();
+        if (pres instanceof XmlPresentationProvider) {
+            /*
+             * TODO: Each entry of a line could have their own states/color.
+             * That will require an update to the presentation provider
+             */
+            ((XmlPresentationProvider) pres).loadNewStates(viewElement);
+        }
+
+        List<Element> heads = XmlUtils.getChildElements(viewElement, TmfXmlStrings.HEAD);
+
+        List<String> analysisIds = new LinkedList<>();
+        if (!heads.isEmpty()) {
+            Element head = heads.get(0);
+            /* Set the title of this view from the label in the header */
+            List<Element> labels = XmlUtils.getChildElements(head, TmfXmlStrings.LABEL);
+            String title = Messages.XmlTimeGraphView_DefaultTitle;
+            for (Element label : labels) {
+                if (!label.getAttribute(TmfXmlStrings.VALUE).equals(EMPTY_STRING)) {
+                    title = label.getAttribute(TmfXmlStrings.VALUE);
+                }
+                break;
+            }
+            setViewTitle(title);
+
+            /* Get the application analysis from the view's XML header */
+            List<Element> applicableAnalysis = XmlUtils.getChildElements(head, TmfXmlStrings.ANALYSIS);
+            for (Element oneAnalysis : applicableAnalysis) {
+                analysisIds.add(oneAnalysis.getAttribute(TmfXmlStrings.ID));
+            }
+        }
+        List<Element> entries = XmlUtils.getChildElements(viewElement, TmfXmlUiStrings.ENTRY_ELEMENT);
+        Set<XmlEntry> entryList = new TreeSet<>(getEntryComparator());
+        for (ITmfTrace aTrace : TmfTraceManager.getTraceSet(trace)) {
+            if (monitor.isCanceled()) {
+                return;
+            }
+
+            List<ITmfAnalysisModuleWithStateSystems> stateSystemModules = new LinkedList<>();
+            if (analysisIds.isEmpty()) {
+                /*
+                 * No analysis specified, take all state system analysis modules
+                 */
+                for (ITmfAnalysisModuleWithStateSystems module : aTrace.getAnalysisModulesOfClass(ITmfAnalysisModuleWithStateSystems.class)) {
+                    stateSystemModules.add(module);
+                }
+            } else {
+                for (String moduleId : analysisIds) {
+                    ITmfAnalysisModuleWithStateSystems module = aTrace.getAnalysisModuleOfClass(ITmfAnalysisModuleWithStateSystems.class, moduleId);
+                    if (module != null) {
+                        stateSystemModules.add(module);
+                    }
+                }
+            }
+
+            for (ITmfAnalysisModuleWithStateSystems module : stateSystemModules) {
+                module.schedule();
+                if (module instanceof TmfStateSystemAnalysisModule) {
+                    ((TmfStateSystemAnalysisModule) module).waitForInitialization();
+                }
+                for (ITmfStateSystem ssq : module.getStateSystems()) {
+                    if (ssq == null) {
+                        return;
+                    }
+                    ssq.waitUntilBuilt();
+
+                    long startTime = ssq.getStartTime();
+                    long endTime = ssq.getCurrentEndTime();
+                    XmlEntry groupEntry = new XmlEntry(-1, aTrace, aTrace.getName(), ssq);
+                    entryList.add(groupEntry);
+                    setStartTime(Math.min(getStartTime(), startTime));
+                    setEndTime(Math.max(getEndTime(), endTime));
+
+                    /* Add children entry of this entry for each line */
+                    for (Element entry : entries) {
+                        buildEntry(entry, groupEntry, -1);
+                    }
+                }
+            }
+        }
+        putEntryList(trace, new ArrayList<TimeGraphEntry>(entryList));
+
+        if (trace.equals(getTrace())) {
+            refresh();
+        }
+        for (XmlEntry traceEntry : entryList) {
+            if (monitor.isCanceled()) {
+                return;
+            }
+            long startTime = traceEntry.getStateSystem().getStartTime();
+            long endTime = traceEntry.getStateSystem().getCurrentEndTime() + 1;
+            buildStatusEvent(traceEntry, monitor, startTime, endTime);
+        }
+    }
+

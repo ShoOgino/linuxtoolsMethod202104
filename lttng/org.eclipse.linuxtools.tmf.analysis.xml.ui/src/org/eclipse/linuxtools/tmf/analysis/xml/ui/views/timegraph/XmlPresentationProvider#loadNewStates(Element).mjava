@@ -1,0 +1,53 @@
+    /**
+     * Loads the states from a {@link TmfXmlUiStrings#TIME_GRAPH_VIEW} XML
+     * element
+     *
+     * @param viewElement
+     *            The XML view element
+     */
+    public void loadNewStates(@NonNull Element viewElement) {
+        stateValues.clear();
+        stateIndex.clear();
+        List<Element> states = XmlUtils.getChildElements(viewElement, TmfXmlStrings.DEFINED_VALUE);
+
+        for (Element state : states) {
+            int value = Integer.parseInt(state.getAttribute(TmfXmlStrings.VALUE));
+            String name = state.getAttribute(TmfXmlStrings.NAME);
+            String color = state.getAttribute(TmfXmlStrings.COLOR);
+
+            // FIXME Allow this case
+            if (value < 0) {
+                return;
+            }
+
+            RGB colorRGB = new RGB(255, 0, 0);
+            if (color.startsWith(TmfXmlStrings.COLOR_PREFIX)) {
+                Integer hex = Integer.parseInt(color.substring(1), 16);
+                int hex1 = hex.intValue() % 256;
+                int hex2 = (hex.intValue() / 256) % 256;
+                int hex3 = (hex.intValue() / (256 * 256)) % 256;
+                colorRGB = new RGB(hex3, hex2, hex1);
+            } else {
+                colorRGB = calcColor(value);
+            }
+
+            StateItem item = new StateItem(colorRGB, name);
+
+            Integer index = stateIndex.get(value);
+            if (index == null) {
+                /* Add the new state value */
+                stateIndex.put(value, stateValues.size());
+                stateValues.add(item);
+            } else {
+                /* Override a previous state value */
+                stateValues.set(index, item);
+            }
+        }
+        Display.getDefault().asyncExec(new Runnable() {
+            @Override
+            public void run() {
+                fireColorSettingsChanged();
+            }
+        });
+    }
+

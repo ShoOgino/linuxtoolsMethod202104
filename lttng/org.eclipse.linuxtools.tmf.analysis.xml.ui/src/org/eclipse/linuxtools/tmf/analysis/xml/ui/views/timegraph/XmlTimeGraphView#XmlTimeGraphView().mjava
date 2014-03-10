@@ -1,0 +1,31 @@
+    /**
+     * Default constructor
+     */
+    public XmlTimeGraphView() {
+        super(ID, new XmlPresentationProvider());
+        setWeight(fWeight);
+        setTreeColumns(DEFAULT_COLUMN_NAMES);
+        setTreeLabelProvider(new XmlTreeLabelProvider());
+        setFilterColumns(DEFAULT_FILTER_COLUMN_NAMES);
+        setFilterLabelProvider(new XmlTreeLabelProvider());
+        setEntryComparator(new XmlEntryComparator());
+        this.addPartPropertyListener(new IPropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent event) {
+                if (event.getProperty().equals(TmfXmlUiStrings.XML_OUTPUT_DATA)) {
+                    String data = (String) event.getNewValue();
+                    String[] idFile = data.split(TmfXmlAnalysisOutputSource.DATA_SEPARATOR);
+                    fId = (idFile.length > 0) ? idFile[0] : null;
+                    fFilePath = (idFile.length > 1) ? idFile[1] : null;
+                    loadNewXmlView();
+                    savePersistentData();
+                }
+            }
+        });
+        IDialogSettings settings = getPersistentPropertyStore();
+
+        fId = settings.get(XML_VIEW_ID_PROPERTY);
+        fFilePath = settings.get(XML_VIEW_FILE_PROPERTY);
+        fFactory = TmfXmlReadOnlyModelFactory.getInstance();
+    }
+
