@@ -1,10 +1,25 @@
     @Override
-    public boolean appliesToTraceType(Class<? extends ITmfTrace> traceclass) {
+    public boolean appliesToTraceType(Class<? extends ITmfTrace> traceClass) {
         /* Trace types may be available in XML header */
-        if (fHeadInfo == null) {
+        List<Element> head = XmlUtils.getChildElements(fSourceElement, TmfXmlStrings.HEAD);
+        if (head.size() != 1) {
+            return true;
+        }
+        /*
+         * TODO: Test with custom trace types
+         */
+        List<Element> elements = XmlUtils.getChildElements(head.get(0), TmfXmlStrings.TRACETYPE);
+        if (elements.isEmpty()) {
             return true;
         }
 
-        return fHeadInfo.checkTraceType(traceclass);
+        for (Element element : elements) {
+            String traceTypeId = element.getAttribute(TmfXmlStrings.ID);
+            TraceTypeHelper helper = TmfTraceType.getInstance().getTraceType(traceTypeId);
+            if ((helper != null) && helper.getTrace().getClass().isAssignableFrom(traceClass)) {
+                return true;
+            }
+        }
+        return false;
     }
 
