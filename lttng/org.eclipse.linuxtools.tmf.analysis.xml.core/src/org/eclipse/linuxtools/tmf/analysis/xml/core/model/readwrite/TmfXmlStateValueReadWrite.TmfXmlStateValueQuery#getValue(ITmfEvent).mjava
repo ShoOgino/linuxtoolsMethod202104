@@ -1,0 +1,24 @@
+        @Override
+        public ITmfStateValue getValue(ITmfEvent event) throws AttributeNotFoundException {
+            /* Query the state system for the value */
+            ITmfStateValue value = TmfStateValue.nullValue();
+            int quarkQuery = IXmlStateSystemContainer.ROOT_QUARK;
+            ITmfStateSystem ss = getStateSystem();
+
+            for (ITmfXmlStateAttribute attribute : fQueryValue) {
+                quarkQuery = attribute.getAttributeQuark(event, quarkQuery);
+                if (quarkQuery == IXmlStateSystemContainer.ERROR_QUARK) {
+                    /* the query is not valid, we stop the state change */
+                    break;
+                }
+            }
+            /*
+             * the query can fail : for example, if a value is requested but has
+             * not been set yet
+             */
+            if (quarkQuery != IXmlStateSystemContainer.ERROR_QUARK) {
+                value = ss.queryOngoingState(quarkQuery);
+            }
+            return value;
+        }
+

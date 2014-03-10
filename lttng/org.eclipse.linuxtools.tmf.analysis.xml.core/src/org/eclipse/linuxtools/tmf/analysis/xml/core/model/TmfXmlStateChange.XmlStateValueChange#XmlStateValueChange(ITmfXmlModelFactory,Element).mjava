@@ -1,0 +1,22 @@
+        public XmlStateValueChange(ITmfXmlModelFactory modelFactory, Element statechange) {
+            List<Element> childElements = XmlUtils.getChildElements(statechange);
+
+            /*
+             * Last child element is the state value, the others are attributes
+             * to reach to value to set
+             */
+            Element stateValueElement = childElements.remove(childElements.size() - 1);
+            List<ITmfXmlStateAttribute> attributes = new ArrayList<>();
+            for (Element element : childElements) {
+                if (!element.getNodeName().equals(TmfXmlStrings.STATE_ATTRIBUTE)) {
+                    throw new IllegalArgumentException("TmfXmlStateChange: a state change must have only TmfXmlStateAttribute elements before the state value"); //$NON-NLS-1$
+                }
+                ITmfXmlStateAttribute attribute = modelFactory.createStateAttribute(element, fContainer);
+                attributes.add(attribute);
+            }
+            if (attributes.isEmpty()) {
+                throw new IllegalArgumentException("TmfXmlStateChange: a state change must have at least one TmfXmlStateAttribute element before the state value"); //$NON-NLS-1$
+            }
+            fValue = modelFactory.createStateValue(stateValueElement, fContainer, attributes);
+        }
+

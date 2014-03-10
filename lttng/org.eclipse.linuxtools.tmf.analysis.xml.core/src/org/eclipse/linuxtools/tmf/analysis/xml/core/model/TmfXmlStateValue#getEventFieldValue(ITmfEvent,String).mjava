@@ -1,0 +1,111 @@
+    /**
+     * Get the value of an event field
+     *
+     * @param event
+     *            The current event
+     * @param fieldName
+     *            The name of the field of which to get the value
+     * @return The value of the event field
+     */
+    protected ITmfStateValue getEventFieldValue(@NonNull ITmfEvent event, String fieldName) {
+
+        ITmfStateValue value = TmfStateValue.nullValue();
+
+        final ITmfEventField content = event.getContent();
+
+        /* Exception for "CPU", returns the source of this event */
+        /* FIXME : Nameclash if a eventfield have "cpu" for name. */
+        if (fieldName.equals(TmfXmlStrings.CPU)) {
+            return TmfStateValue.newValueInt(Integer.valueOf(event.getSource()));
+        }
+        if (content.getField(fieldName) == null) {
+            return value;
+        }
+
+        Object field = content.getField(fieldName).getValue();
+
+        /*
+         * Try to find the right type. The type can be forced by
+         * "forcedType" argument.
+         */
+
+        if (field instanceof String) {
+            String fieldString = (String) field;
+
+            switch (fForcedType) {
+            case INTEGER:
+                value = TmfStateValue.newValueInt(Integer.parseInt(fieldString));
+                break;
+            case LONG:
+                value = TmfStateValue.newValueLong(Long.parseLong(fieldString));
+                break;
+            case DOUBLE:
+                value = TmfStateValue.newValueDouble(Double.parseDouble(fieldString));
+                break;
+            case NULL:
+            case STRING:
+            default:
+                value = TmfStateValue.newValueString(fieldString);
+                break;
+            }
+        } else if (field instanceof Long) {
+            Long fieldLong = (Long) field;
+
+            switch (fForcedType) {
+            case INTEGER:
+                value = TmfStateValue.newValueInt(fieldLong.intValue());
+                break;
+            case STRING:
+                value = TmfStateValue.newValueString(fieldLong.toString());
+                break;
+            case DOUBLE:
+                value = TmfStateValue.newValueDouble(fieldLong.doubleValue());
+                break;
+            case LONG:
+            case NULL:
+            default:
+                value = TmfStateValue.newValueLong(fieldLong);
+                break;
+            }
+        } else if (field instanceof Integer) {
+            Integer fieldInteger = (Integer) field;
+
+            switch (fForcedType) {
+            case LONG:
+                value = TmfStateValue.newValueLong(fieldInteger.longValue());
+                break;
+            case STRING:
+                value = TmfStateValue.newValueString(fieldInteger.toString());
+                break;
+            case DOUBLE:
+                value = TmfStateValue.newValueDouble(fieldInteger.doubleValue());
+                break;
+            case INTEGER:
+            case NULL:
+            default:
+                value = TmfStateValue.newValueInt(fieldInteger);
+                break;
+            }
+        } else if (field instanceof Double) {
+            Double fieldDouble = (Double) field;
+
+            switch (fForcedType) {
+            case LONG:
+                value = TmfStateValue.newValueLong(fieldDouble.longValue());
+                break;
+            case STRING:
+                value = TmfStateValue.newValueString(fieldDouble.toString());
+                break;
+            case INTEGER:
+                value = TmfStateValue.newValueInt(fieldDouble.intValue());
+                break;
+            case DOUBLE:
+            case NULL:
+            default:
+                value = TmfStateValue.newValueDouble(fieldDouble);
+                break;
+            }
+        }
+        return value;
+    }
+

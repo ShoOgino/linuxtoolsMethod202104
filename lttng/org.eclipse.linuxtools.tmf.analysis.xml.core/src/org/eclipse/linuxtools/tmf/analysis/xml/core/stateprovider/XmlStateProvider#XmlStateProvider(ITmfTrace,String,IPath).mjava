@@ -9,16 +9,17 @@
      * @param file
      *            Path to the XML file containing the state provider definition
      */
-    public XmlStateProvider(ITmfTrace trace, String stateid, IPath file) {
+    public XmlStateProvider(ITmfTrace trace, @NonNull String stateid, IPath file) {
         super(trace, ITmfEvent.class, stateid);
         fStateId = stateid;
         fFilePath = file;
-        Element doc = loadXMLNode();
+        Element doc = XmlUtils.getElementInFile(fFilePath.makeAbsolute().toOSString(), TmfXmlStrings.STATE_PROVIDER, fStateId);
         if (doc == null) {
             fLocations = new HashSet<>();
             return;
         }
 
+        ITmfXmlModelFactory modelFactory = TmfXmlModelFactoryReadWrite.getInstance();
         /* parser for defined Values */
         NodeList definedStateNodes = doc.getElementsByTagName(TmfXmlStrings.DEFINED_VALUE);
         for (int i = 0; i < definedStateNodes.getLength(); i++) {
@@ -31,7 +32,7 @@
         Set<TmfXmlLocation> locations = new HashSet<>();
         for (int i = 0; i < locationNodes.getLength(); i++) {
             Element element = (Element) locationNodes.item(i);
-            TmfXmlLocation location = new TmfXmlLocation(element, this);
+            TmfXmlLocation location = modelFactory.createLocation(element, this);
             locations.add(location);
         }
         fLocations = Collections.unmodifiableSet(locations);
@@ -40,7 +41,7 @@
         NodeList nodes = doc.getElementsByTagName(TmfXmlStrings.EVENT_HANDLER);
         for (int i = 0; i < nodes.getLength(); i++) {
             Element element = (Element) nodes.item(i);
-            TmfXmlEventHandler handler = new TmfXmlEventHandler(element, this);
+            TmfXmlEventHandler handler = modelFactory.createEventHandler(element, this);
             fEventHandlers.add(handler);
         }
     }
