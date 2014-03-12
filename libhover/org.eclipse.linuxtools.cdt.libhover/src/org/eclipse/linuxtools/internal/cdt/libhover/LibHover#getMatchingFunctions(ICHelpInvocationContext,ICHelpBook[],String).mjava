@@ -2,35 +2,67 @@
 	public IFunctionSummary[] getMatchingFunctions(ICHelpInvocationContext context, ICHelpBook[] helpBooks, String prefix) {
 		ArrayList<IFunctionSummary> fList = new ArrayList<>();
 
-		for (int di = 0; di < helpBooks.length; ++di) {
-			LibHoverLibrary l = libraries.get(helpBooks[di]);
-			LibHoverInfo cppInfo = l.getHoverInfo();
-			SortedMap<String, FunctionInfo> map = cppInfo.functions.tailMap(prefix);
-			Set<Map.Entry<String, FunctionInfo>> c = map.entrySet();
-			for (Iterator<Entry<String, FunctionInfo>> i = c.iterator(); i.hasNext();) {
-				Map.Entry<String, FunctionInfo> e = i.next();
-				FunctionInfo x = e.getValue();
-				String name = x.getName();
-				// Look for names that start with prefix, but ignore names that
-				// start with "0" which is used to import text data that cannot
-				// be omitted from the binary version of the document (e.g. invariant
-				// sections of a GFDL licensed document).  This data is given a
-				// function name that starts with the character "0" which is not
-				// valid for the start of a C/C++ function name.  As such, it should
-				// never be offered as a choice for an empty prefix.
-				if (name.startsWith(prefix) && !name.startsWith("0")) { //$NON-NLS-1$
-					FunctionSummary f = new FunctionSummary();
-					f.ReturnType = x.getReturnType();
-					f.Prototype = x.getPrototype();
-					f.Summary = x.getDescription();
-					f.Name = x.getName();
-					ArrayList<String> headers = x.getHeaders();
-					for (int i1 = 0; i1 < headers.size(); ++i1)
-						f.setIncludeName(headers.get(i1));
-					fList.add(f);
-				}
-			}
-		}
+        ITranslationUnit t = context.getTranslationUnit();
+
+        boolean qualifiedCPP = false;
+
+        if (t.isCXXLanguage()) {
+        	try {
+        		if (context instanceof IContentAssistHelpInvocationContext) {
+        			// We know the file offset of the member reference.
+        			IASTCompletionNode node = ((IContentAssistHelpInvocationContext)context).getCompletionNode();
+
+        			IASTName[] names = node.getNames();
+
+        			for (IASTName name : names) {
+        				if (name.isQualified()) {
+        					qualifiedCPP = true;
+        					break;
+        				}
+
+        			}
+
+        		}
+        	} catch (IllegalArgumentException e) {
+        		// TODO Auto-generated catch block
+        		e.printStackTrace();
+        	} catch (Exception e) {
+        		// TODO Auto-generated catch block
+        		e.printStackTrace();
+        	}
+        }
+
+        if (!qualifiedCPP) {
+        	for (int di = 0; di < helpBooks.length; ++di) {
+        		LibHoverLibrary l = libraries.get(helpBooks[di]);
+        		LibHoverInfo cppInfo = l.getHoverInfo();
+        		SortedMap<String, FunctionInfo> map = cppInfo.functions.tailMap(prefix);
+        		Set<Map.Entry<String, FunctionInfo>> c = map.entrySet();
+        		for (Iterator<Entry<String, FunctionInfo>> i = c.iterator(); i.hasNext();) {
+        			Map.Entry<String, FunctionInfo> e = i.next();
+        			FunctionInfo x = e.getValue();
+        			String name = x.getName();
+        			// Look for names that start with prefix, but ignore names that
+        			// start with "0" which is used to import text data that cannot
+        			// be omitted from the binary version of the document (e.g. invariant
+        			// sections of a GFDL licensed document).  This data is given a
+        			// function name that starts with the character "0" which is not
+        			// valid for the start of a C/C++ function name.  As such, it should
+        			// never be offered as a choice for an empty prefix.
+        			if (name.startsWith(prefix) && !name.startsWith("0")) { //$NON-NLS-1$
+        				FunctionSummary f = new FunctionSummary();
+        				f.ReturnType = x.getReturnType();
+        				f.Prototype = x.getPrototype();
+        				f.Summary = x.getDescription();
+        				f.Name = x.getName();
+        				ArrayList<String> headers = x.getHeaders();
+        				for (int i1 = 0; i1 < headers.size(); ++i1)
+        					f.setIncludeName(headers.get(i1));
+        				fList.add(f);
+        			}
+        		}
+        	}
+        }
 		IFunctionSummary[] summaries = new IFunctionSummary[fList.size()];
 		for (int k = 0; k < summaries.length; k++) {
 			summaries[k] = fList.get(k);

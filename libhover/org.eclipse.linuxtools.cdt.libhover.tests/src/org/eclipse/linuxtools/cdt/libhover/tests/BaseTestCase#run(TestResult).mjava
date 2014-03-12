@@ -1,0 +1,28 @@
+    @Override
+	public void run(TestResult result) {
+    	if (!fExpectFailure || "true".equals(System.getProperty("SHOW_EXPECTED_FAILURES"))) {
+    		super.run(result);
+    		return;
+    	}
+
+        result.startTest(this);
+
+        TestResult r = new TestResult();
+        super.run(r);
+        if (r.failureCount() == 1) {
+        	TestFailure failure= r.failures().nextElement();
+        	String msg= failure.exceptionMessage();
+        	if (msg != null && msg.startsWith("Method \"" + getName() + "\"")) {
+        		result.addFailure(this, new AssertionFailedError(msg));
+        	}
+        } else if (r.errorCount() == 0 && r.failureCount() == 0) {
+            String err = "Unexpected success of " + getName();
+            if (fBugNumber > 0) {
+                err += ", bug #" + fBugNumber;
+            }
+            result.addFailure(this, new AssertionFailedError(err));
+        }
+
+        result.endTest(this);
+    }
+

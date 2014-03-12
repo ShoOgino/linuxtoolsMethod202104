@@ -1,0 +1,29 @@
+	/**
+	 * Creates CDT project in a specific location and opens it.
+	 *
+	 * @param projectName - project name.
+	 * @param locationURI - location.
+	 * @return - new {@link IProject}.
+	 * @throws CoreException - if the project can't be created.
+	 * @throws OperationCanceledException...
+	 */
+	public static IProject createCDTProject(String projectName, URI locationURI) throws OperationCanceledException, CoreException {
+		IWorkspace workspace = ResourcesPlugin.getWorkspace();
+		IWorkspaceRoot root = workspace.getRoot();
+
+		IProject project = root.getProject(projectName);
+		IndexerPreferences.set(project, IndexerPreferences.KEY_INDEXER_ID, IPDOMManager.ID_NO_INDEXER);
+		resourcesCreated.add(project);
+
+		IProjectDescription description = workspace.newProjectDescription(projectName);
+		description.setLocationURI(locationURI);
+		project = CCorePlugin.getDefault().createCDTProject(description, project, NULL_MONITOR);
+		waitForProjectRefreshToFinish();
+		Assert.assertNotNull(project);
+
+		project.open(null);
+		Assert.assertTrue(project.isOpen());
+
+		return project;
+	}
+

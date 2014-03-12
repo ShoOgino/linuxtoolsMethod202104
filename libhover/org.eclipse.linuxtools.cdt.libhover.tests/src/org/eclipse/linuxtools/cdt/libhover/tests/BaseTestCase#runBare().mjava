@@ -1,0 +1,70 @@
+	@Override
+	public void runBare() throws Throwable {
+		final List<IStatus> statusLog= Collections.synchronizedList(new ArrayList<IStatus>());
+		ILogListener logListener= new ILogListener() {
+			@Override
+			public void logging(IStatus status, String plugin) {
+				if (!status.isOK() && status.getSeverity() != IStatus.INFO) {
+					switch (status.getCode()) {
+					case IResourceStatus.NOT_FOUND_LOCAL:
+					case IResourceStatus.NO_LOCATION_LOCAL:
+					case IResourceStatus.FAILED_READ_LOCAL:
+					case IResourceStatus.RESOURCE_NOT_LOCAL:
+						// Logged by the resources plugin.
+						return;
+					}
+					statusLog.add(status);
+				}
+			}
+		};
+		final CCorePlugin corePlugin = CCorePlugin.getDefault();
+		if (corePlugin != null) { //Iif we don't run a JUnit Plugin Test
+			corePlugin.getLog().addLogListener(logListener);
+		}
+
+		Throwable testThrowable= null;
+		try {
+			try {
+				super.runBare();
+			} catch (Throwable e) {
+				testThrowable= e;
+			}
+
+			if (statusLog.size() != fExpectedLoggedNonOK) {
+				StringBuffer msg= new StringBuffer("Expected number (" + fExpectedLoggedNonOK + ") of ");
+				msg.append("non-OK status objects in log differs from actual (" + statusLog.size() + ").\n");
+				Throwable cause= null;
+				if (!statusLog.isEmpty()) {
+					synchronized (statusLog) {
+						for (IStatus status : statusLog) {
+							IStatus[] ss= {status};
+							ss= status instanceof MultiStatus ? ((MultiStatus) status).getChildren() : ss;
+							for (IStatus s : ss) {
+								msg.append("\t" + s.getMessage() + " ");
+
+								Throwable t= s.getException();
+								cause= cause != null ? cause : t;
+								if (t != null) {
+									msg.append(t.getMessage() != null ? t.getMessage() : t.getClass().getCanonicalName());
+								}
+
+								msg.append("\n");
+							}
+						}
+					}
+				}
+				cause= cause != null ? cause : testThrowable;
+				AssertionFailedError afe= new AssertionFailedError(msg.toString());
+				afe.initCause(cause);
+				throw afe;
+			}
+		} finally {
+			if (corePlugin != null) {
+				corePlugin.getLog().removeLogListener(logListener);
+			}
+		}
+
+		if (testThrowable != null)
+			throw testThrowable;
+	}
+

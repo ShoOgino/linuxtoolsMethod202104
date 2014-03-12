@@ -1,0 +1,42 @@
+	/**
+	 * Reads a section in comments form the source of the given class. The section
+	 * is started with '// {tag}' and ends with the first line not started by '//'
+	 * @since 4.0
+	 */
+	public static String readTaggedComment(Bundle bundle, String srcRoot, Class<?> clazz, final String tag) throws IOException {
+	    IPath filePath= new Path(srcRoot + '/' + clazz.getName().replace('.', '/') + ".java");
+
+	    InputStream in= FileLocator.openStream(bundle, filePath, false);
+	    LineNumberReader reader= new LineNumberReader(new InputStreamReader(in));
+	    boolean found= false;
+	    final StringBuilder content= new StringBuilder();
+	    try {
+	        String line= reader.readLine();
+	        while (line != null) {
+	        	line= line.trim();
+	            if (line.startsWith("//")) {
+	                line= line.substring(2);
+	                if (found) {
+	                    content.append(line);
+	                    content.append('\n');
+	                } else {
+	                    line= line.trim();
+	                    if (line.startsWith("{" + tag)) {
+	                        if (line.length() == tag.length() + 1 ||
+	                                !Character.isJavaIdentifierPart(line.charAt(tag.length() + 1))) {
+	                            found= true;
+	                        }
+	                    }
+	                }
+	            } else if (found) {
+	                break;
+	            }
+	            line= reader.readLine();
+	        }
+	    } finally {
+	        reader.close();
+	    }
+	    assertTrue("Tag '" + tag + "' is not defined inside of '" + filePath + "'.", found);
+	    return content.toString();
+	}
+

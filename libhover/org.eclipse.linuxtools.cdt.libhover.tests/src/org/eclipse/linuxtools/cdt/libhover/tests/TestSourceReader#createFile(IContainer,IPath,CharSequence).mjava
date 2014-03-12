@@ -1,0 +1,51 @@
+	/**
+	 * Creates a file with content at the given path inside the given container.
+	 * If the file exists its content is replaced.
+	 * @param container a container to create the file in
+	 * @param filePath the path relative to the container to create the file at
+	 * @param contents the content for the file
+	 * @return a file object.
+	 * @throws CoreException
+	 * @since 4.0
+	 */
+	public static IFile createFile(final IContainer container, final IPath filePath,
+			final CharSequence contents) throws CoreException {
+		final IWorkspace ws = ResourcesPlugin.getWorkspace();
+		final IFile result[] = new IFile[1];
+		ws.run(new IWorkspaceRunnable() {
+			@Override
+			public void run(IProgressMonitor monitor) throws CoreException {
+				// Obtain file handle
+				IFile file = container.getFile(filePath);
+
+				InputStream stream;
+				try {
+					stream = new ByteArrayInputStream(contents.toString().getBytes("UTF-8"));
+				} catch (UnsupportedEncodingException e) {
+					throw new CoreException(new Status(IStatus.ERROR, CProjectHelper.PLUGIN_ID, null, e));
+				}
+				// Create file input stream
+				if (file.exists()) {
+					long timestamp= file.getLocalTimeStamp();
+					file.setContents(stream, false, false, new NullProgressMonitor());
+					if (file.getLocalTimeStamp() == timestamp) {
+						file.setLocalTimeStamp(timestamp + 1000);
+					}
+				} else {
+					createFolders(file);
+					file.create(stream, true, new NullProgressMonitor());
+				}
+				result[0]= file;
+			}
+
+			private void createFolders(IResource res) throws CoreException {
+				IContainer container= res.getParent();
+				if (!container.exists() && container instanceof IFolder) {
+					createFolders(container);
+					((IFolder) container).create(true, true, new NullProgressMonitor());
+				}
+			}
+		}, null);
+		return result[0];
+	}
+

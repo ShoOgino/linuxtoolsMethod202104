@@ -1,0 +1,20 @@
+    public void testCfunc() throws Exception {
+        StringWriter writer = new StringWriter();
+        writer.write("void foo(){               \n"); //$NON-NLS-1$
+        writer.write("   int var;               \n"); //$NON-NLS-1$
+        writer.write("   var = strle            \n"); //$NON-NLS-1$
+        writer.write("}                         \n"); //$NON-NLS-1$
+
+        String code = writer.toString();
+        IFile cu = importFile( "t.c", code ); //$NON-NLS-1$
+        ICompletionProposal [] results = getResults( cu, code.indexOf( "strle " ) + 5 ); //$NON-NLS-1$
+        
+        assertTrue( results.length >= 1 );
+        
+        // Verify we find the glibc strlen function
+        assertEquals( results[0].getDisplayString(), "strlen (const char *s) size_t" ); //$NON-NLS-1$
+        
+        if (results.length > 1) // if newlib book also enabled, verify it is correct too
+        	assertEquals( results[1].getDisplayString(), "strlen (const char *str) size_t " ); //$NON-NLS-1$
+    }
+

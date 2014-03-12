@@ -1,0 +1,23 @@
+	private static void addFailingMethod(TestSuite suite, Method m, Set<String> names, Class<?> clazz, String prefix) {
+		String name= m.getName();
+		if (!names.add(name)) {
+			return;
+		}
+		if (name.startsWith("test") || (prefix != null && !name.startsWith(prefix))) {
+			return;
+		}
+		if (name.equals("tearDown") || name.equals("setUp") || name.equals("runBare")) {
+			return;
+		}
+		if (Modifier.isPublic(m.getModifiers())) {
+			@SuppressWarnings("rawtypes")
+			Class[] parameters= m.getParameterTypes();
+			Class<?> returnType= m.getReturnType();
+			if (parameters.length == 0 && returnType.equals(Void.TYPE)) {
+				Test test= TestSuite.createTest(clazz, name);
+				((BaseTestCase) test).setExpectFailure(0);
+				suite.addTest(test);
+			}
+		}
+	}
+

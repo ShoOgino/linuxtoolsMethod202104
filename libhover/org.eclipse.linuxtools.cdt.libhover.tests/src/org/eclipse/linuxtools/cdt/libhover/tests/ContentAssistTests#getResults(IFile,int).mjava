@@ -1,0 +1,27 @@
+    protected ICompletionProposal[] getResults( IFile file, int offset ) throws Exception {
+    	disableContributions();
+	    ITranslationUnit tu = (ITranslationUnit)CoreModel.getDefault().create( file );
+		@SuppressWarnings("unused")
+		String buffer = tu.getBuffer().getContents();
+		@SuppressWarnings("unused")
+		IWorkingCopy wc = null;
+		try{
+			wc = tu.getWorkingCopy();
+		}catch (CModelException e){
+			fail("Failed to get working copy"); //$NON-NLS-1$
+		}
+	
+		// call the ContentAssistProcessor
+		IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+		FileEditorInput editorInput = new FileEditorInput(file);
+		IEditorPart editorPart = page.openEditor(editorInput, "org.eclipse.cdt.ui.editor.CEditor");
+		CEditor editor = (CEditor) editorPart ;
+		@SuppressWarnings("unused")
+		IAction completionAction = editor.getAction("ContentAssistProposal");
+
+		String contentType = editor.getViewer().getDocument().getContentType(offset);
+		ContentAssistant assistant = new ContentAssistant();
+		CContentAssistProcessor processor = new CContentAssistProcessor(editor, assistant, contentType);
+		return processor.computeCompletionProposals(editor.getViewer(), offset);
+    }
+

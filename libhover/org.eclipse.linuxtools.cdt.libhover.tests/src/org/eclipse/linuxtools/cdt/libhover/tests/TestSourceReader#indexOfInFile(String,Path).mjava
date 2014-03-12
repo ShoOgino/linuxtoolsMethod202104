@@ -1,0 +1,38 @@
+	/**
+	 * Searches for the offset of the first occurrence of a string in a workspace file.
+	 * @param lookfor string to be searched for
+	 * @param fullPath full path of the workspace file
+	 * @return the offset or -1
+	 * @throws Exception
+	 * @throws UnsupportedEncodingException
+	 * @since 4.0
+	 */
+	public static int indexOfInFile(String lookfor, Path fullPath) throws Exception {
+		IFile file= ResourcesPlugin.getWorkspace().getRoot().getFile(fullPath);
+		Reader reader= new BufferedReader(new InputStreamReader(file.getContents(), file.getCharset()));
+		assertTrue(lookfor.indexOf('\n') == -1);
+		try {
+			int c= 0;
+			int offset= 0;
+			StringBuilder buf= new StringBuilder();
+			while ((c = reader.read()) >= 0) {
+				buf.append((char) c);
+				if (c == '\n') {
+					int idx= buf.indexOf(lookfor);
+					if (idx >= 0) {
+						return idx + offset;
+					}
+					offset += buf.length();
+					buf.setLength(0);
+				}
+			}
+			int idx= buf.indexOf(lookfor);
+			if (idx >= 0) {
+				return idx + offset;
+			}
+			return -1;
+		} finally {
+			reader.close();
+		}
+	}
+

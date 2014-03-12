@@ -1,0 +1,40 @@
+	/**
+	 * Creates new symbolic file system link from file or folder on project root
+	 * to another file system file. The filename can include relative path
+	 * as a part of the name but the the path has to be present on disk.
+	 *
+	 * @param project - project where to create the file.
+	 * @param linkName - name of the link being created.
+	 * @param realPath - file or folder on the file system, the target of the link.
+	 * @return file handle.
+	 *
+	 * @throws UnsupportedOperationException on Windows where links are not supported.
+	 * @throws IOException...
+	 * @throws CoreException...
+	 */
+	public static IResource createSymbolicLink(IProject project, String linkName, IPath realPath)
+			throws IOException, CoreException, UnsupportedOperationException {
+		if (!isSymbolicLinkSupported()) {
+			throw new UnsupportedOperationException("Windows links .lnk are not supported.");
+		}
+
+		Assert.assertTrue("Path for symbolic link does not exist: [" + realPath.toOSString() + "]",
+				new File(realPath.toOSString()).exists());
+
+		IPath linkedPath = project.getLocation().append(linkName);
+		createSymbolicLink(linkedPath, realPath);
+
+		IResource resource = project.getFile(linkName);
+		resource.refreshLocal(IResource.DEPTH_ZERO, null);
+
+		if (!resource.exists()) {
+			resource = project.getFolder(linkName);
+			resource.refreshLocal(IResource.DEPTH_ZERO, null);
+		}
+		Assert.assertTrue("Failed to create resource form symbolic link", resource.exists());
+
+		externalFilesCreated.add(linkedPath.toOSString());
+		ResourcesPlugin.getWorkspace().getRoot().refreshLocal(IResource.DEPTH_INFINITE, NULL_MONITOR);
+		return resource;
+	}
+

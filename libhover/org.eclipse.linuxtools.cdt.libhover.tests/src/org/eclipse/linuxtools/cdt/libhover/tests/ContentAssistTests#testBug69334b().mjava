@@ -1,0 +1,19 @@
+    public void testBug69334b() throws Exception {
+        importFile( "test.h", "class Test{ public : Test( int ); }; \n" );  //$NON-NLS-1$//$NON-NLS-2$
+        StringWriter writer = new StringWriter();
+        writer.write( "#include \"test.h\"                \n"); //$NON-NLS-1$
+        writer.write( "Test::Test( int i ) { return; }    \n"); //$NON-NLS-1$
+        writer.write( "int main() {                       \n"); //$NON-NLS-1$
+        writer.write( "   int veryLongName = 1;           \n"); //$NON-NLS-1$
+        writer.write( "   Test test( very   \n"); //$NON-NLS-1$
+        
+        String code = writer.toString();
+        IFile cu = importFile( "test.cpp", code ); //$NON-NLS-1$
+        
+        ICompletionProposal [] results = getResults( cu, code.indexOf( "very " ) + 4 ); //$NON-NLS-1$
+        
+        assertEquals( 1, results.length );
+        // We should not match anything in glibc and only see something from the source code
+        assertEquals( "veryLongName : int", results[0].getDisplayString() ); //$NON-NLS-1$
+    }
+
