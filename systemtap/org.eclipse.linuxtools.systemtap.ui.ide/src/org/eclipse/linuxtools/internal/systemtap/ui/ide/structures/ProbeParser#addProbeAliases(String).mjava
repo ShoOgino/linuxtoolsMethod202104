@@ -1,0 +1,40 @@
+	/**
+	 * Parses the output generated from running stap -L. Pulls out all functions
+	 * and probe aliases from the provided string. Populates the probe tree.
+	 *
+	 * ProbeTree organized as:
+	 *	Root->Named Groups->ProbePoints->Variables
+	 *
+	 * @param probeDump A list of probe points with the same formatting used by stap -L.
+	 * @return <code>false</code> if a cancellation prevented all probes from being added;
+	 * <code>true</code> otherwise.
+	 */
+	private boolean addProbeAliases(String probeDump) {
+		TreeNode group = null;
+		try (Scanner st = new Scanner(probeDump)) {
+			while(st.hasNextLine()) {
+				if (cancelRequested) {
+					return false;
+				}
+				String tokenString = st.nextLine();
+				// If the token starts with '_' or '__' it is a private probe so
+				// skip it.
+				if (tokenString.startsWith("_")) { //$NON-NLS-1$
+					continue;
+				}
+
+				StringTokenizer probeTokenizer = new StringTokenizer(tokenString);
+				String probeName = probeTokenizer.nextToken();
+
+				String groupName = extractProbeGroupName(tokenString);
+				if (!isStaticProbeGroup(groupName)) {
+					TreeNode probeNode = makeProbeAliasNode(probeName);
+					group = addOrFindProbeGroup(groupName, group, aliases);
+					group.add(probeNode);
+					addAllVarNodesToProbeNode(probeTokenizer, probeNode);
+				}
+			}
+			return true;
+		}
+	}
+
