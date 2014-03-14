@@ -58,13 +58,14 @@
             @Override
             public void treeCollapsed(TreeExpansionEvent event) {
                 fTimeGraphViewer.setExpandedState((ITimeGraphEntry) event.getElement(), false);
-                List<TreeItem> treeItems = getVisibleExpandedItems(tree);
-                int topIndex = fTimeGraphViewer.getTopIndex();
-                if (topIndex >= treeItems.size()) {
-                    return;
-                }
-                TreeItem treeItem = treeItems.get(topIndex);
-                tree.setTopItem(treeItem);
+                // queue the alignment update because the tree items may only be
+                // actually collapsed after the listeners have been notified
+                fVisibleExpandedItems = null; // invalidate the cache
+                getDisplay().asyncExec(new Runnable() {
+                    @Override
+                    public void run() {
+                        alignTreeItems(true);
+                    }});
             }
 
             @Override
@@ -75,18 +76,13 @@
                     boolean expanded = fTreeViewer.getExpandedState(child);
                     fTimeGraphViewer.setExpandedState(child, expanded);
                 }
-                List<TreeItem> treeItems = getVisibleExpandedItems(tree);
-                int topIndex = fTimeGraphViewer.getTopIndex();
-                if (topIndex >= treeItems.size()) {
-                    return;
-                }
-                final TreeItem treeItem = treeItems.get(topIndex);
-                // queue the top item update because the tree can change its top item
-                // autonomously immediately after the listeners have been notified
+                // queue the alignment update because the tree items may only be
+                // actually expanded after the listeners have been notified
+                fVisibleExpandedItems = null; // invalidate the cache
                 getDisplay().asyncExec(new Runnable() {
                     @Override
                     public void run() {
-                        tree.setTopItem(treeItem);
+                        alignTreeItems(true);
                     }});
             }
         });
@@ -96,6 +92,7 @@
             @Override
             public void treeCollapsed(TimeGraphTreeExpansionEvent event) {
                 fTreeViewer.setExpandedState(event.getEntry(), false);
+                alignTreeItems(true);
             }
 
             @Override
@@ -106,6 +103,7 @@
                     boolean expanded = fTreeViewer.getExpandedState(child);
                     fTimeGraphViewer.setExpandedState(child, expanded);
                 }
+                alignTreeItems(true);
             }
         });
 
@@ -116,7 +114,7 @@
                 TreeItem treeItem = tree.getItem(new Point(event.x, event.y));
                 if (treeItem == null || treeItem.getData() == FILLER) {
                     event.doit = false;
-                    List<TreeItem> treeItems = getVisibleExpandedItems(tree);
+                    List<TreeItem> treeItems = getVisibleExpandedItems(tree, false);
                     if (treeItems.size() == 0) {
                         fTreeViewer.setSelection(new StructuredSelection());
                         fTimeGraphViewer.setSelection(null);
@@ -138,13 +136,7 @@
                 event.doit = false;
                 Slider scrollBar = fTimeGraphViewer.getVerticalBar();
                 fTimeGraphViewer.setTopIndex(scrollBar.getSelection() - event.count);
-                List<TreeItem> treeItems = getVisibleExpandedItems(tree);
-                int topIndex = fTimeGraphViewer.getTopIndex();
-                if (topIndex >= treeItems.size()) {
-                    return;
-                }
-                TreeItem treeItem = treeItems.get(topIndex);
-                tree.setTopItem(treeItem);
+                alignTreeItems(false);
             }
         });
 
@@ -152,7 +144,7 @@
         tree.addListener(SWT.KeyDown, new Listener() {
             @Override
             public void handleEvent(Event event) {
-                List<TreeItem> treeItems = getVisibleExpandedItems(tree);
+                List<TreeItem> treeItems = getVisibleExpandedItems(tree, false);
                 if (treeItems.size() == 0) {
                     fTreeViewer.setSelection(new StructuredSelection());
                     event.doit = false;
@@ -172,13 +164,12 @@
                     fTimeGraphViewer.setSelection((ITimeGraphEntry) treeItems.get(treeItems.size() - 1).getData());
                     event.doit = false;
                 }
-                TreeItem treeItem = treeItems.get(fTimeGraphViewer.getTopIndex());
-                tree.setTopItem(treeItem);
                 if (fTimeGraphViewer.getSelectionIndex() >= 0) {
                     fTreeViewer.setSelection(new StructuredSelection(fTimeGraphViewer.getSelection()));
                 } else {
                     fTreeViewer.setSelection(new StructuredSelection());
                 }
+                alignTreeItems(false);
             }
         });
 
@@ -186,13 +177,7 @@
         fTimeGraphViewer.getTimeGraphControl().addControlListener(new ControlAdapter() {
             @Override
             public void controlResized(ControlEvent e) {
-                List<TreeItem> treeItems = getVisibleExpandedItems(tree);
-                int topIndex = fTimeGraphViewer.getTopIndex();
-                if (topIndex >= treeItems.size()) {
-                    return;
-                }
-                TreeItem treeItem = treeItems.get(topIndex);
-                tree.setTopItem(treeItem);
+                alignTreeItems(false);
             }
         });
 
@@ -208,13 +193,7 @@
                     if (selection instanceof ITimeGraphEntry) {
                         fTimeGraphViewer.setSelection((ITimeGraphEntry) selection);
                     }
-                    List<TreeItem> treeItems = getVisibleExpandedItems(tree);
-                    int topIndex = fTimeGraphViewer.getTopIndex();
-                    if (topIndex >= treeItems.size()) {
-                        return;
-                    }
-                    TreeItem treeItem = treeItems.get(topIndex);
-                    tree.setTopItem(treeItem);
+                    alignTreeItems(false);
                 }
             }
         });
@@ -232,13 +211,7 @@
                     fTreeViewer.setSelection(new StructuredSelection());
                 }
                 fInhibitTreeSelection = false;
-                List<TreeItem> treeItems = getVisibleExpandedItems(tree);
-                int topIndex = fTimeGraphViewer.getTopIndex();
-                if (topIndex >= treeItems.size()) {
-                    return;
-                }
-                TreeItem treeItem = treeItems.get(topIndex);
-                tree.setTopItem(treeItem);
+                alignTreeItems(false);
             }
         });
 
@@ -246,13 +219,7 @@
         fTimeGraphViewer.getVerticalBar().addSelectionListener(new SelectionAdapter() {
             @Override
             public void widgetSelected(SelectionEvent e) {
-                List<TreeItem> treeItems = getVisibleExpandedItems(tree);
-                int topIndex = fTimeGraphViewer.getTopIndex();
-                if (topIndex >= treeItems.size()) {
-                    return;
-                }
-                TreeItem treeItem = treeItems.get(topIndex);
-                tree.setTopItem(treeItem);
+                alignTreeItems(false);
             }
         });
 
@@ -260,13 +227,7 @@
         fTimeGraphViewer.getTimeGraphControl().addMouseWheelListener(new MouseWheelListener() {
             @Override
             public void mouseScrolled(MouseEvent e) {
-                List<TreeItem> treeItems = getVisibleExpandedItems(tree);
-                int topIndex = fTimeGraphViewer.getTopIndex();
-                if (topIndex >= treeItems.size()) {
-                    return;
-                }
-                TreeItem treeItem = treeItems.get(topIndex);
-                tree.setTopItem(treeItem);
+                alignTreeItems(false);
             }
         });
 
@@ -294,28 +255,6 @@
             public void mouseEnter(MouseEvent e) {
                 if (fTreeViewer.getControl().isFocusControl()) {
                     fTimeGraphViewer.getTimeGraphControl().setFocus();
-                }
-            }
-        });
-
-        // ensure the time graph item heights are equal to the tree item heights
-        tree.addPaintListener(new PaintListener() {
-            @Override
-            public void paintControl(PaintEvent e) {
-                List<TreeItem> items = getVisibleExpandedItems(tree);
-                for (int i = 0; i < items.size() - 1; i++) {
-                    TreeItem item = items.get(i);
-                    /*
-                     * Bug in Linux. The method getBounds doesn't always return the correct height.
-                     * Use the difference of y position between items to calculate the height.
-                     */
-                    Integer itemHeight = items.get(i + 1).getBounds().y - item.getBounds().y;
-                    if (!itemHeight.equals(item.getData(ITEM_HEIGHT))) {
-                        ITimeGraphEntry entry = (ITimeGraphEntry) item.getData();
-                        if (fTimeGraphViewer.getTimeGraphControl().setItemHeight(entry, itemHeight)) {
-                            item.setData(ITEM_HEIGHT, itemHeight);
-                        }
-                    }
                 }
             }
         });
