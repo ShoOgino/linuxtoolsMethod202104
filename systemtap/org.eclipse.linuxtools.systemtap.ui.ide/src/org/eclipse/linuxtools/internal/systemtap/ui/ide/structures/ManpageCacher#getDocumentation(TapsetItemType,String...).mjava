@@ -1,0 +1,32 @@
+    /**
+     * Returns the documentation for the given probe, function, or tapset. Will never be <code>null</code>.
+     */
+    public static synchronized String getDocumentation(TapsetItemType prefix, String ...elements) {
+        String fullElement = createFullElement(prefix, elements);
+        String documentation = pages.get(fullElement);
+        if (documentation == null) {
+            // If the requested element is a probe variable,
+            // fetch the documentation for the parent probe then check the map
+            if (prefix == TapsetItemType.PROBEVAR) {
+                getDocumentation(TapsetItemType.PROBE, elements[0]);
+                documentation = pages.get(fullElement);
+                if (documentation == null) {
+                    documentation = ManpageCacher.NO_MAN_ENTRY + " " + fullElement; //$NON-NLS-1$
+                    pages.put(fullElement, documentation);
+                }
+                return documentation;
+            }
+
+            // Otherwise, get the documentation for the requested element.
+            documentation = (new ManPage(fullElement)).getStrippedTextPage().toString();
+            pages.put(fullElement, documentation);
+
+            // If the requested element is a probe and a documentation page was
+            // found for it, parse the documentation for the variables if present.
+            if (!isEmptyDocumentation(documentation) && prefix == TapsetItemType.PROBE) {
+                getProbeVariableDocumentation(documentation, elements[0]);
+            }
+        }
+        return documentation;
+    }
+

@@ -3,34 +3,25 @@
         String documentation = null;
         try {
             String keyword = textViewer.getDocument().get(hoverRegion.getOffset(), hoverRegion.getLength());
-
-            documentation = TapsetLibrary.getDocumentation("function::" + keyword); //$NON-NLS-1$
-            if (!documentation.startsWith("No manual entry for")) { //$NON-NLS-1$
-                return documentation;
-            }
-
-            documentation = TapsetLibrary.getDocumentation("probe::" + keyword); //$NON-NLS-1$
-            if (!documentation.startsWith("No manual entry for")) { //$NON-NLS-1$
-                return documentation;
-            }
-
-            documentation = TapsetLibrary.getDocumentation("tapset::" + keyword); //$NON-NLS-1$
-            if (!documentation.startsWith("No manual entry for")) { //$NON-NLS-1$
-                return documentation;
-            }
-
-            if (keyword.indexOf('.') > 0) {
-                keyword = keyword.split("\\.")[0]; //$NON-NLS-1$
-                documentation = TapsetLibrary.getDocumentation("tapset::" + keyword); //$NON-NLS-1$
-            }
-
+            int offset = hoverRegion.getOffset();
             IDocument document = textViewer.getDocument();
-            ITypedRegion partition =
-                    ((IDocumentExtension3)document).getPartition(STPProbeScanner.STP_PROBE_PARTITIONING,
-                            hoverRegion.getOffset(), false);
-            if (partition.getType() == STPProbeScanner.STP_PROBE) {
-                String probe = getProbe(textViewer.getDocument(), hoverRegion.getOffset());
-                documentation = TapsetLibrary.getDocumentation("probe::" + probe + "::"+ keyword); //$NON-NLS-1$ //$NON-NLS-2$
+
+            if (getPrecedingToken(document, offset - 1).tokenString.equals(PROBE_KEYWORD.trim())) {
+                documentation = ManpageCacher.getDocumentation(TapsetItemType.PROBE, keyword);
+            } else {
+                ITypedRegion partition =
+                        ((IDocumentExtension3)document).getPartition(STPProbeScanner.STP_PROBE_PARTITIONING,
+                                offset, false);
+                if (partition.getType() == STPProbeScanner.STP_PROBE) {
+                    if (isFunctionRegion(document, hoverRegion)) {
+                        documentation = ManpageCacher.getDocumentation(TapsetItemType.FUNCTION, keyword);
+                    } else {
+                        String probe = getProbe(document, offset);
+                        if (stpMetadataSingleton.isVariableInProbe(probe, keyword)) {
+                            documentation = ManpageCacher.getDocumentation(TapsetItemType.PROBEVAR, probe, keyword);
+                        }
+                    }
+                }
             }
 
         } catch (BadLocationException|BadPartitioningException e) {
