@@ -18,21 +18,23 @@
      * @since 3.0
      */
     public static IStatus openTraceFromPath(TmfTraceFolder destinationFolder, String path, Shell shell, String tracetypeHint) throws CoreException {
+        final String pathToUse = checkTracePath(path);
         TraceTypeHelper traceTypeToSet = null;
         try {
-            traceTypeToSet = TmfTraceTypeUIUtils.selectTraceType(path, null, tracetypeHint);
+          traceTypeToSet = TmfTraceTypeUIUtils.selectTraceType(pathToUse, null, tracetypeHint);
         } catch (TmfTraceImportException e) {
             MessageBox mb = new MessageBox(shell);
             mb.setMessage(e.getMessage());
             mb.open();
             return new Status(IStatus.ERROR, Activator.PLUGIN_ID, e.getMessage());
         }
+
         IFolder folder = destinationFolder.getResource();
-        String traceName = getTraceName(path, folder);
-        if (traceExists(path, folder)) {
+        String traceName = getTraceName(pathToUse, folder);
+        if (traceExists(pathToUse, folder)) {
             return openTraceFromFolder(destinationFolder, traceName);
         }
-        final IPath pathString = Path.fromOSString(path);
+        final IPath pathString = Path.fromOSString(pathToUse);
         IResource linkedTrace = TmfImportHelper.createLink(folder, pathString, traceName);
 
         if (linkedTrace == null || !linkedTrace.exists()) {
@@ -40,7 +42,7 @@
                     Messages.TmfOpenTraceHelper_LinkFailed);
         }
 
-        String sourceLocation = URIUtil.toUnencodedString(new File(path).toURI());
+        String sourceLocation = URIUtil.toUnencodedString(pathString.toFile().toURI());
         linkedTrace.setPersistentProperty(TmfCommonConstants.SOURCE_LOCATION, sourceLocation);
 
         // No trace type was determined.
