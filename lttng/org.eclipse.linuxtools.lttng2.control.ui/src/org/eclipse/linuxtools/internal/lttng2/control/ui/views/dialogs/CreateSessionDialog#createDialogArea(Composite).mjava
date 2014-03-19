@@ -21,39 +21,66 @@
         fSessionNameText = new Text(sessionGroup, SWT.NONE);
         fSessionNameText.setToolTipText(Messages.TraceControl_CreateSessionNameTooltip);
         fSessionNameText.addModifyListener(fUpdateEnablementModifyListener);
+        GridData data = new GridData(GridData.FILL_HORIZONTAL);
+        data.horizontalSpan = 3;
+        fSessionNameText.setLayoutData(data);
 
         fSessionPathLabel = new Label(sessionGroup, SWT.RIGHT);
         fSessionPathLabel.setText(Messages.TraceControl_CreateSessionPathLabel);
         fSessionPathText = new Text(sessionGroup, SWT.NONE);
         fSessionPathText.setToolTipText(Messages.TraceControl_CreateSessionPathTooltip);
-        fSessionPathText.addModifyListener(fUpdateEnablementModifyListener);
-
-        if (fParent.isSnapshotSupported()) {
-            fSnapshotButton = new Button(sessionGroup, SWT.CHECK);
-            fSnapshotButton.setText(Messages.TraceControl_CreateSessionSnapshotLabel);
-            fSnapshotButton.setToolTipText(Messages.TraceControl_CreateSessionSnapshotTooltip);
-            GridData data = new GridData(GridData.FILL_HORIZONTAL);
-            data.horizontalSpan = 4;
-            fSnapshotButton.setLayoutData(data);
-            fSnapshotButton.addSelectionListener(new SelectionAdapter() {
-                @Override
-                public void widgetSelected(SelectionEvent e) {
-                    updateEnablement();
-                }
-            });
-        }
-
-        // layout widgets
-        GridData data = new GridData(GridData.FILL_HORIZONTAL);
-        data.horizontalSpan = 3;
-
-        fSessionNameText.setLayoutData(data);
-
         data = new GridData(GridData.FILL_HORIZONTAL);
         data.horizontalSpan = 3;
         fSessionPathText.setLayoutData(data);
+        fSessionPathText.addModifyListener(fUpdateEnablementModifyListener);
 
-        if (fParent.isNetworkStreamingSupported()) {
+        if (fParent.isSnapshotSupported() || fParent.isLiveSupported()) {
+            fModeButtonGroup = new Group(sessionGroup, SWT.NONE);
+            data = new GridData(GridData.FILL_HORIZONTAL);
+            data.horizontalSpan = 4;
+            fModeButtonGroup.setLayoutData(data);
+            fModeButtonGroup.setLayout(new GridLayout(3, true));
+
+            SelectionAdapter modeChangedListener = new SelectionAdapter() {
+                @Override
+                public void widgetSelected(SelectionEvent e) {
+                    if (fLiveButton != null) {
+                        if (fLiveButton.getSelection()) {
+                            createAdvancedLiveGroup();
+                            updateSessionPathEnablement();
+                            updateProtocolComboItems();
+                        } else {
+                            disposeLiveGroup();
+                            updateSessionPathEnablement();
+                            updateProtocolComboItems();
+                        }
+                    }
+                    updateEnablement();
+                }
+            };
+
+            fNormalModeButton = new Button(fModeButtonGroup, SWT.RADIO);
+            fNormalModeButton.setText(Messages.TraceControl_CreateSessionNormalLabel);
+            fNormalModeButton.setToolTipText(Messages.TraceControl_CreateSessionNormalTooltip);
+            fNormalModeButton.setSelection(true);
+            fNormalModeButton.addSelectionListener(modeChangedListener);
+
+            if (fParent.isSnapshotSupported()) {
+                fSnapshotButton = new Button(fModeButtonGroup, SWT.RADIO);
+                fSnapshotButton.setText(Messages.TraceControl_CreateSessionSnapshotLabel);
+                fSnapshotButton.setToolTipText(Messages.TraceControl_CreateSessionSnapshotTooltip);
+                fSnapshotButton.addSelectionListener(modeChangedListener);
+            }
+
+            if (fParent.isLiveSupported()) {
+                fLiveButton = new Button(fModeButtonGroup, SWT.RADIO);
+                fLiveButton.setText(Messages.TraceControl_CreateSessionLiveLabel);
+                fLiveButton.setToolTipText(Messages.TraceControl_CreateSessionLiveTooltip);
+                fLiveButton.addSelectionListener(modeChangedListener);
+            }
+        }
+
+        if (fParent.isNetworkStreamingSupported() || fParent.isLiveSupported()) {
             createAdvancedOptionsComposite();
         }
 

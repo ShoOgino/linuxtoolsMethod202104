@@ -4,9 +4,14 @@
         fSessionPath = fSessionPathText.getText();
         setErrorMessage(null);
 
+        if (fParent.isLiveSupported() && fLiveButton != null) {
+            fIsLive = fLiveButton.getSelection();
+            fLiveDelay = LTTngControlServiceConstants.UNUSED_VALUE;
+        }
+
         if (!"".equals(fSessionPath)) { //$NON-NLS-1$
             // validate sessionPath
-            if (!fIsStreamedTrace) {
+            if (!fIsAdvancedEnabled && !fIsLive) {
                 TargetNodeComponent node = (TargetNodeComponent)fParent.getParent();
                 IRemoteSystemProxy proxy = node.getRemoteSystemProxy();
                 IFileServiceSubSystem fsss = proxy.getFileServiceSubSystem();
@@ -40,8 +45,19 @@
         fControlUrl = null;
         fDataUrl = null;
 
-        if (fIsStreamedTrace && fStreamingComposite != null) {
+        if (fIsAdvancedEnabled && fStreamingComposite != null) {
             // Validate input data
+
+            if (fIsLive && fLiveGroup != null) {
+                String liveDelayText = fLiveDelayText.getText();
+                try {
+                    fLiveDelay = liveDelayText.equals(DEFAULT_TEXT) ? LTTngControlServiceConstants.UNUSED_VALUE : Integer.valueOf(liveDelayText);
+                } catch (NumberFormatException e) {
+                    setErrorMessage(Messages.TraceControl_InvalidLiveDelayError);
+                    return;
+                }
+            }
+
             fTracePath = fTracePathText.getText();
 
             if (fControlProtocolCombo.getSelectionIndex() < 0) {
@@ -83,6 +99,10 @@
                         fDataPortText.getText(),
                         fTracePath);
             }
+        }
+
+        if (fIsLive && fNetworkUrl == null && fControlUrl == null && fDataUrl == null) {
+            fNetworkUrl = SessionInfo.DEFAULT_LIVE_NETWORK_URK;
         }
 
         // Check for invalid names

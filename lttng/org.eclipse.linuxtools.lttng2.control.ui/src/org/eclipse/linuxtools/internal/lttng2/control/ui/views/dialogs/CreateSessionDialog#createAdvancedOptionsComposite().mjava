@@ -1,30 +1,40 @@
     private void createAdvancedOptionsComposite() {
 
-        fMainStreamingGroup = new Group(fDialogComposite, SWT.SHADOW_NONE);
-        fMainStreamingGroup.setLayoutData(new GridData(GridData.FILL_BOTH));
-        fMainStreamingGroup.setLayout(new GridLayout(1, true));
+        fAdvancedGroup = new Group(fDialogComposite, SWT.SHADOW_NONE);
+        fAdvancedGroup.setLayoutData(new GridData(GridData.FILL_BOTH));
+        fAdvancedGroup.setLayout(new GridLayout(1, true));
 
-        fConfigureStreamingButton = new Button(fMainStreamingGroup, SWT.PUSH);
-        fConfigureStreamingButton.setText(Messages.TraceControl_CreateSessionConfigureStreamingButtonText + " >>>"); //$NON-NLS-1$
-        fConfigureStreamingButton.setToolTipText(Messages.TraceControl_CreateSessionConfigureStreamingButtonTooltip);
-        fConfigureStreamingButton.addSelectionListener(new SelectionAdapter() {
+        fAdvancedButton = new Button(fAdvancedGroup, SWT.PUSH);
+        fAdvancedButton.setText(Messages.TraceControl_CreateSessionConfigureStreamingButtonText + " >>>"); //$NON-NLS-1$
+        fAdvancedButton.setToolTipText(Messages.TraceControl_CreateSessionConfigureStreamingButtonTooltip);
+        fAdvancedButton.addSelectionListener(new SelectionAdapter() {
             @Override
             public void widgetSelected(SelectionEvent e) {
-                if (fIsStreamedTrace) {
-                    fIsStreamedTrace = false;
-                    fConfigureStreamingButton.setText(">>> " + Messages.TraceControl_CreateSessionConfigureStreamingButtonText); //$NON-NLS-1$
-                    fConfigureStreamingButton.setToolTipText(Messages.TraceControl_CreateSessionConfigureStreamingButtonTooltip);
-                    fSessionPathText.setEnabled(true);
-                    fSessionPathLabel.setText(Messages.TraceControl_CreateSessionPathLabel);
-                    disposeConfigureStreamingComposite();
+                if (fIsAdvancedEnabled) {
+                    fIsAdvancedEnabled = false;
+                    fAdvancedButton.setText(">>> " + Messages.TraceControl_CreateSessionConfigureStreamingButtonText); //$NON-NLS-1$
+                    fAdvancedButton.setToolTipText(Messages.TraceControl_CreateSessionConfigureStreamingButtonTooltip);
+
+                    if (fParent.isNetworkStreamingSupported()) {
+                        updateSessionPathEnablement();
+                        disposeConfigureStreamingComposite();
+                    }
+
+                    if (fParent.isLiveSupported()) {
+                        disposeLiveGroup();
+                    }
                 } else {
-                    fIsStreamedTrace = true;
-                    fConfigureStreamingButton.setText("<<< " + Messages.TraceControl_CreateSessionNoStreamingButtonText); //$NON-NLS-1$
-                    fConfigureStreamingButton.setToolTipText(Messages.TraceControl_CreateSessionNoStreamingButtonTooltip);
-                    fSessionPathText.setEnabled(false);
-                    fSessionPathText.setText(""); //$NON-NLS-1$
-                    fSessionPathLabel.setText(""); //$NON-NLS-1$
-                    createConfigureStreamingComposite();
+                    fIsAdvancedEnabled = true;
+                    fAdvancedButton.setText("<<< " + Messages.TraceControl_CreateSessionNoStreamingButtonText); //$NON-NLS-1$
+                    fAdvancedButton.setToolTipText(Messages.TraceControl_CreateSessionNoStreamingButtonTooltip);
+
+                    if (fParent.isNetworkStreamingSupported()) {
+                        updateSessionPathEnablement();
+                        createConfigureStreamingComposite();
+                    }
+                    if (fLiveButton != null && fLiveButton.getSelection()) {
+                        createAdvancedLiveGroup();
+                    }
                 }
 
                 updateEnablement();
