@@ -1,8 +1,11 @@
     @Override
-    public ISessionInfo createSession(String sessionName, String sessionPath, boolean isSnapshot, IProgressMonitor monitor) throws ExecutionException {
+    public ISessionInfo createSession(ISessionInfo sessionInfo, IProgressMonitor monitor) throws ExecutionException {
+        if (sessionInfo.isStreamedTrace()) {
+            return createStreamedSession(sessionInfo, monitor);
+        }
 
-        String newName = formatParameter(sessionName);
-        String newPath = formatParameter(sessionPath);
+        String newName = formatParameter(sessionInfo.getName());
+        String newPath = formatParameter(sessionInfo.getSessionPath());
 
         StringBuffer command = createCommand(LTTngControlServiceConstants.COMMAND_CREATE_SESSION, newName);
 
@@ -11,7 +14,7 @@
             command.append(newPath);
         }
 
-        if (isSnapshot) {
+        if (sessionInfo.isSnapshotSession()) {
             command.append(LTTngControlServiceConstants.OPTION_SNAPSHOT);
         }
 
@@ -39,23 +42,22 @@
         }
 
         // Verify session name
-        if ((name == null) || (!"".equals(sessionName) && !name.equals(sessionName))) { //$NON-NLS-1$
+        if ((name == null) || (!"".equals(sessionInfo.getName()) && !name.equals(sessionInfo.getName()))) { //$NON-NLS-1$
             // Unexpected name returned
             throw new ExecutionException(Messages.TraceControl_CommandError + " " + command + "\n" + //$NON-NLS-1$ //$NON-NLS-2$
                     Messages.TraceControl_UnexpectedNameError + ": " + name); //$NON-NLS-1$
         }
 
-        SessionInfo sessionInfo = new SessionInfo(name);
-
+        sessionInfo.setName(name);
         // Verify session path
-        if (!isSnapshot &&
-                ((path == null) || ((sessionPath != null) && (!path.contains(sessionPath))))) {
+        if (!sessionInfo.isSnapshotSession() &&
+                ((path == null) || ((sessionInfo.getSessionPath() != null) && (!path.contains(sessionInfo.getSessionPath()))))) {
             // Unexpected path
             throw new ExecutionException(Messages.TraceControl_CommandError + " " + command + "\n" + //$NON-NLS-1$ //$NON-NLS-2$
                     Messages.TraceControl_UnexpectedPathError + ": " + name); //$NON-NLS-1$
         }
 
-        if (isSnapshot) {
+        if (sessionInfo.isSnapshotSession()) {
             // Make it a snapshot session - content of snapshot info need to
             // set afterwards using getSession() or getSnapshotInfo()
             sessionInfo.setSnapshotInfo(new SnapshotInfo("")); //$NON-NLS-1$
