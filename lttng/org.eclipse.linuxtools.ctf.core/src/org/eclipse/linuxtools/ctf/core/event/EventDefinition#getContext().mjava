@@ -4,48 +4,52 @@
      * @return the context in struct form
      */
     public StructDefinition getContext() {
-        final StructDefinition streamContext =
-                fStreamInputReader.getPacketReader().getStreamEventContextDef();
 
         /* Most common case so far */
-        if (streamContext == null) {
-            return fContext;
+        if (fStreamContext == null) {
+            return fEventContext;
         }
 
         /* streamContext is not null, but the context of the event is null */
-        if (fContext == null) {
-            return streamContext;
+        if (fEventContext == null) {
+            return fStreamContext;
         }
+
+        // TODO: cache if this is a performance issue
 
         /* The stream context and event context are assigned. */
         StructDeclaration mergedDeclaration = new StructDeclaration(1);
 
+        Builder<String> builder = ImmutableList.<String> builder();
+        List<Definition> fieldValues = new ArrayList<>();
+
         /* Add fields from the stream */
-        Map<String, Definition> defs = streamContext.getDefinitions();
-        for (Entry<String, Definition> entry : defs.entrySet()) {
-            mergedDeclaration.addField(entry.getKey(), entry.getValue().getDeclaration());
+        for (String fieldName : fStreamContext.getFieldNames()) {
+            Definition definition = fStreamContext.getDefinition(fieldName);
+            mergedDeclaration.addField(fieldName, definition.getDeclaration());
+            builder.add(fieldName);
+            fieldValues.add(definition);
         }
 
-        /* Add fields from the event context, overwrite the stream ones if needed. */
-        for (Entry<String, Definition> entry : fContext.getDefinitions().entrySet()) {
-            mergedDeclaration.addField(entry.getKey(), entry.getValue().getDeclaration());
-        }
-
-        StructDefinition mergedContext = mergedDeclaration.createDefinition(null, "context"); //$NON-NLS-1$
-        for (String key : mergedContext.getDefinitions().keySet()) {
-            final Definition lookupDefinition = fContext.lookupDefinition(key);
-            /*
-             * If the key is in the event context, add it from there, if it is
-             * not, then it's in the stream. There is a priority with scoping so
-             * if there is a field like "context" in both stream and context,
-             * you display the context.
-             */
-            if (lookupDefinition != null) {
-                mergedContext.getDefinitions().put(key, lookupDefinition);
+        ImmutableList<String> fieldNames = builder.build();
+        /*
+         * Add fields from the event context, overwrite the stream ones if
+         * needed.
+         */
+        for (String fieldName : fEventContext.getFieldNames()) {
+            Definition definition = fEventContext.getDefinition(fieldName);
+            mergedDeclaration.addField(fieldName, definition.getDeclaration());
+            if (fieldNames.contains(fieldName)) {
+                fieldValues.set((fieldNames.indexOf(fieldName)), definition);
             } else {
-                mergedContext.getDefinitions().put(key, streamContext.lookupDefinition(key));
+                builder.add(fieldName);
+                fieldValues.add(definition);
             }
         }
+        fieldNames = builder.build();
+        StructDefinition mergedContext = new StructDefinition(mergedDeclaration, this, "context", //$NON-NLS-1$
+                fieldNames,
+                fieldValues.toArray(new Definition[fieldValues.size()]));
         return mergedContext;
     }
 

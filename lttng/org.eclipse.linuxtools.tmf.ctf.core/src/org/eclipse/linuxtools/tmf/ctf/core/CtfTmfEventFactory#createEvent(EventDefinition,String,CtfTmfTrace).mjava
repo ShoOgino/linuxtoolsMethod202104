@@ -20,15 +20,12 @@
 
         int sourceCPU = eventDef.getCPU();
 
-        ITmfEventField content = new TmfEventField(
-                ITmfEventField.ROOT_FIELD_ID, null, parseFields(eventDef));
-
-        String reference = fileName == null ? CtfTmfEvent.NO_STREAM : fileName;
+        String reference = fileName == null ? NO_STREAM : fileName;
 
         /* Handle the special case of lost events */
         if (eventDecl.getName().equals(CTFStrings.LOST_EVENT_NAME)) {
-            Definition nbLostEventsDef = eventDef.getFields().getDefinitions().get(CTFStrings.LOST_EVENTS_FIELD);
-            Definition durationDef = eventDef.getFields().getDefinitions().get(CTFStrings.LOST_EVENTS_DURATION);
+            Definition nbLostEventsDef = eventDef.getFields().getDefinition(CTFStrings.LOST_EVENTS_FIELD);
+            Definition durationDef = eventDef.getFields().getDefinition(CTFStrings.LOST_EVENTS_DURATION);
             if (!(nbLostEventsDef instanceof IntegerDefinition) || !(durationDef instanceof IntegerDefinition)) {
                 /*
                  * One or both of these fields doesn't exist, or is not of the
@@ -44,12 +41,12 @@
 
             CtfTmfLostEvent lostEvent = new CtfTmfLostEvent(originTrace,
                     ITmfContext.UNKNOWN_RANK,
-                    content,
                     reference, // filename
                     sourceCPU,
                     eventDecl,
                     new TmfTimeRange(timestamp, timestampEnd),
-                    nbLostEvents);
+                    nbLostEvents,
+                    eventDef);
             return lostEvent;
         }
 
@@ -58,10 +55,10 @@
                 originTrace,
                 ITmfContext.UNKNOWN_RANK,
                 timestamp,
-                content,
                 reference, // filename
                 sourceCPU,
-                eventDecl);
+                eventDecl,
+                eventDef);
         return event;
     }
 

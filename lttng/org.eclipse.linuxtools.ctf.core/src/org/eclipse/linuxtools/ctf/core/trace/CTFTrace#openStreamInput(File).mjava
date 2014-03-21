@@ -41,31 +41,22 @@
         /* Create a BitBuffer with this mapping and the trace byte order */
         streamBitBuffer = new BitBuffer(byteBuffer, this.getByteOrder());
 
-        if (fPacketHeaderDef != null) {
+        if (fPacketHeaderDecl != null) {
             /* Read the packet header */
-            fPacketHeaderDef.read(streamBitBuffer);
+            fPacketHeaderDef = fPacketHeaderDecl.createDefinition(null, LexicalScope.PACKET_HEADER.getName(), streamBitBuffer);
 
             /* Check the magic number */
-            IntegerDefinition magicDef = (IntegerDefinition) fPacketHeaderDef
-                    .lookupDefinition("magic"); //$NON-NLS-1$
+            IntegerDefinition magicDef = (IntegerDefinition) fPacketHeaderDef.lookupDefinition("magic"); //$NON-NLS-1$
             int magic = (int) magicDef.getValue();
             if (magic != Utils.CTF_MAGIC) {
                 throw new CTFReaderException("CTF magic mismatch"); //$NON-NLS-1$
             }
 
             /* Check UUID */
-            ArrayDefinition uuidDef = (ArrayDefinition) fPacketHeaderDef
-                    .lookupDefinition("uuid"); //$NON-NLS-1$
+            Definition lookupDefinition = fPacketHeaderDef.lookupDefinition("uuid"); //$NON-NLS-1$
+            ArrayDefinition uuidDef = (ArrayDefinition) lookupDefinition;
             if (uuidDef != null) {
-                byte[] uuidArray = new byte[Utils.UUID_LEN];
-
-                for (int i = 0; i < Utils.UUID_LEN; i++) {
-                    IntegerDefinition uuidByteDef = (IntegerDefinition) uuidDef
-                            .getElem(i);
-                    uuidArray[i] = (byte) uuidByteDef.getValue();
-                }
-
-                UUID otheruuid = Utils.makeUUID(uuidArray);
+                UUID otheruuid = Utils.getUUIDfromDefinition(uuidDef);
 
                 if (!fUuid.equals(otheruuid)) {
                     throw new CTFReaderException("UUID mismatch"); //$NON-NLS-1$

@@ -1,18 +1,30 @@
     /**
      * Run the SequenceDefinition createDefinition(DefinitionScope,String)
      * method test.
+     *
+     * @throws CTFReaderException
+     *             an error in the bitbuffer
      */
     @Test
-    public void testCreateDefinition() {
-        IntegerDeclaration id = new IntegerDeclaration(8, false, 8,
-                ByteOrder.LITTLE_ENDIAN, Encoding.UTF8, null, 32);
-
+    public void testCreateDefinition() throws CTFReaderException {
+        long seqLen = 2;
+        IntegerDeclaration id = IntegerDeclaration.createDeclaration(8, false, 8,
+                ByteOrder.LITTLE_ENDIAN, Encoding.UTF8, "", 32);
         StructDeclaration structDec = new StructDeclaration(0);
-        structDec.addField(fieldName, id);
-        StructDefinition structDef = new StructDefinition(structDec, null, "x");
-        long seqLen = 10;
-        structDef.lookupInteger(fieldName).setValue(seqLen);
-        SequenceDefinition result = this.fixture.createDefinition(structDef, fieldName);
+        structDec.addField(FIELD_NAME, id);
+        StructDefinition structDef = new StructDefinition(
+                structDec,
+                null,
+                "x",
+                ImmutableList.of(FIELD_NAME),
+                new Definition[] {
+                        new IntegerDefinition(
+                                id,
+                                null,
+                                FIELD_NAME,
+                                seqLen)
+                });
+        SequenceDefinition result = fixture.createDefinition(structDef, FIELD_NAME, input);
         assertNotNull(result);
     }
 

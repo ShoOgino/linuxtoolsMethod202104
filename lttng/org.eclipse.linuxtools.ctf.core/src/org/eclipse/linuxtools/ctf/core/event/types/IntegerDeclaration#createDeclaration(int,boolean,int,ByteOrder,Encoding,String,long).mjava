@@ -1,0 +1,53 @@
+    /**
+     * Factory, some common types cached
+     *
+     * @param len
+     *            The length in bits
+     * @param signed
+     *            Is the integer signed? false == unsigned
+     * @param base
+     *            The base (10-16 are most common)
+     * @param byteOrder
+     *            Big-endian little-endian or other
+     * @param encoding
+     *            ascii, utf8 or none.
+     * @param clock
+     *            The clock path, can be null
+     * @param alignment
+     *            The minimum alignment. Should be >= 1
+     * @return the integer declaration
+     * @since 3.0
+     */
+    public static IntegerDeclaration createDeclaration(int len, boolean signed, int base,
+            @Nullable ByteOrder byteOrder, Encoding encoding, String clock, long alignment) {
+        if (encoding.equals(Encoding.NONE) && (alignment == 8) && (clock.equals("")) && base == 10) { //$NON-NLS-1$
+            if (len == 8) {
+                return signed ? INT_8_DECL : UINT_8_DECL;
+            }
+            if (len == 32) {
+                if (signed) {
+                    if (byteOrder != null && byteOrder.equals(ByteOrder.BIG_ENDIAN)) {
+                        return INT_32B_DECL;
+                    }
+                    return INT_32L_DECL;
+                }
+                if (byteOrder != null && byteOrder.equals(ByteOrder.BIG_ENDIAN)) {
+                    return UINT_32B_DECL;
+                }
+                return UINT_32L_DECL;
+            } else if (len == 64) {
+                if (signed) {
+                    if (byteOrder != null && byteOrder.equals(ByteOrder.BIG_ENDIAN)) {
+                        return INT_64B_DECL;
+                    }
+                    return INT_64L_DECL;
+                }
+                if (byteOrder != null && byteOrder.equals(ByteOrder.BIG_ENDIAN)) {
+                    return UINT_64B_DECL;
+                }
+                return UINT_64L_DECL;
+            }
+        }
+        return new IntegerDeclaration(len, signed, base, byteOrder, encoding, clock, alignment);
+    }
+

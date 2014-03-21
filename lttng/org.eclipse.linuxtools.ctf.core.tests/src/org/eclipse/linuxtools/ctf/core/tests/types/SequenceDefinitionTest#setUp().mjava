@@ -1,5 +1,6 @@
     /**
      * Perform pre-test initialization.
+     *
      * @throws CTFReaderException
      */
     @Before
@@ -7,22 +8,23 @@
         StructDeclaration structDec;
         StructDefinition structDef;
 
-        IntegerDeclaration id = new IntegerDeclaration(8, false, 8,
-                ByteOrder.LITTLE_ENDIAN, Encoding.UTF8, null, 8);
+        IntegerDeclaration id = IntegerDeclaration.createDeclaration(8, false, 8,
+                ByteOrder.LITTLE_ENDIAN, Encoding.UTF8, "", 8);
         String lengthName = "LengthName";
         structDec = new StructDeclaration(0);
         structDec.addField(lengthName, id);
-        structDef = new StructDefinition(structDec, null, "x");
+        structDef = new StructDefinition(structDec, null, "x",
+                wrap(lengthName),
+                new Definition[] { new IntegerDefinition(id, null, lengthName, seqLen) });
 
-        structDef.lookupInteger(lengthName).setValue(seqLen);
         SequenceDeclaration sd = new SequenceDeclaration(lengthName, id);
-        fixture = new SequenceDefinition(sd, structDef, "TestX");
         BitBuffer input = new BitBuffer(
                 java.nio.ByteBuffer.allocateDirect(seqLen * 8));
         for (int i = 0; i < seqLen; i++) {
             input.putInt(i);
         }
-        fixture.read(input);
+
+        fixture = sd.createDefinition(structDef, "TestX", input);
         assert (fixture != null);
     }
 

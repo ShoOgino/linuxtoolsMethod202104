@@ -1,11 +1,14 @@
     /**
      * Perform pre-test initialization.
+     *
+     * @throws CTFReaderException
+     *             won't happen
      */
     @Before
-    public void setUp() {
+    public void setUp() throws CTFReaderException {
         StructDeclaration sDec = new StructDeclaration(12);
-        IntegerDeclaration id = new IntegerDeclaration(32, false, 32, ByteOrder.BIG_ENDIAN, Encoding.NONE, null, 8);
-        IntegerDeclaration lenDec = new IntegerDeclaration(8, false, 8, ByteOrder.BIG_ENDIAN, Encoding.NONE, null, 8);
+        IntegerDeclaration id = IntegerDeclaration.INT_32B_DECL;
+        IntegerDeclaration lenDec = IntegerDeclaration.UINT_8_DECL;
         StringDeclaration sd = new StringDeclaration();
         EnumDeclaration ed = new EnumDeclaration(id);
         SequenceDeclaration seqDec = new SequenceDeclaration(LENGTH_SEQ, id);
@@ -23,19 +26,25 @@
         sDec.addField(LENGTH_SEQ, lenDec);
         sDec.addField(SEQUENCE_ID, seqDec);
         sDec.addField(VAR_FIELD_NAME, varDec);
-        fixture = sDec.createDefinition(null, TEST_STRUCT_ID);
-        EnumDefinition eDef = tagDec.createDefinition(fixture, TAG_ID);
-        VariantDefinition vd = varDec.createDefinition(fixture,VAR_FIELD_NAME );
-        vd.setTagDefinition(eDef);
-
+        byte bytes[] = new byte[100];
+        bytes[4] = 1;
+        bytes[8] = 2;
+        bytes[13] = 3;
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+        BitBuffer bb = new BitBuffer(byteBuffer);
+        fixture = sDec.createDefinition(null, TEST_STRUCT_ID, bb);
+        EnumDefinition eDef = tagDec.createDefinition(fixture, TAG_ID, bb);
+        assertNotNull(eDef);
+        VariantDefinition vd = varDec.createDefinition(fixture, VAR_FIELD_NAME, bb);
+        assertNotNull(vd);
         // Create an empty struct
         StructDeclaration esDec = new StructDeclaration(32);
-        emptyStruct = esDec.createDefinition(null, TEST_STRUCT_ID);
+        emptyStruct = esDec.createDefinition(null, TEST_STRUCT_ID, bb);
 
         // Create a simple struct with two items
         StructDeclaration ssDec = new StructDeclaration(32);
         ssDec.addField(INT_ID, id);
         ssDec.addField(STRING_ID, sd);
-        simpleStruct = ssDec.createDefinition(null, TEST_STRUCT_ID);
+        simpleStruct = ssDec.createDefinition(null, TEST_STRUCT_ID, bb);
     }
 

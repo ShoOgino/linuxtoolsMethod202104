@@ -1,27 +1,42 @@
     /**
      * Run the CTFEventField parseField(Definition,String) method test.
+     *
      * @throws CTFReaderException
      */
     @Test
     public void testParseField_complex() throws CTFReaderException {
         int len = 32;
-        IntegerDeclaration id = new IntegerDeclaration(len, false, len,
-                ByteOrder.LITTLE_ENDIAN, Encoding.ASCII, null, 32);
+        IntegerDeclaration id = IntegerDeclaration.createDeclaration(
+                len,
+                false,
+                len,
+                ByteOrder.LITTLE_ENDIAN,
+                Encoding.ASCII,
+                "",
+                len);
         String lengthName = "LengthName";
         StructDeclaration structDec = new StructDeclaration(0);
         structDec.addField(lengthName, id);
-        StructDefinition structDef = new StructDefinition(structDec, null,
-                lengthName);
+        StructDefinition structDef = new StructDefinition(
+                structDec,
+                null,
+                lengthName,
+                ImmutableList.of(lengthName),
+                new Definition[] {
+                        new IntegerDefinition(
+                                id,
+                                null,
+                                lengthName,
+                                32)
+                });
 
-        structDef.lookupInteger(lengthName).setValue(32);
         SequenceDeclaration sd = new SequenceDeclaration(lengthName, id);
-        Definition fieldDef = new SequenceDefinition(sd, structDef, "TestX");
         ByteBuffer byb = ByteBuffer.allocate(1024);
         for (int i = 0; i < 1024; i++) {
             byb.put((byte) i);
         }
         BitBuffer bb = new BitBuffer(byb);
-        fieldDef.read(bb);
+        Definition fieldDef = sd.createDefinition(structDef, "fff-fffield", bb);
 
         assertNotNull(fieldDef);
     }
