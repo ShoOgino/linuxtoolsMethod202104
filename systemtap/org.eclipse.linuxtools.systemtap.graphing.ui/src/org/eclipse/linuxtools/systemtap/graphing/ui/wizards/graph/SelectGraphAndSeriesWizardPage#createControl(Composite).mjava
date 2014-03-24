@@ -17,16 +17,18 @@
 		cmpGraphOptsGraph.setText(Localization.getString("SelectGraphAndSeriesWizardPage.Graph")); //$NON-NLS-1$
 
 		String[] graphIDs = GraphFactory.getAvailableGraphs(wizard.model.getDataSet());
+		int btnGraphSelected = -1;
 		btnGraphs = new Button[graphIDs.length];
-		for(int i=0; i<btnGraphs.length; i++) {
+		for (int i = 0; i < btnGraphs.length; i++) {
 			btnGraphs[i] = new Button(cmpGraphOptsGraph, SWT.RADIO);
 			btnGraphs[i].setImage(GraphFactory.getGraphImage(graphIDs[i]));
 			btnGraphs[i].addListener(SWT.Selection, this);
 			btnGraphs[i].setData(graphIDs[i]);
 			btnGraphs[i].setToolTipText(GraphFactory.getGraphName(btnGraphs[i].getData().toString()) + "\n\n" + //$NON-NLS-1$
 					GraphFactory.getGraphDescription(btnGraphs[i].getData().toString()));
-			if (wizard.isEditing() && graphIDs[i].equals(wizard.model.getGraphID())) {
+			if (btnGraphSelected == -1 && wizard.isEditing() && graphIDs[i].equals(wizard.model.getGraphID())) {
 				btnGraphs[i].setSelection(true);
+				btnGraphSelected = i;
 			}
 		}
 
@@ -50,7 +52,7 @@
 		txtTitle.addModifyListener(new ModifyListener() {
 			@Override
 			public void modifyText(ModifyEvent e) {
-				checkErrors();
+				checkErrors(false);
 			}
 		});
 
@@ -69,7 +71,7 @@
 		cboXItem.addSelectionListener(new ComboSelectionListener());
 		cboXItem.add(Localization.getString("SelectGraphAndSeriesWizardPage.RowID")); //$NON-NLS-1$
 
-		for(int i=0; i<cboYItems.length; i++) {
+		for (int i = 0; i < cboYItems.length; i++) {
 			lblYItems[i] = new Label(cmpGraphOptsSeries, SWT.NONE);
 			lblYItems[i].setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false));
 			lblYItems[i].setText(MessageFormat.format(Localization.getString("SelectGraphAndSeriesWizardPage.YSeries"), i)); //$NON-NLS-1$
@@ -77,16 +79,16 @@
 			cboYItems[i].setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
 			cboYItems[i].addSelectionListener(new ComboSelectionListener());
 
-			if(i>0) {
+			if (i > 0) {
 				cboYItems[i].add(Localization.getString("SelectGraphAndSeriesWizardPage.NA")); //$NON-NLS-1$
 				cboYItems[i].setVisible(false);
 				lblYItems[i].setVisible(false);
 			}
 		}
 
-		for(int j,i=0; i<labels.length; i++) {
+		for (int j, i = 0; i < labels.length; i++) {
 			cboXItem.add(labels[i]);
-			for(j=0; j<lblYItems.length; j++) {
+			for (j = 0; j < lblYItems.length; j++) {
 				cboYItems[j].add(labels[i]);
 			}
 		}
@@ -114,7 +116,7 @@
 			}
 		}
 		boolean cvisible = true;
-		for(int i=1; i<cboYItems.length; i++) {
+		for (int i = 1; i < cboYItems.length; i++) {
 			if (!edit || model.getYSeries().length <= i) {
 				cboYItems[i].select(selected = 0);
 			} else {
@@ -136,13 +138,12 @@
 		if (!edit) {
 			btnGraphs[0].setSelection(true);
 			saveDataToModelGraph(graphIDs[0]);
-		}
-		else {
-			saveDataToModelGraph(wizard.model.getGraphID());
+		} else if (btnGraphSelected == -1) {
+			saveDataToModelGraph(null);
 		}
 
 		cmpGraphOptsSeries.pack();
 		setControl(comp);
-		checkErrors();
+		checkErrors(true);
 	}
 
