@@ -1,0 +1,41 @@
+	private static STPEditor askForSTPEditor(IWorkbenchWindow window) {
+		final List<STPEditor> allEditors = new LinkedList<>();
+		for (IEditorReference editor : window.getActivePage().getEditorReferences()) {
+			if (editor.getId().equals(STPEditor.ID)) {
+				allEditors.add((STPEditor) editor.getEditor(true));
+			}
+		}
+
+		switch (allEditors.size()) {
+		// If only one file is found, open it. Give user the option to open another file.
+		case 1:
+			MessageDialog messageDialog = new MessageDialog(window.getShell(),
+					Localization.getString("GetEditorAction.DialogTitle"), null, //$NON-NLS-1$
+					MessageFormat.format(Localization.getString("GetEditorAction.AskBeforeOpenMessage"), //$NON-NLS-1$
+							allEditors.get(0).getEditorInput().getName() ),
+							MessageDialog.QUESTION,
+							new String[]{Localization.getString("GetEditorAction.AskBeforeOpenCancel"), //$NON-NLS-1$
+				Localization.getString("GetEditorAction.AskBeforeOpenAnother"), //$NON-NLS-1$
+				Localization.getString("GetEditorAction.AskBeforeOpenYes")}, 2); //$NON-NLS-1$
+
+			switch (messageDialog.open()) {
+			case 2:
+				return allEditors.get(0);
+
+			case 1:
+				return openNewFile(window);
+
+			default:
+				return null;
+			}
+
+		// If no files found, prompt user to open a new file
+		case 0:
+			return openNewFile(window);
+
+		// If multiple files found, prompt user to select one of them
+		default:
+			return openNewFileFromMultiple(window, allEditors);
+		}
+	}
+
