@@ -5,6 +5,7 @@
                 return;
             }
 
+            TracePackageFilesElement traceFilesElement = null;
             for (TracePackageElement packageElement : fImportTraceElements) {
                 TracePackageTraceElement traceElement = (TracePackageTraceElement) packageElement;
                 if (!isFilesChecked(packageElement)) {
@@ -16,7 +17,7 @@
                     ModalContext.checkCanceled(progressMonitor);
 
                     if (element instanceof TracePackageFilesElement) {
-                        TracePackageFilesElement traceFilesElement = (TracePackageFilesElement) element;
+                        traceFilesElement = (TracePackageFilesElement) element;
                         setStatus(importTraceFiles(traceFilesElement, progressMonitor));
 
                     } else if (element instanceof TracePackageSupplFilesElement) {
@@ -62,9 +63,20 @@
                 }
 
                 importBookmarks(traceRes, traceElement, progressMonitor);
+
+                try {
+                    if (traceFilesElement != null) {
+                        URI uri = new File(getFileName()).toURI();
+                        IPath entryPath = new Path(traceFilesElement.getFileName());
+                        if (traceRes instanceof IFolder) {
+                            entryPath = entryPath.addTrailingSeparator();
+                        }
+                        String sourceLocation = URIUtil.toUnencodedString(URIUtil.toJarURI(uri, entryPath));
+                        traceRes.setPersistentProperty(TmfCommonConstants.SOURCE_LOCATION, sourceLocation);
+                    }
+                } catch (CoreException e) {
+                }
             }
-
-
 
         } catch (InterruptedException e) {
             setStatus(Status.CANCEL_STATUS);

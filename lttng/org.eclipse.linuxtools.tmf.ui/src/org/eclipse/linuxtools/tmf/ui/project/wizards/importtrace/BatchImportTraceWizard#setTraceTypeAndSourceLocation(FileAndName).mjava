@@ -1,0 +1,36 @@
+    private IStatus setTraceTypeAndSourceLocation(FileAndName traceToImport) {
+        IStatus status = Status.OK_STATUS;
+        IResource resource = fTargetFolder.findMember(traceToImport.getName());
+        if (resource != null) {
+            try {
+                // Set the trace type for this resource
+                String traceTypeId = traceToImport.getTraceTypeId();
+                TraceTypeHelper traceType = TmfTraceType.getInstance().getTraceType(traceTypeId);
+                if (traceType != null) {
+                    status = TmfTraceTypeUIUtils.setTraceType(resource, traceType);
+                }
+
+                // Set the source location for this resource
+                File file = traceToImport.getFile();
+                String sourceLocation = null;
+                IResource sourceResource;
+                if (file.isDirectory()) {
+                    sourceResource = ResourcesPlugin.getWorkspace().getRoot().getContainerForLocation(Path.fromOSString(file.getAbsolutePath()));
+                } else {
+                    sourceResource = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(Path.fromOSString(file.getAbsolutePath()));
+                }
+                if (sourceResource != null && sourceResource.exists()) {
+                    sourceLocation = sourceResource.getPersistentProperty(TmfCommonConstants.SOURCE_LOCATION);
+                }
+                if (sourceLocation == null) {
+                    sourceLocation = URIUtil.toUnencodedString(file.toURI());
+                }
+                resource.setPersistentProperty(TmfCommonConstants.SOURCE_LOCATION, sourceLocation);
+            } catch (CoreException e) {
+                Activator.getDefault().logError(Messages.BatchImportTraceWizardErrorImportingTraceResource
+                        + ' ' + resource.getName(), e);
+            }
+        }
+        return status;
+    }
+
