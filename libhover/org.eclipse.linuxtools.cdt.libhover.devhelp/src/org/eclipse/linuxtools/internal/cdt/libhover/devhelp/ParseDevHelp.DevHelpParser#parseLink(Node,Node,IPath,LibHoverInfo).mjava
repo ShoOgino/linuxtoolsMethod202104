@@ -8,18 +8,20 @@
 					if (nameString.contains("::") || nameString.startsWith("enum ") //$NON-NLS-1$ //$NON-NLS-2$
 							|| nameString.contains("\"")) //$NON-NLS-1$
 						return;
-					Reader reader = new FileReader(path.removeLastSegments(1).toOSString()
+					InputStream reader = new FileInputStream(path.removeLastSegments(1).toOSString()
 							+ "/" + linkParts[0]); //$NON-NLS-1$
-					Parser callback = new Parser(linkParts[1], nameString);
-					new ParserDelegator().parse(reader, callback, true);
-					FunctionInfo finfo = callback.getFunctionInfo();
+					HTMLSaxParser parser = new HTMLSaxParser(linkParts[1], nameString);
+					parser.parse(new InputSource(reader));
+					FunctionInfo finfo = parser.getFunctionInfo();
 					if (finfo != null) {
 						if (debug)
-							System.out.println(callback.toString());
-						libhover.functions.put(callback.getFuncName(), callback.getFunctionInfo());
+							System.out.println(parser.toString());
+						libhover.functions.put(parser.getFuncName(), parser.getFunctionInfo());
 					}
 				} catch (IOException e) {
 					// ignore
+				} catch (SAXException e) {
+					e.printStackTrace();
 				}
 			}
 		}
