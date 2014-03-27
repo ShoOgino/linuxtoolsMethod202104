@@ -1,13 +1,5 @@
-    /**
-     * Matches one event
-     *
-     * @param event
-     *            The event to match
-     * @param traceno
-     *            The number of the trace this event belongs to
-     */
     @Override
-    public void matchEvent(ITmfEvent event, int traceno) {
+    public void matchEvent(ITmfEvent event, ITmfTrace trace) {
         if (!(getEventDefinition(event.getTrace()) instanceof ITmfNetworkMatchDefinition)) {
             return;
         }
@@ -20,7 +12,7 @@
 
         /* Get the event's unique fields */
         List<Object> eventKey = def.getUniqueField(event);
-        List<Map<List<Object>, ITmfEvent>> unmatchedTbl, companionTbl;
+        Map<ITmfTrace, Map<List<Object>, ITmfEvent>> unmatchedTbl, companionTbl;
 
         /* Point to the appropriate table */
         switch (evType) {
@@ -39,7 +31,7 @@
         boolean found = false;
         TmfEventDependency dep = null;
         /* Search for the event in the companion table */
-        for (Map<List<Object>, ITmfEvent> map : companionTbl) {
+        for (Map<List<Object>, ITmfEvent> map : companionTbl.values()) {
             if (map.containsKey(eventKey)) {
                 found = true;
                 ITmfEvent companionEvent = map.get(eventKey);
@@ -80,8 +72,8 @@
              * events as value for the unmatched table. Not necessary right now
              * though
              */
-            if (!unmatchedTbl.get(traceno).containsKey(eventKey)) {
-                unmatchedTbl.get(traceno).put(eventKey, event);
+            if (!unmatchedTbl.get(trace).containsKey(eventKey)) {
+                unmatchedTbl.get(trace).put(eventKey, event);
             }
         }
 
