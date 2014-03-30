@@ -1,5 +1,22 @@
     @Override
     public Iterable<TmfAnalysisRequirement> getAnalysisRequirements() {
+        /**
+         * TODO: This method returns only the requirement of the first
+         * applicable tracetype. We may assume that requirements will be the
+         * same no matter the trace type, the trace generator will know how to
+         * handle those. But this will have to be confirmed when the situation
+         * happens.
+         */
+        for (TraceTypeHelper helper : TmfTraceType.getInstance().getTraceTypeHelpers()) {
+            if (appliesToTraceType(helper.getTraceClass())) {
+                try {
+                    return newModule(helper.getTrace()).getAnalysisRequirements();
+                } catch (TmfAnalysisException e) {
+                    Activator.logError("Error in get analysis requirements", e); //$NON-NLS-1$
+                }
+            }
+        }
+
         return Collections.EMPTY_SET;
     }
 
