@@ -1,17 +1,14 @@
     private static IStatus propagateProperties(TmfCommonProjectElement element, String traceType)
             throws CoreException {
 
-        IResource resource = element.getResource();
-        String svTraceType = resource.getPersistentProperty(TmfCommonConstants.TRACETYPE);
-        TraceTypeHelper svTraceTypeHelper = TmfTraceType.getInstance().getTraceType(svTraceType);
-
         TraceTypeHelper traceTypeHelper = TmfTraceType.getInstance().getTraceType(traceType);
-        TmfTraceTypeUIUtils.setTraceType(resource, traceTypeHelper);
-        final IStatus validateTraceType = validateTraceType(element);
+        final IStatus validateTraceType = traceTypeHelper.validate(element.getLocation().getPath());
         if (!validateTraceType.isOK()) {
-            TmfTraceTypeUIUtils.setTraceType(resource, svTraceTypeHelper);
             return validateTraceType;
         }
+
+        IResource resource = element.getResource();
+        TmfTraceTypeUIUtils.setTraceType(resource, traceTypeHelper);
 
         TmfExperimentFolder experimentFolder = element.getProject().getExperimentsFolder();
         for (final TmfExperimentElement experiment : experimentFolder.getExperiments()) {
