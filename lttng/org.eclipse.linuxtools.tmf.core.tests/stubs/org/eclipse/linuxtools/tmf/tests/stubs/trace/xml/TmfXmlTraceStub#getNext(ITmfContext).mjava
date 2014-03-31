@@ -1,0 +1,70 @@
+    @Override
+    public synchronized ITmfEvent getNext(ITmfContext context) {
+        final ITmfContext savedContext = new TmfContext(context.getLocation(), context.getRank());
+        CustomXmlEvent event = fTrace.getNext(context);
+        if (event == null) {
+            return null;
+        }
+
+        /* Translate the content of the event */
+        /* The "fields" field contains a | separated list of field names */
+        /* The "values" field contains a | separated list of field values */
+        /* the "type" field contains a | separated list of field types */
+        ITmfEventField content = event.getContent();
+        String fieldString = (String) content.getField(FIELD_NAMES_FIELD).getValue();
+        String valueString = (String) content.getField(VALUES_FIELD).getValue();
+        String typeString = (String) content.getField(TYPES_FIELD).getValue();
+
+        String[] fields = fieldString.split(VALUES_SEPARATOR);
+        String[] values = valueString.split(VALUES_SEPARATOR);
+        String[] types = typeString.split(VALUES_SEPARATOR);
+        ITmfEventField[] fieldsArray = new TmfEventField[fields.length];
+
+        for (int i = 0; i < fields.length; i++) {
+            String value = EMPTY;
+            if (values.length > i) {
+                value = values[i];
+            }
+            String type = null;
+            if (types.length > i) {
+                type = types[i];
+            }
+            Object val = value;
+            if (type != null) {
+                switch (type) {
+                case TYPE_INTEGER: {
+                    try {
+                        val = Integer.valueOf(value);
+                    } catch (NumberFormatException e) {
+                        Activator.logError(String.format("Get next XML event: cannot cast value %s to integer", value), e); //$NON-NLS-1$
+                        val = 0;
+                    }
+                    break;
+                }
+                case TYPE_LONG: {
+                    try {
+                        val = Long.valueOf(value);
+                    } catch (NumberFormatException e) {
+                        Activator.logError(String.format("Get next XML event: cannot cast value %s to long", value), e); //$NON-NLS-1$
+                        val = 0L;
+                    }
+                    break;
+                }
+                default:
+                    break;
+                }
+            }
+            fieldsArray[i] = new TmfEventField(fields[i], val, null);
+        }
+
+        /* Create a new event with new fields and name */
+        ITmfEventType customEventType = event.getType();
+        TmfEventType eventType = new TmfEventType(customEventType.getContext(), (String) content.getField(EVENT_NAME_FIELD).getValue(), customEventType.getRootField());
+        ITmfEventField eventFields = new CustomEventContent(content.getName(), content.getValue(), fieldsArray);
+        TmfEvent newEvent = new TmfEvent(this, event.getTimestamp(), (String) content.getField(SOURCE_FIELD).getValue(), eventType, eventFields, event.getReference());
+        updateAttributes(savedContext, event.getTimestamp());
+        context.increaseRank();
+
+        return newEvent;
+    }
+

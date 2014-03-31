@@ -1,0 +1,31 @@
+    /**
+     * Test the reading and querying the XML trace and make sure fields are
+     * present
+     */
+    @Test
+    public void testDevelopmentTrace() {
+        TmfXmlTraceStub trace = new TmfXmlTraceStub();
+        IStatus status = trace.validate(null, VALID_FILE);
+        if (!status.isOK()) {
+            fail(status.getException().getMessage());
+        }
+
+        try {
+            trace.initTrace(null, VALID_FILE, TmfEvent.class);
+        } catch (TmfTraceException e1) {
+            fail(e1.getMessage());
+        }
+
+        CustomEventRequest req = new CustomEventRequest(trace);
+        trace.sendRequest(req);
+        try {
+            req.waitForCompletion();
+            if (req.isCancelled()) {
+                fail(req.getStatus().getMessage());
+            }
+        } catch (InterruptedException e) {
+            fail(e.getMessage());
+        }
+        assertEquals(4, req.getCount());
+    }
+
