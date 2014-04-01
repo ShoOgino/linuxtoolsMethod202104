@@ -1,0 +1,23 @@
+    /**
+     * Listen to trace opened so that we can start the relayd job if necessary.
+     *
+     * @param signal
+     *            the signal to be processed
+     */
+    @TmfSignalHandler
+    public void traceOpened(final TmfTraceOpenedSignal signal) {
+
+        try {
+            LttngRelaydConnectionInfo entry = getEntry(signal.getTrace());
+            if (entry != null) {
+                LttngRelaydConsumer consumer = getConsumer(entry);
+                consumer.connect();
+                consumer.run((CtfTmfTrace) signal.getTrace());
+            }
+        } catch (CoreException e) {
+            Activator.getDefault().logError(Messages.LttngRelaydConnectionManager_ConnectionError, e);
+            ErrorDialog.openError(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), null, Messages.LttngRelaydConnectionManager_ConnectionError, new Status(IStatus.WARNING,
+                    Activator.PLUGIN_ID, e.getLocalizedMessage(), e));
+        }
+    }
+
