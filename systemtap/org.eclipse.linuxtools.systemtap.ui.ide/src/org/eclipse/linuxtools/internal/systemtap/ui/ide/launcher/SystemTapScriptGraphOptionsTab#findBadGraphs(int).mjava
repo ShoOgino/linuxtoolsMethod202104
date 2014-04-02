@@ -7,22 +7,26 @@
 	 */
 	private String findBadGraphs(int regex) {
 		boolean foundBadID = false;
+		boolean foundRemoved = false;
 		int numberOfColumns = columnNamesList.get(regex).size();
+
 		for (GraphData gd : graphsDataList.get(regex)) {
-			boolean removed = false;
+			boolean singleBadID = false;
+			boolean singleRemoved = false;
+
 			if (GraphFactory.getGraphName(gd.graphID) == null) {
-				foundBadID = true;
+				singleBadID = true;
 			} else {
 				if (gd.xSeries >= numberOfColumns) {
-					removed = true;
+					singleRemoved = true;
 				}
-				for (int s = 0; s < gd.ySeries.length && !removed; s++) {
+				for (int s = 0; s < gd.ySeries.length && !singleRemoved; s++) {
 					if (gd.ySeries[s] >= numberOfColumns) {
-						removed = true;
+						singleRemoved = true;
 					}
 				}
 			}
-			if (removed || foundBadID) {
+			if (singleRemoved || singleBadID) {
 				if (!badGraphs.contains(gd)) {
 					badGraphs.add(gd);
 					setUpGraphTableItem(findGraphTableItem(gd), null, true);
@@ -31,14 +35,18 @@
 				badGraphs.remove(gd);
 				setUpGraphTableItem(findGraphTableItem(gd), null, false);
 			}
+
+			foundBadID |= singleBadID;
+			foundRemoved |= singleRemoved;
 		}
+
 		if (numberOfColumns == 0) {
 			return Messages.SystemTapScriptGraphOptionsTab_noGroups;
 		}
 		if (foundBadID) {
 			return Messages.SystemTapScriptGraphOptionsTab_badGraphID;
 		}
-		if (!badGraphs.isEmpty()) {
+		if (foundRemoved) {
 			return Messages.SystemTapScriptGraphOptionsTab_deletedGraphData;
 		}
 		return null;

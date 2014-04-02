@@ -1,0 +1,129 @@
+	@Test
+	public void testGraphErrors() {
+		SWTBotShell shell = prepareScript("missingColumns.stp", null);
+
+		SWTBotButton runButton = bot.button("Run");
+		SWTBotButton addButton = bot.button(Messages.SystemTapScriptGraphOptionsTab_AddGraphButton);
+		SWTBotButton editButton = bot.button(Messages.SystemTapScriptGraphOptionsTab_EditGraphButton);
+		SWTBotButton dupButton = bot.button(Messages.SystemTapScriptGraphOptionsTab_DuplicateGraphButton);
+		SWTBotButton remButton = bot.button(Messages.SystemTapScriptGraphOptionsTab_RemoveGraphButton);
+		String graphID = "org.eclipse.linuxtools.systemtap.graphing.ui.charts.scatterchartbuilder";
+
+		// As soon as the Graphing tab is entered, no regular expression exists & nothing can be run.
+		SWTBotCombo combo = bot.comboBoxWithLabel(Messages.SystemTapScriptGraphOptionsTab_regexLabel);
+		assertEquals("", combo.getText());
+		assertTrue(!runButton.isEnabled());
+		assertTrue(!addButton.isEnabled());
+		combo.setText("(1)(2)");
+		assertEquals("(1)(2)", combo.getText());
+		assertTrue(runButton.isEnabled());
+		assertTrue(addButton.isEnabled());
+
+		setupGraphWithTests("Graph");
+		assertTrue(runButton.isEnabled());
+
+		// Removing groups from the regex disables graphs that rely on those groups.
+		combo = bot.comboBoxWithLabel(Messages.SystemTapScriptGraphOptionsTab_regexLabel);
+		combo.setText("(1)");
+		assertTrue(!runButton.isEnabled());
+		combo.setText("(1)(2)(3)");
+		assertTrue(runButton.isEnabled());
+
+		final SWTBotTable table = bot.table();
+		table.select(0);
+		dupButton.click();
+		assertEquals(2, table.rowCount());
+		assertTrue(runButton.isEnabled());
+
+		combo.setText("(1)");
+		assertTrue(!runButton.isEnabled());
+		for (int i = 0, n = table.rowCount(); i < n; i++) {
+			String itemTitle = table.getTableItem(i).getText();
+			assertTrue("Graph " + i + " should be invalid, but it's not: " + itemTitle,
+					table.getTableItem(i).getText().contains(Messages.SystemTapScriptGraphOptionsTab_invalidGraph));
+		}
+
+		setupGraphGeneral("Safe", 1, graphID, true);
+		assertTrue(!table.getTableItem(2).getText().contains(Messages.SystemTapScriptGraphOptionsTab_invalidGraph));
+		combo.setText("(1)(2)(3)");
+		assertTrue(runButton.isEnabled());
+
+		setupGraphGeneral("Unsafe", 3, graphID, true);
+		assertTrue(runButton.isEnabled());
+		combo.setText("(1)(2)");
+		assertTrue(!runButton.isEnabled());
+		for (int i = 0, n = table.rowCount(); i < n; i++) {
+			String itemTitle = table.getTableItem(i).getText();
+			assertTrue("Graph " + i + " has incorrect validity: " + itemTitle,
+					!itemTitle.contains(Messages.SystemTapScriptGraphOptionsTab_invalidGraph)
+					|| itemTitle.contains("Unsafe"));
+		}
+
+		table.select(3);
+		dupButton.click();
+		remButton.click();
+		assertTrue(!runButton.isEnabled());
+
+		table.select(3);
+		editButton.click();
+		bot.waitUntil(Conditions.shellIsActive("Edit Graph"));
+		SWTBotShell graphShell = bot.activeShell();
+		SWTBotButton finishButton = bot.button("Finish");
+		assertTrue(!finishButton.isEnabled());
+		bot.comboBox("<Deleted>").setSelection("NA");
+		finishButton.click();
+		bot.waitUntil(Conditions.shellCloses(graphShell));
+		shell.setFocus();
+		assertTrue(runButton.isEnabled());
+
+		// Perform tests when graphs have an invalid graphID.
+		UIThreadRunnable.syncExec(new VoidResult() {
+
+			@Override
+			public void run() {
+				GraphData gd = (GraphData) table.getTableItem(0).widget.getData();
+				gd.graphID = "invalidID";
+				table.getTableItem(0).widget.setData(gd);
+			}
+		});
+
+		combo.setText(combo.getText().concat(" ")); // Just to refresh the dialog
+		assertTrue(!runButton.isEnabled());
+		assertTrue(table.getTableItem(0).getText().contains(Messages.SystemTapScriptGraphOptionsTab_invalidGraphID));
+
+		table.select(0);
+		dupButton.click();
+		remButton.click();
+		assertTrue(!runButton.isEnabled());
+		assertTrue(table.getTableItem(table.rowCount() - 1).getText().contains(Messages.SystemTapScriptGraphOptionsTab_invalidGraphID));
+
+		table.select(table.rowCount() - 1);
+		editButton.click();
+		bot.waitUntil(Conditions.shellIsActive("Edit Graph"));
+		graphShell = bot.activeShell();
+		finishButton = bot.button("Finish");
+		assertTrue(!finishButton.isEnabled());
+		bot.radio(0).click();
+		finishButton.click();
+		bot.waitUntil(Conditions.shellCloses(graphShell));
+		shell.setFocus();
+		assertTrue(runButton.isEnabled());
+
+		// Removing all invalid graphs should restore validity.
+		combo.setText("(1)");
+		assertTrue(!runButton.isEnabled());
+		for (int i = table.rowCount() - 1; i >= 0; i--) {
+			if (table.getTableItem(i).getText().contains(Messages.SystemTapScriptGraphOptionsTab_invalidGraph)) {
+				table.select(i);
+				remButton.click();
+			}
+		}
+		assertTrue(runButton.isEnabled());
+		while (table.rowCount() > 0) {
+			table.select(0);
+			remButton.click();
+		}
+
+		bot.button("Apply").click();
+	}
+
