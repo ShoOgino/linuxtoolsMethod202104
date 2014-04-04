@@ -10,7 +10,7 @@
             TmfTraceFolder traceFolder,
             int operation) {
 
-        if (sourceResource.getProject().equals(traceFolder.getResource().getProject())) {
+        if (sourceResource.getParent().equals(traceFolder.getResource())) {
             return null;
         }
         String targetName = sourceResource.getName();
@@ -24,7 +24,7 @@
             }
         }
         try {
-            if (operation == DND.DROP_COPY) {
+            if (operation == DND.DROP_COPY && !sourceResource.isLinked()) {
                 IPath destination = traceFolder.getResource().getFullPath().addTrailingSeparator().append(targetName);
                 sourceResource.copy(destination, false, null);
                 cleanupBookmarks(destination);
@@ -32,12 +32,14 @@
                 createLink(traceFolder.getResource(), sourceResource, targetName);
             }
             IResource traceResource = traceFolder.getResource().findMember(targetName);
-            String sourceLocation = sourceResource.getPersistentProperty(TmfCommonConstants.SOURCE_LOCATION);
-            if (sourceLocation == null) {
-                sourceLocation = URIUtil.toUnencodedString(new File(sourceResource.getLocationURI()).toURI());
+            if (traceResource != null && traceResource.exists()) {
+                String sourceLocation = sourceResource.getPersistentProperty(TmfCommonConstants.SOURCE_LOCATION);
+                if (sourceLocation == null) {
+                    sourceLocation = URIUtil.toUnencodedString(new File(sourceResource.getLocationURI()).toURI());
+                }
+                traceResource.setPersistentProperty(TmfCommonConstants.SOURCE_LOCATION, sourceLocation);
+                setTraceType(traceResource);
             }
-            traceResource.setPersistentProperty(TmfCommonConstants.SOURCE_LOCATION, sourceLocation);
-            setTraceType(traceResource);
             return traceResource;
         } catch (CoreException e) {
             displayException(e);
