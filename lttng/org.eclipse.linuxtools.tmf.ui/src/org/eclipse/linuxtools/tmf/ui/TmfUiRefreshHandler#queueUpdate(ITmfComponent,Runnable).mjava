@@ -1,0 +1,20 @@
+    /**
+     * Queue a UI update. Threads that want to benefit from "UI coalescing"
+     * should send their {@link Runnable} to this method, instead of
+     * {@link Display#asyncExec(Runnable)}.
+     *
+     * @param source
+     *            The component sending the request. Typically callers should
+     *            use "this". Only the latest request per component is actually
+     *            sent.
+     * @param task
+     *            The {@link Runnable} to execute in the UI thread.
+     */
+    public synchronized void queueUpdate(ITmfComponent source, Runnable task) {
+        fUpdates.put(source, task);
+        if (fCurrentTask == null) {
+            fCurrentTask = new RunAllUpdates();
+            fTimer.schedule(fCurrentTask, UPDATE_PERIOD);
+        }
+    }
+
