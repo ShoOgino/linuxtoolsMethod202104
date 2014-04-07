@@ -1,0 +1,19 @@
+		@Override
+		public void resourceChanged(IResourceChangeEvent event) {
+			if (project != null && isPostBuildEvent(event)) {
+
+				// find the project from event delta and  delete its markers
+				IResourceDelta delta = event.getDelta();
+				IResourceDelta[] childrenDelta = delta.getAffectedChildren(IResourceDelta.CHANGED);
+				for (IResourceDelta childDelta : childrenDelta) {
+					if (isProjectDelta(childDelta, project)) {
+
+						// do not track this project and de-register this listener
+						GcovAnnotationModel.clear(editor);
+						ResourcesPlugin.getWorkspace().removeResourceChangeListener(this);
+						trackedProjects.remove(project);
+					}
+				}
+			}
+		}
+

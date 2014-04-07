@@ -1,0 +1,16 @@
+	private void annotateCEditor(IWorkbenchPartReference partref) {
+		IWorkbenchPart part = partref.getPart(false);
+		if (part instanceof ICEditor) {
+			ICEditor editor = (ICEditor) part;
+			ICElement element = CDTUITools.getEditorInputCElement(editor.getEditorInput());
+			IProject project = element.getCProject().getProject();
+
+			// Attach our annotation model to any compatible editor. (ICEditor)
+			GcovAnnotationModel.attach((ITextEditor) part);
+			// If a user triggers a build we will not render annotations.
+			ResourcesPlugin.getWorkspace().addResourceChangeListener(
+					new ProjectBuildListener(project, editor),
+					IResourceChangeEvent.POST_BUILD);
+		}
+	}
+
