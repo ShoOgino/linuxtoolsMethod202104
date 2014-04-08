@@ -1,0 +1,131 @@
+	/**
+	 * Indents a single line using the heuristic scanner. Multiline comments are
+	 * indented as specified by the <code>CCommentAutoIndentStrategy</code>.
+	 * 
+	 * @param document
+	 *            the document
+	 * @param line
+	 *            the line to be indented
+	 * @param caret
+	 *            the caret position
+	 * @param indenter
+	 *            the indenter
+	 * @param scanner
+	 *            the heuristic scanner
+	 * @param multiLine
+	 *            <code>true</code> if more than one line is being indented
+	 * @return <code>true</code> if <code>document</code> was modified,
+	 *         <code>false</code> otherwise
+	 * @throws BadLocationException
+	 *             if the document got changed concurrently
+	 */
+	private boolean indentLine(IDocument document,
+			int line, int caret, STPIndenter indenter,
+			STPHeuristicScanner scanner, boolean multiLine)
+			throws BadLocationException {
+		IRegion currentLine = document.getLineInformation(line);
+		int offset = currentLine.getOffset();
+		int wsStart = offset; // where we start searching for non-WS; after the
+								// "//" in single line comments
+
+		String indent = null;
+		if (offset < document.getLength()) {
+			ITypedRegion partition = TextUtilities.getPartition(document,
+					STPPartitionScanner.STP_PARTITIONING, offset, true);
+			ITypedRegion startingPartition = TextUtilities.getPartition(
+					document, STPPartitionScanner.STP_PARTITIONING, offset,
+					false);
+			String type = partition.getType();
+			if (type.equals(STPPartitionScanner.STP_MULTILINE_COMMENT)) {
+				indent = computeCommentIndent(document, line, scanner,
+						startingPartition);
+			} else if (startingPartition.getType().equals(
+					STPPartitionScanner.STP_CONDITIONAL)) {
+				indent = computePreprocessorIndent(document, line,
+						startingPartition);
+			} else if (startingPartition.getType().equals(
+					STPPartitionScanner.STP_STRING)
+					&& offset > startingPartition.getOffset()) {
+				// don't indent inside (raw-)string
+				return false;
+			} else if (!fIsTabAction
+					&& startingPartition.getOffset() == offset
+					&& startingPartition.getType().equals(
+							STPPartitionScanner.STP_COMMENT)) {
+				// line comment starting at position 0 -> indent inside
+				if (indentInsideLineComments()) {
+					int max = document.getLength() - offset;
+					int slashes = 2;
+					while (slashes < max - 1
+							&& document.get(offset + slashes, 2).equals("//")) //$NON-NLS-1$
+						slashes += 2;
+
+					wsStart = offset + slashes;
+
+					StringBuilder computed = indenter
+							.computeIndentation(offset);
+					if (computed == null)
+						computed = new StringBuilder(0);
+					int tabSize = getTabSize();
+					while (slashes > 0 && computed.length() > 0) {
+						char c = computed.charAt(0);
+						if (c == '\t') {
+							if (slashes > tabSize) {
+								slashes -= tabSize;
+							} else {
+								break;
+							}
+						} else if (c == ' ') {
+							slashes--;
+						} else {
+							break;
+						}
+
+						computed.deleteCharAt(0);
+					}
+
+					indent = document.get(offset, wsStart - offset) + computed;
+				}
+			}
+		}
+
+		// standard C code indentation
+		if (indent == null) {
+			StringBuilder computed = indenter.computeIndentation(offset);
+			if (computed != null) {
+				indent = computed.toString();
+			} else {
+				indent = ""; //$NON-NLS-1$
+			}
+		}
+
+		// change document:
+		// get current white space
+		int lineLength = currentLine.getLength();
+		int end = scanner.findNonWhitespaceForwardInAnyPartition(wsStart,
+				offset + lineLength);
+		if (end == STPHeuristicScanner.NOT_FOUND) {
+			// an empty line
+			end = offset + lineLength;
+			if (multiLine && !indentEmptyLines()) {
+				indent = ""; //$NON-NLS-1$
+			}
+		}
+		int length = end - offset;
+		String currentIndent = document.get(offset, length);
+
+		// set the caret offset so it can be used when setting the selection
+		if (caret >= offset && caret <= end) {
+			fCaretOffset = offset + indent.length();
+		} else {
+			fCaretOffset = -1;
+		}
+
+		// only change the document if it is a real change
+		if (!indent.equals(currentIndent)) {
+			document.replace(offset, length, indent);
+			return true;
+		}
+		return false;
+	}
+
