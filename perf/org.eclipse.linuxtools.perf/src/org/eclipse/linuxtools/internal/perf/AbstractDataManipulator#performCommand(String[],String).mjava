@@ -1,11 +1,8 @@
 	public void performCommand(String[] cmd, String file) {
-		BufferedReader buffData = null;
-		BufferedReader buffTemp = null;
 		URI pathWorkDirURI = null;
+		Process proc = null;
+		RemoteConnection exeRC = null;
 		try {
-
-			Process proc = null;
-			RemoteConnection exeRC = null;
 			try {
 				pathWorkDirURI = new URI(pathWorkDir.toOSString());
 				exeRC = new RemoteConnection(pathWorkDirURI);
@@ -20,25 +17,16 @@
 			proc.waitFor();
 
 			StringBuffer data = new StringBuffer();
-			buffData = new BufferedReader(new InputStreamReader(new FileInputStream(file)));
-			readStream(buffData, data);
-			joinAll();
+            try (BufferedReader buffData = new BufferedReader(
+                    new InputStreamReader(new FileInputStream(file)))) {
+                readStream(buffData, data);
+                joinAll();
+            }
 			text = data.toString();
 		} catch (IOException e) {
 			text = ""; //$NON-NLS-1$
 		} catch (InterruptedException e){
 			text = ""; //$NON-NLS-1$
-		}finally {
-			try {
-				if (buffData != null) {
-					buffData.close();
-				}
-				if (buffTemp != null) {
-					buffTemp.close();
-				}
-			} catch (IOException e) {
-				// continue
-			}
 		}
 	}
 
