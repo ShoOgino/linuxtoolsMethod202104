@@ -8,16 +8,16 @@
      *            start
      * @throws ClosedChannelException
      */
-    private List<CoreNode> buildLatestBranch(int rootNodeSeqNb) throws ClosedChannelException {
-        HTNode nextChildNode;
+    private List<HTNode> buildLatestBranch(int rootNodeSeqNb) throws ClosedChannelException {
+        List<HTNode> list = new ArrayList<>();
 
-        List<CoreNode> list = new ArrayList<>();
+        HTNode nextChildNode = treeIO.readNode(rootNodeSeqNb);
+        list.add(nextChildNode);
 
-        nextChildNode = treeIO.readNode(rootNodeSeqNb);
-        list.add((CoreNode) nextChildNode);
-        while (list.get(list.size() - 1).getNbChildren() > 0) {
-            nextChildNode = treeIO.readNode(list.get(list.size() - 1).getLatestChild());
-            list.add((CoreNode) nextChildNode);
+        /* Follow the last branch up to the leaf */
+        while (nextChildNode.getNodeType() == HTNode.NodeType.CORE) {
+            nextChildNode = treeIO.readNode(((CoreNode) nextChildNode).getLatestChild());
+            list.add(nextChildNode);
         }
         return Collections.synchronizedList(list);
     }

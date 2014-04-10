@@ -24,7 +24,8 @@
         buffer.flip();
 
         /* Read the common header part */
-        byte type = buffer.get();
+        byte typeByte = buffer.get();
+        NodeType type = NodeType.fromByte(typeByte);
         long start = buffer.getLong();
         long end = buffer.getLong();
         int seqNb = buffer.getInt();
@@ -35,21 +36,17 @@
 
         /* Now the rest of the header depends on the node type */
         switch (type) {
-        case 1:
+        case CORE:
             /* Core nodes */
             newNode = new CoreNode(config, seqNb, parentSeqNb, start);
             newNode.readSpecificHeader(buffer);
             break;
 
-        // TODO implement other node types
-        // case 2:
-        // /* Leaf nodes */
-        //
-        //
-        //
-        // case 3:
-        // /* "Claudette" (extended) nodes */
-        //
+        case LEAF:
+            /* Leaf nodes */
+            newNode = new LeafNode(config, seqNb, parentSeqNb, start);
+            newNode.readSpecificHeader(buffer);
+            break;
 
         default:
             /* Unrecognized node type */

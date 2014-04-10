@@ -5,7 +5,7 @@
     private void addNewRootNode() {
         final long splitTime = this.treeEnd;
 
-        CoreNode oldRootNode = latestBranch.get(0);
+        HTNode oldRootNode = latestBranch.get(0);
         CoreNode newRootNode = initNewCoreNode(-1, config.getTreeStart());
 
         /* Tell the old root node that it isn't root anymore */
@@ -25,12 +25,20 @@
         int depth = latestBranch.size();
         latestBranch.clear();
         latestBranch.add(newRootNode);
+
+        // Create new coreNode
         for (int i = 1; i < depth + 1; i++) {
-            CoreNode prevNode = latestBranch.get(i - 1);
+            CoreNode prevNode = (CoreNode) latestBranch.get(i - 1);
             CoreNode newNode = initNewCoreNode(prevNode.getParentSequenceNumber(),
                     splitTime + 1);
             prevNode.linkNewChild(newNode);
             latestBranch.add(newNode);
         }
+
+        // Create the new leafNode
+        CoreNode prevNode = (CoreNode) latestBranch.get(depth);
+        LeafNode newNode = initNewLeafNode(prevNode.getParentSequenceNumber(), splitTime + 1);
+        prevNode.linkNewChild(newNode);
+        latestBranch.add(newNode);
     }
 

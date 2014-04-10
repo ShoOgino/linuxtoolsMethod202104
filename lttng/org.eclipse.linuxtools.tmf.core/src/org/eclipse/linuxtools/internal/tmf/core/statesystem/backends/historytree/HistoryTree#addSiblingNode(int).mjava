@@ -9,7 +9,13 @@
         synchronized (latestBranch) {
             final long splitTime = treeEnd;
 
-            assert (indexOfNode < latestBranch.size());
+            if (indexOfNode >= latestBranch.size()) {
+                /*
+                 * We need to make sure (indexOfNode - 1) doesn't get the last
+                 * node in the branch, because that one is a Leaf Node.
+                 */
+                throw new IllegalStateException();
+            }
 
             /* Check if we need to add a new root node */
             if (indexOfNode == 0) {
@@ -18,7 +24,7 @@
             }
 
             /* Check if we can indeed add a child to the target parent */
-            if (latestBranch.get(indexOfNode - 1).getNbChildren() == config.getMaxChildren()) {
+            if (((CoreNode) latestBranch.get(indexOfNode - 1)).getNbChildren() == config.getMaxChildren()) {
                 /* If not, add a branch starting one level higher instead */
                 addSiblingNode(indexOfNode - 1);
                 return;
@@ -29,11 +35,21 @@
                 latestBranch.get(i).closeThisNode(splitTime);
                 treeIO.writeNode(latestBranch.get(i));
 
-                CoreNode prevNode = latestBranch.get(i - 1);
-                CoreNode newNode = initNewCoreNode(prevNode.getSequenceNumber(),
-                        splitTime + 1);
-                prevNode.linkNewChild(newNode);
+                CoreNode prevNode = (CoreNode) latestBranch.get(i - 1);
+                HTNode newNode;
 
+                switch (latestBranch.get(i).getNodeType()) {
+                case CORE:
+                    newNode = initNewCoreNode(prevNode.getSequenceNumber(), splitTime + 1);
+                    break;
+                case LEAF:
+                    newNode = initNewLeafNode(prevNode.getSequenceNumber(), splitTime + 1);
+                    break;
+                default:
+                    throw new IllegalStateException();
+                }
+
+                prevNode.linkNewChild(newNode);
                 latestBranch.set(i, newNode);
             }
         }
