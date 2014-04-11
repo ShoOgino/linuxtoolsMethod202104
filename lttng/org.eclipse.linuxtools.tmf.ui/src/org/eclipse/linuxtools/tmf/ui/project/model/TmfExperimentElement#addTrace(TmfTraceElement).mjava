@@ -14,13 +14,15 @@
         IWorkspace workspace = ResourcesPlugin.getWorkspace();
         try {
             Map<QualifiedName, String> properties = trace.getResource().getPersistentProperties();
-            String traceType = properties.get(TmfCommonConstants.TRACETYPE);
+            TraceTypeHelper traceType = TmfTraceType.getInstance().getTraceType(properties.get(TmfCommonConstants.TRACETYPE));
 
             if (resource instanceof IFolder) {
                 IFolder folder = experiment.getFolder(trace.getName());
                 if (workspace.validateLinkLocation(folder, location).isOK()) {
                     folder.createLink(location, IResource.REPLACE, null);
-                    setProperties(folder, traceType);
+                    if (traceType != null) {
+                        TmfTraceTypeUIUtils.setTraceType(folder, traceType);
+                    }
 
                 } else {
                     Activator.getDefault().logError("Error creating link. Invalid trace location " + location); //$NON-NLS-1$
@@ -29,7 +31,9 @@
                 IFile file = experiment.getFile(trace.getName());
                 if (workspace.validateLinkLocation(file, location).isOK()) {
                     file.createLink(location, IResource.REPLACE, null);
-                    setProperties(file, traceType);
+                    if (traceType != null) {
+                        TmfTraceTypeUIUtils.setTraceType(file, traceType);
+                    }
                 } else {
                     Activator.getDefault().logError("Error creating link. Invalid trace location " + location); //$NON-NLS-1$
                 }
