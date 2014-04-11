@@ -1,0 +1,48 @@
+    /**
+     * Update the selections of the tree elements in items to reflect the new
+     * selections provided.
+     * @param items Map with keys of Object (the tree element) and values of List (the selected
+     * list elements).
+     * NOTE: This method does not special case keys with no values (i.e.,
+     * a tree element with an empty list).  If a tree element does not have any selected
+     * items, do not include the element in the Map.
+     */
+    public void updateSelections(Map items) {
+        // We are replacing all selected items with the given selected items,
+        // so reinitialize everything.
+        this.listViewer.setAllChecked(false);
+        this.treeViewer.setCheckedElements(new Object[0]);
+        this.whiteCheckedTreeItems = new HashSet();
+        Set selectedNodes = new HashSet();
+        checkedStateStore = new HashMap();
+
+        //Update the store before the hierarchy to prevent updating parents before all of the children are done
+        Iterator keyIterator = items.keySet().iterator();
+        while (keyIterator.hasNext()) {
+            Object key = keyIterator.next();
+            List selections = (List) items.get(key);
+            //Replace the items in the checked state store with those from the supplied items
+            checkedStateStore.put(key, selections);
+            selectedNodes.add(key);
+            // proceed up the tree element hierarchy
+            Object parent = treeContentProvider.getParent(key);
+            if (parent != null) {
+                // proceed up the tree element hierarchy and make sure everything is in the table
+                primeHierarchyForSelection(parent, selectedNodes);
+            }
+        }
+
+        // Update the checked tree items.  Since each tree item has a selected
+        // item, all the tree items will be gray checked.
+        treeViewer.setCheckedElements(checkedStateStore.keySet().toArray());
+        treeViewer.setGrayedElements(checkedStateStore.keySet().toArray());
+
+        // Update the listView of the currently selected tree item.
+        if (currentTreeSelection != null) {
+            Object displayItems = items.get(currentTreeSelection);
+            if (displayItems != null) {
+				listViewer.setCheckedElements(((List) displayItems).toArray());
+			}
+        }
+    }
+

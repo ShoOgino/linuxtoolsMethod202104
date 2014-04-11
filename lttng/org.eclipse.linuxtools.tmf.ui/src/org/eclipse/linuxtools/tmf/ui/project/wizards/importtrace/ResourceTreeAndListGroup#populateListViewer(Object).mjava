@@ -1,0 +1,35 @@
+    /**
+     *Set the contents of the list viewer based upon the specified selected
+     *tree element.  This also includes checking the appropriate list items.
+     *
+     *@param treeElement java.lang.Object
+     */
+    protected void populateListViewer(final Object treeElement) {
+        listViewer.setInput(treeElement);
+
+        //If the element is white checked but not expanded we have not set up all of the children yet
+        if (!(expandedTreeNodes.contains(treeElement))
+                && whiteCheckedTreeItems.contains(treeElement)) {
+
+            //Potentially long operation - show a busy cursor
+            BusyIndicator.showWhile(treeViewer.getControl().getDisplay(),
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            setListForWhiteSelection(treeElement);
+                            listViewer.setAllChecked(true);
+                        }
+                    });
+
+        } else {
+            List listItemsToCheck = (List) checkedStateStore.get(treeElement);
+
+            if (listItemsToCheck != null) {
+                Iterator listItemsEnum = listItemsToCheck.iterator();
+                while (listItemsEnum.hasNext()) {
+					listViewer.setChecked(listItemsEnum.next(), true);
+				}
+            }
+        }
+    }
+
