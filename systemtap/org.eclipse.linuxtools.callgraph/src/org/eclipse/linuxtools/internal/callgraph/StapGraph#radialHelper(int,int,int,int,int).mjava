@@ -1,89 +1,89 @@
-	/**
-	 * Completes radial-mode draws
-	 *
-	 * @param id
-	 * @param x
-	 * @param y
-	 * @param radius
-	 * @param startFromChild
-	 */
-	public void radialHelper(int id, int x, int y, int radius, int startFromChild) {
-		//-------------Draw parent node
-		// Draw caller node right beside this one, in a different color
-		int callerID = nodeDataMap.get(id).parent;
-		if (callerID != -1) {
-			if (getNode(callerID) == null) {
-				nodeMap.put(callerID, getNodeData(callerID).makeNode(this));
-			}
-			getNode(callerID).setBackgroundColor(CONSTANT_HAS_PARENT);
-			getNode(callerID).setLocation(x + radius / 5, y - radius / 5);
-			if (getNode(id).connection == null) {
-				getNode(id).makeConnection(SWT.NONE, getNode(callerID), getNodeData(id).timesCalled);
-			}
+    /**
+     * Completes radial-mode draws
+     *
+     * @param id
+     * @param x
+     * @param y
+     * @param radius
+     * @param startFromChild
+     */
+    private void radialHelper(int id, int x, int y, int radius,
+            int startFromChild) {
+        // -------------Draw parent node
+        // Draw caller node right beside this one, in a different color
+        int callerID = nodeDataMap.get(id).parent;
+        if (callerID != -1) {
+            if (getNode(callerID) == null) {
+                nodeMap.put(callerID, getNodeData(callerID).makeNode(this));
+            }
+            getNode(callerID).setBackgroundColor(CONSTANT_HAS_PARENT);
+            getNode(callerID).setLocation(x + radius / 5, y - radius / 5);
+            if (getNode(id).connection == null) {
+                getNode(id).makeConnection(SWT.NONE, getNode(callerID),
+                        getNodeData(id).timesCalled);
+            }
 
-			if (getNodeData(callerID).isMarked()) {
-				nodeMap.get(callerID).setBackgroundColor(CONSTANT_MARKED);
-			}
-		}
+            if (getNodeData(callerID).isMarked()) {
+                nodeMap.get(callerID).setBackgroundColor(CONSTANT_MARKED);
+            }
+        }
 
+        // -------------Draw children nodes
+        List<Integer> nodeList;
+        if (!collapseMode) {
+            nodeList = nodeDataMap.get(id).children;
+        } else {
+            nodeList = nodeDataMap.get(id).collapsedChildren;
+        }
 
-		//-------------Draw children nodes
-		List<Integer> nodeList;
-		if (!collapse_mode) {
-			nodeList = nodeDataMap.get(id).children;
-		}
-		else {
-			nodeList = nodeDataMap.get(id).collapsedChildren;
-		}
+        int numberOfNodes;
 
-		int numberOfNodes;
+        if (nodeList.size() >= CONSTANT_MAX_NUMBER_OF_RADIAL_SIBLINGS) {
+            numberOfNodes = CONSTANT_MAX_NUMBER_OF_RADIAL_SIBLINGS;
+        } else {
+            numberOfNodes = nodeList.size();
+        }
 
-		if (nodeList.size() >= CONSTANT_MAX_NUMBER_OF_RADIAL_SIBLINGS ) {
-			numberOfNodes = CONSTANT_MAX_NUMBER_OF_RADIAL_SIBLINGS;
-		} else {
-			numberOfNodes = nodeList.size();
-		}
+        double angle;
+        if (numberOfNodes > 5) {
+            angle = 2 * Math.PI / numberOfNodes;
+        } else {
+            angle = 2 * Math.PI / CONSTANT_MAX_NUMBER_OF_RADIAL_SIBLINGS;
+        }
 
+        int i = 0;
 
-		double angle;
-		if (numberOfNodes > 5) {
-			angle = 2 * Math.PI / numberOfNodes;
-		} else {
-			angle = 2 * Math.PI / CONSTANT_MAX_NUMBER_OF_RADIAL_SIBLINGS;
-		}
+        for (i = 0; i < numberOfNodes; i++) {
 
-		int i = 0;
+            int subID = nodeList.get(i);
+            int yOffset = 0;
+            int xOffset = 0;
+            if (nodeMap.get(subID) == null) {
+                nodeMap.put(subID, getNodeData(subID).makeNode(this));
+            }
 
-		for (i = 0; i < numberOfNodes; i++) {
+            StapNode subN = nodeMap.get(subID);
 
+            if (radius != 0) {
+                yOffset = (int) (radius * Math.cos((float) angle * i));
+                xOffset = (int) (radius * Math.sin((float) angle * i))
+                        - subN.getSize().width / 2
+                        + getNode(id).getSize().width / 2;
+            }
 
-			int subID = nodeList.get(i);
-			int yOffset = 0;
-			int xOffset = 0;
-			if (nodeMap.get(subID) == null) {
-				nodeMap.put(subID, getNodeData(subID).makeNode(this));
-			}
+            if (hasChildren(subID)) {
+                subN.setBackgroundColor(CONSTANT_HAS_CHILDREN);
+            }
+            subN.setLocation(x + xOffset, y + yOffset);
+            if (subN.connection == null) {
+                subN.makeConnection(SWT.NONE, nodeMap.get(id),
+                        nodeDataMap.get(subID).timesCalled);
+            }
 
-			StapNode subN = nodeMap.get(subID);
-
-			if (radius != 0) {
-				yOffset = (int) (radius * Math.cos((float) angle * i));
-				xOffset = (int) (radius * Math.sin((float) angle * i)) - subN.getSize().width/2 + getNode(id).getSize().width/2;
-			}
-
-			if (hasChildren(subID)) {
-				subN.setBackgroundColor(CONSTANT_HAS_CHILDREN);
-			}
-			subN.setLocation(x + xOffset, y + yOffset);
-			if (subN.connection == null) {
-				subN.makeConnection(SWT.NONE, nodeMap.get(id), nodeDataMap
-						.get(subID).timesCalled);
-			}
-
-			StapData d = getNodeData(subID);
-			if (d.isMarked()) {
-				subN.setBackgroundColor(CONSTANT_MARKED);
-			}
-		}
-	}
+            StapData d = getNodeData(subID);
+            if (d.isMarked()) {
+                subN.setBackgroundColor(CONSTANT_MARKED);
+            }
+        }
+    }
 

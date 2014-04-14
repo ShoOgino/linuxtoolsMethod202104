@@ -1,176 +1,164 @@
-	/**
-	 * Draws with the given modes.
-	 * @param drawMode
-	 * @param animationMode
-	 * @param id
-	 */
-	public void draw(int drawMode, int animationMode, int id) {
-		setDrawMode(drawMode);
-		setAnimationMode(animationMode);
-		if (nodeDataMap.get(id) == null) {
-			return;
-		}
-		this.clearSelection();
-		treeLevelFromRoot = 0;
-		currentPositionInLevel.clear();
+    /**
+     * Draws with the given modes.
+     *
+     * @param drawMode
+     * @param animationMode
+     * @param id
+     */
+    public void draw(int drawMode, int animationMode, int id) {
+        this.draw_mode = drawMode;
+        setAnimationMode(animationMode);
+        if (nodeDataMap.get(id) == null) {
+            return;
+        }
+        this.clearSelection();
+        treeLevelFromRoot = 0;
+        currentPositionInLevel.clear();
+        this.setRedraw(false);
+        if (draw_mode == CONSTANT_DRAWMODE_RADIAL) {
+            // Remove thumbnail
+            GridData gd = (GridData) thumbCanvas.getLayoutData();
+            gd.exclude = true;
+            thumbCanvas.setLayoutData(gd);
+            thumbCanvas.setVisible(false);
+            callgraphView.layout();
 
+            // Add treeComp
+            gd = (GridData) treeComp.getLayoutData();
+            gd.exclude = false;
+            treeComp.setLayoutData(gd);
+            treeComp.setVisible(true);
+            treeViewer.collapseToLevel(getNodeData(id), 1);
+            treeViewer.expandToLevel(getNodeData(id), 1);
+        } else if (draw_mode == CONSTANT_DRAWMODE_AGGREGATE) {
+            // Remove treeComp
+            GridData gd = (GridData) treeComp.getLayoutData();
+            gd.exclude = true;
+            treeComp.setLayoutData(gd);
+            treeComp.setVisible(false);
 
+            callgraphView.layout();
+            // Remove thumbnail
+            gd = (GridData) thumbCanvas.getLayoutData();
+            gd.exclude = true;
+            thumbCanvas.setLayoutData(gd);
+            thumbCanvas.setVisible(false);
+        } else {
+            // Remove treeComp
+            GridData gd = (GridData) treeComp.getLayoutData();
+            gd.exclude = true;
+            treeComp.setLayoutData(gd);
+            treeComp.setVisible(false);
 
-		this.setRedraw(false);
-		if (draw_mode == CONSTANT_DRAWMODE_RADIAL) {
-			//Remove thumbnail
-			GridData gd = (GridData) thumbCanvas.getLayoutData();
-			gd.exclude = true;
-			thumbCanvas.setLayoutData(gd);
-			thumbCanvas.setVisible(false);
-			callgraphView.layout();
+            callgraphView.layout();
 
+            // Add thumbnail
+            gd = (GridData) thumbCanvas.getLayoutData();
+            gd.exclude = true;
+            thumbCanvas.setLayoutData(gd);
+            thumbCanvas.setVisible(true);
+            thumbCanvas.setBackground(this.getBackground());
 
-			//Add treeComp
-			gd = (GridData) treeComp.getLayoutData();
-			gd.exclude = false;
-			treeComp.setLayoutData(gd);
-			treeComp.setVisible(true);
-			treeViewer.collapseToLevel(getNodeData(id), 1);
-			treeViewer.expandToLevel(getNodeData(id), 1);
+        }
+        callgraphView.layout();
+        this.setRedraw(true);
 
+        // -------------Draw tree
+        if (draw_mode == CONSTANT_DRAWMODE_TREE) {
+            if (animation_mode == CONSTANT_ANIMATION_SLOW) {
+                if (nodeMap.get(id) == null) {
+                    nodeMap.put(id, getNodeData(id).makeNode(this));
+                }
+                int tempX = nodeMap.get(id).getLocation().x;
+                int tempY = nodeMap.get(id).getLocation().y;
+                Animation.markBegin();
+                moveAllNodesTo(tempX, tempY);
+                Animation.run(ANIMATION_TIME);
 
-		} else if (draw_mode == CONSTANT_DRAWMODE_AGGREGATE){
-			//Remove treeComp
-			GridData gd = (GridData) treeComp.getLayoutData();
-			gd.exclude = true;
-			treeComp.setLayoutData(gd);
-			treeComp.setVisible(false);
+                deleteAll(id);
+                setLevelLimits(id);
+                rootVisibleNodeNumber = id;
+                drawTree(id, this.getBounds().width / 2, 20);
+                currentPositionInLevel.clear();
 
-			callgraphView.layout();
-			//Remove thumbnail
-			gd = (GridData) thumbCanvas.getLayoutData();
-			gd.exclude = true;
-			thumbCanvas.setLayoutData(gd);
-			thumbCanvas.setVisible(false);
-		}
-		else{
-			//Remove treeComp
-			GridData gd = (GridData) treeComp.getLayoutData();
-			gd.exclude = true;
-			treeComp.setLayoutData(gd);
-			treeComp.setVisible(false);
+                this.update();
+                Animation.markBegin();
+                drawTree(id, this.getBounds().width / 2, 20);
 
-			callgraphView.layout();
+                Animation.run(ANIMATION_TIME);
+                getNode(id).unhighlight();
+            } else {
+                deleteAll(id);
+                setLevelLimits(id);
+                rootVisibleNodeNumber = id;
+                drawTree(id, this.getBounds().width / 2, 20);
+                getNode(id).unhighlight();
+            }
+        }
 
-			//Add thumbnail
-			gd = (GridData) thumbCanvas.getLayoutData();
-			gd.exclude = true;
-			thumbCanvas.setLayoutData(gd);
-			thumbCanvas.setVisible(true);
-			thumbCanvas.setBackground(this.getBackground());
+        // -------------Draw radial
+        else if (draw_mode == CONSTANT_DRAWMODE_RADIAL) {
 
+            if (animation_mode == CONSTANT_ANIMATION_SLOW) {
+                rootVisibleNodeNumber = id;
+                deleteAll(id);
 
-		}
-		callgraphView.layout();
-		this.setRedraw(true);
+                preDrawRadial(id);
+                this.redraw();
+                this.getLightweightSystem().getUpdateManager().performUpdate();
 
+                Animation.markBegin();
+                nodeMap.get(id).setLocation(this.getBounds().width / 2,
+                        this.getBounds().height / 2);
+                drawRadial(id);
+                Animation.run(ANIMATION_TIME);
+                callgraphView.maximizeOrRefresh(false);
+            } else {
+                deleteAll(id);
+                drawRadial(id);
+            }
+        }
 
-		//-------------Draw tree
-		if (draw_mode == CONSTANT_DRAWMODE_TREE) {
-			if (animation_mode == CONSTANT_ANIMATION_SLOW) {
-				if (nodeMap.get(id) == null) {
-					nodeMap.put(id, getNodeData(id).makeNode(this));
-				}
-				int tempX = nodeMap.get(id).getLocation().x;
-				int tempY = nodeMap.get(id).getLocation().y;
-				Animation.markBegin();
-				moveAllNodesTo(tempX, tempY);
-				Animation.run(ANIMATION_TIME);
+        // -------------Draw level
+        else if (draw_mode == CONSTANT_DRAWMODE_LEVEL) {
+            rootVisibleNodeNumber = id;
+            if (animation_mode == CONSTANT_ANIMATION_SLOW) {
+                if (nodeMap.get(id) == null) {
+                    nodeMap.put(id, getNodeData(id).makeNode(this));
+                }
 
-				deleteAll(id);
-				setLevelLimits(id);
-				rootVisibleNodeNumber = id;
-				drawTree(id, this.getBounds().width / 2, 20);
-				currentPositionInLevel.clear();
+                Animation.markBegin();
+                moveAllNodesTo(nodeMap.get(id).getLocation().x, nodeMap.get(id)
+                        .getLocation().y);
+                Animation.run(ANIMATION_TIME);
 
-				this.update();
-				Animation.markBegin();
-				drawTree(id, this.getBounds().width / 2, 20);
+                deleteAll(id);
 
-				Animation.run(ANIMATION_TIME);
-				getNode(id).unhighlight();
-			} else {
-				deleteAll(id);
-				setLevelLimits(id);
-				rootVisibleNodeNumber = id;
-				drawTree(id, this.getBounds().width / 2, 20);
-				getNode(id).unhighlight();
-			}
-		}
+                drawBox(id, 0);
 
+            } else {
+                if (nodeMap.get(id) == null) {
+                    nodeMap.put(id, getNodeData(id).makeNode(this));
+                }
+                deleteAll(id);
+                drawBox(id, 0);
 
-		//-------------Draw radial
-		else if (draw_mode == CONSTANT_DRAWMODE_RADIAL) {
+            }
+        }
 
-			if (animation_mode == CONSTANT_ANIMATION_SLOW) {
-				rootVisibleNodeNumber = id;
-				deleteAll(id);
+        // -------------Draw aggregate
+        else if (draw_mode == CONSTANT_DRAWMODE_AGGREGATE) {
+            rootVisibleNodeNumber = getFirstUsefulNode();
+            deleteAll(-1);
+            drawAggregateView();
+        }
 
-				preDrawRadial(id);
-				this.redraw();
-				this.getLightweightSystem().getUpdateManager()
-						.performUpdate();
+        if (getNode(id) != null) {
+            getNode(id).unhighlight();
+        }
+        clearSelection();
 
-				Animation.markBegin();
-				nodeMap.get(id).setLocation(this.getBounds().width / 2,
-						this.getBounds().height / 2);
-				drawRadial(id);
-				Animation.run(ANIMATION_TIME);
-				callgraphView.maximizeOrRefresh(false);
-			}
-
-			else {
-				deleteAll(id);
-				drawRadial(id);
-			}
-		}
-
-		//-------------Draw level
-		else if (draw_mode == CONSTANT_DRAWMODE_LEVEL) {
-			rootVisibleNodeNumber = id;
-			if (animation_mode == CONSTANT_ANIMATION_SLOW) {
-				if (nodeMap.get(id) == null) {
-					nodeMap.put(id, getNodeData(id).makeNode(this));
-				}
-
-				Animation.markBegin();
-				moveAllNodesTo(nodeMap.get(id).getLocation().x, nodeMap.get(id).getLocation().y);
-				Animation.run(ANIMATION_TIME);
-
-				deleteAll(id);
-
-				drawBox(id, 0);
-
-			} else {
-				if (nodeMap.get(id) == null) {
-					nodeMap.put(id, getNodeData(id).makeNode(this));
-				}
-				deleteAll(id);
-				drawBox(id, 0);
-
-			}
-		}
-
-
-		//-------------Draw aggregate
-		else if (draw_mode == CONSTANT_DRAWMODE_AGGREGATE) {
-			rootVisibleNodeNumber = getFirstUsefulNode();
-			deleteAll(-1);
-			drawAggregateView();
-		}
-
-		if (getNode(id) != null) {
-			getNode(id).unhighlight();
-		}
-		clearSelection();
-
-		//AFTER FIRST LOADING LET THE GRAPH EXPAND TO FILL THE VIEW
-		this.setLayoutData(new GridData(SWT.FILL,SWT.FILL,true,true));
-	}
+        // AFTER FIRST LOADING LET THE GRAPH EXPAND TO FILL THE VIEW
+        this.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+    }
 
