@@ -1,33 +1,33 @@
-	@Override
-	public IFileStore[] childStores(int options, IProgressMonitor monitor)
-			throws CoreException {
-		if (monitor == null)
-			monitor = new NullProgressMonitor();
-		try {
-			monitor.beginTask(Messages.SSHFileStore_childStoresMonitor, 100);
-			ChannelSftp channel = proxy.getChannelSftp();
-			monitor.worked(25);
-			Vector<?> v = channel.ls(uri.getPath());
-			monitor.worked(50);
-			LinkedList<IFileStore> childs = new LinkedList<>();
+    @Override
+    public IFileStore[] childStores(int options, IProgressMonitor monitor)
+            throws CoreException {
+        if (monitor == null)
+            monitor = new NullProgressMonitor();
+        try {
+            monitor.beginTask(Messages.SSHFileStore_childStoresMonitor, 100);
+            ChannelSftp channel = proxy.getChannelSftp();
+            monitor.worked(25);
+            Vector<?> v = channel.ls(uri.getPath());
+            monitor.worked(50);
+            LinkedList<IFileStore> childs = new LinkedList<>();
 
-			boolean isDir = false;
-			for (int i=0; i < v.size(); i++) {
-				ChannelSftp.LsEntry entry  = (ChannelSftp.LsEntry) v.get(i);
-				if (!entry.getFilename().equals(".") && !entry.getFilename().equals("..")) //$NON-NLS-1$ //$NON-NLS-2$
-					childs.add(createFileStore(path.append(entry.getFilename()).toString()));
-				else
-					isDir = true;
-			}
-			if (!isDir)
-				throw new CoreException(new Status(IStatus.ERROR, Activator.PLUGIN_ID,
-					MessageFormat.format(Messages.SSHFileStore_childStoresFailedDirectory, getName())));
+            boolean isDir = false;
+            for (int i=0; i < v.size(); i++) {
+                ChannelSftp.LsEntry entry  = (ChannelSftp.LsEntry) v.get(i);
+                if (!entry.getFilename().equals(".") && !entry.getFilename().equals("..")) //$NON-NLS-1$ //$NON-NLS-2$
+                    childs.add(createFileStore(path.append(entry.getFilename()).toString()));
+                else
+                    isDir = true;
+            }
+            if (!isDir)
+                throw new CoreException(new Status(IStatus.ERROR, Activator.PLUGIN_ID,
+                    MessageFormat.format(Messages.SSHFileStore_childStoresFailedDirectory, getName())));
 
-			monitor.worked(100);
-			monitor.done();
-			return childs.toArray(new IFileStore[0]);
-		} catch (SftpException e) {
-			throw new CoreException(new Status(IStatus.ERROR, Activator.PLUGIN_ID, Messages.SSHFileStore_childStoresFailed + e.getMessage()));
-		}
-	}
+            monitor.worked(100);
+            monitor.done();
+            return childs.toArray(new IFileStore[0]);
+        } catch (SftpException e) {
+            throw new CoreException(new Status(IStatus.ERROR, Activator.PLUGIN_ID, Messages.SSHFileStore_childStoresFailed + e.getMessage()));
+        }
+    }
 
