@@ -2,12 +2,34 @@
         AnnotationModelEvent event = new AnnotationModelEvent(this);
         clear(event);
         List<Line> lines = sourceFile.getLines();
+
+        List<Long> tmp = new ArrayList<>();
+        for (Line line : lines) {
+            // Remove 0 from our calculation
+            if (line.getCount() != 0) {
+                tmp.add(line.getCount());
+            }
+        }
+        Long[] counts = tmp.toArray(new Long[0]);
+        Arrays.sort(counts);
+
+        // Formula for outlier (upper quartile)
+        final int q1 = (int) Math.floor(0.25 * counts.length);
+        final int q3 = (int) Math.ceil(0.75 * counts.length);
+        final float outlierThreshold = counts[q3] + (1.5f * (counts[q3] - counts[q1]));
+
         for (int i = 0; i < lines.size(); i++) {
             try {
                 Line line = lines.get((i+1) % lines.size());
+                String type = COVERAGE;
+                if (line.getCount() == 0) {
+                    type = NO_COVERAGE;
+                } else if (line.getCount() > outlierThreshold) {
+                    type = THOROUGH_COVERAGE;
+                }
                 if (line.exists()) {
                     GcovAnnotation ca = new GcovAnnotation(document.getLineOffset(i),
-                        document.getLineLength(i), line.getCount());
+                            document.getLineLength(i), line.getCount(), type);
                     annotations.add(ca);
                     event.annotationAdded(ca);
                 }
