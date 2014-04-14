@@ -1,16 +1,16 @@
 	private void createXML() {
-		
+
 		// get the binary name and the image count
 		Element oldImage = (Element) oldRoot.getElementsByTagName(BINARY).item(0);
 		Element newImage = newDoc.createElement(IMAGE);
-		
+
 		String binName = oldImage.getAttribute(NAME);
 		newImage.setAttribute(NAME, binName);
-		
+
 		Element countTag = (Element) oldImage.getElementsByTagName(COUNT).item(0);
 		String imageCount = countTag.getTextContent().trim();
 		newImage.setAttribute(COUNT, imageCount);
-		
+
 		// There is no setup count in timer mode
 		if (!InfoAdapter.hasTimerSupport()){
 			// get the count that was used to profile
@@ -19,34 +19,34 @@
 			String setupcount = eventSetupTag.getAttribute(SETUP_COUNT);
 			newImage.setAttribute(SETUP_COUNT, setupcount);
 		}
-		
+
 		// these elements contain the data needed to populate the new symbol table
 		Element oldSymbolTableTag = (Element) oldRoot.getElementsByTagName(SYMBOL_TABLE).item(0);
 		NodeList oldSymbolDataList = oldSymbolTableTag.getElementsByTagName(SYMBOL_DATA);
-		
+
 		Element oldDetailTableTag = (Element) oldRoot.getElementsByTagName(DETAIL_TABLE).item(0);
 		NodeList oldDetailTableList = oldDetailTableTag.getElementsByTagName(SYMBOL_DETAILS);
-		
+
 		// parse the data into HashMaps for O(1) lookup time, as opposed to O(n).
 		HashMap<String, HashMap<String, String>> oldSymbolDataListMap = parseDataList (oldSymbolDataList);
 		HashMap<String, NodeList> oldDetailTableListMap = parseDetailTable (oldDetailTableList);
-		
+
 		// An ArrayList to hold the binary and other modules
 		ArrayList<Element> oldImageList = new ArrayList<>();
 		// The first element is the original binary!
-		oldImageList.add(oldImage); 
-		
+		oldImageList.add(oldImage);
+
 		NodeList oldModuleList = oldImage.getElementsByTagName(MODULE);
 		// Set up the dependent tag for any modules run by this binary
 		Element dependentTag = newDoc.createElement(DEPENDENT);
 		if (oldModuleList.getLength() > 0){
 			dependentTag.setAttribute(COUNT, "0"); //$NON-NLS-1$
-			
+
 			for (int t = 0; t < oldModuleList.getLength(); t++){
 				oldImageList.add((Element)oldModuleList.item(t));
 			}
 		}
-		
+
 		// iterate through all (binary/modules)
 		for (Element oldImg : oldImageList) {
 			Element newImg;
@@ -54,10 +54,10 @@
 				newImg = newImage;
 			}else{
 				newImg = newDoc.createElement(IMAGE);
-				
+
 				String imgName = oldImg.getAttribute(NAME);
 				newImg.setAttribute(NAME, imgName);
-				
+
 				Element modCountTag = (Element) oldImg.getElementsByTagName(COUNT).item(0);
 				String imgCount = modCountTag.getTextContent().trim();
 				newImg.setAttribute(COUNT, imgCount);
@@ -71,7 +71,7 @@
 			// iterate through all symbols
 			for (int i = 0; i < oldSymbolList.getLength(); i++) {
 				Element oldSymbol = (Element) oldSymbolList.item(i);
-				
+
 				/**
 				 * The original binary is a parent for all symbols
 				 * We only want library function calls under their respective
@@ -80,7 +80,7 @@
 				if (!oldSymbol.getParentNode().isSameNode(oldImg)){
 					continue;
 				}
-				
+
 				Element newSymbol = newDoc.createElement(SYMBOL);
 				String idref = oldSymbol.getAttribute(IDREF);
 				String symbolCount = ((Element) oldSymbol.getElementsByTagName(COUNT).item(0)).getTextContent().trim();
@@ -157,7 +157,7 @@
 
 				newSymbolsTag.appendChild(newSymbol);
 			}
-			
+
 			newImg.appendChild(newSymbolsTag);
 			// If this is a module, attach it to the dependent tag
 			if (oldImg.getTagName().equals(MODULE)){
@@ -169,10 +169,10 @@
 				newRoot.appendChild(newImg);
 			}
 		}
-		
+
 		if (oldModuleList.getLength() > 0){
 			newImage.appendChild(dependentTag);
 		}
-	
+
 	}
 
