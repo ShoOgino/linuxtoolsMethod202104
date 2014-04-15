@@ -1,62 +1,62 @@
-	/**
-	 * Runs the given command and parameters.
-	 * 
-	 * @param outStream
-	 *            The stream to write the output to.
-	 * @param project
-	 * 			  The project which is executing this command.
-	 * @param command
-	 *            The command with all parameters.
-	 * @return int The return value of the command.
-	 * @throws IOException If an IOException occurs.
-	 * @since 1.1
-	 */
-	public static IStatus runCommand(final OutputStream outStream, IProject project,
-			String... command) throws IOException {
-		Process child = RuntimeProcessFactory.getFactory().exec(command, project);
+    /**
+     * Runs the given command and parameters.
+     *
+     * @param outStream
+     *            The stream to write the output to.
+     * @param project
+     * 			  The project which is executing this command.
+     * @param command
+     *            The command with all parameters.
+     * @return int The return value of the command.
+     * @throws IOException If an IOException occurs.
+     * @since 1.1
+     */
+    public static IStatus runCommand(final OutputStream outStream, IProject project,
+            String... command) throws IOException {
+        Process child = RuntimeProcessFactory.getFactory().exec(command, project);
 
-		final BufferedInputStream in = new BufferedInputStream(
-				new SequenceInputStream(child.getInputStream(),
-						child.getErrorStream()));
+        final BufferedInputStream in = new BufferedInputStream(
+                new SequenceInputStream(child.getInputStream(),
+                        child.getErrorStream()));
 
-		Job readinJob = new Job("") { //$NON-NLS-1$
+        Job readinJob = new Job("") { //$NON-NLS-1$
 
-			@Override
-			protected IStatus run(IProgressMonitor monitor) {
-				try {
-					int i;
-					while ((i = in.read()) != -1) {
-						outStream.write(i);
-					}
-					outStream.flush();
-					outStream.close();
-					in.close();
-				} catch (IOException e) {
-					return Status.CANCEL_STATUS;
-				}
-				return Status.OK_STATUS;
-			}
+            @Override
+            protected IStatus run(IProgressMonitor monitor) {
+                try {
+                    int i;
+                    while ((i = in.read()) != -1) {
+                        outStream.write(i);
+                    }
+                    outStream.flush();
+                    outStream.close();
+                    in.close();
+                } catch (IOException e) {
+                    return Status.CANCEL_STATUS;
+                }
+                return Status.OK_STATUS;
+            }
 
-		};
-		readinJob.schedule();
-		
-		try {
-			child.waitFor();
-			readinJob.join();
-		} catch (InterruptedException e) {
-			child.destroy();
-			readinJob.cancel();
-		}
-		IStatus result;
-		if (child.exitValue() != 0){
-			result = new Status(
-					IStatus.ERROR,
-					FrameworkUtil.getBundle(Utils.class).getSymbolicName(),
-					NLS.bind(
-							Messages.Utils_NON_ZERO_RETURN_CODE, child.exitValue()), null); 
-		} else{
-			result = Status.OK_STATUS;
-		}
-		return result;
-	}
+        };
+        readinJob.schedule();
+
+        try {
+            child.waitFor();
+            readinJob.join();
+        } catch (InterruptedException e) {
+            child.destroy();
+            readinJob.cancel();
+        }
+        IStatus result;
+        if (child.exitValue() != 0){
+            result = new Status(
+                    IStatus.ERROR,
+                    FrameworkUtil.getBundle(Utils.class).getSymbolicName(),
+                    NLS.bind(
+                            Messages.Utils_NON_ZERO_RETURN_CODE, child.exitValue()), null);
+        } else{
+            result = Status.OK_STATUS;
+        }
+        return result;
+    }
 

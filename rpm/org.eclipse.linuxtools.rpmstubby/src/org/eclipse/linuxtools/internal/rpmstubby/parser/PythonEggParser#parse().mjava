@@ -1,72 +1,70 @@
-	/**
-	 * Parse the contents of the Python setup.py file and grab
-	 * variables and meta-data from the setup(...) function
-	 *
-	 */
-	public void parse() {
-		String line = "";
-		String setupLine = "";
-		List<String> vars = new ArrayList<>();
-		List<String> list = new ArrayList<>();
-		int offset = 0;
-		try {
-			RandomAccessFile raf = new RandomAccessFile(file.getRawLocation().makeAbsolute().toFile(), "r");
+    /**
+     * Parse the contents of the Python setup.py file and grab
+     * variables and meta-data from the setup(...) function
+     *
+     */
+    public void parse() {
+        String line = "";
+        String setupLine = "";
+        List<String> vars = new ArrayList<>();
+        List<String> list = new ArrayList<>();
+        int offset = 0;
+        try {
+            RandomAccessFile raf = new RandomAccessFile(file.getRawLocation().makeAbsolute().toFile(), "r");
 
-			// end if cannot find setup(
-			long bytesToSkip = findStartSetup(raf);
-			if (bytesToSkip == -1) {
-				return;
-			}
+            // end if cannot find setup(
+            long bytesToSkip = findStartSetup(raf);
+            if (bytesToSkip == -1) {
+                return;
+            }
 
-			// end if the end of setup cannot be found
-			long stop = findEndSetup(raf, bytesToSkip);
-			if (stop == -1) {
-				return;
-			}
+            // end if the end of setup cannot be found
+            long stop = findEndSetup(raf, bytesToSkip);
+            if (stop == -1) {
+                return;
+            }
 
-			raf.seek(0);
-			while ((line = raf.readLine()) != null) {
-				if (!line.trim().startsWith("#")) {
-					if (isLineSimpleDefinition(line)) {
-						vars.add(line);
-					} else if (!vars.isEmpty() && vars.get(vars.size()-1).trim().endsWith("\\") && isLineContinuation(line)){
-						offset = vars.get(vars.size()-1).lastIndexOf('\\');
-						vars.set(vars.size() -1, vars.get(vars.size() - 1).substring(0, offset));
-						vars.set(vars.size() - 1, vars.get(vars.size() - 1)
-								.concat(line.trim()));
-					}
-				}
-			}
+            raf.seek(0);
+            while ((line = raf.readLine()) != null) {
+                if (!line.trim().startsWith("#")) {
+                    if (isLineSimpleDefinition(line)) {
+                        vars.add(line);
+                    } else if (!vars.isEmpty() && vars.get(vars.size()-1).trim().endsWith("\\") && isLineContinuation(line)){
+                        offset = vars.get(vars.size()-1).lastIndexOf('\\');
+                        vars.set(vars.size() -1, vars.get(vars.size() - 1).substring(0, offset));
+                        vars.set(vars.size() - 1, vars.get(vars.size() - 1)
+                                .concat(line.trim()));
+                    }
+                }
+            }
 
-			raf.seek(bytesToSkip);
-			while ((line = raf.readLine()) != null && raf.getFilePointer() <= stop) {
-				line = line.trim();
-				if (!line.startsWith("#")) {
-					if (setupLine.equals("")) {
-						setupLine = line.trim();
-					} else {
-						setupLine = setupLine.concat(line.trim());
-					}
-				}
-			}
+            raf.seek(bytesToSkip);
+            while ((line = raf.readLine()) != null && raf.getFilePointer() <= stop) {
+                line = line.trim();
+                if (!line.startsWith("#")) {
+                    if (setupLine.equals("")) {
+                        setupLine = line.trim();
+                    } else {
+                        setupLine = setupLine.concat(line.trim());
+                    }
+                }
+            }
 
-			list = prepareSetupOptions(setupLine);
+            list = prepareSetupOptions(setupLine);
 
-			for (String str : vars) {
-				variables.putAll(parseLine(str));
-			}
+            for (String str : vars) {
+                variables.putAll(parseLine(str));
+            }
 
-			for (String str : list) {
-				setupOptions.putAll(parseLine(str));
-			}
+            for (String str : list) {
+                setupOptions.putAll(parseLine(str));
+            }
 
-			resolveVariables(variables, setupOptions);
+            resolveVariables(variables, setupOptions);
 
-			raf.close();
-		} catch (FileNotFoundException e) {
-			StubbyLog.logError(e);
-		} catch (IOException e) {
-			StubbyLog.logError(e);
-		}
-	}
+            raf.close();
+        } catch (IOException e) {
+            StubbyLog.logError(e);
+        }
+    }
 

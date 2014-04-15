@@ -1,47 +1,47 @@
-	/**
-	 * Parse the perl Makefile.
-	 *
-	 */
-	public void parse() {
-		String content = "";
-		String line = "";
-		try (Scanner variableScanner = new Scanner(file.getContents())) {
-			grabSimpleDefinitions(cleanUpContent(variableScanner));
-			cleanupVariables(mVariableDefinitions);
-			resolveVariables(mVariableDefinitions);
+    /**
+     * Parse the perl Makefile.
+     *
+     */
+    public void parse() {
+        String content = "";
+        String line = "";
+        try (Scanner variableScanner = new Scanner(file.getContents())) {
+            grabSimpleDefinitions(cleanUpContent(variableScanner));
+            cleanupVariables(mVariableDefinitions);
+            resolveVariables(mVariableDefinitions);
 
-			/*
-			 * Going through the makefile function's attributes
-			 */
-			if (!mVariableDefinitions.containsKey(MAKEFILE_FUNCTION_NAME)) {
-				return;
-			}
-			try (Scanner makefileScanner = new Scanner(
-					mVariableDefinitions.get(MAKEFILE_FUNCTION_NAME))) {
-				makefileScanner.useDelimiter("(?<=,)");
-				ArrayList<String> makefileList = new ArrayList<>();
+            /*
+             * Going through the makefile function's attributes
+             */
+            if (!mVariableDefinitions.containsKey(MAKEFILE_FUNCTION_NAME)) {
+                return;
+            }
+            try (Scanner makefileScanner = new Scanner(
+                    mVariableDefinitions.get(MAKEFILE_FUNCTION_NAME))) {
+                makefileScanner.useDelimiter("(?<=,)");
+                ArrayList<String> makefileList = new ArrayList<>();
 
-				while (makefileScanner.hasNext()) {
-					line = makefileScanner.next();
-					if (matchesAssociativeAssignment(line)) {
-						makefileList.add(line);
-					} else if (!makefileList.isEmpty()) {
-						makefileList.set(makefileList.size() - 1, makefileList
-								.get(makefileList.size() - 1).concat(line));
-					}
-				}
+                while (makefileScanner.hasNext()) {
+                    line = makefileScanner.next();
+                    if (matchesAssociativeAssignment(line)) {
+                        makefileList.add(line);
+                    } else if (!makefileList.isEmpty()) {
+                        makefileList.set(makefileList.size() - 1, makefileList
+                                .get(makefileList.size() - 1).concat(line));
+                    }
+                }
 
-				for (String str : makefileList) {
-					content = content.concat(str + '\n');
-				}
-				grabAssociativeDefinitions(content);
-				cleanupVariables(mMakefileDefinitions);
-				resolveVariables(mMakefileDefinitions);
+                for (String str : makefileList) {
+                    content = content.concat(str + '\n');
+                }
+                grabAssociativeDefinitions(content);
+                cleanupVariables(mMakefileDefinitions);
+                resolveVariables(mMakefileDefinitions);
 
-			}
-			variableScanner.close();
-		} catch (CoreException e) {
-			StubbyLog.logError(e);
-		}
-	}
+            }
+            variableScanner.close();
+        } catch (CoreException e) {
+            StubbyLog.logError(e);
+        }
+    }
 
