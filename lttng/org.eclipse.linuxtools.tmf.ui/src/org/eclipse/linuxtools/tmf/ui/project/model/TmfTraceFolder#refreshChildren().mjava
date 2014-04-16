@@ -12,13 +12,21 @@
             IResource[] members = folder.members();
             for (IResource resource : members) {
                 String name = resource.getName();
+                boolean isFolder = resource instanceof IFolder &&
+                        (resource.getPersistentProperty(TmfCommonConstants.TRACETYPE) == null);
                 ITmfProjectModelElement element = childrenMap.get(name);
-                if (element instanceof TmfTraceElement) {
-                    childrenMap.remove(name);
-                } else {
+                if (isFolder && !(element instanceof TmfTraceFolder) && !(element instanceof TmfTraceElement)) {
+                    if (TmfTraceType.getInstance().isDirectoryTrace(resource.getLocationURI().getPath())) {
+                        element = new TmfTraceElement(name, resource, this);
+                    } else {
+                        element = new TmfTraceFolder(name, (IFolder) resource, this);
+                    }
+                } else if (!isFolder && !(element instanceof TmfTraceElement)) {
                     element = new TmfTraceElement(name, resource, this);
+                } else {
+                    childrenMap.remove(name);
                 }
-                ((TmfTraceElement) element).refreshChildren();
+                ((TmfProjectModelElement) element).refreshChildren();
             }
         } catch (CoreException e) {
         }

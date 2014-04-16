@@ -7,43 +7,102 @@
             return null;
         }
 
-        // If trace is under an experiment, use the original trace from the traces folder
-        fTrace = fTrace.getElementUnderTraceFolder();
+        ISelection selection = HandlerUtil.getCurrentSelection(event);
+        TmfTraceElement selectedTrace = null;
+        if (selection instanceof IStructuredSelection) {
+            Object element = ((IStructuredSelection) selection).getFirstElement();
+            if (element instanceof TmfTraceElement) {
+                selectedTrace = (TmfTraceElement) element;
+            }
+        }
+        if (selectedTrace == null) {
+            return null;
+        }
 
-        // Fire the Rename Trace dialog
-        Shell shell = window.getShell();
-        TmfTraceFolder traceFolder = (TmfTraceFolder) fTrace.getParent();
-        final TmfTraceElement oldTrace = fTrace;
-        RenameTraceDialog dialog = new RenameTraceDialog(shell, fTrace);
+        // If trace is under an experiment, use the original trace from the traces folder
+        final TmfTraceElement oldTrace = selectedTrace.getElementUnderTraceFolder();
+
+        RenameTraceDialog dialog = new RenameTraceDialog(window.getShell(), oldTrace);
         if (dialog.open() != Window.OK) {
             return null;
         }
 
-        // Locate the new trace object
-        TmfTraceElement trace = null;
-        String newTraceName = dialog.getNewTraceName();
-        for (TmfTraceElement element : traceFolder.getTraces()) {
-            if (element.getName().equals(newTraceName)) {
-                trace = element;
-                break;
-            }
-        }
-        final TmfTraceElement newTrace = trace;
-        if (newTrace == null) {
-            return null;
-        }
+        final TmfTraceFolder traceFolder = (TmfTraceFolder) oldTrace.getParent();
+        final String newName = (String) dialog.getFirstResult();
+
+        IFolder parentFolder = (IFolder) oldTrace.getParent().getResource();
+        final TmfTraceFolder tracesFolder = oldTrace.getProject().getTracesFolder();
+        final IPath newPath = parentFolder.getFullPath().append(newName);
 
         WorkspaceModifyOperation operation = new WorkspaceModifyOperation() {
             @Override
+            public void execute(IProgressMonitor monitor) throws CoreException {
+                try {
+                    monitor.beginTask("", 1000); //$NON-NLS-1$
+                    if (monitor.isCanceled()) {
+                        throw new OperationCanceledException();
+                    }
+                    // Close the trace if open
+                    oldTrace.closeEditors();
+
+                    if (oldTrace.getResource() instanceof IFolder) {
+                        IFolder folder = (IFolder) oldTrace.getResource();
+                        IFile bookmarksFile = oldTrace.getBookmarksFile();
+                        if (bookmarksFile.exists()) {
+                            IFile newBookmarksFile = folder.getFile(bookmarksFile.getName().replace(oldTrace.getName(), newName));
+                            if (!newBookmarksFile.exists()) {
+                                IPath newBookmarksPath = newBookmarksFile.getFullPath();
+                                bookmarksFile.move(newBookmarksPath, IResource.FORCE | IResource.SHALLOW, monitor);
+                            }
+                        }
+                    }
+
+                    String newElementPath = newPath.makeRelativeTo(tracesFolder.getPath()).toString();
+                    oldTrace.renameSupplementaryFolder(newElementPath);
+                    oldTrace.getResource().move(newPath, IResource.FORCE | IResource.SHALLOW, monitor);
+                    if (monitor.isCanceled()) {
+                        throw new OperationCanceledException();
+                    }
+                } finally {
+                    monitor.done();
+                }
+            }
+        };
+
+        try {
+            PlatformUI.getWorkbench().getProgressService().busyCursorWhile(operation);
+        } catch (InterruptedException e) {
+            return null;
+        } catch (InvocationTargetException e) {
+            MessageDialog.openError(window.getShell(), e.toString(), e.getTargetException().toString());
+            return null;
+        }
+
+        /* We need to split the WorkspaceModifyOperation so that the new model
+         * elements get created by the resource changed event */
+        operation = new WorkspaceModifyOperation() {
+            @Override
             protected void execute(IProgressMonitor monitor) throws CoreException, InvocationTargetException, InterruptedException {
+
+                // Locate the new trace object
+                TmfTraceElement newTrace = null;
+                String newElementPath = oldTrace.getParent().getPath().append(newName).makeRelativeTo(tracesFolder.getPath()).toString();
+                for (TmfTraceElement element : traceFolder.getTraces()) {
+                    if (element.getElementPath().equals(newElementPath)) {
+                        newTrace = element;
+                        break;
+                    }
+                }
+                if (newTrace == null) {
+                    return;
+                }
+
                 TmfExperimentFolder experimentFolder = newTrace.getProject().getExperimentsFolder();
                 for (final TmfExperimentElement experiment : experimentFolder.getExperiments()) {
                     for (final TmfTraceElement expTrace : experiment.getTraces()) {
-                        if (expTrace.getName().equals(oldTrace.getName())) {
-                            // Create a link to the renamed trace
-                            createTraceLink(newTrace, experiment);
-                            // Remove the old trace link
-                            expTrace.getResource().delete(true, null);
+                        if (expTrace.getElementPath().equals(oldTrace.getElementPath())) {
+                            experiment.removeTrace(expTrace);
+                            experiment.addTrace(newTrace);
                         }
                     }
                 }
@@ -52,9 +111,9 @@
 
         try {
             PlatformUI.getWorkbench().getProgressService().busyCursorWhile(operation);
-        } catch (InterruptedException exception) {
-        } catch (InvocationTargetException | RuntimeException exception) {
-            Activator.getDefault().logError("Error renaming trace" + fTrace.getName(), exception); //$NON-NLS-1$
+        } catch (InterruptedException e) {
+        } catch (InvocationTargetException e) {
+            MessageDialog.openError(window.getShell(), e.toString(), e.getTargetException().toString());
         }
 
         return null;
