@@ -1,33 +1,13 @@
 	@Test
-	public void testProfileProject() throws InvocationTargetException, CoreException, URISyntaxException, InterruptedException, IOException {
+	public void testProfileProject() throws Exception {
 		SWTWorkbenchBot bot = new SWTWorkbenchBot();
 		proj = createProjectAndBuild(FrameworkUtil.getBundle(this.getClass()), PROJ_NAME);
-		testPreferencesPage();
-
-		// Focus on project explorer view.
-		bot.viewByTitle("Project Explorer").bot(); //$NON-NLS-1$
-		bot.activeShell();
-		SWTBotTree treeBot = bot.tree();
-		treeBot.setFocus();
-
-		// Select project binary.
-		// AbstractTest#createProjectAndBuild builds one executable binary under Binaries.
-		treeBot.expandNode(PROJ_NAME).expandNode("Binaries").getNode(0).select(); //$NON-NLS-1$
-
-		String menuItem = "Profiling Tools"; //$NON-NLS-1$
-		String subMenuItem = "3 Profile Timing"; //$NON-NLS-1$
-
-		// Click on "Profiling Tools -> 3 Profiling Timing" context menu to execute shortcut.
-		MenuItem menu = ContextMenuHelper.contextMenu(treeBot, menuItem, subMenuItem);
-		click(menu);
-
-		// Assert that the expected tool is running.
-		SWTBotShell profileShell = bot.shell("Successful profile launch").activate(); //$NON-NLS-1$
-		assertNotNull(profileShell);
-
-		bot.button("OK").click(); //$NON-NLS-1$
-		bot.waitUntil(shellCloses(profileShell));
-
-		deleteProject(proj);
+		try {
+			testProfileProjectActions(bot);
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			deleteProject(proj);
+		}
 	}
 

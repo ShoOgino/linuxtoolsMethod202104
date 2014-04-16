@@ -7,48 +7,13 @@
 		 * AbstractTest#createProjectAndBuild builds a single executable binary
 		 * under "Binaries".
 		 */
-		proj = createProjectAndBuild(FrameworkUtil.getBundle(this.getClass()),
-				PROJ_NAME);
-
-		enterProjectFolder(bot);
-
-		// Select project binary.
-		SWTBotTree treeBot = projectExplorer.bot().tree();
-		treeBot.contextMenu("Refresh").click();
-		treeBot.expandNode("Binaries").getNode(0).select();
-
-		// Launch configuration strings
-		String menuItem = "Profiling Tools";
-		String configMenuTitle = "Profiling Tools Configurations";
-		String subMenuItem = configMenuTitle + "...";
-
-		// Open profiling configurations dialog
-		MenuItem menu = ContextMenuHelper.contextMenu(treeBot, menuItem, subMenuItem);
-		click(menu);
-
-		bot.shell(configMenuTitle).activate();
-
-		// Create new Perf configuration
-		SWTBotTree profilingConfigs = bot.tree();
-		SWTBotTree perfNode = profilingConfigs.select("Profile with Perf");
-		perfNode.contextMenu("New").click();
-
-		// Activate options tab
-		bot.cTabItem("Perf Options").activate();
-
-		setPerfOptions(bot);
-
-		bot.button("Apply").click();
-
-		if (PerfCore.checkPerfInPath(null)) {
-			bot.button("Profile").click();
-
-		} else {
-			bot.button("Close").click();
-			openStubView();
+		proj = createProjectAndBuild(FrameworkUtil.getBundle(this.getClass()), PROJ_NAME);
+		try {
+			runPerfViewTestActions(bot);
+		} catch (Exception e) {
+			throw e;
+		} finally {
+			deleteProject(proj);
 		}
-
-		exitProjectFolder(bot);
-		testPerfView();
 	}
 

@@ -1,0 +1,35 @@
+	private void testProfileProjectActions(SWTWorkbenchBot bot) throws Exception {
+		testPreferencesPage();
+
+		// Focus on project explorer view.
+		SWTBotView projectExplorer = bot.viewByTitle("Project Explorer"); //$NON-NLS-1$
+		projectExplorer.bot().tree().select(PROJ_NAME);
+		final Shell shellWidget = bot.activeShell().widget;
+
+		// Open profiling configurations dialog
+		UIThreadRunnable.asyncExec(new VoidResult() {
+			@Override
+			public void run() {
+				DebugUITools.openLaunchConfigurationDialogOnGroup(shellWidget,
+						(StructuredSelection) PlatformUI.getWorkbench().getWorkbenchWindows()[0].
+						getSelectionService().getSelection(), "org.eclipse.debug.ui.launchGroup.profilee"); //$NON-NLS-1$
+			}
+		});
+		SWTBotShell shell = bot.shell("Profiling Tools Configurations"); //$NON-NLS-1$
+		shell.activate();
+
+		// Create new profiling configuration
+		SWTBotTree profilingConfigs = bot.tree();
+		SWTBotTree perfNode = profilingConfigs.select("Profile Timing"); //$NON-NLS-1$
+		perfNode.contextMenu("New").click(); //$NON-NLS-1$
+		bot.button("Profile").click(); //$NON-NLS-1$
+		bot.waitUntil(Conditions.shellCloses(shell));
+
+		// Assert that the expected tool is running.
+		SWTBotShell profileShell = bot.shell("Successful profile launch").activate(); //$NON-NLS-1$
+		assertNotNull(profileShell);
+
+		bot.button("OK").click(); //$NON-NLS-1$
+		bot.waitUntil(shellCloses(profileShell));
+	}
+
