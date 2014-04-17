@@ -8,6 +8,11 @@
          */
         long startTime = checkStartTime(start, typesStats);
         long endTime = checkEndTime(end, typesStats);
+        if (endTime < startTime) {
+            /* The start/end times do not intersect this state system range.
+             * Return the empty map. */
+            return map;
+        }
 
         try {
             /* Get the list of quarks, one for each even type in the database */
@@ -57,14 +62,8 @@
                 }
             }
 
-        } catch (TimeRangeException | StateSystemDisposedException e) {
+        } catch (StateSystemDisposedException e) {
             /* Assume there is no (more) events, nothing will be put in the map. */
-        } catch (StateValueTypeException e) {
-            /*
-             * This exception type would show a logic problem however,
-             * so they should not happen.
-             */
-            throw new IllegalStateException();
         }
         return map;
     }
