@@ -1,0 +1,28 @@
+    /**
+     * Gets the c++filt support for the given program Note that the instance if kept in a local hashmap, and discarded
+     * after 30 seconds of inactivity.
+     * @param cpu
+     * @param project
+     * @param program
+     * @return an instance of CPPFilt suitable for the given program
+     */
+    private synchronized CPPFilt getCppFilt(String cpu, IProject project) {
+        AutoDisposeCPPFilt adCppfilt = cppfilts.get(cpu);
+        if (adCppfilt == null) {
+            adCppfilt = new AutoDisposeCPPFilt();
+            cppfilts.put(cpu, adCppfilt);
+        }
+        if (adCppfilt.cppfilt == null) {
+            try {
+                adCppfilt.cppfilt = STCPPFiltFactory.getCPPFilt(cpu, project);
+            } catch (IOException e) {
+                // TODO: log the error ?;
+                // Perhaps log the error only once, because
+                // this method is called many many times...
+                return null;
+            }
+        }
+        adCppfilt.startTime = System.currentTimeMillis();
+        return adCppfilt.cppfilt;
+    }
+

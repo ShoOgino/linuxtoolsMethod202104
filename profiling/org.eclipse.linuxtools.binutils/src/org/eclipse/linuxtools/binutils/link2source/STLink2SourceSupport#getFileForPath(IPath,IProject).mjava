@@ -1,0 +1,27 @@
+    /**
+     * @param path The path of the file.
+     * @param project The project to look into.
+     * @return The file if found of null otherwise.
+     * @since 5.0
+     */
+    public static IFile getFileForPath(IPath path, IProject project) {
+        IFile f = getFileForPathImpl(path, project);
+        if (f == null) {
+            Set<IProject> allProjects = new HashSet<>();
+            try {
+                getAllReferencedProjects(allProjects, project);
+            } catch (CoreException e) {
+                Activator.getDefault().getLog().log(e.getStatus());
+            }
+            if (allProjects != null) {
+                for (IProject project2 : allProjects) {
+                    f = getFileForPathImpl(path, project2);
+                    if (f != null) {
+                        break;
+                    }
+                }
+            }
+        }
+        return f;
+    }
+

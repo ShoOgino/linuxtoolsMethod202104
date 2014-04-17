@@ -1,0 +1,22 @@
+    private static IEditorInput findFileInCommonSourceLookup(IPath path) {
+        try {
+            AbstractSourceLookupDirector director = CDebugCorePlugin.getDefault().getCommonSourceLookupDirector();
+            ISourceContainer[] c = director.getSourceContainers();
+            for (ISourceContainer sourceContainer : c) {
+                Object[] o = sourceContainer.findSourceElements(path.toOSString());
+                for (Object object : o) {
+                    if (object instanceof IFile) {
+                        return new FileEditorInput((IFile) object);
+                    } else if (object instanceof LocalFileStorage) {
+                        LocalFileStorage storage = (LocalFileStorage) object;
+                        IFileStore ifs = EFS.getStore(storage.getFile().toURI());
+                        return new FileStoreEditorInput(ifs);
+                    }
+                }
+            }
+        } catch (CoreException e) {
+            // do nothing
+        }
+        return null;
+    }
+

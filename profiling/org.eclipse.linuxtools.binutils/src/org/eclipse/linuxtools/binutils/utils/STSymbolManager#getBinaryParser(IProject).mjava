@@ -1,0 +1,37 @@
+    /**
+     * Retrieve the list of binary parsers defined for the given project.
+     * @param project The project.
+     * @return The binary parsers for this project.
+     */
+    private List<IBinaryParser> getBinaryParser(IProject project) {
+        List<IBinaryParser> parsers = new LinkedList<>();
+
+        ICProjectDescription projDesc = CCorePlugin.getDefault().getProjectDescription(project);
+        if (projDesc == null)
+            return parsers;
+        ICConfigurationDescription[] cfgs = projDesc.getConfigurations();
+        String[] binaryParserIds = CoreModelUtil.getBinaryParserIds(cfgs);
+
+        IExtensionPoint extensionPoint = Platform.getExtensionRegistry().getExtensionPoint(CCorePlugin.PLUGIN_ID,
+                CCorePlugin.BINARY_PARSER_SIMPLE_ID);
+        for (String id : binaryParserIds) {
+            IExtension extension = extensionPoint.getExtension(id);
+            if (extension != null) {
+                IConfigurationElement element[] = extension.getConfigurationElements();
+                for (IConfigurationElement element2 : element) {
+                    if (element2.getName().equalsIgnoreCase("cextension")) { //$NON-NLS-1$
+                        try {
+                            IBinaryParser parser = (IBinaryParser) element2.createExecutableExtension("run"); //$NON-NLS-1$
+                            if (parser != null) {
+                                parsers.add(parser);
+                            }
+                        } catch (CoreException e) {
+                            // TODO: handle exception ?
+                        }
+                    }
+                }
+            }
+        }
+        return parsers;
+    }
+

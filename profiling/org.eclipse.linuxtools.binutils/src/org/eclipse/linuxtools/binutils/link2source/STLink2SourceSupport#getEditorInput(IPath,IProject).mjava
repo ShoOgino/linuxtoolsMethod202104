@@ -1,0 +1,19 @@
+    public static IEditorInput getEditorInput(IPath p, IProject project) {
+        IFile f = getFileForPath(p, project);
+        if (f != null && f.exists()) {
+            return new FileEditorInput(f);
+        }
+        if (p.isAbsolute()) {
+            File file = p.toFile();
+            if (file.exists()) {
+                try {
+                    IFileStore ifs = EFS.getStore(file.toURI());
+                    return new FileStoreEditorInput(ifs);
+                } catch (CoreException e) {
+                    Activator.getDefault().getLog().log(e.getStatus());
+                }
+            }
+        }
+        return findFileInCommonSourceLookup(p);
+    }
+

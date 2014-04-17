@@ -1,0 +1,34 @@
+    /**
+     * each {@link #AUTO_DISPOSE_TIMEOUT} ms, the unused addr2line and c++filt programs are disposed.
+     */
+    private synchronized void cleanup() {
+        long currentTime = System.currentTimeMillis();
+        Iterator<Entry<IBinaryObject, AutoDisposeAddr2line>> iter = addr2lines.entrySet().iterator();
+        while (iter.hasNext()) {
+            Entry<IBinaryObject, AutoDisposeAddr2line> entry = iter.next();
+            AutoDisposeAddr2line ada2l = entry.getValue();
+            long diff = currentTime - ada2l.startTime;
+            if (diff > AUTO_DISPOSE_TIMEOUT) {
+				if (ada2l.addr2line != null) {
+					ada2l.addr2line.dispose();
+					ada2l.addr2line = null;
+				}
+                iter.remove();
+            }
+        }
+
+        Iterator<Entry<String, AutoDisposeCPPFilt>> iter2 = cppfilts.entrySet().iterator();
+        while (iter2.hasNext()) {
+            Entry<String, AutoDisposeCPPFilt> entry = iter2.next();
+            AutoDisposeCPPFilt adcppf = entry.getValue();
+            long diff = currentTime - adcppf.startTime;
+            if (diff > AUTO_DISPOSE_TIMEOUT) {
+                if (adcppf.cppfilt != null) {
+                    adcppf.cppfilt.dispose();
+                    adcppf.cppfilt = null;
+                }
+                iter2.remove();
+            }
+        }
+    }
+

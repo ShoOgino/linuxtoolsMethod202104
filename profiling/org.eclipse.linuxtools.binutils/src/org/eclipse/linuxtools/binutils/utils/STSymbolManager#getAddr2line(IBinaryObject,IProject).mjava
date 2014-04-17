@@ -1,0 +1,28 @@
+    /**
+     * Gets the addr2line support for the given program Note that the instance if kept in a local hashmap, and discarded
+     * after 30 seconds of inactivity.
+     * @param program
+     * @param project
+     * @return an instance of Addr2line suitable for the given program
+     */
+    private synchronized Addr2line getAddr2line(IBinaryObject program, IProject project) {
+        AutoDisposeAddr2line adAddr2line = addr2lines.get(program);
+        if (adAddr2line == null) {
+            adAddr2line = new AutoDisposeAddr2line();
+            addr2lines.put(program, adAddr2line);
+        }
+        if (adAddr2line.addr2line == null) {
+            try {
+                adAddr2line.addr2line = STAddr2LineFactory.getAddr2line(program.getCPU(), program.getPath()
+                        .toOSString(), project);
+            } catch (IOException e) {
+                // TODO: log the error ?;
+                // Perhaps log the error only once, because
+                // this method is called many many times...
+                return null;
+            }
+        }
+        adAddr2line.startTime = System.currentTimeMillis();
+        return adAddr2line.addr2line;
+    }
+

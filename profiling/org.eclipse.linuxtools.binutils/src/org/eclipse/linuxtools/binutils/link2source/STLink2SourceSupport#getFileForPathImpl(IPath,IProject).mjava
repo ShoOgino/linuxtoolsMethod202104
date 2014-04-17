@@ -1,0 +1,45 @@
+    private static IFile getFileForPathImpl(IPath path, IProject project) {
+        IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+        if (path.isAbsolute()) {
+            IFile c = root.getFileForLocation(path);
+            return c;
+        }
+        if (project != null && project.exists()) {
+            ICProject cproject = CoreModel.getDefault().create(project);
+            if (cproject != null) {
+                try {
+                    ISourceRoot[] roots = cproject.getAllSourceRoots();
+                    for (ISourceRoot sourceRoot : roots) {
+                        IResource r = sourceRoot.getResource();
+                        if (r instanceof IContainer) {
+                            IContainer parent = (IContainer) r;
+                            IResource res = parent.findMember(path);
+                            if (res != null && res.exists() && res instanceof IFile) {
+                                IFile file = (IFile) res;
+                                return file;
+                            }
+                        }
+                    }
+
+                    IOutputEntry entries[] = cproject.getOutputEntries();
+                    for (IOutputEntry pathEntry : entries) {
+                        IPath p = pathEntry.getPath();
+                        IResource r = root.findMember(p);
+                        if (r instanceof IContainer) {
+                            IContainer parent = (IContainer) r;
+                            IResource res = parent.findMember(path);
+                            if (res != null && res.exists() && res instanceof IFile) {
+                                IFile file = (IFile) res;
+                                return file;
+                            }
+                        }
+                    }
+
+                } catch (CModelException e) {
+                    Activator.getDefault().getLog().log(e.getStatus());
+                }
+            }
+        }
+        return null;
+    }
+
