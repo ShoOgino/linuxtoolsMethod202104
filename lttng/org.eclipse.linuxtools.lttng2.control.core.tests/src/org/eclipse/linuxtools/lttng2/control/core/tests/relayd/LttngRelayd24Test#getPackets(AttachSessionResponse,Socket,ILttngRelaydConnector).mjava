@@ -1,0 +1,30 @@
+    private static void getPackets(AttachSessionResponse attachedSession, Socket connection, ILttngRelaydConnector relayD) throws IOException {
+        int numPacketsReceived = 0;
+        DataOutputStream fOutNet = new DataOutputStream(connection.getOutputStream());
+        DataInputStream fInNet = new DataInputStream(connection.getInputStream());
+        while (numPacketsReceived < PACKETS_TO_READ) {
+            for (StreamResponse stream : attachedSession.getStreamList()) {
+                if (stream.getMetadataFlag() != 1) {
+                    ConnectResponse connectPayload = new ConnectResponse(fInNet);
+                    assertNotNull(connectPayload);
+
+                    ViewerCommand connectCommand = new ViewerCommand(Command.VIEWER_GET_NEXT_INDEX, ConnectResponse.SIZE, 0);
+                    fOutNet.write(connectCommand.serialize());
+                    fOutNet.flush();
+
+                    GetNextIndex indexRequest = new GetNextIndex(stream.getId());
+                    fOutNet.write(indexRequest.serialize());
+                    fOutNet.flush();
+
+                    IndexResponse indexReply = new IndexResponse(fInNet);
+                    // Nothing else supported for now
+                    if (indexReply.getStatus() == NextIndexReturnCode.VIEWER_INDEX_OK) {
+                        if (relayD.getPacketFromStream(indexReply, stream.getId()) != null) {
+                            numPacketsReceived++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+

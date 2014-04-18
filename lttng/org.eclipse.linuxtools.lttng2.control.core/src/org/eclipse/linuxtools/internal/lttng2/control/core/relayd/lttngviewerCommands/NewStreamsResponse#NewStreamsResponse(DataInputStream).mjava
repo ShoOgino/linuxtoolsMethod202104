@@ -1,0 +1,24 @@
+    /**
+     * New stream response network constructor
+     *
+     * @param inNet
+     *            network stream
+     * @throws IOException
+     *             network error
+     */
+    public NewStreamsResponse(DataInputStream inNet) throws IOException {
+        byte[] data = new byte[SIZE];
+        inNet.readFully(data);
+        ByteBuffer bb = ByteBuffer.wrap(data);
+        bb.order(ByteOrder.BIG_ENDIAN);
+        fStatus = NewStreamsReturnCode.values()[bb.getInt() - 1];
+        fNbStreams = bb.getInt();
+        ImmutableList.Builder<StreamResponse> sl = new ImmutableList.Builder<>();
+        if (getStatus().equals(NewStreamsReturnCode.LTTNG_VIEWER_NEW_STREAMS_OK)) {
+            for (int stream = 0; stream < fNbStreams; stream++) {
+                sl.add(new StreamResponse(inNet));
+            }
+        }
+        fStreamList = sl.build();
+    }
+

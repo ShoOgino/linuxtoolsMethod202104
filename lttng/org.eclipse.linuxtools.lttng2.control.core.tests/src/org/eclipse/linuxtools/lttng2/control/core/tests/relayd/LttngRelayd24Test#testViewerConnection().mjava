@@ -1,0 +1,26 @@
+    /**
+     * Test a connection
+     *
+     * @throws IOException
+     *             network timeout?
+     */
+    @Test
+    public void testViewerConnection() throws IOException {
+        InetAddress addr = InetAddress.getByName(ADDRESS);
+        try (Socket connection = new Socket(addr, PORT)) {
+            ILttngRelaydConnector relayD = LttngRelaydConnectorFactory.getNewConnector(connection);
+            List<SessionResponse> sessions = relayD.getSessions();
+            assertTrue(sessions.size() > 0);
+            SessionResponse lttngViewerSession = sessions.get(0);
+            assertNotNull(lttngViewerSession);
+            CreateSessionResponse createSession = relayD.createSession();
+            assertEquals(createSession.getStatus(), CreateSessionReturnCode.LTTNG_VIEWER_CREATE_SESSION_OK);
+            AttachSessionResponse attachedSession = relayD.attachToSession(lttngViewerSession);
+
+            String metaData = relayD.getMetadata(attachedSession);
+            assertNotNull(metaData);
+
+            getPackets(attachedSession, connection, relayD);
+        }
+    }
+
