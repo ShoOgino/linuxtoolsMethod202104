@@ -12,17 +12,19 @@
 
         IResource traceResource = sourceResource;
 
-        TmfProjectElement projectElement = TmfProjectRegistry.getProject(sourceResource.getProject());
-        for (TmfTraceElement trace : targetExperiment.getTraces()) {
-            if (trace.getName().equals(sourceResource.getName()) && targetExperiment.getProject().equals(projectElement)) {
-                return null;
+        IPath tracesFolderPath = targetExperiment.getProject().getTracesFolder().getPath();
+        if (tracesFolderPath.isPrefixOf(sourceResource.getFullPath())) {
+            String elementPath = sourceResource.getFullPath().makeRelativeTo(tracesFolderPath).toString();
+            for (TmfTraceElement trace : targetExperiment.getTraces()) {
+                if (trace.getElementPath().equals(elementPath)) {
+                    return null;
+                }
             }
-        }
-        if (!targetExperiment.getProject().getTracesFolder().getResource().equals(sourceResource.getParent())) {
+        } else {
             String targetName = sourceResource.getName();
-            for (TmfTraceElement trace : targetExperiment.getProject().getTracesFolder().getTraces()) {
-                if (trace.getName().equals(targetName)) {
-                    targetName = promptRename(trace);
+            for (ITmfProjectModelElement element : targetExperiment.getProject().getTracesFolder().getChildren()) {
+                if (element.getName().equals(targetName)) {
+                    targetName = promptRename(element);
                     if (targetName == null) {
                         return null;
                     }
@@ -55,9 +57,14 @@
         }
         if (traceResource != null && traceResource.exists()) {
             setTraceType(traceResource);
-            createLink(targetExperiment.getResource(), traceResource, traceResource.getName());
-            targetExperiment.closeEditors();
-            targetExperiment.deleteSupplementaryResources();
+            for (TmfTraceElement trace : targetExperiment.getProject().getTracesFolder().getTraces()) {
+                if (trace.getResource().equals(traceResource)) {
+                    targetExperiment.addTrace(trace);
+                    targetExperiment.closeEditors();
+                    targetExperiment.deleteSupplementaryResources();
+                    break;
+                }
+            }
             return traceResource;
         }
         return null;
