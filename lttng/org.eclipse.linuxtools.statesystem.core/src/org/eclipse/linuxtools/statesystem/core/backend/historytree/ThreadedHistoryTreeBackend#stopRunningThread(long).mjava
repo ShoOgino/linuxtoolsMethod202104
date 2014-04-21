@@ -1,0 +1,20 @@
+    private void stopRunningThread(long endTime) {
+        if (!shtThread.isAlive()) {
+            return;
+        }
+
+        /*
+         * Send a "poison pill" in the queue, then wait for the HT to finish
+         * its closeTree()
+         */
+        try {
+            HTInterval pill = new HTInterval(-1, endTime, -1, TmfStateValue.nullValue());
+            intervalQueue.put(pill);
+            shtThread.join();
+        } catch (TimeRangeException e) {
+            Activator.getDefault().logError("Error closing state system", e); //$NON-NLS-1$
+        } catch (InterruptedException e) {
+            Activator.getDefault().logError("State system interrupted", e); //$NON-NLS-1$
+        }
+    }
+
