@@ -1,17 +1,16 @@
     @Override
-    protected void eventHandle(ITmfEvent ev) {
+    protected void eventHandle(ITmfEvent event) {
         /*
          * AbstractStateChangeInput should have already checked for the correct
          * class type
          */
-        final CtfTmfEvent event = (CtfTmfEvent) ev;
 
         final String eventName = event.getType().getName();
         final long ts = event.getTimestamp().getValue();
 
         try {
             /* Shortcut for the "current CPU" attribute node */
-            final Integer currentCPUNode = ss.getQuarkRelativeAndAdd(getNodeCPUs(), String.valueOf(event.getCPU()));
+            final Integer currentCPUNode = ss.getQuarkRelativeAndAdd(getNodeCPUs(), event.getSource());
 
             /*
              * Shortcut for the "current thread" attribute node. It requires
@@ -56,7 +55,7 @@
                 /* Mark this IRQ as active in the resource tree.
                  * The state value = the CPU on which this IRQ is sitting */
                 quark = ss.getQuarkRelativeAndAdd(getNodeIRQs(), irqId.toString());
-                value = TmfStateValue.newValueInt(event.getCPU());
+                value = TmfStateValue.newValueInt(Integer.parseInt(event.getSource()));
                 ss.modifyAttribute(ts, value, quark);
 
                 /* Change the status of the running process to interrupted */
@@ -97,7 +96,7 @@
                 /* Mark this SoftIRQ as active in the resource tree.
                  * The state value = the CPU on which this SoftIRQ is processed */
                 quark = ss.getQuarkRelativeAndAdd(getNodeSoftIRQs(), softIrqId.toString());
-                value = TmfStateValue.newValueInt(event.getCPU());
+                value = TmfStateValue.newValueInt(Integer.parseInt(event.getSource()));
                 ss.modifyAttribute(ts, value, quark);
 
                 /* Change the status of the running process to interrupted */
