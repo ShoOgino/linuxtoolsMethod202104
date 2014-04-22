@@ -1,31 +1,28 @@
     /**
-     * This method will stop services started by
-     * {@link TapsetLibrary#init()} such as the {@link TapsetParser}
+     * This method will stop all running tapset parsers, and will block
+     * the calling thread until they have terminated.
      * @since 1.2
      */
     public static void stop() {
-        if(null != functionParser) {
-            functionParser.cancel();
-            cacheFunctionManpages.cancel();
-            try {
-                functionParser.join();
-            } catch (InterruptedException e) {
-                // The current thread was interrupted while waiting
-                // for the parser thread to exit. Nothing to do
-                // continue stopping.
-            }
+        functionParser.cancel();
+        cacheFunctionManpages.cancel();
+        probeParser.cancel();
+        cacheProbeManpages.cancel();
+        try {
+            functionParser.join();
+        } catch (InterruptedException e) {
+            // The current thread was interrupted while waiting
+            // for the parser thread to exit. Nothing to do
+            // continue stopping.
         }
-        if(probeParser != null) {
-            probeParser.cancel();
-            cacheProbeManpages.cancel();
-            try {
-                probeParser.join();
-            } catch (InterruptedException e) {
-                // The current thread was interrupted while waiting
-                // for the parser thread to exit. Nothing to do
-                // continue stopping.
-            }
-        }
-
+        try {
+            cacheFunctionManpages.join();
+        } catch (InterruptedException e) {}
+        try {
+            probeParser.join();
+        } catch (InterruptedException e) {}
+        try {
+            cacheProbeManpages.join();
+        } catch (InterruptedException e) {}
     }
 

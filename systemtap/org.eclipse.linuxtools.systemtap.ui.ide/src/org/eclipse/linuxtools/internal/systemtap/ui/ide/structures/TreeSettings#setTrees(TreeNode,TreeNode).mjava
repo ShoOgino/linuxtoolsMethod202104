@@ -1,16 +1,33 @@
     /**
-     * Sets the Probe Alias and Function trees that are being cached to the trees given as arguments.
-     * @param func The Function tree to store in cache.
-     * @param probe The Probe Alias tree to store in cache.
-     * @return True if the caching is successful.
-     * @since 2.0
+     * Saves the provided Function and Probe Alias trees into an {@link IMemento} on
+     * the filesystem. <p>
+     * Note: Both trees must be saved at the same time to better ensure that they
+     * are both obtained from the same tapset state.
+     * @param functions The Function tree to store in cache.
+     * @param probes The Probe Alias tree to store in cache.
+     * @return <code>true</code> if the caching is successful.
      */
-    public static boolean setTrees(TreeNode func, TreeNode probe) {
-        if (null == func || null == probe) {
+    public static synchronized boolean setTrees(TreeNode functions, TreeNode probes) {
+        if (functions == null || probes == null || !isTreeFileAvailable()) {
             return false;
         }
-        functions = func;
-        probes = probe;
-        return writeData();
+
+        XMLMemento data = XMLMemento.createWriteRoot(FILE_NAME);
+        writeTree(data, T_FUNCTIONS, functions);
+        writeTree(data, T_PROBES, probes);
+
+        data.createChild(T_DATE)
+            .putTextData((Long.valueOf(Calendar.getInstance().getTimeInMillis())).toString());
+
+        data.createChild(T_VERSION).putTextData(VERSION_NUMBER);
+
+        try (FileWriter writer = new FileWriter(settingsFile)) {
+            data.save(writer);
+        } catch (IOException e) {
+            return false;
+        }
+
+        clearCachedTrees();
+        return true;
     }
 
