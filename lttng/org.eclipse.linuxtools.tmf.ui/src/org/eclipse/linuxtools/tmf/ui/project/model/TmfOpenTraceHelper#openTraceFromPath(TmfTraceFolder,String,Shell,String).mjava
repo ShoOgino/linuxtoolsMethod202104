@@ -1,9 +1,9 @@
     /**
-     * Opens a trace from a path while importing it to the project
-     * "projectRoot". The trace is linked as a resource.
+     * Opens a trace from a path while importing it to the destination folder.
+     * The trace is linked as a resource.
      *
-     * @param projectRoot
-     *            The project to import to
+     * @param destinationFolder
+     *            The destination trace folder
      * @param path
      *            the file to import
      * @param shell
@@ -15,9 +15,9 @@
      *             core exceptions if something is not well set up in the back
      *             end
      *
-     * @since 2.2
+     * @since 3.0
      */
-    public IStatus openTraceFromPath(String projectRoot, String path, Shell shell, String tracetypeHint) throws CoreException {
+    public static IStatus openTraceFromPath(TmfTraceFolder destinationFolder, String path, Shell shell, String tracetypeHint) throws CoreException {
         TraceTypeHelper traceTypeToSet = null;
         try {
             traceTypeToSet = TmfTraceTypeUIUtils.selectTraceType(path, null, tracetypeHint);
@@ -27,11 +27,10 @@
             mb.open();
             return new Status(IStatus.ERROR, Activator.PLUGIN_ID, e.getMessage());
         }
-        IProject project = ResourcesPlugin.getWorkspace().getRoot().getProject(projectRoot);
-        IFolder folder = project.getFolder(TmfTracesFolder.TRACES_FOLDER_NAME);
+        IFolder folder = destinationFolder.getResource();
         String traceName = getTraceName(path, folder);
         if (traceExists(path, folder)) {
-            return openTraceFromProject(projectRoot, traceName);
+            return openTraceFromFolder(destinationFolder, traceName);
         }
         final IPath pathString = Path.fromOSString(path);
         IResource linkedTrace = TmfImportHelper.createLink(folder, pathString, traceName);
@@ -51,7 +50,7 @@
 
         IStatus ret = TmfTraceTypeUIUtils.setTraceType(linkedTrace, traceTypeToSet);
         if (ret.isOK()) {
-            ret = openTraceFromProject(projectRoot, traceName);
+            ret = openTraceFromFolder(destinationFolder, traceName);
         }
         return ret;
     }
