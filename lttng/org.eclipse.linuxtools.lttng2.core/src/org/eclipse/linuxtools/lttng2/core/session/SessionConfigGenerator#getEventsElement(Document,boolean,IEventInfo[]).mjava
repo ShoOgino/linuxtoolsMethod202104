@@ -1,0 +1,43 @@
+    /**
+     * Gets the 'events' element after creating it. It is composed of the event
+     * informations from a list of IEventInfo.
+     *
+     * @param document
+     *            The document in which the nodes are being added
+     * @param isKernel
+     *            Is the domain type kernel
+     * @param events
+     *            The event informations to be added
+     * @return An element containing all the event informations as XML elements
+     */
+    private static Element getEventsElement(Document document, boolean isKernel, IEventInfo[] events) {
+        Element eventsElement = document.createElement(SessionConfigStrings.CONFIG_ELEMENT_EVENTS);
+
+        for (IEventInfo event : events) {
+            Element eventElement = document.createElement(SessionConfigStrings.CONFIG_ELEMENT_EVENT);
+
+            /* Enabled attribute */
+            String enabled = event.getState().equals(TraceEnablement.ENABLED) ? SessionConfigStrings.CONFIG_STRING_TRUE : SessionConfigStrings.CONFIG_STRING_FALSE;
+
+            /* Add the attributes to the event node */
+            addElementContent(document, eventElement, SessionConfigStrings.CONFIG_ELEMENT_NAME, event.getName());
+            addElementContent(document, eventElement, SessionConfigStrings.CONFIG_ELEMENT_ENABLED, enabled);
+            TraceEventType eventType = event.getEventType();
+            if (!eventType.equals(TraceEventType.UNKNOWN)) {
+                addElementContent(document, eventElement, SessionConfigStrings.CONFIG_ELEMENT_TYPE, eventType.getInName().toUpperCase());
+            } else {
+                throw new IllegalArgumentException(Messages.SessionConfigXML_UnknownEventType);
+            }
+
+            /* Specific to UST session config: the log level */
+            if (!isKernel && !event.getLogLevel().equals(TraceLogLevel.LEVEL_UNKNOWN)) {
+                addElementContent(document, eventElement, SessionConfigStrings.CONFIG_ELEMENT_LOGLEVEL, event.getLogLevel().ordinal());
+            }
+
+            /* Add the node to the parent node events */
+            eventsElement.appendChild(eventElement);
+        }
+
+        return eventsElement;
+    }
+

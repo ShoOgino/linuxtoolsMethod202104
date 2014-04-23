@@ -1,0 +1,49 @@
+    /**
+     * Gets the 'domains' element after creating it.
+     *
+     * @param document
+     *            The document in which the nodes are being added
+     * @param session
+     *            The session informations
+     * @return The domains element as an XML element
+     */
+    private static Element getDomainsElement(Document document, ISessionInfo session) {
+        Element domainsElement = document.createElement(SessionConfigStrings.CONFIG_ELEMENT_DOMAINS);
+
+        for (IDomainInfo domain : session.getDomains()) {
+            Element domainElement = document.createElement(SessionConfigStrings.CONFIG_ELEMENT_DOMAIN);
+
+            /*
+             * Add everything specific to a domain
+             *
+             * TODO: We suppose here that domain is either kernel or UST. It
+             * will have to change if other domains are supported
+             */
+            String domainType = domain.isKernel() ? SessionConfigStrings.CONFIG_DOMAIN_TYPE_KERNEL : SessionConfigStrings.CONFIG_DOMAIN_TYPE_UST;
+            addElementContent(document, domainElement, SessionConfigStrings.CONFIG_ELEMENT_TYPE, domainType);
+
+            String bufferType = null;
+            switch (domain.getBufferType()) {
+            case BUFFER_PER_UID:
+                bufferType = SessionConfigStrings.CONFIG_BUFFER_TYPE_PER_UID;
+                break;
+            case BUFFER_PER_PID:
+                bufferType = SessionConfigStrings.CONFIG_BUFFER_TYPE_PER_PID;
+                break;
+            case BUFFER_SHARED:
+                bufferType = SessionConfigStrings.CONFIG_BUFFER_TYPE_GLOBAL;
+                break;
+            case BUFFER_TYPE_UNKNOWN:
+            default:
+                throw new IllegalArgumentException(Messages.SessionConfigXML_UnknownDomainBufferType);
+            }
+            addElementContent(document, domainElement, SessionConfigStrings.CONFIG_ELEMENT_DOMAIN_BUFFER_TYPE, bufferType);
+
+            /* Add the channels */
+            domainElement.appendChild(getChannelsElement(document, domain.isKernel(), domain.getChannels()));
+            domainsElement.appendChild(domainElement);
+        }
+
+        return domainsElement;
+    }
+

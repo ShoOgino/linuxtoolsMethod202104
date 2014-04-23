@@ -1,0 +1,32 @@
+    /**
+     * Validates the session configuration file against its schema.
+     *
+     * @param sessionFile
+     *            The session configuration file
+     * @return The status of the validation
+     */
+    public static IStatus sessionValidate(File sessionFile) {
+        URL url = SessionConfigGenerator.class.getResource(SESSION_XSD_FILENAME);
+        SchemaFactory schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
+        Source xmlSource = new StreamSource(sessionFile);
+
+        try {
+            Schema schema = schemaFactory.newSchema(url);
+            Validator validator = schema.newValidator();
+            validator.validate(xmlSource);
+        } catch (SAXParseException e) {
+            String error = NLS.bind(Messages.SessionConfigXML_XmlParseError, e.getLineNumber(), e.getLocalizedMessage());
+            Activator.getDefault().logError(error);
+            return new Status(IStatus.ERROR, Activator.PLUGIN_ID, error, e);
+        } catch (SAXException e) {
+            String error = NLS.bind(Messages.SessionConfigXML_XmlValidationError, e.getLocalizedMessage());
+            Activator.getDefault().logError(error);
+            return new Status(IStatus.ERROR, Activator.PLUGIN_ID, error, e);
+        } catch (IOException e) {
+            String error = Messages.SessionConfigXML_XmlValidateError;
+            Activator.getDefault().logError("IO exception occurred", e); //$NON-NLS-1$
+            return new Status(IStatus.ERROR, Activator.PLUGIN_ID, error, e);
+        }
+        return Status.OK_STATUS;
+    }
+

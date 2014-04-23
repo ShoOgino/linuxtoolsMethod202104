@@ -1,0 +1,45 @@
+    /**
+     * Generates a session configuration from a set of session informations.
+     *
+     * @param sessions
+     *            The session informations
+     * @return The document with all session configuration nodes
+     * @throws IllegalArgumentException
+     *             On an illegal argument inside sessions
+     * @throws ParserConfigurationException
+     *             On an parser configuration error
+     */
+    private static Document generateSessionConfig(Iterable<ISessionInfo> sessions) throws IllegalArgumentException, ParserConfigurationException {
+        DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+
+        Document document = docBuilder.newDocument();
+
+        Element rootElement = document.createElement(SessionConfigStrings.CONFIG_ELEMENT_SESSIONS);
+        document.appendChild(rootElement);
+
+        for (ISessionInfo session : sessions) {
+            /* All elements under "sessions" elements */
+            Element sessionElement = document.createElement(SessionConfigStrings.CONFIG_ELEMENT_SESSION);
+
+            /* Contents of session element */
+            String enabled = session.getSessionState().equals(TraceSessionState.ACTIVE) ? SessionConfigStrings.CONFIG_STRING_TRUE : SessionConfigStrings.CONFIG_STRING_FALSE;
+
+            addElementContent(document, sessionElement, SessionConfigStrings.CONFIG_ELEMENT_NAME, session.getName());
+            addElementContent(document, sessionElement, SessionConfigStrings.CONFIG_ELEMENT_STARTED, enabled);
+
+            if (session.isSnapshotSession()) {
+                /* If it's a snapshot, we must add an attribute telling it is */
+                Element attributesElement = document.createElement(SessionConfigStrings.CONFIG_ELEMENT_ATTRIBUTES);
+                addElementContent(document, attributesElement, SessionConfigStrings.CONFIG_ELEMENT_SNAPSHOT_MODE, SessionConfigStrings.CONFIG_STRING_TRUE);
+                sessionElement.appendChild(attributesElement);
+            }
+
+            sessionElement.appendChild(getDomainsElement(document, session));
+            sessionElement.appendChild(getOutputElement(document, session));
+            rootElement.appendChild(sessionElement);
+        }
+
+        return document;
+    }
+
