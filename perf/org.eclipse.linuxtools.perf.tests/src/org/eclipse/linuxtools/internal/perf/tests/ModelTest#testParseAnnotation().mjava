@@ -1,55 +1,55 @@
-	@Test
-	public void testParseAnnotation() throws FileNotFoundException {
-		BufferedReader input = new BufferedReader(new FileReader(
-					"resources/perf-annotation-data"));
+    @Test
+    public void testParseAnnotation() throws FileNotFoundException {
+        BufferedReader input = new BufferedReader(new FileReader(
+                    "resources/perf-annotation-data"));
 
-		// Set up arguments for the annotation parser.
-		IPath workingDir = Path.fromOSString("/working/directory/");
-		PMCommand cmd = new PMCommand("testCommand");
-		PMDso dso = new PMDso("testDso", false);
-		PMFile tmpFile = new PMFile(PerfPlugin.STRINGS_UnfiledSymbols);
-		PMSymbol sym = new PMSymbol("testSym", 0, 0);
+        // Set up arguments for the annotation parser.
+        IPath workingDir = Path.fromOSString("/working/directory/");
+        PMCommand cmd = new PMCommand("testCommand");
+        PMDso dso = new PMDso("testDso", false);
+        PMFile tmpFile = new PMFile(PerfPlugin.STRINGS_UnfiledSymbols);
+        PMSymbol sym = new PMSymbol("testSym", 0, 0);
 
-		// Set children and respective parents.
-		cmd.addChild(dso);
-		dso.addChild(tmpFile);
-		tmpFile.addChild(sym);
+        // Set children and respective parents.
+        cmd.addChild(dso);
+        dso.addChild(tmpFile);
+        tmpFile.addChild(sym);
 
-		dso.setParent(cmd);
-		tmpFile.setParent(dso);
-		sym.setParent(tmpFile);
+        dso.setParent(cmd);
+        tmpFile.setParent(dso);
+        sym.setParent(tmpFile);
 
-		PerfCore.parseAnnotation(null, input, workingDir, dso, sym);
+        PerfCore.parseAnnotation(null, input, workingDir, dso, sym);
 
-		// Expected results data.
-		String expectedDsoPath = "/working/directory/fibonacci";
-		String expectedFilePath = "/home/user/workspace/fibonacci/Debug/../src/fibonacci.cpp";
+        // Expected results data.
+        String expectedDsoPath = "/working/directory/fibonacci";
+        String expectedFilePath = "/home/user/workspace/fibonacci/Debug/../src/fibonacci.cpp";
 
-		assertTrue(expectedDsoPath.equals(dso.getPath()));
-		assertEquals(dso.getChildren().length, 2);
+        assertTrue(expectedDsoPath.equals(dso.getPath()));
+        assertEquals(dso.getChildren().length, 2);
 
-		for (TreeParent dsoChild : dso.getChildren()) {
-			String filePath = ((PMFile) dsoChild).getPath();
+        for (TreeParent dsoChild : dso.getChildren()) {
+            String filePath = ((PMFile) dsoChild).getPath();
 
-			if (PerfPlugin.STRINGS_UnfiledSymbols.equals(filePath)) {
-				assertFalse(dsoChild.hasChildren());
-			} else {
-				assertTrue(expectedFilePath.equals(filePath));
-				assertTrue(dsoChild.hasChildren());
-				assertEquals(dsoChild.getChildren().length, 1);
+            if (PerfPlugin.STRINGS_UnfiledSymbols.equals(filePath)) {
+                assertFalse(dsoChild.hasChildren());
+            } else {
+                assertTrue(expectedFilePath.equals(filePath));
+                assertTrue(dsoChild.hasChildren());
+                assertEquals(dsoChild.getChildren().length, 1);
 
-				TreeParent curSym = dsoChild.getChildren()[0];
-				assertTrue(curSym.hasChildren());
-				assertEquals(curSym.getChildren().length, 5);
+                TreeParent curSym = dsoChild.getChildren()[0];
+                assertTrue(curSym.hasChildren());
+                assertEquals(curSym.getChildren().length, 5);
 
-				float percentCount = 0;
-				for (TreeParent symChild : curSym.getChildren()) {
-					percentCount += symChild.getPercent();
-				}
+                float percentCount = 0;
+                for (TreeParent symChild : curSym.getChildren()) {
+                    percentCount += symChild.getPercent();
+                }
 
-				assertEquals(Math.ceil(percentCount), 100.0, 0.0);
+                assertEquals(Math.ceil(percentCount), 100.0, 0.0);
 
-			}
-		}
-	}
+            }
+        }
+    }
 

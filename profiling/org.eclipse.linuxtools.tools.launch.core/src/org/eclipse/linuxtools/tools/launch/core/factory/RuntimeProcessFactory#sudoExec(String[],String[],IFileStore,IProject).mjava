@@ -1,59 +1,59 @@
-	/**
-	 * Execute one command, as root, using the path selected in 'Linux Tools Path'
-	 * preference page in the informed project.
-	 * @param cmdarray An array with the command to be executed and its params.
-	 * @param envp An array with extra enviroment variables to be used when running
-	 * the command
-	 * @param dir The directory used as current directory to run the command.
-	 * @param project The current project. If null, only system path will be
-	 * used to look for the command.
-	 * @return The process started by sudoExec
-	 *
-	 * @since 1.1
-	 */
-	private Process sudoExec(String[] cmdarray, String[] envp, IFileStore dir, IProject project) throws IOException {
-		URI uri = URI.create("sudo"); //$NON-NLS-1$
+    /**
+     * Execute one command, as root, using the path selected in 'Linux Tools Path'
+     * preference page in the informed project.
+     * @param cmdarray An array with the command to be executed and its params.
+     * @param envp An array with extra enviroment variables to be used when running
+     * the command
+     * @param dir The directory used as current directory to run the command.
+     * @param project The current project. If null, only system path will be
+     * used to look for the command.
+     * @return The process started by sudoExec
+     *
+     * @since 1.1
+     */
+    private Process sudoExec(String[] cmdarray, String[] envp, IFileStore dir, IProject project) throws IOException {
+        URI uri = URI.create("sudo"); //$NON-NLS-1$
 
-		List<String> cmdList = Arrays.asList(cmdarray);
-		ArrayList<String> cmdArrayList = new ArrayList<>(cmdList);
-		cmdArrayList.add(0, "-n"); //$NON-NLS-1$
+        List<String> cmdList = Arrays.asList(cmdarray);
+        ArrayList<String> cmdArrayList = new ArrayList<>(cmdList);
+        cmdArrayList.add(0, "-n"); //$NON-NLS-1$
 
-		String[] cmdArraySudo = new String[cmdArrayList.size()];
-		cmdArrayList.toArray(cmdArraySudo);
+        String[] cmdArraySudo = new String[cmdArrayList.size()];
+        cmdArrayList.toArray(cmdArraySudo);
 
-		Process p = null;
-		try {
-			cmdArraySudo = fillPathSudoCommand(cmdArraySudo, project);
-			IRemoteCommandLauncher launcher;
-			IPath changeToDir = null, path;
-			if (project != null) {
-				IRemoteFileProxy proxy = RemoteProxyManager.getInstance().getFileProxy(project);
-				path = new Path(proxy.toPath(uri));
-				launcher = RemoteProxyManager.getInstance().getLauncher(project);
-				envp = updateEnvironment(envp, project);
+        Process p = null;
+        try {
+            cmdArraySudo = fillPathSudoCommand(cmdArraySudo, project);
+            IRemoteCommandLauncher launcher;
+            IPath changeToDir = null, path;
+            if (project != null) {
+                IRemoteFileProxy proxy = RemoteProxyManager.getInstance().getFileProxy(project);
+                path = new Path(proxy.toPath(uri));
+                launcher = RemoteProxyManager.getInstance().getLauncher(project);
+                envp = updateEnvironment(envp, project);
 
-				if (dir != null) {
-					changeToDir = new Path(proxy.toPath(dir.toURI()));
-				}
-			} else {
-				launcher = RemoteProxyManager.getInstance().getLauncher(uri);
-				path = new Path(uri.getPath());
-				if (dir != null) {
-					changeToDir = new Path(dir.toURI().getPath());
-				}
-			}
+                if (dir != null) {
+                    changeToDir = new Path(proxy.toPath(dir.toURI()));
+                }
+            } else {
+                launcher = RemoteProxyManager.getInstance().getLauncher(uri);
+                path = new Path(uri.getPath());
+                if (dir != null) {
+                    changeToDir = new Path(dir.toURI().getPath());
+                }
+            }
 
-			List<String> cmdlist = new ArrayList<>(Arrays.asList(cmdArraySudo));
-			cmdlist.remove(0);
-			cmdlist.toArray(cmdArraySudo);
-			cmdArraySudo = cmdlist.toArray(new String[0]);
+            List<String> cmdlist = new ArrayList<>(Arrays.asList(cmdArraySudo));
+            cmdlist.remove(0);
+            cmdlist.toArray(cmdArraySudo);
+            cmdArraySudo = cmdlist.toArray(new String[0]);
 
-			p = launcher.execute(path, cmdArraySudo, envp, changeToDir , new NullProgressMonitor());
-		} catch (CoreException e) {
-			e.printStackTrace();
-		}
+            p = launcher.execute(path, cmdArraySudo, envp, changeToDir , new NullProgressMonitor());
+        } catch (CoreException e) {
+            e.printStackTrace();
+        }
 
-		return p;
+        return p;
 
-	}
+    }
 

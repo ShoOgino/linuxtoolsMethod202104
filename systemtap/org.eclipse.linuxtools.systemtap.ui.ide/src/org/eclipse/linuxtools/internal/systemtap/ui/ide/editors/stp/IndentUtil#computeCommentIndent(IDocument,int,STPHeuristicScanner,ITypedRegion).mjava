@@ -1,55 +1,55 @@
-	/**
-	 * Computes and returns the indentation for a block comment line.
-	 *
-	 * @param document the document
-	 * @param line the line in document
-	 * @param scanner the scanner
-	 * @param partition the comment partition
-	 * @return the indent, or <code>null</code> if not computable
-	 * @throws BadLocationException
-	 */
-	public static String computeCommentIndent(IDocument document, int line, STPHeuristicScanner scanner, ITypedRegion partition) throws BadLocationException {
-		if (line == 0) // impossible - the first line is never inside a comment
-			return null;
+    /**
+     * Computes and returns the indentation for a block comment line.
+     *
+     * @param document the document
+     * @param line the line in document
+     * @param scanner the scanner
+     * @param partition the comment partition
+     * @return the indent, or <code>null</code> if not computable
+     * @throws BadLocationException
+     */
+    public static String computeCommentIndent(IDocument document, int line, STPHeuristicScanner scanner, ITypedRegion partition) throws BadLocationException {
+        if (line == 0) // impossible - the first line is never inside a comment
+            return null;
 
-		// don't make any assumptions if the line does not start with \s*\* - it might be
-		// commented out code, for which we don't want to change the indent
-		final IRegion lineInfo= document.getLineInformation(line);
-		final int lineStart= lineInfo.getOffset();
-		final int lineLength= lineInfo.getLength();
-		final int lineEnd= lineStart + lineLength;
-		int nonWS= scanner.findNonWhitespaceForwardInAnyPartition(lineStart, lineEnd);
-		if (nonWS == STPHeuristicScanner.NOT_FOUND || document.getChar(nonWS) != '*') {
-			if (nonWS == STPHeuristicScanner.NOT_FOUND)
-				return document.get(lineStart, lineLength);
-			return document.get(lineStart, nonWS - lineStart);
-		}
+        // don't make any assumptions if the line does not start with \s*\* - it might be
+        // commented out code, for which we don't want to change the indent
+        final IRegion lineInfo= document.getLineInformation(line);
+        final int lineStart= lineInfo.getOffset();
+        final int lineLength= lineInfo.getLength();
+        final int lineEnd= lineStart + lineLength;
+        int nonWS= scanner.findNonWhitespaceForwardInAnyPartition(lineStart, lineEnd);
+        if (nonWS == STPHeuristicScanner.NOT_FOUND || document.getChar(nonWS) != '*') {
+            if (nonWS == STPHeuristicScanner.NOT_FOUND)
+                return document.get(lineStart, lineLength);
+            return document.get(lineStart, nonWS - lineStart);
+        }
 
-		// take the indent from the previous line and reuse
-		IRegion previousLine= document.getLineInformation(line - 1);
-		int previousLineStart= previousLine.getOffset();
-		int previousLineLength= previousLine.getLength();
-		int previousLineEnd= previousLineStart + previousLineLength;
+        // take the indent from the previous line and reuse
+        IRegion previousLine= document.getLineInformation(line - 1);
+        int previousLineStart= previousLine.getOffset();
+        int previousLineLength= previousLine.getLength();
+        int previousLineEnd= previousLineStart + previousLineLength;
 
-		StringBuilder buf= new StringBuilder();
-		int previousLineNonWS= scanner.findNonWhitespaceForwardInAnyPartition(previousLineStart, previousLineEnd);
-		if (previousLineNonWS == STPHeuristicScanner.NOT_FOUND || document.getChar(previousLineNonWS) != '*') {
-			// align with the comment start if the previous line is not an asterix line
-			previousLine= document.getLineInformationOfOffset(partition.getOffset());
-			previousLineStart= previousLine.getOffset();
-			previousLineLength= previousLine.getLength();
-			previousLineEnd= previousLineStart + previousLineLength;
-			previousLineNonWS= scanner.findNonWhitespaceForwardInAnyPartition(previousLineStart, previousLineEnd);
-			if (previousLineNonWS == STPHeuristicScanner.NOT_FOUND)
-				previousLineNonWS= previousLineEnd;
+        StringBuilder buf= new StringBuilder();
+        int previousLineNonWS= scanner.findNonWhitespaceForwardInAnyPartition(previousLineStart, previousLineEnd);
+        if (previousLineNonWS == STPHeuristicScanner.NOT_FOUND || document.getChar(previousLineNonWS) != '*') {
+            // align with the comment start if the previous line is not an asterix line
+            previousLine= document.getLineInformationOfOffset(partition.getOffset());
+            previousLineStart= previousLine.getOffset();
+            previousLineLength= previousLine.getLength();
+            previousLineEnd= previousLineStart + previousLineLength;
+            previousLineNonWS= scanner.findNonWhitespaceForwardInAnyPartition(previousLineStart, previousLineEnd);
+            if (previousLineNonWS == STPHeuristicScanner.NOT_FOUND)
+                previousLineNonWS= previousLineEnd;
 
-			// add the initial space
-			// TODO this may be controlled by a formatter preference in the future
-			buf.append(' ');
-		}
+            // add the initial space
+            // TODO this may be controlled by a formatter preference in the future
+            buf.append(' ');
+        }
 
-		String indentation= document.get(previousLineStart, previousLineNonWS - previousLineStart);
-		buf.insert(0, indentation);
-		return buf.toString();
-	}
+        String indentation= document.get(previousLineStart, previousLineNonWS - previousLineStart);
+        buf.insert(0, indentation);
+        return buf.toString();
+    }
 

@@ -1,161 +1,161 @@
-	private static void parseRemoteReport(ILaunchConfiguration config,
-			IPath workingDir, IProgressMonitor monitor, String perfDataLoc,
-			PrintStream print, TreeParent invisibleRoot,
-			boolean OldPerfVersion, BufferedReader input, BufferedReader error, IProject project) {
+    private static void parseRemoteReport(ILaunchConfiguration config,
+            IPath workingDir, IProgressMonitor monitor, String perfDataLoc,
+            PrintStream print, TreeParent invisibleRoot,
+            boolean OldPerfVersion, BufferedReader input, BufferedReader error, IProject project) {
 
-		if (monitor != null && monitor.isCanceled()) {
-			return;
-		}
-		String line = null;
-		String items[];
-		float percent;
+        if (monitor != null && monitor.isCanceled()) {
+            return;
+        }
+        String line = null;
+        String items[];
+        float percent;
 
-		Process p = null;
-		double samples;
-		String comm,dso,symbol;
-		boolean kernelFlag;
-		PMEvent currentEvent = null;
-		PMCommand currentCommand = null;
-		PMDso currentDso = null;
-		PMFile currentFile = null;
-		PMSymbol currentSym = null;
-		try {
-			while (( line = input.readLine()) != null){
-				if (monitor != null && monitor.isCanceled()) {
-					return;
-				}
-				// line containing report information
-				if ((line.startsWith("#"))) { //$NON-NLS-1$
-					if (line.contains("Events:") || line.contains("Samples:")) { //$NON-NLS-1$ //$NON-NLS-2$
-						String[] tmp = line.trim().split(" "); //$NON-NLS-1$
-						String event = tmp[tmp.length - 1];
-						// In this case, the event name is single quoted
-						if (line.contains("Samples:")){ //$NON-NLS-1$
-							event = event.substring(1, event.length() -1);
-						}
-						currentEvent = new PMEvent(event);
-						invisibleRoot.addChild(currentEvent);
-						currentCommand = null;
-						currentDso = null;
-					} else if (line.contains("Samples:")) { //"samples" was used instead of events in an older version, some incompatibilities may arise. //$NON-NLS-1$
-						if (print != null) { print.println("WARNING: You are running an older version of Perf, please update if you can. The plugin may produce unpredictable results."); }
-						invisibleRoot.addChild(new PMEvent("WARNING: You are running an older version of Perf, the plugin may produce unpredictable results."));
-					}
-					// contains profiled information
-				} else {
-					items = line.trim().split(""+(char)1); // using custom field separator. for default whitespace use " +" //$NON-NLS-1$
-					if (items.length != 5) {
-						continue;
-					}
-					percent = Float.parseFloat(items[0]); //percent column
-					samples = Double.parseDouble(items[1].trim()); //samples column
-					comm = items[2].trim(); //command column
-					dso = items[3].trim(); //dso column
-					symbol = items[4].trim(); //symbol column
-					kernelFlag = (""+symbol.charAt(1)).equals("k"); //$NON-NLS-1$ //$NON-NLS-2$
+        Process p = null;
+        double samples;
+        String comm,dso,symbol;
+        boolean kernelFlag;
+        PMEvent currentEvent = null;
+        PMCommand currentCommand = null;
+        PMDso currentDso = null;
+        PMFile currentFile = null;
+        PMSymbol currentSym = null;
+        try {
+            while (( line = input.readLine()) != null){
+                if (monitor != null && monitor.isCanceled()) {
+                    return;
+                }
+                // line containing report information
+                if ((line.startsWith("#"))) { //$NON-NLS-1$
+                    if (line.contains("Events:") || line.contains("Samples:")) { //$NON-NLS-1$ //$NON-NLS-2$
+                        String[] tmp = line.trim().split(" "); //$NON-NLS-1$
+                        String event = tmp[tmp.length - 1];
+                        // In this case, the event name is single quoted
+                        if (line.contains("Samples:")){ //$NON-NLS-1$
+                            event = event.substring(1, event.length() -1);
+                        }
+                        currentEvent = new PMEvent(event);
+                        invisibleRoot.addChild(currentEvent);
+                        currentCommand = null;
+                        currentDso = null;
+                    } else if (line.contains("Samples:")) { //"samples" was used instead of events in an older version, some incompatibilities may arise. //$NON-NLS-1$
+                        if (print != null) { print.println("WARNING: You are running an older version of Perf, please update if you can. The plugin may produce unpredictable results."); }
+                        invisibleRoot.addChild(new PMEvent("WARNING: You are running an older version of Perf, the plugin may produce unpredictable results."));
+                    }
+                    // contains profiled information
+                } else {
+                    items = line.trim().split(""+(char)1); // using custom field separator. for default whitespace use " +" //$NON-NLS-1$
+                    if (items.length != 5) {
+                        continue;
+                    }
+                    percent = Float.parseFloat(items[0]); //percent column
+                    samples = Double.parseDouble(items[1].trim()); //samples column
+                    comm = items[2].trim(); //command column
+                    dso = items[3].trim(); //dso column
+                    symbol = items[4].trim(); //symbol column
+                    kernelFlag = (""+symbol.charAt(1)).equals("k"); //$NON-NLS-1$ //$NON-NLS-2$
 
-					// initialize current command if it doesn't exist
-					if ((currentCommand == null) || (!currentCommand.getName().equals(comm))) {
-						currentCommand = (PMCommand) currentEvent.getChild(comm);
-						if(currentCommand == null) {
-							currentCommand = new PMCommand(comm);
-							currentEvent.addChild(currentCommand);
-						}
-					}
+                    // initialize current command if it doesn't exist
+                    if ((currentCommand == null) || (!currentCommand.getName().equals(comm))) {
+                        currentCommand = (PMCommand) currentEvent.getChild(comm);
+                        if(currentCommand == null) {
+                            currentCommand = new PMCommand(comm);
+                            currentEvent.addChild(currentCommand);
+                        }
+                    }
 
-					// initialize current dso if it doesn't exist
-					if ((currentDso == null) || (!currentDso.getName().equals(dso))) {
-						currentDso = (PMDso) currentCommand.getChild(dso);
-						if (currentDso == null) {
-							currentDso = new PMDso(dso,kernelFlag);
-							currentCommand.addChild(currentDso);
-						}
-					}
+                    // initialize current dso if it doesn't exist
+                    if ((currentDso == null) || (!currentDso.getName().equals(dso))) {
+                        currentDso = (PMDso) currentCommand.getChild(dso);
+                        if (currentDso == null) {
+                            currentDso = new PMDso(dso,kernelFlag);
+                            currentCommand.addChild(currentDso);
+                        }
+                    }
 
-					/*
-					 *  Initialize the current file, and symbol
-					 *
-					 *  We won't know the name of the file containing the symbol
-					 *  until we run 'perf annotate' to resolve it, so for now we
-					 *  attach all symbols as children of 'Unfiled Symbols'.
-					 */
-					currentFile = currentDso.getFile(PerfPlugin.STRINGS_UnfiledSymbols);
-					currentSym = new PMSymbol(symbol, percent, samples);
-					currentFile.addChild(currentSym);
-				}
-			}
-		} catch (IOException e) {
-			logException(e);
-		}
-		spitStream(error,"Perf Report", print);
+                    /*
+                     *  Initialize the current file, and symbol
+                     *
+                     *  We won't know the name of the file containing the symbol
+                     *  until we run 'perf annotate' to resolve it, so for now we
+                     *  attach all symbols as children of 'Unfiled Symbols'.
+                     */
+                    currentFile = currentDso.getFile(PerfPlugin.STRINGS_UnfiledSymbols);
+                    currentSym = new PMSymbol(symbol, percent, samples);
+                    currentFile.addChild(currentSym);
+                }
+            }
+        } catch (IOException e) {
+            logException(e);
+        }
+        spitStream(error,"Perf Report", print);
 
-		boolean SourceLineNumbers = PerfPlugin.ATTR_SourceLineNumbers_default;
-		boolean Kernel_SourceLineNumbers = PerfPlugin.ATTR_Kernel_SourceLineNumbers_default;
-		try {
-			// Check if resolving source file/line numbers is selected
-			SourceLineNumbers = config.getAttribute(PerfPlugin.ATTR_SourceLineNumbers, PerfPlugin.ATTR_SourceLineNumbers_default);
-			Kernel_SourceLineNumbers = config.getAttribute(PerfPlugin.ATTR_Kernel_SourceLineNumbers, PerfPlugin.ATTR_Kernel_SourceLineNumbers_default);
-		} catch (CoreException e2) {
-			SourceLineNumbers = false;
-		}
+        boolean SourceLineNumbers = PerfPlugin.ATTR_SourceLineNumbers_default;
+        boolean Kernel_SourceLineNumbers = PerfPlugin.ATTR_Kernel_SourceLineNumbers_default;
+        try {
+            // Check if resolving source file/line numbers is selected
+            SourceLineNumbers = config.getAttribute(PerfPlugin.ATTR_SourceLineNumbers, PerfPlugin.ATTR_SourceLineNumbers_default);
+            Kernel_SourceLineNumbers = config.getAttribute(PerfPlugin.ATTR_Kernel_SourceLineNumbers, PerfPlugin.ATTR_Kernel_SourceLineNumbers_default);
+        } catch (CoreException e2) {
+            SourceLineNumbers = false;
+        }
 
-		if (monitor != null && monitor.isCanceled()) {
-			return;
-		}
+        if (monitor != null && monitor.isCanceled()) {
+            return;
+        }
 
-		boolean hasProfileData = invisibleRoot.getChildren().length != 0;
+        boolean hasProfileData = invisibleRoot.getChildren().length != 0;
 
-		if (SourceLineNumbers) {
-			for (TreeParent ev : invisibleRoot.getChildren()) {
-				if (!(ev instanceof PMEvent)) continue;
-				for (TreeParent cmd : ev.getChildren()) {
-					if (!(cmd instanceof PMCommand)) continue;
-					for (TreeParent d : cmd.getChildren()) {
-						if (!(d instanceof PMDso)) continue;
-						currentDso = (PMDso)d;
-						if ((!Kernel_SourceLineNumbers) && currentDso.isKernelDso()) continue;
-						for (TreeParent s : currentDso.getFile(PerfPlugin.STRINGS_UnfiledSymbols).getChildren()) {
-							if (!(s instanceof PMSymbol)) continue;
+        if (SourceLineNumbers) {
+            for (TreeParent ev : invisibleRoot.getChildren()) {
+                if (!(ev instanceof PMEvent)) continue;
+                for (TreeParent cmd : ev.getChildren()) {
+                    if (!(cmd instanceof PMCommand)) continue;
+                    for (TreeParent d : cmd.getChildren()) {
+                        if (!(d instanceof PMDso)) continue;
+                        currentDso = (PMDso)d;
+                        if ((!Kernel_SourceLineNumbers) && currentDso.isKernelDso()) continue;
+                        for (TreeParent s : currentDso.getFile(PerfPlugin.STRINGS_UnfiledSymbols).getChildren()) {
+                            if (!(s instanceof PMSymbol)) continue;
 
-							if (monitor != null && monitor.isCanceled()) {
-								return;
-							}
-							currentSym = (PMSymbol)s;
-							String[] annotateCmd;
-							if (workingDir == null) {
-								annotateCmd = getAnnotateString(config, currentDso.getName(), currentSym.getName().substring(4), perfDataLoc, OldPerfVersion);
-							} else {
-								String perfDefaultDataLoc = workingDir + "/" + PerfPlugin.PERF_DEFAULT_DATA;
-								annotateCmd = getAnnotateString(config, currentDso.getName(), currentSym.getName().substring(4), perfDefaultDataLoc, OldPerfVersion);
-							}
+                            if (monitor != null && monitor.isCanceled()) {
+                                return;
+                            }
+                            currentSym = (PMSymbol)s;
+                            String[] annotateCmd;
+                            if (workingDir == null) {
+                                annotateCmd = getAnnotateString(config, currentDso.getName(), currentSym.getName().substring(4), perfDataLoc, OldPerfVersion);
+                            } else {
+                                String perfDefaultDataLoc = workingDir + "/" + PerfPlugin.PERF_DEFAULT_DATA;
+                                annotateCmd = getAnnotateString(config, currentDso.getName(), currentSym.getName().substring(4), perfDefaultDataLoc, OldPerfVersion);
+                            }
 
-							try {
-								if(project==null) p = Runtime.getRuntime().exec(annotateCmd);
-								else p = RuntimeProcessFactory.getFactory().exec(annotateCmd, project);
-								input = new BufferedReader(new InputStreamReader(p.getInputStream()));
-								error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
-							} catch (IOException e) {
-								logException(e);
-							}
+                            try {
+                                if(project==null) p = Runtime.getRuntime().exec(annotateCmd);
+                                else p = RuntimeProcessFactory.getFactory().exec(annotateCmd, project);
+                                input = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                                error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+                            } catch (IOException e) {
+                                logException(e);
+                            }
 
-							PerfCore.parseAnnotation(monitor, input, workingDir, currentDso, currentSym);
-						}
+                            PerfCore.parseAnnotation(monitor, input, workingDir, currentDso, currentSym);
+                        }
 
-						if (currentDso.getFile(PerfPlugin.STRINGS_UnfiledSymbols).getChildren().length == 0) {
-							currentDso.removeChild(currentDso.getFile(PerfPlugin.STRINGS_UnfiledSymbols));
-						}
-						spitStream(error,"Perf Annotate", print);
-					}
-				}
-			}
-		}
+                        if (currentDso.getFile(PerfPlugin.STRINGS_UnfiledSymbols).getChildren().length == 0) {
+                            currentDso.removeChild(currentDso.getFile(PerfPlugin.STRINGS_UnfiledSymbols));
+                        }
+                        spitStream(error,"Perf Annotate", print);
+                    }
+                }
+            }
+        }
 
-		if (print != null) {
-			if (hasProfileData) {
-				print.println("Profile data loaded into Perf Profile View.");
-			} else {
-				print.println("No profile data generated to be displayed.");
-			}
-		}
-	}
+        if (print != null) {
+            if (hasProfileData) {
+                print.println("Profile data loaded into Perf Profile View.");
+            } else {
+                print.println("No profile data generated to be displayed.");
+            }
+        }
+    }
 

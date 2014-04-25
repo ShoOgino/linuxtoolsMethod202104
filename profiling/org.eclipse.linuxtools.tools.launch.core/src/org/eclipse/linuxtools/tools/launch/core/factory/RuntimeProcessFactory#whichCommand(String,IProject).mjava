@@ -1,65 +1,65 @@
-	/**
-	 * Used to get the full command path. It will look for the command in the
-	 * system path and in the path selected in 'Linux Tools Path' preference page
-	 * in the informed project.
-	 *
-	 * @param command The desired command
-	 * @param project The current project. If null, only system path will be
-	 * used to look for the command.
-	 * @return The full command path if command was found or the command if
-	 * command was not found.
-	 *
-	 * @since 1.1
-	 */
-	public String whichCommand(String command, IProject project) throws IOException {
-		if (project != null) {
-			String[] envp = updateEnvironment(null, project);
-			try {
-				IRemoteFileProxy proxy = RemoteProxyManager.getInstance().getFileProxy(project);
-				URI whichUri = URI.create(WHICH_CMD);
-				IPath whichPath = new Path(proxy.toPath(whichUri));
-				IRemoteCommandLauncher launcher = RemoteProxyManager.getInstance().getLauncher(project);
-				Process pProxy = launcher.execute(whichPath, new String[]{command}, envp, null, new NullProgressMonitor());
-				if (pProxy != null) {
+    /**
+     * Used to get the full command path. It will look for the command in the
+     * system path and in the path selected in 'Linux Tools Path' preference page
+     * in the informed project.
+     *
+     * @param command The desired command
+     * @param project The current project. If null, only system path will be
+     * used to look for the command.
+     * @return The full command path if command was found or the command if
+     * command was not found.
+     *
+     * @since 1.1
+     */
+    public String whichCommand(String command, IProject project) throws IOException {
+        if (project != null) {
+            String[] envp = updateEnvironment(null, project);
+            try {
+                IRemoteFileProxy proxy = RemoteProxyManager.getInstance().getFileProxy(project);
+                URI whichUri = URI.create(WHICH_CMD);
+                IPath whichPath = new Path(proxy.toPath(whichUri));
+                IRemoteCommandLauncher launcher = RemoteProxyManager.getInstance().getLauncher(project);
+                Process pProxy = launcher.execute(whichPath, new String[]{command}, envp, null, new NullProgressMonitor());
+                if (pProxy != null) {
 
-					String errorLine;
-					try (BufferedReader error = new BufferedReader(
-							new InputStreamReader(pProxy.getErrorStream()))) {
-						if ((errorLine = error.readLine()) != null) {
-							throw new IOException(errorLine);
-						}
-					}
-					ArrayList<String> lines = new ArrayList<>();
-					try (BufferedReader reader = new BufferedReader(
-							new InputStreamReader(pProxy.getInputStream()))) {
-						String readLine = reader.readLine();
-						while (readLine != null) {
-							lines.add(readLine);
-							readLine = reader.readLine();
-						}
-					}
-					if (!lines.isEmpty()) {
-						if (project.getLocationURI() != null) {
-							if (project.getLocationURI().toString()
-									.startsWith("rse:")) { //$NON-NLS-1$
-								// RSE output
-								if (lines.size() > 1) {
-									command = lines.get(lines.size() - 2);
-								}
-							} else {
-								// Remotetools output
-								command = lines.get(0);
-							}
-						} else {
-							// Local output
-							command = lines.get(0);
-						}
-					}
-				}
-			} catch (CoreException e) {
-				// Failed to call 'which', do nothing
-			}
-		}
-		return command;
-	}
+                    String errorLine;
+                    try (BufferedReader error = new BufferedReader(
+                            new InputStreamReader(pProxy.getErrorStream()))) {
+                        if ((errorLine = error.readLine()) != null) {
+                            throw new IOException(errorLine);
+                        }
+                    }
+                    ArrayList<String> lines = new ArrayList<>();
+                    try (BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(pProxy.getInputStream()))) {
+                        String readLine = reader.readLine();
+                        while (readLine != null) {
+                            lines.add(readLine);
+                            readLine = reader.readLine();
+                        }
+                    }
+                    if (!lines.isEmpty()) {
+                        if (project.getLocationURI() != null) {
+                            if (project.getLocationURI().toString()
+                                    .startsWith("rse:")) { //$NON-NLS-1$
+                                // RSE output
+                                if (lines.size() > 1) {
+                                    command = lines.get(lines.size() - 2);
+                                }
+                            } else {
+                                // Remotetools output
+                                command = lines.get(0);
+                            }
+                        } else {
+                            // Local output
+                            command = lines.get(0);
+                        }
+                    }
+                }
+            } catch (CoreException e) {
+                // Failed to call 'which', do nothing
+            }
+        }
+        return command;
+    }
 

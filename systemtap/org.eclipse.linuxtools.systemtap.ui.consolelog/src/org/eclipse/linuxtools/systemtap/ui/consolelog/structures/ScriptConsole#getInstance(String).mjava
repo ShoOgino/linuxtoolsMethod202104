@@ -1,56 +1,56 @@
-	/**
-	 * This method is used to create a reference to a new <code>ScriptConsole</code>.  If there
-	 * is already an console that has the same name as that provided it will be stopped,
-	 * cleared and returned to the caller to use.  If there is no console matching the
-	 * provided name then a new <code>ScriptConsole</code> will be created for use.
-	 * @param name The name of the console that should be created & returned.
-	 * @return A console of the specified name, or <code>null</code> if there is an error.
-	 */
-	public synchronized static ScriptConsole getInstance(String name) {
-		ScriptConsole console = null;
-		try {
-			IConsole ic[] = ConsolePlugin.getDefault().getConsoleManager().getConsoles();
+    /**
+     * This method is used to create a reference to a new <code>ScriptConsole</code>.  If there
+     * is already an console that has the same name as that provided it will be stopped,
+     * cleared and returned to the caller to use.  If there is no console matching the
+     * provided name then a new <code>ScriptConsole</code> will be created for use.
+     * @param name The name of the console that should be created & returned.
+     * @return A console of the specified name, or <code>null</code> if there is an error.
+     */
+    public synchronized static ScriptConsole getInstance(String name) {
+        ScriptConsole console = null;
+        try {
+            IConsole ic[] = ConsolePlugin.getDefault().getConsoleManager().getConsoles();
 
-			//Prevent running the same script twice
-			if(null != ic) {
-				ScriptConsole activeConsole;
-				for (IConsole consoleIterator: ic) {
-					if (consoleIterator instanceof ScriptConsole){
-						activeConsole = (ScriptConsole) consoleIterator;
-						if(activeConsole.getName().endsWith(name)) {
-							//Stop any script currently running, and terminate stream listeners.
-							if (activeConsole.isRunning()) {
-								activeConsole.stop();
-								if (activeConsole.errorDaemon != null) {
-									activeConsole.cmd.removeErrorStreamListener(activeConsole.errorDaemon);
-								}
-								if (activeConsole.consoleDaemon != null) {
-									activeConsole.cmd.removeInputStreamListener(activeConsole.consoleDaemon);
-								}
-							}
-							if (activeConsole.onCmdStopThread != null && activeConsole.onCmdStopThread.isAlive()) {
-								activeConsole.onCmdStopThread.interrupt();
-								try {
-									activeConsole.onCmdStopThread.join(JOIN_WAIT_TIME);
-								} catch (InterruptedException e) {}
-							}
-							//Remove output from last run
-							activeConsole.clearConsole();
-							activeConsole.setName(name);
-							console = activeConsole;
-							break;
-						}
-					}
-				}
-			}
+            //Prevent running the same script twice
+            if(null != ic) {
+                ScriptConsole activeConsole;
+                for (IConsole consoleIterator: ic) {
+                    if (consoleIterator instanceof ScriptConsole){
+                        activeConsole = (ScriptConsole) consoleIterator;
+                        if(activeConsole.getName().endsWith(name)) {
+                            //Stop any script currently running, and terminate stream listeners.
+                            if (activeConsole.isRunning()) {
+                                activeConsole.stop();
+                                if (activeConsole.errorDaemon != null) {
+                                    activeConsole.cmd.removeErrorStreamListener(activeConsole.errorDaemon);
+                                }
+                                if (activeConsole.consoleDaemon != null) {
+                                    activeConsole.cmd.removeInputStreamListener(activeConsole.consoleDaemon);
+                                }
+                            }
+                            if (activeConsole.onCmdStopThread != null && activeConsole.onCmdStopThread.isAlive()) {
+                                activeConsole.onCmdStopThread.interrupt();
+                                try {
+                                    activeConsole.onCmdStopThread.join(JOIN_WAIT_TIME);
+                                } catch (InterruptedException e) {}
+                            }
+                            //Remove output from last run
+                            activeConsole.clearConsole();
+                            activeConsole.setName(name);
+                            console = activeConsole;
+                            break;
+                        }
+                    }
+                }
+            }
 
-			if(null == console) {
-				console = new ScriptConsole(name, null);
-				ConsolePlugin.getDefault().getConsoleManager().addConsoles(new IConsole[] {console});
-			}
-		} catch(NullPointerException npe) {
-			console = null;
-		}
-		return console;
-	}
+            if(null == console) {
+                console = new ScriptConsole(name, null);
+                ConsolePlugin.getDefault().getConsoleManager().addConsoles(new IConsole[] {console});
+            }
+        } catch(NullPointerException npe) {
+            console = null;
+        }
+        return console;
+    }
 

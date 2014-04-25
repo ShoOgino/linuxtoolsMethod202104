@@ -1,39 +1,39 @@
-	private void smartIndentAfterClosingBracket(IDocument d, DocumentCommand c) {
-		if (c.offset == -1 || d.getLength() == 0)
-			return;
+    private void smartIndentAfterClosingBracket(IDocument d, DocumentCommand c) {
+        if (c.offset == -1 || d.getLength() == 0)
+            return;
 
-		try {
-			int p = (c.offset == d.getLength() ? c.offset - 1 : c.offset);
-			int line = d.getLineOfOffset(p);
-			int start = d.getLineOffset(line);
-			int whiteend = findEndOfWhiteSpace(d, start, c.offset);
+        try {
+            int p = (c.offset == d.getLength() ? c.offset - 1 : c.offset);
+            int line = d.getLineOfOffset(p);
+            int start = d.getLineOffset(line);
+            int whiteend = findEndOfWhiteSpace(d, start, c.offset);
 
-			STPHeuristicScanner scanner= new STPHeuristicScanner(d);
-			ITypedRegion partition= TextUtilities.getPartition(d, fPartitioning, p, false);
-			if (STPPartitionScanner.STP_CONDITIONAL.equals(partition.getType())) {
-				scanner = new STPHeuristicScanner(d, fPartitioning, STPPartitionScanner.STP_CONDITIONAL);
-			}
-			STPIndenter indenter = new STPIndenter(d, scanner, fProject);
+            STPHeuristicScanner scanner= new STPHeuristicScanner(d);
+            ITypedRegion partition= TextUtilities.getPartition(d, fPartitioning, p, false);
+            if (STPPartitionScanner.STP_CONDITIONAL.equals(partition.getType())) {
+                scanner = new STPHeuristicScanner(d, fPartitioning, STPPartitionScanner.STP_CONDITIONAL);
+            }
+            STPIndenter indenter = new STPIndenter(d, scanner, fProject);
 
-			// shift only when line does not contain any text up to the closing bracket
-			if (whiteend == c.offset) {
-				// evaluate the line with the opening bracket that matches out closing bracket
-				int reference = indenter.findReferencePosition(c.offset, false, MatchMode.MATCH_BRACE);
-				int indLine = d.getLineOfOffset(reference);
-				if (indLine != -1 && indLine != line) {
-					// take the indent of the found line
-					StringBuilder replaceText = new StringBuilder(getIndentOfLine(d, indLine));
-					// add the rest of the current line including the just added close bracket
-					replaceText.append(d.get(whiteend, c.offset - whiteend));
-					replaceText.append(c.text);
-					// modify document command
-					c.length += c.offset - start;
-					c.offset = start;
-					c.text = replaceText.toString();
-				}
-			}
-		} catch (BadLocationException e) {
-			IDEPlugin.log(e);
-		}
-	}
+            // shift only when line does not contain any text up to the closing bracket
+            if (whiteend == c.offset) {
+                // evaluate the line with the opening bracket that matches out closing bracket
+                int reference = indenter.findReferencePosition(c.offset, false, MatchMode.MATCH_BRACE);
+                int indLine = d.getLineOfOffset(reference);
+                if (indLine != -1 && indLine != line) {
+                    // take the indent of the found line
+                    StringBuilder replaceText = new StringBuilder(getIndentOfLine(d, indLine));
+                    // add the rest of the current line including the just added close bracket
+                    replaceText.append(d.get(whiteend, c.offset - whiteend));
+                    replaceText.append(c.text);
+                    // modify document command
+                    c.length += c.offset - start;
+                    c.offset = start;
+                    c.text = replaceText.toString();
+                }
+            }
+        } catch (BadLocationException e) {
+            IDEPlugin.log(e);
+        }
+    }
 

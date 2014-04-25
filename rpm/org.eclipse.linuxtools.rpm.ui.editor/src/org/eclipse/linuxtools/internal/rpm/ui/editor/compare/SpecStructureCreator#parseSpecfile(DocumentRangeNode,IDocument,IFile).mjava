@@ -1,55 +1,55 @@
-	private void parseSpecfile(DocumentRangeNode root, IDocument doc, IFile file) {
-		SpecfileParser parser = new SpecfileParser();
+    private void parseSpecfile(DocumentRangeNode root, IDocument doc, IFile file) {
+        SpecfileParser parser = new SpecfileParser();
 
-		// setup the error and task handlers
-		// FIXME: error markers do not show
-		if (file != null) {
-			FileEditorInput fei = new FileEditorInput(file);
-			// this allows compare editor to work with specfiles with errors
-			// without it, the compare editor is blank
-			try {
-				SpecfileEditor.getSpecfileDocumentProvider().disconnect(fei);
-				SpecfileEditor.getSpecfileDocumentProvider().connect(fei);
-			} catch (CoreException e) {
-				SpecfileLog.logError(e);
-			}
-			parser.setErrorHandler(new SpecfileErrorHandler(fei, doc));
-			parser.setTaskHandler(new SpecfileTaskHandler(fei, doc));
+        // setup the error and task handlers
+        // FIXME: error markers do not show
+        if (file != null) {
+            FileEditorInput fei = new FileEditorInput(file);
+            // this allows compare editor to work with specfiles with errors
+            // without it, the compare editor is blank
+            try {
+                SpecfileEditor.getSpecfileDocumentProvider().disconnect(fei);
+                SpecfileEditor.getSpecfileDocumentProvider().connect(fei);
+            } catch (CoreException e) {
+                SpecfileLog.logError(e);
+            }
+            parser.setErrorHandler(new SpecfileErrorHandler(fei, doc));
+            parser.setTaskHandler(new SpecfileTaskHandler(fei, doc));
 
-			Specfile specfile = parser.parse(doc);
-			String id = specfile.getName();
-			// Be a child under parent node of specfileSectionRoot (would be rootNode)
-			SpecNode fileNode = new SpecNode((DocumentRangeNode) root.getParentNode(), 1, id, doc, 0, doc.getLength());
-			for (SpecfileSection sec : specfile.getSections()) {
-				try {
-					addNode(root, doc, sec.getName(),
-							doc.getLineOffset(sec.getLineNumber()),
-							doc.getLineOffset(sec.getSectionEndLine()) - doc.getLineOffset(sec.getLineNumber()),
-							2);
-				} catch (BadLocationException e) {
-					SpecfileLog.logError(e);
-				}
-			}
+            Specfile specfile = parser.parse(doc);
+            String id = specfile.getName();
+            // Be a child under parent node of specfileSectionRoot (would be rootNode)
+            SpecNode fileNode = new SpecNode((DocumentRangeNode) root.getParentNode(), 1, id, doc, 0, doc.getLength());
+            for (SpecfileSection sec : specfile.getSections()) {
+                try {
+                    addNode(root, doc, sec.getName(),
+                            doc.getLineOffset(sec.getLineNumber()),
+                            doc.getLineOffset(sec.getSectionEndLine()) - doc.getLineOffset(sec.getLineNumber()),
+                            2);
+                } catch (BadLocationException e) {
+                    SpecfileLog.logError(e);
+                }
+            }
 
-			// Be a child under the parent file node
-			for (SpecfilePackage sPackage : specfile.getPackages()
-					.getPackages()) {
-				try {
-					SpecNode pNode = addNode(fileNode, doc,	sPackage.getPackageName(),
-							doc.getLineOffset(sPackage.getLineNumber()),
-							doc.getLineOffset(sPackage.getSectionEndLine())	- doc.getLineOffset(sPackage.getLineNumber()),
-							3);
-					for (SpecfileSection section : sPackage.getSections()) {
-						addNode(pNode, doc, section.getName(),
-								doc.getLineOffset(section.getLineNumber()),
-								doc.getLineOffset(section.getSectionEndLine()) - doc.getLineOffset(section.getLineNumber()),
-								4);
-					}
-				} catch (BadLocationException e) {
-					SpecfileLog.logError(e);
-				}
-			}
+            // Be a child under the parent file node
+            for (SpecfilePackage sPackage : specfile.getPackages()
+                    .getPackages()) {
+                try {
+                    SpecNode pNode = addNode(fileNode, doc,    sPackage.getPackageName(),
+                            doc.getLineOffset(sPackage.getLineNumber()),
+                            doc.getLineOffset(sPackage.getSectionEndLine())    - doc.getLineOffset(sPackage.getLineNumber()),
+                            3);
+                    for (SpecfileSection section : sPackage.getSections()) {
+                        addNode(pNode, doc, section.getName(),
+                                doc.getLineOffset(section.getLineNumber()),
+                                doc.getLineOffset(section.getSectionEndLine()) - doc.getLineOffset(section.getLineNumber()),
+                                4);
+                    }
+                } catch (BadLocationException e) {
+                    SpecfileLog.logError(e);
+                }
+            }
 
-		}
-	}
+        }
+    }
 

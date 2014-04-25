@@ -1,102 +1,102 @@
-	@Override
-	public void launch(ILaunchConfiguration config, String mode,
-			ILaunch launch, IProgressMonitor m) throws CoreException {
+    @Override
+    public void launch(ILaunchConfiguration config, String mode,
+            ILaunch launch, IProgressMonitor m) throws CoreException {
 
-		if (m == null) {
-			m = new NullProgressMonitor();
-		}
-		SubMonitor monitor = SubMonitor.convert(m,
-				"SystemTap runtime monitor", 5); //$NON-NLS-1$
-		initialize();
+        if (m == null) {
+            m = new NullProgressMonitor();
+        }
+        SubMonitor monitor = SubMonitor.convert(m,
+                "SystemTap runtime monitor", 5); //$NON-NLS-1$
+        initialize();
 
-		// check for cancellation
-		if (monitor.isCanceled()) {
-			return;
-		}
+        // check for cancellation
+        if (monitor.isCanceled()) {
+            return;
+        }
 
-		/*
-		 * Set variables
-		 */
-		if (!config.getAttribute(LaunchConfigurationConstants.ARGUMENTS,
-				LaunchConfigurationConstants.DEFAULT_ARGUMENTS).equals(
-				LaunchConfigurationConstants.DEFAULT_ARGUMENTS)) {
-			arguments = config.getAttribute(
-					LaunchConfigurationConstants.ARGUMENTS,
-					LaunchConfigurationConstants.DEFAULT_ARGUMENTS);
-			needsArguments = true;
-		}
-		if (!config.getAttribute(LaunchConfigurationConstants.BINARY_PATH,
-				LaunchConfigurationConstants.DEFAULT_BINARY_PATH).equals(
-				LaunchConfigurationConstants.DEFAULT_BINARY_PATH)) {
-			binaryPath = config.getAttribute(
-					LaunchConfigurationConstants.BINARY_PATH,
-					LaunchConfigurationConstants.DEFAULT_BINARY_PATH);
-			needsBinary = true;
-		}
-		if (!config.getAttribute(LaunchConfigurationConstants.BINARY_ARGUMENTS,
-				LaunchConfigurationConstants.DEFAULT_BINARY_ARGUMENTS).equals(
-				LaunchConfigurationConstants.DEFAULT_BINARY_ARGUMENTS)) {
-			binaryArguments = config.getAttribute(
-					LaunchConfigurationConstants.BINARY_ARGUMENTS,
-					LaunchConfigurationConstants.DEFAULT_BINARY_ARGUMENTS);
-		}
-		if (!config.getAttribute(LaunchConfigurationConstants.SCRIPT_PATH,
-				LaunchConfigurationConstants.DEFAULT_SCRIPT_PATH).equals(
-				LaunchConfigurationConstants.DEFAULT_SCRIPT_PATH)) {
-			scriptPath = config.getAttribute(
-					LaunchConfigurationConstants.SCRIPT_PATH,
-					LaunchConfigurationConstants.DEFAULT_SCRIPT_PATH);
-		}
-		// Generate script if needed
-		if (config.getAttribute(LaunchConfigurationConstants.NEED_TO_GENERATE,
-				LaunchConfigurationConstants.DEFAULT_NEED_TO_GENERATE)) {
-			temporaryScript = new File(scriptPath);
-			temporaryScript.delete();
-			try {
-				temporaryScript.createNewFile();
-				try (FileWriter fstream = new FileWriter(temporaryScript);
-						BufferedWriter out = new BufferedWriter(fstream)) {
-					out.write(config
-							.getAttribute(
-									LaunchConfigurationConstants.GENERATED_SCRIPT,
-									LaunchConfigurationConstants.DEFAULT_GENERATED_SCRIPT));
-				}
-			} catch (IOException e1) {
-				e1.printStackTrace();
-			}
-		}
+        /*
+         * Set variables
+         */
+        if (!config.getAttribute(LaunchConfigurationConstants.ARGUMENTS,
+                LaunchConfigurationConstants.DEFAULT_ARGUMENTS).equals(
+                LaunchConfigurationConstants.DEFAULT_ARGUMENTS)) {
+            arguments = config.getAttribute(
+                    LaunchConfigurationConstants.ARGUMENTS,
+                    LaunchConfigurationConstants.DEFAULT_ARGUMENTS);
+            needsArguments = true;
+        }
+        if (!config.getAttribute(LaunchConfigurationConstants.BINARY_PATH,
+                LaunchConfigurationConstants.DEFAULT_BINARY_PATH).equals(
+                LaunchConfigurationConstants.DEFAULT_BINARY_PATH)) {
+            binaryPath = config.getAttribute(
+                    LaunchConfigurationConstants.BINARY_PATH,
+                    LaunchConfigurationConstants.DEFAULT_BINARY_PATH);
+            needsBinary = true;
+        }
+        if (!config.getAttribute(LaunchConfigurationConstants.BINARY_ARGUMENTS,
+                LaunchConfigurationConstants.DEFAULT_BINARY_ARGUMENTS).equals(
+                LaunchConfigurationConstants.DEFAULT_BINARY_ARGUMENTS)) {
+            binaryArguments = config.getAttribute(
+                    LaunchConfigurationConstants.BINARY_ARGUMENTS,
+                    LaunchConfigurationConstants.DEFAULT_BINARY_ARGUMENTS);
+        }
+        if (!config.getAttribute(LaunchConfigurationConstants.SCRIPT_PATH,
+                LaunchConfigurationConstants.DEFAULT_SCRIPT_PATH).equals(
+                LaunchConfigurationConstants.DEFAULT_SCRIPT_PATH)) {
+            scriptPath = config.getAttribute(
+                    LaunchConfigurationConstants.SCRIPT_PATH,
+                    LaunchConfigurationConstants.DEFAULT_SCRIPT_PATH);
+        }
+        // Generate script if needed
+        if (config.getAttribute(LaunchConfigurationConstants.NEED_TO_GENERATE,
+                LaunchConfigurationConstants.DEFAULT_NEED_TO_GENERATE)) {
+            temporaryScript = new File(scriptPath);
+            temporaryScript.delete();
+            try {
+                temporaryScript.createNewFile();
+                try (FileWriter fstream = new FileWriter(temporaryScript);
+                        BufferedWriter out = new BufferedWriter(fstream)) {
+                    out.write(config
+                            .getAttribute(
+                                    LaunchConfigurationConstants.GENERATED_SCRIPT,
+                                    LaunchConfigurationConstants.DEFAULT_GENERATED_SCRIPT));
+                }
+            } catch (IOException e1) {
+                e1.printStackTrace();
+            }
+        }
 
-		stap = config.getAttribute(LaunchConfigurationConstants.COMMAND,
-				PluginConstants.STAP_PATH);
+        stap = config.getAttribute(LaunchConfigurationConstants.COMMAND,
+                PluginConstants.STAP_PATH);
 
-		/**
-		 * Generate partial command
-		 */
-		partialCommand = ConfigurationOptionsSetter.setOptions(config);
+        /**
+         * Generate partial command
+         */
+        partialCommand = ConfigurationOptionsSetter.setOptions(config);
 
-		outputPath = config.getAttribute(
-				LaunchConfigurationConstants.OUTPUT_PATH,
-				PluginConstants.getDefaultOutput());
+        outputPath = config.getAttribute(
+                LaunchConfigurationConstants.OUTPUT_PATH,
+                PluginConstants.getDefaultOutput());
 
-		boolean fileExists = true;
-		try {
-			//Make sure the output file exists
-			File tempFile = new File(outputPath);
-			tempFile.delete();
-			fileExists = tempFile.createNewFile();
-		} catch (IOException e1) {
-			fileExists = false;
-		}
+        boolean fileExists = true;
+        try {
+            //Make sure the output file exists
+            File tempFile = new File(outputPath);
+            tempFile.delete();
+            fileExists = tempFile.createNewFile();
+        } catch (IOException e1) {
+            fileExists = false;
+        }
 
-		// check for cancellation
-		if ( !fileExists || monitor.isCanceled() ) {
-			SystemTapUIErrorMessages mess = new SystemTapUIErrorMessages(Messages.getString("SystemTapLaunchConfigurationDelegate.0"),  //$NON-NLS-1$
-					Messages.getString("SystemTapLaunchConfigurationDelegate.1"), Messages.getString("SystemTapLaunchConfigurationDelegate.2") + outputPath +  //$NON-NLS-1$ //$NON-NLS-2$
-					Messages.getString("SystemTapLaunchConfigurationDelegate.3")); //$NON-NLS-1$
-			mess.schedule();
-			return;
-		}
+        // check for cancellation
+        if ( !fileExists || monitor.isCanceled() ) {
+            SystemTapUIErrorMessages mess = new SystemTapUIErrorMessages(Messages.getString("SystemTapLaunchConfigurationDelegate.0"),  //$NON-NLS-1$
+                    Messages.getString("SystemTapLaunchConfigurationDelegate.1"), Messages.getString("SystemTapLaunchConfigurationDelegate.2") + outputPath +  //$NON-NLS-1$ //$NON-NLS-2$
+                    Messages.getString("SystemTapLaunchConfigurationDelegate.3")); //$NON-NLS-1$
+            mess.schedule();
+            return;
+        }
 
-		finishLaunch(launch, config, m);
-	}
+        finishLaunch(launch, config, m);
+    }
 

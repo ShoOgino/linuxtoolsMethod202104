@@ -1,36 +1,36 @@
-	/**
-	 * Computes and returns the indentation for a preprocessor line.
-	 *
-	 * @param document the document
-	 * @param line the line in document
-	 * @param partition the comment partition
-	 * @return the indent, or <code>null</code> if not computable
-	 * @throws BadLocationException
-	 */
-	public static String computePreprocessorIndent(IDocument document, int line, ITypedRegion partition)
-			throws BadLocationException {
-		int ppFirstLine= document.getLineOfOffset(partition.getOffset());
-		if (line == ppFirstLine) {
-			return ""; //$NON-NLS-1$
-		}
-		STPHeuristicScanner ppScanner= new STPHeuristicScanner(document, STPPartitionScanner.STP_CONDITIONAL, partition.getType());
-		STPIndenter ppIndenter= new STPIndenter(document, ppScanner);
-		if (line == ppFirstLine + 1) {
-			return ppIndenter.createReusingIndent(new StringBuilder(), ppIndenter.getContinuationLineIndent(), 0).toString();
-		}
-		StringBuilder computed= ppIndenter.computeIndentation(document.getLineOffset(line), false);
-		if (computed != null) {
-			return computed.toString();
-		}
-		// take the indent from the previous line and reuse
-		IRegion previousLine= document.getLineInformation(line - 1);
-		int previousLineStart= previousLine.getOffset();
-		int previousLineLength= previousLine.getLength();
-		int previousLineEnd= previousLineStart + previousLineLength;
+    /**
+     * Computes and returns the indentation for a preprocessor line.
+     *
+     * @param document the document
+     * @param line the line in document
+     * @param partition the comment partition
+     * @return the indent, or <code>null</code> if not computable
+     * @throws BadLocationException
+     */
+    public static String computePreprocessorIndent(IDocument document, int line, ITypedRegion partition)
+            throws BadLocationException {
+        int ppFirstLine= document.getLineOfOffset(partition.getOffset());
+        if (line == ppFirstLine) {
+            return ""; //$NON-NLS-1$
+        }
+        STPHeuristicScanner ppScanner= new STPHeuristicScanner(document, STPPartitionScanner.STP_CONDITIONAL, partition.getType());
+        STPIndenter ppIndenter= new STPIndenter(document, ppScanner);
+        if (line == ppFirstLine + 1) {
+            return ppIndenter.createReusingIndent(new StringBuilder(), ppIndenter.getContinuationLineIndent(), 0).toString();
+        }
+        StringBuilder computed= ppIndenter.computeIndentation(document.getLineOffset(line), false);
+        if (computed != null) {
+            return computed.toString();
+        }
+        // take the indent from the previous line and reuse
+        IRegion previousLine= document.getLineInformation(line - 1);
+        int previousLineStart= previousLine.getOffset();
+        int previousLineLength= previousLine.getLength();
+        int previousLineEnd= previousLineStart + previousLineLength;
 
-		int previousLineNonWS= ppScanner.findNonWhitespaceForwardInAnyPartition(previousLineStart, previousLineEnd);
-		String previousIndent= document.get(previousLineStart, previousLineNonWS - previousLineStart);
-		computed= new StringBuilder(previousIndent);
-		return computed.toString();
-	}
+        int previousLineNonWS= ppScanner.findNonWhitespaceForwardInAnyPartition(previousLineStart, previousLineEnd);
+        String previousIndent= document.get(previousLineStart, previousLineNonWS - previousLineStart);
+        computed= new StringBuilder(previousIndent);
+        return computed.toString();
+    }
 

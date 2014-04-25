@@ -1,74 +1,74 @@
-	/**
-	 * Is the given selection on the specified document single-line commented?
-	 *
-	 * @param selection Selection to check
-	 * @param document The document
-	 * @return <code>true</code> iff all selected lines are commented
-	 */
-	public boolean isSelectionCommented(ISelection selection,
-			IDocument document) {
+    /**
+     * Is the given selection on the specified document single-line commented?
+     *
+     * @param selection Selection to check
+     * @param document The document
+     * @return <code>true</code> iff all selected lines are commented
+     */
+    public boolean isSelectionCommented(ISelection selection,
+            IDocument document) {
 
-		if (!(selection instanceof ITextSelection)) {
-			return false;
-		}
+        if (!(selection instanceof ITextSelection)) {
+            return false;
+        }
 
-		ITextSelection textSelection = (ITextSelection) selection;
-		if (textSelection.getStartLine() < 0 || textSelection.getEndLine() < 0) {
-			return false;
-		}
+        ITextSelection textSelection = (ITextSelection) selection;
+        if (textSelection.getStartLine() < 0 || textSelection.getEndLine() < 0) {
+            return false;
+        }
 
-		try {
-			IRegion block = getTextBlockFromSelection(textSelection, document);
-			ITypedRegion[] regions = TextUtilities.computePartitioning(
-					document, STPPartitionScanner.STP_PARTITIONING,
-					block.getOffset(), block.getLength(), false);
+        try {
+            IRegion block = getTextBlockFromSelection(textSelection, document);
+            ITypedRegion[] regions = TextUtilities.computePartitioning(
+                    document, STPPartitionScanner.STP_PARTITIONING,
+                    block.getOffset(), block.getLength(), false);
 
-			int[] lines = new int[regions.length * 2]; // [startline, endline,
-														// startline, endline,
-														// ...]
+            int[] lines = new int[regions.length * 2]; // [startline, endline,
+                                                        // startline, endline,
+                                                        // ...]
 
-			// For each partition in the text selection, figure out the
-			// startline and endline.
-			// Count the number of lines that are selected.
-			for (int i = 0, j = 0; i < regions.length; i++, j += 2) {
-				// Start line of region
-				lines[j] = getFirstCompleteLineOfRegion(regions[i], document);
-				// End line of region
-				int length = regions[i].getLength();
-				int offset = regions[i].getOffset() + length;
-				if (length > 0) {
-					offset--;
-				}
+            // For each partition in the text selection, figure out the
+            // startline and endline.
+            // Count the number of lines that are selected.
+            for (int i = 0, j = 0; i < regions.length; i++, j += 2) {
+                // Start line of region
+                lines[j] = getFirstCompleteLineOfRegion(regions[i], document);
+                // End line of region
+                int length = regions[i].getLength();
+                int offset = regions[i].getOffset() + length;
+                if (length > 0) {
+                    offset--;
+                }
 
-				// If there is no startline for this region (startline = -1),
-				// then there is no endline,
-				// otherwise, get the line number of the endline and store it in
-				// the array.
-				lines[j + 1] = (lines[j] == -1 ? -1 : document
-						.getLineOfOffset(offset));
+                // If there is no startline for this region (startline = -1),
+                // then there is no endline,
+                // otherwise, get the line number of the endline and store it in
+                // the array.
+                lines[j + 1] = (lines[j] == -1 ? -1 : document
+                        .getLineOfOffset(offset));
 
-				assert i < regions.length;
-				assert j < regions.length * 2;
-			}
+                assert i < regions.length;
+                assert j < regions.length * 2;
+            }
 
-			// Perform the check
-			boolean hasComment = false;
-			for (int i = 0, j = 0; i < regions.length; i++, j += 2) {
-				String prefix = "//"; //$NON-NLS-1$
-				if (lines[j] >= 0 && lines[j + 1] >= 0) {
-					if (isBlockCommented(lines[j], lines[j + 1], prefix,
-							document)) {
-						hasComment = true;
-					} else if (!isBlockEmpty(lines[j], lines[j + 1], document)) {
-						return false;
-					}
-				}
-			}
-			return hasComment;
-		} catch (BadLocationException e) {
-			ExceptionErrorDialog.openError(e.getLocalizedMessage(), e);
-		}
+            // Perform the check
+            boolean hasComment = false;
+            for (int i = 0, j = 0; i < regions.length; i++, j += 2) {
+                String prefix = "//"; //$NON-NLS-1$
+                if (lines[j] >= 0 && lines[j + 1] >= 0) {
+                    if (isBlockCommented(lines[j], lines[j + 1], prefix,
+                            document)) {
+                        hasComment = true;
+                    } else if (!isBlockEmpty(lines[j], lines[j + 1], document)) {
+                        return false;
+                    }
+                }
+            }
+            return hasComment;
+        } catch (BadLocationException e) {
+            ExceptionErrorDialog.openError(e.getLocalizedMessage(), e);
+        }
 
-		return false;
-	}
+        return false;
+    }
 

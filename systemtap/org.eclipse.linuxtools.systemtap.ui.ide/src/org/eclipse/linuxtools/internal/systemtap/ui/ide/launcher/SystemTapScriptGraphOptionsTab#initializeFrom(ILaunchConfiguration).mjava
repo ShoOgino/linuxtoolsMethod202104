@@ -1,74 +1,74 @@
-	@Override
-	public void initializeFrom(ILaunchConfiguration configuration) {
-		try {
-			textListenersEnabled = false;
+    @Override
+    public void initializeFrom(ILaunchConfiguration configuration) {
+        try {
+            textListenersEnabled = false;
 
-			// Reset lists & settings to keep things idempotent.
-			regularExpressionCombo.removeAll();
-			outputList.clear();
-			regexErrorMessages.clear();
-			columnNamesList.clear();
-			cachedNamesList.clear();
-			graphsTable.removeAll();
-			badGraphs.clear();
+            // Reset lists & settings to keep things idempotent.
+            regularExpressionCombo.removeAll();
+            outputList.clear();
+            regexErrorMessages.clear();
+            columnNamesList.clear();
+            cachedNamesList.clear();
+            graphsTable.removeAll();
+            badGraphs.clear();
 
-			// There should always be at least one regular expression (a blank one still counts).
-			// If configuration's number of regexs is zero, it is outdated.
-			int numberOfRegexs = Math.max(configuration.getAttribute(NUMBER_OF_REGEXS, 1), 1);
+            // There should always be at least one regular expression (a blank one still counts).
+            // If configuration's number of regexs is zero, it is outdated.
+            int numberOfRegexs = Math.max(configuration.getAttribute(NUMBER_OF_REGEXS, 1), 1);
 
-			// Only allow removing regexs if there are more than one.
-			removeRegexButton.setEnabled(numberOfRegexs > 1);
+            // Only allow removing regexs if there are more than one.
+            removeRegexButton.setEnabled(numberOfRegexs > 1);
 
-			for (int r = 0; r < numberOfRegexs; r++) {
-				// Save all of the configuration's regular expressions & sample outputs in a list.
-				regularExpressionCombo.add(configuration.getAttribute(REGULAR_EXPRESSION + r, "")); //$NON-NLS-1$
-				outputList.add(configuration.getAttribute(SAMPLE_OUTPUT + r, "")); //$NON-NLS-1$
+            for (int r = 0; r < numberOfRegexs; r++) {
+                // Save all of the configuration's regular expressions & sample outputs in a list.
+                regularExpressionCombo.add(configuration.getAttribute(REGULAR_EXPRESSION + r, "")); //$NON-NLS-1$
+                outputList.add(configuration.getAttribute(SAMPLE_OUTPUT + r, "")); //$NON-NLS-1$
 
-				// Save each regex's list of group names.
-				int numberOfColumns = configuration.getAttribute(NUMBER_OF_COLUMNS + r, 0);
-				ArrayList<String> namelist = new ArrayList<>(numberOfColumns);
-				for (int i = 0; i < numberOfColumns; i++) {
-					namelist.add(configuration.getAttribute(get2DConfigData(REGEX_BOX, r, i), (String)null));
-				}
-				columnNamesList.add(namelist);
+                // Save each regex's list of group names.
+                int numberOfColumns = configuration.getAttribute(NUMBER_OF_COLUMNS + r, 0);
+                ArrayList<String> namelist = new ArrayList<>(numberOfColumns);
+                for (int i = 0; i < numberOfColumns; i++) {
+                    namelist.add(configuration.getAttribute(get2DConfigData(REGEX_BOX, r, i), (String)null));
+                }
+                columnNamesList.add(namelist);
 
-				//Reclaim missing column data that was required for existing graphs at the time of the previous "apply".
-				int numberOfExtras = configuration.getAttribute(NUMBER_OF_EXTRAS + r, 0);
-				Stack<String> oldnames = new Stack<>();
-				for (int i = 0; i < numberOfExtras; i++) {
-					oldnames.push(configuration.getAttribute(get2DConfigData(EXTRA_BOX, r, i), (String)null));
-				}
-				cachedNamesList.add(oldnames);
+                //Reclaim missing column data that was required for existing graphs at the time of the previous "apply".
+                int numberOfExtras = configuration.getAttribute(NUMBER_OF_EXTRAS + r, 0);
+                Stack<String> oldnames = new Stack<>();
+                for (int i = 0; i < numberOfExtras; i++) {
+                    oldnames.push(configuration.getAttribute(get2DConfigData(EXTRA_BOX, r, i), (String)null));
+                }
+                cachedNamesList.add(oldnames);
 
-				regexErrorMessages.add(null);
-			}
-			if (getNumberOfRegexs() < MAX_NUMBER_OF_REGEXS) {
-				regularExpressionCombo.add(Messages.SystemTapScriptGraphOptionsTab_regexAddNew);
-			}
+                regexErrorMessages.add(null);
+            }
+            if (getNumberOfRegexs() < MAX_NUMBER_OF_REGEXS) {
+                regularExpressionCombo.add(Messages.SystemTapScriptGraphOptionsTab_regexAddNew);
+            }
 
-			// When possible, preserve the selection on subsequent initializations, for user convenience.
-			int defaultSelectedRegex = 0 <= selectedRegex && selectedRegex < numberOfRegexs ? selectedRegex : 0;
-			regularExpressionCombo.select(defaultSelectedRegex);
+            // When possible, preserve the selection on subsequent initializations, for user convenience.
+            int defaultSelectedRegex = 0 <= selectedRegex && selectedRegex < numberOfRegexs ? selectedRegex : 0;
+            regularExpressionCombo.select(defaultSelectedRegex);
 
-			// Add graphs
-			graphsDataList = createGraphsFromConfiguration(configuration);
-			graphsData = graphsDataList.get(defaultSelectedRegex);
-			for (GraphData graphData : graphsData) {
-				TableItem item = new TableItem(graphsTable, SWT.NONE);
-				setUpGraphTableItem(item, graphData, true);
-			}
+            // Add graphs
+            graphsDataList = createGraphsFromConfiguration(configuration);
+            graphsData = graphsDataList.get(defaultSelectedRegex);
+            for (GraphData graphData : graphsData) {
+                TableItem item = new TableItem(graphsTable, SWT.NONE);
+                setUpGraphTableItem(item, graphData, true);
+            }
 
-			updateRegexSelection(defaultSelectedRegex, true); // Handles all remaining updates.
-			checkAllOtherErrors();
+            updateRegexSelection(defaultSelectedRegex, true); // Handles all remaining updates.
+            checkAllOtherErrors();
 
-			boolean chart = configuration.getAttribute(RUN_WITH_CHART, false);
-			setGraphingEnabled(chart);
-			this.runWithChartCheckButton.setSelection(chart);
+            boolean chart = configuration.getAttribute(RUN_WITH_CHART, false);
+            setGraphingEnabled(chart);
+            this.runWithChartCheckButton.setSelection(chart);
 
-		} catch (CoreException e) {
-			ExceptionErrorDialog.openError(Messages.SystemTapScriptGraphOptionsTab_cantInitializeTab, e);
-		} finally {
-			textListenersEnabled = true;
-		}
-	}
+        } catch (CoreException e) {
+            ExceptionErrorDialog.openError(Messages.SystemTapScriptGraphOptionsTab_cantInitializeTab, e);
+        } finally {
+            textListenersEnabled = true;
+        }
+    }
 

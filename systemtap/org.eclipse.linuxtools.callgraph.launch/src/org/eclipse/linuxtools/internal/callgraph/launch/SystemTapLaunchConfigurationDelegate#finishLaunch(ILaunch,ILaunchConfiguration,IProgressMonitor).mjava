@@ -1,149 +1,149 @@
-	private void finishLaunch(ILaunch launch, ILaunchConfiguration config,
-			IProgressMonitor monitor) {
+    private void finishLaunch(ILaunch launch, ILaunchConfiguration config,
+            IProgressMonitor monitor) {
 
-		try {
-			// Check for cancellation
-			if (monitor.isCanceled() || launch == null) {
-				return;
-			}
-			monitor.worked(1);
+        try {
+            // Check for cancellation
+            if (monitor.isCanceled() || launch == null) {
+                return;
+            }
+            monitor.worked(1);
 
-			// set the default source locator if required
-			setDefaultSourceLocator(launch, config);
+            // set the default source locator if required
+            setDefaultSourceLocator(launch, config);
 
-			/*
-			 * Fetch a parser
-			 */
-			String parserClass = config.getAttribute(LaunchConfigurationConstants.PARSER_CLASS,
-					LaunchConfigurationConstants.DEFAULT_PARSER_CLASS);
-			IExtensionRegistry reg = Platform.getExtensionRegistry();
-			IConfigurationElement[] extensions = reg
-					.getConfigurationElementsFor(PluginConstants.PARSER_RESOURCE,
-							PluginConstants.PARSER_NAME,
-							parserClass);
-			if (extensions == null || extensions.length < 1) {
-				SystemTapUIErrorMessages mess = new SystemTapUIErrorMessages(Messages.getString("SystemTapLaunchConfigurationDelegate.InvalidParser1"),  //$NON-NLS-1$
-						Messages.getString("SystemTapLaunchConfigurationDelegate.InvalidParser1"), //$NON-NLS-1$
-						Messages.getString("SystemTapLaunchConfigurationDelegate.InvalidParser2") + //$NON-NLS-1$
-						Messages.getString("SystemTapLaunchConfigurationDelegate.InvalidParser3") + parserClass); //$NON-NLS-1$
-				mess.schedule();
-				return;
-			}
+            /*
+             * Fetch a parser
+             */
+            String parserClass = config.getAttribute(LaunchConfigurationConstants.PARSER_CLASS,
+                    LaunchConfigurationConstants.DEFAULT_PARSER_CLASS);
+            IExtensionRegistry reg = Platform.getExtensionRegistry();
+            IConfigurationElement[] extensions = reg
+                    .getConfigurationElementsFor(PluginConstants.PARSER_RESOURCE,
+                            PluginConstants.PARSER_NAME,
+                            parserClass);
+            if (extensions == null || extensions.length < 1) {
+                SystemTapUIErrorMessages mess = new SystemTapUIErrorMessages(Messages.getString("SystemTapLaunchConfigurationDelegate.InvalidParser1"),  //$NON-NLS-1$
+                        Messages.getString("SystemTapLaunchConfigurationDelegate.InvalidParser1"), //$NON-NLS-1$
+                        Messages.getString("SystemTapLaunchConfigurationDelegate.InvalidParser2") + //$NON-NLS-1$
+                        Messages.getString("SystemTapLaunchConfigurationDelegate.InvalidParser3") + parserClass); //$NON-NLS-1$
+                mess.schedule();
+                return;
+            }
 
-			IConfigurationElement element = extensions[0];
-			SystemTapParser parser =
-				(SystemTapParser) element.createExecutableExtension(PluginConstants.ATTR_CLASS);
+            IConfigurationElement element = extensions[0];
+            SystemTapParser parser =
+                (SystemTapParser) element.createExecutableExtension(PluginConstants.ATTR_CLASS);
 
-			//Set parser options
-			parser.setViewID(config.getAttribute(LaunchConfigurationConstants.VIEW_CLASS,
-					LaunchConfigurationConstants.VIEW_CLASS));
-			parser.setSourcePath(outputPath);
-			parser.setMonitor(SubMonitor.convert(monitor));
-			parser.setDone(false);
-			parser.setSecondaryID(config.getAttribute(LaunchConfigurationConstants.SECONDARY_VIEW_ID,
-					LaunchConfigurationConstants.DEFAULT_SECONDARY_VIEW_ID));
+            //Set parser options
+            parser.setViewID(config.getAttribute(LaunchConfigurationConstants.VIEW_CLASS,
+                    LaunchConfigurationConstants.VIEW_CLASS));
+            parser.setSourcePath(outputPath);
+            parser.setMonitor(SubMonitor.convert(monitor));
+            parser.setDone(false);
+            parser.setSecondaryID(config.getAttribute(LaunchConfigurationConstants.SECONDARY_VIEW_ID,
+                    LaunchConfigurationConstants.DEFAULT_SECONDARY_VIEW_ID));
 
-			parser.setKillButtonEnabled(true);
+            parser.setKillButtonEnabled(true);
 
-			monitor.worked(1);
+            monitor.worked(1);
 
-			/*
-			 * Launch
-			 */
+            /*
+             * Launch
+             */
 
-			File workDir = getWorkingDirectory(config);
-			if (workDir == null) {
-				workDir = new File(System.getProperty("user.home", ".")); //$NON-NLS-1$ //$NON-NLS-2$
-			}
+            File workDir = getWorkingDirectory(config);
+            if (workDir == null) {
+                workDir = new File(System.getProperty("user.home", ".")); //$NON-NLS-1$ //$NON-NLS-2$
+            }
 
-			//Put command into a shell script
-			String cmd = generateCommand();
-			File script = File.createTempFile("org.eclipse.linuxtools.profiling.launch" + System.currentTimeMillis(), ".sh"); //$NON-NLS-1$ //$NON-NLS-2$
-			String data = "#!/bin/sh\nexec " + cmd; //$NON-NLS-1$
-			try (FileOutputStream out = new FileOutputStream(script)){
-				out.write(data.getBytes());
-			}
+            //Put command into a shell script
+            String cmd = generateCommand();
+            File script = File.createTempFile("org.eclipse.linuxtools.profiling.launch" + System.currentTimeMillis(), ".sh"); //$NON-NLS-1$ //$NON-NLS-2$
+            String data = "#!/bin/sh\nexec " + cmd; //$NON-NLS-1$
+            try (FileOutputStream out = new FileOutputStream(script)){
+                out.write(data.getBytes());
+            }
 
-			String [] commandArray = new String [] {"sh", script.getAbsolutePath()}; //$NON-NLS-1$
+            String [] commandArray = new String [] {"sh", script.getAbsolutePath()}; //$NON-NLS-1$
 
-			Process subProcess = CdtSpawnerProcessFactory.getFactory().exec(commandArray, getEnvironment(config),
-					workDir, true);
+            Process subProcess = CdtSpawnerProcessFactory.getFactory().exec(commandArray, getEnvironment(config),
+                    workDir, true);
 
-			IProcess process = DebugPlugin.newProcess(launch, subProcess,
-	                renderProcessLabel(commandArray[0]));
-			// set the command line used
-			process.setAttribute(IProcess.ATTR_CMDLINE,cmd);
+            IProcess process = DebugPlugin.newProcess(launch, subProcess,
+                    renderProcessLabel(commandArray[0]));
+            // set the command line used
+            process.setAttribute(IProcess.ATTR_CMDLINE,cmd);
 
-			monitor.worked(1);
+            monitor.worked(1);
 
-			StreamListener s = new StreamListener();
-			process.getStreamsProxy().getErrorStreamMonitor().addListener(s);
+            StreamListener s = new StreamListener();
+            process.getStreamsProxy().getErrorStreamMonitor().addListener(s);
 
-			while (!process.isTerminated()) {
-				Thread.sleep(100);
-				if ((monitor != null && monitor.isCanceled()) || parser.isDone()) {
-					parser.cancelJob();
-					process.terminate();
-					return;
-				}
-			}
-			Thread.sleep(100);
-			s.close();
-			parser.setKillButtonEnabled(false);
+            while (!process.isTerminated()) {
+                Thread.sleep(100);
+                if ((monitor != null && monitor.isCanceled()) || parser.isDone()) {
+                    parser.cancelJob();
+                    process.terminate();
+                    return;
+                }
+            }
+            Thread.sleep(100);
+            s.close();
+            parser.setKillButtonEnabled(false);
 
-			if (process.getExitValue() != 0) {
-				parser.cancelJob();
-				//exit code for command not found
-				if (process.getExitValue() == 127){
-					SystemTapUIErrorMessages errorDialog = new SystemTapUIErrorMessages(
-							Messages.getString("SystemTapLaunchConfigurationDelegate.CallGraphGenericError"), //$NON-NLS-1$
-							Messages.getString("SystemTapLaunchConfigurationDelegate.CallGraphGenericError"), //$NON-NLS-1$
-							Messages.getString("SystemTapLaunchConfigurationDelegate.stapNotFound")); //$NON-NLS-1$
+            if (process.getExitValue() != 0) {
+                parser.cancelJob();
+                //exit code for command not found
+                if (process.getExitValue() == 127){
+                    SystemTapUIErrorMessages errorDialog = new SystemTapUIErrorMessages(
+                            Messages.getString("SystemTapLaunchConfigurationDelegate.CallGraphGenericError"), //$NON-NLS-1$
+                            Messages.getString("SystemTapLaunchConfigurationDelegate.CallGraphGenericError"), //$NON-NLS-1$
+                            Messages.getString("SystemTapLaunchConfigurationDelegate.stapNotFound")); //$NON-NLS-1$
 
-					errorDialog.schedule();
-				}else{
-					SystemTapErrorHandler errorHandler = new SystemTapErrorHandler();
+                    errorDialog.schedule();
+                }else{
+                    SystemTapErrorHandler errorHandler = new SystemTapErrorHandler();
 
-					//Prepare stap information
-					errorHandler.appendToLog(config.getName() + Messages.getString("SystemTapLaunchConfigurationDelegate.stap_command") + cmd+ PluginConstants.NEW_LINE + PluginConstants.NEW_LINE);//$NON-NLS-1$
+                    //Prepare stap information
+                    errorHandler.appendToLog(config.getName() + Messages.getString("SystemTapLaunchConfigurationDelegate.stap_command") + cmd+ PluginConstants.NEW_LINE + PluginConstants.NEW_LINE);//$NON-NLS-1$
 
-					//Handle error from TEMP_ERROR_OUTPUT
-					errorHandler.handle(monitor, new FileReader(TEMP_ERROR_OUTPUT));
-					if ((monitor != null && monitor.isCanceled())) {
-						return;
-					}
+                    //Handle error from TEMP_ERROR_OUTPUT
+                    errorHandler.handle(monitor, new FileReader(TEMP_ERROR_OUTPUT));
+                    if ((monitor != null && monitor.isCanceled())) {
+                        return;
+                    }
 
-					errorHandler.finishHandling();
-					if (errorHandler.isErrorRecognized()) {
-						SystemTapUIErrorMessages errorDialog = new SystemTapUIErrorMessages(
-								Messages.getString("SystemTapLaunchConfigurationDelegate.CallGraphGenericError"),  //$NON-NLS-1$
-								Messages.getString("SystemTapLaunchConfigurationDelegate.CallGraphGenericError"),  //$NON-NLS-1$
-								errorHandler.getErrorMessage());
+                    errorHandler.finishHandling();
+                    if (errorHandler.isErrorRecognized()) {
+                        SystemTapUIErrorMessages errorDialog = new SystemTapUIErrorMessages(
+                                Messages.getString("SystemTapLaunchConfigurationDelegate.CallGraphGenericError"),  //$NON-NLS-1$
+                                Messages.getString("SystemTapLaunchConfigurationDelegate.CallGraphGenericError"),  //$NON-NLS-1$
+                                errorHandler.getErrorMessage());
 
-						errorDialog.schedule();
-					}
-				}
-				return;
-			}
+                        errorDialog.schedule();
+                    }
+                }
+                return;
+            }
 
-			if (element.getAttribute(PluginConstants.ATTR_REALTIME).equals(PluginConstants.VAL_TRUE)) {
-				parser.setRealTime(true);
-			}
+            if (element.getAttribute(PluginConstants.ATTR_REALTIME).equals(PluginConstants.VAL_TRUE)) {
+                parser.setRealTime(true);
+            }
 
-			parser.schedule();
-			monitor.worked(1);
+            parser.schedule();
+            monitor.worked(1);
 
-			String message = generateErrorMessage(config.getName(), binaryArguments);
+            String message = generateErrorMessage(config.getName(), binaryArguments);
 
-			DocWriter dw = new DocWriter(Messages.getString("SystemTapLaunchConfigurationDelegate.DocWriterName"),  //$NON-NLS-1$
-					(Helper.getConsoleByName(config.getName())), message);
-			dw.schedule();
+            DocWriter dw = new DocWriter(Messages.getString("SystemTapLaunchConfigurationDelegate.DocWriterName"),  //$NON-NLS-1$
+                    (Helper.getConsoleByName(config.getName())), message);
+            dw.schedule();
 
-		} catch (IOException|InterruptedException|CoreException e) {
-			e.printStackTrace();
-		} finally {
-			monitor.done();
+        } catch (IOException|InterruptedException|CoreException e) {
+            e.printStackTrace();
+        } finally {
+            monitor.done();
 
-		}
-	}
+        }
+    }
 

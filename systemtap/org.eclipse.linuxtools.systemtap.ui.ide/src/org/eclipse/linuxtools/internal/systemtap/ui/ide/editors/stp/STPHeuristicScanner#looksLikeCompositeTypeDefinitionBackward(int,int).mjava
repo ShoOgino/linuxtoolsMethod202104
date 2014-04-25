@@ -1,125 +1,125 @@
-	/**
-	 * Returns <code>true</code> if the document, when scanned backwards from <code>start</code>
-	 * appears to be a composite type (class, struct, union) or enum definition. Examples:
-	 * 
-	 * <pre>
-	 * class A {
-	 * struct A {
-	 * class A : B {
-	 * class A : virtual public B, protected C&lt;T&gt; {
-	 * enum E {
-	 * </pre>
-	 * 
-	 * @param start the position of the opening brace.
-	 * @param bound the first position in <code>fDocument</code> to not consider any more, with
-	 *        <code>bound</code> &lt; <code>start</code>, or <code>UNBOUND</code>
-	 * @return <code>true</code> if the current position looks like a composite type definition
-	 */
-	public boolean looksLikeCompositeTypeDefinitionBackward(int start, int bound) {
-		int token= previousToken(start - 1, bound);
-		switch (token) {
-		case STPSymbols.TokenSTRUCT:
-		case STPSymbols.TokenUNION:
-		case STPSymbols.TokenENUM:
-			return true; // anonymous
-		case STPSymbols.TokenIDENT:
-			token= previousToken(getPosition(), bound);
-			switch (token) {
-			case STPSymbols.TokenCLASS:
-			case STPSymbols.TokenSTRUCT:
-			case STPSymbols.TokenUNION:
-			case STPSymbols.TokenENUM:
-				return true; // no base-clause
-			default:
-				// backtrack
-				token= previousToken(start - 1, bound);
-			}
-			break;
-		default:
-			// backtrack
-			token= previousToken(start - 1, bound);
-			break;
-		}
-		// match base-clause
-		if (token == STPSymbols.TokenGREATERTHAN) {
-			findOpeningPeer(getPosition(), bound, '<', '>');
-			token= previousToken(getPosition(), bound);
-			if (token != STPSymbols.TokenLESSTHAN) {
-				return false;
-			}
-			token= previousToken(getPosition(), bound);
-		}
-		outerWhile: while (token == STPSymbols.TokenIDENT) {// type name or base type
-			token= previousToken(getPosition(), bound);
-			// match nested-name-specifier
-			while (token == STPSymbols.TokenCOLON) { // colon of qualification
-				token= previousToken(getPosition(), bound);
-				if (token != STPSymbols.TokenCOLON) { // second colon of qualification
-					break outerWhile;
-				}
-				token= previousToken(getPosition(), bound);
-				if (token != STPSymbols.TokenIDENT) // qualification name?
-					break;
-				token= previousToken(getPosition(), bound);
-			}
-			switch (token) {
-			case STPSymbols.TokenVIRTUAL:
-				token= previousToken(getPosition(), bound);
-				//$FALL-THROUGH$
-			case STPSymbols.TokenPUBLIC:
-			case STPSymbols.TokenPROTECTED:
-			case STPSymbols.TokenPRIVATE:
-				token= previousToken(getPosition(), bound);
-				if (token == STPSymbols.TokenVIRTUAL) {
-					token= previousToken(getPosition(), bound);
-				}
-				if (token == STPSymbols.TokenCOMMA) {
-					token= previousToken(getPosition(), bound);
-					if (token == STPSymbols.TokenGREATERTHAN) {
-						findOpeningPeer(getPosition(), bound, '<', '>');
-						token= previousToken(getPosition(), bound);
-						if (token != STPSymbols.TokenLESSTHAN) {
-							return false;
-						}
-						token= previousToken(getPosition(), bound);
-					}
-					continue; // another base type
-				}
-				if (token != STPSymbols.TokenCOLON) // colon after class def identifier
-					return false;
-				//$FALL-THROUGH$
-			case STPSymbols.TokenCOLON:
-				token= previousToken(getPosition(), bound);
-				break outerWhile;
-			case STPSymbols.TokenCOMMA:
-				token= previousToken(getPosition(), bound);
-				if (token == STPSymbols.TokenGREATERTHAN) {
-					findOpeningPeer(getPosition(), bound, '<', '>');
-					token= previousToken(getPosition(), bound);
-					if (token != STPSymbols.TokenLESSTHAN) {
-						return false;
-					}
-					token= previousToken(getPosition(), bound);
-				}
-				continue; // another base type
-			case STPSymbols.TokenIDENT:
-				break outerWhile;
-			default:
-				return false;
-			}
-		}
-		if (token != STPSymbols.TokenIDENT) {
-			return false;
-		}
-		token= previousToken(getPosition(), bound);
-		switch (token) {
-		case STPSymbols.TokenCLASS:
-		case STPSymbols.TokenSTRUCT:
-		case STPSymbols.TokenUNION:
-		case STPSymbols.TokenENUM:  // enum is actually not valid here
-			return true;
-		default:
-			return false;
-		}
-	}
+    /**
+     * Returns <code>true</code> if the document, when scanned backwards from <code>start</code>
+     * appears to be a composite type (class, struct, union) or enum definition. Examples:
+     *
+     * <pre>
+     * class A {
+     * struct A {
+     * class A : B {
+     * class A : virtual public B, protected C&lt;T&gt; {
+     * enum E {
+     * </pre>
+     *
+     * @param start the position of the opening brace.
+     * @param bound the first position in <code>fDocument</code> to not consider any more, with
+     *        <code>bound</code> &lt; <code>start</code>, or <code>UNBOUND</code>
+     * @return <code>true</code> if the current position looks like a composite type definition
+     */
+    public boolean looksLikeCompositeTypeDefinitionBackward(int start, int bound) {
+        int token= previousToken(start - 1, bound);
+        switch (token) {
+        case STPSymbols.TokenSTRUCT:
+        case STPSymbols.TokenUNION:
+        case STPSymbols.TokenENUM:
+            return true; // anonymous
+        case STPSymbols.TokenIDENT:
+            token= previousToken(getPosition(), bound);
+            switch (token) {
+            case STPSymbols.TokenCLASS:
+            case STPSymbols.TokenSTRUCT:
+            case STPSymbols.TokenUNION:
+            case STPSymbols.TokenENUM:
+                return true; // no base-clause
+            default:
+                // backtrack
+                token= previousToken(start - 1, bound);
+            }
+            break;
+        default:
+            // backtrack
+            token= previousToken(start - 1, bound);
+            break;
+        }
+        // match base-clause
+        if (token == STPSymbols.TokenGREATERTHAN) {
+            findOpeningPeer(getPosition(), bound, '<', '>');
+            token= previousToken(getPosition(), bound);
+            if (token != STPSymbols.TokenLESSTHAN) {
+                return false;
+            }
+            token= previousToken(getPosition(), bound);
+        }
+        outerWhile: while (token == STPSymbols.TokenIDENT) {// type name or base type
+            token= previousToken(getPosition(), bound);
+            // match nested-name-specifier
+            while (token == STPSymbols.TokenCOLON) { // colon of qualification
+                token= previousToken(getPosition(), bound);
+                if (token != STPSymbols.TokenCOLON) { // second colon of qualification
+                    break outerWhile;
+                }
+                token= previousToken(getPosition(), bound);
+                if (token != STPSymbols.TokenIDENT) // qualification name?
+                    break;
+                token= previousToken(getPosition(), bound);
+            }
+            switch (token) {
+            case STPSymbols.TokenVIRTUAL:
+                token= previousToken(getPosition(), bound);
+                //$FALL-THROUGH$
+            case STPSymbols.TokenPUBLIC:
+            case STPSymbols.TokenPROTECTED:
+            case STPSymbols.TokenPRIVATE:
+                token= previousToken(getPosition(), bound);
+                if (token == STPSymbols.TokenVIRTUAL) {
+                    token= previousToken(getPosition(), bound);
+                }
+                if (token == STPSymbols.TokenCOMMA) {
+                    token= previousToken(getPosition(), bound);
+                    if (token == STPSymbols.TokenGREATERTHAN) {
+                        findOpeningPeer(getPosition(), bound, '<', '>');
+                        token= previousToken(getPosition(), bound);
+                        if (token != STPSymbols.TokenLESSTHAN) {
+                            return false;
+                        }
+                        token= previousToken(getPosition(), bound);
+                    }
+                    continue; // another base type
+                }
+                if (token != STPSymbols.TokenCOLON) // colon after class def identifier
+                    return false;
+                //$FALL-THROUGH$
+            case STPSymbols.TokenCOLON:
+                token= previousToken(getPosition(), bound);
+                break outerWhile;
+            case STPSymbols.TokenCOMMA:
+                token= previousToken(getPosition(), bound);
+                if (token == STPSymbols.TokenGREATERTHAN) {
+                    findOpeningPeer(getPosition(), bound, '<', '>');
+                    token= previousToken(getPosition(), bound);
+                    if (token != STPSymbols.TokenLESSTHAN) {
+                        return false;
+                    }
+                    token= previousToken(getPosition(), bound);
+                }
+                continue; // another base type
+            case STPSymbols.TokenIDENT:
+                break outerWhile;
+            default:
+                return false;
+            }
+        }
+        if (token != STPSymbols.TokenIDENT) {
+            return false;
+        }
+        token= previousToken(getPosition(), bound);
+        switch (token) {
+        case STPSymbols.TokenCLASS:
+        case STPSymbols.TokenSTRUCT:
+        case STPSymbols.TokenUNION:
+        case STPSymbols.TokenENUM:  // enum is actually not valid here
+            return true;
+        default:
+            return false;
+        }
+    }
 

@@ -1,52 +1,52 @@
-	/**
-	 * Checks if the selected lines are all commented or not and
-	 * uncomments/comments them respectively.
-	 */
-	@Override
-	public Object execute(ExecutionEvent event) {
-		ITextEditor editor = (ITextEditor) HandlerUtil.getActiveEditor(event);
-		if (editor == null || !editor.isEditable()) {
-			return null;
-		}
+    /**
+     * Checks if the selected lines are all commented or not and
+     * uncomments/comments them respectively.
+     */
+    @Override
+    public Object execute(ExecutionEvent event) {
+        ITextEditor editor = (ITextEditor) HandlerUtil.getActiveEditor(event);
+        if (editor == null || !editor.isEditable()) {
+            return null;
+        }
 
-		updateOpTarget(editor);
-		if (operationTarget == null) {
-			return null;
-		}
+        updateOpTarget(editor);
+        if (operationTarget == null) {
+            return null;
+        }
 
-		ISelection selection = editor.getSelectionProvider().getSelection();
-		IDocument document = editor.getDocumentProvider().getDocument(
-				editor.getEditorInput());
+        ISelection selection = editor.getSelectionProvider().getSelection();
+        IDocument document = editor.getDocumentProvider().getDocument(
+                editor.getEditorInput());
 
-		final int operationCode;
-		if (isSelectionCommented(selection, document)) {
-			operationCode = ITextOperationTarget.STRIP_PREFIX;
-		} else {
-			operationCode = ITextOperationTarget.PREFIX;
-		}
+        final int operationCode;
+        if (isSelectionCommented(selection, document)) {
+            operationCode = ITextOperationTarget.STRIP_PREFIX;
+        } else {
+            operationCode = ITextOperationTarget.PREFIX;
+        }
 
-		Shell shell = editor.getSite().getShell();
-		if (!operationTarget.canDoOperation(operationCode)) {
-			if (shell != null) {
-				MessageDialog.openError(shell,
-						Localization.getString("ToggleComment_error_title"), //$NON-NLS-1$
-						Localization.getString("ToggleComment_error_message")); //$NON-NLS-1$
-			}
-			return null;
-		}
+        Shell shell = editor.getSite().getShell();
+        if (!operationTarget.canDoOperation(operationCode)) {
+            if (shell != null) {
+                MessageDialog.openError(shell,
+                        Localization.getString("ToggleComment_error_title"), //$NON-NLS-1$
+                        Localization.getString("ToggleComment_error_message")); //$NON-NLS-1$
+            }
+            return null;
+        }
 
-		Display display = null;
-		if (shell != null && !shell.isDisposed()) {
-			display = shell.getDisplay();
-		}
+        Display display = null;
+        if (shell != null && !shell.isDisposed()) {
+            display = shell.getDisplay();
+        }
 
-		BusyIndicator.showWhile(display, new Runnable() {
-			@Override
-			public void run() {
-				operationTarget.doOperation(operationCode);
-			}
-		});
+        BusyIndicator.showWhile(display, new Runnable() {
+            @Override
+            public void run() {
+                operationTarget.doOperation(operationCode);
+            }
+        });
 
-		return null;
-	}
+        return null;
+    }
 

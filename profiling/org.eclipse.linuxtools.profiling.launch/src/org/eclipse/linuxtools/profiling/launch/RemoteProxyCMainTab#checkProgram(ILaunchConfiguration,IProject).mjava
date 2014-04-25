@@ -1,100 +1,100 @@
-	private boolean checkProgram(ILaunchConfiguration config, IProject project) {
-		String name = fProgText.getText().trim();
-		if (name.length() == 0) {
-			setErrorMessage(ProxyLaunchMessages.executable_is_not_specified);
-			return false;
-		}
-		// Avoid constantly checking the binary if nothing relevant has
-		// changed (binary or project name). See bug 277663.
-		if (name.equals(fPreviouslyCheckedProgram)) {
-			if (fPreviouslyCheckedProgramErrorMsg != null) {
-				setErrorMessage(fPreviouslyCheckedProgramErrorMsg);
-			}
-			return fPreviouslyCheckedProgramIsValid;
-		}
-		fPreviouslyCheckedProgram = name;
-		fPreviouslyCheckedProgramIsValid = true; // we'll flip this below if
-		// not true
-		fPreviouslyCheckedProgramErrorMsg = null; // we'll set this below if
-		// there's an error
-		IPath exePath;
-		URI exeURI = null;
-		boolean passed = false;
+    private boolean checkProgram(ILaunchConfiguration config, IProject project) {
+        String name = fProgText.getText().trim();
+        if (name.length() == 0) {
+            setErrorMessage(ProxyLaunchMessages.executable_is_not_specified);
+            return false;
+        }
+        // Avoid constantly checking the binary if nothing relevant has
+        // changed (binary or project name). See bug 277663.
+        if (name.equals(fPreviouslyCheckedProgram)) {
+            if (fPreviouslyCheckedProgramErrorMsg != null) {
+                setErrorMessage(fPreviouslyCheckedProgramErrorMsg);
+            }
+            return fPreviouslyCheckedProgramIsValid;
+        }
+        fPreviouslyCheckedProgram = name;
+        fPreviouslyCheckedProgramIsValid = true; // we'll flip this below if
+        // not true
+        fPreviouslyCheckedProgramErrorMsg = null; // we'll set this below if
+        // there's an error
+        IPath exePath;
+        URI exeURI = null;
+        boolean passed = false;
 
-		try {
-			exeURI = new URI(name);
-			String exePathStr = exeURI.getPath();
-			if (exePathStr == null) {
-				setErrorMessage(fPreviouslyCheckedProgramErrorMsg = ProxyLaunchMessages.uri_of_executable_is_invalid);
-				fPreviouslyCheckedProgramIsValid = false;
-				return false;
-			}
+        try {
+            exeURI = new URI(name);
+            String exePathStr = exeURI.getPath();
+            if (exePathStr == null) {
+                setErrorMessage(fPreviouslyCheckedProgramErrorMsg = ProxyLaunchMessages.uri_of_executable_is_invalid);
+                fPreviouslyCheckedProgramIsValid = false;
+                return false;
+            }
 
-			exePath = Path.fromOSString(exeURI.getPath());
-			if (!exePath.isAbsolute() && exeURI != null && !exeURI.isAbsolute()) {
-				URI projectURI = project.getLocationURI();
-				exeURI = new URI(projectURI.getScheme(),
-						projectURI.getAuthority(), projectURI.getRawPath() + '/'
-						+ exePath.toString(), EMPTY_STRING);
-			}
-			if (exeURI != null) {
-				passed = true;
-			}
-		} catch (URISyntaxException e) {
-			setErrorMessage(fPreviouslyCheckedWorkingDirErrorMsg = ProxyLaunchMessages.uri_of_executable_is_invalid);
-			fPreviouslyCheckedProgramIsValid = false;
-			return false;
-		}
+            exePath = Path.fromOSString(exeURI.getPath());
+            if (!exePath.isAbsolute() && exeURI != null && !exeURI.isAbsolute()) {
+                URI projectURI = project.getLocationURI();
+                exeURI = new URI(projectURI.getScheme(),
+                        projectURI.getAuthority(), projectURI.getRawPath() + '/'
+                        + exePath.toString(), EMPTY_STRING);
+            }
+            if (exeURI != null) {
+                passed = true;
+            }
+        } catch (URISyntaxException e) {
+            setErrorMessage(fPreviouslyCheckedWorkingDirErrorMsg = ProxyLaunchMessages.uri_of_executable_is_invalid);
+            fPreviouslyCheckedProgramIsValid = false;
+            return false;
+        }
 
-		if (!passed) {
-			setErrorMessage(fPreviouslyCheckedProgramErrorMsg = LaunchMessages.CMainTab_Program_does_not_exist);
-			fPreviouslyCheckedProgramIsValid = false;
-			return false;
-		}
+        if (!passed) {
+            setErrorMessage(fPreviouslyCheckedProgramErrorMsg = LaunchMessages.CMainTab_Program_does_not_exist);
+            fPreviouslyCheckedProgramIsValid = false;
+            return false;
+        }
 
-		passed = false;
-		try {
-			IRemoteFileProxy exeFileProxy;
-			exeFileProxy = RemoteProxyManager.getInstance().getFileProxy(exeURI);
-			if (exeFileProxy != null) {
-				String exeFilePath = exeURI.getPath();
-				IFileStore exeFS = exeFileProxy
-						.getResource(exeFilePath);
-				if (exeFS != null) {
-					IFileInfo exeFI = exeFS.fetchInfo();
-					if (exeFI != null) {
-						if (dontCheckProgram || enableCopyFromExeButton.getSelection()) {
-							// The program may not exist yet if we are copying it.
-							passed = true;
-						} else {
-							if (exeFI.exists()) {
-								if (exeFI.getAttribute(EFS.ATTRIBUTE_EXECUTABLE) &&
-										!exeFI.isDirectory()) {
-									passed = true;
-								} else {
-									setErrorMessage(fPreviouslyCheckedProgramErrorMsg = ProxyLaunchMessages.executable_does_not_have_execution_rights);
-								}
-							} else {
-								setErrorMessage(fPreviouslyCheckedProgramErrorMsg = ProxyLaunchMessages.executable_does_not_exist);
-							}
-						}
-					} else {
-						setErrorMessage(fPreviouslyCheckedProgramErrorMsg = ProxyLaunchMessages.error_accessing_executable);
-					}
-				} else {
-					setErrorMessage(fPreviouslyCheckedProgramErrorMsg = ProxyLaunchMessages.error_accessing_executable);
-				}
-			} else {
-				setErrorMessage(fPreviouslyCheckedProgramErrorMsg = ProxyLaunchMessages.scheme_error_in_executable);
-			}
-		} catch (CoreException e) {
-			setErrorMessage(fPreviouslyCheckedProgramErrorMsg = ProxyLaunchMessages.connection_of_executable_cannot_be_opened);
-		}
-		if (!passed) {
-			fPreviouslyCheckedProgramIsValid = false;
-			return false;
-		}
-		setErrorMessage(null);
-		return true;
-	}
+        passed = false;
+        try {
+            IRemoteFileProxy exeFileProxy;
+            exeFileProxy = RemoteProxyManager.getInstance().getFileProxy(exeURI);
+            if (exeFileProxy != null) {
+                String exeFilePath = exeURI.getPath();
+                IFileStore exeFS = exeFileProxy
+                        .getResource(exeFilePath);
+                if (exeFS != null) {
+                    IFileInfo exeFI = exeFS.fetchInfo();
+                    if (exeFI != null) {
+                        if (dontCheckProgram || enableCopyFromExeButton.getSelection()) {
+                            // The program may not exist yet if we are copying it.
+                            passed = true;
+                        } else {
+                            if (exeFI.exists()) {
+                                if (exeFI.getAttribute(EFS.ATTRIBUTE_EXECUTABLE) &&
+                                        !exeFI.isDirectory()) {
+                                    passed = true;
+                                } else {
+                                    setErrorMessage(fPreviouslyCheckedProgramErrorMsg = ProxyLaunchMessages.executable_does_not_have_execution_rights);
+                                }
+                            } else {
+                                setErrorMessage(fPreviouslyCheckedProgramErrorMsg = ProxyLaunchMessages.executable_does_not_exist);
+                            }
+                        }
+                    } else {
+                        setErrorMessage(fPreviouslyCheckedProgramErrorMsg = ProxyLaunchMessages.error_accessing_executable);
+                    }
+                } else {
+                    setErrorMessage(fPreviouslyCheckedProgramErrorMsg = ProxyLaunchMessages.error_accessing_executable);
+                }
+            } else {
+                setErrorMessage(fPreviouslyCheckedProgramErrorMsg = ProxyLaunchMessages.scheme_error_in_executable);
+            }
+        } catch (CoreException e) {
+            setErrorMessage(fPreviouslyCheckedProgramErrorMsg = ProxyLaunchMessages.connection_of_executable_cannot_be_opened);
+        }
+        if (!passed) {
+            fPreviouslyCheckedProgramIsValid = false;
+            return false;
+        }
+        setErrorMessage(null);
+        return true;
+    }
 

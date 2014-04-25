@@ -1,106 +1,106 @@
-	/**
-	 * Print with colour codes. Colour codes accepted in the form of ~(R,G,B)~,
-	 * and apply for the rest of the line or until another code is encountered
-	 * @param text
-	 */
-	private void prettyPrintln(String text) {
-		List<StyleRange> styles = new ArrayList<>();
-		String[] txt = text.split("\\n"); //$NON-NLS-1$
-		int lineOffset = 0;
-		int inLineOffset;
+    /**
+     * Print with colour codes. Colour codes accepted in the form of ~(R,G,B)~,
+     * and apply for the rest of the line or until another code is encountered
+     * @param text
+     */
+    private void prettyPrintln(String text) {
+        List<StyleRange> styles = new ArrayList<>();
+        String[] txt = text.split("\\n"); //$NON-NLS-1$
+        int lineOffset = 0;
+        int inLineOffset;
 
-		// txt[] contains text, with one entry for each new line
-		for (String line: txt) {
+        // txt[] contains text, with one entry for each new line
+        for (String line: txt) {
 
-			// Skip blank strings
-			if (line.isEmpty()) {
-				viewer.append(PluginConstants.NEW_LINE);
-				continue;
-			}
+            // Skip blank strings
+            if (line.isEmpty()) {
+                viewer.append(PluginConstants.NEW_LINE);
+                continue;
+            }
 
-			// Search for colour codes, if none exist then continue
-			String[] split_txt = line.split("~\\("); //$NON-NLS-1$
-			if (split_txt.length == 1) {
-				viewer.append(split_txt[0]);
-				viewer.append(PluginConstants.NEW_LINE);
-				continue;
-			}
+            // Search for colour codes, if none exist then continue
+            String[] split_txt = line.split("~\\("); //$NON-NLS-1$
+            if (split_txt.length == 1) {
+                viewer.append(split_txt[0]);
+                viewer.append(PluginConstants.NEW_LINE);
+                continue;
+            }
 
-			inLineOffset = 0;
-			for (String split: split_txt) {
-				// Skip blank substrings
-				if (split.isEmpty()) {
-					continue;
-				}
+            inLineOffset = 0;
+            for (String split: split_txt) {
+                // Skip blank substrings
+                if (split.isEmpty()) {
+                    continue;
+                }
 
-				// Split for the number codes
-				String[] coloursAndText = split.split("\\)~"); //$NON-NLS-1$
+                // Split for the number codes
+                String[] coloursAndText = split.split("\\)~"); //$NON-NLS-1$
 
-				// If the string is properly formatted, colours should be length
-				// 2
-				// If it is not properly formatted, don't colour (just print)
-				if (coloursAndText.length != 2) {
-					for (String colourAndText: coloursAndText) {
-						viewer.append(colourAndText);
-						inLineOffset += colourAndText.length();
-					}
-					continue;
-				}
+                // If the string is properly formatted, colours should be length
+                // 2
+                // If it is not properly formatted, don't colour (just print)
+                if (coloursAndText.length != 2) {
+                    for (String colourAndText: coloursAndText) {
+                        viewer.append(colourAndText);
+                        inLineOffset += colourAndText.length();
+                    }
+                    continue;
+                }
 
-				// The first element in the array should contain the colours
-				String[] colours = coloursAndText[0].split(","); //$NON-NLS-1$
-				if (colours.length < 3) {
-					continue;
-				}
+                // The first element in the array should contain the colours
+                String[] colours = coloursAndText[0].split(","); //$NON-NLS-1$
+                if (colours.length < 3) {
+                    continue;
+                }
 
-				// The second element in the array should contain the text
-				viewer.append(coloursAndText[1]);
+                // The second element in the array should contain the text
+                viewer.append(coloursAndText[1]);
 
-				// Create a colour based on the 3 integers (if there are any
-				// more integers, just ignore)
-				int R = new Integer(colours[0].replaceAll(" ", "")).intValue(); //$NON-NLS-1$ //$NON-NLS-2$
-				int G = new Integer(colours[1].replaceAll(" ", "")).intValue(); //$NON-NLS-1$ //$NON-NLS-2$
-				int B = new Integer(colours[2].replaceAll(" ", "")).intValue(); //$NON-NLS-1$ //$NON-NLS-2$
+                // Create a colour based on the 3 integers (if there are any
+                // more integers, just ignore)
+                int R = new Integer(colours[0].replaceAll(" ", "")).intValue(); //$NON-NLS-1$ //$NON-NLS-2$
+                int G = new Integer(colours[1].replaceAll(" ", "")).intValue(); //$NON-NLS-1$ //$NON-NLS-2$
+                int B = new Integer(colours[2].replaceAll(" ", "")).intValue(); //$NON-NLS-1$ //$NON-NLS-2$
 
-				if (R > 255) R = 255;
-				if (G > 255) G = 255;
-				if (B > 255) B = 255;
+                if (R > 255) R = 255;
+                if (G > 255) G = 255;
+                if (B > 255) B = 255;
 
-				if (R < 0) R = 0;
-				if (G < 0) G = 0;
-				if (B < 0) B = 0;
+                if (R < 0) R = 0;
+                if (G < 0) G = 0;
+                if (B < 0) B = 0;
 
-				Color newColor = new Color(display, R, G, B);
+                Color newColor = new Color(display, R, G, B);
 
-				// Find the offset of the current line
-				lineOffset = viewer.getOffsetAtLine(viewer.getLineCount() - 1);
+                // Find the offset of the current line
+                lineOffset = viewer.getOffsetAtLine(viewer.getLineCount() - 1);
 
-				// Create a new style that lasts no further than the length of
-				// the line
-				StyleRange newStyle = new StyleRange(lineOffset + inLineOffset,
-						coloursAndText[1].length(), newColor, null);
-				styles.add(newStyle);
+                // Create a new style that lasts no further than the length of
+                // the line
+                StyleRange newStyle = new StyleRange(lineOffset + inLineOffset,
+                        coloursAndText[1].length(), newColor, null);
+                styles.add(newStyle);
 
-				inLineOffset += coloursAndText[1].length();
-			}
+                inLineOffset += coloursAndText[1].length();
+            }
 
-			viewer.append(PluginConstants.NEW_LINE);
-		}
+            viewer.append(PluginConstants.NEW_LINE);
+        }
 
-		// Create a new style range
-		StyleRange[] s = new StyleRange[styles.size()];
-		styles.toArray(s);
+        // Create a new style range
+        StyleRange[] s = new StyleRange[styles.size()];
+        styles.toArray(s);
 
-		int cnt = viewer.getCharCount();
+        int cnt = viewer.getCharCount();
 
-		// Using replaceStyleRanges with previousEnd, etc, effectively adds
-		// the StyleRange to the existing set of Style Ranges (so we don't
-		// waste time fudging with old style ranges that haven't changed)
-		viewer.replaceStyleRanges(previousEnd, cnt - previousEnd, s);
-		previousEnd = cnt;
+        // Using replaceStyleRanges with previousEnd, etc, effectively adds
+        // the StyleRange to the existing set of Style Ranges (so we don't
+        // waste time fudging with old style ranges that haven't changed)
+        viewer.replaceStyleRanges(previousEnd, cnt - previousEnd, s);
+        previousEnd = cnt;
 
-		// Change focus and update
-		viewer.setTopIndex(viewer.getLineCount() - 1);
-		viewer.update();
-	}
+        // Change focus and update
+        viewer.setTopIndex(viewer.getLineCount() - 1);
+        viewer.update();
+    }
 

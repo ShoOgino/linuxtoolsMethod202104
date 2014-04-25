@@ -1,103 +1,103 @@
-	/**
-	 * Creates a dialog that prompts the user to select from the given list of
-	 * ICElements
-	 *
-	 * @param list
-	 *            : list of ICElements
-	 * @return
-	 */
-	private Object[] chooseUnit(List<ICContainer> list, int numberOfValidFiles) {
-		ListTreeContentProvider prov = new ListTreeContentProvider();
+    /**
+     * Creates a dialog that prompts the user to select from the given list of
+     * ICElements
+     *
+     * @param list
+     *            : list of ICElements
+     * @return
+     */
+    private Object[] chooseUnit(List<ICContainer> list, int numberOfValidFiles) {
+        ListTreeContentProvider prov = new ListTreeContentProvider();
 
-		RuledTreeSelectionDialog dialog = new RuledTreeSelectionDialog(
-				getActiveWorkbenchShell(), new WorkbenchLabelProvider(), prov);
+        RuledTreeSelectionDialog dialog = new RuledTreeSelectionDialog(
+                getActiveWorkbenchShell(), new WorkbenchLabelProvider(), prov);
 
-		dialog.setTitle(Messages.getString("SystemTapLaunchShortcut.SelectFiles")); //$NON-NLS-1$
-		dialog.setMessage(Messages.getString("SystemTapLaunchShortcut.SelectFilesMsg")); //$NON-NLS-1$
-		dialog.setInput(list);
-		dialog.setHelpAvailable(false);
-		dialog.setStatusLineAboveButtons(false);
-		dialog.setEmptyListMessage(Messages
-				.getString("SystemTapLaunchShortcut.NoFiles")); //$NON-NLS-1$
-		dialog.setContainerMode(true);
+        dialog.setTitle(Messages.getString("SystemTapLaunchShortcut.SelectFiles")); //$NON-NLS-1$
+        dialog.setMessage(Messages.getString("SystemTapLaunchShortcut.SelectFilesMsg")); //$NON-NLS-1$
+        dialog.setInput(list);
+        dialog.setHelpAvailable(false);
+        dialog.setStatusLineAboveButtons(false);
+        dialog.setEmptyListMessage(Messages
+                .getString("SystemTapLaunchShortcut.NoFiles")); //$NON-NLS-1$
+        dialog.setContainerMode(true);
 
-		Object[] topLevel = prov.findElements(list);
-		dialog.setInitialSelections(topLevel);
-		dialog.setSize(cap(topLevel.length * 10, 30, 55), cap(
-				(int) (topLevel.length * 1.5), 3, 13));
+        Object[] topLevel = prov.findElements(list);
+        dialog.setInitialSelections(topLevel);
+        dialog.setSize(cap(topLevel.length * 10, 30, 55), cap(
+                (int) (topLevel.length * 1.5), 3, 13));
 
-		dialog.create();
-		Button okButton = dialog.getOkButton();
+        dialog.create();
+        Button okButton = dialog.getOkButton();
 
-		Object[] result = null;
+        Object[] result = null;
 
-		if (testMode) {
-			okButton.setSelection(true);
-			result = list.toArray();
-			ArrayList<Object> output = new ArrayList<>();
-			try {
-				for (Object obj : result) {
-					if (obj instanceof ICContainer) {
-						ICElement[] array = ((ICContainer) obj).getChildren();
-						for (ICElement c : array) {
-							if (!(validElement(c))) {
-								continue;
-							}
-							if (c.getElementName().contains(MAIN_FUNC_NAME) && !output.contains(c)) {
-								output.add(c);
-							}
-						}
-					}
-				}
+        if (testMode) {
+            okButton.setSelection(true);
+            result = list.toArray();
+            ArrayList<Object> output = new ArrayList<>();
+            try {
+                for (Object obj : result) {
+                    if (obj instanceof ICContainer) {
+                        ICElement[] array = ((ICContainer) obj).getChildren();
+                        for (ICElement c : array) {
+                            if (!(validElement(c))) {
+                                continue;
+                            }
+                            if (c.getElementName().contains(MAIN_FUNC_NAME) && !output.contains(c)) {
+                                output.add(c);
+                            }
+                        }
+                    }
+                }
 
-				if (output.size() >= numberOfValidFiles) {
-					output.clear();
-					output.add(USER_SELECTED_ALL);
-				}
-			} catch (CModelException e) {
-				e.printStackTrace();
-			}
+                if (output.size() >= numberOfValidFiles) {
+                    output.clear();
+                    output.add(USER_SELECTED_ALL);
+                }
+            } catch (CModelException e) {
+                e.printStackTrace();
+            }
 
-			result = output.toArray();
-		} else {
-			if (dialog.open() == Window.CANCEL) {
-				return null;
-			}
-			result = dialog.getResult();
-		}
+            result = output.toArray();
+        } else {
+            if (dialog.open() == Window.CANCEL) {
+                return null;
+            }
+            result = dialog.getResult();
+        }
 
-		if (result == null) {
-			return null;
-		}
+        if (result == null) {
+            return null;
+        }
 
-		ArrayList<Object> output = new ArrayList<>();
-		try {
-			for (Object obj : result) {
-				if (obj instanceof ICContainer) {
-					ICElement[] array = ((ICContainer) obj).getChildren();
-					for (ICElement c : array) {
-						if (!(validElement(c))) {
-							continue;
-						}
-						if (!output.contains(c)) {
-							output.add(c);
-						}
-					}
-				} else if ((obj instanceof ICElement)
-						&& validElement((ICElement) obj)
-						&& !output.contains(obj)) {
-					output.add(obj);
-				}
-			}
+        ArrayList<Object> output = new ArrayList<>();
+        try {
+            for (Object obj : result) {
+                if (obj instanceof ICContainer) {
+                    ICElement[] array = ((ICContainer) obj).getChildren();
+                    for (ICElement c : array) {
+                        if (!(validElement(c))) {
+                            continue;
+                        }
+                        if (!output.contains(c)) {
+                            output.add(c);
+                        }
+                    }
+                } else if ((obj instanceof ICElement)
+                        && validElement((ICElement) obj)
+                        && !output.contains(obj)) {
+                    output.add(obj);
+                }
+            }
 
-			if (output.size() >= numberOfValidFiles) {
-				output.clear();
-				output.add(USER_SELECTED_ALL);
-			}
-		} catch (CModelException e) {
-			e.printStackTrace();
-		}
+            if (output.size() >= numberOfValidFiles) {
+                output.clear();
+                output.add(USER_SELECTED_ALL);
+            }
+        } catch (CModelException e) {
+            e.printStackTrace();
+        }
 
-		return output.toArray();
-	}
+        return output.toArray();
+    }
 

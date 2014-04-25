@@ -1,55 +1,55 @@
-	/**
-	 * The main body of this event. Starts by making sure the current editor is valid to run,
-	 * then builds the command line arguments for stap and retrieves the environment variables.
-	 * Finally, it gets an instance of <code>ScriptConsole</code> to run the script.
-	 */
-	@Override
-	public Object execute(ExecutionEvent event) throws ExecutionException {
-		findTargetEditor();
-		final boolean local = getRunLocal();
-		if(isValid()) {
-			if(!local && !prepareNonLocalScript()) {
-				return null;
-			}
-			final String[] script = buildStandardScript();
-			final String[] envVars = getEnvironmentVariables();
-			if (continueRun) {
-				Display.getDefault().asyncExec(new Runnable() {
-					@Override
-					public void run() {
-						String name = !local ? serverfileName : fileName;
-						if (ScriptConsole.instanceIsRunning(name)) {
-							MessageDialog dialog = new MessageDialog(
-									PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(),
-									Messages.RunScriptAction_alreadyRunningDialogTitle, null,
-									MessageFormat.format(Messages.RunScriptAction_alreadyRunningDialogMessage, fileName),
-									MessageDialog.QUESTION, new String[]{"Yes", "No"}, 0); //$NON-NLS-1$ //$NON-NLS-2$
-							if (dialog.open() != Window.OK) {
-								if (launch != null) {
-									launch.forceRemove();
-								}
-								return;
-							}
-						}
-						final ScriptConsole console;
-						if (!local) {
-							console = ScriptConsole.getInstance(serverfileName);
-						} else {
-							console = ScriptConsole.getInstance(fileName);
-						}
-						synchronized (console) {
-							if (!local) {
-								console.run(script, envVars, remoteOptions, new StapErrorParser());
-							} else {
-								console.runLocally(script, envVars, new StapErrorParser(), getProject());
-							}
-							scriptConsoleInitialized(console);
-						}
-					}
-				});
-			}
-		}
+    /**
+     * The main body of this event. Starts by making sure the current editor is valid to run,
+     * then builds the command line arguments for stap and retrieves the environment variables.
+     * Finally, it gets an instance of <code>ScriptConsole</code> to run the script.
+     */
+    @Override
+    public Object execute(ExecutionEvent event) throws ExecutionException {
+        findTargetEditor();
+        final boolean local = getRunLocal();
+        if(isValid()) {
+            if(!local && !prepareNonLocalScript()) {
+                return null;
+            }
+            final String[] script = buildStandardScript();
+            final String[] envVars = getEnvironmentVariables();
+            if (continueRun) {
+                Display.getDefault().asyncExec(new Runnable() {
+                    @Override
+                    public void run() {
+                        String name = !local ? serverfileName : fileName;
+                        if (ScriptConsole.instanceIsRunning(name)) {
+                            MessageDialog dialog = new MessageDialog(
+                                    PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(),
+                                    Messages.RunScriptAction_alreadyRunningDialogTitle, null,
+                                    MessageFormat.format(Messages.RunScriptAction_alreadyRunningDialogMessage, fileName),
+                                    MessageDialog.QUESTION, new String[]{"Yes", "No"}, 0); //$NON-NLS-1$ //$NON-NLS-2$
+                            if (dialog.open() != Window.OK) {
+                                if (launch != null) {
+                                    launch.forceRemove();
+                                }
+                                return;
+                            }
+                        }
+                        final ScriptConsole console;
+                        if (!local) {
+                            console = ScriptConsole.getInstance(serverfileName);
+                        } else {
+                            console = ScriptConsole.getInstance(fileName);
+                        }
+                        synchronized (console) {
+                            if (!local) {
+                                console.run(script, envVars, remoteOptions, new StapErrorParser());
+                            } else {
+                                console.runLocally(script, envVars, new StapErrorParser(), getProject());
+                            }
+                            scriptConsoleInitialized(console);
+                        }
+                    }
+                });
+            }
+        }
 
-		return null;
-	}
+        return null;
+    }
 

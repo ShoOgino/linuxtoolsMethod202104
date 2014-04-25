@@ -1,29 +1,29 @@
-	/**
-	 * Returns the allocation function that relates to the given marker
-	 * @param marker {@link IMarker} object that points to where the wrong de-allocation function is
-	 * @return {@link String} object containing the allocation function
-	 * @throws BadLocationException
-	 */
-	private String getAllocFunction(IMarker marker, IDocument document) throws BadLocationException {
-		IValgrindMessage allocMessage = null;
-		String file = marker.getResource().getName();
-		int line = marker.getAttribute(IMarker.LINE_NUMBER, 0);
+    /**
+     * Returns the allocation function that relates to the given marker
+     * @param marker {@link IMarker} object that points to where the wrong de-allocation function is
+     * @return {@link String} object containing the allocation function
+     * @throws BadLocationException
+     */
+    private String getAllocFunction(IMarker marker, IDocument document) throws BadLocationException {
+        IValgrindMessage allocMessage = null;
+        String file = marker.getResource().getName();
+        int line = marker.getAttribute(IMarker.LINE_NUMBER, 0);
 
-		IValgrindMessage[] wrongDeallocMessages = getMessagesByText(Messages.getString("ValgrindMemcheckQuickFixes.Wrong_dealloc_message")); //$NON-NLS-1$
-		for (IValgrindMessage wrongDeallocMessage : wrongDeallocMessages) {
-			ValgrindStackFrame stackBottom = getStackBottom(wrongDeallocMessage);
-			int stackBottomLine = stackBottom.getLine();
-			String stackBottomFile = stackBottom.getFile();
-			if(stackBottomLine == line && file != null && file.equals(stackBottomFile)){
-				allocMessage = getStackBottom(getNestedStack(wrongDeallocMessage));
-			}
-		}
-		if(allocMessage instanceof ValgrindStackFrame){
-			int allocLine = ((ValgrindStackFrame)allocMessage).getLine() - 1;
-			int allocOffset = document.getLineOffset(allocLine);
-			int allocLength = document.getLineLength(allocLine);
-			return document.get(allocOffset, allocLength);
-		}
-		return null;
-	}
+        IValgrindMessage[] wrongDeallocMessages = getMessagesByText(Messages.getString("ValgrindMemcheckQuickFixes.Wrong_dealloc_message")); //$NON-NLS-1$
+        for (IValgrindMessage wrongDeallocMessage : wrongDeallocMessages) {
+            ValgrindStackFrame stackBottom = getStackBottom(wrongDeallocMessage);
+            int stackBottomLine = stackBottom.getLine();
+            String stackBottomFile = stackBottom.getFile();
+            if(stackBottomLine == line && file != null && file.equals(stackBottomFile)){
+                allocMessage = getStackBottom(getNestedStack(wrongDeallocMessage));
+            }
+        }
+        if(allocMessage instanceof ValgrindStackFrame){
+            int allocLine = ((ValgrindStackFrame)allocMessage).getLine() - 1;
+            int allocOffset = document.getLineOffset(allocLine);
+            int allocLength = document.getLineLength(allocLine);
+            return document.get(allocOffset, allocLength);
+        }
+        return null;
+    }
 

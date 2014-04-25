@@ -1,139 +1,139 @@
-	@Override
-	public void createControl(Composite parent) {
-		Composite top = new Composite(parent, SWT.NONE);
-		GridLayout memcheckLayout = new GridLayout(2, true);
-		top.setLayout(memcheckLayout);
-		top.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		
-		leakCheckButton = new Button(top, SWT.CHECK);
-		leakCheckButton.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		leakCheckButton.setText(Messages.getString("MemcheckToolPage.leak_check")); //$NON-NLS-1$
-		leakCheckButton.addSelectionListener(selectListener);
-		
-		Composite leakResTop = new Composite(top, SWT.NONE);
-		leakResTop.setLayout(new GridLayout(2, false));
-		leakResTop.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		
-		Label leakResLabel = new Label(leakResTop, SWT.NONE);
-		leakResLabel.setText(Messages.getString("MemcheckToolPage.leak_resolution")); //$NON-NLS-1$
-		leakResCombo = new Combo(leakResTop, SWT.READ_ONLY);
-		String[] leakResOpts = { MemcheckLaunchConstants.LEAK_RES_LOW, MemcheckLaunchConstants.LEAK_RES_MED, MemcheckLaunchConstants.LEAK_RES_HIGH };
-		leakResCombo.setItems(leakResOpts);
-		leakResCombo.addSelectionListener(selectListener);
+    @Override
+    public void createControl(Composite parent) {
+        Composite top = new Composite(parent, SWT.NONE);
+        GridLayout memcheckLayout = new GridLayout(2, true);
+        top.setLayout(memcheckLayout);
+        top.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 
-		Composite freelistTop = new Composite(top, SWT.NONE);
-		freelistTop.setLayout(new GridLayout(2, false));
-		freelistTop.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		
-		Label freelistLabel = new Label(freelistTop, SWT.NONE);
-		freelistLabel.setText(Messages.getString("MemcheckToolPage.freelist_size")); //$NON-NLS-1$
-		freelistSpinner = new Spinner(freelistTop, SWT.BORDER);
-		freelistSpinner.setMaximum(Integer.MAX_VALUE);
-		freelistSpinner.addModifyListener(modifyListener);
+        leakCheckButton = new Button(top, SWT.CHECK);
+        leakCheckButton.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+        leakCheckButton.setText(Messages.getString("MemcheckToolPage.leak_check")); //$NON-NLS-1$
+        leakCheckButton.addSelectionListener(selectListener);
 
-		showReachableButton = new Button(top, SWT.CHECK);
-		showReachableButton.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		showReachableButton.setText(Messages.getString("MemcheckToolPage.show_reachable")); //$NON-NLS-1$
-		showReachableButton.addSelectionListener(selectListener);
-		
-		partialLoadsButton = new Button(top, SWT.CHECK);
-		partialLoadsButton.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		partialLoadsButton.setText(Messages.getString("MemcheckToolPage.allow_partial")); //$NON-NLS-1$
-		partialLoadsButton.addSelectionListener(selectListener);
+        Composite leakResTop = new Composite(top, SWT.NONE);
+        leakResTop.setLayout(new GridLayout(2, false));
+        leakResTop.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 
-		undefValueButton = new Button(top, SWT.CHECK);
-		undefValueButton.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		undefValueButton.setText(Messages.getString("MemcheckToolPage.undef_value_errors")); //$NON-NLS-1$
-		undefValueButton.addSelectionListener(selectListener);
+        Label leakResLabel = new Label(leakResTop, SWT.NONE);
+        leakResLabel.setText(Messages.getString("MemcheckToolPage.leak_resolution")); //$NON-NLS-1$
+        leakResCombo = new Combo(leakResTop, SWT.READ_ONLY);
+        String[] leakResOpts = { MemcheckLaunchConstants.LEAK_RES_LOW, MemcheckLaunchConstants.LEAK_RES_MED, MemcheckLaunchConstants.LEAK_RES_HIGH };
+        leakResCombo.setItems(leakResOpts);
+        leakResCombo.addSelectionListener(selectListener);
 
-		// VG >= 3.4.0
-		if (valgrindVersion == null || valgrindVersion.compareTo(VER_3_4_0) >= 0) {
-			trackOriginsButton = new Button(top, SWT.CHECK);
-			trackOriginsButton.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-			trackOriginsButton.setText(Messages.getString("MemcheckToolPage.Track_origins")); //$NON-NLS-1$
-			trackOriginsButton.addSelectionListener(selectListener);
-		}
-		
-		gccWorkaroundButton = new Button(top, SWT.CHECK);
-		gccWorkaroundButton.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		gccWorkaroundButton.setText(Messages.getString("MemcheckToolPage.gcc_296_workarounds")); //$NON-NLS-1$
-		gccWorkaroundButton.addSelectionListener(selectListener);
-				
-		Composite alignmentTop = new Composite(top, SWT.NONE);
-		GridLayout alignmentLayout = new GridLayout(2, false);
-		alignmentLayout.marginWidth = alignmentLayout.marginHeight = 0;
-		alignmentTop.setLayout(alignmentLayout);
-		alignmentTop.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		
-		alignmentButton = new Button(alignmentTop, SWT.CHECK);
-		alignmentButton.setText(Messages.getString("MemcheckToolPage.minimum_heap_block")); //$NON-NLS-1$
-		alignmentButton.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				checkAlignmentEnablement();
-				updateLaunchConfigurationDialog();
-			}
-		});
-		alignmentSpinner = new Spinner(alignmentTop, SWT.BORDER);
-		alignmentSpinner.setMinimum(0);
-		alignmentSpinner.setMaximum(4096);
-		alignmentSpinner.addModifyListener(modifyListener);
+        Composite freelistTop = new Composite(top, SWT.NONE);
+        freelistTop.setLayout(new GridLayout(2, false));
+        freelistTop.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 
-		// VG >= 3.6.0
-		if (valgrindVersion == null || valgrindVersion.compareTo(VER_3_6_0) >= 0) {
-			showPossiblyLostButton = new Button(top, SWT.CHECK);
-			showPossiblyLostButton.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-			showPossiblyLostButton.setText(Messages.getString("MemcheckToolPage.Show_Possibly_Lost")); //$NON-NLS-1$
-			showPossiblyLostButton.addSelectionListener(selectListener);
-		}
-	
-		Composite mallocFillTop = new Composite(top, SWT.NONE);
-		GridLayout mallocFillLayout = new GridLayout(2, false);
-		mallocFillLayout.marginWidth = mallocFillLayout.marginHeight = 0;
-		mallocFillTop.setLayout(mallocFillLayout);
-		mallocFillTop.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		
-		mallocFillButton = new Button(mallocFillTop, SWT.CHECK);
-		mallocFillButton.setText(Messages.getString("MemcheckToolPage.Malloc_Fill")); //$NON-NLS-1$
-		mallocFillButton.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				checkMallocFillEnablement();
-				updateLaunchConfigurationDialog();
-			}
-		});
-		mallocFillText = new Text(mallocFillTop, SWT.BORDER);
-		mallocFillText.setTextLimit(8);
-		mallocFillText.addModifyListener(modifyListener);
+        Label freelistLabel = new Label(freelistTop, SWT.NONE);
+        freelistLabel.setText(Messages.getString("MemcheckToolPage.freelist_size")); //$NON-NLS-1$
+        freelistSpinner = new Spinner(freelistTop, SWT.BORDER);
+        freelistSpinner.setMaximum(Integer.MAX_VALUE);
+        freelistSpinner.addModifyListener(modifyListener);
+
+        showReachableButton = new Button(top, SWT.CHECK);
+        showReachableButton.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+        showReachableButton.setText(Messages.getString("MemcheckToolPage.show_reachable")); //$NON-NLS-1$
+        showReachableButton.addSelectionListener(selectListener);
+
+        partialLoadsButton = new Button(top, SWT.CHECK);
+        partialLoadsButton.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+        partialLoadsButton.setText(Messages.getString("MemcheckToolPage.allow_partial")); //$NON-NLS-1$
+        partialLoadsButton.addSelectionListener(selectListener);
+
+        undefValueButton = new Button(top, SWT.CHECK);
+        undefValueButton.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+        undefValueButton.setText(Messages.getString("MemcheckToolPage.undef_value_errors")); //$NON-NLS-1$
+        undefValueButton.addSelectionListener(selectListener);
+
+        // VG >= 3.4.0
+        if (valgrindVersion == null || valgrindVersion.compareTo(VER_3_4_0) >= 0) {
+            trackOriginsButton = new Button(top, SWT.CHECK);
+            trackOriginsButton.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+            trackOriginsButton.setText(Messages.getString("MemcheckToolPage.Track_origins")); //$NON-NLS-1$
+            trackOriginsButton.addSelectionListener(selectListener);
+        }
+
+        gccWorkaroundButton = new Button(top, SWT.CHECK);
+        gccWorkaroundButton.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+        gccWorkaroundButton.setText(Messages.getString("MemcheckToolPage.gcc_296_workarounds")); //$NON-NLS-1$
+        gccWorkaroundButton.addSelectionListener(selectListener);
+
+        Composite alignmentTop = new Composite(top, SWT.NONE);
+        GridLayout alignmentLayout = new GridLayout(2, false);
+        alignmentLayout.marginWidth = alignmentLayout.marginHeight = 0;
+        alignmentTop.setLayout(alignmentLayout);
+        alignmentTop.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+
+        alignmentButton = new Button(alignmentTop, SWT.CHECK);
+        alignmentButton.setText(Messages.getString("MemcheckToolPage.minimum_heap_block")); //$NON-NLS-1$
+        alignmentButton.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                checkAlignmentEnablement();
+                updateLaunchConfigurationDialog();
+            }
+        });
+        alignmentSpinner = new Spinner(alignmentTop, SWT.BORDER);
+        alignmentSpinner.setMinimum(0);
+        alignmentSpinner.setMaximum(4096);
+        alignmentSpinner.addModifyListener(modifyListener);
+
+        // VG >= 3.6.0
+        if (valgrindVersion == null || valgrindVersion.compareTo(VER_3_6_0) >= 0) {
+            showPossiblyLostButton = new Button(top, SWT.CHECK);
+            showPossiblyLostButton.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+            showPossiblyLostButton.setText(Messages.getString("MemcheckToolPage.Show_Possibly_Lost")); //$NON-NLS-1$
+            showPossiblyLostButton.addSelectionListener(selectListener);
+        }
+
+        Composite mallocFillTop = new Composite(top, SWT.NONE);
+        GridLayout mallocFillLayout = new GridLayout(2, false);
+        mallocFillLayout.marginWidth = mallocFillLayout.marginHeight = 0;
+        mallocFillTop.setLayout(mallocFillLayout);
+        mallocFillTop.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+
+        mallocFillButton = new Button(mallocFillTop, SWT.CHECK);
+        mallocFillButton.setText(Messages.getString("MemcheckToolPage.Malloc_Fill")); //$NON-NLS-1$
+        mallocFillButton.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                checkMallocFillEnablement();
+                updateLaunchConfigurationDialog();
+            }
+        });
+        mallocFillText = new Text(mallocFillTop, SWT.BORDER);
+        mallocFillText.setTextLimit(8);
+        mallocFillText.addModifyListener(modifyListener);
 
 
-		Composite freeFillTop = new Composite(top, SWT.NONE);
-		GridLayout freeFillLayout = new GridLayout(2, false);
-		freeFillLayout.marginWidth = freeFillLayout.marginHeight = 0;
-		freeFillTop.setLayout(freeFillLayout);
-		freeFillTop.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
-		
-		freeFillButton = new Button(freeFillTop, SWT.CHECK);
-		freeFillButton.setText(Messages.getString("MemcheckToolPage.Free_Fill")); //$NON-NLS-1$
-		freeFillButton.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
-				checkFreeFillEnablement();
-				updateLaunchConfigurationDialog();
-			}
-		});
-		freeFillText = new Text(freeFillTop, SWT.BORDER);
-		mallocFillText.setTextLimit(8);
-		freeFillText.addModifyListener(modifyListener);
-		
-		Composite ignoreRangesTop = new Composite(top, SWT.NONE);
-		ignoreRangesTop.setLayout(new GridLayout(3, false));
-		ignoreRangesTop.setLayoutData(new GridData(SWT.BEGINNING, SWT.BEGINNING, false, false, 2, 1));
-		
-		Label ignoreRangesLabel = new Label(ignoreRangesTop, SWT.NONE);
-		ignoreRangesLabel.setText(Messages.getString("MemcheckToolPage.Ignore_Ranges")); //$NON-NLS-1$
-		ignoreRangesLabel.setLayoutData(new GridData(SWT.BEGINNING, SWT.BEGINNING, false, false));
-				
-		createIgnoreRangesControls(ignoreRangesTop);
+        Composite freeFillTop = new Composite(top, SWT.NONE);
+        GridLayout freeFillLayout = new GridLayout(2, false);
+        freeFillLayout.marginWidth = freeFillLayout.marginHeight = 0;
+        freeFillTop.setLayout(freeFillLayout);
+        freeFillTop.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+
+        freeFillButton = new Button(freeFillTop, SWT.CHECK);
+        freeFillButton.setText(Messages.getString("MemcheckToolPage.Free_Fill")); //$NON-NLS-1$
+        freeFillButton.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                checkFreeFillEnablement();
+                updateLaunchConfigurationDialog();
+            }
+        });
+        freeFillText = new Text(freeFillTop, SWT.BORDER);
+        mallocFillText.setTextLimit(8);
+        freeFillText.addModifyListener(modifyListener);
+
+        Composite ignoreRangesTop = new Composite(top, SWT.NONE);
+        ignoreRangesTop.setLayout(new GridLayout(3, false));
+        ignoreRangesTop.setLayoutData(new GridData(SWT.BEGINNING, SWT.BEGINNING, false, false, 2, 1));
+
+        Label ignoreRangesLabel = new Label(ignoreRangesTop, SWT.NONE);
+        ignoreRangesLabel.setText(Messages.getString("MemcheckToolPage.Ignore_Ranges")); //$NON-NLS-1$
+        ignoreRangesLabel.setLayoutData(new GridData(SWT.BEGINNING, SWT.BEGINNING, false, false));
+
+        createIgnoreRangesControls(ignoreRangesTop);
 }
 

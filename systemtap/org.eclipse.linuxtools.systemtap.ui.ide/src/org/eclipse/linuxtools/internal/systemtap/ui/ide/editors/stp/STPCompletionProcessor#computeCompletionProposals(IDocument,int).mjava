@@ -1,69 +1,69 @@
-	public ICompletionProposal[] computeCompletionProposals(IDocument document, int offset) {
+    public ICompletionProposal[] computeCompletionProposals(IDocument document, int offset) {
 
-		ITypedRegion partition = null;
-		boolean useGlobal = false;
+        ITypedRegion partition = null;
+        boolean useGlobal = false;
 
-		try {
-			partition =
-					((IDocumentExtension3) document).getPartition(STPProbeScanner.STP_PROBE_PARTITIONING, offset, false);
-			if (partition.getOffset() == offset) {
-				if (partition.getType() != IDocument.DEFAULT_CONTENT_TYPE && partition.getType() != STPProbeScanner.STP_PROBE) {
-					if (offset > 0) {
-						ITypedRegion prevPartition = 
-								((IDocumentExtension3) document).getPartition(STPProbeScanner.STP_PROBE_PARTITIONING, offset - 1, false);
-						useGlobal = prevPartition.getType() == IDocument.DEFAULT_CONTENT_TYPE;
-					} else {
-						useGlobal = true;
-					}
-				}
-			}
-		} catch (BadLocationException e1) {
-			return NO_COMPLETIONS;
-		} catch (BadPartitioningException e) {
-			return NO_COMPLETIONS;
-		}
+        try {
+            partition =
+                    ((IDocumentExtension3) document).getPartition(STPProbeScanner.STP_PROBE_PARTITIONING, offset, false);
+            if (partition.getOffset() == offset) {
+                if (partition.getType() != IDocument.DEFAULT_CONTENT_TYPE && partition.getType() != STPProbeScanner.STP_PROBE) {
+                    if (offset > 0) {
+                        ITypedRegion prevPartition =
+                                ((IDocumentExtension3) document).getPartition(STPProbeScanner.STP_PROBE_PARTITIONING, offset - 1, false);
+                        useGlobal = prevPartition.getType() == IDocument.DEFAULT_CONTENT_TYPE;
+                    } else {
+                        useGlobal = true;
+                    }
+                }
+            }
+        } catch (BadLocationException e1) {
+            return NO_COMPLETIONS;
+        } catch (BadPartitioningException e) {
+            return NO_COMPLETIONS;
+        }
 
-		String prefix = ""; //$NON-NLS-1$
-		String prePrefix = ""; //$NON-NLS-1$
+        String prefix = ""; //$NON-NLS-1$
+        String prePrefix = ""; //$NON-NLS-1$
 
-		// Get completion hint from document
-		try {
-			prefix = getPrefix(document, offset);
-			Token previousToken = getPrecedingToken(document, offset - prefix.length() - 1);
+        // Get completion hint from document
+        try {
+            prefix = getPrefix(document, offset);
+            Token previousToken = getPrecedingToken(document, offset - prefix.length() - 1);
 
-			while (previousToken.tokenString.equals("=") || //$NON-NLS-1$
-					previousToken.tokenString.equals(",") ) { //$NON-NLS-1$
-				previousToken = getPrecedingToken(document, previousToken.offset - 1);
-				previousToken = getPrecedingToken(document, previousToken.offset - 1);
-			}
+            while (previousToken.tokenString.equals("=") || //$NON-NLS-1$
+                    previousToken.tokenString.equals(",") ) { //$NON-NLS-1$
+                previousToken = getPrecedingToken(document, previousToken.offset - 1);
+                previousToken = getPrecedingToken(document, previousToken.offset - 1);
+            }
 
-			prePrefix = previousToken.tokenString;
+            prePrefix = previousToken.tokenString;
 
-		} catch (BadLocationException e) {
-			return NO_COMPLETIONS;
-		}
+        } catch (BadLocationException e) {
+            return NO_COMPLETIONS;
+        }
 
-		if (prePrefix.startsWith("probe")) { //$NON-NLS-1$
-			return getProbeCompletionList(prefix, offset);
-		}
+        if (prePrefix.startsWith("probe")) { //$NON-NLS-1$
+            return getProbeCompletionList(prefix, offset);
+        }
 
-		// If inside a probe return probe variable completions and functions
-		// which can be called.
-		if (partition.getType() == STPProbeScanner.STP_PROBE) {
-			ICompletionProposal[] variableCompletions = getProbeVariableCompletions(document, offset, prefix);
-			ICompletionProposal[] functionCompletions = getFunctionCompletions(offset, prefix);
+        // If inside a probe return probe variable completions and functions
+        // which can be called.
+        if (partition.getType() == STPProbeScanner.STP_PROBE) {
+            ICompletionProposal[] variableCompletions = getProbeVariableCompletions(document, offset, prefix);
+            ICompletionProposal[] functionCompletions = getFunctionCompletions(offset, prefix);
 
-			ArrayList<ICompletionProposal> completions = new ArrayList<>(
-					variableCompletions.length + functionCompletions.length);
-			completions.addAll(Arrays.asList(variableCompletions));
-			completions.addAll(Arrays.asList(functionCompletions));
+            ArrayList<ICompletionProposal> completions = new ArrayList<>(
+                    variableCompletions.length + functionCompletions.length);
+            completions.addAll(Arrays.asList(variableCompletions));
+            completions.addAll(Arrays.asList(functionCompletions));
 
-			return completions.toArray(new ICompletionProposal[0]);
-		} else if (partition.getType() == IDocument.DEFAULT_CONTENT_TYPE || useGlobal) {
-			// In the global scope return global keyword completion.
-			return getGlobalKeywordCompletion(prefix, offset);
-		}
+            return completions.toArray(new ICompletionProposal[0]);
+        } else if (partition.getType() == IDocument.DEFAULT_CONTENT_TYPE || useGlobal) {
+            // In the global scope return global keyword completion.
+            return getGlobalKeywordCompletion(prefix, offset);
+        }
 
-		return NO_COMPLETIONS;
-	}
+        return NO_COMPLETIONS;
+    }
 

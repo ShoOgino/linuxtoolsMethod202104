@@ -1,149 +1,149 @@
-	@Override
-	public void createControl(Composite parent) {
-		wizard = (SelectGraphAndSeriesWizard)getWizard();
-		model = wizard.model;
-		edit = wizard.isEditing();
+    @Override
+    public void createControl(Composite parent) {
+        wizard = (SelectGraphAndSeriesWizard)getWizard();
+        model = wizard.model;
+        edit = wizard.isEditing();
 
-		//Set the layout data
-		Composite comp = new Composite(parent, SWT.NONE);
-		comp.setLayout(new GridLayout());
+        //Set the layout data
+        Composite comp = new Composite(parent, SWT.NONE);
+        comp.setLayout(new GridLayout());
 
-		Group cmpGraphOptsGraph = new Group(comp, SWT.SHADOW_ETCHED_IN);
-		cmpGraphOptsGraph.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false));
-		RowLayout rowLayout = new RowLayout();
-		rowLayout.type = SWT.HORIZONTAL;
-		rowLayout.spacing = 10;
-		cmpGraphOptsGraph.setLayout(rowLayout);
-		cmpGraphOptsGraph.setText(Localization.getString("SelectGraphAndSeriesWizardPage.Graph")); //$NON-NLS-1$
+        Group cmpGraphOptsGraph = new Group(comp, SWT.SHADOW_ETCHED_IN);
+        cmpGraphOptsGraph.setLayoutData(new GridData(SWT.FILL, SWT.BEGINNING, true, false));
+        RowLayout rowLayout = new RowLayout();
+        rowLayout.type = SWT.HORIZONTAL;
+        rowLayout.spacing = 10;
+        cmpGraphOptsGraph.setLayout(rowLayout);
+        cmpGraphOptsGraph.setText(Localization.getString("SelectGraphAndSeriesWizardPage.Graph")); //$NON-NLS-1$
 
-		String[] graphIDs = GraphFactory.getAvailableGraphs(wizard.model.getDataSet());
-		int btnGraphSelected = -1;
-		btnGraphs = new Button[graphIDs.length];
-		for (int i = 0; i < btnGraphs.length; i++) {
-			btnGraphs[i] = new Button(cmpGraphOptsGraph, SWT.RADIO);
-			btnGraphs[i].setImage(GraphFactory.getGraphImage(graphIDs[i]));
-			btnGraphs[i].addListener(SWT.Selection, this);
-			btnGraphs[i].setData(graphIDs[i]);
-			btnGraphs[i].setToolTipText(GraphFactory.getGraphName(btnGraphs[i].getData().toString()) + "\n\n" + //$NON-NLS-1$
-					GraphFactory.getGraphDescription(btnGraphs[i].getData().toString()));
-			if (btnGraphSelected == -1 && wizard.isEditing() && graphIDs[i].equals(wizard.model.getGraphID())) {
-				btnGraphs[i].setSelection(true);
-				btnGraphSelected = i;
-			}
-		}
+        String[] graphIDs = GraphFactory.getAvailableGraphs(wizard.model.getDataSet());
+        int btnGraphSelected = -1;
+        btnGraphs = new Button[graphIDs.length];
+        for (int i = 0; i < btnGraphs.length; i++) {
+            btnGraphs[i] = new Button(cmpGraphOptsGraph, SWT.RADIO);
+            btnGraphs[i].setImage(GraphFactory.getGraphImage(graphIDs[i]));
+            btnGraphs[i].addListener(SWT.Selection, this);
+            btnGraphs[i].setData(graphIDs[i]);
+            btnGraphs[i].setToolTipText(GraphFactory.getGraphName(btnGraphs[i].getData().toString()) + "\n\n" + //$NON-NLS-1$
+                    GraphFactory.getGraphDescription(btnGraphs[i].getData().toString()));
+            if (btnGraphSelected == -1 && wizard.isEditing() && graphIDs[i].equals(wizard.model.getGraphID())) {
+                btnGraphs[i].setSelection(true);
+                btnGraphSelected = i;
+            }
+        }
 
-		ScrolledComposite scrolledComposite = new ScrolledComposite(comp, SWT.V_SCROLL | SWT.BORDER);
-		scrolledComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-		scrolledComposite.setExpandHorizontal(true);
+        ScrolledComposite scrolledComposite = new ScrolledComposite(comp, SWT.V_SCROLL | SWT.BORDER);
+        scrolledComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+        scrolledComposite.setExpandHorizontal(true);
 
-		Composite cmpGraphOptsSeries = new Composite(scrolledComposite, SWT.NONE);
-		cmpGraphOptsSeries.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-		cmpGraphOptsSeries.setLayout(new GridLayout(2, false));
-		scrolledComposite.setContent(cmpGraphOptsSeries);
+        Composite cmpGraphOptsSeries = new Composite(scrolledComposite, SWT.NONE);
+        cmpGraphOptsSeries.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+        cmpGraphOptsSeries.setLayout(new GridLayout(2, false));
+        scrolledComposite.setContent(cmpGraphOptsSeries);
 
-		Label lblTitle = new Label(cmpGraphOptsSeries, SWT.NONE);
-		lblTitle.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false));
-		lblTitle.setText(Localization.getString("SelectGraphAndSeriesWizardPage.Title")); //$NON-NLS-1$
-		txtTitle = new Text(cmpGraphOptsSeries, SWT.BORDER);
-		txtTitle.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-		if (edit) {
-			txtTitle.setText(model.getGraphData().title);
-		}
-		txtTitle.addModifyListener(new ModifyListener() {
-			@Override
-			public void modifyText(ModifyEvent e) {
-				checkErrors(false);
-			}
-		});
+        Label lblTitle = new Label(cmpGraphOptsSeries, SWT.NONE);
+        lblTitle.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false));
+        lblTitle.setText(Localization.getString("SelectGraphAndSeriesWizardPage.Title")); //$NON-NLS-1$
+        txtTitle = new Text(cmpGraphOptsSeries, SWT.BORDER);
+        txtTitle.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+        if (edit) {
+            txtTitle.setText(model.getGraphData().title);
+        }
+        txtTitle.addModifyListener(new ModifyListener() {
+            @Override
+            public void modifyText(ModifyEvent e) {
+                checkErrors(false);
+            }
+        });
 
-		//Add the data series widgets
-		String[] labels = model.getSeries();
+        //Add the data series widgets
+        String[] labels = model.getSeries();
 
-		cboYItems = new Combo[!edit ? labels.length : Math.max(labels.length, model.getYSeries().length)];
-		lblYItems = new Label[cboYItems.length];
-		deleted = new boolean[cboYItems.length + 1];
+        cboYItems = new Combo[!edit ? labels.length : Math.max(labels.length, model.getYSeries().length)];
+        lblYItems = new Label[cboYItems.length];
+        deleted = new boolean[cboYItems.length + 1];
 
-		Label lblXItem = new Label(cmpGraphOptsSeries, SWT.NONE);
-		lblXItem.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false));
-		lblXItem.setText(Localization.getString("SelectGraphAndSeriesWizardPage.XSeries")); //$NON-NLS-1$
-		cboXItem = new Combo(cmpGraphOptsSeries, SWT.DROP_DOWN|SWT.READ_ONLY);
-		cboXItem.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-		cboXItem.addSelectionListener(new ComboSelectionListener());
-		cboXItem.add(Localization.getString("SelectGraphAndSeriesWizardPage.RowID")); //$NON-NLS-1$
+        Label lblXItem = new Label(cmpGraphOptsSeries, SWT.NONE);
+        lblXItem.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false));
+        lblXItem.setText(Localization.getString("SelectGraphAndSeriesWizardPage.XSeries")); //$NON-NLS-1$
+        cboXItem = new Combo(cmpGraphOptsSeries, SWT.DROP_DOWN|SWT.READ_ONLY);
+        cboXItem.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+        cboXItem.addSelectionListener(new ComboSelectionListener());
+        cboXItem.add(Localization.getString("SelectGraphAndSeriesWizardPage.RowID")); //$NON-NLS-1$
 
-		for (int i = 0; i < cboYItems.length; i++) {
-			lblYItems[i] = new Label(cmpGraphOptsSeries, SWT.NONE);
-			lblYItems[i].setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false));
-			lblYItems[i].setText(MessageFormat.format(Localization.getString("SelectGraphAndSeriesWizardPage.YSeries"), i)); //$NON-NLS-1$
-			cboYItems[i] = new Combo(cmpGraphOptsSeries, SWT.DROP_DOWN|SWT.READ_ONLY);
-			cboYItems[i].setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
-			cboYItems[i].addSelectionListener(new ComboSelectionListener());
+        for (int i = 0; i < cboYItems.length; i++) {
+            lblYItems[i] = new Label(cmpGraphOptsSeries, SWT.NONE);
+            lblYItems[i].setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, false));
+            lblYItems[i].setText(MessageFormat.format(Localization.getString("SelectGraphAndSeriesWizardPage.YSeries"), i)); //$NON-NLS-1$
+            cboYItems[i] = new Combo(cmpGraphOptsSeries, SWT.DROP_DOWN|SWT.READ_ONLY);
+            cboYItems[i].setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false));
+            cboYItems[i].addSelectionListener(new ComboSelectionListener());
 
-			if (i > 0) {
-				cboYItems[i].add(Localization.getString("SelectGraphAndSeriesWizardPage.NA")); //$NON-NLS-1$
-				cboYItems[i].setVisible(false);
-				lblYItems[i].setVisible(false);
-			}
-		}
+            if (i > 0) {
+                cboYItems[i].add(Localization.getString("SelectGraphAndSeriesWizardPage.NA")); //$NON-NLS-1$
+                cboYItems[i].setVisible(false);
+                lblYItems[i].setVisible(false);
+            }
+        }
 
-		for (int j, i = 0; i < labels.length; i++) {
-			cboXItem.add(labels[i]);
-			for (j = 0; j < lblYItems.length; j++) {
-				cboYItems[j].add(labels[i]);
-			}
-		}
+        for (int j, i = 0; i < labels.length; i++) {
+            cboXItem.add(labels[i]);
+            for (j = 0; j < lblYItems.length; j++) {
+                cboYItems[j].add(labels[i]);
+            }
+        }
 
-		int selected;
-		if (!edit) {
-			cboXItem.select(0);
-			cboYItems[0].select(0);
-		} else {
-			selected = model.getXSeries();
-			if (selected < labels.length){
-				cboXItem.select(selected + 1);
-			} else {
-				cboXItem.add(Localization.getString("SelectGraphAndSeriesWizardPage.Deleted"), 0); //$NON-NLS-1$
-				cboXItem.select(0);
-				deleted[0] = true;
-			}
-			selected = model.getYSeries()[0];
-			if (selected < labels.length) {
-				cboYItems[0].select(selected);
-			} else {
-				cboYItems[0].add(Localization.getString("SelectGraphAndSeriesWizardPage.Deleted"), 0); //$NON-NLS-1$
-				cboYItems[0].select(0);
-				deleted[1] = true;
-			}
-		}
-		boolean cvisible = true;
-		for (int i = 1; i < cboYItems.length; i++) {
-			if (!edit || model.getYSeries().length <= i) {
-				cboYItems[i].select(selected = 0);
-			} else {
-				selected = model.getYSeries()[i];
-				if (selected < labels.length){
-					cboYItems[i].select(selected + 1);
-				} else {
-					cboYItems[i].add(Localization.getString("SelectGraphAndSeriesWizardPage.Deleted"), 0); //$NON-NLS-1$
-					cboYItems[i].select(0);
-					deleted[i+1] = true;
-				}
-			}
-			cboYItems[i].setVisible(cvisible);
-			lblYItems[i].setVisible(cvisible);
-			cvisible = (selected > 0);
-		}
+        int selected;
+        if (!edit) {
+            cboXItem.select(0);
+            cboYItems[0].select(0);
+        } else {
+            selected = model.getXSeries();
+            if (selected < labels.length){
+                cboXItem.select(selected + 1);
+            } else {
+                cboXItem.add(Localization.getString("SelectGraphAndSeriesWizardPage.Deleted"), 0); //$NON-NLS-1$
+                cboXItem.select(0);
+                deleted[0] = true;
+            }
+            selected = model.getYSeries()[0];
+            if (selected < labels.length) {
+                cboYItems[0].select(selected);
+            } else {
+                cboYItems[0].add(Localization.getString("SelectGraphAndSeriesWizardPage.Deleted"), 0); //$NON-NLS-1$
+                cboYItems[0].select(0);
+                deleted[1] = true;
+            }
+        }
+        boolean cvisible = true;
+        for (int i = 1; i < cboYItems.length; i++) {
+            if (!edit || model.getYSeries().length <= i) {
+                cboYItems[i].select(selected = 0);
+            } else {
+                selected = model.getYSeries()[i];
+                if (selected < labels.length){
+                    cboYItems[i].select(selected + 1);
+                } else {
+                    cboYItems[i].add(Localization.getString("SelectGraphAndSeriesWizardPage.Deleted"), 0); //$NON-NLS-1$
+                    cboYItems[i].select(0);
+                    deleted[i+1] = true;
+                }
+            }
+            cboYItems[i].setVisible(cvisible);
+            lblYItems[i].setVisible(cvisible);
+            cvisible = (selected > 0);
+        }
 
-		//Select one of the graph types by default, rather than blank choice
-		if (!edit) {
-			btnGraphs[0].setSelection(true);
-			saveDataToModelGraph(graphIDs[0]);
-		} else if (btnGraphSelected == -1) {
-			saveDataToModelGraph(null);
-		}
+        //Select one of the graph types by default, rather than blank choice
+        if (!edit) {
+            btnGraphs[0].setSelection(true);
+            saveDataToModelGraph(graphIDs[0]);
+        } else if (btnGraphSelected == -1) {
+            saveDataToModelGraph(null);
+        }
 
-		cmpGraphOptsSeries.pack();
-		setControl(comp);
-		checkErrors(true);
-	}
+        cmpGraphOptsSeries.pack();
+        setControl(comp);
+        checkErrors(true);
+    }
 

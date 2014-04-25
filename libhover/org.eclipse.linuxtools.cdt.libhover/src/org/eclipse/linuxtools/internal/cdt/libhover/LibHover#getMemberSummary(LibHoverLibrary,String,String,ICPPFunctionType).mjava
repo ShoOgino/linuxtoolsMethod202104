@@ -1,67 +1,67 @@
-	private IFunctionSummary getMemberSummary(LibHoverLibrary l, String className,
-			String memberName, ICPPFunctionType methodType) {
+    private IFunctionSummary getMemberSummary(LibHoverLibrary l, String className,
+            String memberName, ICPPFunctionType methodType) {
 
-		ArrayList<String> templateTypes = new ArrayList<>();
-		ClassInfo info = l.getClassInfo(className, templateTypes);
-		String[] args = new String[0];
-		@SuppressWarnings("unused")
-		IType returnType = null;
-		if (info == null)
-			return null;
-		if (methodType != null) {
-			try {
-				args = resolveArgs(info, methodType.getParameterTypes(), templateTypes);
-				returnType = methodType.getReturnType();
-			} catch (Exception e) {
-				return null;
-			}
-		}
-		MemberInfo member = info.getMember(memberName);
-		if (member != null) {
-			MemberInfo m = null;
-			if (!isParmMatch(member, args, templateTypes, info)) {
-				ArrayList<MemberInfo> members = member.getChildren();
-				for (int i = 0; i < members.size(); ++i) {
-					MemberInfo k = members.get(i);
-					if (isParmMatch(k, args, templateTypes, info)) {
-						m = k;
-						break;
-					}
-				}
-			} else {
-				m = member;
-			}
+        ArrayList<String> templateTypes = new ArrayList<>();
+        ClassInfo info = l.getClassInfo(className, templateTypes);
+        String[] args = new String[0];
+        @SuppressWarnings("unused")
+        IType returnType = null;
+        if (info == null)
+            return null;
+        if (methodType != null) {
+            try {
+                args = resolveArgs(info, methodType.getParameterTypes(), templateTypes);
+                returnType = methodType.getReturnType();
+            } catch (Exception e) {
+                return null;
+            }
+        }
+        MemberInfo member = info.getMember(memberName);
+        if (member != null) {
+            MemberInfo m = null;
+            if (!isParmMatch(member, args, templateTypes, info)) {
+                ArrayList<MemberInfo> members = member.getChildren();
+                for (int i = 0; i < members.size(); ++i) {
+                    MemberInfo k = members.get(i);
+                    if (isParmMatch(k, args, templateTypes, info)) {
+                        m = k;
+                        break;
+                    }
+                }
+            } else {
+                m = member;
+            }
 
-			if (m != null) {
-				// FIXME: do some work to determine parameters and return type.
-				FunctionSummary f = new FunctionSummary();
-				f.ReturnType = m.getReturnType();
-				f.Prototype = m.getPrototype();
-				f.Summary = m.getDescription();
-				f.Name = className + "::" + memberName; //$NON-NLS-1$
-				String[] templateParms = info.getTemplateParms();
-				for (int i = 0; i < templateTypes.size(); ++i) {
-					f.ReturnType = f.ReturnType.replaceAll(templateParms[i], templateTypes.get(i));
-					f.Prototype = f.Prototype.replaceAll(templateParms[i], templateTypes.get(i));
-					f.Name = f.Name.replaceAll(templateParms[i], templateTypes.get(i));
-				}
-				if (f.ReturnType.indexOf('<') >= 0) {
-					f.ReturnType = f.ReturnType.replaceAll("<", "&lt;"); //$NON-NLS-1$ //$NON-NLS-2$
-					f.ReturnType = f.ReturnType.replaceAll(">", "&gt;");  //$NON-NLS-1$//$NON-NLS-2$
-				}
-				if (f.Prototype.indexOf('<') >= 0) {
-					f.Prototype = f.Prototype.replaceAll("<", "&lt;"); //$NON-NLS-1$ //$NON-NLS-2$
-					f.Prototype = f.Prototype.replaceAll(">", "&gt;");  //$NON-NLS-1$//$NON-NLS-2$
-				}
-				if (f.Name.indexOf('<') >= 0) {
-					f.Name = f.Name.replaceAll("<", "&lt;");  //$NON-NLS-1$//$NON-NLS-2$
-					f.Name = f.Name.replaceAll(">", "&gt;"); //$NON-NLS-1$ //$NON-NLS-2$
-				}
-				f.setPrototypeHasBrackets(true);
-				f.setIncludeName(info.getInclude());
-				return f;
-			}
-		}
-		return null;
-	}
+            if (m != null) {
+                // FIXME: do some work to determine parameters and return type.
+                FunctionSummary f = new FunctionSummary();
+                f.ReturnType = m.getReturnType();
+                f.Prototype = m.getPrototype();
+                f.Summary = m.getDescription();
+                f.Name = className + "::" + memberName; //$NON-NLS-1$
+                String[] templateParms = info.getTemplateParms();
+                for (int i = 0; i < templateTypes.size(); ++i) {
+                    f.ReturnType = f.ReturnType.replaceAll(templateParms[i], templateTypes.get(i));
+                    f.Prototype = f.Prototype.replaceAll(templateParms[i], templateTypes.get(i));
+                    f.Name = f.Name.replaceAll(templateParms[i], templateTypes.get(i));
+                }
+                if (f.ReturnType.indexOf('<') >= 0) {
+                    f.ReturnType = f.ReturnType.replaceAll("<", "&lt;"); //$NON-NLS-1$ //$NON-NLS-2$
+                    f.ReturnType = f.ReturnType.replaceAll(">", "&gt;");  //$NON-NLS-1$//$NON-NLS-2$
+                }
+                if (f.Prototype.indexOf('<') >= 0) {
+                    f.Prototype = f.Prototype.replaceAll("<", "&lt;"); //$NON-NLS-1$ //$NON-NLS-2$
+                    f.Prototype = f.Prototype.replaceAll(">", "&gt;");  //$NON-NLS-1$//$NON-NLS-2$
+                }
+                if (f.Name.indexOf('<') >= 0) {
+                    f.Name = f.Name.replaceAll("<", "&lt;");  //$NON-NLS-1$//$NON-NLS-2$
+                    f.Name = f.Name.replaceAll(">", "&gt;"); //$NON-NLS-1$ //$NON-NLS-2$
+                }
+                f.setPrototypeHasBrackets(true);
+                f.setIncludeName(info.getInclude());
+                return f;
+            }
+        }
+        return null;
+    }
 

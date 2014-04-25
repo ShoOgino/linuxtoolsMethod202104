@@ -1,69 +1,69 @@
-	@Override
-	public void handleUpdateEvent() {
-		if(table.isDisposed()) {
-			return;
-		}
+    @Override
+    public void handleUpdateEvent() {
+        if(table.isDisposed()) {
+            return;
+        }
 
-		table.getDisplay().asyncExec(new Runnable() {
-			@Override
-			public void run() {
-				if (table.isDisposed()) {
-					return;
-				}
-				TableItem item;
-				int startLocation;
-				int endLocation = filteredDataSet.getRowCount();
-				int maxItems = prefs.getInt(GraphingPreferenceConstants.P_MAX_DATA_ITEMS);
-				int oldSelection = table.getSelectionIndex();
+        table.getDisplay().asyncExec(new Runnable() {
+            @Override
+            public void run() {
+                if (table.isDisposed()) {
+                    return;
+                }
+                TableItem item;
+                int startLocation;
+                int endLocation = filteredDataSet.getRowCount();
+                int maxItems = prefs.getInt(GraphingPreferenceConstants.P_MAX_DATA_ITEMS);
+                int oldSelection = table.getSelectionIndex();
 
-				//Remove old items to refresh table, and only read in as many items as will fit.
-				//Note that a full refresh is necessary in order for filtered data to appear correctly.
-				table.removeAll();
-				startLocation = Math.max(endLocation-maxItems, 0);
+                //Remove old items to refresh table, and only read in as many items as will fit.
+                //Note that a full refresh is necessary in order for filtered data to appear correctly.
+                table.removeAll();
+                startLocation = Math.max(endLocation-maxItems, 0);
 
-				//Add all the new items to the table
-				Object[] os;
-				for(int j,i=startLocation; i<endLocation; i++) {
-					item = new TableItem(table, SWT.NONE);
-					os = filteredDataSet.getRow(i);
+                //Add all the new items to the table
+                Object[] os;
+                for(int j,i=startLocation; i<endLocation; i++) {
+                    item = new TableItem(table, SWT.NONE);
+                    os = filteredDataSet.getRow(i);
 
-					//Add 1 to the index/row num since graphs start counting rows at 1, not 0.
-					item.setText(0, Integer.toString(i + 1));
-					for(j=0; j<os.length; j++) {
-						//Ignore null items
-						if (os[j] != null) {
-							item.setText(j+1, columnFormat[j].format(os[j].toString()));
-						}
-					}
-				}
-				//Re-select the old table selection, if there was one
-				if (oldSelection != -1) {
-					table.select(oldSelection);
-				}
+                    //Add 1 to the index/row num since graphs start counting rows at 1, not 0.
+                    item.setText(0, Integer.toString(i + 1));
+                    for(j=0; j<os.length; j++) {
+                        //Ignore null items
+                        if (os[j] != null) {
+                            item.setText(j+1, columnFormat[j].format(os[j].toString()));
+                        }
+                    }
+                }
+                //Re-select the old table selection, if there was one
+                if (oldSelection != -1) {
+                    table.select(oldSelection);
+                }
 
-				//Resize the columns
-				TableColumn col = table.getColumn(0);
-				col.pack();
-				if(!manualResize) {
-					TableColumn[] cols = table.getColumns();
-					for(int i=1; i<cols.length; i++) {
-						cols[i].pack();
-					}
-				}
+                //Resize the columns
+                TableColumn col = table.getColumn(0);
+                col.pack();
+                if(!manualResize) {
+                    TableColumn[] cols = table.getColumns();
+                    for(int i=1; i<cols.length; i++) {
+                        cols[i].pack();
+                    }
+                }
 
-				//Use if we want to set focus to newly added item.
-				//Run async so the table can be fully constructed before jumping to an entry.
-				if(prefs.getBoolean(GraphingPreferenceConstants.P_JUMP_NEW_TABLE_ENTRY)
-						&& table.getItemCount() > 0) {
-					table.getDisplay().asyncExec(new Runnable() {
-						@Override
-						public void run() {
-							table.showItem(table.getItem(table.getItemCount()-1));
-						}
-					});
-				}
-				formatMenuItem.setEnabled(table.getItemCount() > 0);
-			}
-		});
-	}
+                //Use if we want to set focus to newly added item.
+                //Run async so the table can be fully constructed before jumping to an entry.
+                if(prefs.getBoolean(GraphingPreferenceConstants.P_JUMP_NEW_TABLE_ENTRY)
+                        && table.getItemCount() > 0) {
+                    table.getDisplay().asyncExec(new Runnable() {
+                        @Override
+                        public void run() {
+                            table.showItem(table.getItem(table.getItemCount()-1));
+                        }
+                    });
+                }
+                formatMenuItem.setEnabled(table.getItemCount() > 0);
+            }
+        });
+    }
 

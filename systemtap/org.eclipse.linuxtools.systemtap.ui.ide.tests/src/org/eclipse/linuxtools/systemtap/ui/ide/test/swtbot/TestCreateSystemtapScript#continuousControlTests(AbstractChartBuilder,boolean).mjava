@@ -1,84 +1,84 @@
-	private void continuousControlTests(AbstractChartBuilder cb, boolean isXAxis) {
-		// Continuous scaling/scrolling is less strict/predictable than discrete scrolling,
-		// so just check that the controls perform their intended actions.
-		IAxis axis;
-		SWTBotButton zoomInButton, zoomOutButton;
-		SWTBotScale zoomScale;
-		SWTBotSlider scrollBar;
-		int flipSign;
-		if (isXAxis) {
-			axis = cb.getChart().getAxisSet().getXAxis(0);
-			zoomInButton = bot.buttonWithTooltip(org.eclipse.linuxtools.systemtap.graphing.ui.widgets.Messages.GraphContinuousXControl_ZoomInTooltip);
-			zoomOutButton = bot.buttonWithTooltip(org.eclipse.linuxtools.systemtap.graphing.ui.widgets.Messages.GraphContinuousXControl_ZoomOutTooltip);
-			zoomScale = bot.scaleWithTooltip(org.eclipse.linuxtools.systemtap.graphing.ui.widgets.Messages.GraphContinuousXControl_ScaleMessage);
-			scrollBar = bot.sliderWithTooltip(org.eclipse.linuxtools.systemtap.graphing.ui.widgets.Messages.GraphContinuousXControl_ScrollMessage);
-			flipSign = 1;
-		} else {
-			axis = cb.getChart().getAxisSet().getYAxis(0);
-			zoomInButton = bot.buttonWithTooltip(org.eclipse.linuxtools.systemtap.graphing.ui.widgets.Messages.GraphContinuousYControl_ZoomInTooltip);
-			zoomOutButton = bot.buttonWithTooltip(org.eclipse.linuxtools.systemtap.graphing.ui.widgets.Messages.GraphContinuousYControl_ZoomOutTooltip);
-			zoomScale = bot.scaleWithTooltip(org.eclipse.linuxtools.systemtap.graphing.ui.widgets.Messages.GraphContinuousYControl_ScaleMessage);
-			scrollBar = bot.sliderWithTooltip(org.eclipse.linuxtools.systemtap.graphing.ui.widgets.Messages.GraphContinuousYControl_ScrollMessage);
-			flipSign = -1;
-		}
-		double scale = getAxisScale(cb, isXAxis);
-		double scroll = getAxisScroll(cb, isXAxis);
-		int thumb = scrollBar.getThumb();
+    private void continuousControlTests(AbstractChartBuilder cb, boolean isXAxis) {
+        // Continuous scaling/scrolling is less strict/predictable than discrete scrolling,
+        // so just check that the controls perform their intended actions.
+        IAxis axis;
+        SWTBotButton zoomInButton, zoomOutButton;
+        SWTBotScale zoomScale;
+        SWTBotSlider scrollBar;
+        int flipSign;
+        if (isXAxis) {
+            axis = cb.getChart().getAxisSet().getXAxis(0);
+            zoomInButton = bot.buttonWithTooltip(org.eclipse.linuxtools.systemtap.graphing.ui.widgets.Messages.GraphContinuousXControl_ZoomInTooltip);
+            zoomOutButton = bot.buttonWithTooltip(org.eclipse.linuxtools.systemtap.graphing.ui.widgets.Messages.GraphContinuousXControl_ZoomOutTooltip);
+            zoomScale = bot.scaleWithTooltip(org.eclipse.linuxtools.systemtap.graphing.ui.widgets.Messages.GraphContinuousXControl_ScaleMessage);
+            scrollBar = bot.sliderWithTooltip(org.eclipse.linuxtools.systemtap.graphing.ui.widgets.Messages.GraphContinuousXControl_ScrollMessage);
+            flipSign = 1;
+        } else {
+            axis = cb.getChart().getAxisSet().getYAxis(0);
+            zoomInButton = bot.buttonWithTooltip(org.eclipse.linuxtools.systemtap.graphing.ui.widgets.Messages.GraphContinuousYControl_ZoomInTooltip);
+            zoomOutButton = bot.buttonWithTooltip(org.eclipse.linuxtools.systemtap.graphing.ui.widgets.Messages.GraphContinuousYControl_ZoomOutTooltip);
+            zoomScale = bot.scaleWithTooltip(org.eclipse.linuxtools.systemtap.graphing.ui.widgets.Messages.GraphContinuousYControl_ScaleMessage);
+            scrollBar = bot.sliderWithTooltip(org.eclipse.linuxtools.systemtap.graphing.ui.widgets.Messages.GraphContinuousYControl_ScrollMessage);
+            flipSign = -1;
+        }
+        double scale = getAxisScale(cb, isXAxis);
+        double scroll = getAxisScroll(cb, isXAxis);
+        int thumb = scrollBar.getThumb();
 
-		// Default range should be 100%, so zooming out shouldn't have an effect yet.
-		assertEquals(scale, 1.0, 0);
-		int zoomValue = zoomScale.getValue();
-		Range range = axis.getRange();
-		zoomOutButton.click();
-		Range range2 = axis.getRange();
-		assertTrue(range.upper == range2.upper && range.lower == range2.lower && zoomScale.getValue() == zoomValue && getAxisScale(cb, isXAxis) == scale && scrollBar.getThumb() == thumb);
+        // Default range should be 100%, so zooming out shouldn't have an effect yet.
+        assertEquals(scale, 1.0, 0);
+        int zoomValue = zoomScale.getValue();
+        Range range = axis.getRange();
+        zoomOutButton.click();
+        Range range2 = axis.getRange();
+        assertTrue(range.upper == range2.upper && range.lower == range2.lower && zoomScale.getValue() == zoomValue && getAxisScale(cb, isXAxis) == scale && scrollBar.getThumb() == thumb);
 
-		// Zoom in & back out with the zoom buttons.
-		zoomInButton.click();
-		range2 = axis.getRange();
-		assertTrue(range2.upper - range2.lower < range.upper - range.lower && flipSign * (zoomScale.getValue() - zoomValue) > 0 && getAxisScale(cb, isXAxis) < scale && scrollBar.getThumb() < thumb);
-		zoomOutButton.click();
-		range2 = axis.getRange();
-		assertTrue(range.upper == range2.upper && range.lower == range2.lower && zoomScale.getValue() == zoomValue && getAxisScale(cb, isXAxis) == scale && scrollBar.getThumb() == thumb);
+        // Zoom in & back out with the zoom buttons.
+        zoomInButton.click();
+        range2 = axis.getRange();
+        assertTrue(range2.upper - range2.lower < range.upper - range.lower && flipSign * (zoomScale.getValue() - zoomValue) > 0 && getAxisScale(cb, isXAxis) < scale && scrollBar.getThumb() < thumb);
+        zoomOutButton.click();
+        range2 = axis.getRange();
+        assertTrue(range.upper == range2.upper && range.lower == range2.lower && zoomScale.getValue() == zoomValue && getAxisScale(cb, isXAxis) == scale && scrollBar.getThumb() == thumb);
 
-		// Zoom in with the Scale control.
-		int controlRange = zoomScale.getMaximum() - zoomScale.getMinimum();
-		zoomScale.setValue(zoomScale.getValue() + controlRange / 2 * flipSign);
-		// Note: the charts need some time to be updated after using the scale/slider controls.
-		// Sleeping for a brief moment is faster than using a bot wait condition.
-		bot.sleep(100);
-		range2 = axis.getRange();
-		assertTrue(range2.upper - range2.lower < range.upper - range.lower && getAxisScale(cb, isXAxis) < scale && scrollBar.getThumb() < thumb);
+        // Zoom in with the Scale control.
+        int controlRange = zoomScale.getMaximum() - zoomScale.getMinimum();
+        zoomScale.setValue(zoomScale.getValue() + controlRange / 2 * flipSign);
+        // Note: the charts need some time to be updated after using the scale/slider controls.
+        // Sleeping for a brief moment is faster than using a bot wait condition.
+        bot.sleep(100);
+        range2 = axis.getRange();
+        assertTrue(range2.upper - range2.lower < range.upper - range.lower && getAxisScale(cb, isXAxis) < scale && scrollBar.getThumb() < thumb);
 
-		range = range2;
-		thumb = scrollBar.getThumb();
-		scale = getAxisScale(cb, isXAxis);
-		zoomScale.setValue(zoomScale.getValue() - controlRange / 4 * flipSign);
-		bot.sleep(100);
-		range2 = axis.getRange();
-		assertTrue(range2.upper - range2.lower > range.upper - range.lower && getAxisScale(cb, isXAxis) > scale && scrollBar.getThumb() > thumb);
+        range = range2;
+        thumb = scrollBar.getThumb();
+        scale = getAxisScale(cb, isXAxis);
+        zoomScale.setValue(zoomScale.getValue() - controlRange / 4 * flipSign);
+        bot.sleep(100);
+        range2 = axis.getRange();
+        assertTrue(range2.upper - range2.lower > range.upper - range.lower && getAxisScale(cb, isXAxis) > scale && scrollBar.getThumb() > thumb);
 
-		// Test scrolling. Don't assume an initial scroll position, as it may be changed
-		// in future versions (it's more likely to change than default zoom, at least).
-		thumb = scrollBar.getThumb();
-		controlRange = scrollBar.getMaximum() - scrollBar.getThumb() - scrollBar.getMinimum();
-		scrollBar.setSelection(controlRange / 2);
-		bot.sleep(100);
-		assertEquals(scrollBar.getThumb(), thumb);
+        // Test scrolling. Don't assume an initial scroll position, as it may be changed
+        // in future versions (it's more likely to change than default zoom, at least).
+        thumb = scrollBar.getThumb();
+        controlRange = scrollBar.getMaximum() - scrollBar.getThumb() - scrollBar.getMinimum();
+        scrollBar.setSelection(controlRange / 2);
+        bot.sleep(100);
+        assertEquals(scrollBar.getThumb(), thumb);
 
-		// Scroll towards origin.
-		range = axis.getRange();
-		scrollBar.setSelection(scrollBar.getSelection() - controlRange / 4 * flipSign);
-		bot.sleep(100);
-		range2 = axis.getRange();
-		assertTrue(range2.upper - range2.lower == range.upper - range.lower && range2.upper < range.upper && getAxisScroll(cb, isXAxis) < scroll);
+        // Scroll towards origin.
+        range = axis.getRange();
+        scrollBar.setSelection(scrollBar.getSelection() - controlRange / 4 * flipSign);
+        bot.sleep(100);
+        range2 = axis.getRange();
+        assertTrue(range2.upper - range2.lower == range.upper - range.lower && range2.upper < range.upper && getAxisScroll(cb, isXAxis) < scroll);
 
-		// Scroll away from origin.
-		range = range2;
-		scroll = getAxisScroll(cb, isXAxis);
-		scrollBar.setSelection(scrollBar.getSelection() + controlRange / 8 * flipSign);
-		bot.sleep(100);
-		range2 = axis.getRange();
-		assertTrue(range2.upper - range2.lower == range.upper - range.lower && range2.upper > range.upper && getAxisScroll(cb, isXAxis) > scroll);
-	}
+        // Scroll away from origin.
+        range = range2;
+        scroll = getAxisScroll(cb, isXAxis);
+        scrollBar.setSelection(scrollBar.getSelection() + controlRange / 8 * flipSign);
+        bot.sleep(100);
+        range2 = axis.getRange();
+        assertTrue(range2.upper - range2.lower == range.upper - range.lower && range2.upper > range.upper && getAxisScroll(cb, isXAxis) > scroll);
+    }
 

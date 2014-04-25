@@ -1,105 +1,105 @@
-	/**
-	 * This is a callback that will allow us to create the viewer and
-	 * initialize it.
-	 */
-	@Override
-	public void createPartControl(Composite parent) {
-		if (masterComposite != null) {
-			masterComposite.dispose();
-		}
-		masterComposite = parent;
-		GridLayout layout = new GridLayout(2, false);
-		layout.horizontalSpacing=0;
-		GridData gd = new GridData(100, 100);
+    /**
+     * This is a callback that will allow us to create the viewer and
+     * initialize it.
+     */
+    @Override
+    public void createPartControl(Composite parent) {
+        if (masterComposite != null) {
+            masterComposite.dispose();
+        }
+        masterComposite = parent;
+        GridLayout layout = new GridLayout(2, false);
+        layout.horizontalSpacing=0;
+        GridData gd = new GridData(100, 100);
 
-		parent.setLayout(layout);
-		parent.setLayoutData(gd);
+        parent.setLayout(layout);
+        parent.setLayoutData(gd);
 
-		// LOAD ALL ACTIONS
-		createActions();
+        // LOAD ALL ACTIONS
+        createActions();
 
-		//MENU FOR SYSTEMTAP BUTTONS
-		IToolBarManager mgr = getViewSite().getActionBars().getToolBarManager();
+        //MENU FOR SYSTEMTAP BUTTONS
+        IToolBarManager mgr = getViewSite().getActionBars().getToolBarManager();
 
 
-		//MENU FOR SYSTEMTAP GRAPH OPTIONS
-		IMenuManager menu = getViewSite().getActionBars().getMenuManager();
+        //MENU FOR SYSTEMTAP GRAPH OPTIONS
+        IMenuManager menu = getViewSite().getActionBars().getMenuManager();
 
-		// ADD OPTIONS TO THE GRAPH MENU
-		addFileMenu();
+        // ADD OPTIONS TO THE GRAPH MENU
+        addFileMenu();
 
-		saveCurDot = new Action(Messages.getString("CallgraphView.SaveViewAsDot")) { //$NON-NLS-1$
-			@Override
-			public void run(){
-				writeToDot(g.getCollapseMode(), g.nodeMap.keySet());
-			}
-
-		};
-		saveDot = new Action(Messages.getString("CallgraphView.SaveAllUncollapsedAsDot")) { //$NON-NLS-1$
+        saveCurDot = new Action(Messages.getString("CallgraphView.SaveViewAsDot")) { //$NON-NLS-1$
             @Override
-			public void run(){
+            public void run(){
+                writeToDot(g.getCollapseMode(), g.nodeMap.keySet());
+            }
+
+        };
+        saveDot = new Action(Messages.getString("CallgraphView.SaveAllUncollapsedAsDot")) { //$NON-NLS-1$
+            @Override
+            public void run(){
               writeToDot(false, g.nodeDataMap.keySet());
             }
-		};
+        };
 
-		saveColDot = new Action (Messages.getString("CallgraphView.SaveAllCollapsedAsDot")) { //$NON-NLS-1$
-		     @Override
-			public void run(){
-	                writeToDot(true, g.nodeDataMap.keySet());
-	            }
+        saveColDot = new Action (Messages.getString("CallgraphView.SaveAllCollapsedAsDot")) { //$NON-NLS-1$
+             @Override
+            public void run(){
+                    writeToDot(true, g.nodeDataMap.keySet());
+                }
 
-		};
+        };
 
-		saveText = new Action (Messages.getString("CallgraphView.SaveCollapsedAsASCII")) { //$NON-NLS-1$
-			@Override
-			public void run() {
-				saveTextAction();
-			}
-		};
-		IMenuManager saveMenu = new MenuManager(Messages.getString("CallgraphView.SaveMenu")); //$NON-NLS-1$
-		file.add(saveMenu);
-		saveMenu.add(saveCurDot);
-		saveMenu.add(saveColDot);
-		saveMenu.add(saveText);
-		saveMenu.add(saveDot);
-		IMenuManager view = new MenuManager(Messages.getString("CallgraphView.ViewMenu")); //$NON-NLS-1$
-		IMenuManager animation = new MenuManager(Messages.getString("CallgraphView.AnimationMenu")); //$NON-NLS-1$
-		IMenuManager markers = new MenuManager(Messages.getString("CallgraphView.Markers")); //$NON-NLS-1$
-		IMenuManager gotoMenu = new MenuManager(Messages.getString("CallgraphView.GoTo")); //$NON-NLS-1$
-		menu.add(view);
-		menu.add(gotoMenu);
-		addHelpMenu();
+        saveText = new Action (Messages.getString("CallgraphView.SaveCollapsedAsASCII")) { //$NON-NLS-1$
+            @Override
+            public void run() {
+                saveTextAction();
+            }
+        };
+        IMenuManager saveMenu = new MenuManager(Messages.getString("CallgraphView.SaveMenu")); //$NON-NLS-1$
+        file.add(saveMenu);
+        saveMenu.add(saveCurDot);
+        saveMenu.add(saveColDot);
+        saveMenu.add(saveText);
+        saveMenu.add(saveDot);
+        IMenuManager view = new MenuManager(Messages.getString("CallgraphView.ViewMenu")); //$NON-NLS-1$
+        IMenuManager animation = new MenuManager(Messages.getString("CallgraphView.AnimationMenu")); //$NON-NLS-1$
+        IMenuManager markers = new MenuManager(Messages.getString("CallgraphView.Markers")); //$NON-NLS-1$
+        IMenuManager gotoMenu = new MenuManager(Messages.getString("CallgraphView.GoTo")); //$NON-NLS-1$
+        menu.add(view);
+        menu.add(gotoMenu);
+        addHelpMenu();
 
-		view.add(viewTreeview);
-		view.add(viewRadialview);
-		view.add(viewAggregateview);
-		view.add(viewLevelview);
-		view.add(getViewRefresh());
-		view.add(modeCollapsedNodes);
-		view.add(limits);
-		view.add(animation);
+        view.add(viewTreeview);
+        view.add(viewRadialview);
+        view.add(viewAggregateview);
+        view.add(viewLevelview);
+        view.add(getViewRefresh());
+        view.add(modeCollapsedNodes);
+        view.add(limits);
+        view.add(animation);
 
 
-		gotoMenu.add(play);
-		gotoMenu.add(gotoPrevious);
-		gotoMenu.add(gotoNext);
-		gotoMenu.add(gotoLast);
-		gotoMenu.add(markers);
+        gotoMenu.add(play);
+        gotoMenu.add(gotoPrevious);
+        gotoMenu.add(gotoNext);
+        gotoMenu.add(gotoLast);
+        gotoMenu.add(markers);
 
-		addKillButton();
-		mgr.add(play);
-		mgr.add(viewRadialview);
-		mgr.add(viewTreeview);
-		mgr.add(viewLevelview);
-		mgr.add(viewAggregateview);
-		mgr.add(modeCollapsedNodes);
+        addKillButton();
+        mgr.add(play);
+        mgr.add(viewRadialview);
+        mgr.add(viewTreeview);
+        mgr.add(viewLevelview);
+        mgr.add(viewAggregateview);
+        mgr.add(modeCollapsedNodes);
 
-		markers.add(markersNext);
-		markers.add(markersPrevious);
+        markers.add(markersNext);
+        markers.add(markersPrevious);
 
-		animation.add(animationSlow);
-		animation.add(animationFast);
+        animation.add(animationSlow);
+        animation.add(animationFast);
 
-		setGraphOptions(false);
-	}
+        setGraphOptions(false);
+    }
 

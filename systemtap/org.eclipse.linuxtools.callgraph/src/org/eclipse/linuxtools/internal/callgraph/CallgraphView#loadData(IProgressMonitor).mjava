@@ -1,113 +1,113 @@
-	/**
-	 * Load data.
-	 * @param mon -- Progress monitor.
-	 * @return
-	 */
-	private IStatus loadData(IProgressMonitor mon) {
-		IProgressMonitor monitor = mon;
-		//Dummy node, set start time
-		if (g.getNodeData(0) == null) {
-			g.loadData(SWT.NONE, 0, StapGraph.CONSTANT_TOP_NODE_NAME,
-					1, 1, -1, false, ""); //$NON-NLS-1$
-		}
-		g.setStartTime(parser.startTime);
-		g.setEndTime(parser.endingTimeInNS);
+    /**
+     * Load data.
+     * @param mon -- Progress monitor.
+     * @return
+     */
+    private IStatus loadData(IProgressMonitor mon) {
+        IProgressMonitor monitor = mon;
+        //Dummy node, set start time
+        if (g.getNodeData(0) == null) {
+            g.loadData(SWT.NONE, 0, StapGraph.CONSTANT_TOP_NODE_NAME,
+                    1, 1, -1, false, ""); //$NON-NLS-1$
+        }
+        g.setStartTime(parser.startTime);
+        g.setEndTime(parser.endingTimeInNS);
 
 
-		/*
-		 * Load graph data
-		 */
-	    for (int id_parent : parser.serialMap.keySet()) {
-	    	if (id_parent < 0) {
-	    		continue;
-	    	}
-	    	boolean marked = false;
-	    	String msg = ""; //$NON-NLS-1$
-	    	if (g.getNodeData(id_parent) == null) {
-				if (parser.markedMap.get(id_parent) != null) {
-					marked = true;
-					msg = parser.markedMap.remove(id_parent);
-				}
-	    		g.loadData(SWT.NONE, id_parent, parser.serialMap.get(id_parent), parser.timeMap.get(id_parent),
-	    				1, 0, marked, msg);
-	    	}
+        /*
+         * Load graph data
+         */
+        for (int id_parent : parser.serialMap.keySet()) {
+            if (id_parent < 0) {
+                continue;
+            }
+            boolean marked = false;
+            String msg = ""; //$NON-NLS-1$
+            if (g.getNodeData(id_parent) == null) {
+                if (parser.markedMap.get(id_parent) != null) {
+                    marked = true;
+                    msg = parser.markedMap.remove(id_parent);
+                }
+                g.loadData(SWT.NONE, id_parent, parser.serialMap.get(id_parent), parser.timeMap.get(id_parent),
+                        1, 0, marked, msg);
+            }
 
-	    	for (int key :parser.neighbourMaps.keySet()) {
-		    	HashMap<Integer, ArrayList<Integer>> outNeighbours = parser.neighbourMaps.get(key);
-		    	if (outNeighbours == null || outNeighbours.get(id_parent) == null) {
-		    		continue;
-		    	}
-				for (int id_child : outNeighbours.get(id_parent)) {
-					if (g.getNodeData(id_child) != null && id_child < 0) {
-						//Assume this is an additional call of the same node
-						//Should only happen in dot-files!!
-						g.addCalled(id_child);
-						continue;
-					} else if (g.getNodeData(id_child) != null) {
-						continue;
-					}
-					if (monitor.isCanceled()) {
-						return Status.CANCEL_STATUS;
-					}
+            for (int key :parser.neighbourMaps.keySet()) {
+                HashMap<Integer, ArrayList<Integer>> outNeighbours = parser.neighbourMaps.get(key);
+                if (outNeighbours == null || outNeighbours.get(id_parent) == null) {
+                    continue;
+                }
+                for (int id_child : outNeighbours.get(id_parent)) {
+                    if (g.getNodeData(id_child) != null && id_child < 0) {
+                        //Assume this is an additional call of the same node
+                        //Should only happen in dot-files!!
+                        g.addCalled(id_child);
+                        continue;
+                    } else if (g.getNodeData(id_child) != null) {
+                        continue;
+                    }
+                    if (monitor.isCanceled()) {
+                        return Status.CANCEL_STATUS;
+                    }
 
-					marked = false;
-					msg = ""; //$NON-NLS-1$
-					if (parser.markedMap.get(id_child) != null) {
-						marked = true;
-						msg = parser.markedMap.remove(id_child);
-					}
-					if (id_child != -1) {
-						if (parser.timeMap.get(id_child) == null){
-							g.loadData(SWT.NONE, id_child, parser.serialMap
-									.get(id_child), parser.timeMap.get(0),
-									1, id_parent, marked,msg);
-						}else{
-							g.loadData(SWT.NONE, id_child, parser.serialMap
-									.get(id_child), parser.timeMap.get(id_child),
-									1, id_parent, marked,msg);
-						}
-					}
-				}
-	    	}
+                    marked = false;
+                    msg = ""; //$NON-NLS-1$
+                    if (parser.markedMap.get(id_child) != null) {
+                        marked = true;
+                        msg = parser.markedMap.remove(id_child);
+                    }
+                    if (id_child != -1) {
+                        if (parser.timeMap.get(id_child) == null){
+                            g.loadData(SWT.NONE, id_child, parser.serialMap
+                                    .get(id_child), parser.timeMap.get(0),
+                                    1, id_parent, marked,msg);
+                        }else{
+                            g.loadData(SWT.NONE, id_child, parser.serialMap
+                                    .get(id_child), parser.timeMap.get(id_child),
+                                    1, id_parent, marked,msg);
+                        }
+                    }
+                }
+            }
 
-	    	if (parser.neighbourMaps.size() > 1) {
-	    		g.setThreaded();
-	    	}
-		}
+            if (parser.neighbourMaps.size() > 1) {
+                g.setThreaded();
+            }
+        }
 
-	    monitor.worked(1);
-	    if (parser.markedMap.size() > 0) {
-	    	//Still some markers left
-	    	for (int key : parser.markedMap.keySet()) {
-	    		g.insertMessage(key, parser.markedMap.get(key));
-	    	}
+        monitor.worked(1);
+        if (parser.markedMap.size() > 0) {
+            //Still some markers left
+            for (int key : parser.markedMap.keySet()) {
+                g.insertMessage(key, parser.markedMap.get(key));
+            }
 
-	    	//Erase the remaining nodes, just in case
-	    	parser.markedMap.clear();
-	    }
-
-
-	    if (g.aggregateTime == null) {
-	    	g.aggregateTime = new HashMap<>();
-	    }
-		if (g.aggregateCount == null) {
-	    	g.aggregateCount = new HashMap<>();
-		}
-
-	    g.aggregateCount.putAll(parser.countMap);
-	    g.aggregateTime.putAll(parser.aggregateTimeMap);
-	    //TODO: Do not set to 0.
-	    g.setLastFunctionCalled(0);
+            //Erase the remaining nodes, just in case
+            parser.markedMap.clear();
+        }
 
 
-	    //Finish off by collapsing nodes, initializing the tree and setting options
-	    g.recursivelyCollapseAllChildrenOfNode(g.getTopNode());
-	    monitor.worked(1);
-		setGraphOptions(true);
-	    g.initializeTree();
-	    g.setProject(parser.project);
+        if (g.aggregateTime == null) {
+            g.aggregateTime = new HashMap<>();
+        }
+        if (g.aggregateCount == null) {
+            g.aggregateCount = new HashMap<>();
+        }
+
+        g.aggregateCount.putAll(parser.countMap);
+        g.aggregateTime.putAll(parser.aggregateTimeMap);
+        //TODO: Do not set to 0.
+        g.setLastFunctionCalled(0);
 
 
-	    return Status.OK_STATUS;
-	}
+        //Finish off by collapsing nodes, initializing the tree and setting options
+        g.recursivelyCollapseAllChildrenOfNode(g.getTopNode());
+        monitor.worked(1);
+        setGraphOptions(true);
+        g.initializeTree();
+        g.setProject(parser.project);
+
+
+        return Status.OK_STATUS;
+    }
 

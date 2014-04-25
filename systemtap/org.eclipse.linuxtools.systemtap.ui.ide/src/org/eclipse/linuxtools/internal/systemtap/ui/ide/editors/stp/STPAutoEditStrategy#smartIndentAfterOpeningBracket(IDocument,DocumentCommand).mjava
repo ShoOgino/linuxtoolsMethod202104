@@ -1,42 +1,42 @@
-	private void smartIndentAfterOpeningBracket(IDocument d, DocumentCommand c) {
-		if (c.offset < 1 || d.getLength() == 0)
-			return;
+    private void smartIndentAfterOpeningBracket(IDocument d, DocumentCommand c) {
+        if (c.offset < 1 || d.getLength() == 0)
+            return;
 
-		int p = (c.offset == d.getLength() ? c.offset - 1 : c.offset);
+        int p = (c.offset == d.getLength() ? c.offset - 1 : c.offset);
 
-		try {
-			STPHeuristicScanner scanner= new STPHeuristicScanner(d);
-			ITypedRegion partition= TextUtilities.getPartition(d, fPartitioning, p, false);
-			if (STPPartitionScanner.STP_CONDITIONAL.equals(partition.getType())) {
-				scanner = new STPHeuristicScanner(d, fPartitioning, STPPartitionScanner.STP_CONDITIONAL);
-			}
-			// current line
-			int line = d.getLineOfOffset(c.offset);
-			int lineOffset = d.getLineOffset(line);
+        try {
+            STPHeuristicScanner scanner= new STPHeuristicScanner(d);
+            ITypedRegion partition= TextUtilities.getPartition(d, fPartitioning, p, false);
+            if (STPPartitionScanner.STP_CONDITIONAL.equals(partition.getType())) {
+                scanner = new STPHeuristicScanner(d, fPartitioning, STPPartitionScanner.STP_CONDITIONAL);
+            }
+            // current line
+            int line = d.getLineOfOffset(c.offset);
+            int lineOffset = d.getLineOffset(line);
 
-			// make sure we don't have any leading comments etc.
-			if (!d.get(lineOffset, c.offset - lineOffset).trim().isEmpty())
-				return;
+            // make sure we don't have any leading comments etc.
+            if (!d.get(lineOffset, c.offset - lineOffset).trim().isEmpty())
+                return;
 
-			// Line of last C code
-			int pos = scanner.findNonWhitespaceBackward(p, STPHeuristicScanner.UNBOUND);
-			if (pos == -1)
-				return;
-			int lastLine = d.getLineOfOffset(pos);
+            // Line of last C code
+            int pos = scanner.findNonWhitespaceBackward(p, STPHeuristicScanner.UNBOUND);
+            if (pos == -1)
+                return;
+            int lastLine = d.getLineOfOffset(pos);
 
-			// Only shift if the last C line is further up and is a braceless block candidate
-			if (lastLine < line) {
-				STPIndenter indenter = new STPIndenter(d, scanner, fProject);
-				StringBuilder indent = indenter.computeIndentation(p, true);
-				String toDelete = d.get(lineOffset, c.offset - lineOffset);
-				if (indent != null && !indent.toString().equals(toDelete)) {
-					c.text = indent.append(c.text).toString();
-					c.length += c.offset - lineOffset;
-					c.offset = lineOffset;
-				}
-			}
-		} catch (BadLocationException e) {
-			IDEPlugin.log(e);
-		}
-	}
+            // Only shift if the last C line is further up and is a braceless block candidate
+            if (lastLine < line) {
+                STPIndenter indenter = new STPIndenter(d, scanner, fProject);
+                StringBuilder indent = indenter.computeIndentation(p, true);
+                String toDelete = d.get(lineOffset, c.offset - lineOffset);
+                if (indent != null && !indent.toString().equals(toDelete)) {
+                    c.text = indent.append(c.text).toString();
+                    c.length += c.offset - lineOffset;
+                    c.offset = lineOffset;
+                }
+            }
+        } catch (BadLocationException e) {
+            IDEPlugin.log(e);
+        }
+    }
 

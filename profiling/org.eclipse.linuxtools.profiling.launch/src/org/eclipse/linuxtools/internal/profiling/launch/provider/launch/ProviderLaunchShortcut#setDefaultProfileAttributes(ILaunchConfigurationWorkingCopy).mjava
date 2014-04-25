@@ -1,110 +1,110 @@
-	@Override
-	protected void setDefaultProfileAttributes(ILaunchConfigurationWorkingCopy wc) {
+    @Override
+    protected void setDefaultProfileAttributes(ILaunchConfigurationWorkingCopy wc) {
 
-		// acquire a provider id to run.
-		final String providerId = ProviderFramework.getProviderIdToRun(wc, getProfilingType());
+        // acquire a provider id to run.
+        final String providerId = ProviderFramework.getProviderIdToRun(wc, getProfilingType());
 
-		// get tool name from id.
-		final String providerToolName = ProviderFramework.getProviderToolNameFromId(providerId);
+        // get tool name from id.
+        final String providerToolName = ProviderFramework.getProviderToolNameFromId(providerId);
 
-		// get tab group associated with provider id.
-		final ProfileLaunchConfigurationTabGroup tabgroup = ProviderFramework.getTabGroupProviderFromId(providerId);
+        // get tab group associated with provider id.
+        final ProfileLaunchConfigurationTabGroup tabgroup = ProviderFramework.getTabGroupProviderFromId(providerId);
 
-		/**
-		 * Certain tabs' setDefaults(ILaunchConfigurationWorkingCopy) may
-		 * require a launch configuration dialog. Eg. CMainTab generates
-		 * a name for the configuration based on generateName in setDefaults()
-		 * so we can create a temporary launch configuration dialog here. With
-		 * the exception of generateName(String), the other methods do not
-		 * get called.
-		 */
-		ILaunchConfigurationDialog dialog  = new ILaunchConfigurationDialog() {
+        /**
+         * Certain tabs' setDefaults(ILaunchConfigurationWorkingCopy) may
+         * require a launch configuration dialog. Eg. CMainTab generates
+         * a name for the configuration based on generateName in setDefaults()
+         * so we can create a temporary launch configuration dialog here. With
+         * the exception of generateName(String), the other methods do not
+         * get called.
+         */
+        ILaunchConfigurationDialog dialog  = new ILaunchConfigurationDialog() {
 
-			@Override
-			public void run(boolean fork, boolean cancelable,
-					IRunnableWithProgress runnable) {
-				throw new UnsupportedOperationException ();
-			}
+            @Override
+            public void run(boolean fork, boolean cancelable,
+                    IRunnableWithProgress runnable) {
+                throw new UnsupportedOperationException ();
+            }
 
-			@Override
-			public void updateMessage() {
-				throw new UnsupportedOperationException ();
-			}
+            @Override
+            public void updateMessage() {
+                throw new UnsupportedOperationException ();
+            }
 
-			@Override
-			public void updateButtons() {
-				throw new UnsupportedOperationException ();
-			}
+            @Override
+            public void updateButtons() {
+                throw new UnsupportedOperationException ();
+            }
 
-			@Override
-			public void setName(String name) {
-				throw new UnsupportedOperationException ();
-			}
+            @Override
+            public void setName(String name) {
+                throw new UnsupportedOperationException ();
+            }
 
-			@Override
-			public void setActiveTab(int index) {
-				throw new UnsupportedOperationException ();
-			}
+            @Override
+            public void setActiveTab(int index) {
+                throw new UnsupportedOperationException ();
+            }
 
-			@Override
-			public void setActiveTab(ILaunchConfigurationTab tab) {
-				throw new UnsupportedOperationException ();
-			}
+            @Override
+            public void setActiveTab(ILaunchConfigurationTab tab) {
+                throw new UnsupportedOperationException ();
+            }
 
-			@Override
-			public ILaunchConfigurationTab[] getTabs() {
-				return null;
-			}
+            @Override
+            public ILaunchConfigurationTab[] getTabs() {
+                return null;
+            }
 
-			@Override
-			public String getMode() {
-				return null;
-			}
+            @Override
+            public String getMode() {
+                return null;
+            }
 
-			@Override
-			public ILaunchConfigurationTab getActiveTab() {
-				return null;
-			}
+            @Override
+            public ILaunchConfigurationTab getActiveTab() {
+                return null;
+            }
 
-			@Override
-			public String generateName(String name) {
-				if (name == null) {
-					name = ""; //$NON-NLS-1$
-				}
-				String providerConfigutationName = generateProviderConfigurationName(name, providerToolName);
-				return getLaunchManager().generateLaunchConfigurationName(providerConfigutationName);
-			}
-		};
+            @Override
+            public String generateName(String name) {
+                if (name == null) {
+                    name = ""; //$NON-NLS-1$
+                }
+                String providerConfigutationName = generateProviderConfigurationName(name, providerToolName);
+                return getLaunchManager().generateLaunchConfigurationName(providerConfigutationName);
+            }
+        };
 
-		tabgroup.createTabs(dialog , "profile"); //$NON-NLS-1$
+        tabgroup.createTabs(dialog , "profile"); //$NON-NLS-1$
 
-		// set configuration to match default attributes for all tabs.
-		for (ILaunchConfigurationTab tab : tabgroup.getTabs()) {
-			tab.setLaunchConfigurationDialog(dialog);
-			tab.setDefaults(wc);
-		}
+        // set configuration to match default attributes for all tabs.
+        for (ILaunchConfigurationTab tab : tabgroup.getTabs()) {
+            tab.setLaunchConfigurationDialog(dialog);
+            tab.setDefaults(wc);
+        }
 
-		// get configuration shortcut associated with provider id.
-		ProfileLaunchShortcut shortcut= ProviderFramework.getLaunchShortcutProviderFromId(providerId);
-		// set attributes related to the specific profiling shortcut configuration.
-		shortcut.setDefaultProfileLaunchShortcutAttributes(wc);
+        // get configuration shortcut associated with provider id.
+        ProfileLaunchShortcut shortcut= ProviderFramework.getLaunchShortcutProviderFromId(providerId);
+        // set attributes related to the specific profiling shortcut configuration.
+        shortcut.setDefaultProfileLaunchShortcutAttributes(wc);
 
-		wc.setAttribute(ProviderProfileConstants.PROVIDER_CONFIG_ATT,
-				providerId);
+        wc.setAttribute(ProviderProfileConstants.PROVIDER_CONFIG_ATT,
+                providerId);
 
-		// set tool name in configuration.
-		wc.setAttribute(ProviderProfileConstants.PROVIDER_CONFIG_TOOLNAME_ATT, providerToolName);
+        // set tool name in configuration.
+        wc.setAttribute(ProviderProfileConstants.PROVIDER_CONFIG_TOOLNAME_ATT, providerToolName);
 
-		/**
-		 * To avoid renaming an already renamed launch configuration, we can
-		 * check the expected format of the name using regular expressions and
-		 * skip on matches.
-		 */
-		String curConfigName = wc.getName();
-		Pattern configNamePattern = Pattern.compile(".+\\s\\[.+\\](\\s\\(\\d+\\))?$"); //$NON-NLS-1$
-		Matcher match = configNamePattern.matcher(curConfigName);
-		if (!match.find()) {
-			wc.rename(dialog.generateName(curConfigName));
-		}
-	}
+        /**
+         * To avoid renaming an already renamed launch configuration, we can
+         * check the expected format of the name using regular expressions and
+         * skip on matches.
+         */
+        String curConfigName = wc.getName();
+        Pattern configNamePattern = Pattern.compile(".+\\s\\[.+\\](\\s\\(\\d+\\))?$"); //$NON-NLS-1$
+        Matcher match = configNamePattern.matcher(curConfigName);
+        if (!match.find()) {
+            wc.rename(dialog.generateName(curConfigName));
+        }
+    }
 

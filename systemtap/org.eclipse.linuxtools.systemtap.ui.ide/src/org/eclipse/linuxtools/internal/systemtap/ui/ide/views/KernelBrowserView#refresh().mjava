@@ -1,45 +1,45 @@
-	/**
-	 * Updates the kernel source displayed to the user with the new kernel source tree. Usually
-	 * a response to the user changing the preferences related to the kernel source location, requiring
-	 * that the application update the kernel source information.
-	 */
-	@Override
-	public void refresh() {
-		IPreferenceStore p = IDEPlugin.getDefault().getPreferenceStore();
-		String kernelSource = p.getString(IDEPreferenceConstants.P_KERNEL_SOURCE);
-		if(null == kernelSource || kernelSource.length() < 1) {
-			showBrowserErrorMessage(Localization.getString("KernelBrowserView.NoKernelSourceFound")); //$NON-NLS-1$
-			return;
-		}
+    /**
+     * Updates the kernel source displayed to the user with the new kernel source tree. Usually
+     * a response to the user changing the preferences related to the kernel source location, requiring
+     * that the application update the kernel source information.
+     */
+    @Override
+    public void refresh() {
+        IPreferenceStore p = IDEPlugin.getDefault().getPreferenceStore();
+        String kernelSource = p.getString(IDEPreferenceConstants.P_KERNEL_SOURCE);
+        if(null == kernelSource || kernelSource.length() < 1) {
+            showBrowserErrorMessage(Localization.getString("KernelBrowserView.NoKernelSourceFound")); //$NON-NLS-1$
+            return;
+        }
 
-		String localOrRemote = p.getString(IDEPreferenceConstants.P_REMOTE_LOCAL_KERNEL_SOURCE);
-		URI kernelLocationURI = null;
-		IRemoteFileProxy proxy = null;
-		boolean remote = localOrRemote.equals(PathPreferencePage.REMOTE);
-		if (remote) {
-			boolean error = false;
-			try {
-				kernelLocationURI = IDEPlugin.getDefault().createRemoteUri(kernelSource);
-				if (kernelLocationURI == null) {
-					error = true;
-				} else {
-					proxy = RemoteProxyManager.getInstance().getFileProxy(kernelLocationURI);
-					if (!validateProxy(proxy, kernelSource)) {
-						error = true;
-					}
-				}
-			} catch (CoreException e2) {
-				error = true;
-			}
-			if (error) {
-				showBrowserErrorMessage(Localization.getString("KernelBrowserView.KernelSourceDirNotFound")); //$NON-NLS-1$
-				return;
-			}
-		}
+        String localOrRemote = p.getString(IDEPreferenceConstants.P_REMOTE_LOCAL_KERNEL_SOURCE);
+        URI kernelLocationURI = null;
+        IRemoteFileProxy proxy = null;
+        boolean remote = localOrRemote.equals(PathPreferencePage.REMOTE);
+        if (remote) {
+            boolean error = false;
+            try {
+                kernelLocationURI = IDEPlugin.getDefault().createRemoteUri(kernelSource);
+                if (kernelLocationURI == null) {
+                    error = true;
+                } else {
+                    proxy = RemoteProxyManager.getInstance().getFileProxy(kernelLocationURI);
+                    if (!validateProxy(proxy, kernelSource)) {
+                        error = true;
+                    }
+                }
+            } catch (CoreException e2) {
+                error = true;
+            }
+            if (error) {
+                showBrowserErrorMessage(Localization.getString("KernelBrowserView.KernelSourceDirNotFound")); //$NON-NLS-1$
+                return;
+            }
+        }
 
-		KernelRefreshJob refreshJob = new KernelRefreshJob(remote, kernelLocationURI, proxy, kernelSource);
-		refreshJob.setUser(true);
-		refreshJob.setPriority(Job.SHORT);
-		refreshJob.schedule();
-	}
+        KernelRefreshJob refreshJob = new KernelRefreshJob(remote, kernelLocationURI, proxy, kernelSource);
+        refreshJob.setUser(true);
+        refreshJob.setPriority(Job.SHORT);
+        refreshJob.schedule();
+    }
 

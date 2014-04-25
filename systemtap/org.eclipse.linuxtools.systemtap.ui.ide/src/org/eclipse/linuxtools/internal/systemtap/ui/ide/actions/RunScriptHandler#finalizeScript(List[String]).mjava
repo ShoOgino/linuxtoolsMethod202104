@@ -1,63 +1,63 @@
-	/**
-	 * Produces a <code>String[]</code> from the <code>ArrayList</code> passed in with stap inserted
-	 * as the first entry, and the filename as the last entry. Used to convert the arguments generated
-	 * earlier in <code>buildStandardScript</code> such as tapset locations and guru mode into an actual
-	 * command line argument array that can be passed to <code>Runtime.exec</code>.
-	 * @param cmdList The list of arguments for stap for this script
-	 * @return An array suitable to pass to <code>Runtime.exec</code> to start stap on this file.
-	 * @since 2.0
-	 */
-	private String[] finalizeScript(List<String> cmdList) {
+    /**
+     * Produces a <code>String[]</code> from the <code>ArrayList</code> passed in with stap inserted
+     * as the first entry, and the filename as the last entry. Used to convert the arguments generated
+     * earlier in <code>buildStandardScript</code> such as tapset locations and guru mode into an actual
+     * command line argument array that can be passed to <code>Runtime.exec</code>.
+     * @param cmdList The list of arguments for stap for this script
+     * @return An array suitable to pass to <code>Runtime.exec</code> to start stap on this file.
+     * @since 2.0
+     */
+    private String[] finalizeScript(List<String> cmdList) {
 
-		String[] script;
+        String[] script;
 
-		script = new String[cmdList.size() + 4];
-		script[0] = "stap"; //$NON-NLS-1$
+        script = new String[cmdList.size() + 4];
+        script[0] = "stap"; //$NON-NLS-1$
 
-		if(getRunLocal() == false) {
-			script[script.length-1] = tmpfileName;
-		} else {
-			script[script.length-1] = fileName;
-		}
+        if(getRunLocal() == false) {
+            script[script.length-1] = tmpfileName;
+        } else {
+            script[script.length-1] = fileName;
+        }
 
-		for(int i=0; i< cmdList.size(); i++) {
-			script[i+1] = cmdList.get(i);
-		}
-		script[script.length-3]="-m"; //$NON-NLS-1$
+        for(int i=0; i< cmdList.size(); i++) {
+            script[i+1] = cmdList.get(i);
+        }
+        script[script.length-3]="-m"; //$NON-NLS-1$
 
-		String modname;
-		if(getRunLocal() == false) {
-			modname = serverfileName.substring(0, serverfileName.lastIndexOf(".stp")); //$NON-NLS-1$
-		}
-		/* We need to remove the directory prefix here because in the case of
-		 * running the script remotely, this is already done.  Not doing so
-		 * causes a modname error.
-		 */
-		else {
-			modname = fileName.substring(fileName.lastIndexOf('/')+1);
-			modname = modname.substring(0, modname.lastIndexOf(".stp")); //$NON-NLS-1$
-		}
+        String modname;
+        if(getRunLocal() == false) {
+            modname = serverfileName.substring(0, serverfileName.lastIndexOf(".stp")); //$NON-NLS-1$
+        }
+        /* We need to remove the directory prefix here because in the case of
+         * running the script remotely, this is already done.  Not doing so
+         * causes a modname error.
+         */
+        else {
+            modname = fileName.substring(fileName.lastIndexOf('/')+1);
+            modname = modname.substring(0, modname.lastIndexOf(".stp")); //$NON-NLS-1$
+        }
 
-		// Make sure script name only contains underscores and/or alphanumeric characters.
-		Pattern validModName = Pattern.compile("^[a-z0-9_A-Z]+$"); //$NON-NLS-1$
-		Matcher modNameMatch = validModName.matcher(modname);
-		if (!modNameMatch.matches()) {
-			continueRun = false;
-			Display.getDefault().asyncExec(new Runnable() {
-				@Override
-				public void run() {
+        // Make sure script name only contains underscores and/or alphanumeric characters.
+        Pattern validModName = Pattern.compile("^[a-z0-9_A-Z]+$"); //$NON-NLS-1$
+        Matcher modNameMatch = validModName.matcher(modname);
+        if (!modNameMatch.matches()) {
+            continueRun = false;
+            Display.getDefault().asyncExec(new Runnable() {
+                @Override
+                public void run() {
 
-					Shell parent = PlatformUI.getWorkbench().getDisplay()
-							.getActiveShell();
-					MessageDialog.openError(parent,
-							Messages.ScriptRunAction_InvalidScriptTitle,
-							Messages.ScriptRunAction_InvalidScriptTMessage);
-				}
-			});
-			return new String[0];
-		}
+                    Shell parent = PlatformUI.getWorkbench().getDisplay()
+                            .getActiveShell();
+                    MessageDialog.openError(parent,
+                            Messages.ScriptRunAction_InvalidScriptTitle,
+                            Messages.ScriptRunAction_InvalidScriptTMessage);
+                }
+            });
+            return new String[0];
+        }
 
-		script[script.length-2]=modname;
-		return script;
-	}
+        script[script.length-2]=modname;
+        return script;
+    }
 

@@ -1,47 +1,47 @@
-	// Runs assuming perf.data has already been recorded, environ and workingDir can be set to null to use default
-	//perfDataLoc is optional - it is used to provide a pre-existing data file instead of something recorded from
-	//whatever project is being profiled. It is only used for junit tests atm.
-	public static void Report(ILaunchConfiguration config, String[] environ, IPath workingDir, IProgressMonitor monitor, String perfDataLoc, PrintStream print) {
-		IProject project = getProject(config);
+    // Runs assuming perf.data has already been recorded, environ and workingDir can be set to null to use default
+    //perfDataLoc is optional - it is used to provide a pre-existing data file instead of something recorded from
+    //whatever project is being profiled. It is only used for junit tests atm.
+    public static void Report(ILaunchConfiguration config, String[] environ, IPath workingDir, IProgressMonitor monitor, String perfDataLoc, PrintStream print) {
+        IProject project = getProject(config);
 
-		TreeParent invisibleRoot = PerfPlugin.getDefault().clearModelRoot();
+        TreeParent invisibleRoot = PerfPlugin.getDefault().clearModelRoot();
 
-		Version perfVersion = getPerfVersion(config);
-		boolean OldPerfVersion = false;
-		if (new Version(0, 0, 2).compareTo(perfVersion) > 0) {
-			OldPerfVersion = true;
-			if (print != null) { print.println("WARNING: You are running an older version of Perf, please update if you can. The plugin may produce unpredictable results."); }
-		}
+        Version perfVersion = getPerfVersion(config);
+        boolean OldPerfVersion = false;
+        if (new Version(0, 0, 2).compareTo(perfVersion) > 0) {
+            OldPerfVersion = true;
+            if (print != null) { print.println("WARNING: You are running an older version of Perf, please update if you can. The plugin may produce unpredictable results."); }
+        }
 
 
-		BufferedReader input = null;
-		BufferedReader error = null;
-		Process p = null;
+        BufferedReader input = null;
+        BufferedReader error = null;
+        Process p = null;
 
-		if (monitor != null && monitor.isCanceled()) {
-			return;
-		}
+        if (monitor != null && monitor.isCanceled()) {
+            return;
+        }
 
-		try {
-			if (workingDir==null) {
-				p = RuntimeProcessFactory.getFactory().exec(getReportString(config, perfDataLoc), project);
-				PerfPlugin.getDefault().setPerfProfileData(new Path(perfDataLoc));
-				PerfPlugin.getDefault().setWorkingDir(project.getLocation());
-			} else {
-				String defaultPerfDataLoc = workingDir.toOSString() + PerfPlugin.PERF_DEFAULT_DATA;
-				p = RuntimeProcessFactory.getFactory().exec(getReportString(config, defaultPerfDataLoc), project);
-				PerfPlugin.getDefault().setPerfProfileData(new Path(defaultPerfDataLoc));
-				PerfPlugin.getDefault().setWorkingDir(workingDir);
-			}
+        try {
+            if (workingDir==null) {
+                p = RuntimeProcessFactory.getFactory().exec(getReportString(config, perfDataLoc), project);
+                PerfPlugin.getDefault().setPerfProfileData(new Path(perfDataLoc));
+                PerfPlugin.getDefault().setWorkingDir(project.getLocation());
+            } else {
+                String defaultPerfDataLoc = workingDir.toOSString() + PerfPlugin.PERF_DEFAULT_DATA;
+                p = RuntimeProcessFactory.getFactory().exec(getReportString(config, defaultPerfDataLoc), project);
+                PerfPlugin.getDefault().setPerfProfileData(new Path(defaultPerfDataLoc));
+                PerfPlugin.getDefault().setWorkingDir(workingDir);
+            }
 
-			input = new BufferedReader(new InputStreamReader(p.getInputStream()));
-			error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
-			//spitting error stream moved to end of while loop, due to commenting of p.waitFor()
-		} catch( IOException e ) {
-			logException(e);
-		}
+            input = new BufferedReader(new InputStreamReader(p.getInputStream()));
+            error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+            //spitting error stream moved to end of while loop, due to commenting of p.waitFor()
+        } catch( IOException e ) {
+            logException(e);
+        }
 
-		PerfCore.parseRemoteReport(config, workingDir, monitor, perfDataLoc, print,
-				invisibleRoot, OldPerfVersion, input, error, project);
-	}
+        PerfCore.parseRemoteReport(config, workingDir, monitor, perfDataLoc, print,
+                invisibleRoot, OldPerfVersion, input, error, project);
+    }
 
