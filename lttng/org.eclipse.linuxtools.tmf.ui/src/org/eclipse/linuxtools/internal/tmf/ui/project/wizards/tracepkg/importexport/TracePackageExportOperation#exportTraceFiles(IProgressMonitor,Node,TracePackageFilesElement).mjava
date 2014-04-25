@@ -1,17 +1,24 @@
     private void exportTraceFiles(IProgressMonitor monitor, Node traceNode, TracePackageFilesElement element) throws CoreException {
         Document doc = traceNode.getOwnerDocument();
-        IResource resource = ((TracePackageTraceElement) element.getParent()).getTraceElement().getResource();
-        IFolder folder = fExportFolder.getFolder(TmfTracesFolder.TRACES_FOLDER_NAME);
-        if (!folder.exists()) {
-            folder.create(IResource.FORCE, true, new SubProgressMonitor(monitor, 1, SubProgressMonitor.PREPEND_MAIN_LABEL_TO_SUBTASK));
-        }
+        TmfTraceElement traceElement = ((TracePackageTraceElement) element.getParent()).getTraceElement();
+        IResource resource = traceElement.getResource();
+        IPath traceFolderPath = traceElement.getProject().getTracesFolder().getPath();
 
-        IResource link = createExportResource(folder, resource);
+        // project/Traces/A/B/Kernel -> A/B/Kernel
+        IPath relativeToExportFolder = resource.getFullPath().makeRelativeTo(traceFolderPath);
+
+        // project/.traceExport/A/B
+        IFolder folder = fExportFolder.getFolder(relativeToExportFolder.removeLastSegments(1));
+        TraceUtils.createFolder(folder, monitor);
+
+        createExportResource(folder, resource);
         Element fileElement = doc.createElement(ITracePackageConstants.TRACE_FILE_ELEMENT);
-        // project/.traceExport/Traces/kernel -> Traces/kernel
-        IPath archiveRelativePath = link.getFullPath().makeRelativeTo(fExportFolder.getFullPath());
-        fileElement.setAttribute(ITracePackageConstants.TRACE_FILE_NAME_ATTRIB, archiveRelativePath.toString());
+
+        fileElement.setAttribute(ITracePackageConstants.TRACE_FILE_NAME_ATTRIB, relativeToExportFolder.toString());
         traceNode.appendChild(fileElement);
-        fResources.add(folder);
+
+        // Always export the top-most folder containing the trace or the trace itself
+        IResource exportedResource = fExportFolder.findMember(relativeToExportFolder.segment(0));
+        fResources.add(exportedResource);
     }
 
