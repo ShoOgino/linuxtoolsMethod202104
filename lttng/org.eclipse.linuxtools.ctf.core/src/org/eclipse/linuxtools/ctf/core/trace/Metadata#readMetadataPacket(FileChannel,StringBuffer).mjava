@@ -39,26 +39,39 @@
         /* Use byte order that was detected with the magic number */
         headerByteBuffer.order(detectedByteOrder);
 
-        MetadataPacketHeader header = new MetadataPacketHeader(headerByteBuffer);
+        MetadataPacketHeader header = new MetadataPacketHeader();
+
+        /* Read from the ByteBuffer */
+        header.magic = headerByteBuffer.getInt();
+        headerByteBuffer.get(header.uuid);
+        header.checksum = headerByteBuffer.getInt();
+        header.contentSize = headerByteBuffer.getInt();
+        header.packetSize = headerByteBuffer.getInt();
+        header.compressionScheme = headerByteBuffer.get();
+        header.encryptionScheme = headerByteBuffer.get();
+        header.checksumScheme = headerByteBuffer.get();
+        header.ctfMajorVersion = headerByteBuffer.get();
+        header.ctfMinorVersion = headerByteBuffer.get();
 
         /* Check TSDL magic number */
-        if (!header.isMagicValid()) {
+        if (header.magic != Utils.TSDL_MAGIC) {
             throw new CTFReaderException("TSDL magic number does not match"); //$NON-NLS-1$
         }
 
         /* Check UUID */
+        UUID uuid = Utils.makeUUID(header.uuid);
         if (!trace.uuidIsSet()) {
-            trace.setUUID(header.getUuid());
-        } else if (!trace.getUUID().equals(header.getUuid())) {
+            trace.setUUID(uuid);
+        } else if (!trace.getUUID().equals(uuid)) {
             throw new CTFReaderException("UUID mismatch"); //$NON-NLS-1$
         }
 
         /* Extract the text from the packet */
-        int payloadSize = ((header.getContentSize() / 8) - METADATA_PACKET_HEADER_SIZE);
+        int payloadSize = ((header.contentSize / 8) - METADATA_PACKET_HEADER_SIZE);
         if (payloadSize < 0) {
             throw new CTFReaderException("Invalid metadata packet payload size."); //$NON-NLS-1$
         }
-        int skipSize = (header.getPacketSize() - header.getContentSize()) / 8;
+        int skipSize = (header.packetSize - header.contentSize) / 8;
 
         /* Read the payload + the padding in a ByteBuffer */
         ByteBuffer payloadByteBuffer = ByteBuffer.allocateDirect(payloadSize
