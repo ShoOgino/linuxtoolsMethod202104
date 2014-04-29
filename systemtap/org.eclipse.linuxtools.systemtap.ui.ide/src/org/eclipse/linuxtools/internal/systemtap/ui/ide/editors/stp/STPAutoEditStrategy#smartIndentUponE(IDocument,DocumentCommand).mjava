@@ -1,6 +1,7 @@
     private void smartIndentUponE(IDocument doc, DocumentCommand c) {
-        if (c.offset < 4 || doc.getLength() == 0)
+        if (c.offset < 4 || doc.getLength() == 0) {
             return;
+        }
 
         try {
             String content = doc.get(c.offset - 3, 3);
@@ -13,21 +14,24 @@
                 int lineOffset = doc.getLineOffset(line);
 
                 // make sure we don't have any leading comments etc.
-                if (doc.get(lineOffset, p - lineOffset).trim().length() != 0)
+                if (doc.get(lineOffset, p - lineOffset).trim().length() != 0) {
                     return;
+                }
 
                 // Line of last C code
                 int pos = scanner.findNonWhitespaceBackward(p - 1, STPHeuristicScanner.UNBOUND);
-                if (pos == -1)
+                if (pos == -1) {
                     return;
+                }
                 int lastLine = doc.getLineOfOffset(pos);
 
                 // Only shift if the last C line is further up and is a braceless block candidate
                 if (lastLine < line) {
                     STPIndenter indenter = new STPIndenter(doc, scanner, fProject);
                     int ref = indenter.findReferencePosition(p, true, MatchMode.REGULAR);
-                    if (ref == STPHeuristicScanner.NOT_FOUND)
+                    if (ref == STPHeuristicScanner.NOT_FOUND) {
                         return;
+                    }
                     int refLine = doc.getLineOfOffset(ref);
                     String indent = getIndentOfLine(doc, refLine);
 
@@ -37,7 +41,6 @@
                         c.offset = lineOffset;
                     }
                 }
-
                 return;
             }
 
@@ -50,31 +53,35 @@
                 int lineOffset = doc.getLineOffset(line);
 
                 // make sure we don't have any leading comments etc.
-                if (doc.get(lineOffset, p - lineOffset).trim().length() != 0)
+                if (doc.get(lineOffset, p - lineOffset).trim().length() != 0) {
                     return;
+                }
 
                 // Line of last C code
                 int pos = scanner.findNonWhitespaceBackward(p - 1, STPHeuristicScanner.UNBOUND);
-                if (pos == -1)
+                if (pos == -1) {
                     return;
+                }
                 int lastLine = doc.getLineOfOffset(pos);
 
                 // Only shift if the last C line is further up and is a braceless block candidate
                 if (lastLine < line) {
                     STPIndenter indenter = new STPIndenter(doc, scanner, fProject);
                     int ref = indenter.findReferencePosition(p, false, MatchMode.MATCH_CASE);
-                    if (ref == STPHeuristicScanner.NOT_FOUND)
+                    if (ref == STPHeuristicScanner.NOT_FOUND) {
                         return;
+                    }
                     int refLine = doc.getLineOfOffset(ref);
                     int nextToken = scanner.nextToken(ref, STPHeuristicScanner.UNBOUND);
                     String indent;
-                    if (nextToken == STPSymbols.TokenCASE || nextToken == STPSymbols.TokenDEFAULT)
+                    if (nextToken == STPSymbols.TokenCASE || nextToken == STPSymbols.TokenDEFAULT) {
                         indent = getIndentOfLine(doc, refLine);
-                    else // at the brace of the switch
+                    } else {// at the brace of the switch
                         indent = indenter.computeIndentation(p).toString();
+                    }
 
                     if (indent != null) {
-                        c.text = indent.toString() + "case"; //$NON-NLS-1$
+                        c.text = indent + "case"; //$NON-NLS-1$
                         c.length += c.offset - lineOffset;
                         c.offset = lineOffset;
                     }
