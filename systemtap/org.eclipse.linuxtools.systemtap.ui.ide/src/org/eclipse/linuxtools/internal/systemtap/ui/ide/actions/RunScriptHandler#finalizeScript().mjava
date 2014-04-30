@@ -1,0 +1,43 @@
+    /**
+     * Produces a <code>String[]</code> from the <code>ArrayList</code> passed in with stap inserted
+     * as the first entry, and the filename as the last entry. Used to convert the arguments generated
+     * earlier in <code>buildStandardScript</code> such as tapset locations and guru mode into an actual
+     * command line argument array that can be passed to <code>Runtime.exec</code>.
+     * @return An array suitable to pass to <code>Runtime.exec</code> to start stap on this file.
+     * @since 2.0
+     */
+    private String[] finalizeScript() throws ExecutionException {
+        boolean local = getRunLocal();
+        String modname;
+        if (!local) {
+            modname = getFileNameWithoutExtension(serverfileName);
+        }
+        /* We need to remove the directory prefix here because in the case of
+         * running the script remotely, this is already done.  Not doing so
+         * causes a modname error.
+         */
+        else {
+            modname = getFileNameWithoutExtension(getFileName(fileName));
+        }
+
+        // Make sure script name only contains underscores and/or alphanumeric characters.
+        Pattern validModName = Pattern.compile("^[a-z0-9_A-Z]+$"); //$NON-NLS-1$
+        Matcher modNameMatch = validModName.matcher(modname);
+        if (!modNameMatch.matches()) {
+            continueRun = false;
+            throw new ExecutionException(Messages.ScriptRunAction_InvalidScriptMessage);
+        }
+
+        String[] script = new String[cmdList.size() + 4];
+        script[0] = "stap"; //$NON-NLS-1$
+        script[script.length - 1] = !local ? tmpfileName : fileName;
+
+        for (int i = 0; i < cmdList.size(); i++) {
+            script[i + 1] = cmdList.get(i);
+        }
+        script[script.length - 3] = "-m"; //$NON-NLS-1$
+
+        script[script.length - 2] = modname;
+        return script;
+    }
+

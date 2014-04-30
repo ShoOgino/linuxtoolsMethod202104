@@ -3,40 +3,39 @@
      * by the presence of embedded C.
      * @return True if the script contains embedded C code.
      */
-    private boolean isGuru() {
+    private boolean isGuru() throws ExecutionException {
         File f = new File(fileName);
-        try (FileReader fr = new FileReader(f)){
+        try (FileReader fr = new FileReader(f)) {
             int curr = 0;
             int prev = 0;
             boolean front = false;
-            boolean imbedded = false;
+            boolean embedded = false;
             boolean inLineComment = false;
             boolean inBlockComment = false;
-            while(-1 != (curr = fr.read())) {
-                if(!inLineComment && !inBlockComment && '%' == prev && '{' == curr) {
+            while (-1 != (curr = fr.read())) {
+                if (!inLineComment && !inBlockComment && prev == '%' && curr == '{') {
                     front = true;
-                } else if(!inLineComment && !inBlockComment && '%' == prev && '}' == curr && front) {
-                    imbedded = true;
+                } else if (!inLineComment && !inBlockComment && prev == '%' && curr == '}' && front) {
+                    embedded = true;
                     break;
-                } else if(!inBlockComment && (('/' == prev && '/' == curr) || '#' == curr)) {
+                } else if (!inBlockComment && ((prev == '/' && curr == '/') || curr == '#')) {
                     inLineComment = true;
-                } else if(!inLineComment && '/' == prev && '*' == curr) {
+                } else if (!inLineComment && prev == '/' && curr == '*') {
                     inBlockComment = true;
-                } else if('\n' == curr) {
+                } else if (curr == '\n') {
                     inLineComment = false;
-                } else if('*' == prev && '/' == curr) {
+                } else if (prev == '*' && curr == '/') {
                     inBlockComment = false;
                 }
                 prev = curr;
             }
-            fr.close();
-            if(imbedded) {
+            if (embedded) {
                 return true;
             }
         } catch (FileNotFoundException fnfe) {
-            ExceptionErrorDialog.openError(Localization.getString("RunScriptHandler.couldNotOpenScriptFile"), fnfe); //$NON-NLS-1$
+            throw new ExecutionException(Localization.getString("RunScriptHandler.couldNotOpenScriptFile"), fnfe); //$NON-NLS-1$
         } catch (IOException ie) {
-            ExceptionErrorDialog.openError(Localization.getString("RunScriptHandler.fileIOError"), ie); //$NON-NLS-1$
+            throw new ExecutionException(Localization.getString("RunScriptHandler.fileIOError"), ie); //$NON-NLS-1$
         }
         return false;
     }
