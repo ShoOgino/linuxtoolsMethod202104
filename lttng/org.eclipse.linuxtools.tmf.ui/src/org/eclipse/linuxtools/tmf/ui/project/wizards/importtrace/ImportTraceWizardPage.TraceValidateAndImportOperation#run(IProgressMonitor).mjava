@@ -34,6 +34,8 @@
                     TraceFileSystemElement element = fileSystemElementsIter.next();
                     File fileResource = (File) element.getFileSystemObject();
                     String resourcePath = fileResource.getAbsolutePath();
+                    element.setDestinationContainerPath(computeDestinationContainerPath(new Path(resourcePath)));
+
                     currentPath = resourcePath;
                     SubMonitor sub = subMonitor.newChild(1);
                     if (element.isDirectory()) {
@@ -47,6 +49,7 @@
                         TraceFileSystemElement parentElement = (TraceFileSystemElement)element.getParent();
                         File parentFile = (File) parentElement.getFileSystemObject();
                         String parentPath = parentFile.getAbsolutePath();
+                        parentElement.setDestinationContainerPath(computeDestinationContainerPath(new Path(parentPath)));
                         currentPath = parentPath;
                         if (!folderElements.containsKey(parentPath)) {
                             if (isDirectoryTrace(parentElement)) {
@@ -64,8 +67,10 @@
             } catch (InterruptedException e) {
                 setStatus(Status.CANCEL_STATUS);
             } catch (Exception e) {
-                setStatus(new Status(IStatus.ERROR, Activator.PLUGIN_ID, Messages.ImportTraceWizard_ImportProblem + ": " + //$NON-NLS-1$
-                        (currentPath != null ? currentPath : "") , e)); //$NON-NLS-1$
+                String errorMessage = Messages.ImportTraceWizard_ImportProblem + ": " + //$NON-NLS-1$
+                        (currentPath != null ? currentPath : ""); //$NON-NLS-1$
+                Activator.getDefault().logError(errorMessage, e);
+                setStatus(new Status(IStatus.ERROR, Activator.PLUGIN_ID, errorMessage , e));
             }
         }
 
