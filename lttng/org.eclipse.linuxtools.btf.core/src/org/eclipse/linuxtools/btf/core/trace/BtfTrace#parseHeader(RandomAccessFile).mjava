@@ -1,0 +1,85 @@
+    private void parseHeader(RandomAccessFile input) throws IOException {
+        String line = input.readLine();
+        long pos = 0;
+        while (line != null && line.startsWith("#")) { //$NON-NLS-1$
+            String[] tokens = line.split(" ", 2); //$NON-NLS-1$
+            /*
+             * please note that the examples we were given and the spec are NOT
+             * consistent, so we are ignoring the case to avoid issues
+             */
+            switch (tokens[0].toLowerCase()) {
+            case VERSION:
+                fVersion = tokens[1];
+                fProperties.put(VERSION, fVersion);
+                break;
+            case CREATOR:
+                fCreator = tokens[1];
+                fProperties.put(CREATOR, fCreator);
+                break;
+            case lCREATIONDATE:
+                fCreationDate = tokens[1];
+                fProperties.put(CREATIONDATE, fCreationDate);
+
+                try {
+                    Date dateTime = ISO8601DATEFORMAT.parse(fCreationDate);
+                    fTsOffset = dateTime.getTime() * 1000000L;
+                } catch (ParseException e) {
+                    Activator.logWarning("Creation date error: " + e.getMessage()); //$NON-NLS-1$
+                }
+                break;
+            case lINPUTFILE:
+                fInputFile = tokens[1];
+                fProperties.put(INPUTFILE, fInputFile);
+                break;
+            case lTIMESCALE:
+                fTsFormat = BtfTimstampFormat.parse(tokens[1]);
+                fProperties.put(TIMESCALE, fTsFormat.toString());
+                break;
+            case lENTITYTYPE:
+                pos = fFileInput.getFilePointer();
+                line = fFileInput.readLine();
+                while (line.startsWith("#-")) { //$NON-NLS-1$
+                    String tempLine = line.substring(1);
+                    String[] elements = tempLine.split(" ", 2); //$NON-NLS-1$
+                    fEntityTypes.put(Integer.parseInt(elements[0]), BtfEventTypeFactory.parse(elements[1]));
+                    pos = fFileInput.getFilePointer();
+                    line = fFileInput.readLine();
+                }
+                fFileInput.seek(pos);
+                fProperties.put(ENTITYTYPE, fEntityTypes.toString());
+                break;
+            case lENTITYTABLE:
+                pos = fFileInput.getFilePointer();
+                line = fFileInput.readLine();
+                while (line.startsWith("#-")) { //$NON-NLS-1$
+                    String tempLine = line.substring(1);
+                    String[] elements = tempLine.split(" ", 2); //$NON-NLS-1$
+                    fEntityTable.put(Integer.parseInt(elements[0]), elements[1]);
+                    pos = fFileInput.getFilePointer();
+                    line = fFileInput.readLine();
+                }
+                fProperties.put(ENTITYTABLE, fEntityTable.toString());
+                fFileInput.seek(pos);
+                break;
+            case lENTITYTYPETABLE:
+                pos = fFileInput.getFilePointer();
+                line = fFileInput.readLine();
+                while (line.startsWith("#-")) { //$NON-NLS-1$
+                    String tempLine = line.substring(1);
+                    String[] elements = tempLine.split(" ", 2); //$NON-NLS-1$
+                    fEntityTypeTable.put(BtfEventTypeFactory.parse(elements[0]), elements[1]);
+                    pos = fFileInput.getFilePointer();
+                    line = fFileInput.readLine();
+                }
+                fFileInput.seek(pos);
+                fProperties.put(ENTITYTYPETABLE, fEntityTypeTable.toString());
+                break;
+            default:
+                break;
+            }
+            fDataOffset = input.getFilePointer();
+            line = input.readLine();
+        }
+        fTsOffset = (long) (fTsOffset * fTsFormat.getScaleFactor());
+    }
+
