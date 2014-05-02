@@ -1,40 +1,40 @@
-	/* (non-Javadoc)
-	 * @see org.eclipse.cdt.core.IRemoteCommandLauncher#waitAndRead(java.io.OutputStream, java.io.OutputStream, org.eclipse.core.runtime.IProgressMonitor)
-	 */
-	@Override
-	public int waitAndRead(OutputStream output, OutputStream err, IProgressMonitor monitor) {
-		if (fShowCommand) {
-			printCommandLine(output);
-		}
+    /* (non-Javadoc)
+     * @see org.eclipse.cdt.core.IRemoteCommandLauncher#waitAndRead(java.io.OutputStream, java.io.OutputStream, org.eclipse.core.runtime.IProgressMonitor)
+     */
+    @Override
+    public int waitAndRead(OutputStream output, OutputStream err, IProgressMonitor monitor) {
+        if (fShowCommand) {
+            printCommandLine(output);
+        }
 
-		if (fProcess == null) {
-			return ILLEGAL_COMMAND;
-		}
+        if (fProcess == null) {
+            return ILLEGAL_COMMAND;
+        }
 
-		RemoteProcessClosure closure = new RemoteProcessClosure(fProcess, output, err);
-		closure.runNonBlocking();
-		while (!monitor.isCanceled() && closure.isAlive()) {
-			try {
-				Thread.sleep(DELAY);
-			} catch (InterruptedException ie) {
-				// ignore
-			}
-		}
+        RemoteProcessClosure closure = new RemoteProcessClosure(fProcess, output, err);
+        closure.runNonBlocking();
+        while (!monitor.isCanceled() && closure.isAlive()) {
+            try {
+                Thread.sleep(DELAY);
+            } catch (InterruptedException ie) {
+                // ignore
+            }
+        }
 
-		int state = OK;
+        int state = OK;
 
-		// Operation canceled by the user, terminate abnormally.
-		if (monitor.isCanceled()) {
-			closure.terminate();
-			state = COMMAND_CANCELED;
-			fErrorMessage = Activator.getResourceString("CommandLauncher.error.commandCanceled"); //$NON-NLS-1$
-		}
+        // Operation canceled by the user, terminate abnormally.
+        if (monitor.isCanceled()) {
+            closure.terminate();
+            state = COMMAND_CANCELED;
+            fErrorMessage = Activator.getResourceString("CommandLauncher.error.commandCanceled"); //$NON-NLS-1$
+        }
 
-		try {
-			fProcess.waitFor();
-		} catch (InterruptedException e) {
-			// ignore
-		}
-		return state;
-	}
+        try {
+            fProcess.waitFor();
+        } catch (InterruptedException e) {
+            // ignore
+        }
+        return state;
+    }
 
