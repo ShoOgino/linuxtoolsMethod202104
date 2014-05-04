@@ -7,38 +7,9 @@
      * @return The calculated timestamp value.
      */
     private long calculateTimestamp(IntegerDefinition timestampDef) {
-        long newval;
-        long majorasbitmask;
         int len = timestampDef.getDeclaration().getLength();
+        final long value = timestampDef.getValue();
 
-        /*
-         * If the timestamp length is 64 bits, it is a full timestamp.
-         */
-        if (timestampDef.getDeclaration().getLength() == 64) {
-            fLastTimestamp = timestampDef.getValue();
-            return fLastTimestamp;
-        }
-
-        /*
-         * Bit mask to keep / remove all old / new bits.
-         */
-        majorasbitmask = (1L << len) - 1;
-
-        /*
-         * If the new value is smaller than the corresponding bits of the last
-         * timestamp, we assume an overflow of the compact representation.
-         */
-        newval = timestampDef.getValue();
-        if (newval < (fLastTimestamp & majorasbitmask)) {
-            newval = newval + (1L << len);
-        }
-
-        /* Keep only the high bits of the old value */
-        fLastTimestamp = fLastTimestamp & ~majorasbitmask;
-
-        /* Then add the low bits of the new value */
-        fLastTimestamp = fLastTimestamp + newval;
-
-        return fLastTimestamp;
+        return calculateTimestamp(value, len);
     }
 

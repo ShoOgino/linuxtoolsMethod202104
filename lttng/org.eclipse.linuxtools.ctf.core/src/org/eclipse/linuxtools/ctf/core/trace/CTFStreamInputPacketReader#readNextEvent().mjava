@@ -46,58 +46,66 @@
         }
 
         final BitBuffer currentBitBuffer = fBitBuffer;
-        if( currentBitBuffer == null ) {
+        if (currentBitBuffer == null) {
             return null;
         }
         final long posStart = currentBitBuffer.position();
         /* Read the stream event header. */
         if (fStreamEventHeaderDecl != null) {
-            fCurrentStreamEventHeaderDef = getStreamEventHeaderDefinition(currentBitBuffer);
-
-            /* Check for the event id. */
-            IDefinition idDef = fCurrentStreamEventHeaderDef.lookupDefinition("id"); //$NON-NLS-1$
-            if (idDef instanceof SimpleDatatypeDefinition) {
-                eventID = ((SimpleDatatypeDefinition) idDef).getIntegerValue();
-            } else if (idDef != null) {
-                throw new CTFReaderException("Incorrect event id : " + eventID); //$NON-NLS-1$
-            }
-
-            /*
-             * Get the timestamp from the event header (may be overridden later
-             * on)
-             */
-            IntegerDefinition timestampDef = fCurrentStreamEventHeaderDef.lookupInteger("timestamp"); //$NON-NLS-1$
-            if (timestampDef != null) {
-                timestamp = calculateTimestamp(timestampDef);
-            } // else timestamp remains 0
-
-            /* Check for the variant v. */
-            IDefinition variantDef = fCurrentStreamEventHeaderDef.lookupDefinition("v"); //$NON-NLS-1$
-            if (variantDef instanceof VariantDefinition) {
-
-                /* Get the variant current field */
-                StructDefinition variantCurrentField = (StructDefinition) ((VariantDefinition) variantDef).getCurrentField();
-
-                /*
-                 * Try to get the id field in the current field of the variant.
-                 * If it is present, it overrides the previously read event id.
-                 */
-                IDefinition idIntegerDef = variantCurrentField.lookupDefinition("id"); //$NON-NLS-1$
-                if (idIntegerDef instanceof IntegerDefinition) {
-                    eventID = ((IntegerDefinition) idIntegerDef).getValue();
+            if (fStreamEventHeaderDecl instanceof IEventHeaderDeclaration) {
+                fCurrentStreamEventHeaderDef = (ICompositeDefinition) fStreamEventHeaderDecl.createDefinition(null, "", currentBitBuffer); //$NON-NLS-1$
+                EventHeaderDefinition ehd = (EventHeaderDefinition) fCurrentStreamEventHeaderDef;
+                eventID = ehd.getId();
+                timestamp = calculateTimestamp(ehd.getTimestamp(), ehd.getTimestampLength());
+            } else {
+                fCurrentStreamEventHeaderDef = ((StructDeclaration) fStreamEventHeaderDecl).createDefinition(null, LexicalScope.EVENT_HEADER, currentBitBuffer);
+                StructDefinition StructEventHeaderDef = (StructDefinition) fCurrentStreamEventHeaderDef;
+                /* Check for the event id. */
+                IDefinition idDef = StructEventHeaderDef.lookupDefinition("id"); //$NON-NLS-1$
+                SimpleDatatypeDefinition simpleIdDef = null;
+                if (idDef instanceof SimpleDatatypeDefinition) {
+                    simpleIdDef = ((SimpleDatatypeDefinition) idDef);
+                } else if (idDef != null) {
+                    throw new CTFReaderException("Id defintion not an integer, enum or float definiton in event header."); //$NON-NLS-1$
                 }
 
                 /*
-                 * Get the timestamp. This would overwrite any previous
-                 * timestamp definition
+                 * Get the timestamp from the event header (may be overridden
+                 * later on)
                  */
-                IDefinition def = variantCurrentField.lookupDefinition("timestamp"); //$NON-NLS-1$
-                if (def instanceof IntegerDefinition) {
-                    timestamp = calculateTimestamp((IntegerDefinition) def);
+                IntegerDefinition timestampDef = StructEventHeaderDef.lookupInteger("timestamp"); //$NON-NLS-1$
+
+                /* Check for the variant v. */
+                IDefinition variantDef = StructEventHeaderDef.lookupDefinition("v"); //$NON-NLS-1$
+                if (variantDef instanceof VariantDefinition) {
+
+                    /* Get the variant current field */
+                    StructDefinition variantCurrentField = (StructDefinition) ((VariantDefinition) variantDef).getCurrentField();
+
+                    /*
+                     * Try to get the id field in the current field of the
+                     * variant. If it is present, it overrides the previously
+                     * read event id.
+                     */
+                    IDefinition vIdDef = variantCurrentField.lookupDefinition("id"); //$NON-NLS-1$
+                    if (vIdDef instanceof IntegerDefinition) {
+                        simpleIdDef = (SimpleDatatypeDefinition) vIdDef;
+                    }
+
+                    /*
+                     * Get the timestamp. This would overwrite any previous
+                     * timestamp definition
+                     */
+                    timestampDef = variantCurrentField.lookupInteger("timestamp"); //$NON-NLS-1$
                 }
+                if (simpleIdDef != null) {
+                    eventID = simpleIdDef.getIntegerValue();
+                }
+                if (timestampDef != null) {
+                    timestamp = calculateTimestamp(timestampDef);
+                } // else timestamp remains 0
             }
         }
-
         /* Get the right event definition using the event id. */
         IEventDeclaration eventDeclaration = fStreamInputReader.getStreamInput().getStream().getEvents().get(eventID);
         if (eventDeclaration == null) {
