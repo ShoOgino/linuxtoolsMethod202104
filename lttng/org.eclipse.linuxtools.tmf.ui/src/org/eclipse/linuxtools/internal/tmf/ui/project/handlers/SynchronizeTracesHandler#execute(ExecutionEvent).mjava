@@ -100,7 +100,7 @@
                                      */
                                     ITmfTrace expTrace = null;
                                     for (ITmfTrace t : experiment.getTraces()) {
-                                        if (t.getName().equals(traceel.getName())) {
+                                        if (t.getResource().equals(traceel.getResource())) {
                                             expTrace = t;
                                             break;
                                         }
@@ -109,12 +109,7 @@
                                         if ((expTrace != null) && syncAlgo.isTraceSynced(expTrace.getHostId())) {
 
                                             /* Find the original trace */
-                                            TmfTraceElement origtrace = null;
-                                            for (ITmfProjectModelElement el : traceel.getProject().getTracesFolder().getTraces()) {
-                                                if (el.getName().equals(traceel.getName())) {
-                                                    origtrace = (TmfTraceElement) el;
-                                                }
-                                            }
+                                            TmfTraceElement origtrace = traceel.getElementUnderTraceFolder();
 
                                             if (origtrace != null) {
                                                 /*
@@ -122,14 +117,13 @@
                                                  * new name does not exist
                                                  */
                                                 String newname = traceel.getName();
+                                                IContainer parentFolder = origtrace.getResource().getParent();
                                                 boolean traceexists;
                                                 do {
                                                     traceexists = false;
                                                     newname += "_"; //$NON-NLS-1$
-                                                    for (ITmfProjectModelElement el : traceel.getProject().getTracesFolder().getTraces()) {
-                                                        if (el.getName().equals(newname)) {
-                                                            traceexists = true;
-                                                        }
+                                                    if (parentFolder.findMember(newname) != null) {
+                                                        traceexists = true;
                                                     }
                                                 } while (traceexists);
 
