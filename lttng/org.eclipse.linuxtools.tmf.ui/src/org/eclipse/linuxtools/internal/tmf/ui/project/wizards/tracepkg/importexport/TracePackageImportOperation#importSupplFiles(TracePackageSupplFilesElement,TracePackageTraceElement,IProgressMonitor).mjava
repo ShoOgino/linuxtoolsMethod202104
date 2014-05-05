@@ -6,22 +6,18 @@
         }
 
         if (!fileNameAndLabelPairs.isEmpty()) {
-            List<TmfTraceElement> traces = fTmfTraceFolder.getTraces();
-            TmfTraceElement tmfTraceElement = null;
-            for (TmfTraceElement t : traces) {
-                if (t.getName().equals(traceElement.getText())) {
-                    tmfTraceElement = t;
-                    break;
-                }
-            }
-
-            if (tmfTraceElement != null) {
+            TmfTraceElement existingTrace = getMatchingTraceElement(traceElement);
+            if (existingTrace != null) {
                 ArchiveFile archiveFile = getSpecifiedArchiveFile();
-                tmfTraceElement.refreshSupplementaryFolder();
-                String traceName = tmfTraceElement.getResource().getName();
-                // Project/.tracing/tracename
-                IPath destinationContainerPath = tmfTraceElement.prepareTraceSupplementaryFolder(traceName, false).getFullPath();
-                return importFiles(archiveFile, fileNameAndLabelPairs, destinationContainerPath, monitor);
+                existingTrace.refreshSupplementaryFolder();
+                // Project/Traces/A/B -> A/B
+                IPath traceFolderRelativePath = fTmfTraceFolder.getPath().makeRelativeTo(fTmfTraceFolder.getProject().getTracesFolder().getPath());
+                // Project/.tracing/A/B/
+                IFolder traceSupplementaryFolder = fTmfTraceFolder.getTraceSupplementaryFolder(traceFolderRelativePath.toString());
+                IPath destinationContainerPath = traceSupplementaryFolder.getFullPath();
+                // Remove the .tracing segment at the beginnin so that a file in folder .tracing/A/B/ imports destinationContainerPath/A/B/
+                Path baseSourcePath = new Path(TmfCommonConstants.TRACE_SUPPLEMENTARY_FOLDER_NAME);
+                return importFiles(archiveFile, fileNameAndLabelPairs, destinationContainerPath, baseSourcePath, monitor);
             }
         }
 

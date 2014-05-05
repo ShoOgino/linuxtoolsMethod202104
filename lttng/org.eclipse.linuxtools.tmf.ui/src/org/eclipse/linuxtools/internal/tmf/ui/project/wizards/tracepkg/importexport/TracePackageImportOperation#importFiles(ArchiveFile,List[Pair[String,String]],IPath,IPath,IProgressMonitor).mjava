@@ -1,4 +1,4 @@
-    private IStatus importFiles(ArchiveFile archiveFile, List<Pair<String, String>> fileNameAndLabelPairs, IPath destinationContainerPath, IProgressMonitor monitor) {
+    private IStatus importFiles(ArchiveFile archiveFile, List<Pair<String, String>> fileNameAndLabelPairs, IPath destinationContainerPath, IPath baseSourcePath, IProgressMonitor monitor) {
         List<ArchiveProviderElement> objects = new ArrayList<>();
         Enumeration<?> entries = archiveFile.entries();
         while (entries.hasMoreElements()) {
@@ -12,21 +12,17 @@
 
             for (Pair<String, String> fileNameAndLabel : fileNameAndLabelPairs) {
 
-                // Examples: Traces/kernel/     .tracing/testtexttrace.txt/statistics.ht
+                // Examples: Traces/aaa/kernel/     .tracing/aaa/testtexttrace.txt/statistics.ht
                 IPath searchedArchivePath = new Path(fileNameAndLabel.getFirst());
 
                 // Check if this archive entry matches the searched file name at this archive location
                 boolean fileMatch = entryName.equalsIgnoreCase(searchedArchivePath.toString());
-                // For example Traces/kernel/metadata matches Traces/kernel/
+                // For example Traces/aaa/kernel/metadata matches Traces/aaa/kernel/
                 boolean folderMatch = entryName.startsWith(searchedArchivePath + "/"); //$NON-NLS-1$
 
                 if (fileMatch || folderMatch) {
-                    // Traces/     .tracing/testtexttrace.txt/
-                    IPath searchedArchivePathContainer = searchedArchivePath.removeLastSegments(1);
-
-                    // Traces/kernel/metadata -> kernel/metadata   .tracing/testtexttrace.txt/statistics.ht -> statistics.ht
-                    // Note: The ImportOperation will take care of creating the kernel folder
-                    IPath destinationPath = fullArchivePath.makeRelativeTo(searchedArchivePathContainer);
+                    // .tracing/aaa/testtexttrace.txt/statistics.ht -> aaa/testtexttrace.txt/statistics.ht
+                    IPath destinationPath = fullArchivePath.makeRelativeTo(baseSourcePath);
 
                     // metadata    statistics.ht
                     // We don't use the label when the entry is a folder match because the labels for individual files

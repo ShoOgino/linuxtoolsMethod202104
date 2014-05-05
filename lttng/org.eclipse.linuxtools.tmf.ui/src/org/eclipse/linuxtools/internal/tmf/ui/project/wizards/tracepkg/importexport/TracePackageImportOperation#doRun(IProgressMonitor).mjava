@@ -18,7 +18,7 @@
 
                     if (element instanceof TracePackageFilesElement) {
                         traceFilesElement = (TracePackageFilesElement) element;
-                        setStatus(importTraceFiles(traceFilesElement, progressMonitor));
+                        setStatus(importTraceFiles(traceFilesElement, traceElement, progressMonitor));
 
                     } else if (element instanceof TracePackageSupplFilesElement) {
                         TracePackageSupplFilesElement suppFilesElement = (TracePackageSupplFilesElement) element;
@@ -28,53 +28,6 @@
                     if (getStatus().getSeverity() != IStatus.OK) {
                         return;
                     }
-                }
-
-                String traceName = traceElement.getText();
-                IResource traceRes = fTmfTraceFolder.getResource().findMember(traceName);
-                if (traceRes == null || !traceRes.exists()) {
-                    setStatus(new Status(IStatus.ERROR, Activator.PLUGIN_ID, MessageFormat.format(Messages.ImportTracePackageWizardPage_ErrorFindingImportedTrace, traceName)));
-                    return;
-                }
-
-                TraceTypeHelper traceType = null;
-                String traceTypeStr = traceElement.getTraceType();
-                if (traceTypeStr != null) {
-                    traceType = TmfTraceType.getInstance().getTraceType(traceTypeStr);
-                    if (traceType == null) {
-                        setStatus(new Status(IStatus.ERROR, Activator.PLUGIN_ID, MessageFormat.format(Messages.ImportTracePackageWizardPage_ErrorSettingTraceType, traceElement.getTraceType(), traceName)));
-                        return;
-                    }
-                } else {
-                    try {
-                        progressMonitor.subTask(MessageFormat.format(Messages.TracePackageImportOperation_DetectingTraceType, traceName));
-                        traceType = TmfTraceTypeUIUtils.selectTraceType(traceRes.getLocation().toOSString(), null, null);
-                    } catch (TmfTraceImportException e) {
-                        // Could not figure out the type
-                    }
-                }
-
-                if (traceType != null) {
-                    try {
-                        TmfTraceTypeUIUtils.setTraceType(traceRes, traceType);
-                    } catch (CoreException e) {
-                        setStatus(new Status(IStatus.ERROR, Activator.PLUGIN_ID, MessageFormat.format(Messages.ImportTracePackageWizardPage_ErrorSettingTraceType, traceElement.getTraceType(), traceName), e));
-                    }
-                }
-
-                importBookmarks(traceRes, traceElement, progressMonitor);
-
-                try {
-                    if (traceFilesElement != null) {
-                        URI uri = new File(getFileName()).toURI();
-                        IPath entryPath = new Path(traceFilesElement.getFileName());
-                        if (traceRes instanceof IFolder) {
-                            entryPath = entryPath.addTrailingSeparator();
-                        }
-                        String sourceLocation = URIUtil.toUnencodedString(URIUtil.toJarURI(uri, entryPath));
-                        traceRes.setPersistentProperty(TmfCommonConstants.SOURCE_LOCATION, sourceLocation);
-                    }
-                } catch (CoreException e) {
                 }
             }
 
