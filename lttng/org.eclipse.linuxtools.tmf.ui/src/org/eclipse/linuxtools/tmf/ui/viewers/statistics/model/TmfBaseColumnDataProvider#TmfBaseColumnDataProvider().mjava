@@ -40,16 +40,16 @@
         builder.add(new TmfBaseColumnData(
                 EVENTS_COUNT_COLUMN,
                 140,
-                SWT.LEFT,
+                SWT.RIGHT,
                 EVENTS_COUNT_COLUMN_TIP,
                 new ColumnLabelProvider() {
                     @Override
                     public String getText(Object element) {
                         TmfStatisticsTreeNode node = (TmfStatisticsTreeNode) element;
                         if (!HIDDEN_FOLDER_LEVELS.contains(node.getName())) {
-                            return Long.toString(node.getValues().getTotal());
+                            return TmfStatisticsFormatter.toColumnData(node, StatsColumn.TOTAL);
                         }
-                        return ""; //$NON-NLS-1$
+                        return EMPTY_STRING;
                     }
                 },
                 new ViewerComparator() {
@@ -64,15 +64,9 @@
                 new ITmfColumnPercentageProvider() {
                     @Override
                     public double getPercentage(TmfStatisticsTreeNode node) {
-                        TmfStatisticsTreeNode parent = node;
-                        do {
-                            parent = parent.getParent();
-                        } while (parent != null && parent.getValues().getTotal() == 0);
-
-                        if (parent == null) {
-                            return 0;
-                        }
-                        return (double) node.getValues().getTotal() / parent.getValues().getTotal();
+                        TmfStatisticsTreeNode top = node.getTop();
+                        return (top == null || top.getValues().getTotal() == 0) ?
+                                0 : (double) (node.getValues().getTotal()) / top.getValues().getTotal();
                     }
                 }));
 
@@ -80,17 +74,18 @@
         builder.add(new TmfBaseColumnData(
                 PARTIAL_EVENTS_COUNT_COLUMN,
                 140,
-                SWT.LEFT,
+                SWT.RIGHT,
                 PARTIAL_COUNT_COLUMN_TIP,
                 new ColumnLabelProvider() {
                     @Override
                     public String getText(Object element) {
                         TmfStatisticsTreeNode node = (TmfStatisticsTreeNode) element;
                         if (!HIDDEN_FOLDER_LEVELS.contains(node.getName())) {
-                            return Long.toString(node.getValues().getPartial());
+                            return TmfStatisticsFormatter.toColumnData(node, StatsColumn.PARTIAL);
                         }
-                        return ""; //$NON-NLS-1$
+                        return EMPTY_STRING;
                     }
+
                 },
                 new ViewerComparator() {
                     @Override
@@ -104,15 +99,25 @@
                 new ITmfColumnPercentageProvider() {
                     @Override
                     public double getPercentage(TmfStatisticsTreeNode node) {
-                        TmfStatisticsTreeNode parent = node;
-                        do {
-                            parent = parent.getParent();
-                        } while (parent != null && parent.getValues().getPartial() == 0);
+                        TmfStatisticsTreeNode top = node.getTop();
+                        return (top == null || top.getValues().getPartial() == 0) ?
+                                0 : (double) (node.getValues().getPartial()) / top.getValues().getPartial();
+                    }
+                }));
 
-                        if (parent == null) {
-                            return 0;
-                        }
-                        return (double) node.getValues().getPartial() / parent.getValues().getPartial();
+        /* Dummy column used to "fix" the display on Linux (using GTK) */
+        builder.add(new TmfBaseColumnData(EMPTY_STRING, 1, SWT.RIGHT, EMPTY_STRING,
+                new ColumnLabelProvider() {
+                    @Override
+                    public String getText(Object element) {
+                        return EMPTY_STRING;
+                    }
+                },
+                new ViewerComparator(),
+                new ITmfColumnPercentageProvider() {
+                    @Override
+                    public double getPercentage(TmfStatisticsTreeNode node) {
+                        return 0;
                     }
                 }));
 

@@ -19,7 +19,13 @@
             treeColumn.getColumn().setWidth(columnData.getWidth());
             treeColumn.getColumn().setToolTipText(columnData.getTooltip());
 
-            if (columnData.getComparator() != null) { // A comparator is defined.
+            // If is dummy column
+            if (columnData == columnDataList.get(TmfBaseColumnDataProvider.StatsColumn.DUMMY.getIndex())) {
+                treeColumn.getColumn().setResizable(false);
+            }
+
+            // A comparator is defined.
+            if (columnData.getComparator() != null) {
                 // Adds a listener on the columns header for sorting purpose.
                 treeColumn.getColumn().addSelectionListener(new SelectionAdapter() {
 
@@ -40,8 +46,8 @@
                         if (fTreeViewer.getTree().getSortDirection() == SWT.UP
                                 || fTreeViewer.getTree().getSortColumn() != treeColumn.getColumn()) {
                             /*
-                             * Puts the descendant order if the old order was
-                             * up or if the selected column has changed.
+                             * Puts the descendant order if the old order was up
+                             * or if the selected column has changed.
                              */
                             fTreeViewer.setComparator(columnData.getComparator());
                             fTreeViewer.getTree().setSortDirection(SWT.DOWN);
@@ -60,44 +66,84 @@
             treeColumn.setLabelProvider(columnData.getLabelProvider());
         }
 
-        // Handler that will draw the bar charts.
+        // Handler that will draw the percentages and the bar charts.
         fTreeViewer.getTree().addListener(SWT.EraseItem, new Listener() {
             @Override
             public void handleEvent(Event event) {
                 if (columnDataList.get(event.index).getPercentageProvider() != null) {
+
                     TmfStatisticsTreeNode node = (TmfStatisticsTreeNode) event.item.getData();
 
-                    double percentage = columnDataList.get(event.index).getPercentageProvider().getPercentage(node);
-                    if (percentage == 0) {  // No bar to draw
+                    // If node is hidden, exit immediately.
+                    if (TmfBaseColumnDataProvider.HIDDEN_FOLDER_LEVELS.contains(node.getName())) {
                         return;
                     }
 
-                    if ((event.detail & SWT.SELECTED) > 0) {    // The item is selected.
-                        // Draws our own background to avoid overwritten the bar.
+                    // Otherwise, get percentage and draw bar and text if applicable.
+                    double percentage = columnDataList.get(event.index).getPercentageProvider().getPercentage(node);
+
+                    // The item is selected.
+                    if ((event.detail & SWT.SELECTED) > 0) {
+                        // Draws our own background to avoid overwriting the bar.
                         event.gc.fillRectangle(event.x, event.y, event.width, event.height);
                         event.detail &= ~SWT.SELECTED;
                     }
 
-                    int barWidth = (int) ((fTreeViewer.getTree().getColumn(event.index).getWidth() - 8) * percentage);
-                    int oldAlpha = event.gc.getAlpha();
-                    Color oldForeground = event.gc.getForeground();
-                    Color oldBackground = event.gc.getBackground();
-                    /*
-                     * Draws a transparent gradient rectangle from the color of
-                     * foreground and background.
-                     */
-                    event.gc.setAlpha(64);
-                    event.gc.setForeground(event.item.getDisplay().getSystemColor(SWT.COLOR_BLUE));
-                    event.gc.setBackground(event.item.getDisplay().getSystemColor(SWT.COLOR_LIST_BACKGROUND));
-                    event.gc.fillGradientRectangle(event.x, event.y, barWidth, event.height, true);
-                    event.gc.drawRectangle(event.x, event.y, barWidth, event.height);
-                    // Restores old values
-                    event.gc.setForeground(oldForeground);
-                    event.gc.setBackground(oldBackground);
-                    event.gc.setAlpha(oldAlpha);
-                    event.detail &= ~SWT.BACKGROUND;
+                    // Drawing the percentage text
+                    // if events are present in top node
+                    // and the current node is not the top node
+                    // and if is total or partial events column.
+                    // If not, exit the method.
+                    if (!((event.index == TmfBaseColumnDataProvider.StatsColumn.TOTAL.getIndex() || event.index == TmfBaseColumnDataProvider.StatsColumn.PARTIAL.getIndex())
+                    && node != node.getTop())) {
+                        return;
+                    }
+
+                    long eventValue = event.index == TmfBaseColumnDataProvider.StatsColumn.TOTAL.getIndex() ?
+                            node.getTop().getValues().getTotal() : node.getTop().getValues().getPartial();
+
+                    if (eventValue != 0) {
+
+                        int oldAlpha = event.gc.getAlpha();
+                        Color oldForeground = event.gc.getForeground();
+                        Color oldBackground = event.gc.getBackground();
+
+                        // Bar to draw
+                        if (percentage != 0) {
+                            /*
+                             * Draws a transparent gradient rectangle from the
+                             * color of foreground and background.
+                             */
+                            int barWidth = (int) ((fTreeViewer.getTree().getColumn(event.index).getWidth() - 8) * percentage);
+                            event.gc.setAlpha(64);
+                            event.gc.setForeground(event.item.getDisplay().getSystemColor(SWT.COLOR_BLUE));
+                            event.gc.setBackground(event.item.getDisplay().getSystemColor(SWT.COLOR_LIST_BACKGROUND));
+                            event.gc.fillGradientRectangle(event.x, event.y, barWidth, event.height, true);
+                            event.gc.drawRectangle(event.x, event.y, barWidth, event.height);
+
+                            // Restore old values
+                            event.gc.setBackground(oldBackground);
+                            event.gc.setAlpha(oldAlpha);
+                            event.detail &= ~SWT.BACKGROUND;
+
+                        }
+
+                        String percentageText = TmfStatisticsFormatter.toPercentageText(percentage);
+                        String absoluteNumberText = TmfStatisticsFormatter.toColumnData(node, TmfBaseColumnDataProvider.StatsColumn.getColumn(event.index));
+
+                        if (event.width > event.gc.stringExtent(percentageText).x + event.gc.stringExtent(absoluteNumberText).x) {
+                            int textHeight = event.gc.stringExtent(percentageText).y;
+                            event.gc.setForeground(event.item.getDisplay().getSystemColor(SWT.COLOR_DARK_GRAY));
+                            event.gc.drawText(percentageText, event.x, event.y + (event.height - textHeight) / 2, true);
+                        }
+
+                        // Restores old values
+                        event.gc.setForeground(oldForeground);
+
+                    }
                 }
             }
+
         });
 
         // Initializes the comparator parameters
