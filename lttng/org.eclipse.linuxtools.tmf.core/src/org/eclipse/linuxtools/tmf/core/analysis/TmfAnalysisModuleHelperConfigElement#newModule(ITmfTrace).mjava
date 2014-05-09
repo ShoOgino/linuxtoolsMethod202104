@@ -6,27 +6,25 @@
             throw new TmfAnalysisException(NLS.bind(Messages.TmfAnalysisModuleHelper_AnalysisDoesNotApply, getName()));
         }
 
-        IAnalysisModule module = null;
-        try {
-            module = (IAnalysisModule) fCe.createExecutableExtension(TmfAnalysisModuleSourceConfigElement.ANALYSIS_MODULE_ATTR);
-            module.setName(getName());
-            module.setId(getId());
-            module.setAutomatic(isAutomatic());
-
-            /* Get the module's parameters */
-            final IConfigurationElement[] parametersCE = fCe.getChildren(TmfAnalysisModuleSourceConfigElement.PARAMETER_ELEM);
-            for (IConfigurationElement element : parametersCE) {
-                module.addParameter(element.getAttribute(TmfAnalysisModuleSourceConfigElement.NAME_ATTR));
-                String defaultValue = element.getAttribute(TmfAnalysisModuleSourceConfigElement.DEFAULT_VALUE_ATTR);
-                if (defaultValue != null) {
-                    module.setParameter(element.getAttribute(TmfAnalysisModuleSourceConfigElement.NAME_ATTR), defaultValue);
-                }
-            }
-            module.setTrace(trace);
-            TmfAnalysisManager.analysisModuleCreated(module);
-        } catch (CoreException e) {
-            Activator.logError("Error getting analysis modules from configuration files", e); //$NON-NLS-1$
+        IAnalysisModule module = createModule();
+        if (module == null) {
+            return null;
         }
+
+        module.setAutomatic(isAutomatic());
+
+        /* Get the module's parameters */
+        final IConfigurationElement[] parametersCE = fCe.getChildren(TmfAnalysisModuleSourceConfigElement.PARAMETER_ELEM);
+        for (IConfigurationElement element : parametersCE) {
+            module.addParameter(element.getAttribute(TmfAnalysisModuleSourceConfigElement.NAME_ATTR));
+            String defaultValue = element.getAttribute(TmfAnalysisModuleSourceConfigElement.DEFAULT_VALUE_ATTR);
+            if (defaultValue != null) {
+                module.setParameter(element.getAttribute(TmfAnalysisModuleSourceConfigElement.NAME_ATTR), defaultValue);
+            }
+        }
+        module.setTrace(trace);
+        TmfAnalysisManager.analysisModuleCreated(module);
+
         return module;
 
     }
