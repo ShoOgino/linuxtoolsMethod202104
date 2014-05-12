@@ -1,0 +1,30 @@
+    /**
+     * Runs stap with the given arguments on the given host using the given
+     * credentials and waits for the process to finish executing.
+     *
+     * @param user the user name to use on the remote machine.
+     * @param host the host where the systemtap process will be run.
+     * @param password password for authenticating with the given host.
+     * @param envp an array with extra enviroment variables to be used when running
+     * the command. Set to <code>null</code> if none are needed.
+     * @return a {@link Channel} connected to the remotely running process.
+     * @throws JSchException thrown if there are problems connecting to the remote machine.
+     * @since 3.0
+     */
+    public static Channel execRemoteAndWait(String[] args, OutputStream out,
+            OutputStream err, String user, String host, String password, int port, String[] envp)
+                    throws JSchException {
+        Channel channel = execRemote(args, out, err, user, host, password, port, envp);
+
+        while (!channel.isClosed()) {
+            try {
+                Thread.sleep(250);
+            } catch (InterruptedException e) {
+                // Thread was interrupted just return.
+                return channel;
+            }
+        }
+
+        return channel;
+    }
+

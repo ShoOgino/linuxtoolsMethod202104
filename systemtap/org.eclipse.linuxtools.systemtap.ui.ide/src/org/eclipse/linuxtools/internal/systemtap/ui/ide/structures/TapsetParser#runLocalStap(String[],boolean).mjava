@@ -1,0 +1,25 @@
+    private String runLocalStap(String[] args, boolean getErrors) throws IOException, InterruptedException {
+        Process process = RuntimeProcessFactory.getFactory().exec(
+                args, EnvironmentVariablesPreferencePage.getEnvironmentVariables(), null);
+        if (process == null) {
+            displayError(Messages.TapsetParser_CannotRunStapTitle, Messages.TapsetParser_CannotRunStapMessage);
+            return null;
+        }
+
+        StringStreamGobbler gobbler = new StringStreamGobbler(process.getInputStream());
+        StringStreamGobbler egobbler = null;
+        gobbler.start();
+        if (getErrors) {
+            egobbler = new StringStreamGobbler(process.getErrorStream());
+            egobbler.start();
+        }
+        process.waitFor();
+        gobbler.stop();
+        if (egobbler == null) {
+            return gobbler.getOutput().toString();
+        } else {
+            egobbler.stop();
+            return egobbler.getOutput().toString();
+        }
+    }
+
