@@ -3,26 +3,27 @@
      */
     @Test
     public void testCancel() {
-        TestAnalysis module = setUpAnalysis();
+        try (TestAnalysis module = setUpAnalysis();) {
 
-        module.setParameter(TestAnalysis.PARAM_TEST, 999);
-        try {
-            module.setTrace(TmfTestTrace.A_TEST_10K.getTrace());
-        } catch (TmfAnalysisException e) {
-            fail(e.getMessage());
+            module.setParameter(TestAnalysis.PARAM_TEST, 999);
+            try {
+                module.setTrace(TmfTestTrace.A_TEST_10K.getTrace());
+            } catch (TmfAnalysisException e) {
+                fail(e.getMessage());
+            }
+
+            assertEquals(Status.OK_STATUS, module.schedule());
+
+            /* Give the job a chance to start */
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                fail(e.getMessage());
+            }
+
+            module.cancel();
+            assertFalse(module.waitForCompletion());
+            assertEquals(-1, module.getAnalysisOutput());
         }
-
-        assertEquals(Status.OK_STATUS, module.schedule());
-
-        /* Give the job a chance to start */
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            fail(e.getMessage());
-        }
-
-        module.cancel();
-        assertFalse(module.waitForCompletion());
-        assertEquals(-1, module.getAnalysisOutput());
     }
 
