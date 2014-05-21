@@ -1,0 +1,21 @@
+    @Override
+    public EventDefinition createDefinition(CTFStreamInputReader streamInputReader, @NonNull BitBuffer input, long timestamp) throws CTFReaderException {
+        StructDeclaration streamEventContextDecl = streamInputReader.getStreamEventContextDecl();
+        StructDefinition streamEventContext = streamEventContextDecl != null ? streamEventContextDecl.createDefinition(null, LexicalScope.STREAM_EVENT_CONTEXT.toString(), input) : null;
+        StructDefinition packetContext = streamInputReader.getPacketReader().getCurrentPacketEventHeader();
+        StructDefinition eventContext = fContext != null ? fContext.createDefinition(null, CONTEXT, input) : null;
+        StructDefinition eventPayload = fFields != null ? fFields.createDefinition(null, FIELDS, input) : null;
+
+        // a bit lttng specific
+        // CTF doesn't require a timestamp,
+        // but it's passed to us
+        return new EventDefinition(
+                this,
+                streamInputReader,
+                timestamp,
+                streamEventContext,
+                eventContext,
+                packetContext,
+                eventPayload);
+    }
+
