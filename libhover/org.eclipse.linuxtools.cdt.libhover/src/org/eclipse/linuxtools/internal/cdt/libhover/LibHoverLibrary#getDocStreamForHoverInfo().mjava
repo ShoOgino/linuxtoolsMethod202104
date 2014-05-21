@@ -1,0 +1,26 @@
+    private InputStream getDocStreamForHoverInfo() throws URISyntaxException, IOException {
+        URI acDoc = new URI(location);
+        IPath p = URIUtil.toPath(acDoc);
+        if (p == null) {
+            URL url = acDoc.toURL();
+            URLConnection c = url.openConnection();
+            c.setReadTimeout(5000); // pick a timeout value less than 15s (default)
+            return c.getInputStream();
+        } else {
+            // Try to open the file local to the plug-in declaring the
+            // extension...or fall back to the libhover plug-in itself
+            // if no name space for the plug-in is stored.
+            Bundle bundle = LibhoverPlugin.getDefault().getBundle();
+            String nameSpace = getNameSpace();
+            if (nameSpace != null) {
+                bundle = Platform.getBundle(nameSpace);
+            }
+            try {
+                return FileLocator.openStream(bundle, p, false);
+            } catch (IOException e) {
+                // File is not local to plug-in, try file system.
+                return new FileInputStream(p.toFile());
+            }
+        }
+    }
+
