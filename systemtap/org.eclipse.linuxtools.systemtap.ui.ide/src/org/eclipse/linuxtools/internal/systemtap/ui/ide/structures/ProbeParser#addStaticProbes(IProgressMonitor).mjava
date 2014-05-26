@@ -5,22 +5,32 @@
      * <code>true</code> otherwise.
      */
     private boolean addStaticProbes(IProgressMonitor monitor) {
+        TreeNode statics = new TreeNode(Messages.ProbeParser_staticProbes, false);
+        tree.add(statics);
+        if (monitor.isCanceled()) {
+            return false;
+        }
+
         String probeDump = runStap(new String[]{"--dump-probe-types"}, null, false); //$NON-NLS-1$
         if (probeDump == null) {
-            return true;
+            return false;
         }
-        TreeNode group = null;
+
+        boolean canceled = false;
         try (Scanner st = new Scanner(probeDump)) {
+            TreeNode group = null;
             while (st.hasNextLine()) {
                 if (monitor.isCanceled()) {
-                    return false;
+                    canceled = true;
+                    break;
                 }
                 String tokenString = st.nextLine();
                 String probeName = (new StringTokenizer(tokenString)).nextToken();
                 group = addOrFindProbeGroup(extractProbeGroupName(probeName), group, statics);
                 group.add(makeStaticProbeNode(probeName));
             }
-            return true;
         }
+        statics.sortTree();
+        return !canceled;
     }
 

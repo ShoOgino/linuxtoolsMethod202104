@@ -9,11 +9,17 @@
      * <code>true</code> otherwise.
      */
     private boolean addFunctions(IProgressMonitor monitor) {
+        if (monitor.isCanceled()) {
+            return false;
+        }
+
         String tapsetContents = SharedParser.getInstance().getTapsetContents();
         if (tapsetContents == null) {
             // Functions are only drawn from the tapset dump, so exit if it's empty.
             return true;
         }
+
+        boolean canceled = false;
         try (Scanner st = new Scanner(tapsetContents)) {
             String filename = null;
             String scriptText = null;
@@ -21,7 +27,8 @@
             SharedParser sparser = SharedParser.getInstance();
             while (st.hasNextLine()) {
                 if (monitor.isCanceled()) {
-                    return false;
+                    canceled = true;
+                    break;
                 }
                 String tok = st.nextLine();
                 Matcher mFilename = sparser.filePattern.matcher(tok);
@@ -44,7 +51,8 @@
                     }
                 }
             }
-            return true;
         }
+        tree.sortTree();
+        return !canceled;
     }
 

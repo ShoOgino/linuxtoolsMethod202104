@@ -4,38 +4,43 @@
      * @param series The index of the data series to hover over.
      * @param dataPoint The data point of the series to move the mouse to. Set this to -1
      * or less if the mouse should stay where it is.
-     * @param adjustment Move the mouse's x & y coordinates by the values of this Point,
-     * or set this to <code>null</code> to make no adjustment.
      * @param expectedTooltip The expected contents of the tooltip.
      * @param shellShouldExist Set to <code>false</code> if the tooltip should not be found.
      */
     private void checkTooltipAtDataPoint(final AbstractChartBuilder cb, final int series,
-            final int dataPoint, final Point adjustment, final String expectedTooltip,
+            final int dataPoint, final String expectedTooltip,
             final boolean shellShouldExist) {
         if (dataPoint >= 0) {
-            UIThreadRunnable.syncExec(new VoidResult() {
 
+            bot.sleep(500);
+            UIThreadRunnable.syncExec(new VoidResult() {
                 @Override
                 public void run() {
                     Event event = new Event();
                     event.type = SWT.MouseMove;
+                    event.x = 0;
+                    event.y = 0;
+                    bot.getDisplay().post(event);
+
                     Point mousePoint = cb.getChart().getPlotArea().toDisplay(
                             cb.getChart().getSeriesSet().getSeries()[0].getPixelCoordinates(dataPoint));
-                    event.x = mousePoint.x + (adjustment != null ? adjustment.x : 0);
-                    event.y = mousePoint.y + (adjustment != null ? adjustment.y : 0);
+                    event.x = mousePoint.x;
+                    event.y = mousePoint.y;
                     bot.getDisplay().post(event);
                 }
             });
         }
 
-        bot.sleep(100); // Give some time for the tooltip to appear/change
-        UIThreadRunnable.syncExec(new VoidResult() {
+        bot.sleep(500); // Give some time for the tooltip to appear/change
 
+        UIThreadRunnable.syncExec(new VoidResult() {
             @Override
             public void run() {
                 for (SWTBotShell bshell : bot.shells()) {
                     Control[] children = bshell.widget.getChildren();
-                    if (children.length == 1 && children[0] instanceof Text && expectedTooltip.equals(((Text) children[0]).getText())) {
+                    if (children.length == 1 && children[0] instanceof Text
+                            && children[0].isVisible()
+                            && expectedTooltip.equals(((Text) children[0]).getText())) {
                         if (!shellShouldExist) {
                             throw new AssertionError("Did not expect to find this tooltip, but found it: " + expectedTooltip);
                         }

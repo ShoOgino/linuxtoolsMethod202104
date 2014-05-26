@@ -1,0 +1,86 @@
+    @Test
+    public void testGraphConfig() {
+        String scriptName = "testGraph.stp";
+        createScript(bot, scriptName);
+
+        final String val0 = "i";
+        final String val1 = "j";
+        final String val2 = "k";
+
+        openRunConfigurations(scriptName);
+        SWTBotShell shell = bot.shell("Run Configurations");
+        shell.setFocus();
+        bot.tree().select("SystemTap").contextMenu("New").click();
+        bot.textWithLabel("Name:").setText(scriptName);
+
+        // Select the "Graphing" tab.
+        SWTBotCTabItem tab = bot.cTabItem(Messages.SystemTapScriptGraphOptionsTab_graphingTitle);
+        tab.activate();
+        bot.checkBox(Messages.SystemTapScriptGraphOptionsTab_graphOutputRun).click();
+
+        // Create first regex.
+        SWTBotCombo combo = bot.comboBoxWithLabel(Messages.SystemTapScriptGraphOptionsTab_regexLabel);
+        combo.setText("Value:(\\d+) (\\d+)");
+        assertEquals("Value:(\\d+) (\\d+)", combo.getText());
+        SWTBotText text = bot.textWithLabel(Messages.SystemTapScriptGraphOptionsTab_sampleOutputLabel);
+        text.setText("Value:1 2");
+        assertEquals("Value:1 2", text.getText());
+
+        text = bot.text(MessageFormat.format(Messages.SystemTapScriptGraphOptionsTab_defaultColumnTitleBase, 1));
+        text.setText(val0);
+        assertEquals(val0, text.getText());
+        text = bot.text(MessageFormat.format(Messages.SystemTapScriptGraphOptionsTab_defaultColumnTitleBase, 2));
+        text.setText(val1);
+        assertEquals(val1, text.getText());
+        setupGraphWithTests("Values", false);
+
+        // Make a second regex, and a graph for it.
+        shell.setFocus();
+        combo = bot.comboBoxWithLabel(Messages.SystemTapScriptGraphOptionsTab_regexLabel);
+        assertEquals(2, combo.itemCount());
+        combo.setSelection(combo.selectionIndex() + 1);
+        assertEquals(3, combo.itemCount());
+        assertEquals("", combo.getText());
+        combo.setText("Other:(\\d+) (\\d+)");
+        assertEquals("Other:(\\d+) (\\d+)", combo.getText());
+
+        text = bot.text(MessageFormat.format(Messages.SystemTapScriptGraphOptionsTab_defaultColumnTitleBase, 1));
+        text.setText(val0);
+        assertEquals(val0, text.getText());
+        text = bot.text(MessageFormat.format(Messages.SystemTapScriptGraphOptionsTab_defaultColumnTitleBase, 2));
+        text.setText(val2);
+        assertEquals(val2, text.getText());
+
+        text = bot.textWithLabel(Messages.SystemTapScriptGraphOptionsTab_sampleOutputLabel);
+        assertEquals("", text.getText());
+        setupGraphWithTests("Others", false);
+
+        // Apply the changes, then close the menu & reopen it to make sure settings were saved.
+        shell.setFocus();
+        bot.button("Apply").click();
+        bot.button("Close").click();
+        bot.waitUntil(Conditions.shellCloses(shell));
+        openRunConfigurations(scriptName);
+        shell = bot.shell("Run Configurations");
+        shell.setFocus();
+        shell.bot().text().setText(scriptName); // Set the filter text to show configs of the current script
+        bot.waitUntil(new NodeAvailableAndSelect(bot.tree(), "SystemTap", scriptName));
+        tab = bot.cTabItem(Messages.SystemTapScriptGraphOptionsTab_graphingTitle);
+        tab.activate();
+
+        combo = bot.comboBoxWithLabel(Messages.SystemTapScriptGraphOptionsTab_regexLabel);
+        text = bot.textWithLabel(Messages.SystemTapScriptGraphOptionsTab_sampleOutputLabel);
+        SWTBotTable table = bot.table();
+        assertEquals(3, combo.itemCount());
+        assertEquals("Value:(\\d+) (\\d+)", combo.getText());
+        assertEquals("Value:1 2", text.getText());
+        assertEquals(1, table.rowCount());
+        String graphName = GraphFactory.getGraphName("org.eclipse.linuxtools.systemtap.graphing.ui.charts.scatterchartbuilder");
+        assertTrue(table.containsItem(graphName.concat(":Values")));
+        combo.setSelection(1);
+        assertEquals("Other:(\\d+) (\\d+)", combo.getText());
+        assertEquals("", text.getText());
+        assertEquals(1, table.rowCount());
+        assertTrue(table.containsItem(graphName.concat(":Others")));
+    }
+

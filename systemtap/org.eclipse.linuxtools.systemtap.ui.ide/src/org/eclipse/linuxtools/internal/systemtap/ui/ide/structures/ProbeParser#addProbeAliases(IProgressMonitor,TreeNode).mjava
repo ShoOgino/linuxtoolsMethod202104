@@ -5,16 +5,25 @@
      * @return <code>false</code> if a cancelation prevented all probes from being added;
      * <code>true</code> otherwise.
      */
-    private boolean addProbeAliases(IProgressMonitor monitor) {
+    private boolean addProbeAliases(IProgressMonitor monitor, TreeNode statics) {
+        TreeNode aliases = new TreeNode(Messages.ProbeParser_aliasProbes, false);
+        tree.add(aliases);
+        if (statics == null || monitor.isCanceled()) {
+            return false;
+        }
+
         String probeDump = runStap(new String[]{"-L"}, "**", false); //$NON-NLS-1$ //$NON-NLS-2$
         if (probeDump == null) {
-            return true;
+            return false;
         }
-        TreeNode group = null;
+
+        boolean canceled = false;
         try (Scanner st = new Scanner(probeDump)) {
+            TreeNode group = null;
             while (st.hasNextLine()) {
                 if (monitor.isCanceled()) {
-                    return false;
+                    canceled = false;
+                    break;
                 }
                 String tokenString = st.nextLine();
                 // If the token starts with '_' or '__' it is a private probe so
@@ -27,14 +36,16 @@
                 String probeName = probeTokenizer.nextToken();
 
                 String groupName = extractProbeGroupName(tokenString);
-                if (!isStaticProbeGroup(groupName)) {
+                // Only add this group if it is not a static probe group
+                if (statics.getChildByName(groupName) == null) {
                     TreeNode probeNode = makeProbeAliasNode(probeName);
                     group = addOrFindProbeGroup(groupName, group, aliases);
                     group.add(probeNode);
                     addAllVarNodesToProbeNode(probeTokenizer, probeNode);
                 }
             }
-            return true;
         }
+        aliases.sortTree();
+        return !canceled;
     }
 

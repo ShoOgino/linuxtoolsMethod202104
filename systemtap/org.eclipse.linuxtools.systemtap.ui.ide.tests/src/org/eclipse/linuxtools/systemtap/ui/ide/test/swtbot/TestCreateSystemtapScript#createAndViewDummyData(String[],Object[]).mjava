@@ -1,0 +1,37 @@
+    private void createAndViewDummyData(String[] titles, Object[] data) {
+        if (data.length % titles.length != 0) {
+            throw new IllegalArgumentException("data.length must be a multiple of titles.length.");
+        }
+        final int numRows = data.length / titles.length;
+        IFilteredDataSet dataset = new FilteredRowDataSet(titles);
+        for (int i = 0; i < numRows; i++) {
+            IDataEntry dataEntry = new RowEntry();
+            Object[] values = new Object[titles.length];
+            for (int v = 0; v < titles.length; v++) {
+                values[v] = data[titles.length * i + v];
+            }
+            dataEntry.putRow(0, values);
+            dataset.setData(dataEntry);
+        }
+        final File dataFile;
+        try {
+            dataFile = File.createTempFile("testSet", ".set");
+            dataFile.deleteOnExit();
+            if (!dataset.writeToFile(dataFile)) {
+                throw new IOException();
+            }
+        } catch (IOException e) {
+            fail("Could not create dummy data set.");
+            return;
+        }
+
+        UIThreadRunnable.syncExec(new VoidResult() {
+            @Override
+            public void run() {
+                new ImportDataSetHandler().execute(dataFile.getPath());
+            }
+        });
+        String editorName = dataFile.getName().concat(" Graphs");
+        bot.waitUntil(new EditorIsActive(editorName));
+    }
+

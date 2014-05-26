@@ -1,0 +1,80 @@
+    @Test
+    public void testTapsetContents() {
+        // Create a blank script and add a function to it while it's open.
+        String scriptName = "probeScript.stp";
+        createScript(bot, scriptName);
+
+        SWTBotView funcView = bot.viewByTitle("Function");
+        funcView.setFocus();
+        SWTBotTree funcTree = funcView.bot().tree();
+
+        SWTBotTreeItem item = funcTree.getTreeItem(funcNodeName);
+        item.doubleClick();
+        SWTBotEclipseEditor editor = bot.activeEditor().toTextEditor();
+        assertTrue(editor.getText().contains(item.getText()));
+
+        // Open a non-stap file and add a probe. This should bring up a dialog
+        // asking if the function should be added to the only open .stp file.
+        SWTBotMenu fileMenu = bot.menu("File");
+        SWTBotMenu newMenu = fileMenu.menu("New");
+        SWTBotMenu projectMenu = newMenu.menu("Other...");
+        projectMenu.click();
+        SWTBotShell shell = bot.shell("New");
+        shell.setFocus();
+        shell.bot().text().setText("Untitled Text File");
+        bot.waitUntil(new NodeAvailableAndSelect(bot.tree(), "General", "Untitled Text File"));
+        bot.button("Finish").click();
+        bot.waitUntil(Conditions.shellCloses(shell));
+
+        SWTBotView probeView = bot.viewByTitle("Probe Alias");
+        probeView.setFocus();
+        SWTBotTree probeTree = probeView.bot().tree();
+        SWTBotTreeItem probeCategory = probeTree.getTreeItem(probeCategoryFull);
+        probeCategory.expand();
+        bot.waitUntil(new TreeItemPopulated(probeCategory));
+
+        String dialogTitle = "Select Script";
+        item = probeCategory.getNode(probeGroup);
+        item.expand();
+        bot.waitUntil(new TreeItemPopulated(item));
+        item = item.getNode(0);
+        item.doubleClick();
+        shell = bot.shell(dialogTitle);
+        shell.setFocus();
+        bot.button("Yes").click();
+        bot.waitUntil(Conditions.shellCloses(shell));
+
+        // The editor containing the script should now be in focus.
+        bot.waitUntil(new EditorIsActive(scriptName));
+        assertTrue(wasProbeInserted(editor, item, false));
+
+        // Open the probe's definition file (an .stp script).
+        probeView.show();
+        item.contextMenu("View Definition").click();
+        bot.waitUntil(new EditorIsActive(probeDef.getName()));
+
+        // Adding a probe while an .stp editor is in focus should always add it
+        // to that editor, even if multiple .stp editors are open.
+        item = probeCategory.getNode(probeGroup);
+        item.doubleClick();
+        assertTrue(wasProbeInserted(bot.activeEditor().toTextEditor(), item, true));
+        assertFalse(wasProbeInserted(editor, item, true));
+
+        // Switch to the non-stp editor, and add a probe. A dialog should appear
+        // to let the user choose which of the open files to add to.
+        editor = bot.editorByTitle("Untitled 1").toTextEditor();
+        editor.show();
+        item = probeCategory.getNode(probeSingleWithoutDef);
+        item.doubleClick();
+        shell = bot.shell(dialogTitle);
+        shell.setFocus();
+        SWTBotTable table = bot.table();
+        assertTrue(table.containsItem(scriptName));
+        assertTrue(table.containsItem(probeDef.getName()));
+        table.select(scriptName);
+        bot.button("OK").click();
+        bot.waitUntil(Conditions.shellCloses(shell));
+        bot.waitUntil(new EditorIsActive(scriptName));
+        assertTrue(wasProbeInserted(bot.activeEditor().toTextEditor(), item, false));
+    }
+

@@ -1,7 +1,6 @@
     @BeforeClass
     public static void beforeClass() {
         bot = new SWTWorkbenchBot();
-        stapInstalled = true;
 
         try {
             bot.viewByTitle("Welcome").close();
@@ -12,11 +11,14 @@
             //ignore
         }
 
+        prepareTreeSettings();
+
         // Set SystemTap IDE perspective.
         bot.perspectiveByLabel("SystemTap IDE").activate();
         bot.sleep(500);
         for (SWTBotShell sh : bot.shells()) {
             if (sh.getText().startsWith("SystemTap IDE")) {
+                mainShell = sh;
                 sh.activate();
                 bot.sleep(500);
                 break;
@@ -26,7 +28,6 @@
         // Dismiss "Systemtap not installed" dialog(s) if present.
         try {
             SWTBotShell shell = bot.shell("Cannot Run SystemTap").activate();
-            stapInstalled = false;
             shell.close();
 
             shell = bot.shell("Cannot Run SystemTap").activate();
@@ -53,13 +54,5 @@
         projectExplorer.setFocus();
         projectExplorer.bot().tree().select(SYSTEMTAP_PROJECT_NAME)
             .contextMenu("Go Into").click();
-
-        // Open the Debug view.
-        bot.menu("Window").menu("Show View").menu("Other...").click();
-        shell = bot.shell("Show View");
-        shell.setFocus();
-        shell.bot().text().setText("Debug");
-        bot.waitUntil(new NodeAvailableAndSelect(bot.tree(), "Debug", "Debug"));
-        bot.button("OK").click();
     }
 

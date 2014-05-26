@@ -1,51 +1,27 @@
     @Test
     public void testGraphTooltips() {
-        // TODO If Systemtap is not installed, nothing can be graphed, so don't bother performing this test.
-        // Once the ability to read in pre-saved chart data is restored, this test can be run with sample data.
-        assumeTrue(stapInstalled);
-
-        String scriptName = "testGraphTooltips.stp";
-        SWTBotShell shell = prepareScript(scriptName, "#!/usr/bin/env stap"
-                 + "\nglobal y"
-                 + "\nprobe begin{y=5}"
-                 + "\nprobe timer.ms(1000){printf(\"%d\\n\",y);y++}"
-                 + "\nprobe timer.ms(5000){exit()}");
-
-        // Enter a regex.
-        SWTBotCombo combo = bot.comboBoxWithLabel(Messages.SystemTapScriptGraphOptionsTab_regexLabel);
-        assertFalse(bot.button(Messages.SystemTapScriptGraphOptionsTab_AddGraphButton).isEnabled());
-        combo.setText("(\\d+)");
+        createAndViewDummyData(new String[]{"Column 1"}, new Integer[]{1,2,3,4,5});
 
         // Add bar, pie, and line graphs that use the same column data.
         String title = "Info";
-        setupGraphGeneral(title, 1, "org.eclipse.linuxtools.systemtap.graphing.ui.charts.linechartbuilder", true);
-        setupGraphGeneral(title, 1, "org.eclipse.linuxtools.systemtap.graphing.ui.charts.barchartbuilder", true);
+        setupGraphGeneral(title, 1, "org.eclipse.linuxtools.systemtap.graphing.ui.charts.linechartbuilder", true, true);
+        setupGraphGeneral(title, 1, "org.eclipse.linuxtools.systemtap.graphing.ui.charts.barchartbuilder", true, true);
 
-        bot.button("Run").click();
-        bot.waitUntil(Conditions.shellCloses(shell));
-
-        // Perform mouse hover tests on graphs as they are being updated
-        SWTBotEditor graphEditor = TestCreateSystemtapScript.bot.editorByTitle(scriptName.concat(" Graphs"));
-        graphEditor.setFocus();
-        graphEditor.bot().cTabItem("Info - Bar Graph").activate();
+        // Perform mouse hover tests on graphs.
+        bot.activeEditor().bot().cTabItem(title.concat(" - Bar Graph")).activate();
         final Matcher<AbstractChartBuilder> matcher = widgetOfType(AbstractChartBuilder.class);
         AbstractChartBuilder cb = bot.widget(matcher);
-        bot.waitUntil(new ChartHasUpdated(cb.getChart(), 1));
         String tooltipFormat = "{0}: {1}";
-        checkTooltipAtDataPoint(cb, 0, 0, new Point(0, 20), MessageFormat.format(tooltipFormat, "Column 1", "5"), true);
+        checkTooltipAtDataPoint(cb, 0, 0, MessageFormat.format(tooltipFormat, "Column 1", "1"), true);
 
-        graphEditor.bot().cTabItem("Info - Line Graph").activate();
+        bot.activeEditor().bot().cTabItem(title.concat(" - Line Graph")).activate();
         cb = bot.widget(matcher);
-        bot.waitUntil(new ChartHasUpdated(cb.getChart(), 2));
         tooltipFormat = "Series: {0}\nx: {1}\ny: {2}";
-        checkTooltipAtDataPoint(cb, 0, 1, null, MessageFormat.format(tooltipFormat,    "Column 1", "2", "6"), true);
+        String lineChartTooltip = MessageFormat.format(tooltipFormat, "Column 1", "2", "2");
+        checkTooltipAtDataPoint(cb, 0, 1, lineChartTooltip, true);
 
         // The tooltip should disappear when a point moves away from the mouse, without need for mouse movement.
-        bot.waitUntil(new ChartHasUpdated(cb.getChart(), -1));
-        checkTooltipAtDataPoint(cb, 0, -1, null, MessageFormat.format(tooltipFormat, "Column 1", "2", "6"), false);
-
-        ScriptConsole.stopAll();
-        bot.waitUntil(new StapHasExited());
-        clearAllTerminated();
+        cb.setScale(0.2);
+        checkTooltipAtDataPoint(cb, 0, -1, lineChartTooltip, false);
     }
 

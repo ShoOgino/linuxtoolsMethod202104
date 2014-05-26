@@ -1,0 +1,39 @@
+    /**
+     * Load custom contents into the Function/Probe views.
+     */
+    private static void prepareTreeSettings() {
+        TapsetLibrary.stop();
+
+        try {
+            probeDef = File.createTempFile("probeDef", ".stp");
+            funcDef = File.createTempFile("funcDef", ".stp");
+            probeDef.deleteOnExit();
+            funcDef.deleteOnExit();
+        } catch (IOException e) {}
+        // Leave one of the files blank to test token search failures.
+        try (PrintWriter writer = new PrintWriter(probeDef)) {
+            writer.print("test file\nptest\nlast line\n");
+        } catch (FileNotFoundException e) {}
+
+        TreeNode testProbNodeParent = new TreeNode(null, false);
+        // Have static/alias folders to comply with convention (change this later).
+        testProbNodeParent.add(new TreeNode(probeCategoryEmpty, true));
+        testProbNodeParent.add(new TreeNode(probeCategoryFull, true));
+        TreeNode testProbNodeGroup = new TreeNode(probeGroup, true);
+        String innerProbe = "probegroup.inner";
+        TreeNode testProbNode = new TreeDefinitionNode(new ProbeNodeData(innerProbe), innerProbe, probeDef.getPath(), true);
+        testProbNode.add(new TreeNode(new ProbevarNodeData("s:string"), false));
+        testProbNodeGroup.add(testProbNode);
+        testProbNodeParent.getChildAt(1).add(testProbNodeGroup);
+        TreeNode testProbNode2 = new TreeDefinitionNode(new ProbeNodeData(probeSingleWithoutDef), probeSingleWithoutDef, null, true);
+        testProbNodeParent.getChildAt(1).add(testProbNode2);
+
+        TreeNode testFuncNodeParent = new TreeNode(null, false);
+        TreeNode testFuncNode = new TreeDefinitionNode(new FunctionNodeData("function ftest(x:long)", null), funcNodeName, funcDef.getPath(), true);
+        testFuncNode.add(new TreeNode(new FuncparamNodeData("long"), "x", false));
+        testFuncNodeParent.add(testFuncNode);
+
+        TreeSettings.setTrees(testFuncNodeParent, testProbNodeParent);
+        TapsetLibrary.readTreeFile();
+    }
+

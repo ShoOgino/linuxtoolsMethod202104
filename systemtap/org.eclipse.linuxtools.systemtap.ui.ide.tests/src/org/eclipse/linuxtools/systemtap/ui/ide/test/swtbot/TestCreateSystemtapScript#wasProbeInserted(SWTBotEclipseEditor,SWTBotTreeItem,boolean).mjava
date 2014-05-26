@@ -1,0 +1,24 @@
+    private boolean wasProbeInserted(SWTBotEclipseEditor editor, SWTBotTreeItem probeNode, boolean isGroup) {
+        String scriptText = editor.getText();
+        int entryIndex = scriptText.indexOf("probe " + probeNode.getText() + (isGroup ? ".*\n" : "\n"));
+        if (entryIndex == -1) {
+            return false;
+        }
+        String probeText = scriptText.substring(entryIndex);
+        if (!isGroup) {
+            SWTBotTreeItem[] variables = probeNode.getItems();
+            if (variables.length > 0) {
+                // If the probe has variables, each one should be mentioned in comments.
+                for (SWTBotTreeItem variable : probeNode.getItems()) {
+                    if (!probeText.contains(variable.getText())) {
+                        return false;
+                    }
+                }
+            } else if (probeText.contains("variables")) {
+                // If the probe has no variables, no mention of variables should be added in comments.
+                return false;
+            }
+        }
+        return true;
+    }
+
