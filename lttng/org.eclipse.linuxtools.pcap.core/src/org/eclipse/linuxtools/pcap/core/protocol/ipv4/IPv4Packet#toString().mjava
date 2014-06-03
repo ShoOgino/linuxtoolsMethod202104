@@ -1,0 +1,43 @@
+    @Override
+    public String toString() {
+        // Generate flagString
+        // This is very ugly.
+        String flagString = null;
+
+        if (fReservedFlag && fDontFragmentFlag && fMoreFragmentFlag) { // 111
+            flagString = "Flags: 0x07 (Invalid)"; //$NON-NLS-1$
+        } else if (fReservedFlag && fDontFragmentFlag && !fMoreFragmentFlag) { // 110
+            flagString = "Flags: 0x06 (Invalid)"; //$NON-NLS-1$
+        } else if (fReservedFlag && !fDontFragmentFlag && fMoreFragmentFlag) { // 101
+            flagString = "Flags: 0x05 (Invalid)"; //$NON-NLS-1$
+        } else if (fReservedFlag && !fDontFragmentFlag && !fMoreFragmentFlag) { // 100
+            flagString = "Flags: 0x04 (Invalid)"; //$NON-NLS-1$
+        } else if (!fReservedFlag && fDontFragmentFlag && fMoreFragmentFlag) { // 011
+            flagString = "Flags: 0x03 (Invalid)"; //$NON-NLS-1$
+        } else if (!fReservedFlag && fDontFragmentFlag && !fMoreFragmentFlag) { // 010
+            flagString = "Flags: 0x02 (Don't fragment)"; //$NON-NLS-1$
+        } else if (!fReservedFlag && !fDontFragmentFlag && fMoreFragmentFlag) { // 001
+            flagString = "Flags: 0x01 (More fragments)"; //$NON-NLS-1$
+        } else if (!fReservedFlag && !fDontFragmentFlag && !fMoreFragmentFlag) { // 000
+            flagString = "Flags: 0x00 (Don't have more fragments)"; //$NON-NLS-1$
+        }
+
+        flagString += ", Fragment Offset: " + fFragmentOffset; //$NON-NLS-1$
+
+        // Generate checksum string
+        // TODO calculate the expected checksum from packet
+        String checksumString = "Header Checksum: " + String.format("%s%04x", "0x", fHeaderChecksum); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+
+        String string = getProtocol().getName() + ", Source: " + ConversionHelper.toIpAddress(fSourceIpAddress) + ", Destination: " + ConversionHelper.toIpAddress(fDestinationIpAddress) + //$NON-NLS-1$ //$NON-NLS-2$
+                "\nVersion: " + fVersion + ", Identification: " + String.format("%s%04x", "0x", fIdentification) + ", Header Length: " + getHeaderLength() + " bytes, Total Length: " + getTotalLength() + //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
+                " bytes\nDifferentiated Services Code Point: " + String.format("%s%02x", "0x", fDSCP) + "; Explicit Congestion Notification: " + String.format("%s%02x", "0x", fExplicitCongestionNotification) //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
+                + "\n" + flagString + "\nTime to live: " + fTimeToLive + //$NON-NLS-1$ //$NON-NLS-2$
+                "\nProtocol: " + fIpDatagramProtocol + "\n" //$NON-NLS-1$ //$NON-NLS-2$
+                + checksumString + "\n"; //$NON-NLS-1$
+        final Packet child = fChildPacket;
+        if (child != null) {
+            return string + child.toString();
+        }
+        return string;
+    }
+

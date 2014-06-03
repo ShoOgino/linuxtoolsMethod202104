@@ -1,0 +1,88 @@
+    /**
+     * Constructor of the PcapFile Class.
+     *
+     * @param filePath
+     *            The path to the pcap file.
+     *
+     * @throws BadPcapFileException
+     *             Thrown if the Pcap File is not valid.
+     * @throws IOException
+     *             Thrown if there is an IO error while reading the file.
+     */
+    public PcapFile(String filePath) throws BadPcapFileException, IOException {
+
+        fFileIndex = new TreeMap<>();
+        fCurrentRank = 0;
+        fTotalNumberPackets = -1;
+        fPcapFilePath = filePath;
+
+        // Check file validity
+        File pcapFile = new File(fPcapFilePath);
+        if ((!fPcapFilePath.endsWith(".cap") && !fPcapFilePath.endsWith(".pcap")) || //$NON-NLS-1$ //$NON-NLS-2$
+                !pcapFile.exists() || !pcapFile.isFile() || pcapFile.length() < PcapFileValues.GLOBAL_HEADER_SIZE) {
+            throw new BadPcapFileException("Bad Pcap File."); //$NON-NLS-1$
+        }
+
+        if (!pcapFile.canRead()) {
+            throw new IOException("File is not readable."); //$NON-NLS-1$
+        }
+
+        // File is not empty. Try to open.
+        fFileInputStream = new FileInputStream(fPcapFilePath);
+
+        @SuppressWarnings("null")
+        @NonNull FileChannel fileChannel = fFileInputStream.getChannel();
+        fFileChannel = fileChannel;
+
+        // Parse the global header.
+        // Read the magic number (4 bytes) from the input stream
+        // and determine the mode (big endian or little endian)
+        ByteBuffer globalHeader = ByteBuffer.allocate(PcapFileValues.GLOBAL_HEADER_SIZE);
+        globalHeader.clear();
+        fFileChannel.read(globalHeader);
+        globalHeader.flip();
+        int magicNumber = globalHeader.getInt();
+
+        @SuppressWarnings("null")
+        @NonNull ByteOrder be = ByteOrder.BIG_ENDIAN;
+        @SuppressWarnings("null")
+        @NonNull ByteOrder le = ByteOrder.LITTLE_ENDIAN;
+
+        switch (magicNumber) {
+        case PcapFileValues.MAGIC_BIG_ENDIAN_MICRO: // file is big endian
+            fByteOrder = be;
+            fTimestampPrecision = PcapTimestampScale.MICROSECOND;
+            System.out.println();
+            break;
+        case PcapFileValues.MAGIC_LITTLE_ENDIAN_MICRO: // file is little endian
+            fByteOrder = le;
+            fTimestampPrecision = PcapTimestampScale.MICROSECOND;
+            break;
+        case PcapFileValues.MAGIC_BIG_ENDIAN_NANO: // file is big endian
+            fByteOrder = be;
+            fTimestampPrecision = PcapTimestampScale.NANOSECOND;
+            break;
+        case PcapFileValues.MAGIC_LITTLE_ENDIAN_NANO: // file is little endian
+            fByteOrder = le;
+            fTimestampPrecision = PcapTimestampScale.NANOSECOND;
+            break;
+        default:
+            this.close();
+            throw new BadPcapFileException(String.format("%08x", magicNumber) + " is not a known magic number."); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+
+        // Put the rest of the buffer in file endian.
+        globalHeader.order(fByteOrder);
+
+        // Initialization of global header fields.
+        fMajorVersion = ConversionHelper.unsignedShortToInt(globalHeader.getShort());
+        fMinorVersion = ConversionHelper.unsignedShortToInt(globalHeader.getShort());
+        fTimeAccuracy = ConversionHelper.unsignedIntToLong(globalHeader.getInt());
+        fTimeZoneCorrection = ConversionHelper.unsignedIntToLong(globalHeader.getInt());
+        fSnapshotLength = ConversionHelper.unsignedIntToLong(globalHeader.getInt());
+        fDataLinkType = ConversionHelper.unsignedIntToLong(globalHeader.getInt());
+
+        fFileIndex.put(fCurrentRank, fFileChannel.position());
+
+    }
+

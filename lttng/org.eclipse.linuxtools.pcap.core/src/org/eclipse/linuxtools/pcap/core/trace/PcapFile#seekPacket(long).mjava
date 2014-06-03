@@ -1,0 +1,35 @@
+    /**
+     * Method that moves the position to the specified rank.
+     *
+     * @param rank
+     *            The rank of the packet.
+     *
+     * @throws IOException
+     *             Thrown when there is an error while reading the file.
+     * @throws BadPcapFileException
+     *             Thrown when a packet header is invalid.
+     */
+    public synchronized void seekPacket(long rank) throws IOException, BadPcapFileException {
+
+        // Verify argument
+        if (rank < 0) {
+            throw new IllegalArgumentException();
+        }
+
+        Long positionInBytes = fFileIndex.get(rank);
+
+        if (positionInBytes != null) {
+            // Index is known. Move to position.
+            fFileChannel.position(positionInBytes.longValue());
+            fCurrentRank = rank;
+        } else {
+            // Index is unknown. Find the corresponding position.
+            // Find closest index
+            fCurrentRank = fFileIndex.floorKey(rank);
+            // skip until wanted packet is found
+            do {
+                skipNextPacket();
+            } while (fCurrentRank != rank && hasNextPacket());
+        }
+    }
+

@@ -1,0 +1,47 @@
+    /**
+     * Constructor of the UDP Packet class.
+     *
+     * @param file
+     *            The file that contains this packet.
+     * @param parent
+     *            The parent packet of this packet (the encapsulating packet).
+     * @param packet
+     *            The entire packet (header and payload).
+     * @throws BadPacketException
+     *             Thrown when the packet is erroneous.
+     */
+    public UDPPacket(PcapFile file, @Nullable Packet parent, ByteBuffer packet) throws BadPacketException {
+        super(file, parent, Protocol.UDP);
+
+        // The endpoints are lazy loaded. They are defined in the get*Endpoint()
+        // methods.
+        fSourceEndpoint = null;
+        fDestinationEndpoint = null;
+
+        fFields = null;
+
+        packet.order(ByteOrder.BIG_ENDIAN);
+        packet.position(0);
+
+        fSourcePort = ConversionHelper.unsignedShortToInt(packet.getShort());
+        fDestinationPort = ConversionHelper.unsignedShortToInt(packet.getShort());
+        fTotalLength = ConversionHelper.unsignedShortToInt(packet.getShort());
+        fChecksum = ConversionHelper.unsignedShortToInt(packet.getShort());
+
+        if (packet.array().length - packet.position() > 0) {
+            byte[] array = new byte[packet.array().length - packet.position()];
+            packet.get(array);
+
+            ByteBuffer payload = ByteBuffer.wrap(array);
+            payload.order(ByteOrder.BIG_ENDIAN);
+            payload.position(0);
+            fPayload = payload;
+        } else {
+            fPayload = null;
+        }
+
+        // Find child
+        fChildPacket = findChildPacket();
+
+    }
+

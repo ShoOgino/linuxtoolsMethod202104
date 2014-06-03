@@ -1,0 +1,38 @@
+    /**
+     * Method that allows to skip a packet at the current position.
+     *
+     * @throws IOException
+     *             Thrown when there is an error while reading the file.
+     * @throws BadPcapFileException
+     *             Thrown when a packet header is invalid.
+     */
+    public synchronized void skipNextPacket() throws IOException, BadPcapFileException {
+
+        // Parse the packet header
+        if (fFileChannel.size() - fFileChannel.position() == 0) {
+            return;
+        }
+        if (fFileChannel.size() - fFileChannel.position() < PcapFileValues.PACKET_HEADER_SIZE) {
+            throw new BadPcapFileException("A pcap header is invalid."); //$NON-NLS-1$
+        }
+
+        ByteBuffer pcapPacketHeader = ByteBuffer.allocate(PcapFileValues.PACKET_HEADER_SIZE);
+        pcapPacketHeader.clear();
+        pcapPacketHeader.order(fByteOrder);
+
+        fFileChannel.read(pcapPacketHeader);
+
+        pcapPacketHeader.flip();
+        pcapPacketHeader.position(PcapFileValues.INCLUDED_LENGTH_POSITION);
+        long includedPacketLength = ConversionHelper.unsignedIntToLong(pcapPacketHeader.getInt());
+
+        if (fFileChannel.size() - fFileChannel.position() < includedPacketLength) {
+            throw new BadPcapFileException("A packet header is invalid."); //$NON-NLS-1$
+        }
+
+        fFileChannel.position(fFileChannel.position() + includedPacketLength);
+
+        fFileIndex.put(++fCurrentRank, fFileChannel.position());
+
+    }
+

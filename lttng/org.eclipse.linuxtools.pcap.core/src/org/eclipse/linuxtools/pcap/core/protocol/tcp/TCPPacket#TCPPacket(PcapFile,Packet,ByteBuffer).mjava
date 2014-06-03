@@ -1,0 +1,74 @@
+    /**
+     * Constructor of the TCP Packet class.
+     *
+     * @param file
+     *            The file that contains this packet.
+     * @param parent
+     *            The parent packet of this packet (the encapsulating packet).
+     * @param packet
+     *            The entire packet (header and payload).
+     * @throws BadPacketException
+     *             Thrown when the packet is erroneous.
+     */
+    public TCPPacket(PcapFile file, @Nullable Packet parent, ByteBuffer packet) throws BadPacketException {
+        super(file, parent, Protocol.TCP);
+
+        // The endpoints are lazy loaded. They are defined in the get*Endpoint()
+        // methods.
+        fSourceEndpoint = null;
+        fDestinationEndpoint = null;
+
+        fFields = null;
+
+        packet.order(ByteOrder.BIG_ENDIAN);
+        packet.position(0);
+
+        fSourcePort = ConversionHelper.unsignedShortToInt(packet.getShort());
+        fDestinationPort = ConversionHelper.unsignedShortToInt(packet.getShort());
+        fSequenceNumber = ConversionHelper.unsignedIntToLong(packet.getInt());
+        fAcknowledgmentNumber = ConversionHelper.unsignedIntToLong(packet.getInt());
+
+        byte storage = packet.get();
+        fDataOffset = ((storage & 0b11110000) >>> 4) & 0x000000FF;
+        fReservedField = (byte) ((storage & 0b00001110) >>> 1);
+        fNSFlag = isBitSet(storage, 0);
+
+        storage = packet.get();
+        fCWRFlag = isBitSet(storage, 7);
+        fECEFlag = isBitSet(storage, 6);
+        fURGFlag = isBitSet(storage, 5);
+        fACKFlag = isBitSet(storage, 4);
+        fPSHFlag = isBitSet(storage, 3);
+        fRSTFlag = isBitSet(storage, 2);
+        fSYNFlag = isBitSet(storage, 1);
+        fFINFlag = isBitSet(storage, 0);
+
+        fWindowSize = ConversionHelper.unsignedShortToInt(packet.getShort());
+        fChecksum = ConversionHelper.unsignedShortToInt(packet.getShort());
+        fUrgentPointer = ConversionHelper.unsignedShortToInt(packet.getShort());
+
+        // Get options if any
+        if (fDataOffset > TCPValues.DEFAULT_HEADER_LENGTH) {
+            fOptions = new byte[(fDataOffset - TCPValues.DEFAULT_HEADER_LENGTH) * TCPValues.BLOCK_SIZE];
+            packet.get(fOptions);
+        } else {
+            fOptions = null;
+        }
+
+        // Get payload if any.
+        if (packet.array().length - packet.position() > 0) {
+            byte[] array = new byte[packet.array().length - packet.position()];
+            packet.get(array);
+            ByteBuffer payload = ByteBuffer.wrap(array);
+            payload.order(ByteOrder.BIG_ENDIAN);
+            payload.position(0);
+            fPayload = payload;
+        } else {
+            fPayload = null;
+        }
+
+        // find child packet
+        fChildPacket = findChildPacket();
+
+    }
+

@@ -1,0 +1,78 @@
+    /**
+     * Constructor of the Pcap Packet class.
+     *
+     * @param file
+     *            The file that contains this packet.
+     * @param parent
+     *            The parent packet of this packet (the encapsulating packet).
+     * @param header
+     *            The header of the packet.
+     * @param payload
+     *            The payload of this packet.
+     * @param index
+     *            The index of the packet in the file.
+     * @throws BadPacketException
+     *             Thrown when the Packet is erroneous.
+     */
+    public PcapPacket(PcapFile file, @Nullable Packet parent, ByteBuffer header, @Nullable ByteBuffer payload, long index) throws BadPacketException {
+        super(file, parent, Protocol.PCAP);
+
+        if (header.array().length < PcapFileValues.PACKET_HEADER_SIZE) {
+            fChildPacket = null;
+            throw new BadPacketException("The Pcap packet header is too small."); //$NON-NLS-1$
+        }
+
+        // The endpoints are lazy loaded. They are defined in the get*Endpoint()
+        // methods.
+        fSourceEndpoint = null;
+        fDestinationEndpoint = null;
+
+        fFields = null;
+
+        fPacketIndex = index;
+
+        // PcapPacket header in File endian
+        header.order(getPcapFile().getByteOrder());
+        header.position(0);
+        long timestampMostSignificant = ConversionHelper.unsignedIntToLong(header.getInt());
+        long timestampLeastSignificant = ConversionHelper.unsignedIntToLong(header.getInt());
+
+        switch (getTimestampScale()) {
+        case MICROSECOND:
+            if (timestampLeastSignificant > TIMESTAMP_MICROSECOND_MAX) {
+                fChildPacket = null;
+                throw new BadPacketException("The timestamp is erroneous."); //$NON-NLS-1$
+            }
+            fTimestamp = TIMESTAMP_MICROSECOND_MAX * timestampMostSignificant + timestampLeastSignificant;
+            break;
+        case NANOSECOND:
+            if (timestampLeastSignificant > TIMESTAMP_NANOSECOND_MAX) {
+                fChildPacket = null;
+                throw new BadPacketException("The timestamp is erroneous."); //$NON-NLS-1$
+            }
+            fTimestamp = TIMESTAMP_NANOSECOND_MAX * timestampMostSignificant + timestampLeastSignificant;
+            break;
+        default:
+            throw new IllegalArgumentException("The timestamp precision is not valid!"); //$NON-NLS-1$
+        }
+
+        fIncludedLength = ConversionHelper.unsignedIntToLong(header.getInt());
+        fOriginalLength = ConversionHelper.unsignedIntToLong(header.getInt());
+
+        // Set up payload
+        final ByteBuffer pcapPacket = payload;
+        if (pcapPacket == null) {
+            fChildPacket = null;
+            fPayload = null;
+            return;
+        }
+
+        pcapPacket.order(ByteOrder.BIG_ENDIAN);
+        pcapPacket.position(0);
+        fPayload = pcapPacket;
+
+        // Find Child Packet
+        fChildPacket = findChildPacket();
+
+    }
+

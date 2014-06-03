@@ -1,0 +1,52 @@
+    /**
+     * Method that allows the parsing of a packet at the current position.
+     *
+     * @return The parsed Pcap Packet.
+     * @throws IOException
+     *             Thrown when there is an error while reading the file.
+     * @throws BadPcapFileException
+     *             Thrown when a packet header is invalid.
+     * @throws BadPacketException
+     *             Thrown when the packet is erroneous.
+     */
+    public synchronized @Nullable PcapPacket parseNextPacket() throws IOException, BadPcapFileException, BadPacketException {
+
+        // Parse the packet header
+        if (fFileChannel.size() - fFileChannel.position() == 0) {
+            return null;
+        }
+        if (fFileChannel.size() - fFileChannel.position() < PcapFileValues.PACKET_HEADER_SIZE) {
+            throw new BadPcapFileException("A pcap header is invalid."); //$NON-NLS-1$
+        }
+
+        ByteBuffer pcapPacketHeader = ByteBuffer.allocate(PcapFileValues.PACKET_HEADER_SIZE);
+        pcapPacketHeader.clear();
+        pcapPacketHeader.order(fByteOrder);
+
+        fFileChannel.read(pcapPacketHeader);
+
+        pcapPacketHeader.flip();
+        pcapPacketHeader.position(PcapFileValues.INCLUDED_LENGTH_POSITION);
+        long includedPacketLength = ConversionHelper.unsignedIntToLong(pcapPacketHeader.getInt());
+
+        if (fFileChannel.size() - fFileChannel.position() < includedPacketLength) {
+            throw new BadPcapFileException("A packet header is invalid."); //$NON-NLS-1$
+        }
+
+        if (includedPacketLength > Integer.MAX_VALUE) {
+            throw new BadPacketException("Packets that are bigger than 2^31-1 bytes are not supported."); //$NON-NLS-1$
+        }
+
+        ByteBuffer pcapPacketData = ByteBuffer.allocate((int) includedPacketLength);
+        pcapPacketData.clear();
+        pcapPacketHeader.order(ByteOrder.BIG_ENDIAN); // Not really needed.
+        fFileChannel.read(pcapPacketData);
+
+        pcapPacketData.flip();
+
+        fFileIndex.put(++fCurrentRank, fFileChannel.position());
+
+        return new PcapPacket(this, null, pcapPacketHeader, pcapPacketData, fCurrentRank - 1);
+
+    }
+
