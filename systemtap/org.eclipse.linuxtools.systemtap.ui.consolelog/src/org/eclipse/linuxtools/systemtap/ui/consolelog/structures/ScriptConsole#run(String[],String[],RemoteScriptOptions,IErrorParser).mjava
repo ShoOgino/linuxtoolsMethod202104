@@ -13,27 +13,15 @@
         }
         cmd = new ScpExec(command, remoteOptions, envVars);
 
-        stopCommand = new Runnable() {
-            private final Command stopcmd = cmd;
-            private final String stopString = getStopString();
+        stopCommand = new StopCommand(cmd, getStopString()) {
+            ScpExec stop = new ScpExec(new String[]{stopString}, remoteOptions, null);
 
             @Override
-            public void run() {
-                ScpExec stop = new ScpExec(new String[]{stopString}, remoteOptions, null);
-                try {
-                    synchronized (stopcmd) {
-                        while (stopcmd.isRunning()) {
-                            stop.start();
-                            stopcmd.wait(RETRY_STOP_TIME);
-                        }
-                    }
-                } catch (CoreException e) {
-                    ExceptionErrorDialog.openError(Localization.getString("ScriptConsole.ErrorKillingStap"), e.getMessage(), e); //$NON-NLS-1$
-                } catch (InterruptedException e) {
-                    // Wait was interrupted. Exit.
-                }
+            protected void stop() throws CoreException {
+                stop.start();
             }
         };
+
         this.run(cmd, errorParser);
     }
 

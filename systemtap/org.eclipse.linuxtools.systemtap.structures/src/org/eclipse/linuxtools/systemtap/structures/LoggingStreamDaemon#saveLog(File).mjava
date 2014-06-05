@@ -1,17 +1,30 @@
     /**
-     * Saves the logfile.
-     *
-     * @param file The file to save the log data to.
-     *
-     * @return True if the save was successful.
+     * Sets the logging stream to be continuously saved to a file.
+     * @param file The file to save the log data to. Must not be <code>null</code>.
+     * @return <code>true</code> if the save was successful, <code>false</code> otherwise.
      */
     public boolean saveLog(File file) {
+        if (!isReady()) {
+            return false;
+        }
+        // If saving to the same file that's already being saved to, do nothing.
+        if (file.equals(outputFile)) {
+            return true;
+        }
+        // If saving to a file used by another active log,
+        // quit to avoid write conflicts.
+        for (LoggingStreamDaemon log : allLogs) {
+            if (!log.equals(this) && file.equals(log.outputFile)) {
+                return false;
+            }
+        }
+
         try {
-            if(!file.exists()) {
+            if (!file.exists()) {
                 file.getParentFile().mkdirs();
                 file.createNewFile();
             }
-            FileWriter w = new FileWriter(file, true);
+            FileWriter w = new FileWriter(file, false);
             try (FileReader r = new FileReader(outputFile)) {
                 char[] buffer = new char[BUFFER_SIZE];
                 int count;
@@ -22,12 +35,13 @@
             w.flush();
             writer.close();
             writer = w;
-            outputFile.delete();
-            outputFile = file;
-            saveLog = true;
-        } catch(IOException ioe) {
+        } catch (IOException ioe) {
             return false;
         }
+        outputFile.delete();
+        outputFile = file;
+        saveLog = true;
+        allLogs.add(this);
         return true;
     }
 

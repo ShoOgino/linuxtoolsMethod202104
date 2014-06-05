@@ -3,16 +3,20 @@
      * @return File representing the desired destination for the log.
      */
     private File getFile() {
-        String path = null;
-        FileDialog dialog= new FileDialog(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell(), SWT.SAVE);
-        dialog.setText(Localization.getString("SaveLogAction.OutputFile")); //$NON-NLS-1$
+        FileDialog dialog = new FileDialog(PlatformUI
+                .getWorkbench().getActiveWorkbenchWindow()
+                .getShell(), SWT.SAVE);
 
-        path = dialog.open();
-
-        if(null == path){
-            return null;
+        if (logFileName != null) {
+            Path logPath = new Path(logFileName);
+            dialog.setFilterPath(logPath.removeLastSegments(1).toOSString());
+            dialog.setFileName(logPath.lastSegment());
         }
-
-        return new File(path);
+        dialog.setText(Localization.getString(
+                !isLogging() ? "SaveLogAction.OutputFile" //$NON-NLS-1$
+                        : "SaveLogAction.OutputFileLocation")); //$NON-NLS-1$
+        dialog.setOverwrite(true);
+        String path = dialog.open();
+        return path != null ? new File(path) : null;
     }
 

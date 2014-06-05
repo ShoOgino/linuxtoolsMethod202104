@@ -15,26 +15,13 @@
         cmd = new Command(command, envVars, project);
         final IProject proj = project;
 
-        stopCommand = new Runnable() {
-            private final Command stopcmd = cmd;
-            String stopString = getStopString();
-
+        stopCommand = new StopCommand(cmd, getStopString()) {
             @Override
-            public void run() {
-                try {
-                    synchronized (stopcmd) {
-                        while (stopcmd.isRunning()) {
-                            RuntimeProcessFactory.getFactory().exec(stopString, null, proj);
-                            stopcmd.wait(RETRY_STOP_TIME);
-                        }
-                    }
-                } catch (IOException e) {
-                    ExceptionErrorDialog.openError(Localization.getString("ScriptConsole.ErrorKillingStap"), e.getMessage(), e); //$NON-NLS-1$
-                } catch (InterruptedException e) {
-                    //Wait was interrupted. Exit.
-                }
+            protected void stop() throws IOException {
+                RuntimeProcessFactory.getFactory().exec(stopString, null, proj);
             }
         };
+
         this.run(cmd, errorParser);
     }
 
