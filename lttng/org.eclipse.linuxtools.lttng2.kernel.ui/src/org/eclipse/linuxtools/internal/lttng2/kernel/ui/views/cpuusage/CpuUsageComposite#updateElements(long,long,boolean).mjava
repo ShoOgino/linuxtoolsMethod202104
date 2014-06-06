@@ -6,10 +6,18 @@
         if (getTrace() == null || fModule == null) {
             return null;
         }
+        fModule.waitForInitialization();
         ITmfStateSystem ss = fModule.getStateSystem();
-        /* Don't wait for the module completion, when it's ready, we'll know */
         if (ss == null) {
             return null;
+        }
+
+        boolean complete = false;
+        long currentEnd = start;
+
+        while (!complete && currentEnd < end) {
+            complete = ss.waitUntilBuilt(BUILD_UPDATE_TIMEOUT);
+            currentEnd = ss.getCurrentEndTime();
         }
 
         /* Initialize the data */
