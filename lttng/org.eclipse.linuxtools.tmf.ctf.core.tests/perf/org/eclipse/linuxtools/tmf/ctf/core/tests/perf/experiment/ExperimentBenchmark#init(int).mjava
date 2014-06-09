@@ -1,0 +1,33 @@
+    /**
+     * Initialization
+     *
+     * @param maxTraces
+     *            maximum number of traces to open
+     */
+    private void init(int maxTraces) {
+        try {
+            File parentDir = new File(TRACES_ROOT_PATH);
+            File[] traceFiles = parentDir.listFiles();
+            ITmfTrace[] traces = new CtfTmfTrace[Math.min(maxTraces, traceFiles.length)];
+            for (int i = 0; i < traces.length; i++) {
+                traces[i] = new CtfTmfTrace();
+            }
+            fExperiment = new TmfExperimentStub("MegaExperiment", traces, BLOCK_SIZE);
+            int j = 0;
+            for (int i = 0; i < (traces.length) && (j < traces.length); i++) {
+                String absolutePath = traceFiles[j].getAbsolutePath();
+                if (traces[i].validate(null, absolutePath).isOK()) {
+                    traces[i].initTrace(null, absolutePath, ITmfEvent.class);
+                } else {
+                    i--;
+                }
+                j++;
+            }
+            if (traces[traces.length - 1].getPath() == null) {
+                throw new TmfTraceException("Insufficient valid traces in directory");
+            }
+        } catch (TmfTraceException e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
