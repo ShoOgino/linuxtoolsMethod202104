@@ -6,7 +6,23 @@
         fTreeViewer = new CpuUsageComposite(sash);
 
         /* Build the XY chart part of the view */
-        fXYViewer = new CpuUsageXYViewer(sash, fTreeViewer);
+        fXYViewer = new CpuUsageXYViewer(sash);
+
+        /* Add selection listener to tree viewer */
+        fTreeViewer.addSelectionChangeListener(new ISelectionChangedListener() {
+            @Override
+            public void selectionChanged(SelectionChangedEvent event) {
+                ISelection selection = event.getSelection();
+                if (selection instanceof IStructuredSelection) {
+                    Object structSelection = ((IStructuredSelection) selection).getFirstElement();
+                    if (structSelection instanceof CpuUsageEntry) {
+                        CpuUsageEntry entry = (CpuUsageEntry) structSelection;
+                        fTreeViewer.setSelectedThread(entry.getTid());
+                        fXYViewer.setSelectedThread(Long.valueOf(entry.getTid()));
+                    }
+                }
+            }
+        });
 
         sash.setLayout(new FillLayout());
 
