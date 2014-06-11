@@ -1,20 +1,26 @@
-    private void addStaticProbes() {
+    /**
+     * Runs stap to obtain a log of all static probes, and populate the probe tree with them.
+     *
+     * @return <code>false</code> if a cancelation prevented all probes from being added;
+     * <code>true</code> otherwise.
+     */
+    private boolean addStaticProbes(IProgressMonitor monitor) {
         String probeDump = runStap(new String[]{"--dump-probe-types"}, null, false); //$NON-NLS-1$
         if (probeDump == null) {
-            return;
+            return true;
         }
         TreeNode group = null;
         try (Scanner st = new Scanner(probeDump)) {
             while (st.hasNextLine()) {
-                if (isCancelRequested()) {
-                    return;
+                if (monitor.isCanceled()) {
+                    return false;
                 }
                 String tokenString = st.nextLine();
                 String probeName = (new StringTokenizer(tokenString)).nextToken();
                 group = addOrFindProbeGroup(extractProbeGroupName(probeName), group, statics);
                 group.add(makeStaticProbeNode(probeName));
             }
-            return;
+            return true;
         }
     }
 

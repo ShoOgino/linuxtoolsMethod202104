@@ -1,23 +1,20 @@
     /**
-     * Parses the output generated from running stap -L. Pulls out all functions
-     * and probe aliases from the provided string. Populates the probe tree.
+     * Runs stap to obtain a log of all probe aliases & their variables,
+     * and populate the probe tree with them.
      *
-     * ProbeTree organized as:
-     *    Root->Named Groups->ProbePoints->Variables
-     *
-     * @return <code>false</code> if a cancellation prevented all probes from being added;
+     * @return <code>false</code> if a cancelation prevented all probes from being added;
      * <code>true</code> otherwise.
      */
-    private void addProbeAliases() {
+    private boolean addProbeAliases(IProgressMonitor monitor) {
         String probeDump = runStap(new String[]{"-L"}, "**", false); //$NON-NLS-1$ //$NON-NLS-2$
         if (probeDump == null) {
-            return;
+            return true;
         }
         TreeNode group = null;
         try (Scanner st = new Scanner(probeDump)) {
             while (st.hasNextLine()) {
-                if (isCancelRequested()) {
-                    return;
+                if (monitor.isCanceled()) {
+                    return false;
                 }
                 String tokenString = st.nextLine();
                 // If the token starts with '_' or '__' it is a private probe so
@@ -37,7 +34,7 @@
                     addAllVarNodesToProbeNode(probeTokenizer, probeNode);
                 }
             }
-            return;
+            return true;
         }
     }
 

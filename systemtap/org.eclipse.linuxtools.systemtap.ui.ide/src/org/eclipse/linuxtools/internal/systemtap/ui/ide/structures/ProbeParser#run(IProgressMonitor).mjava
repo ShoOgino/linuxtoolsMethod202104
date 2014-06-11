@@ -1,15 +1,17 @@
+    /**
+     * Runs stap to collect all available tapset probes.
+     * ProbeTree organized as:
+     *    Root->Named Groups->ProbePoints->Variables
+     */
     @Override
     protected IStatus run(IProgressMonitor monitor) {
-        // Create a new function tree each time, so as to not add duplicates.
-        reset();
-
-        addStaticProbes();
-        if (isCancelRequested()) {
-            return new Status(IStatus.CANCEL, IDEPlugin.PLUGIN_ID, ""); //$NON-NLS-1$
+        super.run(monitor);
+        boolean canceled = !addStaticProbes(monitor);
+        if (!canceled) {
+            canceled = !addProbeAliases(monitor);
         }
-        addProbeAliases();
         constructRootTree();
-        fireUpdateEvent();    //Inform listeners that everything is done
-        return new Status(!isCancelRequested() ? IStatus.OK : IStatus.CANCEL, IDEPlugin.PLUGIN_ID, ""); //$NON-NLS-1$
+        return new Status(!monitor.isCanceled() ? IStatus.OK : IStatus.CANCEL,
+                IDEPlugin.PLUGIN_ID, ""); //$NON-NLS-1$
     }
 
