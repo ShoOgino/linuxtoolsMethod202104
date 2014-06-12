@@ -11,14 +11,25 @@
                 getDocumentation(TapsetItemType.PROBE, elements[0]);
                 documentation = pages.get(fullElement);
                 if (documentation == null) {
-                    documentation = ManpageCacher.NO_MAN_ENTRY + " " + fullElement; //$NON-NLS-1$
+                    documentation = makeEmptyDocumentation(fullElement);
                     pages.put(fullElement, documentation);
                 }
                 return documentation;
             }
 
             // Otherwise, get the documentation for the requested element.
-            documentation = (new ManPage(fullElement)).getStrippedTextPage().toString();
+            IPreferenceStore p = IDEPlugin.getDefault().getPreferenceStore();
+            ManPage manpage = null;
+            if (!p.getBoolean(IDEPreferenceConstants.P_REMOTE_PROBES)) {
+                manpage = new ManPage(fullElement);
+            } else {
+                p = ConsoleLogPlugin.getDefault().getPreferenceStore();
+                String user = p.getString(ConsoleLogPreferenceConstants.SCP_USER);
+                String host = p.getString(ConsoleLogPreferenceConstants.HOST_NAME);
+                String password = p.getString(ConsoleLogPreferenceConstants.SCP_PASSWORD);
+                manpage = new ManPage(fullElement, user, host, password);
+            }
+            documentation = manpage.getStrippedTextPage().toString();
             pages.put(fullElement, documentation);
 
             // If the requested element is a probe and a documentation page was
