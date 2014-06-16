@@ -1,53 +1,40 @@
     @Override
     public void createControl(Composite parent) {
         Composite container = new Composite(parent, SWT.NULL);
-        container.setLayout(new FormLayout());
+        container.setLayout(new GridLayout(2, false));
         setControl(container);
 
-        fCheckboxTableViewer = CheckboxTableViewer.newCheckList(container, SWT.BORDER);
-        fCheckboxTableViewer.setContentProvider(new TraceFolderContentProvider());
-        fCheckboxTableViewer.setLabelProvider(new TraceFolderLabelProvider());
-        fCheckboxTableViewer.setSorter(new ViewerSorter());
-
-        final Table table = fCheckboxTableViewer.getTable();
-        final FormData formData = new FormData();
-        formData.bottom = new FormAttachment(100, 0);
-        formData.right = new FormAttachment(100, 0);
-        formData.top = new FormAttachment(0, 0);
-        formData.left = new FormAttachment(0, 0);
-        table.setLayoutData(formData);
-        table.setHeaderVisible(true);
-
-        final TableColumn tableColumn = new TableColumn(table, SWT.NONE);
-        tableColumn.setWidth(200);
-        tableColumn.setText(Messages.SelectTracesWizardPage_TraceColumnHeader);
-
-        // Get the list of traces already part of the experiment
-        fPreviousTraces = new HashMap<>();
-        for (ITmfProjectModelElement child : fExperiment.getChildren()) {
-            if (child instanceof TmfTraceElement) {
-                TmfTraceElement trace = (TmfTraceElement) child;
-                String name = trace.getElementPath();
-                fPreviousTraces.put(name, trace);
+        new FilteredTree(container, SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL | SWT.BORDER, new PatternFilter(), true) {
+            @Override
+            protected TreeViewer doCreateTreeViewer(Composite aparent, int style) {
+                return SelectTracesWizardPage.this.doCreateTreeViewer(aparent);
             }
-        }
+        };
 
-        // Populate the list of traces to choose from
-        Set<String> keys = fPreviousTraces.keySet();
-        TmfTraceFolder traceFolder = fProject.getTracesFolder();
-        fCheckboxTableViewer.setInput(traceFolder);
+        Composite buttonComposite = new Composite(container, SWT.NONE);
+        FillLayout layout = new FillLayout(SWT.VERTICAL);
+        layout.spacing = BUTTON_SPACING;
+        buttonComposite.setLayout(layout);
+        GridData gd = new GridData();
+        gd.verticalAlignment = SWT.CENTER;
+        buttonComposite.setLayoutData(gd);
 
-        // Set the checkbox for the traces already included
-        int index = 0;
-        Object element = fCheckboxTableViewer.getElementAt(index++);
-        while (element != null) {
-            if (element instanceof TmfTraceElement) {
-                TmfTraceElement trace = (TmfTraceElement) element;
-                if (keys.contains(trace.getElementPath())) {
-                    fCheckboxTableViewer.setChecked(element, true);
-                }
+        Button selectAllButton = new Button(buttonComposite, SWT.PUSH);
+        selectAllButton.setText(org.eclipse.linuxtools.internal.tmf.ui.project.dialogs.Messages.Dialog_SelectAll);
+        selectAllButton.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                setAllChecked(true);
             }
-            element = fCheckboxTableViewer.getElementAt(index++);
-        }
+        });
+
+        Button deselectAllButton = new Button(buttonComposite, SWT.PUSH);
+        deselectAllButton.setText(org.eclipse.linuxtools.internal.tmf.ui.project.dialogs.Messages.Dialog_DeselectAll);
+        deselectAllButton.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                setAllChecked(false);
+            }
+        });
     }
 
