@@ -1,0 +1,48 @@
+    private static void readAndSeekTrace(CtfTestTrace testTrace, String testName, boolean inGlobalSummary) {
+        assumeTrue(testTrace.exists());
+
+        Performance perf = Performance.getDefault();
+        PerformanceMeter pm = perf.createPerformanceMeter(TEST_ID + '#' + testName);
+        perf.tagAsSummary(pm, TEST_SUITE_NAME + ':' + testName, Dimension.CPU_TIME);
+
+        if (inGlobalSummary) {
+            perf.tagAsGlobalSummary(pm, TEST_SUITE_NAME + ':' + testName, Dimension.CPU_TIME);
+        }
+
+        for (int loop = 0; loop < LOOP_COUNT; loop++) {
+            try (CTFTrace trace = testTrace.getTrace();
+                    CTFTraceReader traceReader = new CTFTraceReader(trace);) {
+
+                /* Read the whole trace to find out the start and end times */
+                EventDefinition firstEvent = traceReader.getCurrentEventDef();
+                final long startTime = firstEvent.getTimestamp();
+                long endTime = startTime;
+                while (traceReader.hasMoreEvents()) {
+                    EventDefinition ev = traceReader.getCurrentEventDef();
+                    endTime = ev.getTimestamp();
+                    traceReader.advance();
+                }
+
+                /* Generate the timestamps we will seek to */
+                List<Long> seekTimestamps = new LinkedList<>();
+                final long range = endTime - startTime;
+                for (int i = 0; i < NB_SEEKS; i++) {
+                    seekTimestamps.add(startTime + (RND.nextLong() % range));
+                }
+
+                /* Benchmark seeking to the generated timestamps */
+                pm.start();
+                for (Long ts : seekTimestamps) {
+                    traceReader.seek(ts);
+                    traceReader.advance();
+                }
+                pm.stop();
+
+            } catch (CTFReaderException e) {
+                /* Should not happen if assumeTrue() passed above */
+                fail("Test failed at iteration " + loop + ':' + e.getMessage());
+            }
+        }
+        pm.commit();
+    }
+
