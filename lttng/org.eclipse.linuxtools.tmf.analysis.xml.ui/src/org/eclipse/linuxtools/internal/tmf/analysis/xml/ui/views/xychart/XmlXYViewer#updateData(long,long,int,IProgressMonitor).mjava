@@ -1,0 +1,92 @@
+    @Override
+    protected void updateData(long start, long end, int nb, @Nullable IProgressMonitor monitor) {
+
+        ITmfXmlStateAttribute display = fDisplay;
+        ITmfXmlStateAttribute seriesNameAttrib = fSeriesName;
+        XmlXYEntry entry = fEntry;
+        if (getTrace() == null || display == null || entry == null) {
+            return;
+        }
+        ITmfStateSystem ss = entry.getStateSystem();
+
+        double[] xvalues = getXAxis(start, end, nb);
+        setXAxis(xvalues);
+
+        boolean complete = false;
+        long currentEnd = start;
+
+        while (!complete && currentEnd < end) {
+            if (monitor != null && monitor.isCanceled()) {
+                return;
+            }
+
+            complete = ss.waitUntilBuilt(BUILD_UPDATE_TIMEOUT);
+            currentEnd = ss.getCurrentEndTime();
+            try {
+                List<Integer> quarks = entry.getQuarks();
+                long traceStart = getStartTime();
+                long traceEnd = getEndTime();
+                long offset = this.getTimeOffset();
+
+                /* Initialize quarks and series names */
+                for (int quark : quarks) {
+                    String seriesName = null;
+                    if (seriesNameAttrib == null) {
+                        seriesName = ss.getAttributeName(quark);
+                    } else {
+                        int seriesNameQuark = seriesNameAttrib.getAttributeQuark(quark);
+                        try {
+                            ITmfStateValue seriesNameValue = ss.querySingleState(start, seriesNameQuark).getStateValue();
+                            if (!seriesNameValue.isNull()) {
+                                seriesName = seriesNameValue.unboxStr();
+                            }
+                            if (seriesName == null || seriesName.isEmpty()) {
+                                seriesName = ss.getAttributeName(quark);
+                            }
+                        } catch (TimeRangeException e) {
+                            /*
+                             * The attribute did not exist at this point, simply
+                             * use attribute name as series name
+                             */
+                            seriesName = ss.getAttributeName(quark);
+                        }
+                    }
+                    if (seriesName == null) {
+                        throw new IllegalStateException();
+                    }
+                    fSeriesData.put(quark, new SeriesData(xvalues.length, display.getAttributeQuark(quark), seriesName));
+                }
+                double yvalue = 0.0;
+                for (int i = 0; i < xvalues.length; i++) {
+                    if (monitor != null && monitor.isCanceled()) {
+                        return;
+                    }
+                    double x = xvalues[i];
+                    long time = (long) x + offset;
+                    // make sure that time is in the trace range after double to
+                    // long conversion
+                    time = time < traceStart ? traceStart : time;
+                    time = time > traceEnd ? traceEnd : time;
+
+                    for (int quark : quarks) {
+                        try {
+                            yvalue = ss.querySingleState(time, fSeriesData.get(quark).getDisplayQuark()).getStateValue().unboxLong();
+                            fSeriesData.get(quark).setYValue(i, yvalue);
+                        } catch (TimeRangeException e) {
+                            fSeriesData.get(quark).setYValue(i, 0);
+                        }
+                    }
+                }
+                for (int quark : quarks) {
+                    setSeries(fSeriesData.get(quark).getSeriesName(), fSeriesData.get(quark).getYValues());
+                }
+                updateDisplay();
+            } catch (AttributeNotFoundException | StateValueTypeException e) {
+                Activator.logError("Error updating the data of XML XY view", e); //$NON-NLS-1$
+            } catch (StateSystemDisposedException e) {
+                return;
+            }
+        }
+
+    }
+

@@ -1,0 +1,26 @@
+        public List<Integer> getQuarks() {
+            /* Get the list of quarks to process with this path */
+            String[] paths = fPath.split(SPLIT_STRING);
+            @SuppressWarnings("null")
+            @NonNull List<Integer> quarks = Collections.singletonList(IXmlStateSystemContainer.ROOT_QUARK);
+
+            try {
+                for (String path : paths) {
+                    List<Integer> subQuarks = new LinkedList<>();
+                    /* Replace * by .* to have a regex string */
+                    String name = WILDCARD_PATTERN.matcher(path).replaceAll(".*"); //$NON-NLS-1$
+                    for (int relativeQuark : quarks) {
+                        subQuarks.addAll(fStateSystem.getSubAttributes(relativeQuark, false, name));
+                    }
+                    quarks = subQuarks;
+                }
+            } catch (AttributeNotFoundException e) {
+                /*
+                 * We get all attributes from the state system itself, this
+                 * should not happen.
+                 */
+                throw new IllegalStateException();
+            }
+            return quarks;
+        }
+
