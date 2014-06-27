@@ -1,0 +1,47 @@
+    private static void readAndSeekTrace(PcapTestTrace testTrace, String testName, boolean inGlobalSummary) {
+        assumeTrue(testTrace.exists());
+
+        Performance perf = Performance.getDefault();
+        PerformanceMeter pm = perf.createPerformanceMeter(TEST_ID + '#' + testName);
+        perf.tagAsSummary(pm, TEST_SUITE_NAME + ':' + testName, Dimension.CPU_TIME);
+
+        if (inGlobalSummary) {
+            perf.tagAsGlobalSummary(pm, TEST_SUITE_NAME + ':' + testName, Dimension.CPU_TIME);
+        }
+
+        for (int loop = 0; loop < LOOP_COUNT; loop++) {
+            try (PcapFile trace = testTrace.getTrace()) {
+                trace.seekPacket(0);
+
+                /* Read the whole trace to find out the number of packets */
+                long nbPackets = trace.getTotalNbPackets();
+
+                /* Generate the timestamps we will seek to */
+                List<Long> seekTimestamps = new LinkedList<>();
+                final long range = nbPackets;
+                for (int i = 0; i < NB_SEEKS; i++) {
+                    long rank = (RND.nextLong() % range);
+                    if (rank < 0) {
+                        // This is needed since modulus can return a negative
+                        // number.
+                        rank += range;
+                    }
+                    seekTimestamps.add(rank);
+                }
+
+                /* Benchmark seeking to the generated timestamps */
+                pm.start();
+                for (Long rank : seekTimestamps) {
+                    trace.seekPacket(rank);
+                    trace.parseNextPacket();
+                }
+                pm.stop();
+
+            } catch (IOException | BadPcapFileException | BadPacketException e) {
+                /* Should not happen if assumeTrue() passed above */
+                fail("Test failed at iteration " + loop + ':' + e.getMessage());
+            }
+        }
+        pm.commit();
+    }
+

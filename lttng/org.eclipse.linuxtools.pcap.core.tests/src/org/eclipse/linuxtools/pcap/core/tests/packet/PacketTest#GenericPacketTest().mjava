@@ -1,0 +1,46 @@
+    /**
+     * Test that verify the correctness of the Packet's methods.
+     * @throws BadPcapFileException
+     *             Thrown when the file is erroneous. Fails the test.
+     * @throws IOException
+     *             Thrown when an IO error occurs. Fails the test.
+     * @throws BadPacketException
+     *             Thrown when a packet is erroneous. Fails the test.
+     */
+    @Test
+    public void GenericPacketTest() throws BadPacketException, IOException, BadPcapFileException {
+        PcapTestTrace trace = PcapTestTrace.MOSTLY_TCP;
+        assumeTrue(trace.exists());
+        String file = trace.getPath();
+        try (PcapFile dummy = new PcapFile(file)) {
+            ByteBuffer byteBuffer = fEthernetPacket;
+            if (byteBuffer == null) {
+                fail("GenericPacketTest has failed!");
+                return;
+            }
+
+            Packet packet = new EthernetIIPacket(dummy, null, byteBuffer);
+            assertTrue(packet.hasProtocol(Protocol.ETHERNET_II));
+            assertTrue(packet.hasProtocol(Protocol.UNKNOWN));
+            assertFalse(packet.hasProtocol(Protocol.TCP));
+            assertEquals(Protocol.ETHERNET_II, packet.getProtocol());
+
+            assertEquals(packet, packet.getPacket(Protocol.ETHERNET_II));
+            assertNull(packet.getPacket(Protocol.TCP));
+            assertEquals(packet.getChildPacket(), packet.getPacket(Protocol.UNKNOWN));
+            assertEquals(packet.getPacket(Protocol.ETHERNET_II), packet.getMostEcapsulatedPacket());
+
+            assertNull(packet.getParentPacket());
+            assertFalse(packet.getPcapFile().equals(null));
+
+            Packet child = packet.getChildPacket();
+            if (child == null) {
+                fail("GenericPacketTest has failed!");
+                return;
+            }
+            assertEquals(packet.getPayload(), child.getPayload());
+            assertEquals(packet.getGlobalSummaryString(), "Source MAC: 10:f8:82:b3:44:78 , Destination MAC: 34:67:0c:d2:91:51");
+
+        }
+    }
+

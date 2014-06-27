@@ -1,0 +1,55 @@
+    /**
+     * Test that verify the correctness of the EthernetIIPacket's methods.
+     * @throws BadPcapFileException
+     *             Thrown when the file is erroneous. Fails the test.
+     * @throws IOException
+     *             Thrown when an IO error occurs. Fails the test.
+     * @throws BadPacketException
+     *             Thrown when a packet is erroneous. Fails the test.
+     */
+    @Test
+    public void CompleteEthernetIIPacketTest() throws IOException, BadPcapFileException, BadPacketException {
+        PcapTestTrace trace = PcapTestTrace.MOSTLY_TCP;
+        assumeTrue(trace.exists());
+        String file = trace.getPath();
+        try (PcapFile dummy = new PcapFile(file)) {
+            ByteBuffer byteBuffer = fPacket;
+            if (byteBuffer == null) {
+                fail("CompleteEthernetIIPacketTest has failed!");
+                return;
+            }
+            EthernetIIPacket packet = new EthernetIIPacket(dummy, null, byteBuffer);
+
+            // Protocol Testing
+            assertEquals(Protocol.ETHERNET_II, packet.getProtocol());
+            assertTrue(packet.hasProtocol(Protocol.ETHERNET_II));
+            assertTrue(packet.hasProtocol(Protocol.UNKNOWN));
+            assertFalse(packet.hasProtocol(Protocol.TCP));
+
+            // Abstract methods Testing
+            assertTrue(packet.validate());
+            assertEquals(-653947816, packet.hashCode());
+            assertFalse(packet.equals(null));
+            assertEquals(new EthernetIIPacket(dummy, null, byteBuffer), packet);
+
+            assertEquals(EXPECTED_FIELDS, packet.getFields());
+            assertEquals(EXPECTED_TOSTRING, packet.toString());
+            assertEquals("Src: 10:f8:82:b3:44:78 , Dst: 34:67:0c:d2:91:51", packet.getLocalSummaryString());
+            assertEquals("Source MAC: 10:f8:82:b3:44:78 , Destination MAC: 34:67:0c:d2:91:51", packet.getGlobalSummaryString());
+
+            assertEquals(new EthernetIIEndpoint(packet, true), packet.getSourceEndpoint());
+            assertEquals(new EthernetIIEndpoint(packet, false), packet.getDestinationEndpoint());
+
+            fPacket.position(14);
+            byte[] payload = new byte[1];
+            fPacket.get(payload);
+            assertEquals(ByteBuffer.wrap(payload), packet.getPayload());
+
+            // Packet-specific methods Testing
+            assertTrue(Arrays.equals(packet.getSourceMacAddress(), Arrays.copyOfRange(fPacket.array(), EthernetIIValues.MAC_ADDRESS_SIZE, EthernetIIValues.MAC_ADDRESS_SIZE + EthernetIIValues.MAC_ADDRESS_SIZE)));
+            assertTrue(Arrays.equals(packet.getDestinationMacAddress(), Arrays.copyOfRange(fPacket.array(), 0, 0 + EthernetIIValues.MAC_ADDRESS_SIZE)));
+            assertEquals(0xA256, packet.getEthertype());
+
+        }
+    }
+

@@ -1,0 +1,55 @@
+    /**
+     * Test that verify the correctness of the UnknownPacket's methods.
+     * @throws BadPcapFileException
+     *             Thrown when the file is erroneous. Fails the test.
+     * @throws IOException
+     *             Thrown when an IO error occurs. Fails the test.
+     */
+    @Test
+    public void CompleteUnknownPacketTest() throws IOException, BadPcapFileException {
+        PcapTestTrace trace = PcapTestTrace.MOSTLY_TCP;
+        assumeTrue(trace.exists());
+        String file = trace.getPath();
+        try (PcapFile dummy = new PcapFile(file)) {
+            ByteBuffer byteBuffer = fPacket;
+            if (byteBuffer == null) {
+                fail("CompleteUnknownPacketTest has failed!");
+                return;
+            }
+            UnknownPacket packet = new UnknownPacket(dummy, null, byteBuffer);
+
+            // Protocol Testing
+            assertEquals(Protocol.UNKNOWN, packet.getProtocol());
+            assertTrue(packet.hasProtocol(Protocol.UNKNOWN));
+            assertFalse(packet.hasProtocol(Protocol.UDP));
+
+            // Abstract methods Testing
+            assertTrue(packet.validate());
+            assertEquals(1089, packet.hashCode());
+            assertFalse(packet.equals(null));
+            assertEquals(new UnknownPacket(dummy, null, byteBuffer), packet);
+
+            assertEquals(EXPECTED_FIELDS, packet.getFields());
+            assertEquals(fToString, packet.toString());
+            assertEquals("Len: 1 bytes", packet.getLocalSummaryString());
+            assertEquals("Data: 1 bytes", packet.getGlobalSummaryString());
+            // TODO take care of plural form.
+
+            // Unknown Endpoints are never equal!
+            assertFalse(packet.getSourceEndpoint().equals(new UnknownEndpoint(packet, true)));
+            assertFalse(packet.getDestinationEndpoint().equals(new UnknownEndpoint(packet, false)));
+
+            fPacket.position(0);
+            byte[] payload = new byte[1];
+            fPacket.get(payload);
+            ByteBuffer payloadBB = ByteBuffer.wrap(payload);
+            payloadBB.flip();
+
+            assertEquals(payloadBB, packet.getPayload());
+
+            // Packet-specific methods Testing
+            // None
+
+        }
+    }
+
