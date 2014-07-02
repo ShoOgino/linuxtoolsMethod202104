@@ -1,0 +1,51 @@
+    /**
+     * <h1>Finds out the type of the project as defined by {@link ProjectBuildType ProjectBuildType}.</h1>
+     *
+     * <p>
+     * A project can be of different types.<br>
+     * Common types are:
+     * <ul>
+     * - <li>Autotools</li>
+     * - <li>Managed Make project</li>
+     * - <li>Manual Makefiles</li>
+     * </ul>
+     * </p>
+     *
+     * <p>
+     * Some dialogues (initially in gCov & gProf) distinguish between these when displaying dialogues. This code is used
+     * by these dialogues.
+     * </p>
+     *
+     * <p>
+     * The method was writen with extensibility in mind. <br>
+     * Other routines check for autotools/Managed make, and if those are not present, then it shows generic advice about
+     * adding flags. MAKEFILE per-se isn't really checked. I.e this means that it should be safe to add additional
+     * project types.
+     * </p>
+     *
+     * @param project  project for which you want to get the type.
+     * @return (enum)  projectType : <br>
+     *         AUTO_TOOLS, <br>
+     *         MANAGED_MAKEFILE, <br>
+     *         OTHER <br>
+     */
+    public static ProjectBuildType getProjectType(IProject project) {
+        //       AUTOTOOLS
+        // Autotools has an 'Autotools' nature by which we can identify it.
+        if (isAutoTools(project)) {
+            return ProjectBuildType.AUTO_TOOLS;
+        }
+
+        IConfiguration defaultConfiguration = helperGetActiveConfiguration(project);
+        IBuilder builder = defaultConfiguration.getBuilder();
+        Boolean projIsManaged = builder.isManagedBuildOn();
+
+        //       MANAGED PROJECT
+        if (projIsManaged) {
+            return ProjectBuildType.MANAGED_MAKEFILE;
+        }
+        else {
+            return ProjectBuildType.OTHER; //E.g a manual makefile.
+        }
+    }
+

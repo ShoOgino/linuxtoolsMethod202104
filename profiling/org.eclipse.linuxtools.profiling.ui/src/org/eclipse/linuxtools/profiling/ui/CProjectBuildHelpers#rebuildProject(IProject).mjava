@@ -1,0 +1,27 @@
+    /**
+     * <h1>Trigger a re-build of the project.</h1>
+     *
+     * <p> Given a project, it finds the active configuration and rebuilds the project. </p>
+     *
+     * <p> This works with C/C++ Managed Builds as well as Autotools.</p>
+     *
+     * <p>Most useful for when you have added a flag to a project programatically and want to rebuild
+     * the project so that the program is rebuild with that flag. The Rebuild triggers an update of the makefile
+     * automatically.</p>
+     *
+     * @param project to rebuild
+     */
+    public static void rebuildProject(IProject project) {
+        //rebuild does not generate an analysis file (e.g gmon.out) But since -pg flag is added, profiling support is added to the binary.
+        try {
+            IBuildConfiguration buildConfiguration = project.getActiveBuildConfig();
+
+            //force a full rebuild which is usually needed for when you add profiling flags to the builud options.
+            project.build(buildConfiguration, IncrementalProjectBuilder.FULL_BUILD, null);
+        } catch (CoreException e) {
+
+            //This is a very rare occurance. Usually rebuilds don't fail if they worked the first time.
+            MessageDialogSyncedRunnable.openErrorSyncedRunnable(ProfilingMessages.errorTitle, ProfilingMessages.errorRebuilding);
+        }
+    }
+
