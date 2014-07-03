@@ -1,0 +1,23 @@
+    /* Benchmark memory used by the algorithm */
+    private static void runMemoryTest(ITmfTrace[] testTraces, String testName, int loop_count) {
+        Performance perf = Performance.getDefault();
+        PerformanceMeter pm = perf.createPerformanceMeter(TEST_ID + MEMORY + '#' + testName);
+        perf.tagAsSummary(pm, TEST_SUMMARY + MEMORY + ':' + testName, Dimension.USED_JAVA_HEAP);
+
+        for (int i = 0; i < loop_count; i++) {
+            TmfExperiment experiment = new TmfExperiment(CtfTmfEvent.class, "Test experiment", testTraces, BLOCK_SIZE);
+
+            System.gc();
+            pm.start();
+            try {
+                experiment.synchronizeTraces(true);
+            } catch (TmfTraceException e) {
+                fail("Failed at iteration " + i + " with message: " + e.getMessage());
+            }
+            System.gc();
+            pm.stop();
+
+        }
+        pm.commit();
+    }
+
