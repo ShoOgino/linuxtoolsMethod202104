@@ -1,6 +1,25 @@
+    /**
+     *  Checks if neccessary flags are set in Managed Build/Autotools <br>
+     *  If they are not, asks the user if he want's to have them addded. <br>
+     *  If so, it enables the option, rebuilds the project and continues with launch </p>
+     *
+     *  <p> Otherwise by this time the project is already build and it proceeds with launch of the plugin. </p>
+     *
+     */
     @Override
     public void launch(ILaunchConfiguration config, String mode, ILaunch launch, IProgressMonitor monitor) throws CoreException {
+
+        //Save passed variables. useful later.
         this.config = config;
+        this.project = getProject();
+
+        //Check pre-requisites, (this means check if the pg flag is set).
+        //If it is not and the user does not wish to have them set automatically,
+        //then cancle the launch process as there won't a gmon.out anyway.
+        if (! preRequisiteCheck()) {
+            return;
+        }
+
         IPath exePath = getExePath(config);
 
         /*
@@ -20,6 +39,7 @@
         ILaunchManager lmgr = DebugPlugin.getDefault().getLaunchManager();
         lmgr.addLaunchListener(new LaunchTerminationWatcher(launch, exePath));
 
+        //gmon.out is generated here:
         Process process = launcher.execute(exePath, arguments, getEnvironment(config), new Path(workDir.getAbsolutePath()), monitor);
 
         DebugPlugin.newProcess( launch, process, renderProcessLabel( exePath.toOSString() ) );

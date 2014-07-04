@@ -1,0 +1,29 @@
+    /**
+     *  Tell the user that the required PG flag is not set in the configuration.
+     *  Offer to have it automatically checked.
+     */
+    private boolean askUserAboutFlag(final String optionID, final ProjectBuildType projectBuildType) {
+
+        //Construct Message box that will prompt the user.
+        //Content of message will vary depending on project type
+        String title = GprofLaunchMessages.GprofMissingFlag_Title;
+        String msg = GprofLaunchMessages.GprofMissingFlag_Body_shared;
+
+        if (projectBuildType == ProjectBuildType.AUTO_TOOLS) {
+            msg += GprofLaunchMessages.GprofMissingFlag_Body_Autotools;
+        } else if (projectBuildType == ProjectBuildType.MANAGED_MAKEFILE) {
+            msg += GprofLaunchMessages.GprofMissingFlag_Body_Managed;
+        }
+        msg += GprofLaunchMessages.GprofMissingFlag_BodyPost_autoAddFlagQuestion;
+
+        //Open Dialogue.
+        boolean okPressed = MessageDialogSyncedRunnable.openQuestionSyncedRunnable(title, msg);
+
+        if (okPressed) {
+            enablePgOption(optionID, projectBuildType);
+            CProjectBuildHelpers.rebuildProject(project);
+            return true;
+        } else
+            return false;
+    }
+

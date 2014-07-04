@@ -1,3 +1,10 @@
+        /**
+         *  This is ran after the process completes.
+         *
+         *  <p> It checks if the gmon.out file is available for viewing. <br>
+         *  If it's not there, it prompts the user wit the GprofNoGmonDialog <br>
+         *  Otherwise it opens the gmon viewer. </p>
+         */
         @Override
         public void launchesTerminated(ILaunch[] launches) {
 
@@ -20,21 +27,32 @@
                                 // Because we set the working directory on execution to the top-level
                                 // project directory, the gmon.out file should be found there
                                 String gmonExpected = workingDirPath + "/gmon.out"; //$NON-NLS-1$
-                                IFileStore f = proxy.getResource(gmonExpected);
-                                if (!f.fetchInfo().exists()) {
+                                IFileStore gmonFileStore = proxy.getResource(gmonExpected);
+                                if (!gmonFileStore.fetchInfo().exists()) {
                                     Shell parent = PlatformUI.getWorkbench().getDisplay().getActiveShell();
-                                    GprofNoGmonDialog dialog = new GprofNoGmonDialog(parent, getProject());
-                                    if (dialog.open() != 0) {
-                                        gmonExpected = dialog.getPathToGmon();
-                                        f = proxy.getResource(gmonExpected);
-                                    } else {
-                                        return;
-                                    }
+
+                                   //Missing gmon.out logic:
+                                   //    This point is reached if pg flags were not set. (e.g in an unmanaged makefile project.)
+                                   //    or PG flag was set but gmon.out could not be found. (e.g chDir was used by the program
+
+                                   //Prompt user about missing gmon.out
+                                   GprofNoGmonDialog noGmonDialog = new GprofNoGmonDialog(project, parent);
+                                   gmonExpected = noGmonDialog.getGmonExpected();
+
+                                   //See if user specified a path to gmon.
+                                   if (gmonExpected == null) {
+                                       // If user gmon.out selection was bad, we cancle launch.
+                                       return;
+                                   } else {
+                                       // Otherwise we try to retrive the gmon.out file.
+                                       gmonFileStore = proxy.getResource(gmonExpected);
+                                   }
+
                                 }
 
                                 // We found gmon.out.  Make sure it was generated after the executable was formed.
                                 IFileStore exe = proxy.getResource(exePath.toString());
-                                if (exe.fetchInfo().getLastModified() > f.fetchInfo().getLastModified()) {
+                                if (exe.fetchInfo().getLastModified() > gmonFileStore.fetchInfo().getLastModified()) {
                                     String title = GprofLaunchMessages.GprofGmonStale_msg;
                                     String message = GprofLaunchMessages.GprofGmonStaleExplanation_msg;
                                     Shell parent = PlatformUI.getWorkbench().getDisplay().getActiveShell();
