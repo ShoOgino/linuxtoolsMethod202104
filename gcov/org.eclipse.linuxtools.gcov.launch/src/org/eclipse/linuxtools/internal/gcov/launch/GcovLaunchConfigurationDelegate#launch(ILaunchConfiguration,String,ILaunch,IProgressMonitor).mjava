@@ -1,7 +1,14 @@
     @Override
     public void launch(ILaunchConfiguration config, String mode, ILaunch launch, IProgressMonitor monitor) throws CoreException {
         this.config = config;
+        this.project = getProject();
         IPath exePath = getExePath(config);
+
+        //If pre-requisites fail, (e.g flag is not set & user does not wish to have them set automatically),
+        //then cancle the launch process.
+        if (! preRequisiteCheck()) {
+           return;
+        }
 
         /*
          * this code written by QNX Software Systems and others and was
@@ -20,8 +27,8 @@
         ILaunchManager lmgr = DebugPlugin.getDefault().getLaunchManager();
         lmgr.addLaunchListener(new LaunchTerminationWatcher(launch, exePath));
 
+       //gcov.out is generated here:
         Process process = launcher.execute(exePath, arguments, getEnvironment(config), new Path(workDir.getAbsolutePath()), monitor);
-
         DebugPlugin.newProcess( launch, process, renderProcessLabel( exePath.toOSString() ) );
 
     }

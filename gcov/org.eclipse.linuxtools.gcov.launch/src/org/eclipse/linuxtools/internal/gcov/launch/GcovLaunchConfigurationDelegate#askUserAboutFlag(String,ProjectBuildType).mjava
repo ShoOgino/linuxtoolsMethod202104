@@ -1,0 +1,32 @@
+    /**
+     * <h1>Ask user for flags.</h1>
+     * Tell the user that the required gcov flag is not set in the configuration.
+     *
+     * <p> Offer to have it automatically checked. </p>
+     */
+    private boolean askUserAboutFlag(final String optionId, final ProjectBuildType projectBuildType) {
+
+        //Construct Message box that will prompt the user.
+        //Content of message will vary depending on project type
+        String title = GcovLaunchMessages.GcovMissingFlag_Title;
+        String msg = GcovLaunchMessages.GcovMissingFlag_MainMsg;
+
+        if (projectBuildType == ProjectBuildType.AUTO_TOOLS) {
+            msg += GcovLaunchMessages.GcovMissingFlag_AutotoolsInfo;
+        } else if (projectBuildType == ProjectBuildType.MANAGED_MAKEFILE) {
+            msg += GcovLaunchMessages.GcovMissingFlag_CDTInfo;
+        }
+        msg += GcovLaunchMessages.GcovMissingFlag_PostQuestion;
+
+        //Open Dialogue.
+        boolean okPressed = MessageDialogSyncedRunnable.openQuestionSyncedRunnable(title, msg);
+
+        if (okPressed) {
+            enableOption(optionId, projectBuildType);
+            CProjectBuildHelpers.rebuildProject(project);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
