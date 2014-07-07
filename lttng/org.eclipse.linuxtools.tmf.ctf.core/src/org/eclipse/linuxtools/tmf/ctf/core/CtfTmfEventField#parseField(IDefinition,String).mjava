@@ -1,0 +1,107 @@
+    /**
+     * Factory method to instantiate CtfTmfEventField objects.
+     *
+     * @param fieldDef
+     *            The CTF Definition of this event field
+     * @param fieldName
+     *            String The name to assign to this field
+     * @return The resulting CtfTmfEventField object
+     * @since 3.1
+     */
+    public static CtfTmfEventField parseField(IDefinition fieldDef,
+            String fieldName) {
+        CtfTmfEventField field = null;
+
+        /* Determine the Definition type */
+        if (fieldDef instanceof IntegerDefinition) {
+            IntegerDefinition intDef = (IntegerDefinition) fieldDef;
+            int base = intDef.getDeclaration().getBase();
+            field = new CTFIntegerField(fieldName, intDef.getValue(), base, intDef.getDeclaration().isSigned());
+
+        } else if (fieldDef instanceof EnumDefinition) {
+            EnumDefinition enumDef = (EnumDefinition) fieldDef;
+            field = new CTFEnumField(fieldName, new CtfEnumPair(enumDef.getValue(), enumDef.getIntegerValue()));
+
+        } else if (fieldDef instanceof StringDefinition) {
+            field = new CTFStringField(fieldName, ((StringDefinition) fieldDef).getValue());
+
+        } else if (fieldDef instanceof FloatDefinition) {
+            FloatDefinition floatDef = (FloatDefinition) fieldDef;
+            field = new CTFFloatField(fieldName, floatDef.getValue());
+
+        } else if (fieldDef instanceof ArrayDefinition) {
+            ArrayDefinition arrayDef = (ArrayDefinition) fieldDef;
+            IDeclaration decl = arrayDef.getDeclaration();
+            if (!(decl instanceof CompoundDeclaration)) {
+                throw new IllegalArgumentException("Array definitions should only come from sequence or array declarations"); //$NON-NLS-1$
+            }
+            CompoundDeclaration arrDecl = (CompoundDeclaration) decl;
+            IDeclaration elemType = null;
+            Collection<Definition> definitions = arrayDef.getDefinitions();
+            elemType = arrDecl.getElementType();
+            if (elemType instanceof IntegerDeclaration) {
+                /* Array of integers => CTFIntegerArrayField */
+                IntegerDeclaration elemIntType = (IntegerDeclaration) elemType;
+                long[] values = new long[arrayDef.getLength()];
+                for (int i = 0; i < arrayDef.getLength(); i++) {
+                    IDefinition elem = arrayDef.getDefinitions().get(i);
+                    if (elem == null) {
+                        break;
+                    }
+                    values[i] = ((IntegerDefinition) elem).getValue();
+                }
+                field = new CTFIntegerArrayField(fieldName, values,
+                        elemIntType.getBase(),
+                        elemIntType.isSigned());
+
+            } else {
+                /* Arrays of elements of any other type */
+                CtfTmfEventField[] elements = new CtfTmfEventField[arrayDef.getLength()];
+                /* Parse the elements of the array. */
+                int i = 0;
+                for (IDefinition definition : definitions) {
+                    CtfTmfEventField curField = CtfTmfEventField.parseField(
+                            definition, fieldName + '[' + i + ']');
+                    elements[i] = curField;
+                    i++;
+                }
+
+                field = new CTFArrayField(fieldName, elements);
+            }
+        } else if (fieldDef instanceof ByteArrayDefinition) {
+            /* This is an array of ascii bytes, a.k.a. a String! */
+            field = new CTFStringField(fieldName, fieldDef.toString());
+
+        } else if (fieldDef instanceof StructDefinition) {
+            StructDefinition strDef = (StructDefinition) fieldDef;
+
+            List<ITmfEventField> list = new ArrayList<>();
+            /* Recursively parse the fields */
+            for (String curFieldName : strDef.getFieldNames()) {
+                list.add(CtfTmfEventField.parseField(strDef.getDefinition(curFieldName), curFieldName));
+            }
+            field = new CTFStructField(fieldName, list.toArray(new CtfTmfEventField[list.size()]));
+
+        } else if (fieldDef instanceof VariantDefinition) {
+            VariantDefinition varDef = (VariantDefinition) fieldDef;
+
+            String curFieldName = varDef.getCurrentFieldName();
+            IDefinition curFieldDef = varDef.getCurrentField();
+            if (curFieldDef != null) {
+                CtfTmfEventField subField = CtfTmfEventField.parseField(curFieldDef, curFieldName);
+                field = new CTFVariantField(fieldName, subField);
+            } else {
+                /* A safe-guard, but curFieldDef should never be null */
+                field = new CTFStringField(curFieldName, ""); //$NON-NLS-1$
+            }
+
+        } else {
+            /*
+             * Safe-guard, to avoid null exceptions later, field is expected not
+             * to be null
+             */
+            field = new CTFStringField(fieldName, Messages.CtfTmfEventField_UnsupportedType + fieldDef.getClass().toString());
+        }
+        return field;
+    }
+
