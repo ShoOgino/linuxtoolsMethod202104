@@ -1,0 +1,65 @@
+    /**
+     * Create chart for a scenario instance and add it to the relevant metadatas
+     *
+     * @param scenario
+     *            the scenario. For example,
+     *            "CTF Read & Seek Benchmark (500 seeks)".
+     * @param entry
+     *            an entry from the summary. Only scenarios that are part of the
+     *            summary are processed.
+     * @param variations
+     *            all variations to consider to create the scenario chart. For
+     *            example build=%;jvm=1.7;config=linux will generate a chart for
+     *            all builds on Linux / JVM 1.7
+     *
+     * @return
+     * @throws JSONException
+     *             JSON error
+     * @throws IOException
+     *             IO error
+     */
+    private JSONObject createScenarioChart(Scenario scenario, SummaryEntry entry, Variations variations) throws JSONException, IOException {
+        if (scenario == null) {
+            return null;
+        }
+        String[] split = entry.scenarioName.split(COMPONENT_SEPARATOR);
+        if (split.length < 3) {
+            Activator.logError("Invalid scenario name \"" + entry.scenarioName + "\", it must be in format: org.package.foo#component#test");
+            return null;
+        }
+
+        // Generate individual chart
+        JSONArray rootScenario = new JSONArray();
+        JSONObject series = createSerie(scenario, variations, entry.shortName, entry.dimension);
+        rootScenario.put(series);
+        int numChart = fNumChart++;
+        try (FileWriter fw = new FileWriter(CHART_FILE_NAME + numChart + CHART_FILE_NAME_EXTENSION)) {
+            fw.write(rootScenario.toString(4));
+        }
+
+        // Create the metadata
+        JSONObject testMetadata = new JSONObject();
+        testMetadata.put(TITLE_LABEL, entry.shortName);
+        testMetadata.put(FILE_LABEL, CHART_FILE_NAME + numChart);
+        testMetadata.put(OS_LABEL, variations.getProperty(CONFIG_LABEL));
+        testMetadata.put(JVM_LABEL, variations.getProperty(JVM_LABEL));
+        testMetadata.put(DIMENSION_LABEL, entry.dimension.getName());
+        testMetadata.put(UNIT_LABEL, entry.dimension.getUnit().getShortName());
+
+        // Add the scenario to the metadata, under the correct component
+        String componentName = split[1];
+        JSONObject componentObject = null;
+        if (fApplicationComponents.has(componentName)) {
+            componentObject = fApplicationComponents.getJSONObject(componentName);
+        } else {
+            componentObject = new JSONObject();
+            componentObject.put(NAME_LABEL, componentName);
+            componentObject.put(TESTS_LABEL, new JSONArray());
+            fApplicationComponents.put(componentName, componentObject);
+        }
+        JSONArray tests = componentObject.getJSONArray(TESTS_LABEL);
+        tests.put(testMetadata);
+
+        return series;
+    }
+

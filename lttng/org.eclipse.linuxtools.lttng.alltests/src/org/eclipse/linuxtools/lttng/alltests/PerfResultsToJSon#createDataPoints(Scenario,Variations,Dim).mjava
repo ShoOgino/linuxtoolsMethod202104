@@ -1,0 +1,52 @@
+    /**
+     * Create data points for a given scenario and variations.
+     *
+     * @param s
+     *            the scenario. For example,
+     *            "CTF Read & Seek Benchmark (500 seeks)".
+     * @param variations
+     *            all variations to consider to create the data points. For
+     *            example build=%;jvm=1.7;config=linux will generate the data
+     *            points for all builds on Linux / JVM 1.7
+     * @param dimension
+     *            the dimension of interest (CPU time, used java heap, etc).
+     *
+     * @return the generated JSON array of points
+     * @throws JSONException
+     *             JSON error
+     */
+    private static JSONArray createDataPoints(Scenario s, Variations variations, Dim dimension) throws JSONException {
+        // Can be uncommented to see raw dump
+        //s.dump(System.out, PerformanceTestPlugin.BUILD);
+
+        String[] builds = DB.querySeriesValues(s.getScenarioName(), variations, PerformanceTestPlugin.BUILD);
+        Date[] dates = new Date[builds.length];
+        String[] commits = new String[builds.length];
+        for (int i = 0; i < builds.length; i++) {
+            dates[i] = parseBuildDate(builds[i]);
+            commits[i] = parseCommit(builds[i]);
+        }
+
+        TimeSeries timeSeries = s.getTimeSeries(dimension);
+        JSONArray dataPoints = new JSONArray();
+        int length = timeSeries.getLength();
+        for (int i = 0; i < length; i++) {
+            JSONObject point = new JSONObject();
+            if (dates[i] == null) {
+                continue;
+            }
+            point.put(X_LABEL, dates[i].getTime());
+            double value = 0;
+            if (timeSeries.getCount(i) > 0) {
+                value = timeSeries.getValue(i);
+                if (Double.isNaN(value)) {
+                    value = 0;
+                }
+            }
+            point.put(Y_LABEL, value);
+            dataPoints.put(point);
+            point.put(LABEL_LABEL, createLabel(commits[i]));
+        }
+        return dataPoints;
+    }
+

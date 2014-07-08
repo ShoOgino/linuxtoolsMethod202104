@@ -1,0 +1,36 @@
+    /**
+     * Get all combinations of OS / JVM. This will be used for filtering.
+     *
+     * @return the JSON object containing all the combinations
+     * @throws JSONException
+     *             JSON error
+     */
+    private static JSONObject createOsJvm() throws JSONException {
+        JSONObject osjvm = new JSONObject();
+        List<String> oses = getDistinctOses();
+
+        int osJvmIndex = 1;
+        for (String os : oses) {
+            String key = JVM_LABEL;
+            Variations v = new Variations();
+
+            v.setProperty(BUILD_LABEL, WILDCARD_PATTERN);
+            v.setProperty(HOST_LABEL, WILDCARD_PATTERN);
+            v.setProperty(CONFIG_LABEL, os);
+            v.setProperty(JVM_LABEL, WILDCARD_PATTERN);
+
+            List<String> jvms = new ArrayList<>();
+            DB.queryDistinctValues(jvms, key, v, WILDCARD_PATTERN);
+            for (String jvm : jvms) {
+                JSONObject osjvmItem = new JSONObject();
+                osjvmItem.put(OS_LABEL, os);
+                osjvmItem.put(JVM_LABEL, jvm);
+                osjvmItem.put(DESCRIPTION_LABEL, os + " / " + jvm);
+                osjvm.put(Integer.toString(osJvmIndex), osjvmItem);
+                osJvmIndex++;
+            }
+        }
+
+        return osjvm;
+    }
+
