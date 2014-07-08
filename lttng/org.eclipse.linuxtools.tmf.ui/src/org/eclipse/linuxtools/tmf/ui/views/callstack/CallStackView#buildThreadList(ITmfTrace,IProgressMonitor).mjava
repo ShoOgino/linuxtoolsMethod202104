@@ -7,7 +7,11 @@
             if (monitor.isCanceled()) {
                 return;
             }
-            ITmfStateSystem ss = getCallStackStateSystem(aTrace);
+            AbstractCallStackAnalysis module = getCallStackModule(trace);
+            if (module == null) {
+                return;
+            }
+            ITmfStateSystem ss = module.getStateSystem();
             if (ss == null) {
                 addUnavailableEntry(aTrace, entryList);
                 continue;
@@ -21,22 +25,23 @@
             long endTime = ss.getCurrentEndTime() + 1;
             fStartTime = Math.min(fStartTime, startTime);
             fEndTime = Math.max(fEndTime, endTime);
-            List<Integer> threadQuarks = ss.getQuarks(CallStackStateProvider.THREADS, "*"); //$NON-NLS-1$
+            String[] threadPaths = module.getThreadsPattern();
+            List<Integer> threadQuarks = ss.getQuarks(threadPaths);
             for (int i = 0; i < threadQuarks.size(); i++) {
                 if (monitor.isCanceled()) {
                     return;
                 }
                 int threadQuark = threadQuarks.get(i);
-                String thread = ss.getAttributeName(threadQuark);
-                String threadEntryName = thread + ' ' + '(' + aTrace.getName() + ')';
-                ThreadEntry threadEntry = new ThreadEntry(aTrace, threadEntryName, threadQuark, startTime, endTime);
-                entryList.add(threadEntry);
-                int eventStackQuark;
                 try {
-                    eventStackQuark = ss.getQuarkRelative(threadQuark, CallStackStateProvider.CALL_STACK);
+                    String[] callStackPath = module.getCallStackPath();
+                    int callStackQuark = ss.getQuarkRelative(threadQuark, callStackPath);
+                    String thread = ss.getAttributeName(threadQuark);
+                    String threadEntryName = thread + ' ' + '(' + aTrace.getName() + ')';
+                    ThreadEntry threadEntry = new ThreadEntry(ss, threadEntryName, callStackQuark, startTime, endTime);
+                    entryList.add(threadEntry);
                     int level = 1;
-                    for (int stackLevelQuark : ss.getSubAttributes(eventStackQuark, false)) {
-                        CallStackEntry callStackEntry = new CallStackEntry(stackLevelQuark, level++, aTrace);
+                    for (int stackLevelQuark : ss.getSubAttributes(callStackQuark, false)) {
+                        CallStackEntry callStackEntry = new CallStackEntry(stackLevelQuark, level++, aTrace, ss);
                         threadEntry.addChild(callStackEntry);
                     }
                 } catch (AttributeNotFoundException e) {

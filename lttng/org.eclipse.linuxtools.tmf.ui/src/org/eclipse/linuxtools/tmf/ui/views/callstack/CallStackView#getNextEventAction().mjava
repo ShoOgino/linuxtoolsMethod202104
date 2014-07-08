@@ -13,14 +13,10 @@
                     if (entry instanceof CallStackEntry) {
                         try {
                             CallStackEntry callStackEntry = (CallStackEntry) entry;
-                            ITmfTrace trace = callStackEntry.getTrace();
-                            ITmfStateSystem ss = getCallStackStateSystem(trace);
-                            if (ss == null) {
-                                return;
-                            }
+                            ITmfStateSystem ss = callStackEntry.getStateSystem();
                             long time = Math.max(ss.getStartTime(), Math.min(ss.getCurrentEndTime(), viewer.getSelectionBegin()));
                             ThreadEntry threadEntry = (ThreadEntry) callStackEntry.getParent();
-                            int quark = ss.getQuarkRelative(threadEntry.getThreadQuark(), CallStackStateProvider.CALL_STACK);
+                            int quark = ss.getParentAttributeQuark(callStackEntry.getQuark());
                             ITmfStateInterval stackInterval = ss.querySingleState(time, quark);
                             long newTime = stackInterval.getEndTime() + 1;
                             viewer.setSelectedTimeNotify(newTime, true);
