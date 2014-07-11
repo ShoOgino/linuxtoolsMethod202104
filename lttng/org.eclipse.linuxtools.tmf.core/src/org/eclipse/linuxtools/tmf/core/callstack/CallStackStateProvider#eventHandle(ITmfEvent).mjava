@@ -9,9 +9,14 @@
             if (functionEntryName != null) {
                 long timestamp = event.getTimestamp().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
                 String thread = getThreadName(event);
-                int quark = ss.getQuarkAbsoluteAndAdd(THREADS, thread, CALL_STACK);
+                int threadQuark = ss.getQuarkAbsoluteAndAdd(THREADS, thread);
+                Long threadId = getThreadId(event);
+                if (threadId != null) {
+                    ss.updateOngoingState(TmfStateValue.newValueLong(threadId), threadQuark);
+                }
+                int callStackQuark = ss.getQuarkRelativeAndAdd(threadQuark, CALL_STACK);
                 ITmfStateValue value = TmfStateValue.newValueString(functionEntryName);
-                ss.pushAttribute(timestamp, value, quark);
+                ss.pushAttribute(timestamp, value, callStackQuark);
                 return;
             }
 
