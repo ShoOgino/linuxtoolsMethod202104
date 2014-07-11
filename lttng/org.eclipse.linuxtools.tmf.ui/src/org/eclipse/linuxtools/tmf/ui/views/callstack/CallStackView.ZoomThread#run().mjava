@@ -4,29 +4,31 @@
                 return;
             }
             long resolution = Math.max(1, (fZoomEndTime - fZoomStartTime) / fDisplayWidth);
-            for (ThreadEntry threadEntry : fZoomEntryList) {
-                ITmfStateSystem ss = threadEntry.getStateSystem();
-                if (ss == null) {
-                    continue;
-                }
-                ss.waitUntilBuilt();
-                if (ss.isCancelled()) {
-                    continue;
-                }
-                for (ITimeGraphEntry child : threadEntry.getChildren()) {
-                    if (fMonitor.isCanceled()) {
-                        break;
+            for (TraceEntry traceEntry : fZoomEntryList) {
+                for (ITimeGraphEntry threadEntry : traceEntry.getChildren()) {
+                    ITmfStateSystem ss = ((ThreadEntry) threadEntry).getStateSystem();
+                    if (ss == null) {
+                        continue;
                     }
-                    CallStackEntry entry = (CallStackEntry) child;
-                    if (fZoomStartTime <= fStartTime && fZoomEndTime >= fEndTime) {
-                        entry.setZoomedEventList(null);
-                    } else {
-                        List<ITimeEvent> zoomedEventList = getEventList(entry, fZoomStartTime, fZoomEndTime, resolution, fMonitor);
-                        if (zoomedEventList != null) {
-                            entry.setZoomedEventList(zoomedEventList);
+                    ss.waitUntilBuilt();
+                    if (ss.isCancelled()) {
+                        continue;
+                    }
+                    for (ITimeGraphEntry child : threadEntry.getChildren()) {
+                        if (fMonitor.isCanceled()) {
+                            break;
                         }
+                        CallStackEntry entry = (CallStackEntry) child;
+                        if (fZoomStartTime <= fStartTime && fZoomEndTime >= fEndTime) {
+                            entry.setZoomedEventList(null);
+                        } else {
+                            List<ITimeEvent> zoomedEventList = getEventList(entry, fZoomStartTime, fZoomEndTime, resolution, fMonitor);
+                            if (zoomedEventList != null) {
+                                entry.setZoomedEventList(zoomedEventList);
+                            }
+                        }
+                        redraw();
                     }
-                    redraw();
                 }
             }
         }

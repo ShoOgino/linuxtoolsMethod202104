@@ -2,7 +2,7 @@
         fStartTime = Long.MAX_VALUE;
         fEndTime = Long.MIN_VALUE;
         ITmfTrace[] traces = TmfTraceManager.getTraceSet(trace);
-        ArrayList<ThreadEntry> entryList = new ArrayList<>();
+        ArrayList<TraceEntry> entryList = new ArrayList<>();
         for (ITmfTrace aTrace : traces) {
             if (monitor.isCanceled()) {
                 return;
@@ -27,6 +27,8 @@
             fEndTime = Math.max(fEndTime, endTime);
             String[] threadPaths = module.getThreadsPattern();
             List<Integer> threadQuarks = ss.getQuarks(threadPaths);
+            TraceEntry traceEntry = new TraceEntry(trace.getName(), startTime, endTime);
+            entryList.add(traceEntry);
             for (int i = 0; i < threadQuarks.size(); i++) {
                 if (monitor.isCanceled()) {
                     return;
@@ -35,13 +37,12 @@
                 try {
                     String[] callStackPath = module.getCallStackPath();
                     int callStackQuark = ss.getQuarkRelative(threadQuark, callStackPath);
-                    String thread = ss.getAttributeName(threadQuark);
-                    String threadEntryName = thread + ' ' + '(' + aTrace.getName() + ')';
-                    ThreadEntry threadEntry = new ThreadEntry(ss, threadEntryName, callStackQuark, startTime, endTime);
-                    entryList.add(threadEntry);
+                    String threadName = ss.getAttributeName(threadQuark);
+                    ThreadEntry threadEntry = new ThreadEntry(ss, threadName, callStackQuark, startTime, endTime);
+                    traceEntry.addChild(threadEntry);
                     int level = 1;
                     for (int stackLevelQuark : ss.getSubAttributes(callStackQuark, false)) {
-                        CallStackEntry callStackEntry = new CallStackEntry(stackLevelQuark, level++, aTrace, ss);
+                        CallStackEntry callStackEntry = new CallStackEntry(threadName, stackLevelQuark, level++, aTrace, ss);
                         threadEntry.addChild(callStackEntry);
                     }
                 } catch (AttributeNotFoundException e) {
@@ -55,12 +56,14 @@
         if (trace == fTrace) {
             refresh();
         }
-        for (ThreadEntry threadEntry : entryList) {
-            for (ITimeGraphEntry callStackEntry : threadEntry.getChildren()) {
-                if (monitor.isCanceled()) {
-                    return;
+        for (TraceEntry traceEntry : entryList) {
+            for (ITimeGraphEntry threadEntry : traceEntry.getChildren()) {
+                for (ITimeGraphEntry callStackEntry : threadEntry.getChildren()) {
+                    if (monitor.isCanceled()) {
+                        return;
+                    }
+                    buildStatusEvents(trace, (CallStackEntry) callStackEntry, monitor);
                 }
-                buildStatusEvents(trace, (CallStackEntry) callStackEntry, monitor);
             }
         }
     }

@@ -31,29 +31,32 @@
                     return;
                 }
                 TimeGraphViewer viewer = fTimeGraphCombo.getTimeGraphViewer();
-                for (ThreadEntry threadEntry : fEntryList) {
-                    ITmfStateSystem ss = threadEntry.getStateSystem();
-                    if (ss == null || beginTime < ss.getStartTime() || beginTime > ss.getCurrentEndTime()) {
-                        continue;
-                    }
-                    try {
-                        int quark = threadEntry.getCallStackQuark();
-                        ITmfStateInterval stackInterval = ss.querySingleState(beginTime, quark);
-                        if (beginTime == stackInterval.getStartTime()) {
-                            int stackLevel = stackInterval.getStateValue().unboxInt();
-                            ITimeGraphEntry selectedEntry = threadEntry.getChildren().get(Math.max(0, stackLevel - 1));
-                            fTimeGraphCombo.setSelection(selectedEntry);
-                            viewer.getTimeGraphControl().fireSelectionChanged();
-                            break;
+                for (TraceEntry traceEntry : fEntryList) {
+                    for (ITimeGraphEntry child : traceEntry.getChildren()) {
+                        ThreadEntry threadEntry = (ThreadEntry) child;
+                        ITmfStateSystem ss = threadEntry.getStateSystem();
+                        if (ss == null || beginTime < ss.getStartTime() || beginTime > ss.getCurrentEndTime()) {
+                            continue;
                         }
-                    } catch (AttributeNotFoundException e) {
-                        Activator.getDefault().logError("Error querying state system", e); //$NON-NLS-1$
-                    } catch (TimeRangeException e) {
-                        Activator.getDefault().logError("Error querying state system", e); //$NON-NLS-1$
-                    } catch (StateSystemDisposedException e) {
-                        Activator.getDefault().logError("Error querying state system", e); //$NON-NLS-1$
-                    } catch (StateValueTypeException e) {
-                        Activator.getDefault().logError("Error querying state system", e); //$NON-NLS-1$
+                        try {
+                            int quark = threadEntry.getCallStackQuark();
+                            ITmfStateInterval stackInterval = ss.querySingleState(beginTime, quark);
+                            if (beginTime == stackInterval.getStartTime()) {
+                                int stackLevel = stackInterval.getStateValue().unboxInt();
+                                ITimeGraphEntry selectedEntry = threadEntry.getChildren().get(Math.max(0, stackLevel - 1));
+                                fTimeGraphCombo.setSelection(selectedEntry);
+                                viewer.getTimeGraphControl().fireSelectionChanged();
+                                break;
+                            }
+                        } catch (AttributeNotFoundException e) {
+                            Activator.getDefault().logError("Error querying state system", e); //$NON-NLS-1$
+                        } catch (TimeRangeException e) {
+                            Activator.getDefault().logError("Error querying state system", e); //$NON-NLS-1$
+                        } catch (StateSystemDisposedException e) {
+                            Activator.getDefault().logError("Error querying state system", e); //$NON-NLS-1$
+                        } catch (StateValueTypeException e) {
+                            Activator.getDefault().logError("Error querying state system", e); //$NON-NLS-1$
+                        }
                     }
                 }
             }
