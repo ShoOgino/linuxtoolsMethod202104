@@ -18,21 +18,17 @@
                     if (consoleIterator instanceof ScriptConsole) {
                         activeConsole = (ScriptConsole) consoleIterator;
                         if (activeConsole.getName().endsWith(name)) {
-                            //Stop any script currently running, and terminate stream listeners.
-                            if (activeConsole.isRunning()) {
-                                activeConsole.stopAndDispose();
-                                if (activeConsole.errorDaemon != null) {
-                                    activeConsole.cmd.removeErrorStreamListener(activeConsole.errorDaemon);
-                                }
-                                if (activeConsole.consoleDaemon != null) {
-                                    activeConsole.cmd.removeInputStreamListener(activeConsole.consoleDaemon);
-                                }
-                            }
+                            //Stop any script currently running.
                             if (activeConsole.onCmdStopThread != null && activeConsole.onCmdStopThread.isAlive()) {
                                 activeConsole.onCmdStopThread.interrupt();
                                 try {
                                     activeConsole.onCmdStopThread.join();
                                 } catch (InterruptedException e) {}
+                            }
+                            if (activeConsole.isRunning()) {
+                                activeConsole.stopAndDispose();
+                            } else {
+                                activeConsole.disposeCommand();
                             }
                             //Remove output from last run
                             activeConsole.clearConsole();

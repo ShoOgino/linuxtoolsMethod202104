@@ -1,16 +1,20 @@
     /**
      * Starts the <code>Thread</code> that the new <code>Process</code> will run in.
      * This must be called in order to get the process to start running.
+     * Note that this method only takes effect the first time it is called.
      * @throws CoreException
      */
     public void start() throws CoreException {
+        if (started || stopped) {
+            return;
+        }
         IStatus status = init();
         if (status.isOK()) {
             Thread t = new Thread(this, cmd[0]);
             t.start();
             started = true;
         } else {
-            stop();
+            cleanUpAfterStop();
             returnVal = Integer.MIN_VALUE;
             throw new CoreException(status);
         }

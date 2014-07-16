@@ -6,15 +6,20 @@
             errorGobbler.start();
             inputGobbler.start();
 
-            while (!stopped) {
-                if (channel.isClosed() || (channel.getExitStatus() != -1)) {
-                    stop();
-                    break;
+            synchronized (this) {
+                while (!channel.isClosed()) {
+                    wait(WAIT_DELAY);
                 }
+                cleanUpAfterStop();
             }
-
         } catch (JSchException e) {
-            ExceptionErrorDialog.openError(Messages.ScpExec_errorConnectingToServer, e);
+            ExceptionErrorDialog.openError(Messages.ScpExec_Error,
+                    Messages.ScpExec_errorConnectingToServer, e);
+        } catch (InterruptedException e) {
+            // This thread was interrupted while waiting for
+            // the process to exit. Destroy the process just
+            // to make sure it exits.
+            stop();
         }
     }
 
