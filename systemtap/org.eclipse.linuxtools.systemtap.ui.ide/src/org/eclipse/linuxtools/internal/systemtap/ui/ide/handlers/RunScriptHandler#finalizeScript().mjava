@@ -7,37 +7,20 @@
      * @since 2.0
      */
     private String[] finalizeScript() throws ExecutionException {
-        boolean local = getRunLocal();
-        String modname;
-        if (!local) {
-            modname = getFileNameWithoutExtension(serverfileName);
-        }
-        /* We need to remove the directory prefix here because in the case of
-         * running the script remotely, this is already done.  Not doing so
-         * causes a modname error.
-         */
-        else {
-            modname = getFileNameWithoutExtension(getFileName(fileName));
-        }
-
         // Make sure script name only contains underscores and/or alphanumeric characters.
-        Pattern validModName = Pattern.compile("^[a-z0-9_A-Z]+$"); //$NON-NLS-1$
-        Matcher modNameMatch = validModName.matcher(modname);
-        if (!modNameMatch.matches()) {
+        if (!Pattern.matches("^[a-z0-9_A-Z]+$", //$NON-NLS-1$
+                getFileNameWithoutExtension(getFileName(fileName)))) {
             continueRun = false;
             throw new ExecutionException(Messages.RunScriptHandler_InvalidScriptMessage);
         }
 
-        String[] script = new String[cmdList.size() + 4];
+        String[] script = new String[cmdList.size() + 2];
         script[0] = "stap"; //$NON-NLS-1$
-        script[script.length - 1] = !local ? tmpfileName : fileName;
+        script[script.length - 1] = !getRunLocal() ? tmpfileName : fileName;
 
         for (int i = 0; i < cmdList.size(); i++) {
             script[i + 1] = cmdList.get(i);
         }
-        script[script.length - 3] = "-m"; //$NON-NLS-1$
-
-        script[script.length - 2] = modname;
         return script;
     }
 
