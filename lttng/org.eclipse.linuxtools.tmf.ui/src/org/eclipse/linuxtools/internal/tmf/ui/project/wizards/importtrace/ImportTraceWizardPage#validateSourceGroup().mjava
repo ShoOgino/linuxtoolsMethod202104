@@ -4,16 +4,25 @@
     @Override
     public boolean validateSourceGroup() {
 
-        File sourceDirectory = getSourceDirectory();
-        if (sourceDirectory == null) {
+        File source = fImportFromDirectoryRadio.getSelection() ? getSourceDirectory() : getSourceArchiveFile();
+        if (source == null) {
             setMessage(Messages.ImportTraceWizard_SelectTraceSourceEmpty);
+            setErrorMessage(null);
             return false;
         }
 
-        if (sourceConflictsWithDestination(new Path(sourceDirectory.getPath()))) {
+        if (sourceConflictsWithDestination(new Path(source.getPath()))) {
             setMessage(null);
             setErrorMessage(getSourceConflictMessage());
             return false;
+        }
+
+        if (!fImportFromDirectoryRadio.getSelection()) {
+            if (!ensureTarSourceIsValid(source.getAbsolutePath()) && !ensureZipSourceIsValid(source.getAbsolutePath())) {
+                setMessage(null);
+                setErrorMessage(Messages.ImportTraceWizard_BadArchiveFormat);
+                return false;
+            }
         }
 
         if (fSelectionGroup.getCheckedElementCount() == 0) {

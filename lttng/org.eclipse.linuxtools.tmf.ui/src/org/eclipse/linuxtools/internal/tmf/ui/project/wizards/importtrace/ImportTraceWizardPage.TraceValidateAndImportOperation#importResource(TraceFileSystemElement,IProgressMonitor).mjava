@@ -66,7 +66,7 @@
                 }
             };
 
-            monitor.setTaskName(Messages.ImportTraceWizard_ImportOperationTaskName + " " + ((File)fileSystemElement.getFileSystemObject()).getAbsolutePath()); //$NON-NLS-1$
+            monitor.setTaskName(Messages.ImportTraceWizard_ImportOperationTaskName + " " + fileSystemElement.getFileSystemObject().getAbsolutePath(fBaseSourceContainerPath.toOSString())); //$NON-NLS-1$
             ImportOperation operation = new ImportOperation(containerPath, parentFolder, fileSystemStructureProvider, myQueryImpl, subList);
             operation.setContext(getShell());
 
@@ -76,24 +76,11 @@
             operation.setVirtualFolders(false);
 
             operation.run(new SubProgressMonitor(monitor, 1, SubProgressMonitor.PREPEND_MAIN_LABEL_TO_SUBTASK));
-
-            File file = (File) fileSystemElement.getFileSystemObject();
-            String sourceLocation = null;
-            IResource sourceResource;
-            if (file.isDirectory()) {
-                sourceResource = ResourcesPlugin.getWorkspace().getRoot().getContainerForLocation(Path.fromOSString(file.getAbsolutePath()));
-            } else {
-                sourceResource = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(Path.fromOSString(file.getAbsolutePath()));
-            }
-            if (sourceResource != null && sourceResource.exists()) {
-                sourceLocation = sourceResource.getPersistentProperty(TmfCommonConstants.SOURCE_LOCATION);
-            }
-            if (sourceLocation == null) {
-                sourceLocation = URIUtil.toUnencodedString(file.toURI());
-            }
-
+            String sourceLocation = fileSystemElement.getFileSystemObject().getSourceLocation();
             IResource resource = ResourcesPlugin.getWorkspace().getRoot().findMember(tracePath);
-            resource.setPersistentProperty(TmfCommonConstants.SOURCE_LOCATION, sourceLocation);
+            if (sourceLocation != null) {
+                resource.setPersistentProperty(TmfCommonConstants.SOURCE_LOCATION, sourceLocation);
+            }
 
             return resource;
         }

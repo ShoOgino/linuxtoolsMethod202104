@@ -1,8 +1,42 @@
     private TraceFileSystemElement getFileSystemTree() {
-        File sourceDirectory = getSourceDirectory();
-        if (sourceDirectory == null) {
+        IFileSystemObject rootElement = null;
+        FileSystemObjectImportStructureProvider importStructureProvider = null;
+
+        // Import from directory
+        if (fImportFromDirectoryRadio.getSelection()) {
+            importStructureProvider = new FileSystemObjectImportStructureProvider(FileSystemStructureProvider.INSTANCE, null);
+            File sourceDirectory = getSourceDirectory();
+            if (sourceDirectory == null) {
+                return null;
+            }
+            rootElement = importStructureProvider.getIFileSystemObject(sourceDirectory);
+        } else {
+            // Import from archive
+            FileSystemObjectLeveledImportStructureProvider leveledImportStructureProvider = null;
+            String archivePath = getSourceArchiveFile() != null ? getSourceArchiveFile().getAbsolutePath() : ""; //$NON-NLS-1$
+            if (ArchiveFileManipulations.isTarFile(archivePath)) {
+                if (ensureTarSourceIsValid(archivePath)) {
+                    // We close the file when we dispose the import provider, see disposeSelectionGroupRoot
+                    TarFile tarFile = getSpecifiedTarSourceFile(archivePath);
+                    leveledImportStructureProvider = new FileSystemObjectLeveledImportStructureProvider(new TarLeveledStructureProvider(tarFile), archivePath);
+                }
+            } else if (ensureZipSourceIsValid(archivePath)) {
+                // We close the file when we dispose the import provider, see disposeSelectionGroupRoot
+                @SuppressWarnings("resource")
+                ZipFile zipFile = getSpecifiedZipSourceFile(archivePath);
+                leveledImportStructureProvider = new FileSystemObjectLeveledImportStructureProvider(new ZipLeveledStructureProvider(zipFile), archivePath);
+            }
+            if (leveledImportStructureProvider == null) {
+                return null;
+            }
+            rootElement = leveledImportStructureProvider.getRoot();
+            importStructureProvider = leveledImportStructureProvider;
+        }
+
+        if (rootElement == null) {
             return null;
         }
-        return selectFiles(sourceDirectory, FileSystemStructureProvider.INSTANCE);
+
+        return selectFiles(rootElement, importStructureProvider);
     }
 

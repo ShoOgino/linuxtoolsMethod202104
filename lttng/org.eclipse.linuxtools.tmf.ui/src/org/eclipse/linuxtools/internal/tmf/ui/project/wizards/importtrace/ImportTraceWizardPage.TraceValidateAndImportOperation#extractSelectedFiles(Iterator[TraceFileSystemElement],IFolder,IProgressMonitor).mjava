@@ -1,0 +1,52 @@
+        private Iterator<TraceFileSystemElement> extractSelectedFiles(Iterator<TraceFileSystemElement> fileSystemElementsIter, IFolder tempFolder, IProgressMonitor progressMonitor) throws InterruptedException,
+                InvocationTargetException {
+            List<TraceFileSystemElement> subList = new ArrayList<>();
+            // Collect all the elements
+            while (fileSystemElementsIter.hasNext()) {
+                ModalContext.checkCanceled(progressMonitor);
+                TraceFileSystemElement element = fileSystemElementsIter.next();
+                if (element.isDirectory()) {
+                    Object[] array = element.getFiles().getChildren();
+                    for (int i = 0; i < array.length; i++) {
+                        subList.add((TraceFileSystemElement)array[i]);
+                    }
+                }
+                subList.add(element);
+            }
+
+            // Find a sensible root element
+            TraceFileSystemElement root = subList.get(0);
+            while (root.getParent() != null) {
+                root = (TraceFileSystemElement) root.getParent();
+            }
+
+            ImportProvider fileSystemStructureProvider = new ImportProvider();
+
+            IOverwriteQuery myQueryImpl = new IOverwriteQuery() {
+                @Override
+                public String queryOverwrite(String file) {
+                    return IOverwriteQuery.NO_ALL;
+                }
+            };
+
+            progressMonitor.setTaskName(Messages.ImportTraceWizard_ExtractImportOperationTaskName);
+            IPath containerPath = tempFolder.getFullPath();
+            ImportOperation operation = new ImportOperation(containerPath, root, fileSystemStructureProvider, myQueryImpl, subList);
+            operation.setContext(getShell());
+
+            operation.setCreateContainerStructure(true);
+            operation.setOverwriteResources(false);
+            operation.setVirtualFolders(false);
+
+            operation.run(new SubProgressMonitor(progressMonitor, subList.size(), SubProgressMonitor.PREPEND_MAIN_LABEL_TO_SUBTASK));
+
+            // Create the new import provider and root element based on the extracted temp folder
+            FileSystemObjectImportStructureProvider importStructureProvider = new FileSystemObjectImportStructureProvider(FileSystemStructureProvider.INSTANCE, null);
+            IFileSystemObject rootElement = importStructureProvider.getIFileSystemObject(new File(tempFolder.getLocation().toOSString()));
+            TraceFileSystemElement createRootElement = createRootElement(rootElement, importStructureProvider);
+            List<TraceFileSystemElement> list = new ArrayList<>();
+            getAllChildren(list, createRootElement);
+            Iterator<TraceFileSystemElement> extractedElementsIter = list.iterator();
+            return extractedElementsIter;
+        }
+

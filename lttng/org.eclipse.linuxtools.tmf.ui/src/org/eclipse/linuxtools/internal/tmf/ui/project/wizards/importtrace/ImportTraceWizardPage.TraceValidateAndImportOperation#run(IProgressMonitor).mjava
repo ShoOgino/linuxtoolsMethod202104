@@ -26,14 +26,37 @@
                 ModalContext.checkCanceled(subMonitor);
 
                 Iterator<TraceFileSystemElement> fileSystemElementsIter = fileSystemElements.iterator();
+                IFolder destTempFolder = null;
                 subMonitor = SubMonitor.convert(progressMonitor, fileSystemElements.size());
+                if (fImportFromArchive) {
+                    // When importing from archive, we first extract the
+                    // *selected* files to a temporary folder then create a new
+                    // Iterator<TraceFileSystemElement> that points to the
+                    // extracted files. This way, the import operator can
+                    // continue as it normally would.
+
+                    subMonitor = SubMonitor.convert(progressMonitor, fileSystemElements.size() * 2);
+                    destTempFolder = fTargetFolder.getProject().getFolder(TRACE_IMPORT_TEMP_FOLDER);
+                    if (destTempFolder.exists()) {
+                        SubProgressMonitor monitor = new SubProgressMonitor(subMonitor, 1, SubProgressMonitor.PREPEND_MAIN_LABEL_TO_SUBTASK);
+                        destTempFolder.delete(true, monitor);
+                    }
+                    SubProgressMonitor monitor = new SubProgressMonitor(subMonitor, 1, SubProgressMonitor.PREPEND_MAIN_LABEL_TO_SUBTASK);
+                    destTempFolder.create(IResource.HIDDEN, true, monitor);
+
+                    fileSystemElementsIter = extractSelectedFiles(fileSystemElementsIter, destTempFolder, subMonitor);
+                    // We need to update the source container path because the
+                    // "preserve folder structure" option would create the
+                    // wrong folders otherwise.
+                    fBaseSourceContainerPath = destTempFolder.getLocation();
+                }
 
                 while (fileSystemElementsIter.hasNext()) {
                     ModalContext.checkCanceled(progressMonitor);
                     currentPath = null;
                     TraceFileSystemElement element = fileSystemElementsIter.next();
-                    File fileResource = (File) element.getFileSystemObject();
-                    String resourcePath = fileResource.getAbsolutePath();
+                    IFileSystemObject fileSystemObject = element.getFileSystemObject();
+                    String resourcePath = element.getFileSystemObject().getAbsolutePath(fBaseSourceContainerPath.toOSString());
                     element.setDestinationContainerPath(computeDestinationContainerPath(new Path(resourcePath)));
 
                     currentPath = resourcePath;
@@ -47,8 +70,7 @@
                         }
                     } else {
                         TraceFileSystemElement parentElement = (TraceFileSystemElement)element.getParent();
-                        File parentFile = (File) parentElement.getFileSystemObject();
-                        String parentPath = parentFile.getAbsolutePath();
+                        String parentPath = parentElement.getFileSystemObject().getAbsolutePath(fBaseSourceContainerPath.toOSString());
                         parentElement.setDestinationContainerPath(computeDestinationContainerPath(new Path(parentPath)));
                         currentPath = parentPath;
                         if (!folderElements.containsKey(parentPath)) {
@@ -56,13 +78,18 @@
                                 folderElements.put(parentPath, parentElement);
                                 validateAndImportTrace(parentElement, sub);
                             } else {
-                                if (fileResource.exists()) {
+                                if (fileSystemObject.exists()) {
                                     validateAndImportTrace(element, sub);
                                 }
                             }
                         }
                     }
                 }
+
+                if (destTempFolder != null && destTempFolder.exists()) {
+                    destTempFolder.delete(true, progressMonitor);
+                }
+
                 setStatus(Status.OK_STATUS);
             } catch (InterruptedException e) {
                 setStatus(Status.CANCEL_STATUS);
