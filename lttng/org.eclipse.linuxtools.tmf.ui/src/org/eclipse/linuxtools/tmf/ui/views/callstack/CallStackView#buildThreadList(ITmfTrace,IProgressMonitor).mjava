@@ -28,6 +28,7 @@
             String[] threadPaths = module.getThreadsPattern();
             List<Integer> threadQuarks = ss.getQuarks(threadPaths);
             TraceEntry traceEntry = new TraceEntry(trace.getName(), startTime, endTime);
+            traceEntry.sortChildren(fThreadComparator);
             entryList.add(traceEntry);
             for (int i = 0; i < threadQuarks.size(); i++) {
                 if (monitor.isCanceled()) {
@@ -38,7 +39,18 @@
                     String[] callStackPath = module.getCallStackPath();
                     int callStackQuark = ss.getQuarkRelative(threadQuark, callStackPath);
                     String threadName = ss.getAttributeName(threadQuark);
-                    ThreadEntry threadEntry = new ThreadEntry(ss, threadName, callStackQuark, startTime, endTime);
+                    long threadId = ss.querySingleState(ss.getCurrentEndTime() , threadQuark).getStateValue().unboxLong();
+                    long start = startTime;
+                    ITmfStateInterval startInterval = ss.querySingleState(startTime, callStackQuark);
+                    if (startInterval.getStateValue().isNull()) {
+                        start = Math.min(startInterval.getEndTime() + 1, endTime);
+                    }
+                    long end = endTime;
+                    ITmfStateInterval endInterval = ss.querySingleState(ss.getCurrentEndTime(), callStackQuark);
+                    if (endInterval.getStateValue().isNull()) {
+                        end = endInterval.getStartTime() == startTime ? endTime : endInterval.getStartTime();
+                    }
+                    ThreadEntry threadEntry = new ThreadEntry(ss, threadName, threadId, callStackQuark, start, end);
                     traceEntry.addChild(threadEntry);
                     int level = 1;
                     for (int stackLevelQuark : ss.getSubAttributes(callStackQuark, false)) {
@@ -47,6 +59,8 @@
                     }
                 } catch (AttributeNotFoundException e) {
                     Activator.getDefault().logError("Error querying state system", e); //$NON-NLS-1$
+                } catch (StateSystemDisposedException e) {
+                    /* Ignored */
                 }
             }
         }
