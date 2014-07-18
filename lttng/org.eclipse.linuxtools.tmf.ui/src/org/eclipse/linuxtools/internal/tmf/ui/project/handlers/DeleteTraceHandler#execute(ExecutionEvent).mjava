@@ -16,28 +16,51 @@
             return null;
         }
 
-        Iterator<Object> iterator = fSelection.iterator();
-        while (iterator.hasNext()) {
-            Object element = iterator.next();
-            if (element instanceof TmfTraceElement) {
-                final TmfTraceElement trace = (TmfTraceElement) element;
-                try {
-                    trace.delete(null);
-                } catch (final CoreException e) {
-                    Display.getDefault().asyncExec(new Runnable() {
-                        @Override
-                        public void run() {
-                            final MessageBox mb = new MessageBox(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell());
-                            mb.setText(Messages.DeleteTraceHandler_Error + ' ' + trace.getName());
-                            mb.setMessage(e.getMessage());
-                            mb.open();
-                        }
-                    });
-                    Activator.getDefault().logError("Error deleting trace: " + trace.getName(), e); //$NON-NLS-1$
-                }
-            }
-        }
+        final Iterator<Object> iterator = fSelection.iterator();
+        final int nbTraces = fSelection.size();
 
+        SelectTraceOperation operation = new SelectTraceOperation() {
+            @Override
+            public void execute(IProgressMonitor monitor) throws CoreException {
+                SubMonitor subMonitor = SubMonitor.convert(monitor, nbTraces);
+
+                while (iterator.hasNext()) {
+                    if (monitor.isCanceled()) {
+                        throw new OperationCanceledException();
+                    }
+                    Object element = iterator.next();
+                    if (element instanceof TmfTraceElement) {
+                        final TmfTraceElement trace = (TmfTraceElement) element;
+                        subMonitor.setTaskName(Messages.DeleteTraceHandler_TaskName + " " + trace.getElementPath()); //$NON-NLS-1$
+                        try {
+                            trace.delete(null);
+                        } catch (final CoreException e) {
+                            Display.getDefault().asyncExec(new Runnable() {
+                                @Override
+                                public void run() {
+                                    final MessageBox mb = new MessageBox(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell());
+                                    mb.setText(Messages.DeleteTraceHandler_Error + ' ' + trace.getName());
+                                    mb.setMessage(e.getMessage());
+                                    mb.open();
+                                }
+                            });
+                            Activator.getDefault().logError("Error deleting trace: " + trace.getName(), e); //$NON-NLS-1$
+                        }
+                    }
+                    subMonitor.setTaskName(""); //$NON-NLS-1$
+                    subMonitor.worked(1);
+                }
+           }
+        };
+
+        try {
+            PlatformUI.getWorkbench().getProgressService().run(true, true, operation);
+        } catch (InterruptedException e) {
+            return null;
+        } catch (InvocationTargetException e) {
+            MessageDialog.openError(window.getShell(), e.toString(), e.getTargetException().toString());
+            return null;
+        }
         return null;
     }
 
