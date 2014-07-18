@@ -1,0 +1,47 @@
+        /**
+         * Set the trace type of a {@Link TraceTypeHelper}. Should only be
+         * used internally by this project.
+         *
+         * @param resource
+         *            the resource to set
+         * @param traceType
+         *            the {@link TraceTypeHelper} to set the trace type to.
+         * @param refresh
+         *            Flag for refreshing the project
+         * @return Status.OK_Status if successful, error is otherwise.
+         * @throws CoreException
+         *             An exception caused by accessing eclipse project items.
+         * @since 3.1
+         */
+    public static IStatus setTraceType(IResource resource, TraceTypeHelper traceType, boolean refresh) throws CoreException {
+        String traceTypeId = traceType.getCanonicalName();
+
+        resource.setPersistentProperty(TmfCommonConstants.TRACETYPE, traceTypeId);
+
+        TmfProjectElement tmfProject = TmfProjectRegistry.getProject(resource.getProject(), true);
+        if (tmfProject.getTracesFolder().getPath().isPrefixOf(resource.getFullPath())) {
+            String elementPath = resource.getFullPath().makeRelativeTo(tmfProject.getTracesFolder().getPath()).toString();
+            refreshTraceElement(tmfProject.getTracesFolder().getTraces(), elementPath);
+        } else if (resource.getParent().equals(tmfProject.getExperimentsFolder().getResource())) {
+            /* The trace type to set is for an experiment */
+            for (TmfExperimentElement experimentElement : tmfProject.getExperimentsFolder().getExperiments()) {
+                if (resource.equals(experimentElement.getResource())) {
+                    experimentElement.refreshTraceType();
+                    break;
+                }
+            }
+        } else {
+            for (TmfExperimentElement experimentElement : tmfProject.getExperimentsFolder().getExperiments()) {
+                if (experimentElement.getPath().isPrefixOf(resource.getFullPath())) {
+                    String elementPath = resource.getFullPath().makeRelativeTo(experimentElement.getPath()).toString();
+                    refreshTraceElement(experimentElement.getTraces(), elementPath);
+                    break;
+                }
+            }
+        }
+        if (refresh) {
+            tmfProject.refresh();
+        }
+        return Status.OK_STATUS;
+    }
+
