@@ -8,20 +8,6 @@
     private void parseRoot(CommonTree root) throws ParseException {
 
         List<CommonTree> children = root.getChildren();
-        java.io.FileOutputStream fos = null;
-        java.io.OutputStreamWriter out = null;
-        if (DEBUG) {
-            try {
-                fos = new java.io.FileOutputStream("/tmp/astInfo.txt"); //$NON-NLS-1$
-                out = new java.io.OutputStreamWriter(fos, "UTF-8"); //$NON-NLS-1$
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-                return;
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
-                return;
-            }
-        }
 
         CommonTree traceNode = null;
         List<CommonTree> streams = new ArrayList<>();
@@ -34,113 +20,67 @@
         /* Create a new declaration scope with no parent. */
         pushScope();
 
-        try {
-            for (CommonTree child : children) {
-                final int type = child.getType();
-                if (DEBUG) {
-                    out.write(child.toString()
-                            + " -> " + type + '\n'); //$NON-NLS-1$
+        for (CommonTree child : children) {
+            final int type = child.getType();
+            switch (type) {
+            case CTFParser.DECLARATION:
+                declarations.add(child);
+                break;
+            case CTFParser.TRACE:
+                if (traceNode != null) {
+                    throw new ParseException("Only one trace block is allowed"); //$NON-NLS-1$
                 }
-                switch (type) {
-                case CTFParser.DECLARATION:
-                    declarations.add(child);
-                    break;
-                case CTFParser.TRACE:
-                    if (traceNode != null) {
-                        throw new ParseException("Only one trace block is allowed"); //$NON-NLS-1$
-                    }
-                    traceNode = child;
-                    break;
-                case CTFParser.STREAM:
-                    streams.add(child);
-                    break;
-                case CTFParser.EVENT:
-                    events.add(child);
-                    break;
-                case CTFParser.CLOCK:
-                    clocks.add(child);
-                    break;
-                case CTFParser.ENV:
-                    environments.add(child);
-                    break;
-                case CTFParser.CALLSITE:
-                    callsites.add(child);
-                    break;
-                default:
-                    childTypeError(child);
-                }
+                traceNode = child;
+                break;
+            case CTFParser.STREAM:
+                streams.add(child);
+                break;
+            case CTFParser.EVENT:
+                events.add(child);
+                break;
+            case CTFParser.CLOCK:
+                clocks.add(child);
+                break;
+            case CTFParser.ENV:
+                environments.add(child);
+                break;
+            case CTFParser.CALLSITE:
+                callsites.add(child);
+                break;
+            default:
+                childTypeError(child);
             }
-            if (DEBUG) {
-                out.write("Declarations\n"); //$NON-NLS-1$
-            }
-            for (CommonTree decl : declarations) {
-                if (DEBUG) {
-                    out.write(decl.toString() + '\n');
-                }
-                parseRootDeclaration(decl);
-            }
-            if (traceNode == null) {
-                throw new ParseException("Missing trace block"); //$NON-NLS-1$
-            }
+        }
+        for (CommonTree decl : declarations) {
+            parseRootDeclaration(decl);
+        }
+        if (traceNode == null) {
+            throw new ParseException("Missing trace block"); //$NON-NLS-1$
+        }
 
-            parseTrace(traceNode);
+        parseTrace(traceNode);
 
-            if (DEBUG) {
-                out.write("Environments\n"); //$NON-NLS-1$
-            }
-            for (CommonTree environment : environments) {
-                parseEnvironment(environment);
-            }
-            if (DEBUG) {
-                out.write("Clocks\n"); //$NON-NLS-1$
-            }
-            for (CommonTree clock : clocks) {
-                parseClock(clock);
-            }
-            if (DEBUG) {
-                out.write("Callsites\n"); //$NON-NLS-1$
-            }
-            for (CommonTree callsite : callsites) {
-                parseCallsite(callsite);
-            }
+        for (CommonTree environment : environments) {
+            parseEnvironment(environment);
+        }
+        for (CommonTree clock : clocks) {
+            parseClock(clock);
+        }
+        for (CommonTree callsite : callsites) {
+            parseCallsite(callsite);
+        }
 
-            if (DEBUG) {
-                out.write("Streams\n"); //$NON-NLS-1$
+        if (streams.size() > 0) {
+            for (CommonTree stream : streams) {
+                parseStream(stream);
             }
-            if (streams.size() > 0) {
-                for (CommonTree stream : streams) {
-                    if (DEBUG) {
-                        try {
-                            out.write(stream.toString() + '\n');
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                    parseStream(stream);
-                }
-            } else {
-                /* Add an empty stream that will have a null id */
-                fTrace.addStream(new CTFStream(fTrace));
-            }
+        } else {
+            /* Add an empty stream that will have a null id */
+            fTrace.addStream(new CTFStream(fTrace));
+        }
 
-            if (DEBUG) {
-                out.write("Events\n"); //$NON-NLS-1$
-            }
-            for (CommonTree event : events) {
-                parseEvent(event);
-                if (DEBUG) {
-                    CommonTree name = (CommonTree) event.getChild(0).getChild(1).getChild(0).getChild(0);
-                    CommonTree id = (CommonTree) event.getChild(1).getChild(1).getChild(0).getChild(0);
-                    out.write("Name = " + name + " Id = " + id + '\n'); //$NON-NLS-1$ //$NON-NLS-2$
-                }
-            }
-
-            if (DEBUG) {
-                out.close();
-                fos.close();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
+        for (CommonTree event : events) {
+            parseEvent(event);
         }
         popScope();
         fHasBeenParsed = true;
