@@ -1,0 +1,29 @@
+    @Override
+    protected int delTapsets(String[] tapsets, IProgressMonitor monitor) {
+        TreeNode aliases = tree.getChildByName(Messages.ProbeParser_aliasProbes);
+
+        // Search through alias groups for probes whose definition files
+        // come from removed directories, and remove them from the group.
+        for (int i = 0; i < tapsets.length; i++) {
+            for (int g = 0, gn = aliases.getChildCount(); g < gn; g++) {
+                if (monitor.isCanceled()) {
+                    return IStatus.CANCEL;
+                }
+                TreeNode group = aliases.getChildAt(g);
+                for (int p = 0, pn = group.getChildCount(); p < pn; p++) {
+                    String definition = ((TreeDefinitionNode) group.getChildAt(p)).getDefinition();
+                    if (definition != null && definition.startsWith(tapsets[i])) {
+                        group.remove(p--);
+                        pn--;
+                    }
+                }
+                // If removing the only probe left in a probe group, remove the group.
+                if (group.getChildCount() == 0) {
+                    aliases.remove(g--);
+                    gn--;
+                }
+            }
+        }
+        return IStatus.OK;
+    }
+

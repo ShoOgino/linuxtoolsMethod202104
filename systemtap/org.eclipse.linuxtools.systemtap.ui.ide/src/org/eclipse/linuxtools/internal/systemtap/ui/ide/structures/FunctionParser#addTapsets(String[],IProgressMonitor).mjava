@@ -1,0 +1,34 @@
+    @Override
+    protected int addTapsets(String[] additions, IProgressMonitor monitor) {
+        String tapsetContents = SharedParser.getInstance().getTapsetContents();
+        boolean canceled = false;
+
+        // Search tapset contents for all files provided by each added directory.
+        for (int i = 0; i < additions.length; i++) {
+            int firstTagIndex = 0;
+            while (true) {
+                // Get the contents of each file provided by the directory additions[i].
+                firstTagIndex = tapsetContents.indexOf(
+                        SharedParser.makeFileTag(additions[i]), firstTagIndex);
+                if (firstTagIndex == -1) {
+                    break;
+                }
+                int nextTagIndex = tapsetContents.indexOf(SharedParser.TAG_FILE, firstTagIndex + 1);
+                String fileContents = nextTagIndex != -1
+                        ? tapsetContents.substring(firstTagIndex, nextTagIndex)
+                                : tapsetContents.substring(firstTagIndex);
+
+                if (monitor.isCanceled()) {
+                    canceled = true;
+                    break;
+                }
+                addFunctionsFromFileContents(fileContents);
+                // Remove the contents of the file that was just examined from the total contents.
+                tapsetContents = tapsetContents.substring(0, firstTagIndex).concat(
+                        tapsetContents.substring(firstTagIndex + fileContents.length()));
+            }
+        }
+        tree.sortLevel();
+        return !canceled ? IStatus.OK : IStatus.CANCEL;
+    }
+

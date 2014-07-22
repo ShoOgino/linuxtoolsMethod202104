@@ -1,0 +1,59 @@
+    @Override
+    protected int addTapsets(String[] additions, IProgressMonitor monitor) {
+        String tapsetContents = SharedParser.getInstance().getTapsetContents();
+        boolean canceled = false;
+        TreeNode aliases = tree.getChildByName(Messages.ProbeParser_aliasProbes);
+        Map<String, ArrayList<String>> fileToItemMap = new HashMap<>();
+
+        // Search tapset contents for all files provided by each added directory.
+        for (int i = 0; i < additions.length; i++) {
+            int firstTagIndex = 0;
+            while (true) {
+                // Get the contents of each file provided by the directory additions[i].
+                firstTagIndex = tapsetContents.indexOf(
+                        SharedParser.makeFileTag(additions[i]), firstTagIndex);
+                if (firstTagIndex == -1) {
+                    break;
+                }
+                int nextTagIndex = tapsetContents.indexOf(SharedParser.TAG_FILE, firstTagIndex + 1);
+                String fileContents = nextTagIndex != -1
+                        ? tapsetContents.substring(firstTagIndex, nextTagIndex)
+                                : tapsetContents.substring(firstTagIndex);
+
+                String filename;
+                try (Scanner st = new Scanner(fileContents)) {
+                    filename = SharedParser.findFileNameInTag(st.nextLine());
+                }
+
+                // Search file contents for the probes the file provides.
+                ArrayList<String> newItems = new ArrayList<>();
+                Matcher matcher = Pattern.compile(MessageFormat.format(
+                        TAPSET_PROBE_REGEX, "(\\S+)")) //$NON-NLS-1$
+                        .matcher(fileContents);
+                while (matcher.find()) {
+                    newItems.add(matcher.group(1));
+                }
+                if (!newItems.isEmpty()) {
+                    fileToItemMap.put(filename, newItems);
+                }
+                // Remove the contents of the file that was just examined from the total contents.
+                tapsetContents = tapsetContents.substring(0, firstTagIndex).concat(
+                        tapsetContents.substring(firstTagIndex + fileContents.length()));
+            }
+        }
+        // Run stap on each discovered probe to obtain their variable information.
+        for (String file : fileToItemMap.keySet()) {
+            for (String newitem : fileToItemMap.get(file)) {
+                if (canceled || monitor.isCanceled()) {
+                    canceled = true;
+                    break;
+                }
+                addSingleProbeAlias(runStap(new String[]{"-L"}, newitem, false), //$NON-NLS-1$
+                        aliases, null, null, file);
+            }
+        }
+
+        aliases.sortTree();
+        return !canceled ? IStatus.OK : IStatus.CANCEL;
+    }
+

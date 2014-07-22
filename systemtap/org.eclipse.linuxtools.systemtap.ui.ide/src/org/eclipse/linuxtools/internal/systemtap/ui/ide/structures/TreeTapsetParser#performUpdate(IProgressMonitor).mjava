@@ -1,0 +1,26 @@
+    /**
+     * Performs both stages of a tapset update operation, ensuring that the new
+     * tapset contents will be available when they are necessary.
+     * @param monitor The operation's progress monitor.
+     * @return The status of the operation's outcome.
+     */
+    private IStatus performUpdate(IProgressMonitor monitor) {
+        int result = IStatus.OK;
+        if (tapsetChanges.deletions.length > 0) {
+            result = delTapsets(tapsetChanges.deletions, monitor);
+        }
+        if (result == IStatus.OK && tapsetChanges.additions.length > 0) {
+            if (monitor.isCanceled()) {
+                result = IStatus.CANCEL;
+            } else {
+                String tapsetContents = SharedParser.getInstance().getTapsetContents();
+                result = verifyRunResult(tapsetContents);
+                if (result == IStatus.OK) {
+                    result = addTapsets(tapsetChanges.additions, monitor);
+                }
+            }
+        }
+        tapsetChanges = null;
+        return createStatus(result);
+    }
+

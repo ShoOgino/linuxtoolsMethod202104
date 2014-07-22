@@ -1,0 +1,27 @@
+    /**
+     * Uses the tapset content dump of a single file to collect all
+     * functions provided by that file.
+     * @param fileContents The tapset contents of a single file.
+     */
+    private void addFunctionsFromFileContents(String fileContents) {
+        String filename;
+        try (Scanner st = new Scanner(fileContents)) {
+            filename = SharedParser.findFileNameInTag(st.nextLine());
+        }
+
+        Matcher matcher = P_FUNCTION.matcher(fileContents);
+        String scriptText = null;
+        while (matcher.find()) {
+            String functionName = matcher.group(1);
+            if (P_ALL_CAP.matcher(functionName).matches()) {
+                // Ignore ALL_CAPS functions, since they are not meant for end-user use.
+                continue;
+            }
+            if (scriptText == null) {
+                // If this is the first time seeing this file, remove its comments.
+                scriptText = CommentRemover.execWithFile(filename);
+            }
+            addFunctionFromScript(functionName, scriptText, filename);
+        }
+    }
+

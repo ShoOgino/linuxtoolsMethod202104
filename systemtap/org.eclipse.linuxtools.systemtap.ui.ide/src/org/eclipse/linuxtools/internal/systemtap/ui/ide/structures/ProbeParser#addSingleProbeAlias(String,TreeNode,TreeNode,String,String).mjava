@@ -1,0 +1,28 @@
+    /**
+     * Adds a single probe alias to the collection.
+     * @param probeLine A line of probe information printed by a call to "stap -L".
+     * @param aliases The tree of probe aliases. The probe will be added to this tree.
+     * @param groupNode For optimization, pass an existing group node here, as it will be used if the
+     * probe belongs in it. Otherwise, or if <code>null</code> is passed, a new one will be created.
+     * @param groupName The name of the probe group, or <code>null</code> if it is unknown at the time
+     * this method is called.
+     * @param definition The path of the file in which this probe is defined, or <code>null</code> if it
+     * is unknown at the time this method is called.
+     */
+    private TreeNode addSingleProbeAlias(String probeLine, TreeNode aliases, TreeNode groupNode,
+            String groupName, String definition) {
+        StringTokenizer probeTokenizer = new StringTokenizer(probeLine);
+        String probeName = probeTokenizer.nextToken();
+
+        TreeNode probeNode = makeProbeAliasNode(probeName,
+                definition == null ? findDefinitionOf(probeName) : definition);
+
+        groupNode = addOrFindProbeGroup(
+                groupName == null ? extractProbeGroupName(probeName) : groupName,
+                        groupNode, aliases);
+
+        groupNode.add(probeNode);
+        addAllVarNodesToProbeNode(probeTokenizer, probeNode);
+        return groupNode;
+    }
+

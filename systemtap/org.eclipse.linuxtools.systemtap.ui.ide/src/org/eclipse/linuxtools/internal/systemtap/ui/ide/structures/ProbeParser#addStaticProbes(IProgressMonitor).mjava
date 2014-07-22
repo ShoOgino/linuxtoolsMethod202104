@@ -1,24 +1,23 @@
     /**
      * Runs stap to obtain a log of all static probes, and populate the probe tree with them.
-     *
-     * @return <code>false</code> if a cancelation prevented all probes from being added;
-     * <code>true</code> otherwise.
+     * @return An {@link IStatus} severity level for the result of the operation.
      */
-    private boolean addStaticProbes(IProgressMonitor monitor) {
+    private int addStaticProbes(IProgressMonitor monitor) {
         TreeNode statics = new TreeNode(Messages.ProbeParser_staticProbes, false);
         tree.add(statics);
         if (monitor.isCanceled()) {
-            return false;
+            return IStatus.CANCEL;
         }
 
         String probeDump = runStap(new String[]{"--dump-probe-types"}, null, false); //$NON-NLS-1$
-        if (probeDump == null) {
-            return false;
+        int result = verifyRunResult(probeDump);
+        if (result != IStatus.OK) {
+            return result;
         }
 
         boolean canceled = false;
         try (Scanner st = new Scanner(probeDump)) {
-            TreeNode group = null;
+            TreeNode groupNode = null;
             while (st.hasNextLine()) {
                 if (monitor.isCanceled()) {
                     canceled = true;
@@ -26,11 +25,11 @@
                 }
                 String tokenString = st.nextLine();
                 String probeName = (new StringTokenizer(tokenString)).nextToken();
-                group = addOrFindProbeGroup(extractProbeGroupName(probeName), group, statics);
-                group.add(makeStaticProbeNode(probeName));
+                groupNode = addOrFindProbeGroup(extractProbeGroupName(probeName), groupNode, statics);
+                groupNode.add(makeStaticProbeNode(probeName));
             }
         }
         statics.sortTree();
-        return !canceled;
+        return !canceled ? IStatus.OK : IStatus.CANCEL;
     }
 

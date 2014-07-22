@@ -1,25 +1,28 @@
     /**
      * Runs stap to obtain a log of all probe aliases & their variables,
      * and populate the probe tree with them.
-     *
-     * @return <code>false</code> if a cancelation prevented all probes from being added;
-     * <code>true</code> otherwise.
+     * @return An {@link IStatus} severity level for the result of the operation.
      */
-    private boolean addProbeAliases(IProgressMonitor monitor, TreeNode statics) {
+    private int addProbeAliases(IProgressMonitor monitor) {
+        TreeNode statics = tree.getChildByName(Messages.ProbeParser_staticProbes);
+        if (statics == null) {
+            return IStatus.ERROR;
+        }
         TreeNode aliases = new TreeNode(Messages.ProbeParser_aliasProbes, false);
         tree.add(aliases);
-        if (statics == null || monitor.isCanceled()) {
-            return false;
+        if (monitor.isCanceled()) {
+            return IStatus.CANCEL;
         }
 
         String probeDump = runStap(new String[]{"-L"}, "**", false); //$NON-NLS-1$ //$NON-NLS-2$
-        if (probeDump == null) {
-            return false;
+        int result = verifyRunResult(probeDump);
+        if (result != IStatus.OK) {
+            return result;
         }
 
         boolean canceled = false;
         try (Scanner st = new Scanner(probeDump)) {
-            TreeNode group = null;
+            TreeNode groupNode = null;
             while (st.hasNextLine()) {
                 if (monitor.isCanceled()) {
                     canceled = false;
@@ -31,21 +34,15 @@
                 if (tokenString.startsWith("_")) { //$NON-NLS-1$
                     continue;
                 }
-
-                StringTokenizer probeTokenizer = new StringTokenizer(tokenString);
-                String probeName = probeTokenizer.nextToken();
-
-                String groupName = extractProbeGroupName(tokenString);
                 // Only add this group if it is not a static probe group
-                if (statics.getChildByName(groupName) == null) {
-                    TreeNode probeNode = makeProbeAliasNode(probeName);
-                    group = addOrFindProbeGroup(groupName, group, aliases);
-                    group.add(probeNode);
-                    addAllVarNodesToProbeNode(probeTokenizer, probeNode);
+                String groupName = extractProbeGroupName(tokenString);
+                if (statics.getChildByName(groupName) != null) {
+                    continue;
                 }
+                groupNode = addSingleProbeAlias(tokenString, aliases, groupNode, groupName, null);
             }
         }
         aliases.sortTree();
-        return !canceled;
+        return !canceled ? IStatus.OK : IStatus.CANCEL;
     }
 
