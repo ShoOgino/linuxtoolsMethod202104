@@ -1,40 +1,23 @@
         @Override
         public void run() {
-            /* Extract the currently-queued tasks in a local variable */
-            final Collection<Runnable> updates;
-            synchronized (TmfUiRefreshHandler.this) {
-                updates = ImmutableList.copyOf(fUpdates.values());
-                fUpdates.clear();
-            }
-            /*
-             * Release the lock on "this" before we wait on the UI thread below.
-             * This is to prevent deadlocks in case components send their
-             * "queueUpdate()" via the UI thread.
-             */
-            Display.getDefault().syncExec(new Runnable() {
-                @Override
-                public void run() {
-                    for (Runnable update : updates) {
-                        update.run();
+            while (true) {
+                Runnable nextTask = null;
+                synchronized (TmfUiRefreshHandler.this) {
+                    if (!fUpdates.isEmpty()) {
+                        Object firstKey = fUpdates.keySet().iterator().next();
+                        nextTask = fUpdates.get(firstKey);
+                        fUpdates.remove(firstKey);
+                    }
+                    if (nextTask == null) {
+                        /*
+                         * No updates remaining in the queue, put fCurrentTask
+                         * back to null so that a new task can be scheduled.
+                         */
+                        fCurrentTask = null;
+                        break;
                     }
                 }
-            });
-
-            synchronized (TmfUiRefreshHandler.this) {
-                if (fUpdates.isEmpty()) {
-                    /*
-                     * No updates were queued in the meantime, put fCurrentTask
-                     * back to null so that a new task can be scheduled.
-                     */
-                    fCurrentTask = null;
-                } else {
-                    /*
-                     * Updates were queued during the syncExec, schedule a new
-                     * task to eventually run them.
-                     */
-                    fCurrentTask = new RunAllUpdates();
-                    fTimer.schedule(fCurrentTask, UPDATE_PERIOD);
-                }
+                Display.getDefault().syncExec(nextTask);
             }
         }
 
