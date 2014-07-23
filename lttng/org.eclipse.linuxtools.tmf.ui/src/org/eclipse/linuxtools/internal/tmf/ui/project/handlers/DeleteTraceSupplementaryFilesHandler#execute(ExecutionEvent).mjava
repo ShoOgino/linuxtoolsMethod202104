@@ -41,38 +41,67 @@
             }
         }
 
-        SelectSupplementaryResourcesDialog dialog =
+        final SelectSupplementaryResourcesDialog dialog =
                 new SelectSupplementaryResourcesDialog(window.getShell(), resourceMap);
         if (dialog.open() != Window.OK) {
             return null;
         }
 
-        Set<IProject> projectsToRefresh = new HashSet<>();
+        TmfWorkspaceModifyOperation operation = new TmfWorkspaceModifyOperation() {
+            @Override
+            public void execute(IProgressMonitor monitor) throws CoreException {
 
-        // Delete the resources that were selected
-        List<IResource> allResourcesToDelete = Arrays.asList(dialog.getResources());
-        for (TmfCommonProjectElement element : resourceMap.keySet()) {
-            List<IResource> traceResourcesToDelete = new ArrayList<>(resourceMap.get(element));
-            traceResourcesToDelete.retainAll(allResourcesToDelete);
-            if (!traceResourcesToDelete.isEmpty()) {
-                // Delete the selected resources
-                element.closeEditors();
-                element.deleteSupplementaryResources(traceResourcesToDelete.toArray(new IResource[0]));
-                projectsToRefresh.add(element.getProject().getResource());
-            }
+                Set<IProject> projectsToRefresh = new HashSet<>();
+
+                // Delete the resources that were selected
+                List<IResource> allResourcesToDelete = Arrays.asList(dialog.getResources());
+
+                SubMonitor subMonitor = SubMonitor.convert(monitor, allResourcesToDelete.size());
+
+                for (TmfCommonProjectElement element : resourceMap.keySet()) {
+                    if (monitor.isCanceled()) {
+                        throw new OperationCanceledException();
+                    }
+                    List<IResource> traceResourcesToDelete = new ArrayList<>(resourceMap.get(element));
+                    traceResourcesToDelete.retainAll(allResourcesToDelete);
+                    if (!traceResourcesToDelete.isEmpty()) {
+                        subMonitor.setTaskName(NLS.bind(Messages.DeleteSupplementaryFiles_DeletionTask, element.getElementPath()));
+                        // Delete the selected resources
+                        element.closeEditors();
+                        element.deleteSupplementaryResources(traceResourcesToDelete.toArray(new IResource[0]));
+                        projectsToRefresh.add(element.getProject().getResource());
+                    }
+                    subMonitor.worked(traceResourcesToDelete.size());
+                }
+
+                subMonitor = SubMonitor.convert(monitor, projectsToRefresh.size());
+
+                // Refresh projects
+                Iterator<IProject> projectIterator = projectsToRefresh.iterator();
+                while (projectIterator.hasNext()) {
+                    if (monitor.isCanceled()) {
+                        throw new OperationCanceledException();
+                    }
+                    IProject project = projectIterator.next();
+                    subMonitor.setTaskName(NLS.bind(Messages.DeleteSupplementaryFiles_ProjectRefreshTask, project.getName()));
+                    try {
+                        project.refreshLocal(IResource.DEPTH_INFINITE, null);
+                    } catch (CoreException e) {
+                        Activator.getDefault().logError("Error refreshing project " + project, e); //$NON-NLS-1$
+                    }
+                    subMonitor.worked(1);
+                }
+           }
+        };
+
+        try {
+            PlatformUI.getWorkbench().getProgressService().run(true, true, operation);
+        } catch (InterruptedException e) {
+            return null;
+        } catch (InvocationTargetException e) {
+            MessageDialog.openError(window.getShell(), e.toString(), e.getTargetException().toString());
+            return null;
         }
-
-        // Refresh projects
-        Iterator<IProject> projectIterator = projectsToRefresh.iterator();
-        while (projectIterator.hasNext()) {
-            IProject project = projectIterator.next();
-            try {
-                project.refreshLocal(IResource.DEPTH_INFINITE, null);
-            } catch (CoreException e) {
-                Activator.getDefault().logError("Error refreshing project " + project, e); //$NON-NLS-1$
-            }
-        }
-
         return null;
     }
 
