@@ -1,0 +1,32 @@
+    /**
+     * Initialize the Packet and the EventField.
+     *
+     * @throws BadPcapFileException
+     *             Thrown when the pcap file is erroneous.
+     * @throws IOException
+     *             Thrown when an IO error occurs.
+     * @throws TmfTraceException
+     *             Thrown when the trace is not valid.
+     */
+    @BeforeClass
+    public static void setUp() throws IOException, BadPcapFileException, TmfTraceException {
+
+        PcapTestTrace trace = PcapTestTrace.MOSTLY_TCP;
+        assumeTrue(trace.exists());
+        String file = trace.getPath();
+        try (PcapFile pcap = new PcapFile(file);
+                PcapTrace pcapTrace = new PcapTrace();) {
+            pcapTrace.initTrace(null, trace.getPath(), PcapEvent.class);
+            fEvent = pcapTrace.parseEvent(new TmfContext(new TmfLongLocation(3), 3));
+        }
+
+        // Initialize protocol list.
+        List<TmfProtocol> list = new ArrayList<>();
+        list.add(TmfProtocol.PCAP);
+        list.add(TmfProtocol.ETHERNET_II);
+        list.add(TmfProtocol.IPV4);
+        list.add(TmfProtocol.TCP);
+        list.add(TmfProtocol.UNKNOWN);
+        fProtocolList = ImmutableList.copyOf(list);
+    }
+
