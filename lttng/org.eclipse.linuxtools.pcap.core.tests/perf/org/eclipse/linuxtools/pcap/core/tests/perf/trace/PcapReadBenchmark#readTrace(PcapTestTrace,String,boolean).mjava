@@ -12,17 +12,18 @@
         for (int loop = 0; loop < LOOP_COUNT; loop++) {
             pm.start();
             try (PcapFile trace = testTrace.getTrace();) {
-                trace.seekPacket(0);
-                while (trace.hasNextPacket()) {
-                    Packet packet = trace.parseNextPacket();
-                    if (packet == null) {
-                        fail("Test failed at iteration " + loop + " packet " + trace.getCurrentRank());
-                        return;
+                for (int i = 0; i < RUN_BETWEEN_COMMIT_COUNT; i++) {
+                    trace.seekPacket(0);
+                    while (trace.hasNextPacket()) {
+                        Packet packet = trace.parseNextPacket();
+                        if (packet == null) {
+                            fail("Test failed at iteration " + loop + '.' + i + ", at packet " + trace.getCurrentRank());
+                            return;
+                        }
+                        /* Do something with the packet because we are awesome */
+                        packet.getPayload();
                     }
-                    /* Do something with the packet because we are awesome */
-                    packet.getPayload();
                 }
-
             } catch (IOException | BadPcapFileException | BadPacketException e) {
                 fail("Test failed at iteration " + loop + ':' + e.getMessage());
             }
