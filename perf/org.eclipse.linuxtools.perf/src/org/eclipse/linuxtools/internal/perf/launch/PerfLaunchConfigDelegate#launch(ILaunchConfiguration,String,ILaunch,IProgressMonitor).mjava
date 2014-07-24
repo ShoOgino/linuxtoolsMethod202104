@@ -1,53 +1,78 @@
     @Override
     public void launch(ILaunchConfiguration config, String mode,
             ILaunch launch, IProgressMonitor monitor) throws CoreException {
-        // check if Perf exists in $PATH
-        if (! PerfCore.checkPerfInPath(null)) {
-            IStatus status = new Status(IStatus.ERROR, PerfPlugin.PLUGIN_ID,
-                    Messages.PerfLaunchConfigDelegate_perf_not_found);
-            throw new CoreException(status);
-        }
+    	try {
+            ConfigUtils configUtils = new ConfigUtils(config);
+            project = configUtils.getProject();
+            // check if Perf exists in $PATH
+            if (! PerfCore.checkPerfInPath(project))
+            {
+                IStatus status = new Status(IStatus.ERROR, PerfPlugin.PLUGIN_ID, "Error: Perf was not found on PATH"); //$NON-NLS-1$
+                throw new CoreException(status);
+            }
+            URI binURI = new URI(configUtils.getExecutablePath());
+            binPath=Path.fromPortableString(binURI.getPath().toString());
+            if(binPath==null) {
+            	CDebugUtils.verifyProgramPath( config );
+            }
+            if (binPath.removeLastSegments(2).toPortableString().equals(EMPTY_STRING)) {
+            	workingDirPath=Path.fromPortableString(getWorkingDirectory(config).toURI().getPath());
+            } else {
+            	workingDirPath=Path.fromPortableString((binPath.removeLastSegments(2).toPortableString()) + IPath.SEPARATOR);
+            }
 
-        // Get working directory
-        File wd = getWorkingDirectory(config);
-        if (wd == null) {
-            wd = new File(System.getProperty("user.home", ".")); //$NON-NLS-1$ //$NON-NLS-2$
-        }
-        IPath workingDir = Path.fromOSString(wd.toURI().getPath());
-        PerfPlugin.getDefault().setWorkingDir(workingDir);
+            PerfPlugin.getDefault().setWorkingDir(workingDirPath);
+            if (config.getAttribute(PerfPlugin.ATTR_ShowStat,
+                    PerfPlugin.ATTR_ShowStat_default)) {
+                showStat(config, launch);
+            } else {
+                String perfPathString = RuntimeProcessFactory.getFactory().whichCommand(PerfPlugin.PERF_COMMAND, project);
+                IFileStore workingDir;
+                URI workingDirURI = new URI(RemoteProxyManager.getInstance().getRemoteProjectLocation(project));
+                RemoteConnection workingDirRC = new RemoteConnection(workingDirURI);
+                IRemoteFileProxy workingDirRFP = workingDirRC.getRmtFileProxy();
+                workingDir = workingDirRFP.getResource(workingDirURI.getPath());
+                //Build the commandline string to run perf recording the given project
+                String arguments[] = getProgramArgumentsArray( config ); //Program args from launch config.
+                ArrayList<String> command = new ArrayList<>( 4 + arguments.length );
+                Version perfVersion = PerfCore.getPerfVersion(config);
+                command.addAll(Arrays.asList(PerfCore.getRecordString(config, perfVersion))); //Get the base commandline string (with flags/options based on config)
+                command.add( binPath.toPortableString() ); // Add the path to the executable
+                command.set(0, perfPathString);
+                command.add(2,OUTPUT_STR + PerfPlugin.PERF_DEFAULT_DATA);
+                //Compile string
+                command.addAll( Arrays.asList( arguments ) );
 
-        if (config.getAttribute(PerfPlugin.ATTR_ShowStat,
-                PerfPlugin.ATTR_ShowStat_default)) {
-            showStat(config, launch);
-        } else {
 
-            //Find the binary path
-            IPath exePath = CDebugUtils.verifyProgramPath( config );
-
-            // Build the commandline string to run perf recording the given project
-            // Program args from launch config.
-            String arguments[] = getProgramArgumentsArray(config);
-
-            ArrayList<String> command = new ArrayList<>();
-            // Get the base commandline string (with flags/options based on config)
-            Version perfVersion = PerfCore.getPerfVersion(config);
-            command.addAll(Arrays.asList(PerfCore.getRecordString(config, perfVersion)));
-            // Add the path to the executable
-            command.add(exePath.toOSString());
-            command.addAll(Arrays.asList( arguments));
-            String[] commandArray = command.toArray(new String[] {});
-            boolean usePty = config.getAttribute(ICDTLaunchConfigurationConstants.ATTR_USE_TERMINAL,
-                    ICDTLaunchConfigurationConstants.USE_TERMINAL_DEFAULT);
-
-            Process process;
-            try {
                 //Spawn the process
-                process = CdtSpawnerProcessFactory.getFactory().exec( commandArray, getEnvironment( config ), wd, usePty );
-                DebugPlugin.newProcess(launch, process,
-                        renderProcessLabel(commandArray[0])); //Spawn IProcess using Debug plugin (CDT)
+                String[] commandArray = command.toArray(new String[command.size()]);
+                Process pProxy = RuntimeProcessFactory.getFactory().exec(commandArray, getEnvironment(config), workingDir, project);
+                MessageConsole console = new MessageConsole("Perf Console", null); //$NON-NLS-1$
+                console.activate();
+                ConsolePlugin.getDefault().getConsoleManager().addConsoles(new IConsole[] { console });
+                MessageConsoleStream stream = console.newMessageStream();
 
-                //Wait for recording to complete.
-                process.waitFor();
+                if (pProxy != null) {
+                    try (BufferedReader error = new BufferedReader(
+                            new InputStreamReader(pProxy.getErrorStream()))) {
+                        String err = error.readLine();
+                        while (err != null) {
+                            stream.println(err);
+                            err = error.readLine();
+                        }
+                    }
+                }
+
+
+
+                /* This commented part is the basic method to run perf record without integrating into eclipse.
+                        String binCall = exePath.toOSString();
+                        for(String arg : arguments) {
+                            binCall.concat(" " + arg);
+                        }
+                        PerfCore.Run(binCall);*/
+
+                pProxy.destroy();
                 PrintStream print = null;
                 if (config.getAttribute(IDebugUIConstants.ATTR_CAPTURE_IN_CONSOLE, true)) {
                     //Get the console to output to.
@@ -57,15 +82,13 @@
                     IConsole[] existing = conMan.getConsoles();
                     IOConsole binaryOutCons = null;
 
-                    // Find the console
+                    //Find the console
                     for(IConsole x : existing) {
-                        if (x.getName().contains(renderProcessLabel(commandArray[0]))
-                                && x instanceof IOConsole) {
+                        if (x.getName().contains(renderProcessLabel(commandArray[0]))) {
                             binaryOutCons = (IOConsole)x;
                         }
                     }
-                    // If can't be found get the most recent opened, this should probably never happen.
-                    if ((binaryOutCons == null) && (existing.length != 0)) {
+                    if ((binaryOutCons == null) && (existing.length != 0)) { //if can't be found get the most recent opened, this should probably never happen.
                         if (existing[existing.length - 1] instanceof IOConsole)
                             binaryOutCons = (IOConsole)existing[existing.length - 1];
                     }
@@ -75,34 +98,46 @@
                     OutputStream outputTo;
                     if (binaryOutCons != null) {
                         outputTo = binaryOutCons.newOutputStream();
+                        //Get the printstream for that console
                         print = new PrintStream(outputTo);
-
-                        for (int i = 0; i < commandArray.length; i++) {
-                            print.print(commandArray[i] + " "); //$NON-NLS-1$
-                        }
-
-                        // Print Message
-                        print.println();
-                        print.println(Messages.PerfLaunchConfigDelegate_analyzing);
-                        // Possibly should pass this (the console reference) on to
-                        // PerfCore.Report if theres anything we ever want to spit
-                        // out to user.
                     }
+
+                    for (int i = 0; i < command.size(); i++) {
+                        print.print(command.get(i) + " "); //$NON-NLS-1$
+                    }
+
+                    //Print Message
+                    print.println();
+                    print.println("Analysing recorded perf.data, please wait..."); //$NON-NLS-1$
+                    //Possibly should pass this (the console reference) on to PerfCore.Report if theres anything we ever want to spit out to user.
                 }
+                PerfCore.report(config, getEnvironment(config), workingDirPath, monitor, null, print);
 
-                PerfCore.report(config, getEnvironment(config), workingDir, monitor, null, print);
-                PerfPlugin.getDefault().getPerfProfileData().toFile().setReadOnly();
-                PerfCore.refreshView(renderProcessLabel(exePath.toOSString()));
+                URI perfDataURI = null;
+                IRemoteFileProxy proxy = null;
+                perfDataURI = new URI(RemoteProxyManager.getInstance().getRemoteProjectLocation(project) + IPath.SEPARATOR + PerfPlugin.PERF_DEFAULT_DATA);
+                proxy = RemoteProxyManager.getInstance().getFileProxy(perfDataURI);
+                IFileStore perfDataFileStore = proxy.getResource(perfDataURI.getPath());
+                IFileInfo info = perfDataFileStore.fetchInfo();
+                info.setAttribute(EFS.ATTRIBUTE_READ_ONLY, true);
+                perfDataFileStore.putInfo(info, EFS.SET_ATTRIBUTES, null);
 
+                PerfCore.refreshView(renderProcessLabel(binPath.toPortableString()));
                 if (config.getAttribute(PerfPlugin.ATTR_ShowSourceDisassembly,
                         PerfPlugin.ATTR_ShowSourceDisassembly_default)) {
-                    showSourceDisassembly(workingDir);
+                    showSourceDisassembly(Path.fromPortableString(workingDirURI.toString() + IPath.SEPARATOR));
                 }
 
-            } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
             }
+        } catch (IOException e) {
+            e.printStackTrace();
+            abort(e.getLocalizedMessage(), null, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
+        } catch (RemoteConnectionException e) {
+            e.printStackTrace();
+            abort(e.getLocalizedMessage(), null, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+            abort(e.getLocalizedMessage(), null, ICDTLaunchConfigurationConstants.ERR_INTERNAL_ERROR);
         }
     }
 

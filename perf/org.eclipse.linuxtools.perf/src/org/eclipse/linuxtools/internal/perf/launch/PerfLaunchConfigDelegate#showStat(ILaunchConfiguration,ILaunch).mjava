@@ -6,15 +6,10 @@
      */
     private void showStat(ILaunchConfiguration config, ILaunch launch)
             throws CoreException {
-        //Find the binary path
-        IPath exePath = CDebugUtils.verifyProgramPath( config );
-
         // Build the command line string
         String arguments[] = getProgramArgumentsArray(config);
 
         // Get working directory
-        IPath workingDir = PerfPlugin.getDefault().getWorkingDir();
-
         int runCount = config.getAttribute(PerfPlugin.ATTR_StatRunCount,
                 PerfPlugin.ATTR_StatRunCount_default);
         StringBuffer args = new StringBuffer();
@@ -22,8 +17,13 @@
             args.append(arg);
             args.append(" "); //$NON-NLS-1$
         }
-
-        Object[] titleArgs = new Object[]{exePath.toOSString(), args.toString(), String.valueOf(runCount)};
+        URI binURI = null;
+        try {
+            binURI = new URI(binPath.toPortableString());
+        } catch (URISyntaxException e) {
+            MessageDialog.openError(Display.getCurrent().getActiveShell(), Messages.MsgProxyError, Messages.MsgProxyError);
+        }
+        Object[] titleArgs = new Object[]{binURI.getPath(), args.toString(), String.valueOf(runCount)};
         String title = renderProcessLabel(MessageFormat.format(Messages.PerfLaunchConfigDelegate_stat_title, titleArgs));
 
         List<String> configEvents = config.getAttribute(PerfPlugin.ATTR_SelectedEvents,
@@ -36,13 +36,11 @@
             statEvents = (configEvents == null) ? statEvents : configEvents.toArray(new String[]{});
         }
 
-        StatData sd = new StatData(title, workingDir, exePath.toOSString(), arguments, runCount, statEvents);
+        StatData sd = new StatData(title, workingDirPath, binURI.getPath(), arguments, runCount, statEvents, project);
         sd.setLaunch(launch);
         sd.parse();
         PerfPlugin.getDefault().setStatData(sd);
-
         sd.updateStatData();
-
         StatView.refreshView();
     }
 
