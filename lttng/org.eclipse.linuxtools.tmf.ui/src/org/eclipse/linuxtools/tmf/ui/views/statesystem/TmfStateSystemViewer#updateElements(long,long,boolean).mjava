@@ -1,29 +1,30 @@
     @Override
     protected ITmfTreeViewerEntry updateElements(long start, long end, boolean selection) {
+
+        if (selection) {
+            fSelection = start;
+        } else {
+            fSelection = TmfTraceManager.getInstance().getSelectionBeginTime().normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+        }
+
         if (getTrace() == null) {
             return null;
         }
 
         ITmfTreeViewerEntry root = getInput();
 
-        if ((!selection) && (root != null)) {
-            return null;
+        if (root == null) {
+            root = createRoot();
+        } else if (fFilterStatus) {
+            clearStateSystemEntries(root);
         }
 
         /*
-         * Build the entries if it is the first time or to show only modified
-         * values
+         * Update the values of the elements of the state systems at the
+         * selection start time
          */
-        if (root == null || fFilterStatus) {
-            root = buildEntries(start);
-        } else if (root instanceof TmfTreeViewerEntry) {
-            /*
-             * Update the values of the elements of the state systems at time
-             * 'start'
-             */
-            updateEntriesList(((TmfTreeViewerEntry)root).getChildren(), start);
-        }
+        boolean changed = updateStateSystemEntries(root, fSelection);
 
-        return root;
+        return selection || changed ? root : null;
     }
 

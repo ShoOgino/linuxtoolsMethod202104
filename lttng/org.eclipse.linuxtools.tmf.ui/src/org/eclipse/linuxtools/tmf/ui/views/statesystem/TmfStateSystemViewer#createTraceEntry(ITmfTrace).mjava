@@ -1,17 +1,17 @@
-    @NonNull
-    private ITmfTreeViewerEntry buildEntriesForTrace(@NonNull ITmfTrace trace, long timestamp, @NonNull List<ITmfTreeViewerEntry> rootEntries) {
+    private static TmfTreeViewerEntry createTraceEntry(ITmfTrace trace) {
         TmfTreeViewerEntry traceEntry = new TmfTreeViewerEntry(trace.getName());
-        rootEntries.add(traceEntry);
-
         Iterable<ITmfAnalysisModuleWithStateSystems> modules = trace.getAnalysisModulesOfClass(ITmfAnalysisModuleWithStateSystems.class);
         for (ITmfAnalysisModuleWithStateSystems module : modules) {
             /* Just schedule the module, the data will be filled when available */
             module.schedule();
+            if (module instanceof TmfStateSystemAnalysisModule) {
+                // TODO: add this method to ITmfAnalysisModuleWithStateSystems
+                ((TmfStateSystemAnalysisModule) module).waitForInitialization();
+            }
             for (ITmfStateSystem ss : module.getStateSystems()) {
-                if (ss == null) {
-                    continue;
+                if (ss != null) {
+                    traceEntry.addChild(new StateSystemEntry(ss));
                 }
-                buildEntriesForStateSystem(ss, timestamp, traceEntry);
             }
         }
         return traceEntry;
