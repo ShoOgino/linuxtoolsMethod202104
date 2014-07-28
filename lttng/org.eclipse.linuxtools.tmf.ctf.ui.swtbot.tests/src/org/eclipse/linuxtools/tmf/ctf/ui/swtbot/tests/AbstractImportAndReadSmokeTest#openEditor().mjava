@@ -10,20 +10,29 @@
         final SWTBotTreeItem treeItem = tree.getTreeItem(getProjectName());
         treeItem.expand();
 
-        List<String> nodes = treeItem.getNodes();
-        String nodeName = "";
-        for (String node : nodes) {
-            if (node.startsWith("Traces")) {
-                nodeName = node;
-            }
-        }
+        String nodeName = getFullNodeName(treeItem, "Traces");
         fBot.waitUntil(ConditionHelpers.IsTreeChildNodeAvailable(nodeName, treeItem));
-        treeItem.getNode(nodeName).expand();
-        fBot.waitUntil(ConditionHelpers.IsTreeChildNodeAvailable(TRACE_NAME, treeItem.getNode(nodeName)));
-        treeItem.getNode(nodeName).getNode(TRACE_NAME).select();
-        treeItem.getNode(nodeName).getNode(TRACE_NAME).doubleClick();
+        SWTBotTreeItem tracesNode = treeItem.getNode(nodeName);
+        tracesNode.expand();
+
+
+        SWTBotTreeItem traceParentNode = tracesNode;
+
+        if (supportsFolderStructure()) {
+            String nodeFolderName = getFullNodeName(tracesNode, TRACE_FOLDER);
+            fBot.waitUntil(ConditionHelpers.IsTreeChildNodeAvailable(nodeFolderName, tracesNode));
+            SWTBotTreeItem traceFolder = tracesNode.getNode(nodeFolderName);
+            traceFolder.select();
+            traceFolder.doubleClick();
+            traceParentNode = traceFolder;
+        }
+
+        fBot.waitUntil(ConditionHelpers.IsTreeChildNodeAvailable(TRACE_NAME, traceParentNode));
+        traceParentNode.getNode(TRACE_NAME).select();
+        traceParentNode.getNode(TRACE_NAME).doubleClick();
         SWTBotUtil.delay(1000);
         SWTBotUtil.waitForJobs();
+        final String expectedTitle = supportsFolderStructure() ? TRACE_FOLDER + IPath.SEPARATOR + TRACE_NAME : TRACE_NAME;
 
         final IEditorPart iep[] = new IEditorPart[1];
         UIThreadRunnable.syncExec(new VoidResult() {
@@ -33,7 +42,7 @@
                 assertNotNull(ieds);
                 iep[0] = null;
                 for (IEditorReference ied : ieds) {
-                    if (ied.getTitle().equals(TRACE_NAME)) {
+                    if (ied.getTitle().equals(expectedTitle)) {
                         iep[0] = ied.getEditor(true);
                         break;
                     }

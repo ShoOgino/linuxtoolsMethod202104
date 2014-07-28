@@ -1,6 +1,10 @@
     private static void importAddDirectory() {
+        SWTBotRadio button = fBot.radio("Select roo&t directory:");
+        button.click();
+
         SWTBotCombo sourceCombo = fBot.comboBox();
-        sourceCombo.setText(fTrace.getPath());
+        File traceFolderParent = new File(TRACE_FOLDER_PARENT_PATH);
+        sourceCombo.setText(traceFolderParent.getAbsolutePath());
 
         SWTBotText text = fBot.text();
         text.setFocus();
@@ -8,8 +12,14 @@
         fBot.activeShell();
         SWTBotTree tree = fBot.tree();
         fBot.waitUntil(Conditions.widgetIsEnabled(tree));
-        final SWTBotTreeItem genericCtfTreeItem = tree.getTreeItem(TRACE_NAME);
-        fBot.waitUntil(Conditions.widgetIsEnabled(genericCtfTreeItem));
-        genericCtfTreeItem.check();
+
+        final String traceFolderParentName = new Path(traceFolderParent.getAbsolutePath()).lastSegment();
+        fBot.waitUntil(ConditionHelpers.IsTreeNodeAvailable(traceFolderParentName, tree));
+        final SWTBotTreeItem folderParentNode = tree.getTreeItem(traceFolderParentName);
+        folderParentNode.expand();
+
+        fBot.waitUntil(ConditionHelpers.IsTreeChildNodeAvailable(TRACE_FOLDER, folderParentNode));
+        final SWTBotTreeItem folderNode = folderParentNode.getNode(TRACE_FOLDER);
+        folderNode.check();
     }
 
