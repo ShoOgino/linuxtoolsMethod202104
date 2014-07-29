@@ -1,14 +1,20 @@
     /**
-     * Advanced constructor, where we also define which column data to use.
+     * Standard constructor, where we define which columns to use.
      *
      * @param parent
      *            The parent composite UI object
      * @param cacheSize
      *            The size of the event table cache
-     * @param columnData
-     *            The column data to use for this table
+     * @param columns
+     *            The columns to use in this table.
+     *            <p>
+     *            The iteration order of this collection will correspond to the
+     *            initial ordering of this series of columns in the table.
+     *            </p>
+     * @since 3.1
      */
-    public TmfEventsTable(final Composite parent, int cacheSize, final ColumnData[] columnData) {
+    public TmfEventsTable(final Composite parent, int cacheSize,
+            Collection<? extends TmfEventTableColumn> columns) {
         super("TmfEventsTable"); //$NON-NLS-1$
 
         fComposite = new Composite(parent, SWT.NONE);
@@ -33,17 +39,13 @@
         fTable.setHeaderVisible(true);
         fTable.setLinesVisible(true);
 
-        // Set the columns
-        setColumnHeaders(columnData);
-
-        // Set the default column field ids if this is not a subclass
-        if (Arrays.equals(columnData, COLUMN_DATA)) {
-            fTable.getColumns()[0].setData(Key.FIELD_ID, ITmfEvent.EVENT_FIELD_TIMESTAMP);
-            fTable.getColumns()[1].setData(Key.FIELD_ID, ITmfEvent.EVENT_FIELD_SOURCE);
-            fTable.getColumns()[2].setData(Key.FIELD_ID, ITmfEvent.EVENT_FIELD_TYPE);
-            fTable.getColumns()[3].setData(Key.FIELD_ID, ITmfEvent.EVENT_FIELD_REFERENCE);
-            fTable.getColumns()[4].setData(Key.FIELD_ID, ITmfEvent.EVENT_FIELD_CONTENT);
+        // Setup the columns
+        if (columns != null) {
+            fColumns.addAll(columns);
         }
+
+        // Create the UI columns in the table
+        fTable.createColumns(fColumns);
 
         // Set the frozen row for header row
         fTable.setFrozenRowCount(1);
