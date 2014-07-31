@@ -1,0 +1,63 @@
+    /**
+     * Parse, populate and set the internal LTTngVersion variable
+     *
+     * @param xmlOutput
+     *            the mi xml output of lttng version
+     * @throws ExecutionException
+     *             when xml extraction fail
+     */
+    public void setVersion(String[] xmlOutput) throws ExecutionException {
+        Document doc = getDocumentFromStrings(xmlOutput);
+        NodeList element = doc.getElementsByTagName(MIStrings.VERSION);
+        int major = 0;
+        int minor = 0;
+        int patchLevel = 0;
+        String license = ""; //$NON-NLS-1$
+        String commit = ""; //$NON-NLS-1$
+        String name = ""; //$NON-NLS-1$
+        String description = ""; //$NON-NLS-1$
+        String url = ""; //$NON-NLS-1$
+        String fullVersion = ""; //$NON-NLS-1$
+        if (element.getLength() == 1) {
+            NodeList child = element.item(0).getChildNodes();
+            // Get basic information
+            for (int i = 0; i < child.getLength(); i++) {
+                Node node = child.item(i);
+                switch (node.getNodeName()) {
+                case MIStrings.VERSION_MAJOR:
+                    major = Integer.parseInt(node.getTextContent());
+                    break;
+                case MIStrings.VERSION_MINOR:
+                    minor = Integer.parseInt(node.getTextContent());
+                    break;
+                case MIStrings.VERSION_PATCH_LEVEL:
+                    patchLevel = Integer.parseInt(node.getTextContent());
+                    break;
+                case MIStrings.VERSION_COMMIT:
+                    commit = node.getTextContent();
+                    break;
+                case MIStrings.VERSION_DESCRIPTION:
+                    description = node.getTextContent();
+                    break;
+                case MIStrings.VERSION_LICENSE:
+                    license = node.getTextContent();
+                    break;
+                case MIStrings.VERSION_NAME:
+                    name = node.getTextContent();
+                    break;
+                case MIStrings.VERSION_STR:
+                    fullVersion = node.getTextContent();
+                    break;
+                case MIStrings.VERSION_WEB:
+                    url = node.getTextContent();
+                    break;
+                default:
+                    break;
+                }
+            }
+            setVersion(new LttngVersion(major, minor, patchLevel, license, commit, name, description, url, fullVersion));
+        } else {
+            throw new ExecutionException(Messages.TraceControl_UnsupportedVersionError);
+        }
+    }
+
