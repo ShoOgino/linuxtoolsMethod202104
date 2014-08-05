@@ -11,31 +11,10 @@
             DocumentBuilder db = dbf.newDocumentBuilder();
 
             // The following allows xml parsing without access to the dtd
-            EntityResolver resolver = new EntityResolver() {
-                @Override
-                public InputSource resolveEntity(String publicId, String systemId) {
-                    String empty = ""; //$NON-NLS-1$
-                    ByteArrayInputStream bais = new ByteArrayInputStream(empty.getBytes());
-                    return new InputSource(bais);
-                }
-            };
-            db.setEntityResolver(resolver);
+            db.setEntityResolver(createEmptyEntityResolver());
 
             // The following catches xml parsing exceptions
-            db.setErrorHandler(new ErrorHandler() {
-                @Override
-                public void error(SAXParseException saxparseexception) throws SAXException {
-                }
-
-                @Override
-                public void warning(SAXParseException saxparseexception) throws SAXException {
-                }
-
-                @Override
-                public void fatalError(SAXParseException saxparseexception) throws SAXException {
-                    throw saxparseexception;
-                }
-            });
+            db.setErrorHandler(createErrorHandler());
 
             File file = new File(path);
             if (!file.canRead()) {
@@ -60,11 +39,7 @@
                 }
             }
             return defList.toArray(new CustomXmlTraceDefinition[0]);
-        } catch (ParserConfigurationException e) {
-            Activator.logError("Error loading all in CustomXmlTraceDefinition: path=" + path, e); //$NON-NLS-1$
-        } catch (SAXException e) {
-            Activator.logError("Error loading all in CustomXmlTraceDefinition: path=" + path, e); //$NON-NLS-1$
-        } catch (IOException e) {
+        } catch (ParserConfigurationException | SAXException | IOException e) {
             Activator.logError("Error loading all in CustomXmlTraceDefinition: path=" + path, e); //$NON-NLS-1$
         }
         return new CustomXmlTraceDefinition[0];

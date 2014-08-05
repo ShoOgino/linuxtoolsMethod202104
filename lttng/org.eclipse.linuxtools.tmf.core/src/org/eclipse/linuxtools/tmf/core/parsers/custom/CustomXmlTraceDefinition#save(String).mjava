@@ -5,31 +5,10 @@
             DocumentBuilder db = dbf.newDocumentBuilder();
 
             // The following allows xml parsing without access to the dtd
-            EntityResolver resolver = new EntityResolver() {
-                @Override
-                public InputSource resolveEntity(String publicId, String systemId) {
-                    String empty = ""; //$NON-NLS-1$
-                    ByteArrayInputStream bais = new ByteArrayInputStream(empty.getBytes());
-                    return new InputSource(bais);
-                }
-            };
-            db.setEntityResolver(resolver);
+            db.setEntityResolver(createEmptyEntityResolver());
 
             // The following catches xml parsing exceptions
-            db.setErrorHandler(new ErrorHandler() {
-                @Override
-                public void error(SAXParseException saxparseexception) throws SAXException {
-                }
-
-                @Override
-                public void warning(SAXParseException saxparseexception) throws SAXException {
-                }
-
-                @Override
-                public void fatalError(SAXParseException saxparseexception) throws SAXException {
-                    throw saxparseexception;
-                }
-            });
+            db.setErrorHandler(createErrorHandler());
 
             Document doc = null;
             File file = new File(path);
@@ -90,17 +69,7 @@
 
             TmfTraceType.addCustomTraceType(TmfTraceType.CUSTOM_XML_CATEGORY, definitionName);
 
-        } catch (ParserConfigurationException e) {
-            Activator.logError("Error saving CustomXmlTraceDefinition: path=" + path, e); //$NON-NLS-1$
-        } catch (TransformerConfigurationException e) {
-            Activator.logError("Error saving CustomXmlTraceDefinition: path=" + path, e); //$NON-NLS-1$
-        } catch (TransformerFactoryConfigurationError e) {
-            Activator.logError("Error saving CustomXmlTraceDefinition: path=" + path, e); //$NON-NLS-1$
-        } catch (TransformerException e) {
-            Activator.logError("Error saving CustomXmlTraceDefinition: path=" + path, e); //$NON-NLS-1$
-        } catch (IOException e) {
-            Activator.logError("Error saving CustomXmlTraceDefinition: path=" + path, e); //$NON-NLS-1$
-        } catch (SAXException e) {
+        } catch (ParserConfigurationException | TransformerFactoryConfigurationError | TransformerException | IOException | SAXException e) {
             Activator.logError("Error saving CustomXmlTraceDefinition: path=" + path, e); //$NON-NLS-1$
         }
     }

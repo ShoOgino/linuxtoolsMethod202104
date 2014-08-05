@@ -1,7 +1,8 @@
     /**
      * Load a single definition.
      *
-     * @param definitionName Name of the definition to load
+     * @param definitionName
+     *            Name of the definition to load
      * @return The loaded trace definition
      */
     public static CustomTxtTraceDefinition load(String definitionName) {
@@ -10,38 +11,17 @@
             DocumentBuilder db = dbf.newDocumentBuilder();
 
             // The following allows xml parsing without access to the dtd
-            EntityResolver resolver = new EntityResolver() {
-                @Override
-                public InputSource resolveEntity(String publicId, String systemId) {
-                    String empty = ""; //$NON-NLS-1$
-                    ByteArrayInputStream bais = new ByteArrayInputStream(empty.getBytes());
-                    return new InputSource(bais);
-                }
-            };
-            db.setEntityResolver(resolver);
+            db.setEntityResolver(createEmptyEntityResolver());
 
             // The following catches xml parsing exceptions
-            db.setErrorHandler(new ErrorHandler() {
-                @Override
-                public void error(SAXParseException saxparseexception) throws SAXException {
-                }
-
-                @Override
-                public void warning(SAXParseException saxparseexception) throws SAXException {
-                }
-
-                @Override
-                public void fatalError(SAXParseException saxparseexception) throws SAXException {
-                    throw saxparseexception;
-                }
-            });
+            db.setErrorHandler(createErrorHandler());
 
             CustomTxtTraceDefinition value = lookupDefinition(definitionName, db, CUSTOM_TXT_TRACE_DEFINITIONS_PATH_NAME);
             if (value == null) {
                 return lookupDefinition(definitionName, db, CUSTOM_TXT_TRACE_DEFINITIONS_DEFAULT_PATH_NAME);
             }
             return value;
-        } catch (ParserConfigurationException | SAXException | IOException e ) {
+        } catch (ParserConfigurationException | SAXException | IOException e) {
             Activator.logError("Error loading CustomTxtTraceDefinition: definitionName=" + definitionName, e); //$NON-NLS-1$
         }
         return null;
