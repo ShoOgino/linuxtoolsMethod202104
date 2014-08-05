@@ -1,0 +1,81 @@
+    /**
+     * Parse a list of raw channel XML node into an ArrayList of IChannelInfo
+     *
+     * @param rawChannes
+     *            List of raw channel XML node
+     * @param channels
+     *            the parsed channels list
+     * @throws ExecutionException
+     *             when missing required xml element (type)
+     */
+    private static void parseChannels(NodeList rawChannels, ArrayList<IChannelInfo> channels) throws ExecutionException {
+        IChannelInfo channel = null;
+        for (int i = 0; i < rawChannels.getLength(); i++) {
+            Node rawChannel = rawChannels.item(i);
+            if (rawChannel.getNodeName().equalsIgnoreCase(MIStrings.CHANNEL)) {
+                channel = new ChannelInfo(""); //$NON-NLS-1$
+
+                // Populate the channel
+                NodeList rawInfos = rawChannel.getChildNodes();
+                Node rawInfo = null;
+                for (int j = 0; j < rawInfos.getLength(); j++) {
+                    rawInfo = rawInfos.item(j);
+                    switch (rawInfo.getNodeName()) {
+                    case MIStrings.NAME:
+                        channel.setName(rawInfo.getTextContent());
+                        break;
+                    case MIStrings.ENABLED:
+                        channel.setState(TraceEnablement.valueOfString(rawInfo.getTextContent()));
+                        break;
+                    case MIStrings.EVENTS:
+                        List<IEventInfo> events = new ArrayList<>();
+                        getEventInfo(rawInfo.getChildNodes(), events);
+                        channel.setEvents(events);
+                        break;
+                    case MIStrings.ATTRIBUTES:
+                        NodeList rawAttributes = rawInfo.getChildNodes();
+                        for (int k = 0; k < rawAttributes.getLength(); k++) {
+                            Node attribute = rawAttributes.item(k);
+                            switch (attribute.getNodeName()) {
+                            case MIStrings.OVERWRITE_MODE:
+                                channel.setOverwriteMode(!LTTngControlServiceConstants.OVERWRITE_MODE_ATTRIBUTE_FALSE_MI.equalsIgnoreCase(attribute.getTextContent()));
+                                break;
+                            case MIStrings.SUBBUF_SIZE:
+                                channel.setSubBufferSize(Long.valueOf(attribute.getTextContent()));
+                                break;
+                            case MIStrings.NUM_SUBBUF:
+                                channel.setNumberOfSubBuffers(Integer.valueOf(attribute.getTextContent()));
+                                break;
+                            case MIStrings.SWITCH_TIMER_INTERVAL:
+                                channel.setSwitchTimer(Long.valueOf(attribute.getTextContent()));
+                                break;
+                            case MIStrings.READ_TIMER_INTERVAL:
+                                channel.setReadTimer(Long.valueOf(attribute.getTextContent()));
+                                break;
+                            case MIStrings.OUTPUT_TYPE:
+                                channel.setOutputType(attribute.getTextContent());
+                                break;
+                            case MIStrings.TRACEFILE_SIZE:
+                                channel.setMaxSizeTraceFiles(Integer.parseInt(attribute.getTextContent()));
+                                break;
+                            case MIStrings.TRACEFILE_COUNT:
+                                channel.setMaxNumberTraceFiles(Integer.parseInt(attribute.getTextContent()));
+                                break;
+                            case MIStrings.LIVE_TIMER_INTERVAL:
+                                // TODO: currently not supported by tmf
+                                break;
+                            default:
+                                break;
+                            }
+                        }
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                channels.add(channel);
+            }
+        }
+
+    }
+

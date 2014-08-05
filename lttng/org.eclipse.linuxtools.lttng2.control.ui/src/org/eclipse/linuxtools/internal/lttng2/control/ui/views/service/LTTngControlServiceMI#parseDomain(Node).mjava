@@ -1,10 +1,67 @@
     /**
-     * @param domain
+     * Parse a raw domain XML node to a IDomainInfo object
+     *
+     * @param rawDomain
      *            a domain xml node
-     * @return {@link IDomainInfo}
+     * @return a populated {@link DomainInfo} object
+     * @throws ExecutionException
+     *             when missing required xml element (type)
      */
-    protected IDomainInfo parseDomain(Node domain) {
-        // TODO JRJ - STUB
-        return null;
+    protected IDomainInfo parseDomain(Node rawDomain) throws ExecutionException {
+        IDomainInfo domain = null;
+        // Get the type
+        Node rawType = getFirstOf(rawDomain.getChildNodes(), MIStrings.TYPE);
+        if (rawType == null) {
+            throw new ExecutionException(Messages.TraceControl_MiMissingRequiredError);
+        }
+        String rawTypeString = rawType.getTextContent().toLowerCase();
+        TraceDomainType domainType = TraceDomainType.valueOfString(rawTypeString);
+        switch (domainType) {
+        case KERNEL:
+            domain = new DomainInfo(Messages.TraceControl_KernelProviderDisplayName);
+            domain.setIsKernel(true);
+            break;
+        case UST:
+            domain = new DomainInfo(Messages.TraceControl_UstGlobalDomainDisplayName);
+            domain.setIsKernel(false);
+            break;
+        case JUL:
+            /**
+             * TODO: Support for JUL JUL substructure and semantic is not the
+             * same as a regular UST or Kernel Domain There is no channel under
+             * JUL domain only events. The channel is activated in UST Channel
+             */
+            domain = new DomainInfo(Messages.TraceControl_JULDomainDisplayName);
+            domain.setIsKernel(false);
+            break;
+        case UNKNOWN:
+            domain = new DomainInfo(Messages.TraceControl_UnknownDomainDisplayName);
+            domain.setIsKernel(false);
+            break;
+        default:
+            throw new ExecutionException(Messages.TraceControl_MiInvalidElementError);
+        }
+
+        NodeList rawInfos = rawDomain.getChildNodes();
+        for (int i = 0; i < rawInfos.getLength(); i++) {
+            Node rawInfo = rawInfos.item(i);
+            switch (rawInfo.getNodeName()) {
+            case MIStrings.BUFFER_TYPE:
+                BufferType bufferType = BufferType.valueOfString(rawInfo.getTextContent());
+                domain.setBufferType(bufferType);
+                break;
+            case MIStrings.CHANNELS:
+                ArrayList<IChannelInfo> channels = new ArrayList<>();
+                parseChannels(rawInfo.getChildNodes(), channels);
+                if (channels.size() > 0) {
+                    domain.setChannels(channels);
+                }
+                break;
+            default:
+                break;
+            }
+        }
+
+        return domain;
     }
 
