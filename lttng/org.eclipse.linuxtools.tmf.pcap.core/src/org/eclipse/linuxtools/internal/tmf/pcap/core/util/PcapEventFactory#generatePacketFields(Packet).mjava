@@ -1,0 +1,30 @@
+    private static ITmfEventField[] generatePacketFields(Packet packet) {
+        // TODO This is SOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO slow. Must find a
+        // way to use less intermediate data structures.
+        List<ITmfEventField> fieldList = new ArrayList<>();
+        List<ITmfEventField> subfieldList = new ArrayList<>();
+        Packet localPacket = packet.getPacket(Protocol.PCAP);
+
+        while (localPacket != null) {
+            subfieldList.clear();
+            for (Map.Entry<String, String> entry : localPacket.getFields().entrySet()) {
+
+                @SuppressWarnings("null")
+                @NonNull String key = entry.getKey();
+
+                @SuppressWarnings("null")
+                @NonNull String value = entry.getValue();
+                subfieldList.add(new TmfEventField(key, value, null));
+            }
+            ITmfEventField[] subfieldArray = subfieldList.toArray(new ITmfEventField[subfieldList.size()]);
+            fieldList.add(new PcapEventField(localPacket.getProtocol().getName(), EMPTY_STRING, subfieldArray, localPacket));
+            localPacket = localPacket.getChildPacket();
+        }
+
+        ITmfEventField[] fieldArray = fieldList.toArray(new ITmfEventField[fieldList.size()]);
+        if (fieldArray == null) {
+            return EMPTY_FIELD_ARRAY;
+        }
+        return fieldArray;
+    }
+

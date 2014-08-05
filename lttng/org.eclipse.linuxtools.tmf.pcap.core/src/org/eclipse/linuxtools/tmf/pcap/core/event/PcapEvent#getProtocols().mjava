@@ -1,0 +1,38 @@
+    /**
+     * Method that returns a list of all the protocols in this PcapEvent.
+     *
+     * @return A list containing all the TmfProtocol.
+     */
+    public List<TmfProtocol> getProtocols() {
+        if (fList != null) {
+            return fList;
+        }
+        List<TmfProtocol> list = new ArrayList<>();
+        Packet packet = fPacket;
+
+        // Go to start.
+        while (packet != null && packet.getParentPacket() != null) {
+            packet = packet.getParentPacket();
+        }
+
+        if (packet == null) {
+            @SuppressWarnings("null")
+            @NonNull List<TmfProtocol> emptyList = Collections.EMPTY_LIST;
+            fList = emptyList;
+            return fList;
+        }
+        // Go through all the packets and add them to list.
+        list.add(ProtocolConversion.wrap(packet.getProtocol()));
+        while (packet != null && packet.getChildPacket() != null) {
+            packet = packet.getChildPacket();
+            if (packet != null) {
+                list.add(ProtocolConversion.wrap(packet.getProtocol()));
+            }
+        }
+
+        @SuppressWarnings("null")
+        @NonNull ImmutableList<TmfProtocol> immutableList = ImmutableList.copyOf(list);
+        fList = immutableList;
+        return immutableList;
+    }
+
