@@ -58,7 +58,7 @@
 
                 SubMonitor subMonitor = SubMonitor.convert(monitor, allResourcesToDelete.size());
 
-                for (TmfCommonProjectElement element : resourceMap.keySet()) {
+                for (final TmfCommonProjectElement element : resourceMap.keySet()) {
                     if (monitor.isCanceled()) {
                         throw new OperationCanceledException();
                     }
@@ -67,7 +67,12 @@
                     if (!traceResourcesToDelete.isEmpty()) {
                         subMonitor.setTaskName(NLS.bind(Messages.DeleteSupplementaryFiles_DeletionTask, element.getElementPath()));
                         // Delete the selected resources
-                        element.closeEditors();
+                        Display.getDefault().syncExec(new Runnable() {
+                            @Override
+                            public void run() {
+                                element.closeEditors();
+                            }
+                        });
                         element.deleteSupplementaryResources(traceResourcesToDelete.toArray(new IResource[0]));
                         projectsToRefresh.add(element.getProject().getResource());
                     }

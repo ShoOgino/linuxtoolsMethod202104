@@ -1,0 +1,20 @@
+        @Override
+        protected void setValue(Object element, Object value) {
+            if (value instanceof String) {
+                String string = (String) value;
+                if (string.trim().isEmpty()) {
+                    map.remove(element);
+                } else {
+                    try {
+                        ITmfTimestamp refTime = map.get(element);
+                        long ref = refTime == null ? 0 : refTime.normalize(0, ITmfTimestamp.NANOSECOND_SCALE).getValue();
+                        Long newVal = TIME_FORMAT.parseValue(string, ref);
+                        map.put((TmfTraceElement) element, new TmfNanoTimestamp(newVal));
+                    } catch (ParseException e) {
+                        /* Ignore and reload previous value */
+                    }
+                }
+                fViewer.getViewer().update(element, null);
+            }
+        }
+

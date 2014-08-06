@@ -1,0 +1,26 @@
+    /**
+     * Handler for the trace opened signal
+     *
+     * @param signal
+     *            the trace opened signal
+     */
+    @TmfSignalHandler
+    public void traceOpened(final TmfTraceOpenedSignal signal) {
+        Display.getDefault().asyncExec(new Runnable() {
+            @Override
+            public void run() {
+                for (ITmfTrace trace : TmfTraceManager.getTraceSet(signal.getTrace())) {
+                    for (TmfTraceElement traceElement : fOffsetMap.keySet()) {
+                        if (traceElement.getResource().equals(trace.getResource())) {
+                            if (fRefTimeMap.get(traceElement) == null) {
+                                fRefTimeMap.put(traceElement, trace.getStartTime());
+                                fViewer.getViewer().update(traceElement, null);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        });
+    }
+
