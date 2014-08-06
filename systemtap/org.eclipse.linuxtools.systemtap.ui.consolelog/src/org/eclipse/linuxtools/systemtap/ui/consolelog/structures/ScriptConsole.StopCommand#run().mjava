@@ -1,10 +1,19 @@
         @Override
         public void run() {
-            if (consoleDaemon != null) {
-                stopcmd.removeInputStreamListener(consoleDaemon);
+            // If the command to be stopped is still starting up, wait for it to start.
+            if (isThreadAlive(onCmdStartThread)
+                    && stopcmd == cmd) {
+                try {
+                    onCmdStartThread.join();
+                } catch (InterruptedException e) {}
             }
-            if (errorDaemon != null) {
-                stopcmd.removeErrorStreamListener(errorDaemon);
+            if (stopConsoleDaemon != null) {
+                stopcmd.removeInputStreamListener(stopConsoleDaemon);
+                stopConsoleDaemon.dispose();
+            }
+            if (stopErrorDaemon != null) {
+                stopcmd.removeErrorStreamListener(stopErrorDaemon);
+                stopErrorDaemon.dispose();
             }
             if (!disposeOnStop) {
                 stopcmd.stop();

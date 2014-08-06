@@ -1,0 +1,29 @@
+    /**
+     * Stops the running command and immediately prepares the console for another command.
+     */
+    private void reset() {
+        if (waitingToStart()) {
+            try {
+                onCmdStartThread.join();
+            } catch (InterruptedException e) {}
+        }
+        if (isThreadAlive(onCmdStopThread)) {
+            onCmdStopThread.interrupt();
+            try {
+                onCmdStopThread.join();
+            } catch (InterruptedException e) {}
+        }
+        if (isThreadAlive(stopCommandThread)) {
+            try {
+                stopCommandThread.join();
+            } catch (InterruptedException e) {}
+            disposeCommand();
+        } else if (isRunning()) {
+            stopAndDispose();
+        } else {
+            disposeCommand();
+        }
+        clearConsole();
+        setName(getBaseName());
+    }
+
