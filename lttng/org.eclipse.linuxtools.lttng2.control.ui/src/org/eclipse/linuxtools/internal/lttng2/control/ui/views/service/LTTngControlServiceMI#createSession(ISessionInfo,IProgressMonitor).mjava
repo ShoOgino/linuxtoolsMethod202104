@@ -1,6 +1,47 @@
     @Override
     public ISessionInfo createSession(ISessionInfo sessionInfo, IProgressMonitor monitor) throws ExecutionException {
-        // TODO Auto-generated method stub
-        return null;
+        if (sessionInfo.isStreamedTrace()) {
+            return createStreamedSession(sessionInfo, monitor);
+        }
+
+        StringBuffer command = prepareSessionCreationCommand(sessionInfo);
+
+        ICommandResult result = executeCommand(command.toString(), monitor);
+
+        Document document = getDocumentFromStrings(result.getOutput());
+        NodeList sessions = document.getElementsByTagName(MIStrings.SESSION);
+
+        // Number of session should be equal to 1
+        if (sessions.getLength() != 1) {
+            throw new ExecutionException(Messages.TraceControl_CommandError + " " + command + "\n" //$NON-NLS-1$//$NON-NLS-2$
+                    + NLS.bind(Messages.TraceControl_UnexpectedNumberOfElementError, MIStrings.SESSION) + " " + sessions.getLength()); //$NON-NLS-1$
+        }
+
+        // Fetch a session from output
+        ISessionInfo outputSession = new SessionInfo(""); //$NON-NLS-1$
+        parseSession(outputSession, sessions.item(0));
+
+        // Verify session name
+        if ((outputSession.getName().equals("")) || (!"".equals(sessionInfo.getName()) && !outputSession.getName().equals(sessionInfo.getName()))) { //$NON-NLS-1$ //$NON-NLS-2$
+            // Unexpected name returned
+            throw new ExecutionException(Messages.TraceControl_CommandError + " " + command + "\n" + //$NON-NLS-1$ //$NON-NLS-2$
+                    Messages.TraceControl_UnexpectedNameError + ": " + outputSession.getName()); //$NON-NLS-1$
+        }
+
+        // Verify session path
+        if (!sessionInfo.isSnapshotSession() &&
+                ((outputSession.getSessionPath() == null) || ((sessionInfo.getSessionPath() != null) && (!outputSession.getSessionPath().contains(sessionInfo.getSessionPath()))))) {
+            // Unexpected path
+            throw new ExecutionException(Messages.TraceControl_CommandError + " " + command + "\n" + //$NON-NLS-1$ //$NON-NLS-2$
+                    Messages.TraceControl_UnexpectedPathError + ": " + outputSession.getName()); //$NON-NLS-1$
+        }
+
+        if (sessionInfo.isSnapshotSession()) {
+            // Make it a snapshot session - content of snapshot info need to
+            // set afterwards using getSession() or getSnapshotInfo()
+            outputSession.setSnapshotInfo(new SnapshotInfo("")); //$NON-NLS-1$
+        }
+
+        return outputSession;
     }
 

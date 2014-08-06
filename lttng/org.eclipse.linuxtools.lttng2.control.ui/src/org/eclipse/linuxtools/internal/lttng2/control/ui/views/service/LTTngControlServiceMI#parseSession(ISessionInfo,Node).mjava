@@ -1,0 +1,56 @@
+    /**
+     * @param sessionInfo
+     * @param rawSession
+     * @throws ExecutionException
+     */
+    private void parseSession(ISessionInfo sessionInfo, Node rawSession) throws ExecutionException {
+        if (!rawSession.getNodeName().equalsIgnoreCase(MIStrings.SESSION)) {
+            throw new ExecutionException(Messages.TraceControl_MiInvalidElementError);
+        }
+        NodeList rawSessionInfos = rawSession.getChildNodes();
+        for (int i = 0; i < rawSessionInfos.getLength(); i++) {
+            Node rawInfo = rawSessionInfos.item(i);
+            switch (rawInfo.getNodeName()) {
+            case MIStrings.NAME:
+                sessionInfo.setName(rawInfo.getTextContent());
+                break;
+            case MIStrings.PATH:
+                sessionInfo.setSessionPath(rawInfo.getTextContent());
+                break;
+            case MIStrings.ENABLED:
+                sessionInfo.setSessionState(rawInfo.getTextContent());
+                break;
+            case MIStrings.SNAPSHOT_MODE:
+                if (rawInfo.getTextContent().equals(LTTngControlServiceConstants.TRUE_NUMERICAL)) {
+                    // real name will be set later
+                    ISnapshotInfo snapshotInfo = new SnapshotInfo(""); //$NON-NLS-1$
+                    sessionInfo.setSnapshotInfo(snapshotInfo);
+                }
+                break;
+            case MIStrings.LIVE_TIMER_INTERVAL:
+                // TODO : live mode not supported yet in TMF:lttng-control
+                break;
+            case MIStrings.DOMAINS:
+                // Extract the domains node
+                NodeList rawDomains = rawInfo.getChildNodes();
+                IDomainInfo domain = null;
+                for (int j = 0; j < rawDomains.getLength(); j++) {
+                    if (rawDomains.item(j).getNodeName().equalsIgnoreCase(MIStrings.DOMAIN)) {
+                        domain = parseDomain(rawDomains.item(j));
+                        sessionInfo.addDomain(domain);
+                    }
+                }
+                break;
+            default:
+                break;
+            }
+        }
+
+        if (!sessionInfo.isSnapshotSession()) {
+            Matcher matcher = LTTngControlServiceConstants.TRACE_NETWORK_PATTERN.matcher(sessionInfo.getSessionPath());
+            if (matcher.matches()) {
+                sessionInfo.setStreamedTrace(true);
+            }
+        }
+    }
+
