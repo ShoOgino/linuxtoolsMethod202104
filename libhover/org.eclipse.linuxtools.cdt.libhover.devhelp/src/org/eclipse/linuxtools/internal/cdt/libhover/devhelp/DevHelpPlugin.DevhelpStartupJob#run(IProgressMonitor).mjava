@@ -5,6 +5,29 @@
 				return Status.CANCEL_STATUS;
 			IPreferenceStore ps = DevHelpPlugin.getDefault()
 					.getPreferenceStore();
+			String devhelpDir = ps.getString(PreferenceConstants.DEVHELP_DIRECTORY);
+			IPath devhelpPath = new Path(devhelpDir);
+			File devhelp = devhelpPath.toFile();
+			if (!devhelp.exists()) {
+				// No input data to process so quit now
+				monitor.done();
+				return Status.OK_STATUS;
+			}
+			long ltime = devhelp.lastModified();
+			IPath libhoverPath = LibhoverPlugin.getDefault()
+					.getStateLocation().append("C").append("devhelp.libhover"); //$NON-NLS-1$ //$NON-NLS-2$
+			File libhoverDir = new File(libhoverPath.toOSString());
+			if (libhoverDir.exists()) {
+				long ltime2 = libhoverDir.lastModified();
+				// Check the last modified time of the devhelp libhover file compared to the
+				// devhelp directory we use to parse the data
+				if (ltime < ltime2) {
+					// Our devhelp info is up to date and is older than the last modification to
+					// the devhelp input data so stop now
+					monitor.done();
+					return Status.OK_STATUS;
+				}
+			}
 			ParseDevHelp.DevHelpParser p = new ParseDevHelp.DevHelpParser(
 					ps.getString(PreferenceConstants.DEVHELP_DIRECTORY));
 			LibHoverInfo hover = p.parse(monitor);

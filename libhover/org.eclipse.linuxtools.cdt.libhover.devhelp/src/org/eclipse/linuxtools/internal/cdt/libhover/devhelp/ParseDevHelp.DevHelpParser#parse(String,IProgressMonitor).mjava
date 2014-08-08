@@ -1,58 +1,101 @@
-        private void parse(String fileName, IProgressMonitor monitor) {
-            try {
-                Path path = new Path(fileName);
-                File f = new File(fileName);
-                FileInputStream stream = new FileInputStream(f);
-                DocumentBuilder builder = factory.newDocumentBuilder();
-                builder.setEntityResolver(entityResolver);
-                Document doc = builder.parse(stream);
-                NodeList bookNodes = doc.getElementsByTagName("book"); //$NON-NLS-1$
-                for (int x = 0; x < bookNodes.getLength(); ++x) {
-                    Node n = bookNodes.item(x);
-                    NamedNodeMap m = n.getAttributes();
-                    Node language = m.getNamedItem("language"); //$NON-NLS-1$
-                    if (language != null && !language.getNodeValue().equals("c")) { //$NON-NLS-1$
-                        return;
-                    }
-                }
-                if (path.getFileExtension().equals("devhelp")) { //$NON-NLS-1$
-                    NodeList nl = doc.getElementsByTagName("function"); // $NON-NLS-1$ //$NON-NLS-1$
-                    for (int i = 0; i < nl.getLength(); ++i) {
-                        if (monitor.isCanceled()) {
-                            return;
-                        }
-                        Node n = nl.item(i);
-                        NamedNodeMap m = n.getAttributes();
-                        Node name = m.getNamedItem("name"); // $NON-NLS-1$ //$NON-NLS-1$
-                        Node link = m.getNamedItem("link"); // $NON-NLS-1$ //$NON-NLS-1$
-                        if (link != null) {
-                            parseLink(link, name, path, libhover);
-                        }
-                    }
-                } else if (path.getFileExtension().equals("devhelp2")) { //$NON-NLS-1$
-                    NodeList nl = doc.getElementsByTagName("keyword"); // $NON-NLS-1$ //$NON-NLS-1$
-                    for (int i = 0; i < nl.getLength(); ++i) {
-                        if (monitor.isCanceled())
-                            return;
-                        Node n = nl.item(i);
-                        NamedNodeMap m = n.getAttributes();
-                        Node type = m.getNamedItem("type"); // $NON-NLS-1$ //$NON-NLS-1$
-                        if (type != null) {
-                            String typeName = type.getNodeValue();
-                            if (typeName.equals("function")) { //$NON-NLS-1$
-                                Node name = m.getNamedItem("name"); // $NON-NLS-1$ //$NON-NLS-1$
-                                Node link = m.getNamedItem("link"); // $NON-NLS-1$ //$NON-NLS-1$
-                                if (link != null) {
-                                    parseLink(link, name, path, libhover);
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (FileNotFoundException e1) {
-                // ignore
-            } catch (ParserConfigurationException|SAXException|IOException e) {
-                e.printStackTrace();
-            }
-        }
+		private void parse(String fileName, IProgressMonitor monitor) {
+			try {
+				HashMap<String, HashMap<String,String>> files = new HashMap<>();
+				Path path = new Path(fileName);
+				File f = new File(fileName);
+				FileInputStream stream = new FileInputStream(f);
+				DocumentBuilder builder = factory.newDocumentBuilder();
+				builder.setEntityResolver(entityResolver);
+				Document doc = builder.parse(stream);
+				NodeList bookNodes = doc.getElementsByTagName("book"); //$NON-NLS-1$
+				for (int x = 0; x < bookNodes.getLength(); ++x) {
+					Node n = bookNodes.item(x);
+					NamedNodeMap m = n.getAttributes();
+					Node language = m.getNamedItem("language"); //$NON-NLS-1$
+					if (language != null && !language.getNodeValue().equals("c")) { //$NON-NLS-1$
+						return;
+					}
+				}
+				if (path.getFileExtension().equals("devhelp")) { //$NON-NLS-1$
+					// Get all function nodes
+					NodeList nl = doc.getElementsByTagName("function"); // $NON-NLS-1$ //$NON-NLS-1$
+					for (int i = 0; i < nl.getLength(); ++i) {
+						if (monitor.isCanceled()) {
+							return;
+						}
+						Node n = nl.item(i);
+						NamedNodeMap m = n.getAttributes();
+						// For each function node, get its associated link
+						Node name = m.getNamedItem("name"); // $NON-NLS-1$ //$NON-NLS-1$
+						Node link = m.getNamedItem("link"); // $NON-NLS-1$ //$NON-NLS-1$
+						if (name != null && link != null) {
+							String nameValue = name.getNodeValue();
+							nameValue = nameValue.replaceAll("\\(.*\\);+", "").trim(); //$NON-NLS-1$ //$NON-NLS-2$
+							if (!nameValue.contains("::") && !nameValue.startsWith("enum ") //$NON-NLS-1$ //$NON-NLS-2$
+									&& !nameValue.contains("\"")) { //$NON-NLS-1$
+								String linkValue = link.getNodeValue();
+								String[] linkParts = linkValue.split("#"); //$NON-NLS-1$
+								// Check if the file referred to by the link has been seen before
+								// If not, create a new function list for it
+								HashMap<String, String> funcMap = files.get(linkParts[0]);
+								if (funcMap == null) {
+									funcMap = new HashMap<>();
+									files.put(linkParts[0], funcMap);
+								}
+								// Add the function to the function list for the link file
+								funcMap.put(linkParts[1], nameValue);
+							}
+						}
+					}
+				} else if (path.getFileExtension().equals("devhelp2")) { //$NON-NLS-1$
+					NodeList nl = doc.getElementsByTagName("keyword"); // $NON-NLS-1$ //$NON-NLS-1$
+					for (int i = 0; i < nl.getLength(); ++i) {
+						if (monitor.isCanceled())
+							return;
+						Node n = nl.item(i);
+						NamedNodeMap m = n.getAttributes();
+						Node type = m.getNamedItem("type"); // $NON-NLS-1$ //$NON-NLS-1$
+						if (type != null) {
+							String typeName = type.getNodeValue();
+							// Look for all function references in the devhelp file
+							if (typeName.equals("function")) { //$NON-NLS-1$
+								// Each function reference will have a link associated with it
+								Node name = m.getNamedItem("name"); // $NON-NLS-1$ //$NON-NLS-1$
+								Node link = m.getNamedItem("link"); // $NON-NLS-1$ //$NON-NLS-1$
+								if (name != null && link != null) {
+									// Clean up the name and make sure it isn't a non-C-function
+									String nameValue = name.getNodeValue();
+									nameValue = nameValue.replaceAll("\\(.*\\);+", "").trim(); //$NON-NLS-1$ //$NON-NLS-2$
+									if (!nameValue.contains("::") && !nameValue.startsWith("enum ") //$NON-NLS-1$ //$NON-NLS-2$
+											&& !nameValue.contains("\"")) { //$NON-NLS-1$
+										String linkValue = link.getNodeValue();
+										String[] linkParts = linkValue.split("#"); //$NON-NLS-1$
+										// Check to see if the file referred to by the link has been seen before
+										// If not, create a new function list for it
+										HashMap<String, String> funcMap = files.get(linkParts[0]);
+										if (funcMap == null) {
+											funcMap = new HashMap<>();
+											files.put(linkParts[0], funcMap);
+										}
+										// Add the function to the function list for the link file
+										funcMap.put(linkParts[1], nameValue);
+									}
+								}
+							}
+						}
+					}
+				}
+				// For each different file found in function links in the devhelp file,
+				// parse it and get all function info that is referred to
+				for (Map.Entry<String, HashMap<String, String>> entry : files.entrySet()) {
+					String fname = entry.getKey();
+					HashMap<String, String> funcMap = entry.getValue();
+					parseLinks(funcMap, fname, path, libhover);
+				}
+			} catch (FileNotFoundException e1) {
+				// ignore
+			} catch (ParserConfigurationException|SAXException|IOException e) {
+				e.printStackTrace();
+			}
+		}
 

@@ -1,0 +1,27 @@
+		private void parseLinks(HashMap<String, String> funcMap, String fileName, IPath path, LibHoverInfo libhover) {
+			InputStream reader = null;
+			HTMLSaxParser parser = null;
+			try {              
+				reader = new FileInputStream(path.removeLastSegments(1).toOSString()
+						+ "/" + fileName); //$NON-NLS-1$
+				parser = new HTMLSaxParser(funcMap);
+				try {
+					parser.parse(new InputSource(reader));
+				} catch (FuncFoundSaxException e) {
+					// ignore because this is just how we shorten parse time
+				}
+				reader.close();
+				TreeMap<String, FunctionInfo> finfos = parser.getFunctionInfos();
+				if (finfos != null) {
+					if (debug) {
+						System.out.println(parser.toString());
+					}
+					libhover.functions.putAll(finfos);
+				}
+			} catch (IOException e) {
+				// ignore
+			} catch (SAXException e) {
+				e.printStackTrace();
+			}
+		}
+
