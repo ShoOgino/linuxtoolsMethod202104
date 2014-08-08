@@ -1,0 +1,45 @@
+    /**
+     * Get the event table for the given trace. It will be of the type defined
+     * by the extension point if applicable, else it will be a default table
+     * with the extension-point-defined columns (if any).
+     *
+     * @param trace
+     *            The event table is for this trace
+     * @param parent
+     *            The parent composite of the table
+     * @param cacheSize
+     *            The cache size to use
+     * @return The event table for the trace
+     */
+    private static @NonNull TmfEventsTable getEventTable(ITmfTrace trace,
+            final Composite parent, final int cacheSize) {
+        if (trace instanceof TmfExperiment) {
+            return getExperimentEventTable((TmfExperiment) trace, parent, cacheSize);
+        }
+
+        TmfEventsTable table = TmfTraceTypeUIUtils.getEventTable(trace, parent, cacheSize);
+        if (table != null) {
+            /*
+             * The trace type specified an event table type, we will give it to
+             * them.
+             */
+            return table;
+        }
+
+        /*
+         * The trace type did not specify an event table, we will use a default
+         * table with the columns it asked for (if any).
+         */
+        Collection<? extends TmfEventTableColumn> columns = TmfTraceTypeUIUtils.getEventTableColumns(trace);
+        if (columns != null) {
+            return new TmfEventsTable(parent, cacheSize, columns);
+        }
+
+        /*
+         * No columns were defined either, use a default table with the default
+         * columns.
+         */
+        return new TmfEventsTable(parent, cacheSize);
+
+    }
+
