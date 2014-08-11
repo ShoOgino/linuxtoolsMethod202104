@@ -1,6 +1,36 @@
     @Override
     public void destroySession(String sessionName, IProgressMonitor monitor) throws ExecutionException {
-        // TODO Auto-generated method stub
+        String newName = formatParameter(sessionName);
 
+        StringBuffer command = createCommand(LTTngControlServiceConstants.COMMAND_DESTROY_SESSION, newName);
+
+        ICommandResult result = executeCommand(command.toString(), monitor, false);
+        String[] errorOutput = result.getErrorOutput();
+
+        if (isError(result) && (errorOutput != null)) {
+            // Don't treat this as an error
+            if (ignoredPattern(errorOutput, LTTngControlServiceConstants.SESSION_NOT_FOUND_ERROR_PATTERN)) {
+                return;
+
+            }
+            throw new ExecutionException(Messages.TraceControl_CommandError + " " + command.toString() + "\n" + formatOutput(result)); //$NON-NLS-1$ //$NON-NLS-2$
+        }
+
+        // Check for action effect
+        Document doc = getDocumentFromStrings(result.getOutput());
+        NodeList sessions = doc.getElementsByTagName(MIStrings.SESSION);
+        if (sessions.getLength() != 1) {
+            throw new ExecutionException(NLS.bind(Messages.TraceControl_MiInvalidNumberOfElementError, MIStrings.SESSION));
+        }
+
+        Node rawSessionName = getFirstOf(sessions.item(0).getChildNodes(), MIStrings.NAME);
+        if (rawSessionName == null) {
+            throw new ExecutionException(Messages.TraceControl_MiMissingRequiredError);
+        }
+
+        // Validity check
+        if (!rawSessionName.getTextContent().equals(sessionName)) {
+            throw new ExecutionException(NLS.bind(Messages.TraceControl_UnexpectedValueError, rawSessionName.getTextContent(), sessionName));
+        }
     }
 

@@ -8,8 +8,16 @@
         ICommandResult result = executeCommand(command.toString(), monitor, false);
         List<IUstProviderInfo> allProviders = new ArrayList<>();
 
-        if (isError(result)) {
-            return allProviders;
+        if (isError(result) && result.getErrorOutput() != null) {
+            // Ignore the following 2 cases:
+            // Spawning a session daemon
+            // Error: Unable to list UST events: Listing UST events failed
+            // or:
+            // Error: Unable to list UST events: Listing UST events failed
+            if (ignoredPattern(result.getErrorOutput(), LTTngControlServiceConstants.LIST_UST_NO_UST_PROVIDER_PATTERN)) {
+                return allProviders;
+            }
+            throw new ExecutionException(Messages.TraceControl_CommandError + LTTngControlServiceConstants.COMMAND_LIST_UST);
         }
 
         Document document = getDocumentFromStrings(result.getOutput());
