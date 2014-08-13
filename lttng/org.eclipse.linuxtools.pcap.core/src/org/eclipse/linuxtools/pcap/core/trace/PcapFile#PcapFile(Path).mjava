@@ -9,7 +9,7 @@
      * @throws IOException
      *             Thrown if there is an IO error while reading the file.
      */
-    public PcapFile(String filePath) throws BadPcapFileException, IOException {
+    public PcapFile(Path filePath) throws BadPcapFileException, IOException {
 
         fFileIndex = new TreeMap<>();
         fCurrentRank = 0;
@@ -17,22 +17,19 @@
         fPcapFilePath = filePath;
 
         // Check file validity
-        File pcapFile = new File(fPcapFilePath);
-        if ((!fPcapFilePath.endsWith(".cap") && !fPcapFilePath.endsWith(".pcap")) || //$NON-NLS-1$ //$NON-NLS-2$
-                !pcapFile.exists() || !pcapFile.isFile() || pcapFile.length() < PcapFileValues.GLOBAL_HEADER_SIZE) {
+        if (Files.notExists(fPcapFilePath) || !Files.isRegularFile(fPcapFilePath) ||
+                Files.size(fPcapFilePath) < PcapFileValues.GLOBAL_HEADER_SIZE) {
             throw new BadPcapFileException("Bad Pcap File."); //$NON-NLS-1$
         }
 
-        if (!pcapFile.canRead()) {
+        if (!Files.isReadable(fPcapFilePath)) {
             throw new BadPcapFileException("File is not readable."); //$NON-NLS-1$
         }
 
         // File is not empty. Try to open.
-        fFileInputStream = new FileInputStream(fPcapFilePath);
-
         @SuppressWarnings("null")
-        @NonNull FileChannel fileChannel = fFileInputStream.getChannel();
-        fFileChannel = fileChannel;
+        @NonNull SeekableByteChannel channel = Files.newByteChannel(fPcapFilePath);
+        fFileChannel = channel;
 
         // Parse the global header.
         // Read the magic number (4 bytes) from the input stream
