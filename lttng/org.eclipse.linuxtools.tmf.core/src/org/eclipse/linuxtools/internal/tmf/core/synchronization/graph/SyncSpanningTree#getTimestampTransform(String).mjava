@@ -1,0 +1,31 @@
+    /**
+     * Get the timestamp transform to a host
+     *
+     * FIXME: This might not work in situations where we have disjoint graphs
+     * since we only calculate 1 root node and each tree has its own root. When
+     * implementing the algorithm with minimal spanning tree, we will solve this
+     * problem.
+     *
+     * @param host
+     *            The host to reach
+     * @return The timestamp transform to host
+     */
+    public ITmfTimestampTransform getTimestampTransform(String host) {
+        ITmfTimestampTransform result = TimestampTransformFactory.getDefaultTransform();
+        String rootNode = getRootNode();
+        /*
+         * Compute the path from reference node to the given host id
+         */
+        if (rootNode != null) {
+            List<Edge<String, ITmfTimestampTransform>> path = fSyncGraph.path(rootNode, host);
+            /*
+             * Compute the resulting transform by chaining each transforms on
+             * the path.
+             */
+            for (Edge<String, ITmfTimestampTransform> edge : path) {
+                result = result.composeWith(edge.getLabel());
+            }
+        }
+        return result;
+    }
+

@@ -1,0 +1,34 @@
+    /**
+     * Testing synchronization with 3 traces, one of which synchronizes with
+     * both other
+     */
+    @Test
+    public void testDjangoExperimentSync() {
+        assumeTrue(CtfTmfTestTrace.DJANGO_CLIENT.exists());
+        assumeTrue(CtfTmfTestTrace.DJANGO_DB.exists());
+        assumeTrue(CtfTmfTestTrace.DJANGO_HTTPD.exists());
+        try (CtfTmfTrace trace1 = CtfTmfTestTrace.DJANGO_CLIENT.getTrace();
+                CtfTmfTrace trace2 = CtfTmfTestTrace.DJANGO_DB.getTrace();
+                CtfTmfTrace trace3 = CtfTmfTestTrace.DJANGO_HTTPD.getTrace();) {
+            ITmfTrace[] traces = { trace1, trace2, trace3 };
+            TmfExperiment experiment = new TmfExperiment(traces[0].getEventType(), EXPERIMENT, traces, BLOCK_SIZE);
+
+            SynchronizationAlgorithm syncAlgo = experiment.synchronizeTraces(true);
+
+            ITmfTimestampTransform tt1 = syncAlgo.getTimestampTransform(trace1);
+            ITmfTimestampTransform tt2 = syncAlgo.getTimestampTransform(trace2);
+            ITmfTimestampTransform tt3 = syncAlgo.getTimestampTransform(trace3);
+
+            trace1.setTimestampTransform(tt1);
+            trace2.setTimestampTransform(tt2);
+            trace3.setTimestampTransform(tt3);
+
+            assertEquals(TimestampTransformFactory.getDefaultTransform(), tt1);
+            assertEquals("TmfTimestampLinear [ slope = 0.9999996313017589597204633828681240, offset = 498490309972.0038068817738527724192 ]", tt2.toString());
+            assertEquals("TmfTimestampLinear [ slope = 1.000000119014882262265342419815932, offset = -166652893534.6189900382736187431134 ]", tt3.toString());
+
+        } catch (TmfTraceException e) {
+            fail("Exception thrown in experiment synchronization " + e.getMessage());
+        }
+    }
+
