@@ -81,9 +81,11 @@
             eventsString = spec.toString();
 
             ArrayList<String> argArray = new ArrayList<>(Arrays.asList(getProgramArgumentsArray( config )));
-            IFolder dataFolder = Oprofile.OprofileProject.getProject().getFolder(OPROFILE_DATA);
-            if(!dataFolder.exists()) {
-                dataFolder.create(false, true, null);
+            // Use remote file proxy to determine data folder since the project may be either local or remote
+            IRemoteFileProxy proxy = RemoteProxyManager.getInstance().getFileProxy(OprofileProject.getProject());
+            IFileStore dataFolder = proxy.getResource(oprofileWorkingDirURI(config).getPath() + IPath.SEPARATOR + OPROFILE_DATA);
+            if(! dataFolder.fetchInfo().exists()) {
+                dataFolder.mkdir(EFS.SHALLOW, null);
             }
             argArray.add(0, exePath.toOSString());
             if (events.size()>0) {
