@@ -1,5 +1,8 @@
     /**
      * Run the TraceControlComponent.
+     *
+     * @throws Exception
+     *             on internal error
      */
     @Test
     public void testTraceSessionTree() throws Exception {
@@ -10,7 +13,7 @@
         ITraceControlComponent root = TraceControlTestFacility.getInstance().getControlView().getTraceControlRoot();
 
         ISystemRegistry registry = RSECorePlugin.getTheSystemRegistry();
-        ISystemProfile profile =  registry.createSystemProfile("myProfile", true);
+        ISystemProfile profile = registry.createSystemProfile("myProfile", true);
         IHost host = registry.createLocalHost(profile, "myProfile", "user");
 
         TargetNodeComponent node = new TargetNodeComponent("myNode", root, host, fProxy);
@@ -27,6 +30,8 @@
 
         // Verify that node is connected
         assertEquals(TargetNodeState.CONNECTED, node.getTargetNodeState());
+
+        ILttngControlService controleService = node.getControlService();
 
         // Get provider groups
         ITraceControlComponent[] groups = node.getChildren();
@@ -50,8 +55,13 @@
 
         // Verify that session was created
         assertNotNull(session);
-        assertEquals("mysession", session.getName());
-        assertEquals("file:///tmp", session.getSessionPath());
+        assertEquals(getSessionName(), session.getName());
+        if (controleService.isVersionSupported("2.6.0")) {
+            assertEquals("/tmp", session.getSessionPath());
+        } else {
+            assertEquals("file:///tmp", session.getSessionPath());
+        }
+
         assertTrue(!session.isStreamedTrace());
         assertEquals(TraceSessionState.INACTIVE, session.getSessionState());
         sessionDialogStub.setNetworkUrl(null);
@@ -76,8 +86,12 @@
 
         // Verify that session was created
         assertNotNull(session);
-        assertEquals("mysession", session.getName());
-        assertEquals("tcp://172.0.0.1:5342 [data: 5343]", session.getSessionPath());
+        assertEquals(getSessionName(), session.getName());
+        if (controleService.isVersionSupported("2.6.0")) {
+            assertEquals("tcp4://172.0.0.1:5342/ [data: 5343]", session.getSessionPath());
+        } else {
+            assertEquals("tcp://172.0.0.1:5342 [data: 5343]", session.getSessionPath());
+        }
         assertTrue(session.isStreamedTrace());
         assertEquals(TraceSessionState.INACTIVE, session.getSessionState());
         sessionDialogStub.setControlUrl(null);
@@ -102,8 +116,12 @@
 
         // Verify that session was created
         assertNotNull(session);
-        assertEquals("mysession", session.getName());
-        assertEquals("net://172.0.0.1:1234 [data: 2345]", session.getSessionPath());
+        assertEquals(getSessionName(), session.getName());
+        if (controleService.isVersionSupported("2.6.0")) {
+            assertEquals("tcp4://172.0.0.1:1234/mysession-20140820-153527 [data: 2345]", session.getSessionPath());
+        } else {
+            assertEquals("net://172.0.0.1:1234 [data: 2345]", session.getSessionPath());
+        }
         assertTrue(session.isStreamedTrace());
         assertEquals(TraceSessionState.INACTIVE, session.getSessionState());
         sessionDialogStub.setNetworkUrl(null);
@@ -126,8 +144,12 @@
 
         // Verify that session was created
         assertNotNull(session);
-        assertEquals("mysession", session.getName());
-        assertEquals("net://[ffff::eeee:dddd:cccc:0]:5342/mysession-20130221-144451 [data: 5343]", session.getSessionPath());
+        assertEquals(getSessionName(), session.getName());
+        if (controleService.isVersionSupported("2.6.0")) {
+            assertEquals("tcp6://[ffff::eeee:dddd:cccc:0]:5342/mysession-20140820-153801 [data: 5343]", session.getSessionPath());
+        } else {
+            assertEquals("net://[ffff::eeee:dddd:cccc:0]:5342/mysession-20130221-144451 [data: 5343]", session.getSessionPath());
+        }
         assertTrue(session.isStreamedTrace());
         assertEquals(TraceSessionState.INACTIVE, session.getSessionState());
         sessionDialogStub.setNetworkUrl(null);
@@ -137,18 +159,17 @@
         // Verify that no more session components exist
         assertEquals(0, groups[1].getChildren().length);
 
-
-        //-------------------------------------------------------------------------
+        // -------------------------------------------------------------------------
         // Disconnect node
-        //-------------------------------------------------------------------------
+        // -------------------------------------------------------------------------
         fFacility.executeCommand(node, "disconnect");
         assertEquals(TargetNodeState.DISCONNECTED, node.getTargetNodeState());
 
-        //-------------------------------------------------------------------------
+        // -------------------------------------------------------------------------
         // Delete node
-        //-------------------------------------------------------------------------
+        // -------------------------------------------------------------------------
 
         fFacility.executeCommand(node, "delete");
-        assertEquals(0,fFacility.getControlView().getTraceControlRoot().getChildren().length);
+        assertEquals(0, fFacility.getControlView().getTraceControlRoot().getChildren().length);
     }
 
