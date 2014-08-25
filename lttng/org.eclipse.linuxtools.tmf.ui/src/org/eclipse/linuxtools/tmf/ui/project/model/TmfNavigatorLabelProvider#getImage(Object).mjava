@@ -3,31 +3,28 @@
 
         if (element instanceof TmfCommonProjectElement) {
             TmfCommonProjectElement trace = (TmfCommonProjectElement) element;
-            try {
-                String traceType = trace.getResource().getPersistentProperty(TmfCommonConstants.TRACETYPE);
-                if (traceType == null || TmfTraceType.getTraceType(traceType) == null) {
-                    // request the label to the Eclipse platform
-                    return fWorkspaceLabelProvider.getImage(((TmfCommonProjectElement) element).getResource());
-                }
+            String traceType = trace.getTraceType();
+            if (traceType == null || TmfTraceType.getTraceType(traceType) == null) {
+                // request the label to the Eclipse platform
+                return fWorkspaceLabelProvider.getImage(((TmfCommonProjectElement) element).getResource());
+            }
 
-                IConfigurationElement traceUIAttributes = TmfTraceTypeUIUtils.getTraceUIAttributes(traceType, (element instanceof TmfTraceElement) ? TraceElementType.TRACE : TraceElementType.EXPERIMENT);
-                if (traceUIAttributes != null) {
-                    String iconAttr = traceUIAttributes.getAttribute(TmfTraceTypeUIUtils.ICON_ATTR);
-                    if (iconAttr != null) {
-                        String name = traceUIAttributes.getContributor().getName();
-                        if (name != null) {
-                            Bundle bundle = Platform.getBundle(name);
-                            if (bundle != null) {
-                                Image image = loadIcon(bundle, iconAttr);
-                                if (image != null) {
-                                    return image;
-                                }
+            IConfigurationElement traceUIAttributes = TmfTraceTypeUIUtils.getTraceUIAttributes(traceType, (element instanceof TmfTraceElement) ? TraceElementType.TRACE : TraceElementType.EXPERIMENT);
+            if (traceUIAttributes != null) {
+                String iconAttr = traceUIAttributes.getAttribute(TmfTraceTypeUIUtils.ICON_ATTR);
+                if (iconAttr != null) {
+                    String name = traceUIAttributes.getContributor().getName();
+                    if (name != null) {
+                        Bundle bundle = Platform.getBundle(name);
+                        if (bundle != null) {
+                            Image image = loadIcon(bundle, iconAttr);
+                            if (image != null) {
+                                return image;
                             }
                         }
                     }
-
                 }
-            } catch (CoreException e) {
+
             }
             if (element instanceof TmfTraceElement) {
                 return fDefaultTraceIcon;
