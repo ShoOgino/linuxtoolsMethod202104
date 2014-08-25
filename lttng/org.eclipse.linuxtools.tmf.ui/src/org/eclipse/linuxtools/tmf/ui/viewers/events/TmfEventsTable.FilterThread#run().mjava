@@ -15,13 +15,20 @@
                     if (request.isCancelled()) {
                         return;
                     }
+                    boolean refresh = false;
                     if (filter.matches(event)) {
                         final long rank = fFilterCheckCount;
                         final int index = (int) fFilterMatchCount;
                         fFilterMatchCount++;
                         fCache.storeEvent(event, rank, index);
-                        refreshTable();
-                    } else if ((fFilterCheckCount % 100) == 0) {
+                        refresh = true;
+                    } else {
+                        if (filter instanceof TmfCollapseFilter) {
+                            fCache.updateCollapsedEvent((int) fFilterMatchCount - 1);
+                        }
+                    }
+
+                    if (refresh || (fFilterCheckCount % 100) == 0) {
                         refreshTable();
                     }
                     fFilterCheckCount++;

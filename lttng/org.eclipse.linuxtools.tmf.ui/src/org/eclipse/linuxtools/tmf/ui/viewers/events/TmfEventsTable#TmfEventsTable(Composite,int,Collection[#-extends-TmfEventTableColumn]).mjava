@@ -44,6 +44,9 @@
             fColumns.addAll(columns);
         }
 
+        TmfMarginColumn collapseCol = new TmfMarginColumn();
+        fColumns.add(MARGIN_COLUMN_INDEX, collapseCol);
+
         // Create the UI columns in the table
         for (TmfEventTableColumn col : fColumns) {
             TableColumn column = fTable.newTableColumn(SWT.LEFT);
@@ -51,6 +54,9 @@
             column.setToolTipText(col.getHeaderTooltip());
             column.setData(Key.FIELD_ID, col.getFilterFieldId());
             column.pack();
+            if (col instanceof TmfMarginColumn) {
+                column.setResizable(false);
+            }
         }
 
         // Set the frozen row for header row
@@ -130,7 +136,7 @@
 
                 final CachedEvent cachedEvent = fCache.getEvent(index);
                 if (cachedEvent != null) {
-                    setItemData(item, cachedEvent.event, cachedEvent.rank);
+                    setItemData(item, cachedEvent, cachedEvent.rank);
                     return;
                 }
 
@@ -190,7 +196,7 @@
                         layout.marginWidth = 2;
                         tooltipShell.setLayout(layout);
                         final Label label = new Label(tooltipShell, SWT.WRAP);
-                        String text = rank.toString() + (tooltipText != null ? ": " + tooltipText : ""); //$NON-NLS-1$ //$NON-NLS-2$
+                        String text = rank.toString() + (tooltipText != null ? ": " + tooltipText : EMPTY_STRING); //$NON-NLS-1$
                         label.setForeground(PlatformUI.getWorkbench().getDisplay().getSystemColor(SWT.COLOR_INFO_FOREGROUND));
                         label.setBackground(PlatformUI.getWorkbench().getDisplay().getSystemColor(SWT.COLOR_INFO_BACKGROUND));
                         label.setText(text);
@@ -203,7 +209,7 @@
                          * the method toDisplay() expects coordinates relative to an origin that includes the table header.
                          */
                         int y = event.y;
-                        if (System.getProperty("os.name").contains("Linux")) { //$NON-NLS-1$ //$NON-NLS-2$
+                        if (IS_LINUX) {
                             y += fTable.getHeaderHeight();
                         }
                         Point pt = fTable.toDisplay(event.x, y);

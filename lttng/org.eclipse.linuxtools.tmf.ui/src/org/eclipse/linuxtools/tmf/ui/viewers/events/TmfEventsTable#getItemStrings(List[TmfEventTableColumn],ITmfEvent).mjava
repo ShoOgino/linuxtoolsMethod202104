@@ -17,7 +17,18 @@
         synchronized (columns) {
             List<String> itemStrings = new ArrayList<>(columns.size());
             for (TmfEventTableColumn column : columns) {
-                itemStrings.add(column.getItemString(event));
+                ITmfEvent passedEvent = event;
+                if (!(column instanceof TmfMarginColumn) && (event instanceof CachedEvent)) {
+                    // Make sure that the event object from the trace is passed
+                    // to all columns but the TmfMarginColumn
+                    passedEvent = ((CachedEvent) event).event;
+                }
+                if (passedEvent == null) {
+                    itemStrings.add(EMPTY_STRING);
+                } else {
+                    itemStrings.add(column.getItemString(passedEvent));
+                }
+
             }
             return itemStrings.toArray(new String[0]);
         }

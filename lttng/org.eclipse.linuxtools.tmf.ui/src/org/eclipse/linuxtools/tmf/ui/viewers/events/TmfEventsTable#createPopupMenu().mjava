@@ -57,7 +57,7 @@
                     IMarker marker = null;
                     try {
                         String fileName = cs.getFileName();
-                        final String trimmedPath = fileName.replaceAll("\\.\\./", ""); //$NON-NLS-1$ //$NON-NLS-2$
+                        final String trimmedPath = fileName.replaceAll("\\.\\./", EMPTY_STRING); //$NON-NLS-1$
                         final ArrayList<IFile> files = new ArrayList<>();
                         ResourcesPlugin.getWorkspace().getRoot().accept(new IResourceVisitor() {
                             @Override
@@ -166,9 +166,13 @@
                 try {
                     HashMap<String, Object> parameters = new HashMap<>();
                     Command command = cmdService.getCommand(ExportToTextCommandHandler.COMMAND_ID);
-                    ParameterizedCommand cmd = ParameterizedCommand.generateCommand(command,parameters);
+                    ParameterizedCommand cmd = ParameterizedCommand.generateCommand(command, parameters);
+
                     IEvaluationContext context = handlerService.getCurrentState();
-                    context.addVariable(ExportToTextCommandHandler.TMF_EVENT_TABLE_COLUMNS_ID, fColumns);
+                    // Omit the margin column
+                    List<TmfEventTableColumn> exportColumns = fColumns.subList(EVENT_COLUMNS_START_INDEX, fColumns.size());
+                    context.addVariable(ExportToTextCommandHandler.TMF_EVENT_TABLE_COLUMNS_ID, exportColumns);
+
                     handlerService.executeCommandInContext(cmd, null, context);
                 } catch (ExecutionException e) {
                     displayException(e);
@@ -202,6 +206,13 @@
             @Override
             public void run() {
                 clearFilters();
+            }
+        };
+
+        final IAction collapseAction = new Action(Messages.TmfEventsTable_CollapseFilterMenuName) {
+            @Override
+            public void run() {
+                applyFilter(new TmfCollapseFilter());
             }
         };
 
@@ -288,6 +299,24 @@
                             tablePopupMenu.add(separator);
                         }
                     }
+                }
+
+                // only show collapse filter if at least one trace can be collapsed
+                boolean isCollapsible = false;
+                if (fTrace != null) {
+                    ITmfTrace traces[] = TmfTraceManager.getTraceSet(fTrace);
+                    for (ITmfTrace trace : traces) {
+                        Class <? extends ITmfEvent> eventClass = trace.getEventType();
+                        isCollapsible = ITmfCollapsibleEvent.class.isAssignableFrom(eventClass);
+                        if (isCollapsible) {
+                            break;
+                        }
+                    }
+                }
+
+                if (isCollapsible && !(fTable.getData(Key.FILTER_OBJ) instanceof TmfCollapseFilter)) {
+                    tablePopupMenu.add(collapseAction);
+                    tablePopupMenu.add(new Separator());
                 }
 
                 tablePopupMenu.add(clearFiltersAction);
