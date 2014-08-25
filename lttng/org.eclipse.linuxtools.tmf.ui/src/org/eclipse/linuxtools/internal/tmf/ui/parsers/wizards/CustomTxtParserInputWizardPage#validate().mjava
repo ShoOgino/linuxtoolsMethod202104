@@ -1,5 +1,6 @@
     private void validate() {
 
+        definition.categoryName = categoryText.getText().trim();
         definition.definitionName = logtypeText.getText().trim();
         definition.timeStampOutputFormat = timestampOutputFormatText.getText().trim();
 
@@ -10,15 +11,29 @@
 
         StringBuffer errors = new StringBuffer();
 
-        if (definition.definitionName.length() == 0) {
-            errors.append("Enter a name for the new log type. "); //$NON-NLS-1$
+        if (definition.categoryName.length() == 0) {
+            errors.append("Enter a category for the new trace type. "); //$NON-NLS-1$
+            categoryText.setBackground(COLOR_LIGHT_RED);
+        } else if (definition.definitionName.length() == 0) {
+            errors.append("Enter a name for the new trace type. "); //$NON-NLS-1$
             logtypeText.setBackground(COLOR_LIGHT_RED);
         } else {
+            categoryText.setBackground(COLOR_TEXT_BACKGROUND);
             logtypeText.setBackground(COLOR_TEXT_BACKGROUND);
-            for (CustomTxtTraceDefinition def : CustomTxtTraceDefinition.loadAll()) {
-                if (definition.definitionName.equals(def.definitionName) &&
-                        (editDefinitionName == null || !editDefinitionName.equals(definition.definitionName))) {
-                    errors.append("The log type name already exists. "); //$NON-NLS-1$
+            if (definition.categoryName.indexOf(':') != -1) {
+                errors.append("Invalid character ':' in category. "); //$NON-NLS-1$
+                categoryText.setBackground(COLOR_LIGHT_RED);
+            }
+            if (definition.definitionName.indexOf(':') != -1) {
+                errors.append("Invalid character ':' in trace type. "); //$NON-NLS-1$
+                logtypeText.setBackground(COLOR_LIGHT_RED);
+            }
+            for (TraceTypeHelper helper : TmfTraceType.getTraceTypeHelpers()) {
+                if (definition.categoryName.equals(helper.getCategoryName()) &&
+                        definition.definitionName.equals(helper.getName()) &&
+                        (editDefinitionName == null || !editDefinitionName.equals(definition.definitionName)) &&
+                        (editCategoryName == null || !editCategoryName.equals(definition.categoryName))) {
+                    errors.append("The trace type name already exists. "); //$NON-NLS-1$
                     logtypeText.setBackground(COLOR_LIGHT_RED);
                     break;
                 }
