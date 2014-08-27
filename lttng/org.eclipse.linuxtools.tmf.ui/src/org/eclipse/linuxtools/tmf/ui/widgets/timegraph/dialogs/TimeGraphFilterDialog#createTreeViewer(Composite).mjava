@@ -6,9 +6,11 @@
      * @return the tree viewer
      */
     protected CheckboxTreeViewer createTreeViewer(Composite parent) {
-        fViewer = new CheckboxTreeViewer(parent, SWT.BORDER | SWT.MULTI);
+        PatternFilter filter = new TreePatternFilter();
+        filter.setIncludeLeadingWildcard(true);
+        fTree = new FilteredCheckboxTree(parent, SWT.BORDER | SWT.MULTI, filter, true);
 
-        Tree tree = fViewer.getTree();
+        Tree tree = fTree.getViewer().getTree();
         tree.setHeaderVisible(true);
         for (String columnName : fColumnNames) {
             TreeColumn column = new TreeColumn(tree, SWT.LEFT);
@@ -16,27 +18,21 @@
             column.pack();
         }
 
-        fViewer.setContentProvider(fContentProvider);
-        fViewer.setLabelProvider(fLabelProvider);
-        fViewer.addCheckStateListener(new CheckStateListener());
-        fViewer.addCheckStateListener(new ICheckStateListener() {
-            @Override
-            public void checkStateChanged(CheckStateChangedEvent event) {
-                updateOKStatus();
-            }
-        });
-        fViewer.setComparator(fComparator);
+        fTree.getViewer().setContentProvider(fContentProvider);
+        fTree.getViewer().setLabelProvider(fLabelProvider);
+        fTree.addCheckStateListener(new CheckStateListener());
+        fTree.getViewer().setComparator(fComparator);
         if (fFilters != null) {
             for (int i = 0; i != fFilters.size(); i++) {
-                fViewer.addFilter(fFilters.get(i));
+                fTree.getViewer().addFilter(fFilters.get(i));
             }
         }
-        fViewer.setInput(fInput);
+        fTree.getViewer().setInput(fInput);
 
-        //pack the columns again for a nice view...
+        // pack the columns again for a nice view...
         for (TreeColumn column : tree.getColumns()) {
             column.pack();
         }
-        return fViewer;
+        return (CheckboxTreeViewer) fTree.getViewer();
     }
 

@@ -38,7 +38,6 @@
                 IDialogConstants.DESELECT_ALL_ID, Messages.TmfTimeFilterDialog_UNCHECK_ALL,
                 false);
 
-
         /*
          * Apply the layout again after creating the buttons to override
          * createButton messing with the columns
@@ -50,7 +49,7 @@
         checkSelectedButton.addSelectionListener(new SelectionAdapter() {
             @Override
             public void widgetSelected(SelectionEvent e) {
-                TreeSelection selection = (TreeSelection) fViewer.getSelection();
+                TreeSelection selection = (TreeSelection) fTree.getViewer().getSelection();
 
                 for (Object element : selection.toArray()) {
                     checkElement(element);
@@ -63,7 +62,7 @@
         checkSubtreeButton.addSelectionListener(new SelectionAdapter() {
             @Override
             public void widgetSelected(SelectionEvent e) {
-                TreeSelection selection = (TreeSelection) fViewer.getSelection();
+                TreeSelection selection = (TreeSelection) fTree.getViewer().getSelection();
 
                 for (Object element : selection.toArray()) {
                     checkElementAndSubtree(element);
@@ -77,7 +76,7 @@
                 Object[] viewerElements = fContentProvider.getElements(fInput);
 
                 for (int i = 0; i < viewerElements.length; i++) {
-                    fViewer.setSubtreeChecked(viewerElements[i], true);
+                    fTree.setSubtreeChecked(viewerElements[i], true);
                 }
 
                 updateOKStatus();
@@ -87,7 +86,7 @@
         uncheckSelectedButton.addSelectionListener(new SelectionAdapter() {
             @Override
             public void widgetSelected(SelectionEvent e) {
-                TreeSelection selection = (TreeSelection) fViewer.getSelection();
+                TreeSelection selection = (TreeSelection) fTree.getViewer().getSelection();
 
                 for (Object element : selection.toArray()) {
                     uncheckElement(element);
@@ -100,7 +99,7 @@
         uncheckSubtreeButton.addSelectionListener(new SelectionAdapter() {
             @Override
             public void widgetSelected(SelectionEvent e) {
-                TreeSelection selection = (TreeSelection) fViewer.getSelection();
+                TreeSelection selection = (TreeSelection) fTree.getViewer().getSelection();
 
                 for (Object element : selection.toArray()) {
                     uncheckElement(element);
@@ -113,7 +112,13 @@
         uncheckAllButton.addSelectionListener(new SelectionAdapter() {
             @Override
             public void widgetSelected(SelectionEvent e) {
-                fViewer.setCheckedElements(new Object[0]);
+                Object[] viewerElements = fContentProvider.getElements(fInput);
+                for (Object element : viewerElements) {
+                    if (fTree.getViewer().testFindItem(element) != null) {
+                        // uncheck only visible roots and their children
+                        uncheckElement(element);
+                    }
+                }
                 updateOKStatus();
             }
         });
