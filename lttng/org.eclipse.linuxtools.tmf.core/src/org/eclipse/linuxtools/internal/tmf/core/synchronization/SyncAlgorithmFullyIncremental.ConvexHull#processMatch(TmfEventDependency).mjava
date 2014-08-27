@@ -1,0 +1,61 @@
+        protected void processMatch(TmfEventDependency match) {
+
+            LinkedList<SyncPoint> boundList, otherBoundList;
+
+            SyncPoint[] line, otherLine;
+            SyncPoint p;
+            int inversionFactor = 1;
+            boolean qualify = false;
+            fNbMatches++;
+
+            /* Initialize data depending on the which hull the match is part of */
+            if (match.getSourceEvent().getTrace().getHostId().compareTo(match.getDestinationEvent().getTrace().getHostId()) > 0) {
+                boundList = fUpperBoundList;
+                otherBoundList = fLowerBoundList;
+                line = fLmin;
+                otherLine = fLmax;
+                p = new SyncPoint(match.getDestinationEvent(), match.getSourceEvent());
+                inversionFactor = 1;
+            } else {
+                boundList = fLowerBoundList;
+                otherBoundList = fUpperBoundList;
+                line = fLmax;
+                otherLine = fLmin;
+                p = new SyncPoint(match.getSourceEvent(), match.getDestinationEvent());
+                inversionFactor = -1;
+            }
+
+            /*
+             * Does the message qualify for the hull, or is in on the wrong side
+             * of the reference line
+             */
+            if ((line[0] == null) || (line[1] == null) || (p.crossProduct(line[0], line[1]) * inversionFactor > 0)) {
+                /*
+                 * If message qualifies, verify if points need to be removed
+                 * from the hull and add the new point as the maximum reference
+                 * point for the line. Also clear the stats that are not good
+                 * anymore
+                 */
+                fNbAccurateMatches++;
+                qualify = true;
+                removeUselessPoints(p, boundList, inversionFactor);
+                line[1] = p;
+                fStats.clear();
+            }
+
+            /*
+             * Adjust the boundary of the reference line and if one of the
+             * reference point of the other line was removed from the hull, also
+             * adjust the other line
+             */
+            adjustBound(line, otherBoundList, inversionFactor);
+            if ((otherLine[1] != null) && !boundList.contains(otherLine[0])) {
+                adjustBound(otherLine, boundList, inversionFactor * -1);
+            }
+
+            if (qualify) {
+                approximateSync();
+            }
+
+        }
+

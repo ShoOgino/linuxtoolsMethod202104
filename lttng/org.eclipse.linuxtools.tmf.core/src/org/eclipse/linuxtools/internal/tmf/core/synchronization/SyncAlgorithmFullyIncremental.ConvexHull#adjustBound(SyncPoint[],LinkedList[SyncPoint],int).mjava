@@ -1,0 +1,47 @@
+        /*
+         * Verify if the line should be adjusted to be more accurate give the
+         * hull
+         */
+        private void adjustBound(SyncPoint[] line, LinkedList<SyncPoint> otherBoundList, int inversionFactor) {
+            SyncPoint minPoint = null, nextPoint;
+            boolean finishedSearch = false;
+
+            /*
+             * Find in the other bound, the origin point of the line, start from
+             * the beginning if the point was lost
+             */
+            int i = Math.max(0, otherBoundList.indexOf(line[0]));
+
+            while ((i < otherBoundList.size() - 1) && !finishedSearch) {
+                minPoint = otherBoundList.get(i);
+                nextPoint = otherBoundList.get(i + 1);
+
+                /*
+                 * If the rotation (cross-product) is not optimal, move to next
+                 * point as reference for the line (if available)
+                 *
+                 * Otherwise, the current minPoint is the minPoint of the line
+                 */
+                if (minPoint.crossProduct(nextPoint, line[1]) * inversionFactor > 0) {
+                    if (nextPoint.getTimeX() < line[1].getTimeX()) {
+                        i++;
+                    } else {
+                        line[0] = null;
+                        finishedSearch = true;
+                    }
+                } else {
+                    line[0] = minPoint;
+                    finishedSearch = true;
+                }
+            }
+
+            if (line[0] == null) {
+                line[0] = minPoint;
+            }
+
+            /* Make sure point 0 is before point 1 */
+            if ((line[0] != null) && (line[0].getTimeX() > line[1].getTimeX())) {
+                line[0] = null;
+            }
+        }
+
