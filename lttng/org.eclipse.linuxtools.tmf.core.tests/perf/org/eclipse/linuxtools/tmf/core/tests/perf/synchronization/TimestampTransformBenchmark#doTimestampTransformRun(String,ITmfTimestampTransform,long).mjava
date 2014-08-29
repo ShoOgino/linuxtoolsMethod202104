@@ -1,0 +1,25 @@
+    private static void doTimestampTransformRun(String testName, ITmfTimestampTransform xform, long loopCount) {
+        Performance perf = Performance.getDefault();
+        PerformanceMeter pm = perf.createPerformanceMeter(TEST_ID + testName);
+        perf.tagAsSummary(pm, TEST_SUMMARY + testName, Dimension.CPU_TIME);
+
+        for (int x = 0; x < loopCount; x++) {
+            /**
+             * We use timestamps with values in the order of 10^18, which about
+             * corresponds to timestamps in nanoseconds since epoch
+             */
+            long time = (long) Math.pow(10, 18);
+            pm.start();
+            /**
+             * Apply the timestamp transform NB_TRANSFORMATIONS times, with
+             * timestamps incremented by 200 each time
+             */
+            for (long i = 0; i < NB_TRANSFORMATIONS; i++) {
+                xform.transform(time);
+                time += 200;
+            }
+            pm.stop();
+        }
+        pm.commit();
+    }
+
