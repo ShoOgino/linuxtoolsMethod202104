@@ -1,0 +1,60 @@
+    /**
+     * Create a combo that will be used to select a path to specify the source
+     * of the import. The parent is assumed to have a GridLayout.
+     *
+     * @param parent
+     *            the parent composite
+     * @return the created path selection combo
+     */
+    protected Combo createPathSelectionCombo(Composite parent) {
+        Combo pathSelectionCombo = new Combo(parent, SWT.BORDER);
+
+        GridData layoutData = new GridData(GridData.HORIZONTAL_ALIGN_FILL | GridData.GRAB_HORIZONTAL);
+        layoutData.widthHint = new PixelConverter(pathSelectionCombo).convertWidthInCharsToPixels(25);
+        pathSelectionCombo.setLayoutData(layoutData);
+
+        TraverseListener traverseListener = new TraverseListener() {
+            @Override
+            public void keyTraversed(TraverseEvent e) {
+                if (e.detail == SWT.TRAVERSE_RETURN) {
+                    e.doit = false;
+                    entryChanged = false;
+                    updateFromSourceField();
+                }
+            }
+        };
+
+        FocusAdapter focusAdapter = new FocusAdapter() {
+            @Override
+            public void focusLost(FocusEvent e) {
+                // Clear the flag to prevent constant update
+                if (entryChanged) {
+                    entryChanged = false;
+                    updateFromSourceField();
+                }
+            }
+        };
+
+        SelectionAdapter selectionAdapter = new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                entryChanged = false;
+                updateFromSourceField();
+            }
+        };
+
+        ModifyListener modifyListner = new ModifyListener() {
+            @Override
+            public void modifyText(ModifyEvent e) {
+                entryChanged = true;
+            }
+        };
+
+        pathSelectionCombo.addModifyListener(modifyListner);
+        pathSelectionCombo.addTraverseListener(traverseListener);
+        pathSelectionCombo.addFocusListener(focusAdapter);
+        pathSelectionCombo.addSelectionListener(selectionAdapter);
+
+        return pathSelectionCombo;
+    }
+

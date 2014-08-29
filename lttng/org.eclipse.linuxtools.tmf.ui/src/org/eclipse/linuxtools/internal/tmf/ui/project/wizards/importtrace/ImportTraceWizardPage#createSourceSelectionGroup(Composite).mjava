@@ -4,9 +4,9 @@
      * @param parent
      *            the parent composite
      */
-    private void createSourceSelectionGroup(Composite workArea) {
+    protected void createSourceSelectionGroup(Composite parent) {
 
-        Composite sourceGroup = new Composite(workArea, SWT.NONE);
+        Composite sourceGroup = new Composite(parent, SWT.NONE);
         GridLayout layout = new GridLayout();
         layout.numColumns = 3;
         layout.makeColumnsEqualWidth = false;
@@ -20,17 +20,8 @@
                 .setText(Messages.ImportTraceWizard_DirectoryLocation);
 
         // import location entry combo
-        directoryNameField = new Combo(sourceGroup, SWT.BORDER);
-
-        GridData directoryPathData = new GridData(GridData.HORIZONTAL_ALIGN_FILL | GridData.GRAB_HORIZONTAL);
-        directoryPathData.widthHint = new PixelConverter(directoryNameField).convertWidthInCharsToPixels(25);
-        directoryNameField.setLayoutData(directoryPathData);
-
-        // browse button
-        directoryBrowseButton = new Button(sourceGroup, SWT.PUSH);
-        directoryBrowseButton
-                .setText(Messages.ImportTraceWizard_BrowseButton);
-        setButtonLayoutData(directoryBrowseButton);
+        directoryNameField = createPathSelectionCombo(sourceGroup);
+        createDirectoryBrowseButton(sourceGroup);
 
         // import from archive radio button
         fImportFromArchiveRadio = new Button(sourceGroup, SWT.RADIO);
@@ -38,79 +29,12 @@
                 .setText(Messages.ImportTraceWizard_ArchiveLocation);
 
         // import location entry combo
-        fArchiveNameField = new Combo(sourceGroup, SWT.BORDER);
-
-        GridData archivePathData = new GridData(GridData.HORIZONTAL_ALIGN_FILL | GridData.GRAB_HORIZONTAL);
-        archivePathData.widthHint = new PixelConverter(fArchiveNameField).convertWidthInCharsToPixels(25);
-        fArchiveNameField.setLayoutData(archivePathData); // browse button
-        fArchiveBrowseButton = new Button(sourceGroup, SWT.PUSH);
-        fArchiveBrowseButton.setText(DataTransferMessages.DataTransfer_browse);
-        setButtonLayoutData(fArchiveBrowseButton);
+        fArchiveNameField = createPathSelectionCombo(sourceGroup);
+        createArchiveBrowseButton(sourceGroup);
 
         fImportFromDirectoryRadio.setSelection(true);
         fArchiveNameField.setEnabled(false);
         fArchiveBrowseButton.setEnabled(false);
-
-        directoryBrowseButton.addSelectionListener(new SelectionAdapter() {
-            @Override
-            public void widgetSelected(SelectionEvent e) {
-                handleSourceDirectoryBrowseButtonPressed();
-            }
-
-        });
-
-        fArchiveBrowseButton.addSelectionListener(new SelectionAdapter() {
-            @Override
-            public void widgetSelected(SelectionEvent e) {
-                handleArchiveBrowseButtonPressed();
-            }
-        });
-
-        TraverseListener traverseListener = new TraverseListener() {
-            @Override
-            public void keyTraversed(TraverseEvent e) {
-                if (e.detail == SWT.TRAVERSE_RETURN) {
-                    e.doit = false;
-                    entryChanged = false;
-                    updateFromSourceField();
-                }
-            }
-        };
-
-        FocusAdapter focusAdapter = new FocusAdapter() {
-            @Override
-            public void focusLost(FocusEvent e) {
-                // Clear the flag to prevent constant update
-                if (entryChanged) {
-                    entryChanged = false;
-                    updateFromSourceField();
-                }
-            }
-        };
-
-        SelectionAdapter selectionAdapter = new SelectionAdapter() {
-            @Override
-            public void widgetSelected(SelectionEvent e) {
-                entryChanged = false;
-                updateFromSourceField();
-            }
-        };
-
-        ModifyListener modifyListner = new ModifyListener() {
-            @Override
-            public void modifyText(ModifyEvent e) {
-                entryChanged = true;
-            }
-        };
-
-        directoryNameField.addModifyListener(modifyListner);
-        directoryNameField.addTraverseListener(traverseListener);
-        directoryNameField.addFocusListener(focusAdapter);
-        directoryNameField.addSelectionListener(selectionAdapter);
-        fArchiveNameField.addModifyListener(modifyListner);
-        fArchiveNameField.addTraverseListener(traverseListener);
-        fArchiveNameField.addFocusListener(focusAdapter);
-        fArchiveNameField.addSelectionListener(selectionAdapter);
 
         fImportFromDirectoryRadio.addSelectionListener(new SelectionAdapter() {
             @Override
