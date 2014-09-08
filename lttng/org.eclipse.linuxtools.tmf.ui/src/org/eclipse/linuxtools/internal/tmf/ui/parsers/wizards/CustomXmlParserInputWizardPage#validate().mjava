@@ -8,23 +8,23 @@
             treeViewer.refresh();
         }
 
-        StringBuffer errors = new StringBuffer();
+        List<String> errors = new ArrayList<>();
 
         if (definition.categoryName.length() == 0) {
-            errors.append(Messages.CustomXmlParserInputWizardPage_emptyCategoryError);
+            errors.add(Messages.CustomXmlParserInputWizardPage_emptyCategoryError);
             categoryText.setBackground(COLOR_LIGHT_RED);
         } else if (definition.definitionName.length() == 0) {
-            errors.append(Messages.CustomXmlParserInputWizardPage_emptyLogTypeError);
+            errors.add(Messages.CustomXmlParserInputWizardPage_emptyLogTypeError);
             logtypeText.setBackground(COLOR_LIGHT_RED);
         } else {
             categoryText.setBackground(COLOR_TEXT_BACKGROUND);
             logtypeText.setBackground(COLOR_TEXT_BACKGROUND);
             if (definition.categoryName.indexOf(':') != -1) {
-                errors.append(Messages.CustomXmlParserInputWizardPage_invalidCategoryError);
+                errors.add(Messages.CustomXmlParserInputWizardPage_invalidCategoryError);
                 categoryText.setBackground(COLOR_LIGHT_RED);
             }
             if (definition.definitionName.indexOf(':') != -1) {
-                errors.append(Messages.CustomXmlParserInputWizardPage_invalidLogTypeError);
+                errors.add(Messages.CustomXmlParserInputWizardPage_invalidLogTypeError);
                 logtypeText.setBackground(COLOR_LIGHT_RED);
             }
             for (TraceTypeHelper helper : TmfTraceType.getTraceTypeHelpers()) {
@@ -32,7 +32,7 @@
                         definition.definitionName.equals(helper.getName()) &&
                         (editDefinitionName == null || !editDefinitionName.equals(definition.definitionName)) &&
                         (editCategoryName == null || !editCategoryName.equals(definition.categoryName))) {
-                    errors.append(Messages.CustomXmlParserInputWizardPage_duplicatelogTypeError);
+                    errors.add(Messages.CustomXmlParserInputWizardPage_duplicatelogTypeError);
                     logtypeText.setBackground(COLOR_LIGHT_RED);
                     break;
                 }
@@ -40,48 +40,48 @@
         }
 
         if (definition.rootInputElement == null) {
-            errors.append(Messages.CustomXmlParserInputWizardPage_noDocumentError);
+            errors.add(Messages.CustomXmlParserInputWizardPage_noDocumentError);
         }
 
         if (definition.rootInputElement != null) {
             logEntryFound = false;
             timeStampFound = false;
 
-            errors.append(validateElement(definition.rootInputElement));
+            errors.addAll(validateElement(definition.rootInputElement));
 
             if ((definition.rootInputElement.attributes != null && definition.rootInputElement.attributes.size() != 0)
                     || (definition.rootInputElement.childElements != null && definition.rootInputElement.childElements.size() != 0)
-                    || errors.length() == 0) {
+                    || errors.size() == 0) {
                 if (!logEntryFound) {
-                    errors.append(Messages.CustomXmlParserInputWizardPage_missingLogEntryError);
+                    errors.add(Messages.CustomXmlParserInputWizardPage_missingLogEntryError);
                 }
 
                 if (timeStampFound) {
                     if (timeStampOutputFormatText.getText().trim().length() == 0) {
-                        errors.append(Messages.CustomXmlParserInputWizardPage_missingTimestampFmtError);
+                        errors.add(Messages.CustomXmlParserInputWizardPage_missingTimestampFmtError);
                         timeStampOutputFormatText.setBackground(COLOR_LIGHT_RED);
                     } else {
                         try {
                             new TmfTimestampFormat(timeStampOutputFormatText.getText().trim());
                             timeStampOutputFormatText.setBackground(COLOR_TEXT_BACKGROUND);
                         } catch (IllegalArgumentException e) {
-                            errors.append(Messages.CustomXmlParserInputWizardPage_invalidTimestampFmtError);
+                            errors.add(Messages.CustomXmlParserInputWizardPage_elementInvalidTimestampFmtError);
                             timeStampOutputFormatText.setBackground(COLOR_LIGHT_RED);
                         }
                     }
                 } else {
-                    timeStampPreviewText.setText(Messages.CustomXmlParserInputWizardPage_notimestamporAttributeError);
+                    timeStampPreviewText.setText(Messages.CustomXmlParserInputWizardPage_noTimestampElementOrAttribute);
                 }
             }
         } else {
-            timeStampPreviewText.setText(Messages.CustomXmlParserInputWizardPage_notimestamporAttributeError);
+            timeStampPreviewText.setText(Messages.CustomXmlParserInputWizardPage_noTimestampElementOrAttribute);
         }
 
-        if (errors.length() == 0) {
+        if (errors.size() == 0) {
             setDescription(defaultDescription);
             setPageComplete(true);
         } else {
-            setDescription(errors.toString());
+            setDescription(Joiner.on(' ').join(errors));
             setPageComplete(false);
         }
     }
