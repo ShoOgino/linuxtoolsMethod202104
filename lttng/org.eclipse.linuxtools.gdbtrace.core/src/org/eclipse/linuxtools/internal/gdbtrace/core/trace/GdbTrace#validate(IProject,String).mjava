@@ -1,13 +1,25 @@
     @Override
     public IStatus validate(IProject project, String path) {
-        if (fileExists(path)) {
-            if ((new File(path)).isFile()) {
-                return Status.OK_STATUS;
-            }
+        File file = new File(path);
+        if (!file.exists()) {
             return new Status(IStatus.ERROR, Activator.PLUGIN_ID,
-                    Messages.GdbTrace_GdbTracesMustBeAFile + ": " + //$NON-NLS-1$
-                            path + " " + Messages.GdbTrace_IsNotAFile); //$NON-NLS-1$
+                    NLS.bind(Messages.GdbTrace_FileNotFound, path));
         }
-        return new Status(IStatus.ERROR, Activator.PLUGIN_ID, Messages.GdbTrace_FileNotFound + ": " + path); //$NON-NLS-1$
+        if (!file.isFile()) {
+            return new Status(IStatus.ERROR, Activator.PLUGIN_ID,
+                    NLS.bind(Messages.GdbTrace_GdbTracesMustBeAFile, path));
+        }
+        try (BufferedInputStream stream = new BufferedInputStream(new FileInputStream(file))) {
+            byte[] buffer = new byte[HEADER.length];
+            int read = stream.read(buffer);
+            if (read != HEADER.length || !Arrays.equals(buffer, HEADER)) {
+                return new Status(IStatus.ERROR, Activator.PLUGIN_ID,
+                        NLS.bind(Messages.GdbTrace_NotGdbTraceFile, path));
+            }
+        } catch (IOException e) {
+            return new Status(IStatus.ERROR, Activator.PLUGIN_ID,
+                    NLS.bind(Messages.GdbTrace_IOException, path), e);
+        }
+        return new TraceValidationStatus(100, GdbTraceCorePlugin.PLUGIN_ID);
     }
 
