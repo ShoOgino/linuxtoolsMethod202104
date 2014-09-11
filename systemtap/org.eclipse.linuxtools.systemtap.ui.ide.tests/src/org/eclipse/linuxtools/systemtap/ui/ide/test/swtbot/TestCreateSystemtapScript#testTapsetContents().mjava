@@ -15,10 +15,7 @@
 
         // Open a non-stap file and add a probe. This should bring up a dialog
         // asking if the function should be added to the only open .stp file.
-        SWTBotMenu fileMenu = bot.menu("File");
-        SWTBotMenu newMenu = fileMenu.menu("New");
-        SWTBotMenu projectMenu = newMenu.menu("Other...");
-        projectMenu.click();
+        clickMainMenu("File", "New", "Other...");
         SWTBotShell shell = bot.shell("New");
         shell.setFocus();
         shell.bot().text().setText("Untitled Text File");
@@ -39,6 +36,12 @@
         bot.waitUntil(new TreeItemPopulated(item));
         item = item.getNode(0);
         item.doubleClick();
+
+        {
+            Matcher<Shell> withText = withText(dialogTitle);
+            bot.waitUntil(Conditions.waitForShell(withText));
+        }
+
         shell = bot.shell(dialogTitle);
         shell.setFocus();
         bot.button("Yes").click();
@@ -74,6 +77,7 @@
         table.select(scriptName);
         bot.button("OK").click();
         bot.waitUntil(Conditions.shellCloses(shell));
+
         bot.waitUntil(new EditorIsActive(scriptName));
         assertTrue(wasProbeInserted(bot.activeEditor().toTextEditor(), item, false));
     }
