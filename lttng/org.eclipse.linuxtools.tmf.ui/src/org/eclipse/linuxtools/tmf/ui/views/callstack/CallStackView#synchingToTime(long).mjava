@@ -1,4 +1,4 @@
-    private void selectTime(long time) {
+    private void synchingToTime(long time) {
         if (fEntryList == null) {
             return;
         }
@@ -8,15 +8,16 @@
                 if (ss == null) {
                     continue;
                 }
-                ss.waitUntilBuilt();
                 if (ss.isCancelled()) {
                     continue;
                 }
-                long queryTime = Math.max(ss.getStartTime(), Math.min(ss.getCurrentEndTime(), time));
+                if (time < ss.getStartTime() || time > ss.getCurrentEndTime()) {
+                    continue;
+                }
                 for (ITimeGraphEntry child : threadEntry.getChildren()) {
                     CallStackEntry callStackEntry = (CallStackEntry) child;
                     try {
-                        ITmfStateInterval stackLevelInterval = ss.querySingleState(queryTime, callStackEntry.getQuark());
+                        ITmfStateInterval stackLevelInterval = ss.querySingleState(time, callStackEntry.getQuark());
                         ITmfStateValue nameValue = stackLevelInterval.getStateValue();
                         String name = ""; //$NON-NLS-1$
                         try {
@@ -37,10 +38,8 @@
                         }
                     } catch (AttributeNotFoundException e) {
                         Activator.getDefault().logError("Error querying state system", e); //$NON-NLS-1$
-                    } catch (TimeRangeException e) {
-                        Activator.getDefault().logError("Error querying state system", e); //$NON-NLS-1$
                     } catch (StateSystemDisposedException e) {
-                        Activator.getDefault().logError("Error querying state system", e); //$NON-NLS-1$
+                        /* Ignored */
                     }
                 }
             }
