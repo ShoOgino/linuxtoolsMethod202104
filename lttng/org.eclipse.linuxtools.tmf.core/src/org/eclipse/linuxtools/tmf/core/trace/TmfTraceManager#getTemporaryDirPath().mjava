@@ -1,0 +1,26 @@
+    /**
+     * Get the temporary directory path. If there is an instance of Eclipse
+     * running, the temporary directory will reside under the workspace.
+     *
+     * @return the temporary directory path suitable to be passed to the
+     *         java.io.File constructor without a trailing separator
+     * @since 3.1
+     */
+    public static String getTemporaryDirPath() {
+        // Get the workspace path from the properties
+        String property = System.getProperty("osgi.instance.area"); //$NON-NLS-1$
+        if (property != null) {
+            try {
+                File dir = new File(new URI(property));
+                dir = new File(dir.getAbsolutePath() + File.separator + TEMP_DIR_NAME);
+                if (!dir.exists()) {
+                    dir.mkdirs();
+                }
+                return dir.getAbsolutePath();
+            } catch (URISyntaxException e) {
+                Activator.logError(e.getLocalizedMessage(), e);
+            }
+        }
+        return System.getProperty("java.io.tmpdir"); //$NON-NLS-1$
+    }
+
