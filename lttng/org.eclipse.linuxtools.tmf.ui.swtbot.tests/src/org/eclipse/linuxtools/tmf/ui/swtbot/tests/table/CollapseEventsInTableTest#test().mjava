@@ -1,0 +1,63 @@
+    /**
+     * Main test case
+     */
+    @Test
+    public void test() {
+        SWTBotUtil.createProject(TRACE_PROJECT_NAME);
+        SWTBotUtil.openTrace(TRACE_PROJECT_NAME, fTestFile.getAbsolutePath(), COLLAPSE_TRACE_TYPE);
+        SWTBotEditor editorBot = SWTBotUtil.openEditor(fBot, fTestFile.getName());
+
+        SWTBotTable tableBot = editorBot.bot().table();
+
+        /* Maximize editor area */
+        maximizeTable(tableBot);
+        tableBot.click(1, 0);
+
+        /* Collapse Events */
+        SWTBotMenu menuBot = tableBot.contextMenu("Collapse Events");
+        menuBot.click();
+        fBot.waitUntil(ConditionHelpers.isTableCellFilled(tableBot, "7/22", 1, 1));
+
+        String filterString = tableBot.cell(1, 1);
+        assertEquals("filterString", "7/22", filterString);
+
+        /* Verify collapsed event */
+        filterString = tableBot.cell(7, 0);
+        assertEquals("repeatCount", "+14", filterString);
+
+        filterString = tableBot.cell(7, 1);
+        assertEquals("first timestamp", "Jan 1 06:06:06", filterString);
+
+        filterString = tableBot.cell(7, 2);
+        assertEquals("source", "", filterString);
+
+        filterString = tableBot.cell(7, 3);
+        assertEquals("type", "Syslog", filterString);
+
+        filterString = tableBot.cell(7, 4);
+        assertEquals("file", "", filterString);
+
+        filterString = tableBot.cell(7, 5);
+        assertEquals("content", "Timestamp=Jan 1 06:06:06, Host=HostF, Logger=LoggerF, Message=Message F", filterString);
+
+        filterString = tableBot.cell(8, 0);
+        assertEquals("repeatCount", "+1", filterString);
+
+        filterString = tableBot.cell(8, 1);
+        assertEquals("first timestamp (2nd collapse)", "Jan 1 06:06:21", filterString);
+
+        filterString = tableBot.cell(8, 5);
+        assertEquals("content", "Timestamp=Jan 1 06:06:21, Host=HostF, Logger=LoggerF, Message=Message D", filterString);
+
+        /* Clear Filter */
+        menuBot = tableBot.contextMenu("Clear Filters");
+        menuBot.click();
+        fBot.waitUntil(ConditionHelpers.isTableCellFilled(tableBot, "Jan 1 01:01:01", 1, 1));
+        assertEquals("timestamp", "Jan 1 01:01:01", tableBot.cell(1, 1));
+
+        maximizeTable(tableBot);
+
+        fBot.closeAllEditors();
+        SWTBotUtil.deleteProject(TRACE_PROJECT_NAME, fBot);
+    }
+

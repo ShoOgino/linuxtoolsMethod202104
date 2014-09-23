@@ -1,0 +1,28 @@
+    /**
+     * Opens an editor and sets focus to the editor
+     *
+     * @param bot
+     *            the workbench bot
+     * @param editorName
+     *            the editor name
+     * @return the corresponding SWTBotEditor
+     */
+    public static SWTBotEditor openEditor(SWTWorkbenchBot bot, String editorName) {
+        Matcher<IEditorReference> matcher = WidgetMatcherFactory.withPartName(editorName);
+        final SWTBotEditor editorBot = bot.editor(matcher);
+        IEditorPart iep = editorBot.getReference().getEditor(true);
+        final TmfEventsEditor tmfEd = (TmfEventsEditor) iep;
+        editorBot.show();
+        UIThreadRunnable.syncExec(new VoidResult() {
+            @Override
+            public void run() {
+                tmfEd.setFocus();
+            }
+        });
+
+        SWTBotUtil.waitForJobs();
+        SWTBotUtil.delay(1000);
+        assertNotNull(tmfEd);
+        return editorBot;
+    }
+
