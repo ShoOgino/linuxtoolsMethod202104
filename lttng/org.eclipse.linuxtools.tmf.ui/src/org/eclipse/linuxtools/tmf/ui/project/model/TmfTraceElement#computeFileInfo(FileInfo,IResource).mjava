@@ -1,0 +1,18 @@
+    private FileInfo computeFileInfo(FileInfo fileInfo, IResource resource) throws CoreException {
+        if (fileInfo == null || fileInfo.count > FOLDER_MAX_COUNT) {
+            return fileInfo;
+        }
+        if (resource instanceof IFolder) {
+            IFolder folder = (IFolder) resource;
+            for (IResource member : folder.members()) {
+                computeFileInfo(fileInfo, member);
+            }
+            return fileInfo;
+        }
+        IFileInfo info = EFS.getStore(resource.getLocationURI()).fetchInfo();
+        fileInfo.lastModified = Math.max(fileInfo.lastModified, info.getLastModified());
+        fileInfo.size += info.getLength();
+        fileInfo.count++;
+        return fileInfo;
+    }
+
