@@ -7,11 +7,14 @@
         fTrace = setupTrace(fParser);
         fParser.setTrace(fTrace);
 
-//        fTrace = setupTrace(fParser);
-
         final ITmfTrace traces[] = new ITmfTrace[1];
         traces[0] = fTrace;
-        fExperiment = new TmfExperiment(ITmfEvent.class, "TestExperiment", traces);
+        fExperiment = new TmfExperiment(ITmfEvent.class, "TestExperiment", traces) {
+            @Override
+            protected ITmfTraceIndexer createIndexer(int interval) {
+                return new TmfCheckpointIndexer(this, interval);
+            }
+        };
         fTrace.broadcast(new TmfTraceOpenedSignal(this, fExperiment, null));
         fTrace.broadcast(new TmfTraceSelectedSignal(this, fExperiment));
         if (wait) {
