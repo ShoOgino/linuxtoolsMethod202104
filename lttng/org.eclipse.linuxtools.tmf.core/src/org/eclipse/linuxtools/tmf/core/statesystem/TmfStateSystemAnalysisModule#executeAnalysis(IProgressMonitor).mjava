@@ -11,14 +11,21 @@
             StateSystemBackendType backend = getBackendType();
             String directory;
             File htFile;
+
+            ITmfTrace trace = getTrace();
+            if (trace == null) {
+                // Analysis was cancelled in the meantime
+                fInitialized.countDown();
+                return false;
+            }
             switch (backend) {
             case FULL:
-                directory = TmfTraceManager.getSupplementaryFileDir(getTrace());
+                directory = TmfTraceManager.getSupplementaryFileDir(trace);
                 htFile = new File(directory + getSsFileName());
                 createFullHistory(id, provider, htFile);
                 break;
             case PARTIAL:
-                directory = TmfTraceManager.getSupplementaryFileDir(getTrace());
+                directory = TmfTraceManager.getSupplementaryFileDir(trace);
                 htFile = new File(directory + getSsFileName());
                 createPartialHistory(id, provider, htFile);
                 break;
@@ -32,6 +39,7 @@
                 break;
             }
         } catch (TmfTraceException e) {
+            fInitialized.countDown();
             return false;
         }
         return !mon.isCanceled();
