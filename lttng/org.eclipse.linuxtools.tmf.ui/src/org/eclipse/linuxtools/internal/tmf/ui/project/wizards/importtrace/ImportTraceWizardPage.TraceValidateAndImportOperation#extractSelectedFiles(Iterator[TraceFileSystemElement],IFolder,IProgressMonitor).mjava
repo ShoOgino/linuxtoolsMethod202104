@@ -1,10 +1,14 @@
         private Iterator<TraceFileSystemElement> extractSelectedFiles(Iterator<TraceFileSystemElement> fileSystemElementsIter, IFolder tempFolder, IProgressMonitor progressMonitor) throws InterruptedException,
                 InvocationTargetException {
             List<TraceFileSystemElement> subList = new ArrayList<>();
+            Map<IPath, String> sourceLocationMap = new HashMap<>();
             // Collect all the elements
             while (fileSystemElementsIter.hasNext()) {
                 ModalContext.checkCanceled(progressMonitor);
                 TraceFileSystemElement element = fileSystemElementsIter.next();
+                sourceLocationMap.put(new Path(element.getFileSystemObject().getName()).removeTrailingSeparator(), element.getSourceLocation());
+                TraceFileSystemElement parentElement = (TraceFileSystemElement) element.getParent();
+                sourceLocationMap.put(new Path(parentElement.getFileSystemObject().getName()).removeTrailingSeparator(), parentElement.getSourceLocation());
                 if (element.isDirectory()) {
                     Object[] array = element.getFiles().getChildren();
                     for (int i = 0; i < array.length; i++) {
@@ -48,6 +52,14 @@
             List<TraceFileSystemElement> list = new ArrayList<>();
             getAllChildren(list, createRootElement);
             Iterator<TraceFileSystemElement> extractedElementsIter = list.iterator();
+            IPath tempPath = new Path(tempFolder.getLocation().toOSString());
+            for (TraceFileSystemElement element : list) {
+                IPath path = new Path(((File) element.getFileSystemObject().getRawFileSystemObject()).getAbsolutePath()).makeRelativeTo(tempPath);
+                element.setSourceLocation(sourceLocationMap.get(path));
+                TraceFileSystemElement parentElement = (TraceFileSystemElement) element.getParent();
+                IPath parentPath = new Path(((File) parentElement.getFileSystemObject().getRawFileSystemObject()).getAbsolutePath()).makeRelativeTo(tempPath);
+                parentElement.setSourceLocation(sourceLocationMap.get(parentPath));
+            }
             return extractedElementsIter;
         }
 
