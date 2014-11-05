@@ -16,15 +16,15 @@
 
         ITraceControlComponent root = TraceControlTestFacility.getInstance().getControlView().getTraceControlRoot();
 
-        ISystemRegistry registry = RSECorePlugin.getTheSystemRegistry();
-        ISystemProfile profile =  registry.createSystemProfile("myProfile", true);
-        IHost host = registry.createLocalHost(profile, "myProfile", "user");
+        IRemoteConnectionManager cm = RemoteServices.getLocalServices().getConnectionManager();
+        IRemoteConnection host = cm.getConnection(IRemoteConnectionManager.LOCAL_CONNECTION_NAME);
 
         TargetNodeComponent node = new TargetNodeComponent("myNode", root, host, proxy);
 
         root.addChild(node);
         node.connect();
 
+        TraceControlTestFacility.getInstance().waitForConnect(node);
         TraceControlTestFacility.getInstance().waitForJobs();
 
         // ------------------------------------------------------------------------
@@ -41,7 +41,7 @@
         assertNotNull(source.getPropertyDescriptors());
 
         assertEquals("myNode", source.getPropertyValue(TargetNodePropertySource.TARGET_NODE_NAME_PROPERTY_ID));
-        assertEquals("LOCALHOST",  source.getPropertyValue(TargetNodePropertySource.TARGET_NODE_ADDRESS_PROPERTY_ID));
+        assertEquals("localhost",  source.getPropertyValue(TargetNodePropertySource.TARGET_NODE_ADDRESS_PROPERTY_ID));
         assertEquals(TargetNodeState.CONNECTED.name(), source.getPropertyValue(TargetNodePropertySource.TARGET_NODE_STATE_PROPERTY_ID));
         assertEquals("2.1.0", source.getPropertyValue(TargetNodePropertySource.TARGET_NODE_VERSION_PROPERTY_ID));
         assertNull(source.getPropertyValue("test"));

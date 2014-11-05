@@ -12,7 +12,7 @@
     private static void downloadTrace(ImportFileInfo trace, IProject project, IProgressMonitor monitor)
             throws ExecutionException {
         try {
-            IRemoteFileSubSystem fsss = trace.getImportFile().getParentRemoteFileSubSystem();
+            IFileStore importRoot = trace.getImportFile();
 
             IFolder traceFolder = project.getFolder(TmfTracesFolder.TRACES_FOLDER_NAME);
             if (!traceFolder.exists()) {
@@ -32,20 +32,26 @@
                 folder.create(true, true, null);
             }
 
-            IRemoteFile[] sources = fsss.list(trace.getImportFile(), IFileService.FILE_TYPE_FILES, new NullProgressMonitor());
+            IFileStore[] sources = importRoot.childStores(EFS.NONE, new NullProgressMonitor());
             SubMonitor subMonitor = SubMonitor.convert(monitor, sources.length);
             subMonitor.beginTask(Messages.TraceControl_DownloadTask, sources.length);
 
-            for (int i = 0; i < sources.length; i++) {
+            for (IFileStore source : sources) {
                 if (subMonitor.isCanceled()) {
                     monitor.setCanceled(true);
                     return;
                 }
-                String destination = folder.getLocation().addTrailingSeparator().append(sources[i].getName()).toOSString();
-                subMonitor.setTaskName(Messages.TraceControl_DownloadTask + ' ' + traceName + '/' + sources[i].getName());
-                fsss.download(sources[i], destination, null, subMonitor.newChild(1));
+                SubMonitor childMonitor = subMonitor.newChild(1);
+                IFileInfo info = source.fetchInfo();
+                if (!info.isDirectory()) {
+                    IPath destination = folder.getLocation().addTrailingSeparator().append(source.getName());
+                    subMonitor.setTaskName(Messages.TraceControl_DownloadTask + ' ' + traceName + '/' + source.getName());
+                    try (InputStream in = source.openInputStream(EFS.NONE, new NullProgressMonitor())) {
+                        copy(in, destination, childMonitor, info.getLength());
+                    }
+                }
             }
-        } catch (SystemMessageException e) {
+        } catch (IOException e) {
             throw new ExecutionException(e.toString(), e);
         } catch (CoreException e) {
             throw new ExecutionException(e.toString(), e);

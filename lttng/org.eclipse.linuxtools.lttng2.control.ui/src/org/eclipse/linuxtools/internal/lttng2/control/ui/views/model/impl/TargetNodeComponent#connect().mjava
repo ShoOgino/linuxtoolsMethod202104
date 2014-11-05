@@ -1,25 +1,40 @@
-   /**
-    * Method to connect this node component to the remote target node.
-    */
-   public void connect() {
-       if (fState == TargetNodeState.DISCONNECTED) {
-           try {
-               setTargetNodeState(TargetNodeState.CONNECTING);
-               fRemoteProxy.connect(new IRSECallback() {
-                   @Override
-                   public void done(IStatus status, Object result) {
-                       // Note: result might be null!
-                       if(status.isOK()) {
-                           handleConnected();
-                       } else {
-                           handleDisconnected();
-                       }
-                   }
-               });
-           } catch (Exception e) {
-               setTargetNodeState(TargetNodeState.DISCONNECTED);
-               Activator.getDefault().logError(Messages.TraceControl_ConnectionFailure + " (" + getName() + "). \n", e); //$NON-NLS-1$ //$NON-NLS-2$
-           }
-       }
+    /**
+     * Method to connect this node component to the remote target node.
+     */
+    public void connect() {
+        if (fState == TargetNodeState.DISCONNECTED) {
+            try {
+                setTargetNodeState(TargetNodeState.CONNECTING);
+                Job job = new Job(format(Messages.TraceControl_OpenConnectionTo, getName())) {
+                    @Override
+                    protected IStatus run(IProgressMonitor monitor) {
+                        try {
+                            fRemoteProxy.connect(monitor);
+                            return Status.OK_STATUS;
+                        } catch (Exception e) {
+                            return new Status(IStatus.ERROR, Activator.PLUGIN_ID, Messages.TraceControl_ConnectionFailure, e);
+                        }
+                    }
+                };
+                job.addJobChangeListener(new JobChangeAdapter() {
+                    @Override
+                    public void done(IJobChangeEvent event) {
+                        IStatus status = event.getResult();
+                        if (status.isOK()) {
+                            handleConnected();
+                        } else {
+                            handleDisconnected();
+                            if (status.getSeverity() != IStatus.CANCEL) {
+                                Activator.getDefault().getLog().log(status);
+                            }
+                        }
+                    }
+                });
+                job.schedule();
+            } catch (Exception e) {
+                setTargetNodeState(TargetNodeState.DISCONNECTED);
+                Activator.getDefault().logError(Messages.TraceControl_ConnectionFailure + " (" + getName() + "). \n", e); //$NON-NLS-1$ //$NON-NLS-2$
+            }
+        }
     }
 

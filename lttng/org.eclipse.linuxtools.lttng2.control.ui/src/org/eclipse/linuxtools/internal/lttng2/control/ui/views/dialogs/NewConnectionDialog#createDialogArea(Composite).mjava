@@ -1,125 +1,87 @@
     @Override
     protected Control createDialogArea(Composite parent) {
-
         // Main dialog panel
+        GridData gd;
         Composite dialogComposite = new Composite(parent, SWT.NONE);
         GridLayout layout = new GridLayout(1, true);
         dialogComposite.setLayout(layout);
         dialogComposite.setLayoutData(new GridData(GridData.FILL_BOTH));
 
+        Label label = new Label(dialogComposite, SWT.NONE);
+        label.setText(Messages.TraceControl_NewNodeExistingConnectionGroupName);
+        label.setLayoutData(gd = new GridData());
+        gd.widthHint = label.computeSize(-1, -1).x + convertWidthInCharsToPixels(4);
         // Existing connections group
-        Group comboGroup = new Group(dialogComposite, SWT.SHADOW_NONE);
-        comboGroup.setText(Messages.TraceControl_NewNodeExistingConnectionGroupName);
-        layout = new GridLayout(2, true);
-        comboGroup.setLayout(layout);
-        GridData data = new GridData(GridData.FILL_HORIZONTAL);
-        comboGroup.setLayoutData(data);
-
-        fExistingHostsCombo = new CCombo(comboGroup, SWT.READ_ONLY);
-        fExistingHostsCombo.setToolTipText(Messages.TraceControl_NewNodeComboToolTip);
-        fExistingHostsCombo.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, false, 2, 1));
-
-        String items[] = new String[fExistingHosts.length];
-        for (int i = 0; i < items.length; i++) {
-            items[i] = String.valueOf(fExistingHosts[i].getAliasName() + " - " + fExistingHosts[i].getHostName()); //$NON-NLS-1$
-        }
-
-        fExistingHostsCombo.setItems(items);
-        fExistingHostsCombo.setEnabled(fExistingHosts.length > 0);
-
-        // Node information grop
-        Group textGroup = new Group(dialogComposite, SWT.SHADOW_NONE);
-        layout = new GridLayout(3, true);
-        textGroup.setLayout(layout);
-        data = new GridData(GridData.FILL_HORIZONTAL);
-        textGroup.setLayoutData(data);
-
-        fButton = new Button(textGroup, SWT.CHECK);
-        fButton.setLayoutData(new GridData(GridData.FILL, GridData.CENTER, true, false, 3, 1));
-        fButton.setText(Messages.TraceControl_NewNodeEditButtonName);
-        fButton.setEnabled(fExistingHosts.length > 0);
-
-        Label connectionNameLabel = new Label(textGroup, SWT.RIGHT);
-        connectionNameLabel.setText(Messages.TraceControl_NewNodeConnectionNameLabel);
-        fConnectionNameText = new Text(textGroup, SWT.NONE);
-        fConnectionNameText.setToolTipText(Messages.TraceControl_NewNodeConnectionNameTooltip);
-        fConnectionNameText.setEnabled(fExistingHosts.length == 0);
-
-        Label hostNameLabel = new Label(textGroup, SWT.RIGHT);
-        hostNameLabel.setText(Messages.TraceControl_NewNodeHostNameLabel);
-        fHostNameText = new Text(textGroup, SWT.NONE);
-        fHostNameText.setToolTipText(Messages.TraceControl_NewNodeHostNameTooltip);
-        fHostNameText.setEnabled(fExistingHosts.length == 0);
-
-        Label portLabel = new Label(textGroup, SWT.RIGHT);
-        portLabel.setText(Messages.TraceControl_NewNodePortLabel);
-        fPortText = new Text(textGroup, SWT.NONE);
-        fPortText.setToolTipText(Messages.TraceControl_NewNodePortTooltip);
-        fPortText.setEnabled(fExistingHosts.length == 0);
-        fPortText.addVerifyListener(new VerifyListener() {
+        fConnectionTree = new TreeViewer(dialogComposite);
+        fConnectionTree.getTree().setLayoutData(gd = new GridData(SWT.FILL, SWT.FILL, true, true));
+        gd.widthHint = convertWidthInCharsToPixels(40);
+        gd.heightHint = convertHeightInCharsToPixels(10);
+        fConnectionTree.setLabelProvider(new LabelProvider() {
             @Override
-            public void verifyText(VerifyEvent e) {
-                // only numbers are allowed.
-                e.doit = e.text.matches("[0-9]*"); //$NON-NLS-1$
-            }
-        });
+            public String getText(Object element) {
+                if (element instanceof IRemoteConnection) {
+                    IRemoteConnection rc = (IRemoteConnection) element;
+                    if (rc.getRemoteServices() == RemoteServices.getLocalServices()) {
+                        return rc.getName();
+                    }
 
-        fButton.addSelectionListener(new SelectionListener() {
-            @Override
-            public void widgetSelected(SelectionEvent e) {
-                if (fButton.getSelection()) {
-                    fExistingHostsCombo.deselectAll();
-                    fExistingHostsCombo.setEnabled(false);
-                    fConnectionNameText.setEnabled(true);
-                    fHostNameText.setEnabled(true);
-                    fPortText.setEnabled(true);
-                } else {
-                    fExistingHostsCombo.setEnabled(true);
-                    fConnectionNameText.setEnabled(false);
-                    fHostNameText.setEnabled(false);
-                    fPortText.setEnabled(false);
+                    return format("{0} [{1}]", rc.getName(), rc.getAddress()); //$NON-NLS-1$
+                } else if (element instanceof IRemoteServices) {
+                    IRemoteServices rs = (IRemoteServices) element;
+                    return rs.getName();
                 }
+                return Messages.TraceControl_UnknownNode;
             }
 
             @Override
-            public void widgetDefaultSelected(SelectionEvent e) {
+            public Image getImage(Object element) {
+                if (element instanceof IRemoteConnection) {
+                    return Activator.getDefault().loadIcon(CONNECTION_ICON_FILE);
+                }
+                return Activator.getDefault().loadIcon(PROVIDERS_ICON_FILE);
+            }
+        });
+        fConnectionTree.setContentProvider(new ConnectionContentProvider());
+        fConnectionTree.addSelectionChangedListener(new ISelectionChangedListener() {
+            @Override
+            public void selectionChanged(SelectionChangedEvent event) {
+                onSelectionChanged();
+            }
+        });
+        fConnectionTree.addDoubleClickListener(new IDoubleClickListener() {
+            @Override
+            public void doubleClick(DoubleClickEvent event) {
+                okPressed();
             }
         });
 
-        fExistingHostsCombo.addSelectionListener(new SelectionListener() {
+        Composite buttons = new Composite(dialogComposite, SWT.NONE);
+        layout = new GridLayout(3, true);
+        layout.marginHeight = layout.marginWidth = 0;
+        buttons.setLayout(layout);
+        buttons.setLayoutData(new GridData(SWT.END, SWT.CENTER, false, false));
+
+        new Label(buttons, SWT.NONE);
+
+        fEditButton = new Button(buttons, SWT.PUSH);
+        fEditButton.setText(Messages.TraceControl_NewNodeEditButtonName);
+        setButtonLayoutData(fEditButton);
+        fEditButton.addSelectionListener(new SelectionAdapter() {
             @Override
             public void widgetSelected(SelectionEvent e) {
-                int index = fExistingHostsCombo.getSelectionIndex();
-                fConnectionNameText.setText(fExistingHosts[index].getAliasName());
-                fHostNameText.setText(fExistingHosts[index].getHostName());
-                fPortText.setText(""); //$NON-NLS-1$
-            }
-
-            @Override
-            public void widgetDefaultSelected(SelectionEvent e) {
+                onEditConnection();
             }
         });
 
-        // layout widgets
-        data = new GridData(GridData.FILL_HORIZONTAL);
-        fHostNameText.setText("666.666.666.666"); //$NON-NLS-1$
-        Point minSize = fHostNameText.computeSize(SWT.DEFAULT, SWT.DEFAULT, true);
-        int widthHint = minSize.x + 5;
-        data.widthHint = widthHint;
-        data.horizontalSpan = 2;
-        fConnectionNameText.setLayoutData(data);
-
-        data = new GridData(GridData.FILL_HORIZONTAL);
-        data.widthHint = widthHint;
-        data.horizontalSpan = 2;
-        fHostNameText.setLayoutData(data);
-
-        data = new GridData(GridData.FILL_HORIZONTAL);
-        data.widthHint = widthHint;
-        data.horizontalSpan = 2;
-        fPortText.setLayoutData(data);
-
-        fHostNameText.setText(""); //$NON-NLS-1$
+        fNewButton = new Button(buttons, SWT.PUSH);
+        fNewButton.setText(Messages.TraceControl_NewNodeCreateButtonText);
+        setButtonLayoutData(fNewButton);
+        fNewButton.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent e) {
+                onNewConnection();
+            }
+        });
 
         return dialogComposite;
     }

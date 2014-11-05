@@ -1,33 +1,30 @@
     /**
      * Run the TraceControlComponent.
-     *
-     * @throws Exception
-     *             This will fail the test
      */
     @Test
-    public void testTraceControlComponents() throws Exception {
+    public void testTraceControlComponents() {
 
         fProxy.setTestFile(fTestFile);
         fProxy.setScenario(SCEN_LIST_INFO_TEST);
 
         ITraceControlComponent root = TraceControlTestFacility.getInstance().getControlView().getTraceControlRoot();
 
-        ISystemRegistry registry = RSECorePlugin.getTheSystemRegistry();
-        ISystemProfile profile =  registry.createSystemProfile("myProfile", true);
-        IHost host = registry.createLocalHost(profile, "myProfile", "user");
+        IRemoteConnectionManager cm = RemoteServices.getLocalServices().getConnectionManager();
+        IRemoteConnection host = cm.getConnection(IRemoteConnectionManager.LOCAL_CONNECTION_NAME);
 
         TargetNodeComponent node = new TargetNodeComponent(TARGET_NODE_NAME, root, host, fProxy);
 
         root.addChild(node);
         node.connect();
 
+        TraceControlTestFacility.getInstance().waitForConnect(node);
         TraceControlTestFacility.getInstance().waitForJobs();
 
         // ------------------------------------------------------------------------
         // Verify Parameters of TargetNodeComponent
         // ------------------------------------------------------------------------
-        assertEquals("LOCALHOST", node.getHostName()); // assigned in createLocalHost() above
-        assertEquals("LOCALHOST", node.getToolTip()); // assigned in createLocalHost() above
+        assertEquals("localhost", node.getRemoteConnection().getAddress()); // assigned in createLocalHost() above
+        assertEquals("Local", node.getToolTip()); // assigned in createLocalHost() above
         Image connectedImage = node.getImage();
         assertNotNull(connectedImage);
         assertEquals(TargetNodeState.CONNECTED, node.getTargetNodeState());
@@ -36,8 +33,6 @@
         assertTrue(service instanceof LTTngControlService);
         node.setControlService(service);
         assertTrue(node.getControlService() instanceof LTTngControlService);
-
-        assertTrue(node.isPassiveCommunicationsListener());
 
         // ------------------------------------------------------------------------
         // Verify Children of TargetNodeComponent

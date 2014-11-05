@@ -1,0 +1,17 @@
+    private static void copy(InputStream in, IPath destination, SubMonitor monitor, long length) throws IOException {
+        try (OutputStream out = new FileOutputStream(destination.toFile())) {
+            monitor.setWorkRemaining((int) (length / 1024));
+            byte[] buf = new byte[1024 * 16];
+            int counter = 0;
+            for (;;) {
+                int n = in.read(buf);
+                if (n <= 0) {
+                    return;
+                }
+                out.write(buf, 0, n);
+                counter = (counter % 1024) + n;
+                monitor.worked(counter / 1024);
+            }
+        }
+    }
+

@@ -1,0 +1,26 @@
+    @Override
+    public void init(IViewSite site, IMemento memento) throws PartInitException {
+        super.init(site, memento);
+        if (memento != null) {
+            fInitialConnections = new ArrayList<>();
+            for(int i = 0; ; i++) {
+                String id = memento.getString(KEY_REMOTE_PROVIDER + i);
+                String name = memento.getString(KEY_REMOTE_CONNECTION_NAME + i);
+                if (id == null || name == null) {
+                    break;
+                }
+                if (!Workaround_Bug449362.triggerRSEStartup(id)) {
+                    // Skip the connection in order to avoid an infinite loop
+                } else {
+                    IRemoteServices rs = RemoteServices.getRemoteServices(id);
+                    if (rs != null) {
+                        IRemoteConnection rc = rs.getConnectionManager().getConnection(name);
+                        if (rc != null) {
+                            fInitialConnections.add(rc);
+                        }
+                    }
+                }
+            }
+        }
+    }
+

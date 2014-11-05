@@ -1,0 +1,21 @@
+    private static CommandResult createResult(boolean isWrapped, int origResult, String origStdout, String origStderr) {
+        final int result;
+        final String stdout, stderr;
+        if (isWrapped) {
+            String[] holder = {origStdout};
+            result = unwrapOutput(holder);
+            stdout = holder[0];
+            // Workaround if error stream is not available and stderr output is written
+            // in standard output above. This is true for the SshTerminalShell implementation.
+            stderr = origStderr.isEmpty() ? stdout : origStderr;
+        } else {
+            result = origResult;
+            stdout = origStdout;
+            stderr = origStderr;
+        }
+
+        String[] output = splitLines(stdout);
+        String[] error = result == 0 ? null : splitLines(stderr);
+        return new CommandResult(result, output, error);
+    }
+

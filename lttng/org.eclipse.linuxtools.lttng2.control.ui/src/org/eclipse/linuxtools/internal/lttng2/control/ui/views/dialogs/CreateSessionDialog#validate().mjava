@@ -16,22 +16,16 @@
             if (!fIsAdvancedEnabled && !fIsLive) {
                 TargetNodeComponent node = (TargetNodeComponent)fParent.getParent();
                 IRemoteSystemProxy proxy = node.getRemoteSystemProxy();
-                IFileServiceSubSystem fsss = proxy.getFileServiceSubSystem();
+                IRemoteFileManager fsss = proxy.getFileServiceSubSystem();
                 if (fsss != null) {
-                    try {
-                        IRemoteFile remoteFolder = fsss.getRemoteFileObject(fSessionPath, new NullProgressMonitor());
-
-                        if (remoteFolder == null) {
-                            setErrorMessage(Messages.TraceControl_InvalidSessionPathError + " (" + fSessionPath + ") \n"); //$NON-NLS-1$ //$NON-NLS-2$
-                            return;
-                        }
-
-                        if (remoteFolder.exists()) {
-                            setErrorMessage(Messages.TraceControl_SessionPathAlreadyExistsError + " (" + fSessionPath + ") \n"); //$NON-NLS-1$ //$NON-NLS-2$
-                            return;
-                        }
-                    } catch (SystemMessageException e) {
-                        setErrorMessage(Messages.TraceControl_FileSubSystemError + "\n" + e); //$NON-NLS-1$
+                    IFileStore remoteFolder = fsss.getResource(fSessionPath);
+                    if (remoteFolder == null) {
+                        setErrorMessage(Messages.TraceControl_InvalidSessionPathError + " (" + fSessionPath + ") \n"); //$NON-NLS-1$ //$NON-NLS-2$
+                        return;
+                    }
+                    IFileInfo fileInfo = remoteFolder.fetchInfo();
+                    if (fileInfo.exists()) {
+                        setErrorMessage(Messages.TraceControl_SessionPathAlreadyExistsError + " (" + fSessionPath + ") \n"); //$NON-NLS-1$ //$NON-NLS-2$
                         return;
                     }
                 }
