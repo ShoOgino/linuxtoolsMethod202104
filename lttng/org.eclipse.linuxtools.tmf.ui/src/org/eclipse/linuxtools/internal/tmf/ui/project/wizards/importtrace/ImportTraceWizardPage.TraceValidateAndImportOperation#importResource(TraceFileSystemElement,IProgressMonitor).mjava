@@ -19,30 +19,19 @@
         private IResource importResource(TraceFileSystemElement fileSystemElement, IProgressMonitor monitor)
                 throws InvocationTargetException, InterruptedException, CoreException {
 
-            ImportConfirmation mode = checkForNameClashes(fileSystemElement);
-            switch (mode) {
-            case RENAME:
-            case RENAME_ALL:
-                rename(fileSystemElement);
-                break;
-            case OVERWRITE:
-            case OVERWRITE_ALL:
-                delete(fileSystemElement, monitor);
-                break;
-            case CONTINUE:
-                break;
-            case SKIP:
-            case SKIP_ALL:
-            default:
+            IPath tracePath = getInitialDestinationPath(fileSystemElement);
+            String newName = fConflictHandler.checkAndHandleNameClash(tracePath, monitor);
+            if (newName == null) {
                 return null;
             }
+            fileSystemElement.setLabel(newName);
 
             List<TraceFileSystemElement> subList = new ArrayList<>();
 
             FileSystemElement parentFolder = fileSystemElement.getParent();
 
             IPath containerPath = fileSystemElement.getDestinationContainerPath();
-            IPath tracePath = containerPath.addTrailingSeparator().append(fileSystemElement.getLabel());
+            tracePath = containerPath.addTrailingSeparator().append(fileSystemElement.getLabel());
             boolean createLinksInWorkspace = (fImportOptionFlags & OPTION_CREATE_LINKS_IN_WORKSPACE) != 0;
             if (fileSystemElement.isDirectory() && !createLinksInWorkspace) {
                 containerPath = tracePath;
