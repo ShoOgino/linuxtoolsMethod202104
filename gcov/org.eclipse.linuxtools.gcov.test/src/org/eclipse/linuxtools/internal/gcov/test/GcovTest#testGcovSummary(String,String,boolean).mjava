@@ -1,0 +1,34 @@
+    private void testGcovSummary(final String filename, String binName,
+            final boolean testProducedReference) {
+        openGcovResult(project.getFile(filename), true);
+        IViewPart vp = window.getActivePage().findView("org.eclipse.linuxtools.gcov.view");
+
+        // No IDs on toolbar items, so explicitly check each one for tooltip texts
+        List<String> sortTypes = new ArrayList<>(Arrays.asList("function", "file", "folder"));
+        IContributionItem[] items = vp.getViewSite().getActionBars().getToolBarManager().getItems();
+        STExportToCSVAction csvAction = null;
+        for (IContributionItem item : items) {
+            if (item instanceof ActionContributionItem && ((ActionContributionItem) item).getAction() instanceof STExportToCSVAction) {
+                csvAction = (STExportToCSVAction) ((ActionContributionItem) item).getAction();
+            }
+        }
+        Assert.assertNotNull("CSV-Export toolbar button does not exist.", csvAction);
+
+        for (IContributionItem item : items) {
+            if (item instanceof ActionContributionItem) {
+                final IAction action = ((ActionContributionItem) item).getAction();
+                for (int i = 0, n = sortTypes.size(); i < n; i++) {
+                    String sortType = sortTypes.get(i);
+                    if (action.getText().equals("Sort coverage per " + sortType)) {
+                        dumpCSV(action, csvAction, sortType, testProducedReference);
+                        if (sortTypes.size() == 1) {
+                            return;
+                        }
+                        sortTypes.remove(i);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+

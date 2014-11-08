@@ -1,0 +1,28 @@
+    private void dumpCSV(final IAction sortAction, final STExportToCSVAction csvAction, String type, boolean testProducedReference) {
+        display.asyncExec(new Runnable() {
+            @Override
+            public void run() {
+                sortAction.run();
+            }
+        });
+
+        String s = project.getLocation() + "/" + type + "-dump.csv";
+        new File(s).delete();
+        csvAction.getExporter().setFilePath(s);
+        csvAction.export();
+
+        while (true) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {}
+            if (Job.getJobManager().find(STExportToCSVAction.EXPORT_TO_CSV_JOB_FAMILY).length == 0) {
+                break;
+            }
+        }
+
+        if (testProducedReference) {
+            String ref = STJunitUtils.getAbsolutePath(FrameworkUtil.getBundle(GcovTest.class).getSymbolicName(), "csv/" + project.getName() + "/" + type + ".csv");
+            STJunitUtils.compareIgnoreEOL(project.getLocation() + "/" + type + "-dump.csv", ref, false);
+        }
+    }
+
