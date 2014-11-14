@@ -44,14 +44,13 @@
                 setTopIndex(fVerticalScrollBar.getSelection());
             }
         });
-        fVerticalScrollBar.setEnabled(false);
 
         fTimeGraphCtrl = createTimeGraphControl(fDataViewer, fColorScheme);
 
         fTimeGraphCtrl.setTimeProvider(this);
         fTimeGraphCtrl.setTimeGraphScale(fTimeScaleCtrl);
         fTimeGraphCtrl.addSelectionListener(this);
-        fTimeGraphCtrl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 1, 2));
+        fTimeGraphCtrl.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         fTimeGraphCtrl.addMouseWheelListener(new MouseWheelListener() {
             @Override
             public void mouseScrolled(MouseEvent e) {
@@ -70,9 +69,48 @@
             }
         });
 
+        fHorizontalScrollBar = new Slider(fDataViewer, SWT.HORIZONTAL | SWT.NO_FOCUS);
+        fHorizontalScrollBar.setLayoutData(new GridData(SWT.FILL, SWT.DEFAULT, true, false));
+        fHorizontalScrollBar.addListener(SWT.MouseWheel, new Listener() {
+            @Override
+            public void handleEvent(Event event) {
+                if ((event.stateMask & SWT.MODIFIER_MASK) == SWT.CTRL) {
+                    getTimeGraphControl().zoom(event.count > 0);
+                } else {
+                    getTimeGraphControl().horizontalScroll(event.count > 0);
+                }
+                // don't handle the immediately following SWT.Selection event
+                event.doit = false;
+            }
+        });
+        fHorizontalScrollBar.addListener(SWT.Selection, new Listener() {
+            @Override
+            public void handleEvent(Event event) {
+                int start = fHorizontalScrollBar.getSelection();
+                long time0 = getTime0();
+                long time1 = getTime1();
+                long timeMin = getMinTime();
+                long timeMax = getMaxTime();
+                long delta = timeMax - timeMin;
+
+                long range = time1 - time0;
+                time0 = timeMin + Math.round(delta * ((double) start / H_SCROLLBAR_MAX));
+                time1 = time0 + range;
+
+                // TODO: Follow-up with Bug 310310
+                // In Linux SWT.DRAG is the only value received
+                // https://bugs.eclipse.org/bugs/show_bug.cgi?id=310310
+                if (event.detail == SWT.DRAG) {
+                    setStartFinishTime(time0, time1);
+                } else {
+                    setStartFinishTimeNotify(time0, time1);
+                }
+            }
+        });
+
         Composite filler = new Composite(fDataViewer, SWT.NONE);
         GridData gd = new GridData(SWT.DEFAULT, SWT.DEFAULT, false, false);
-        gd.heightHint = fTimeGraphCtrl.getHorizontalBar().getSize().y;
+        gd.heightHint = fHorizontalScrollBar.getSize().y;
         filler.setLayoutData(gd);
         filler.setLayout(new FillLayout());
 
@@ -84,6 +122,7 @@
         });
         resizeControls();
         fDataViewer.update();
+        adjustHorizontalScrollBar();
         adjustVerticalScrollBar();
         return fDataViewer;
     }

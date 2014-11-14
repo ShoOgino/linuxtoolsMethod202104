@@ -4,16 +4,24 @@
             return;
         }
         boolean zoomScroll = false;
+        boolean horizontalScroll = false;
         Point p = getParent().toControl(getDisplay().getCursorLocation());
         Point parentSize = getParent().getSize();
         if (p.x >= 0 && p.x < parentSize.x && p.y >= 0 && p.y < parentSize.y) {
             // over the parent control
-            if (e.x > getCtrlSize().x) {
+            if (e.x > getSize().x) {
                 // over the vertical scroll bar
                 zoomScroll = false;
-            } else if (e.y < 0 || e.y >= getCtrlSize().y) {
-                // over the time scale or horizontal scroll bar
+            } else if (e.y < 0) {
+                // over the time scale
                 zoomScroll = true;
+            } else if (e.y >= getSize().y) {
+                // over the horizontal scroll bar
+                if ((e.stateMask & SWT.MODIFIER_MASK) == SWT.CTRL) {
+                    zoomScroll = true;
+                } else {
+                    horizontalScroll = true;
+                }
             } else {
                 if (e.x < fTimeProvider.getNameSpace()) {
                     // over the name space
@@ -36,6 +44,8 @@
             } else if (e.count < 0) {
                 zoom(false);
             }
+        } else if (horizontalScroll) {
+            horizontalScroll(e.count > 0);
         } else {
             setTopIndex(getTopIndex() - e.count);
         }
