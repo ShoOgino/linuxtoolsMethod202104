@@ -1,0 +1,25 @@
+    private static IRemoteConnection getConnection(Map<?,?> parameters) {
+        // First check whether arguments have been supplied
+        Object remoteServicesId = parameters.get(PARAMETER_REMOTE_SERVICES_ID);
+        Object connectionName = parameters.get(PARAMETER_CONNECTION_NAME);
+        if (remoteServicesId != null && connectionName != null) {
+            if (!Workaround_Bug449362.triggerRSEStartup(remoteServicesId.toString())) {
+                // Skip the connection in order to avoid an infinite loop
+            } else {
+                IRemoteServices rs = RemoteServices.getRemoteServices(remoteServicesId.toString());
+                if (rs != null) {
+                    return rs.getConnectionManager().getConnection(connectionName.toString());
+                }
+            }
+            return null;
+        }
+
+        // Without the arguments, open dialog box for the node name and address
+        final INewConnectionDialog dialog = TraceControlDialogFactory.getInstance().getNewConnectionDialog();
+        if (dialog.open() == Window.OK) {
+            return dialog.getConnection();
+        }
+
+        return null;
+    }
+
