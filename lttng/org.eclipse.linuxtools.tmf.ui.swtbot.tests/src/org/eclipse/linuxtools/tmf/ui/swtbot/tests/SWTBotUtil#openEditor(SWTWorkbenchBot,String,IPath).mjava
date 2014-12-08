@@ -1,27 +1,31 @@
     /**
-     * Opens and get the TmfEventsEditor
+     * Opens a trace in an editor and get the TmfEventsEditor
      *
+     * @param bot
+     *            the workbench bot
+     * @param projectName
+     *            the name of the project that contains the trace
      * @param elementPath
      *            the trace element path (relative to Traces folder)
-     * @return TmfEventsEditor
+     * @return TmfEventsEditor the opened editor
      */
-    protected TmfEventsEditor openEditor(IPath elementPath) {
-        final SWTBotView projectExplorerBot = fBot.viewById(IPageLayout.ID_PROJECT_EXPLORER);
+    public static TmfEventsEditor openEditor(SWTWorkbenchBot bot, String projectName, IPath elementPath) {
+        final SWTBotView projectExplorerBot = bot.viewById(IPageLayout.ID_PROJECT_EXPLORER);
         projectExplorerBot.setFocus();
 
-        final SWTBotTree tree = fBot.tree();
-        final SWTBotTreeItem treeItem = tree.getTreeItem(getProjectName());
+        final SWTBotTree tree = bot.tree();
+        final SWTBotTreeItem treeItem = tree.getTreeItem(projectName);
         treeItem.expand();
 
         String nodeName = getFullNodeName(treeItem, TmfTracesFolder.TRACES_FOLDER_NAME);
-        fBot.waitUntil(ConditionHelpers.IsTreeChildNodeAvailable(nodeName, treeItem));
+        bot.waitUntil(ConditionHelpers.IsTreeChildNodeAvailable(nodeName, treeItem));
         SWTBotTreeItem tracesNode = treeItem.getNode(nodeName);
         tracesNode.expand();
 
         SWTBotTreeItem currentNode = tracesNode;
         for (String segment : elementPath.segments()) {
             String fullNodeName = getFullNodeName(currentNode, segment);
-            fBot.waitUntil(ConditionHelpers.IsTreeChildNodeAvailable(fullNodeName, currentNode));
+            bot.waitUntil(ConditionHelpers.IsTreeChildNodeAvailable(fullNodeName, currentNode));
             SWTBotTreeItem newNode = currentNode.getNode(fullNodeName);
             newNode.select();
             newNode.doubleClick();
