@@ -1,4 +1,4 @@
-    /**
+   /**
      * Used to get the full command path. It will look for the command in the
      * system path and in the path selected in 'Linux Tools Path' preference page
      * in the informed project.
@@ -17,7 +17,13 @@
             String[] envp = updateEnvironment(null, project);
             try {
                 IRemoteFileProxy proxy = RemoteProxyManager.getInstance().getFileProxy(project);
-                URI whichUri = URI.create(WHICH_CMD);
+                String platform = RemoteProxyManager.getInstance().getOS(project);
+                URI whichUri = null;
+                // For Windows, we use the where command, otherwise, we use the Unix which command
+                if (platform.equals(Platform.OS_WIN32))
+                	whichUri = URI.create(WHERE_CMD);
+                else
+                	whichUri = URI.create(WHICH_CMD);
                 IPath whichPath = new Path(proxy.toPath(whichUri));
                 IRemoteCommandLauncher launcher = RemoteProxyManager.getInstance().getLauncher(project);
                 Process pProxy = launcher.execute(whichPath, new String[]{command}, envp, null, new NullProgressMonitor());
