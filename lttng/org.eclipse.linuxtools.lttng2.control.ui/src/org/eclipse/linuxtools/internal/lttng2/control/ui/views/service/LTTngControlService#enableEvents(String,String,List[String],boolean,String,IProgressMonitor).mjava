@@ -1,49 +1,36 @@
     @Override
     public void enableEvents(String sessionName, String channelName, List<String> eventNames, boolean isKernel, String filterExpression, IProgressMonitor monitor) throws ExecutionException {
 
-        StringBuffer command = createCommand(LTTngControlServiceConstants.COMMAND_ENABLE_EVENT);
+        List<String> command = createCommand(LTTngControlServiceConstants.COMMAND_ENABLE_EVENT);
 
         if (eventNames == null || eventNames.isEmpty()) {
-            command.append(LTTngControlServiceConstants.OPTION_ALL);
+            command.add(LTTngControlServiceConstants.OPTION_ALL);
         } else {
-
-            StringBuffer eventNameParameter = new StringBuffer();
-            for (Iterator<String> iterator = eventNames.iterator(); iterator.hasNext();) {
-                String event = iterator.next();
-                eventNameParameter.append(event);
-                if (iterator.hasNext()) {
-                    eventNameParameter.append(',');
-                }
-            }
-            command.append(formatParameter(eventNameParameter.toString()));
+            command.add(toCsv(eventNames));
         }
 
         if (isKernel) {
-            command.append(LTTngControlServiceConstants.OPTION_KERNEL);
+            command.add(LTTngControlServiceConstants.OPTION_KERNEL);
         } else {
-            command.append(LTTngControlServiceConstants.OPTION_UST);
+            command.add(LTTngControlServiceConstants.OPTION_UST);
         }
 
-        String newSessionName = formatParameter(sessionName);
-
-        command.append(LTTngControlServiceConstants.OPTION_SESSION);
-        command.append(newSessionName);
+        command.add(LTTngControlServiceConstants.OPTION_SESSION);
+        command.add(sessionName);
 
         if (channelName != null) {
-            command.append(LTTngControlServiceConstants.OPTION_CHANNEL);
-            command.append(channelName);
+            command.add(LTTngControlServiceConstants.OPTION_CHANNEL);
+            command.add(channelName);
         }
 
-        command.append(LTTngControlServiceConstants.OPTION_TRACEPOINT);
+        command.add(LTTngControlServiceConstants.OPTION_TRACEPOINT);
 
         if (filterExpression != null) {
-            command.append(LTTngControlServiceConstants.OPTION_FILTER);
-            command.append('\'');
-            command.append(filterExpression);
-            command.append('\'');
+            command.add(LTTngControlServiceConstants.OPTION_FILTER);
+            command.add(filterExpression);
         }
 
-        executeCommand(command.toString(), monitor);
+        executeCommand(command, monitor);
 
     }
 

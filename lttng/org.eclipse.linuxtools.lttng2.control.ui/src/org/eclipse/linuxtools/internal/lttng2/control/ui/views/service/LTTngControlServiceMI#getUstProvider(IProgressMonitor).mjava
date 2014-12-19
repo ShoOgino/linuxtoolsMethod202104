@@ -1,11 +1,11 @@
     @Override
     public List<IUstProviderInfo> getUstProvider(IProgressMonitor monitor) throws ExecutionException {
-        StringBuffer command = createCommand(LTTngControlServiceConstants.COMMAND_LIST_UST);
+        List<String> command = createCommand(LTTngControlServiceConstants.COMMAND_LIST, LTTngControlServiceConstants.OPTION_UST);
         // Get the field to
-        command.append(LTTngControlServiceConstants.OPTION_FIELDS);
+        command.add(LTTngControlServiceConstants.OPTION_FIELDS);
 
         // Execute
-        ICommandResult result = executeCommand(command.toString(), monitor, false);
+        ICommandResult result = executeCommand(command, monitor, false);
         List<IUstProviderInfo> allProviders = new ArrayList<>();
 
         if (isError(result) && result.getErrorOutput() != null) {
@@ -17,7 +17,7 @@
             if (ignoredPattern(result.getErrorOutput(), LTTngControlServiceConstants.LIST_UST_NO_UST_PROVIDER_PATTERN)) {
                 return allProviders;
             }
-            throw new ExecutionException(Messages.TraceControl_CommandError + LTTngControlServiceConstants.COMMAND_LIST_UST);
+            throw new ExecutionException(Messages.TraceControl_CommandError + toCommandString(command));
         }
 
         Document document = getDocumentFromStrings(result.getOutput());
