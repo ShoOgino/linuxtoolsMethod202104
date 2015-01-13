@@ -1,14 +1,19 @@
-    private String runRemoteStapAttempt(String[] args, boolean getErrors) {
-        int attemptsLeft = 3;
-        while (true) {
-            try {
-                return runRemoteStap(args, getErrors);
-            } catch (JSchException e) {
-                if (!(e.getCause() instanceof ConnectException) || --attemptsLeft == 0) {
-                    askIfEditCredentials();
-                    return null;
-                }
-            }
+    private String runRemoteStapAttempt(String[] args, boolean getErrors) throws JSchException {
+        StringOutputStream str = new StringOutputStream();
+        StringOutputStream strErr = new StringOutputStream();
+
+        IPreferenceStore p = ConsoleLogPlugin.getDefault().getPreferenceStore();
+        String user = p.getString(ConsoleLogPreferenceConstants.SCP_USER);
+        String host = p.getString(ConsoleLogPreferenceConstants.HOST_NAME);
+        String password = p.getString(ConsoleLogPreferenceConstants.SCP_PASSWORD);
+        int port = p.getInt(ConsoleLogPreferenceConstants.PORT_NUMBER);
+
+        Channel channel = LinuxtoolsProcessFactory.execRemoteAndWait(args, str, strErr, user, host, password,
+                port, EnvironmentVariablesPreferencePage.getEnvironmentVariables());
+        if (channel == null) {
+            return null;
         }
+        channel.getSession().disconnect();
+        return (!getErrors ? str : strErr).toString();
     }
 
