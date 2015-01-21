@@ -2,7 +2,7 @@
     public boolean matches(ITmfEvent event) {
         Object value = getFieldValue(event, fField);
         if (value == null) {
-            return false ^ fNot;
+            return false;
         }
         if (fType == Type.NUM) {
             if (fValueNumber != null) {
@@ -18,27 +18,23 @@
             }
         } else if (fType == Type.ALPHA) {
             String valueString = value.toString();
-            int comp = valueString.compareTo(fValue.toString());
-            if (comp < -1) {
-                comp = -1;
-            } else if (comp > 1) {
-                comp = 1;
-            }
+            int comp = (int) Math.signum(valueString.compareTo(fValue.toString()));
             return (comp == fResult) ^ fNot;
         } else if (fType == Type.TIMESTAMP) {
             if (fValueTimestamp != null) {
-                if (value instanceof TmfTimestamp) {
-                    TmfTimestamp valueTimestamp = (TmfTimestamp) value;
-                    return (valueTimestamp.compareTo(fValueTimestamp, false) == fResult) ^ fNot;
+                if (value instanceof ITmfTimestamp) {
+                    ITmfTimestamp valueTimestamp = (ITmfTimestamp) value;
+                    int comp = (int) Math.signum(valueTimestamp.compareTo(fValueTimestamp, false));
+                    return (comp == fResult) ^ fNot;
                 }
                 try {
-                    TmfTimestamp valueTimestamp = new TmfTimestamp((long) (1E9 * NumberFormat
-                                    .getInstance().parse(value.toString()).doubleValue()));
-                    return (valueTimestamp.compareTo(fValueTimestamp, false) == fResult) ^ fNot;
+                    ITmfTimestamp valueTimestamp = new TmfNanoTimestamp(fTimestampFormat.parseValue(value.toString()));
+                    int comp = (int) Math.signum(valueTimestamp.compareTo(fValueTimestamp, false));
+                    return (comp == fResult) ^ fNot;
                 } catch (ParseException e) {
                 }
             }
         }
-        return false ^ fNot;
+        return false;
     }
 
