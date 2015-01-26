@@ -3,15 +3,20 @@
 
         TmfCoreTracer.traceRequest(fRequest, "is being serviced by " + fProvider.getName()); //$NON-NLS-1$
 
+        if (fRequest.isCancelled()) {
+            isCompleted = true;
+            return;
+        }
+
         // Extract the generic information
         fRequest.start();
         int nbRequested = fRequest.getNbRequested();
         int nbRead = 0;
-        isCompleted = false;
 
         // Initialize the execution
         ITmfContext context = fProvider.armRequest(fRequest);
         if (context == null) {
+            isCompleted = true;
             fRequest.cancel();
             return;
         }
@@ -56,6 +61,7 @@
 
         } catch (Exception e) {
             Activator.logError("Error in " + fProvider.getName() + " handling " + fRequest, e); //$NON-NLS-1$ //$NON-NLS-2$
+            isCompleted = true;
             fRequest.fail();
         }
 
