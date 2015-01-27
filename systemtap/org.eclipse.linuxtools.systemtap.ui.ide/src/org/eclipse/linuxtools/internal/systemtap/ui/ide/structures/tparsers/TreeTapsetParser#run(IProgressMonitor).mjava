@@ -1,0 +1,26 @@
+    /**
+     * Prepares the parser for a run. Clients must override this method to perform
+     * actions during the run; a call to super.run() is necessary.
+     */
+    @Override
+    protected final synchronized IStatus run(IProgressMonitor monitor) {
+        IStatus result;
+        if (forcedTree != null) {
+            if (isValidTree(forcedTree)) {
+                tree = forcedTree;
+                result = createStatus(IStatus.OK);
+            } else {
+                result = createStatus(IStatus.ERROR, Messages.TapsetParser_ErrorInvalidTapsetTree);
+            }
+            forcedTree = null;
+        } else if (tapsetChanges != null) {
+            result = performUpdate(monitor);
+        } else {
+            tree = new TreeNode(null, false);
+            result = createStatus(runAction(monitor));
+        }
+        synchronized (lock) {
+            return result;
+        }
+    }
+

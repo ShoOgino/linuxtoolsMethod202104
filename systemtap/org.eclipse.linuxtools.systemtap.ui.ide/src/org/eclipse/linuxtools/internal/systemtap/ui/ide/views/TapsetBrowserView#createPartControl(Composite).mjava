@@ -1,8 +1,20 @@
     @Override
     public void createPartControl(Composite parent) {
         super.createPartControl(parent);
-        parser.addJobChangeListener(viewUpdater);
-        updateContents();
         makeActions();
+
+        // Add listener and display initial contents based on the state of the last parser job.
+        synchronized (lock) {
+            IStatus result = parser.safelyAddJobChangeListener(viewUpdater);
+            if (result != null) {
+                if (result.isOK()) {
+                    displayContents();
+                } else {
+                    displayCancelContents();
+                }
+            } else {
+                displayLoadingMessage();
+            }
+        }
     }
 
