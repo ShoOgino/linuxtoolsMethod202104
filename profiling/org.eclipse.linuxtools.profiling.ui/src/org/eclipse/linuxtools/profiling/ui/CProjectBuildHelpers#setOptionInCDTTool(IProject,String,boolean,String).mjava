@@ -1,60 +1,60 @@
-	/**
-	 * <h1>Set Option in CDT</h1>
-	 * Same as {@link #setOptionInCDT(IProject project, String optionIDString, boolean value) setOption_in } <br>
-	 * except you can specify the parent tool manually (in case current implementation does not support what yon need.
-	 *
-	 * @param project         an IProject
-	 * @param optionIDString  ID of option as defined in plugin.xml. e.g gnu.cpp.compiler.option.debugging.gprof
-	 * @param value           true/false
-	 * @param toolSuperClassId
-	 *                   Name of the tool where the option resides. E.g 'GCC C Compiler' or 'GCC C++ Compiler'. <br>
-	 *                   To find out, check/uncheck an option, inspect the .cproject file, look for the option,<br>
-	 *                   then see what tool it's under. See the name property
-	 * @return                true if all went well, false otherwise
-	 */
-	private static boolean setOptionInCDTTool(IProject project, String optionIDString, boolean value, String toolSuperClassId) {
+    /**
+     * <h1>Set Option in CDT</h1>
+     * Same as {@link #setOptionInCDT(IProject project, String optionIDString, boolean value) setOption_in } <br>
+     * except you can specify the parent tool manually (in case current implementation does not support what yon need.
+     *
+     * @param project         an IProject
+     * @param optionIDString  ID of option as defined in plugin.xml. e.g gnu.cpp.compiler.option.debugging.gprof
+     * @param value           true/false
+     * @param toolSuperClassId
+     *                   Name of the tool where the option resides. E.g 'GCC C Compiler' or 'GCC C++ Compiler'. <br>
+     *                   To find out, check/uncheck an option, inspect the .cproject file, look for the option,<br>
+     *                   then see what tool it's under. See the name property
+     * @return                true if all went well, false otherwise
+     */
+    private static boolean setOptionInCDTTool(IProject project, String optionIDString, boolean value, String toolSuperClassId) {
 
-		// Get configuration
-		IConfiguration activeConf = helperGetActiveConfiguration(project);
+        // Get configuration
+        IConfiguration activeConf = helperGetActiveConfiguration(project);
 
-		// Get the ITool the option.
-		ITool gccCompileriTool = helperGetGccCompilerToolBySuperClass(toolSuperClassId, activeConf);
+        // Get the ITool the option.
+        ITool gccCompileriTool = helperGetGccCompilerToolBySuperClass(toolSuperClassId, activeConf);
 
-		// Get Template Opiton.   
-		//Get Option ~Immutable. This is like a 'templete' that we will base the actual option on.
-		IOption optionTemplate = gccCompileriTool.getOptionById(optionIDString);
+        // Get Template Opiton.
+        //Get Option ~Immutable. This is like a 'templete' that we will base the actual option on.
+        IOption optionTemplate = gccCompileriTool.getOptionById(optionIDString);
 
-		//Check that we got a good option template.
-		if (optionTemplate == null) {
-			//This could fail if the specified option doesn't exist or is miss-spelled.
-			MessageDialogSyncedRunnable.openErrorSyncedRunnable(ProfilingMessages.errorTitle, ProfilingMessages.errorGetOptionTemplate);
-			return false;
-		}
+        //Check that we got a good option template.
+        if (optionTemplate == null) {
+            //This could fail if the specified option doesn't exist or is miss-spelled.
+            MessageDialogSyncedRunnable.openErrorSyncedRunnable(ProfilingMessages.errorTitle, ProfilingMessages.errorGetOptionTemplate);
+            return false;
+        }
 
-		// Get Actual Option
-		//
-		// Now we acquire an option that can be 'set' to something.
-		// In contrast to the immutable option above, if the user never checked/unchecked the option by hand,
-		// then the first time 'set' of this option will work correctly. Whereas
-		// the immutable option would only work if the user checked/unchecked the option by hand before.
-		IOption mutableOptionToSet = null;
-		try {
-			mutableOptionToSet = gccCompileriTool.getOptionToSet(optionTemplate, false);
-			mutableOptionToSet.setValue(value);
-		} catch (BuildException e) {
-			//This is reached if the template that was provided was bad.
-			MessageDialogSyncedRunnable.openErrorSyncedRunnable(ProfilingMessages.errorTitle, ProfilingMessages.errorGetOptionForWriting);
-		}
+        // Get Actual Option
+        //
+        // Now we acquire an option that can be 'set' to something.
+        // In contrast to the immutable option above, if the user never checked/unchecked the option by hand,
+        // then the first time 'set' of this option will work correctly. Whereas
+        // the immutable option would only work if the user checked/unchecked the option by hand before.
+        IOption mutableOptionToSet = null;
+        try {
+            mutableOptionToSet = gccCompileriTool.getOptionToSet(optionTemplate, false);
+            mutableOptionToSet.setValue(value);
+        } catch (BuildException e) {
+            //This is reached if the template that was provided was bad.
+            MessageDialogSyncedRunnable.openErrorSyncedRunnable(ProfilingMessages.errorTitle, ProfilingMessages.errorGetOptionForWriting);
+        }
 
-		// get resource info. (where things are saved to).
-		IResourceInfo resourceInfo = activeConf.getResourceInfos()[0];
+        // get resource info. (where things are saved to).
+        IResourceInfo resourceInfo = activeConf.getResourceInfos()[0];
 
-		// Mark the option as enabled in the build manager.
-		ManagedBuildManager.setOption(resourceInfo, gccCompileriTool, mutableOptionToSet,
-				true);
+        // Mark the option as enabled in the build manager.
+        ManagedBuildManager.setOption(resourceInfo, gccCompileriTool, mutableOptionToSet,
+                true);
 
-		// Save this business to disk.
-		ManagedBuildManager.saveBuildInfo(project, true);
-		return true;
-	}
+        // Save this business to disk.
+        ManagedBuildManager.saveBuildInfo(project, true);
+        return true;
+    }
 

@@ -1,43 +1,43 @@
-	/**
-	 * <h1>Set Autotools option and write to disk.</h1>
-	 *
-	 * <p> Set an option (as well as flags) in the .autotools configuration and update gui. <br>
-	 * It is oblivious as to whether the option ID is an option or a flag, it just looks at the ID in the xml. </p>
-	 *
-	 * <p> It is designed so that it can be ran from a background thread.
-	 * It syncs with the GUI thread to avoid concurrency exceptions. </p>
-	 *
-	 * <p> *this modifies gui checkbox options* <b>as well as</b> *saving the option to disk*. </p>
-	 *
-	 * @param project    the IProject project which will be read to check if it is c or cpp.
-	 * @param optId      Id of option to set. Take directly out of .autotools. a 'flag' is also an option.
-	 * @param optVal     string value of the option. e.g "true"  "1234";
-	 */
-	public static void setOptionInAutotools(final IProject project, final String optId, final String optVal) {
+    /**
+     * <h1>Set Autotools option and write to disk.</h1>
+     *
+     * <p> Set an option (as well as flags) in the .autotools configuration and update gui. <br>
+     * It is oblivious as to whether the option ID is an option or a flag, it just looks at the ID in the xml. </p>
+     *
+     * <p> It is designed so that it can be ran from a background thread.
+     * It syncs with the GUI thread to avoid concurrency exceptions. </p>
+     *
+     * <p> *this modifies gui checkbox options* <b>as well as</b> *saving the option to disk*. </p>
+     *
+     * @param project    the IProject project which will be read to check if it is c or cpp.
+     * @param optId      Id of option to set. Take directly out of .autotools. a 'flag' is also an option.
+     * @param optVal     string value of the option. e.g "true"  "1234";
+     */
+    public static void setOptionInAutotools(final IProject project, final String optId, final String optVal) {
 
-		// need to run this in the ui thread otherwise get SWT Exceptions
-		// based on concurrency issues.
-		Display.getDefault().syncExec(new Runnable() {
-			@Override
-			public void run() {
+        // need to run this in the ui thread otherwise get SWT Exceptions
+        // based on concurrency issues.
+        Display.getDefault().syncExec(new Runnable() {
+            @Override
+            public void run() {
 
-				//Code copied from private methd: SetAutotoolsStringOptionValue.setOptionValue()
-				//Except I added a line to save the configuration to disk as well.
-				AutotoolsConfigurationManager.getInstance().syncConfigurations(project);
-				ICConfigurationDescription cfgds = CoreModel.getDefault().
-						getProjectDescription(project).getActiveConfiguration();
+                //Code copied from private methd: SetAutotoolsStringOptionValue.setOptionValue()
+                //Except I added a line to save the configuration to disk as well.
+                AutotoolsConfigurationManager.getInstance().syncConfigurations(project);
+                ICConfigurationDescription cfgds = CoreModel.getDefault().
+                        getProjectDescription(project).getActiveConfiguration();
 
-				if (cfgds != null) {
-					IAConfiguration iaConfig = AutotoolsConfigurationManager.getInstance()
-							.getConfiguration(project, cfgds.getId());
+                if (cfgds != null) {
+                    IAConfiguration iaConfig = AutotoolsConfigurationManager.getInstance()
+                            .getConfiguration(project, cfgds.getId());
 
-					//Set option value.
-					iaConfig.setOption(optId, optVal);
+                    //Set option value.
+                    iaConfig.setOption(optId, optVal);
 
-					//Save option to disk.
-					AutotoolsConfigurationManager.getInstance().saveConfigs(project);
-				}
-			}
-		});
-	}
+                    //Save option to disk.
+                    AutotoolsConfigurationManager.getInstance().saveConfigs(project);
+                }
+            }
+        });
+    }
 
