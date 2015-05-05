@@ -1,0 +1,23 @@
+	@Override
+	public Object execute(ExecutionEvent event) throws ExecutionException {
+		final IWorkbenchPart activePart = HandlerUtil.getActivePart(event);
+		final IDockerConnection connection = getCurrentConnection(activePart);
+		if (connection == null) {
+			return null;
+		}
+		final Job job = new Job(DVMessages.getString(IMAGES_REFRESH_MSG)) {
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				monitor.beginTask(DVMessages.getString(IMAGES_REFRESH_MSG), 1);
+				connection.getImages(true);
+				monitor.worked(1);
+				monitor.done();
+				return Status.OK_STATUS;
+			}
+		};
+		job.setPriority(Job.LONG);
+		job.setUser(true);
+		job.schedule();
+		return null;
+	}
+

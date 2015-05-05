@@ -1,0 +1,56 @@
+		/**
+		 * Checks if there are DOCKER_xxx environment variables when running a
+		 * script in a shell. The expected varibles are written in a file that
+		 * can be read later.
+		 * 
+		 * @return {@code true} if the env variables exist and is readable,
+		 *         {@code false} otherwise.
+		 * @throws DockerException
+		 */
+		private boolean defaultWithShellEnv() throws DockerException {
+			try {
+				// FIXME need to verify the OS and decide which script to run
+				final URL scriptURL = FileLocator.resolve(FileLocator.find(
+						Activator.getDefault().getBundle(), new Path(
+								"resources/script.sh"), Collections.EMPTY_MAP));
+				final Process process = Runtime.getRuntime().exec(
+						scriptURL.getPath());
+				process.waitFor();
+				if (process.exitValue() == 0) {
+					final InputStream processInputStream = process
+							.getInputStream();
+					// read content from temp file
+					Properties dockerSettings = new Properties();
+					dockerSettings.load(processInputStream);
+					settings.put(BINDING_MODE, TCP_CONNECTION);
+					if (dockerSettings.containsKey("DOCKER_HOST")) {
+						settings.put(TCP_HOST, dockerSettings
+								.get("DOCKER_HOST").toString());
+					}
+					if (dockerSettings.containsKey("DOCKER_CERT_PATH")) {
+						settings.put(TCP_CERT_PATH,
+								dockerSettings.get("DOCKER_CERT_PATH")
+										.toString());
+					}
+					if (dockerSettings.containsKey("DOCKER_TLS_VERIFY")) {
+						settings.put(
+								TCP_TLS_VERIFY,
+								Boolean.valueOf(dockerSettings
+										.get("DOCKER_TLS_VERIFY").toString()
+										.equals("1")));
+					}
+					return true;
+				} else {
+					// log what happened if the process did not end as expected
+					final InputStream processErrorStream = process
+							.getErrorStream();
+					final String errorMessage = streamToString(processErrorStream);
+					Activator.log(new Status(IStatus.ERROR,
+							Activator.PLUGIN_ID, errorMessage));
+				}
+			} catch (IOException | InterruptedException e) {
+				throw new DockerException(Messages.Retrieve_Default_Settings_Failure, e);
+			}
+			return false;
+		}
+

@@ -1,0 +1,44 @@
+	@Override
+	public String createContainer(final IDockerContainerConfig c)
+			throws DockerException, InterruptedException {
+		ContainerConfig.Builder builder = ContainerConfig.builder()
+				.hostname(c.hostname()).domainname(c.domainname())
+				.user(c.user()).memory(c.memory()).memorySwap(c.memorySwap())
+				.cpuShares(c.cpuShares()).cpuset(c.cpuset())
+				.attachStdin(c.attachStdin()).attachStdout(c.attachStdout())
+				.attachStderr(c.attachStderr()).tty(c.tty())
+				.openStdin(c.openStdin()).stdinOnce(c.stdinOnce()).cmd(c.cmd())
+				.image(c.image()).workingDir(c.workingDir())
+				.networkDisabled(c.networkDisabled());
+		// For those fields that are Collections and not set, they will be null.
+		// We can't use their values to set the builder's fields as they are
+		// expecting non-null Collections to copy over. In those cases, we just
+		// don't set those fields in the builder.
+		if (c.portSpecs() != null)
+			builder = builder.portSpecs(c.portSpecs());
+		if (c.exposedPorts() != null)
+			builder = builder.exposedPorts(c.exposedPorts());
+		if (c.env() != null)
+			builder = builder.env(c.env());
+		if (c.volumes() != null)
+			builder = builder.volumes(c.volumes());
+		if (c.entrypoint() != null)
+			builder = builder.entrypoint(c.entrypoint());
+		if (c.onBuild() != null)
+			builder = builder.onBuild(c.onBuild());
+
+		final ContainerConfig config = builder.build();
+
+		try {
+			// create container with default random name
+			final ContainerCreation creation = client.createContainer(config);
+			final String id = creation.id();
+			return id;
+		} catch (com.spotify.docker.client.DockerRequestException e) {
+			throw new DockerException(e.message());
+		} catch (com.spotify.docker.client.DockerException e) {
+			DockerException f = new DockerException(e);
+			throw f;
+		}
+	}
+

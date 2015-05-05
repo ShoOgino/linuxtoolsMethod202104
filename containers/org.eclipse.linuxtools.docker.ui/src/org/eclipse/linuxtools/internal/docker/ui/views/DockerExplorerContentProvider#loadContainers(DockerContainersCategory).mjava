@@ -1,0 +1,27 @@
+	/**
+	 * Call the {@link IDockerConnection#getContainers(boolean)} in a background job to avoid blocking the UI.
+	 * @param containersCategory the selected {@link DockerContainersCategory}
+	 */
+	private void loadContainers(final DockerContainersCategory containersCategory) {
+		final Job loadContainersJob = new Job("Loading containers...") {
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				containersCategory.getConnection().getContainers(true);
+				return Status.OK_STATUS;
+			}
+		};
+		loadContainersJob.addJobChangeListener(new JobChangeAdapter() {
+			@Override
+			public void done(final IJobChangeEvent event) {
+				event.getResult();
+				Display.getDefault().asyncExec(new Runnable() {
+					@Override
+					public void run() {
+						refreshTarget(containersCategory);
+					}
+				});
+			}
+		});
+		loadContainersJob.schedule();
+	}
+

@@ -1,0 +1,29 @@
+	/**
+	 * @see org.eclipse.jface.viewers.ITreeContentProvider#getChildren(java.lang.Object)
+	 */
+	@Override
+	public Object[] getChildren(final Object parentElement) {
+		if (parentElement instanceof IDockerConnection) {
+			final IDockerConnection dockerConnection = (IDockerConnection) parentElement;
+			return new Object[] { new DockerImagesCategory(dockerConnection),
+					new DockerContainersCategory(dockerConnection) };
+		} else if (parentElement instanceof DockerContainersCategory) {
+			final DockerContainersCategory containersCategory = (DockerContainersCategory) parentElement;
+			final IDockerConnection connection = containersCategory.getConnection();
+			if(connection.isContainersLoaded()) {
+				return connection.getContainers().toArray();
+			}
+			loadContainers(containersCategory);
+			return new Object[] { new LoadingStub(containersCategory) };
+		} else if (parentElement instanceof DockerImagesCategory) {
+			final DockerImagesCategory imagesCategory = (DockerImagesCategory) parentElement;
+			final IDockerConnection connection = imagesCategory.getConnection();
+			if(connection.isImagesLoaded()) {
+				return connection.getImages().toArray();
+			}
+			loadImages(imagesCategory);
+			return new Object[] { new LoadingStub(imagesCategory) };
+		}
+		return EMPTY;
+	}
+

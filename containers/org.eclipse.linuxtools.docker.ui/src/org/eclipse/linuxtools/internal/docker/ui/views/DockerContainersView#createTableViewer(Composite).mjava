@@ -1,0 +1,117 @@
+	private void createTableViewer(final Composite container) {
+		search = new Text(container, SWT.SEARCH);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).grab(true, false).applyTo(search);
+		search.addModifyListener(onSearch());
+		Composite tableArea = new Composite(container, SWT.NONE);
+		GridLayoutFactory.fillDefaults().numColumns(1).margins(0,  0).applyTo(tableArea);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).grab(true, true).applyTo(tableArea);
+		
+		final TableColumnLayout tableLayout = new TableColumnLayout();
+		tableArea.setLayout(tableLayout);
+		this.viewer = new TableViewer(tableArea, SWT.FULL_SELECTION | SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL);
+		this.viewer.setContentProvider(new DockerContainersContentProvider());
+		final Table table = viewer.getTable();
+		GridLayoutFactory.fillDefaults().numColumns(1).margins(0,  0).applyTo(table);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).grab(true, true).applyTo(table);
+		table.setLinesVisible(true);
+		table.setHeaderVisible(true);
+		// 'Name' column
+		final TableViewerColumn nameColumn = createColumn(DVMessages.getString("NAME")); //$NON-NLS-1$
+		setLayout(nameColumn, tableLayout, 150);
+		nameColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(final Object element) {
+				if (element instanceof IDockerContainer) {
+					return ((IDockerContainer)element).name();
+				}
+				return super.getText(element);
+			}
+		});
+		// 'Image' column
+		final TableViewerColumn imageColumn = createColumn(DVMessages.getString("IMAGE")); //$NON-NLS-1$
+		setLayout(imageColumn, tableLayout, 150);
+		imageColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(final Object element) {
+				if (element instanceof IDockerContainer) {
+					return ((IDockerContainer)element).image();
+				}
+				return super.getText(element);
+			}
+		});
+		// 'Creation Date' column
+		final TableViewerColumn creationDateColumn = createColumn(DVMessages.getString("CREATED")); //$NON-NLS-1$
+		setLayout(creationDateColumn, tableLayout, 150);
+		creationDateColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(final Object element) {
+				if (element instanceof IDockerContainer) {
+					return LabelUtils.toCreatedDate(((IDockerContainer)element).created());
+				}
+				return super.getText(element);
+			}
+		});
+		// 'Command' column
+		final TableViewerColumn commandColumn = createColumn(DVMessages.getString("COMMAND")); //$NON-NLS-1$
+		setLayout(commandColumn, tableLayout, 150);
+		commandColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(final Object element) {
+				if (element instanceof IDockerContainer) {
+					return ((IDockerContainer)element).command();
+				}
+				return super.getText(element);
+			}
+		});
+		// 'Ports' column
+		final TableViewerColumn portsColumn = createColumn(DVMessages.getString("PORTS")); //$NON-NLS-1$
+		setLayout(portsColumn, tableLayout, 150);
+		portsColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(final Object element) {
+				if (element instanceof IDockerContainer) {
+					final StringBuilder ports = new StringBuilder();
+					for (Iterator<IDockerPortMapping> iterator = ((IDockerContainer) element)
+							.ports().iterator(); iterator.hasNext();) {
+						final IDockerPortMapping portMapping = iterator.next();
+						ports.append(LabelUtils.containerPortMappingToString(portMapping));
+						if(iterator.hasNext()) {
+							ports.append(", ");
+						}
+					}
+					return ports.toString();
+				}
+				return super.getText(element);
+			}
+		});
+		// 'Status' column
+		final TableViewerColumn statusColumn = createColumn(DVMessages.getString("STATUS")); //$NON-NLS-1$ 
+		setLayout(statusColumn, tableLayout, 150);
+		statusColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(final Object element) {
+				if (element instanceof IDockerContainer) {
+					return ((IDockerContainer)element).status();
+				}
+				return super.getText(element);
+			}
+		});
+		// comparator
+		final DockerContainersComparator comparator = new DockerContainersComparator(this.viewer);
+		comparator.setColumn(creationDateColumn.getColumn());
+		// Set column a second time so we reverse the order and default to most
+		// currently created containers first
+		comparator.setColumn(creationDateColumn.getColumn());
+		viewer.setComparator(comparator);
+		// apply search filter
+		this.viewer.addFilter(getContainersFilter());
+		IDockerConnection[] connections = DockerConnectionManager.getInstance()
+				.getConnections();
+		if (connections.length > 0) {
+			setConnection(connections[0]);
+			connection.addContainerListener(this);
+		}
+		// get the current selection in the tableviewer
+		getSite().setSelectionProvider(viewer);
+	}
+

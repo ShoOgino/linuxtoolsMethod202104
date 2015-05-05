@@ -1,0 +1,44 @@
+	private void performRemoveTagImage(final ImageRemoveTag wizard) {
+		final Job removeTagImageJob = new Job(
+				DVMessages.getString(REMOVE_TAG_JOB_TITLE)) {
+
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				final String tag = wizard.getTag();
+				monitor.beginTask(DVMessages.getString(REMOVE_TAG_MSG), 2);
+				// tag the image and let the progress
+				// handler refresh the images when done
+				try {
+					((DockerConnection) connection).removeTag(tag);
+					monitor.worked(1);
+					((DockerConnection) connection).getImages(true);
+					monitor.worked(1);
+				} catch (final DockerException e) {
+					Display.getDefault().syncExec(new Runnable() {
+
+						@Override
+						public void run() {
+							MessageDialog.openError(Display.getCurrent()
+									.getActiveShell(), DVMessages
+									.getFormattedString(
+											ERROR_REMOVING_TAG_IMAGE,
+											tag), e.getMessage());
+
+						}
+
+					});
+					// for now
+				} catch (InterruptedException e) {
+					// do nothing
+				} finally {
+					monitor.done();
+				}
+				return Status.OK_STATUS;
+			}
+
+		};
+
+		removeTagImageJob.schedule();
+
+	}
+

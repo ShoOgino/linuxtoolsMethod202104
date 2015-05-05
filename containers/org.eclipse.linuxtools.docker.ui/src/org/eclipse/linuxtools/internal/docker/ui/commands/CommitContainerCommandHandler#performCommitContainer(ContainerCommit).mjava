@@ -1,0 +1,32 @@
+	private void performCommitContainer(final ContainerCommit wizard) {
+		final Job commitContainerJob = new Job(
+				DVMessages.getString(COMMIT_CONTAINER_JOB_TITLE)) {
+
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				final String tag = wizard.getTag();
+				final String repo = wizard.getRepo();
+				final String author = wizard.getAuthor();
+				final String comment = wizard.getComment();
+				monitor.beginTask(DVMessages.getString(COMMIT_CONTAINER_MSG), 1);
+				// commit the Container and then update the list of Images
+				try {
+					((DockerConnection) connection).commitContainer(
+							container.id(), repo, tag, comment, author);
+					monitor.worked(1);
+				} catch (DockerException e) {
+					MessageDialog.openError(Display.getCurrent()
+							.getActiveShell(), DVMessages.getFormattedString(
+							ERROR_COMMITTING_CONTAINER, tag), e.getMessage());
+				} finally {
+					monitor.done();
+				}
+				return Status.OK_STATUS;
+			}
+
+		};
+
+		commitContainerJob.schedule();
+
+	}
+

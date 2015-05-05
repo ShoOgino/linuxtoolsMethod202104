@@ -1,0 +1,43 @@
+	private void performTagImage(final ImageTag wizard) {
+		final Job tagImageJob = new Job(
+				DVMessages.getString(TAG_IMAGE_JOB_TITLE)) {
+
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				final String tag = wizard.getTag();
+				monitor.beginTask(DVMessages.getString(TAG_IMAGE_MSG), 2);
+				// tag the image and let the progress
+				// handler refresh the images when done
+				try {
+					((DockerConnection) connection).tagImage(image.id(), tag);
+					monitor.worked(1);
+					((DockerConnection) connection).getImages(true);
+					monitor.worked(1);
+				} catch (final DockerException e) {
+					Display.getDefault().syncExec(new Runnable() {
+
+						@Override
+						public void run() {
+							MessageDialog.openError(Display.getCurrent()
+									.getActiveShell(), DVMessages
+									.getFormattedString(ERROR_TAGGING_IMAGE,
+											tag), e.getMessage());
+
+						}
+
+					});
+					// for now
+				} catch (InterruptedException e) {
+					// do nothing
+				} finally {
+					monitor.done();
+				}
+				return Status.OK_STATUS;
+			}
+
+		};
+
+		tagImageJob.schedule();
+
+	}
+

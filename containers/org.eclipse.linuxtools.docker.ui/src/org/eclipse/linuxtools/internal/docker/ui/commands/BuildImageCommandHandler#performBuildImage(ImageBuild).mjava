@@ -1,0 +1,47 @@
+	private void performBuildImage(final ImageBuild wizard) {
+		final Job buildImageJob = new Job(
+				DVMessages.getString(BUILD_IMAGE_JOB_TITLE)) {
+
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				final String id = wizard.getImageName();
+				final int lines = wizard.getNumberOfLines();
+				final IPath path = wizard.getDirectory();
+				monitor.beginTask(DVMessages.getString(BUILD_IMAGE_JOB_TITLE),
+						1);
+				// build the image and let the progress
+				// handler refresh the images when done
+				try {
+					((DockerConnection) connection)
+							.buildImage(path, id,
+									new ImageBuildProgressHandler(connection,
+											id, lines));
+					monitor.worked(1);
+				} catch (final DockerException e) {
+					Display.getDefault().syncExec(new Runnable() {
+
+						@Override
+						public void run() {
+							MessageDialog.openError(Display.getCurrent()
+									.getActiveShell(), DVMessages
+									.getFormattedString(ERROR_BUILDING_IMAGE,
+											id), e.getMessage());
+
+						}
+
+					});
+					// for now
+				} catch (InterruptedException e) {
+					// do nothing
+				} finally {
+					monitor.done();
+				}
+				return Status.OK_STATUS;
+			}
+
+		};
+
+		buildImageJob.schedule();
+
+	}
+

@@ -1,0 +1,143 @@
+	/**
+	 * Creates the connection settings container, where the user can choose how to 
+	 * connect to the docker daemon (using sockets or TCP with SSL - or not)
+	 * 
+	 * @param parent the parent container (ie, the main container in the preference page)
+	 */
+	private void createConnectionSettingsContainer(final Composite parent) {
+		final int COLUMNS = 3;
+		final int INDENT = 20;
+		final Group container = new Group(parent, SWT.BORDER);
+		container.setText("Docker deamon binding settings");
+		container.setToolTipText("Select the binding mode to use to connect to the Docker daemon");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).span(1,  1).grab(true, false).applyTo(container);
+		GridLayoutFactory.fillDefaults().numColumns(COLUMNS).margins(0, 0).spacing(10, 2).applyTo(container);
+		
+		unixSocketBtn = new Button(container, SWT.RADIO);
+		unixSocketBtn.setText("Unix socket");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).span(COLUMNS,  1).applyTo(unixSocketBtn);
+		final Label socketPathLabel = new Label(container, SWT.NONE);
+		socketPathLabel.setText("Location:");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).indent(INDENT, 0).applyTo(socketPathLabel);
+		unixSocketPathText = new Text(container, SWT.BORDER); 
+		unixSocketPathText.setToolTipText("Path to the socket file");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).grab(true, false).applyTo(unixSocketPathText);
+		final Button socketPathBrowseButton = new Button(container, SWT.BUTTON1);
+		socketPathBrowseButton.setText("Browse...");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).applyTo(socketPathBrowseButton);
+		unixSocketBtn.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(final SelectionEvent e) {
+				final Button targetButton = ((Button)e.widget);
+				if(targetButton.getSelection()) {
+					bindingMode = UNIX_SOCKET;
+					unixSocketPathText.setEnabled(true);
+					socketPathBrowseButton.setEnabled(true);
+				} else {
+					unixSocketPathText.setEnabled(false);
+					socketPathBrowseButton.setEnabled(false);
+				}
+			}
+		});
+		unixSocketPathText.addModifyListener(new ModifyListener() {
+			public void modifyText(ModifyEvent evt) {
+				unixSocketPath = ((Text)evt.widget).getText();
+			}
+		});
+		
+		// TCP Connection with optional TLS
+		final Button tcpConnectionBtn = new Button(container, SWT.RADIO);
+		tcpConnectionBtn.setText("TCP Connection");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).span(COLUMNS,  1).applyTo(tcpConnectionBtn);
+		final Label tcpHostLabel = new Label(container, SWT.NONE);
+		tcpHostLabel.setText("Host:");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).indent(INDENT, 0).applyTo(tcpHostLabel);
+		final Text tcpHostText = new Text(container, SWT.BORDER); 
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).span(2, 1).grab(true, false).applyTo(tcpHostText);
+		final Button tcpAuthButton = new Button(container, SWT.CHECK);
+		tcpAuthButton.setText("Enable authentication");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).indent(INDENT, 0).span(3, 1).applyTo(tcpAuthButton);
+		final Label tcpCertPathLabel = new Label(container, SWT.NONE);
+		tcpCertPathLabel.setText("Path:");
+		tcpCertPathLabel.setToolTipText("Path to the certificates folder");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).indent(INDENT * 2, 0).applyTo(tcpCertPathLabel);
+		final Text tcpCertPathText = new Text(container, SWT.BORDER);
+		tcpCertPathText.setEnabled(false);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).grab(true, false).applyTo(tcpCertPathText);
+		final Button tcpCertPathBrowseButton = new Button(container, SWT.BUTTON1);
+		tcpCertPathBrowseButton.setText("Browse...");
+		tcpCertPathText.setEnabled(false);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).applyTo(tcpCertPathBrowseButton);
+		
+		tcpConnectionBtn.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(final SelectionEvent e) {
+				final Button targetButton = ((Button)e.widget);
+				if(targetButton.getSelection()) {
+					bindingMode = TCP_CONNECTION;
+					tcpHostText.setEnabled(true);
+					tcpAuthButton.setEnabled(true);
+				} else {
+					tcpHostText.setEnabled(false);
+					tcpAuthButton.setEnabled(false);
+					tcpCertPathText.setEnabled(false);
+					tcpCertPathBrowseButton.setEnabled(false);
+				}
+			}
+		});
+		tcpAuthButton.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(final SelectionEvent e) {
+				final Button targetButton = ((Button)e.widget);
+				if(targetButton.getSelection()) {
+					tcpTLSVerify = true;
+					tcpCertPathText.setEnabled(true);
+					tcpCertPathBrowseButton.setEnabled(true);
+				} else {
+					tcpTLSVerify = false;
+					tcpCertPathText.setEnabled(false);
+					tcpCertPathBrowseButton.setEnabled(false);
+				}
+			}
+		});
+		tcpHostText.addModifyListener(new ModifyListener() {
+			public void modifyText(ModifyEvent evt) {
+				tcpHost = ((Text)evt.widget).getText();
+			}
+		});
+		tcpCertPathText.addModifyListener(new ModifyListener() {
+			public void modifyText(ModifyEvent evt) {
+				tcpCertPath = ((Text)evt.widget).getText();
+			}
+		});
+		
+		// now that all widgets and their selectionAdapters are instanciated, let's set the values
+		if(this.bindingMode == UNIX_SOCKET) {
+			unixSocketBtn.setSelection(true);
+			if(this.unixSocketPath != null) {
+				unixSocketPathText.setText(this.unixSocketPath);
+			}
+			// disable other widgets
+			tcpHostText.setEnabled(false);
+			tcpAuthButton.setEnabled(false);
+			tcpCertPathText.setEnabled(false);
+			tcpCertPathBrowseButton.setEnabled(false);
+		} else {
+			tcpConnectionBtn.setSelection(true);
+			if(this.tcpHost != null) {
+				tcpHostText.setText(this.tcpHost);
+			}
+			if(this.tcpTLSVerify) {
+				tcpAuthButton.setSelection(true);
+				tcpCertPathText.setEnabled(true);
+				if(this.tcpCertPath != null) {
+					tcpCertPathText.setText(this.tcpCertPath);
+				}
+				tcpCertPathBrowseButton.setEnabled(true);
+			} 
+			// disable other widgets
+			unixSocketBtn.setSelection(false);
+			unixSocketPathText.setEnabled(false);
+		}
+	}
+

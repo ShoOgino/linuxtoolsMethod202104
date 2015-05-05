@@ -1,0 +1,24 @@
+	/**
+	 * Call the {@link IDockerConnection#getImages(boolean)} in a background job
+	 * to avoid blocking the UI.
+	 * 
+	 * @param connection
+	 *            the selected {@link DockerConnection}
+	 */
+	private void loadImages(final IDockerConnection connection) {
+		final Job loadImagesJob = new Job(DVMessages.getString(LoadingImages)) {
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				Display.getDefault().asyncExec(new Runnable() {
+					@Override
+					public void run() {
+						connection.getImages(true);
+						viewer.refresh();
+					}
+				});
+				return Status.OK_STATUS;
+			}
+		};
+		loadImagesJob.schedule();
+	}
+

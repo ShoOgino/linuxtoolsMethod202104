@@ -1,0 +1,127 @@
+	private void createTableViewer(final Composite container) {
+		search = new Text(container, SWT.SEARCH);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).grab(true, false).applyTo(search);
+		search.addModifyListener(onSearch());
+		Composite tableArea = new Composite(container, SWT.NONE);
+		GridLayoutFactory.fillDefaults().numColumns(1).margins(0,  0).applyTo(tableArea);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL)
+				.grab(true, true).applyTo(tableArea);
+
+		final TableColumnLayout tableLayout = new TableColumnLayout();
+		tableArea.setLayout(tableLayout);
+		this.viewer = new TableViewer(tableArea, SWT.FULL_SELECTION | SWT.MULTI
+				| SWT.H_SCROLL | SWT.V_SCROLL);
+		this.viewer.setContentProvider(new DockerImagesContentProvider());
+		final Table table = viewer.getTable();
+		GridLayoutFactory.fillDefaults().numColumns(1).margins(0, 0)
+				.applyTo(table);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL)
+				.grab(true, true).applyTo(table);
+		table.setLinesVisible(true);
+		table.setHeaderVisible(true);
+		// 'Image' column
+		final TableViewerColumn idColumn = createColumn(DVMessages
+				.getString("ID")); //$NON-NLS-1$
+		setLayout(idColumn, tableLayout, 150);
+		idColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(final Object element) {
+				if (element instanceof IDockerImage) {
+					return ((IDockerImage) element).id();
+				}
+				return super.getText(element);
+			}
+		});
+		// 'Tags' column
+		final TableViewerColumn tagsColumn = createColumn(DVMessages
+				.getString("TAGS")); //$NON-NLS-1$
+		setLayout(tagsColumn, tableLayout, 150);
+		tagsColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(final Object element) {
+				if (element instanceof IDockerImage) {
+					final StringBuilder tags = new StringBuilder();
+					List<String> repoTags = new ArrayList<String>();
+					repoTags.addAll(((IDockerImage) element).repoTags());
+					Collections.sort(repoTags);
+					for (Iterator<String> iterator = repoTags.iterator(); iterator
+							.hasNext();) {
+						final String tag = iterator.next();
+						tags.append(tag);
+						if (iterator.hasNext()) {
+							tags.append(System.getProperty("line.separator")); //$NON-NLS-1$
+						}
+					}
+					return tags.toString();
+				}
+				return super.getText(element);
+			}
+		});
+		// 'Creation Date' column
+		final TableViewerColumn creationDateColumn = createColumn(DVMessages
+				.getString("CREATED")); //$NON-NLS-1$
+		setLayout(creationDateColumn, tableLayout, 150);
+		creationDateColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(final Object element) {
+				if (element instanceof IDockerImage) {
+					return LabelUtils.toCreatedDate(Long
+							.parseLong(((IDockerImage) element).created()));
+				}
+				return super.getText(element);
+			}
+		});
+		// 'Virtual Size' column
+		final TableViewerColumn virtsizeColumn = createColumn(DVMessages
+				.getString("VIRTSIZE")); //$NON-NLS-1$ 
+		setLayout(virtsizeColumn, tableLayout, 150);
+		virtsizeColumn.setLabelProvider(new SpecialColumnLabelProvider() {
+			@Override
+			public String getText(final Object element) {
+				if (element instanceof IDockerImage) {
+					Long size = ((IDockerImage) element).virtualSize();
+					if (size <= 0)
+						return "0"; //$NON-NLS-1$
+					final String[] units = new String[] { "B", "kB", "MB", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+							"GB", "TB" }; //$NON-NLS-1$ //$NON-NLS-2$
+					int digitGroups = (int) (Math.log10(size) / Math
+							.log10(1000));
+					return new DecimalFormat("#,##0.#").format(size //$NON-NLS-1$
+							/ Math.pow(1000, digitGroups))
+							+ " " + units[digitGroups];
+				}
+				return super.getText(element);
+			}
+
+			@Override
+			public String getCompareText(final Object element) {
+				// For comparison purposes, we want to use the raw long value
+				// and not the shortened value with units appended.
+				if (element instanceof IDockerImage) {
+					return new DecimalFormat("000000000000000000000000") //$NON-NLS-1$
+							.format((((IDockerImage) element).virtualSize()));
+				}
+				return super.getText(element);
+			}
+		});
+		// comparator
+		final DockerImagesComparator comparator = new DockerImagesComparator(
+				this.viewer);
+		comparator.setColumn(creationDateColumn.getColumn());
+		// Set column a second time so we reverse the order and default to most
+		// currently created containers first
+		comparator.setColumn(creationDateColumn.getColumn());
+		viewer.setComparator(comparator);
+		// apply search filter
+		this.viewer.addFilter(getImagesFilter());
+
+		IDockerConnection[] connections = DockerConnectionManager.getInstance()
+				.getConnections();
+		if (connections.length > 0) {
+			setConnection(connections[0]);
+			connection.addImageListener(this);
+		}
+		// get the current selection in the tableviewer
+		getSite().setSelectionProvider(viewer);
+	}
+

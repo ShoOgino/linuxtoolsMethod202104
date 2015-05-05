@@ -1,0 +1,62 @@
+	private void performCreateContainer(final ContainerCreate wizard) {
+		final Job createContainerJob = new Job(
+				DVMessages.getString(CREATE_CONTAINER_JOB_TITLE)) {
+
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				final IDockerContainerConfig config = wizard.getConfig();
+				final IDockerHostConfig hostConfig = wizard.getHostConfig();
+				final String image = wizard.getImageId();
+				monitor.beginTask(DVMessages.getString(CREATE_CONTAINER_MSG), 4);
+				// pull the image and let the progress
+				// handler refresh the images when done
+				try {
+					final String containerId = ((DockerConnection) connection)
+							.createContainer(config);
+					monitor.worked(1);
+					IDockerContainerInfo info = ((DockerConnection) connection)
+							.getContainerInfo(containerId);
+					String name = info.name();
+					if (name.startsWith("/")) //$NON-NLS-1$
+						name = name.replaceFirst("/", ""); //$NON-NLS-1$ //$NON-NLS-2$
+					monitor.worked(1);
+					OutputStream stream = null;
+					RunConsole rc = RunConsole.findConsole(containerId,
+							RunConsole.DEFAULT_ID, name);
+					rc.attachToConsole(connection);
+					monitor.worked(1);
+					if (rc != null) {
+						stream = rc.getOutputStream();
+					}
+					final OutputStream logstream = stream;
+					((DockerConnection) connection).startContainer(containerId,
+							hostConfig, logstream);
+					monitor.worked(1);
+				} catch (final DockerException e) {
+					Display.getDefault().syncExec(new Runnable() {
+
+						@Override
+						public void run() {
+							MessageDialog.openError(Display.getCurrent()
+									.getActiveShell(), DVMessages
+									.getFormattedString(ERROR_CREATING_IMAGE,
+											image), e.getMessage());
+
+						}
+
+					});
+					// for now
+				} catch (InterruptedException e) {
+					// do nothing
+				} finally {
+					monitor.done();
+				}
+				return Status.OK_STATUS;
+			}
+
+		};
+
+		createContainerJob.schedule();
+
+	}
+

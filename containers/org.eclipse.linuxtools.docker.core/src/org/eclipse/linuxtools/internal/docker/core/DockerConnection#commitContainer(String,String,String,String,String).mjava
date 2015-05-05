@@ -1,0 +1,18 @@
+	@Override
+	public void commitContainer(final String id, final String repo, final String tag,
+			final String comment, final String author) throws DockerException {
+		ContainerInfo info;
+		try {
+			info = client.inspectContainer(id);
+			client.commitContainer(id, repo, tag, info.config(), comment,
+					author);
+			// update images list
+			getImages(true);
+		} catch (com.spotify.docker.client.DockerRequestException e) {
+			throw new DockerException(e.message());
+		} catch (com.spotify.docker.client.DockerException
+				| InterruptedException e) {
+			throw new DockerException(e.getMessage(), e.getCause());
+		}
+	}
+

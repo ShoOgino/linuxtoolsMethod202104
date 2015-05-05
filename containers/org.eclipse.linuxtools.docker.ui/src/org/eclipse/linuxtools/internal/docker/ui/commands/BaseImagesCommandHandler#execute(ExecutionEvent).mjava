@@ -1,0 +1,30 @@
+	@Override
+	public Object execute(ExecutionEvent event) throws ExecutionException {
+		final IWorkbenchPart activePart = HandlerUtil.getActivePart(event);
+		final List<IDockerImage> selectedImages = getSelectedImages(activePart);
+		final IDockerConnection connection = getCurrentConnection(activePart);
+		if (connection == null || selectedImages.isEmpty()) {
+			return null;
+		}
+		final Job job = new Job(getJobName(selectedImages)) {
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				if (confirmed(selectedImages)) {
+					monitor.beginTask(getJobName(selectedImages),
+							selectedImages.size());
+					for (final IDockerImage image : selectedImages) {
+						monitor.setTaskName(getTaskName(image));
+						executeInJob(image, connection);
+						monitor.worked(1);
+					}
+				}
+				monitor.done();
+				return Status.OK_STATUS;
+			}
+		};
+		job.setPriority(Job.LONG);
+		job.setUser(true);
+		job.schedule();
+		return null;
+	}
+

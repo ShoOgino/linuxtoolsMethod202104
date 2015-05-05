@@ -1,0 +1,30 @@
+	@Override
+	public void startContainer(final String id, final OutputStream stream)
+			throws DockerException, InterruptedException {
+		try {
+			// start container
+			client.startContainer(id);
+			// Log the started container if a stream is provided
+			if (stream != null && !getContainerInfo(id).config().tty()) {
+				// display logs for container
+				synchronized (loggingThreads) {
+					LogThread t = loggingThreads.get(id);
+					if (t == null || !t.isAlive()) {
+						t = new LogThread(id, getClientCopy(), true);
+						loggingThreads.put(id, t);
+						t.setOutputStream(stream);
+						t.start();
+					}
+				}
+			}
+			// list of containers needs to be refreshed once the container started, to reflect it new state.
+			listContainers(); 
+		} catch (ContainerNotFoundException e) {
+			throw new DockerContainerNotFoundException(e);
+		} catch (com.spotify.docker.client.DockerRequestException e) {
+			throw new DockerException(e.message());
+		} catch (com.spotify.docker.client.DockerException e) {
+			throw new DockerException(e.getMessage(), e.getCause());
+		}
+	}
+

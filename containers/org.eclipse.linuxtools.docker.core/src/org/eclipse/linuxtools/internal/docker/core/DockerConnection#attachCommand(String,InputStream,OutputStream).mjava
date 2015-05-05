@@ -1,0 +1,118 @@
+	public WritableByteChannel attachCommand(final String id,
+			final InputStream in, final OutputStream out)
+			throws DockerException, InterruptedException {
+
+		final byte[] prevCmd = new byte[1024];
+		try {
+			final LogStream pty_stream = client.attachContainer(id,
+					AttachParameter.STDIN, AttachParameter.STDOUT,
+					AttachParameter.STDERR, AttachParameter.STREAM);
+			final boolean isTtyEnabled = getContainerInfo(id).config().tty();
+
+			// Data from the given input stream
+			// Written to container's STDIN
+			Thread t_in = new Thread(new Runnable() {
+				@Override
+				public void run() {
+					byte[] buff = new byte[1024];
+					int n;
+					try {
+						WritableByteChannel pty_out = HttpHijackWorkaround
+								.getOutputStream(pty_stream, getUri());
+						while ((n = in.read(buff)) != -1
+								&& getContainerInfo(id).state().running()) {
+							synchronized (prevCmd) {
+								pty_out.write(ByteBuffer.wrap(buff, 0, n));
+								for (int i = 0; i < prevCmd.length; i++) {
+									prevCmd[i] = buff[i];
+								}
+							}
+							buff = new byte[1024];
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			});
+
+			t_in.start();
+			// Incoming data from container's STDOUT
+			// Written to the given output stream
+			Thread t_out = new Thread(new Runnable() {
+				@Override
+				public void run() {
+					try {
+						InputStream pty_in = HttpHijackWorkaround
+								.getInputStream(pty_stream);
+						while (getContainerInfo(id).state().running()) {
+							byte[] buff = new byte[1024];
+							int n = pty_in.read(buff);
+							if (n > 0) {
+								/*
+								 * The container's STDOUT contains initial input
+								 * we sent to its STDIN and the result. eg. >
+								 * echo once < echo once \n $ once
+								 * 
+								 * Try to remove this unwanted data from the
+								 * stream.
+								 */
+								if (isTtyEnabled) {
+									int idex = 0;
+									synchronized (prevCmd) {
+										/*
+										 * Check if buff contains a prefix of
+										 * prevCmd ignoring differences in
+										 * carriage return (10,13). Save the
+										 * prefix's ending index.
+										 */
+										for (int i = 0; i < prevCmd.length; i++) {
+											if (prevCmd[i] != buff[i]
+													&& (prevCmd[i] != 10 && buff[i] != 13)
+													&& (prevCmd[i] != 13 && buff[i] != 10)
+													&& prevCmd[i] != 0) {
+												idex = 0;
+												break;
+											} else if (prevCmd[i] != 0) {
+												idex++;
+											}
+										}
+									}
+									// A prefix exists, remove it
+									// Do not include the ending NL/CR
+									if (idex != 0) {
+										shiftLeft(buff, idex + 1);
+									}
+									n = removeTerminalCodes(buff);
+								} else {
+									/*
+									 * If not in TTY mode, first 8 bytes are
+									 * header data describing payload which we
+									 * don't need.
+									 */
+									shiftLeft(buff, 8);
+									n = n - 8;
+								}
+								out.write(buff, 0, n);
+							}
+						}
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
+			});
+
+			/*
+			 * Our handling of STDOUT for terminals is mandatory, but the
+			 * logging framework can handle catching output very early so use it
+			 * for now.
+			 */
+			if (isTtyEnabled) {
+				t_out.start();
+			}
+
+			return HttpHijackWorkaround.getOutputStream(pty_stream, getUri());
+		} catch (Exception e) {
+			throw new DockerException(e.getMessage(), e.getCause());
+		}
+	}
+

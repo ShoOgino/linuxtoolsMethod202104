@@ -1,0 +1,36 @@
+	/**
+	 * @return the {@link IDockerImageInfo} for the given
+	 *         {@link IDockerConnection} and {@link IDockerImage}, or
+	 *         <code>null</code> if none was found or if an underlying problem
+	 *         occurred.
+	 * @param connection
+	 *            the current {@link IDockerConnection}.
+	 * @param image
+	 *            the {@link IDockerImage} to inspect.
+	 */
+	private IDockerImageInfo getImageInfo(final IDockerConnection connection,
+			final IDockerImage image) {
+		final BlockingQueue<IDockerImageInfo> result = new ArrayBlockingQueue<>(
+				1);
+		final Job loadConnectionInfoJob = new Job(
+				DVMessages.getString(PropertiesLoadingImageInfo)) {
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				monitor.beginTask(
+						DVMessages.getString(PropertiesLoadingImageInfo), 1);
+				result.add(connection.getImageInfo(image.id()));
+				monitor.done();
+				return Status.OK_STATUS;
+			}
+		};
+		loadConnectionInfoJob.schedule();
+		try {
+			return result.poll(2, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+			Activator.log(new Status(IStatus.ERROR, Activator.PLUGIN_ID,
+					DVMessages.getFormattedString(PropertiesInfoError,
+							connection.getName()), e));
+			return null;
+		}
+	}
+

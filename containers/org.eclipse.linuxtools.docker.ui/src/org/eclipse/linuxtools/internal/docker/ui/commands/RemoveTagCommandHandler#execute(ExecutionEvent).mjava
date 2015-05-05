@@ -1,0 +1,24 @@
+	@Override
+	public Object execute(final ExecutionEvent event) throws ExecutionException {
+		final IWorkbenchPart activePart = HandlerUtil.getActivePart(event);
+		List<IDockerImage> selectedImages = CommandUtils
+				.getSelectedImages(activePart);
+		if (activePart instanceof DockerImagesView) {
+			connection = ((DockerImagesView) activePart).getConnection();
+		}
+		if (selectedImages.size() != 1 || connection == null)
+			return null;
+		image = selectedImages.get(0);
+		final ImageRemoveTag wizard = new ImageRemoveTag(image);
+		final boolean removeTag = CommandUtils.openWizard(wizard,
+				HandlerUtil.getActiveShell(event));
+		if (removeTag) {
+			if (activePart instanceof DockerImagesView) {
+				connection = ((DockerImagesView) activePart)
+						.getConnection();
+			}
+			performRemoveTagImage(wizard);
+		}
+		return null;
+	}
+

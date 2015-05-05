@@ -1,0 +1,33 @@
+	/**
+	 * The console will be attached to the underlying container.
+	 *
+	 * @param connection
+	 *            The connection associated with this console.
+	 */
+	public void attachToConsole(final IDockerConnection connection) {
+		final InputStream in = getInputStream();
+		final OutputStream out = newOutputStream();
+		Thread t = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					DockerConnection conn = (DockerConnection) connection;
+					if (conn.getContainerInfo(containerId).config().openStdin()) {
+						while (!conn.getContainerInfo(containerId).state()
+								.running()) {
+							Thread.sleep(1000);
+						}
+						WritableByteChannel pty_out = conn.attachCommand(
+								containerId, in, out);
+						if (conn.getContainerInfo(containerId).config().tty()) {
+							ptyOutRef[0] = pty_out;
+						}
+					}
+				} catch (Exception e) {
+				}
+			}
+		});
+		t.start();
+		attached = true;
+	}
+

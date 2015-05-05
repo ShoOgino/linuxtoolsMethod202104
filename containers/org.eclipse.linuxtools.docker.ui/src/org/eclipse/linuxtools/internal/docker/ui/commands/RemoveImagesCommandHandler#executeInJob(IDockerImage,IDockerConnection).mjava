@@ -1,0 +1,24 @@
+	@Override
+	void executeInJob(final IDockerImage image,
+			final IDockerConnection connection) {
+		try {
+			connection.removeImage(image.id());
+		} catch (DockerException | InterruptedException e) {
+			if (!image.isDangling() && !image.isIntermediateImage()) {
+				final String errorMessage = DVMessages.getFormattedString(
+						IMAGE_DELETE_ERROR_MSG, image.repoTags().get(0));
+				openError(errorMessage, e);
+
+			} else {
+				final String errorMessage = DVMessages.getFormattedString(
+						IMAGE_DELETE_ERROR_MSG, image.id().substring(0, 8));
+				openError(errorMessage, e);
+			}
+		} finally {
+			// always get images as we sometimes get errors on intermediate
+			// images
+			// being removed but we will remove some top ones successfully
+			connection.getImages(true);
+		}
+	}
+

@@ -1,0 +1,51 @@
+		public void execute() throws InterruptedException, IOException {
+			try {
+				// Add timestamps to log based on user preference
+				IEclipsePreferences preferences = InstanceScope.INSTANCE
+						.getNode("org.eclipse.linuxtools.docker.ui"); //$NON-NLS-1$
+
+				boolean timestamps = preferences.getBoolean(
+						"logTimestamp", true); //$NON-NLS-1$
+
+				LogStream stream = null;
+
+				if (timestamps)
+					stream = copyClient.logs(id, LogsParameter.FOLLOW,
+							LogsParameter.STDOUT, LogsParameter.STDERR,
+							LogsParameter.TIMESTAMPS);
+				else
+					stream = copyClient.logs(id, LogsParameter.FOLLOW,
+							LogsParameter.STDOUT, LogsParameter.STDERR);
+
+				// First time through, don't sleep before showing log data
+				int delayTime = 100;
+
+				do {
+					Thread.sleep(delayTime);
+					// Second time in loop and following, pause a second to
+					// allow other threads to do meaningful work
+					delayTime = 1000;
+					while (stream.hasNext()) {
+						ByteBuffer b = stream.next().content();
+						byte[] bytes = new byte[b.remaining()];
+						b.get(bytes);
+						if (outputStream != null)
+							outputStream.write(bytes);
+					}
+				} while (follow && !stop);
+				listContainers();
+			} catch (com.spotify.docker.client.DockerRequestException e) {
+				Activator.logErrorMessage(e.message());
+				throw new InterruptedException();
+			} catch (com.spotify.docker.client.DockerException | IOException e) {
+				Activator.logErrorMessage(e.getMessage());
+				throw new InterruptedException();
+			} catch (Exception e) {
+				Activator.logErrorMessage(e.getMessage());
+			} finally {
+				follow = false;
+				copyClient.close(); // we are done with copyClient..dispose
+				outputStream.close();
+			}
+		}
+

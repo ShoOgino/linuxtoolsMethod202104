@@ -1,0 +1,32 @@
+	/**
+	 * @return the {@link IDockerContainerInfo} for the given
+	 *         {@link IDockerConnection} and {@link IDockerContainer}, or
+	 *         <code>null</code> if none was found or if an underlying problem
+	 *         occurred.
+	 * @param connection the current {@link IDockerConnection}.
+	 * @param container the {@link IDockerContainer} to inspect.
+	 */
+	private IDockerContainerInfo getContainerInfo(final IDockerConnection connection, final IDockerContainer container) {
+		final BlockingQueue<IDockerContainerInfo> result = new ArrayBlockingQueue<>(1);
+		final Job loadConnectionInfoJob = new Job(
+				DVMessages.getString(PropertiesLoadingContainerInfo)) {
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				monitor.beginTask(
+						DVMessages.getString(PropertiesLoadingContainerInfo), 1);
+				result.add(connection.getContainerInfo(container.id()));
+				monitor.done();
+				return Status.OK_STATUS;
+			}
+		};
+		loadConnectionInfoJob.schedule();
+		try {
+			return result.poll(2, TimeUnit.SECONDS);
+		} catch (InterruptedException e) {
+			Activator.log(new Status(IStatus.ERROR, Activator.PLUGIN_ID,
+					DVMessages.getFormattedString(PropertiesInfoError,
+							connection.getName()), e));
+			return null;
+		}
+	}
+

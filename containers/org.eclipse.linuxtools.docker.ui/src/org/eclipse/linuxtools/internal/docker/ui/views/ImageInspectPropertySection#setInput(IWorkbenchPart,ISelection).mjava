@@ -1,0 +1,24 @@
+	@Override
+	public void setInput(final IWorkbenchPart part, final ISelection selection) {
+		super.setInput(part, selection);
+		Object input = null;
+		if (selection instanceof ITreeSelection)
+			input = ((ITreeSelection) selection).getFirstElement();
+		else if (selection instanceof IStructuredSelection)
+			input = ((IStructuredSelection) selection).getFirstElement();
+		Assert.isTrue(input instanceof IDockerImage);
+		this.selectedImage = (IDockerImage) input;
+		final IDockerConnection parentConnection;
+		if (part instanceof DockerImagesView) {
+			parentConnection = ((DockerImagesView) part).getConnection();
+		} else {
+		    parentConnection = (IDockerConnection) ((ITreeSelection) selection)
+				.getPathsFor(selectedImage)[0].getFirstSegment();
+		}
+		this.imageInfo = getImageInfo(parentConnection, selectedImage);
+		if (getTreeViewer() != null && this.imageInfo != null) {
+			getTreeViewer().setInput(imageInfo);
+			getTreeViewer().expandAll();
+		}
+	}
+

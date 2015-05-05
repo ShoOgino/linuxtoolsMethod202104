@@ -1,0 +1,19 @@
+	public IDockerContainerExit waitForContainer(final String id)
+			throws DockerException, InterruptedException {
+		try {
+			// wait for container to exit
+			DockerClient copy = getClientCopy();
+			ContainerExit x = copy.waitContainer(id);
+			DockerContainerExit exit = new DockerContainerExit(x.statusCode());
+			listContainers(); // update container list
+			copy.close(); // dispose of copy now we are finished
+			return exit;
+		} catch (ContainerNotFoundException e) {
+			throw new DockerContainerNotFoundException(e);
+		} catch (com.spotify.docker.client.DockerRequestException e) {
+			throw new DockerException(e.message());
+		} catch (com.spotify.docker.client.DockerException e) {
+			throw new DockerException(e.getMessage(), e.getCause());
+		}
+	}
+

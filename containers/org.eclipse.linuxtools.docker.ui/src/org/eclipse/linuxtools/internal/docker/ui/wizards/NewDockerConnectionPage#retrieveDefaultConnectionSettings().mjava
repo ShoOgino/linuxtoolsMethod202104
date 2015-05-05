@@ -1,0 +1,44 @@
+	/**
+	 * Sets the default settings by looking for the:
+	 * <ul>
+	 * <li>a Unix socket at /var/run/docker.sock</li>
+	 * <li>the following environment variables:
+	 * <ul>
+	 * <li>DOCKER_HOST</li>
+	 * <li>DOCKER_CERT_PATH</li>
+	 * <li>DOCKER_TLS_VERIFY</li>
+	 * </ul>
+	 * </li>
+	 * </ul>
+	 * and sets the default connection settings accordingly.
+	 */
+	private void retrieveDefaultConnectionSettings() {
+		// let's run this in a job and show the progress in the wizard progressbar
+		try {
+			getWizard().getContainer().run(true, true, new IRunnableWithProgress() {
+				@Override
+				public void run(final IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
+					monitor.beginTask("Retrieving Docker connection settings...", 1);
+					try {
+						final DockerConnection.Defaults defaults = new DockerConnection.Defaults();
+						NewDockerConnectionPage.this.bindingMode = defaults.getBindingMode();
+						NewDockerConnectionPage.this.connectionName = defaults.getName();
+						NewDockerConnectionPage.this.unixSocketPath = defaults.getUnixSocketPath();
+						NewDockerConnectionPage.this.tcpHost = defaults.getTcpHost();
+						NewDockerConnectionPage.this.tcpTLSVerify = defaults.getTcpTlsVerify();
+						NewDockerConnectionPage.this.tcpCertPath = defaults.getTcpCertPath();
+						NewDockerConnectionPage.this.connectionName = defaults.getName();
+					} catch (DockerException e) {
+						Activator.log(e);
+					}
+					
+					monitor.done();
+				}
+			});
+		} catch (InvocationTargetException | InterruptedException e) {
+			Activator.log(e);
+		}
+		
+		
+	}
+

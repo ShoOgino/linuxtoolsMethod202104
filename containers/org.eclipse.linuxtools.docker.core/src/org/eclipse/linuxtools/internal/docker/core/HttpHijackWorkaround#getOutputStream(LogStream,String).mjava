@@ -1,0 +1,35 @@
+	public static WritableByteChannel getOutputStream(LogStream stream, String uri) throws Exception {
+		final String[] fields = new String[] { "reader", "stream", "original",
+				"input", "in", "in", "wrappedStream", "in", "instream" };
+		final String[] declared = new String[] {
+				LogStream.class.getName(),
+				LogReader.class.getName(),
+				"org.glassfish.jersey.message.internal.ReaderInterceptorExecutor$UnCloseableInputStream",
+				"org.glassfish.jersey.message.internal.EntityInputStream",
+				FilterInputStream.class.getName(),
+				FilterInputStream.class.getName(),
+				"org.apache.http.conn.EofSensorInputStream",
+				"org.apache.http.impl.io.IdentityInputStream",
+				"org.apache.http.impl.io.SessionInputBufferImpl" };
+
+		List<String[]> list = new LinkedList<>();
+		for (int i = 0; i < fields.length; i++) {
+			list.add(new String[] { declared[i], fields[i] });
+		}
+
+		if (uri.startsWith("unix:")) {
+			list.add(new String[] { "sun.nio.ch.ChannelInputStream", "ch" });
+		} else {
+			list.add(new String[] { "java.net.SocketInputStream", "socket" });
+		}
+
+		Object res = getInternalField(stream, list);
+		if (res instanceof WritableByteChannel) {
+			return (WritableByteChannel) res;
+		} else if (res instanceof Socket) {
+			return Channels.newChannel(((Socket) res).getOutputStream());
+		} else {
+			return null;
+		}
+	}
+

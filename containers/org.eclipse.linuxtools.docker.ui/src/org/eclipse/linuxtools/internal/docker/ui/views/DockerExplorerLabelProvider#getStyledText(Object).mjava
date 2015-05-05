@@ -1,0 +1,56 @@
+	@Override
+	public StyledString getStyledText(Object element) {
+		// when the text to display is in the properties view title bar, the given element
+		// is the TreeSelection from the contributing view (the Docker Explorer View)
+		if(element instanceof IStructuredSelection) {
+			return getStyledText(((IStructuredSelection)element).getFirstElement());
+		}
+		if(element instanceof IDockerConnection) {
+			final IDockerConnection connection = (IDockerConnection) element;
+			final String message = connection.getName() + " (" + connection.getUri() + ")";
+			final StyledString styledString = new StyledString(message);
+			styledString.setStyle(connection.getName().length(), message.length() - connection.getName().length(), StyledString.QUALIFIER_STYLER);
+			return styledString;
+		} else if(element instanceof DockerImagesCategory) {
+			return new StyledString("Images");
+		} else if(element instanceof DockerContainersCategory) {
+			return new StyledString("Containers");
+		} else {
+			if(element instanceof IDockerContainer) {
+				final IDockerContainer dockerContainer = (IDockerContainer)element;
+				final String containerName = dockerContainer.name();
+				final String image = dockerContainer.image();
+				final String message = containerName + " (" + image + ")";
+				final StyledString styledString = new StyledString(message);
+				styledString.setStyle(containerName.length(), message.length() - containerName.length(), StyledString.QUALIFIER_STYLER);
+				return styledString;
+			} else if(element instanceof IDockerImage) {
+				final IDockerImage dockerImage = (IDockerImage)element;
+				final String imageShortId = dockerImage.id().substring(0, 12);
+				final StringBuilder messageBuilder = new StringBuilder(dockerImage.repo());
+				final int startTags = messageBuilder.length();
+				if(!dockerImage.tags().isEmpty()) {
+					messageBuilder.append(": ");
+					for(Iterator<String> tagIterator = dockerImage.tags().iterator(); tagIterator.hasNext();) {
+						messageBuilder.append(tagIterator.next());
+						if(tagIterator.hasNext()) {
+							messageBuilder.append(", ");
+						}
+					}
+				}
+				final int startImageId = messageBuilder.length();
+				messageBuilder.append(" (").append(imageShortId).append(')');
+				final String message = messageBuilder.toString();
+				final StyledString styledString = new StyledString(message);
+				// styled tags
+				styledString.setStyle(startTags, startImageId - startTags, StyledString.COUNTER_STYLER);
+				// styled image id
+				styledString.setStyle(startImageId, message.length() - startImageId, StyledString.QUALIFIER_STYLER);
+				return styledString;
+			} else if(element instanceof LoadingStub) {
+				return new StyledString("Loading...");
+			}
+		}
+		return null;
+	}
+

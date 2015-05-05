@@ -1,0 +1,22 @@
+	@Override
+	public void killContainer(final String id) throws DockerException,
+			InterruptedException {
+		try {
+			// kill container
+			client.killContainer(id);
+			synchronized (loggingThreads) {
+				if (loggingThreads.containsKey(id)) {
+					loggingThreads.get(id).kill();
+					loggingThreads.remove(id);
+				}
+			}
+			listContainers(); // update container list
+		} catch (ContainerNotFoundException e) {
+			throw new DockerContainerNotFoundException(e);
+		} catch (com.spotify.docker.client.DockerRequestException e) {
+			throw new DockerException(e.message());
+		} catch (com.spotify.docker.client.DockerException e) {
+			throw new DockerException(e.getMessage(), e.getCause());
+		}
+	}
+

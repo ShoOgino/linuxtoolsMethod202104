@@ -1,0 +1,42 @@
+	private List<IDockerImage> listImages() throws DockerException {
+		final List<IDockerImage> dilist = new ArrayList<IDockerImage>();
+		synchronized (imageLock) {
+			List<Image> rawImages = null;
+			try {
+				rawImages = client.listImages(DockerClient.ListImagesParam
+						.allImages());
+			} catch (com.spotify.docker.client.DockerRequestException e) {
+				throw new DockerException(e.message());
+			} catch (com.spotify.docker.client.DockerException
+					| InterruptedException e) {
+				DockerException f = new DockerException(e);
+				throw f;
+			}
+			// We have a list of images. Now, we translate them to our own
+			// core format in case we decide to change the underlying engine
+			// in the future. We also look for intermediate and dangling images.
+			final Set<String> imageParentIds = new HashSet<>();
+			for (Image rawImage : rawImages) {
+				imageParentIds.add(rawImage.parentId());
+			}
+			for (Image rawImage : rawImages) {
+				final boolean taggedImage = !(rawImage.repoTags().size() == 1 && rawImage
+						.repoTags().contains("<none>:<none>")); //$NON-NLS-1$
+				final boolean intermediateImage = !taggedImage
+						&& imageParentIds.contains(rawImage.id());
+				final boolean danglingImage = !taggedImage
+						&& !intermediateImage;
+				dilist.add(new DockerImage(this, (List<String>) rawImage
+						.repoTags(), rawImage.id(), rawImage.parentId(),
+						rawImage.created(), rawImage.size(), rawImage
+								.virtualSize(), intermediateImage,
+						danglingImage));
+			}
+			images = dilist;
+		}
+		// Perform notification outside of lock so that listener doesn't cause a
+		// deadlock to occur
+		notifyImageListeners(this, dilist);
+		return dilist;
+	}
+

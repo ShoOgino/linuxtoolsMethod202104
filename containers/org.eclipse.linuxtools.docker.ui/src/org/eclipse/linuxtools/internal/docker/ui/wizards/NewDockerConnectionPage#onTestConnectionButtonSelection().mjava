@@ -1,0 +1,46 @@
+	/**
+	 * Verifies that the given connection settings work by trying to connect to the 
+	 * target Docker daemon
+	 * @return
+	 */
+	private SelectionListener onTestConnectionButtonSelection() {
+		return new SelectionAdapter() {
+		
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				final ArrayBlockingQueue<Boolean> resultQueue = new ArrayBlockingQueue<>(1);
+				try {
+					getWizard().getContainer().run(true, false, new IRunnableWithProgress() {
+						@Override
+						public void run(final IProgressMonitor monitor) throws InvocationTargetException, InterruptedException {
+							monitor.beginTask("Pinging Docker daemon...", IProgressMonitor.UNKNOWN);
+							try {
+								final DockerConnection dockerConnection = getDockerConnection();
+								dockerConnection.open(false);
+								dockerConnection.ping();
+								dockerConnection.close();
+								resultQueue.add(true);
+							} catch(DockerException e) {
+								Activator.log(e);
+								resultQueue.add(false);
+							}
+						}
+					});
+				} catch (InvocationTargetException | InterruptedException o_O) {
+					Activator.log(o_O);
+				}
+				try {
+					final Boolean result = resultQueue.poll(5000, TimeUnit.MILLISECONDS);
+					if(result) {
+						new MessageDialog(Display.getDefault().getActiveShell(), "Success", null, "Ping succeeded !", SWT.ICON_INFORMATION, new String[]{"OK"}, 0).open();
+					} else {
+						new MessageDialog(Display.getDefault().getActiveShell(), "Failure", null, "Ping failed !", SWT.ICON_ERROR, new String[]{"OK"}, 0).open();
+					}
+				} catch (InterruptedException o_O) {
+					new MessageDialog(Display.getDefault().getActiveShell(), "Failure", null, "Ping failed !", SWT.ICON_ERROR, new String[]{"OK"}, 0).open();
+				}
+			}
+
+		};
+	}
+

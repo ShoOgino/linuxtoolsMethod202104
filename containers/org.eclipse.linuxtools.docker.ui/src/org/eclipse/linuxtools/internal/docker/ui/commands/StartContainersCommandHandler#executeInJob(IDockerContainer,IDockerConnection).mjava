@@ -1,0 +1,19 @@
+	@Override
+	void executeInJob(final IDockerContainer container, final IDockerConnection connection) {
+		try {
+			final RunConsole console = getRunConsole(connection, container);
+			if (console != null) {
+				// if we are auto-logging, show the console
+				console.showConsole();
+				// Start the container
+				((DockerConnection) connection).startContainer(container.id(), console.getOutputStream());
+			} else {
+				((DockerConnection) connection).startContainer(container.id(), null);
+			}
+			((DockerConnection) connection).getContainers(true);
+		} catch (DockerException | InterruptedException e) {
+			final String errorMessage = DVMessages.getFormattedString(CONTAINER_START_ERROR_MSG, container.id());
+			openError(errorMessage, e);
+		} 
+	}
+

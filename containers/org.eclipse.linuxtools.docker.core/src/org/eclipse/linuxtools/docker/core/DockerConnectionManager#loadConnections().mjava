@@ -1,0 +1,88 @@
+	private void loadConnections() {
+		IPath stateLocation = Activator.getDefault().getStateLocation();
+		File connectionFile = stateLocation.append(CONNECTIONS_FILE_NAME)
+				.toFile();
+		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		try {
+			DocumentBuilder db = dbf.newDocumentBuilder();
+			if (connectionFile.exists()) {
+				Document d = db.parse(connectionFile);
+				Element e = d.getDocumentElement();
+				// Get the stored configuration data
+				NodeList connectionNodes = e.getElementsByTagName("connection"); // $NON-NLS-1$
+				for (int x = 0; x < connectionNodes.getLength(); ++x) {
+					Node n = connectionNodes.item(x);
+					NamedNodeMap attrs = n.getAttributes();
+					Node nameNode = attrs.getNamedItem("name"); //$NON-NLS-1$
+					Node uriNode = attrs.getNamedItem("uri"); //$NON-NLS-1$
+					Node usernameNode = attrs.getNamedItem("username"); //$NON-NLS-1$
+					Node certNode = attrs.getNamedItem("cert"); //$NON-NLS-1$
+					if (uriNode != null) {
+						String uri = uriNode.getNodeValue();
+						String name = nameNode.getNodeValue();
+
+						if (usernameNode != null) {
+							String username = usernameNode.getNodeValue();
+							String key = DockerConnection.getPreferencesKey(
+									uri, username);
+							ISecurePreferences root = SecurePreferencesFactory
+									.getDefault();
+							ISecurePreferences node = root.node(key);
+							@SuppressWarnings("unused")
+							String password;
+							try {
+								password = node.get("password", null); //$NON-NLS-1$
+							} catch (StorageException e1) {
+								e1.printStackTrace();
+							}
+						}
+
+						DockerConnection.Builder builder = new DockerConnection.Builder()
+								.name(name);
+						if (uri.startsWith("unix:")) { //$NON-NLS-1$
+							builder = builder.unixSocket(uri);
+						} else {
+							builder = builder.tcpHost(uri);
+							if (certNode != null) {
+								String cert = certNode.getNodeValue();
+								builder = builder.tcpCertPath(cert);
+							}
+						}
+						try {
+							DockerConnection connection = builder.build();
+							addConnection(connection);
+						} catch (DockerException e1) {
+							Activator.log(e1);
+						}
+					}
+				}
+			}
+		} catch (ParserConfigurationException e) {
+			Activator.log(e);
+		} catch (SAXException e) {
+			Activator.log(e);
+		} catch (IOException e) {
+			Activator.log(e);
+		}
+
+		/*if (connections.size() == 0) {
+			// create a new connection from the UI preferences
+			final IEclipsePreferences preferences = InstanceScope.INSTANCE
+					  .getNode("org.eclipse.linuxtools.docker.ui"); //$NON-NLS-1$
+			final int bindingMode = preferences.getInt(BINDING_MODE, UNIX_SOCKET);
+			try {
+				if(bindingMode == UNIX_SOCKET) {
+					final String unixSocketPath = preferences.get(UNIX_SOCKET_PATH, DEFAULT_UNIX_SOCKET_PATH);
+					connections.add(new DockerConnection.Builder().unixSocket(unixSocketPath).build());
+				} else {
+					final String tcpHost = preferences.get(TCP_HOST, null);
+					final String tcpCertPath = preferences.get(TCP_CERT_PATH, null);
+					connections.add(new DockerConnection.Builder().tcpHost(tcpHost).tcpCertPath(tcpCertPath).build()); //$NON-NLS-1$
+				}
+			} catch (DockerCertificateException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} //$NON-NLS-1$
+		}*/
+	}
+

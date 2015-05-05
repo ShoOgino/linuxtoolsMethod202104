@@ -1,0 +1,100 @@
+	/**
+	 * Creates the connection settings container, where the user can choose how
+	 * to connect to the docker daemon (using sockets or TCP with SSL - or not)
+	 * 
+	 * @param parent
+	 *            the parent container (ie, the main container in the preference
+	 *            page)
+	 */
+	private void createConnectionSettingsContainer(final Composite parent) {
+		final int COLUMNS = 3;
+		final int INDENT = 20;
+		final Composite container = new Composite(parent, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).span(1, 1).grab(true, false).applyTo(container);
+		GridLayoutFactory.fillDefaults().numColumns(COLUMNS).margins(6, 6).spacing(10, 2).applyTo(container);
+
+		// Connection name
+		final Label connectionNameLabel = new Label(container, SWT.NONE);
+		connectionNameLabel.setText("Connection name:");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).applyTo(connectionNameLabel);
+		connectionNameText = new Text(container, SWT.BORDER);
+		connectionNameText.setToolTipText("Name of the connection");
+		//connectionNameText.setText(this.connectionName);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).grab(true, false).span(2, 1)
+				.applyTo(connectionNameText);
+
+		customConnectionSettingsButton = new Button(container, SWT.CHECK);
+		customConnectionSettingsButton.setText("Use custom connection settings:");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).grab(true, false).indent(0, 10).span(COLUMNS, 1)
+				.applyTo(customConnectionSettingsButton);
+		customConnectionSettingsButton.setSelection(false);
+
+		final Group customSettingsGroup = new Group(container, SWT.BORDER);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).span(COLUMNS, 1).grab(true, false)
+				.applyTo(customSettingsGroup);
+		GridLayoutFactory.fillDefaults().numColumns(COLUMNS).margins(6, 6).spacing(10, 2).applyTo(customSettingsGroup);
+
+		unixSocketSelectionButton = new Button(customSettingsGroup, SWT.RADIO);
+		unixSocketSelectionButton.setText("Unix socket");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).span(COLUMNS, 1).applyTo(unixSocketSelectionButton);
+		final Label unixSocketPathLabel = new Label(customSettingsGroup, SWT.NONE);
+		unixSocketPathLabel.setText("Location:");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).indent(INDENT, 0).applyTo(unixSocketPathLabel);
+		unixSocketPathText = new Text(customSettingsGroup, SWT.BORDER);
+		unixSocketPathText.setToolTipText("Path to the socket file");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).grab(true, false).applyTo(unixSocketPathText);
+		final Button unixSocketPathBrowseButton = new Button(customSettingsGroup, SWT.BUTTON1);
+		unixSocketPathBrowseButton.setText("Browse...");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).applyTo(unixSocketPathBrowseButton);
+
+		tcpConnectionSelectionButton = new Button(customSettingsGroup, SWT.RADIO);
+		tcpConnectionSelectionButton.setText("TCP Connection");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).span(COLUMNS, 1)
+				.applyTo(tcpConnectionSelectionButton);
+		final Label tcpHostLabel = new Label(customSettingsGroup, SWT.NONE);
+		tcpHostLabel.setText("Host:");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).indent(INDENT, 0).applyTo(tcpHostLabel);
+		tcpHostText = new Text(customSettingsGroup, SWT.BORDER);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).span(2, 1).grab(true, false).applyTo(tcpHostText);
+		tcpAuthButton = new Button(customSettingsGroup, SWT.CHECK);
+		tcpAuthButton.setText("Enable authentication");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).indent(INDENT, 0).span(3, 1).applyTo(tcpAuthButton);
+		final Label tcpCertPathLabel = new Label(customSettingsGroup, SWT.NONE);
+		tcpCertPathLabel.setText("Path:");
+		tcpCertPathLabel.setToolTipText("Path to the certificates folder");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).indent(INDENT * 2, 0).applyTo(tcpCertPathLabel);
+		tcpCertPathText = new Text(customSettingsGroup, SWT.BORDER);
+		tcpCertPathText.setEnabled(false);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).grab(true, false).applyTo(tcpCertPathText);
+		final Button tcpCertPathBrowseButton = new Button(customSettingsGroup, SWT.BUTTON1);
+		tcpCertPathBrowseButton.setText("Browse...");
+		tcpCertPathText.setEnabled(false);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).applyTo(tcpCertPathBrowseButton);
+
+		// the 'test connection' button
+		final Button testConnectionButton = new Button(container, SWT.NONE);
+		testConnectionButton.setText("Test Connection");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).span(COLUMNS, 1).align(SWT.END, SWT.CENTER).applyTo(testConnectionButton);
+		testConnectionButton.addSelectionListener(onTestConnectionButtonSelection());
+		
+		// group controls to easily enable/disable them
+		bindingModeSelectionControls = new Control[] { unixSocketSelectionButton, tcpConnectionSelectionButton };
+		unixSocketControls = new Control[] { unixSocketPathText, unixSocketPathLabel, unixSocketPathBrowseButton };
+		tcpConnectionControls = new Control[] { tcpHostText, tcpHostLabel, tcpAuthButton };
+		tcpAuthControls = new Control[] { tcpCertPathText, tcpCertPathLabel, tcpCertPathBrowseButton };
+
+		// now use the control groups to bind events
+		customConnectionSettingsButton.addSelectionListener(onCustomConnectionSettingsSelection());
+		connectionNameText.addModifyListener(onConnectionNameModification());
+		unixSocketSelectionButton.addSelectionListener(onUnixSocketSelection());
+		unixSocketPathText.addModifyListener(onUnixSocketModification());
+		tcpConnectionSelectionButton.addSelectionListener(onTcpConnectionSelection());
+		tcpAuthButton.addSelectionListener(onTcpAuthSelection());
+		tcpHostText.addModifyListener(onTcpHostModification());
+		tcpCertPathText.addModifyListener(onTcpCertPathModification());
+
+		// by default, custom settings are disabled:
+		setWidgetsEnabled(false, bindingModeSelectionControls, unixSocketControls, tcpConnectionControls,
+				tcpAuthControls);
+	}
+

@@ -1,0 +1,23 @@
+	@Override
+	public void stopContainer(final String id) throws DockerException,
+			InterruptedException {
+		try {
+			// stop container or kill after 10 seconds
+			client.stopContainer(id, 10); // allow up to 10 seconds to stop
+			synchronized (loggingThreads) {
+				if (loggingThreads.containsKey(id)) {
+					loggingThreads.get(id).kill();
+					loggingThreads.remove(id);
+				}
+			}
+			// list of containers needs to be updated once the given container is stopped, to reflect it new state.
+			listContainers(); 
+		} catch (ContainerNotFoundException e) {
+			throw new DockerContainerNotFoundException(e);
+		} catch (com.spotify.docker.client.DockerRequestException e) {
+			throw new DockerException(e.message());
+		} catch (com.spotify.docker.client.DockerException e) {
+			throw new DockerException(e.getMessage(), e.getCause());
+		}
+	}
+

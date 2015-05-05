@@ -1,0 +1,21 @@
+	@Override
+	public List<IDockerImage> getImages(final boolean force) {
+		List<IDockerImage> latestImages;
+		synchronized (imageLock) {
+			latestImages = this.images;
+		}
+		if (!isImagesLoaded() || force) {
+			try {
+				latestImages = listImages();
+			} catch (DockerException e) {
+				synchronized (imageLock) {
+					this.images = Collections.emptyList();
+				}
+				Activator.log(e);
+			} finally {
+				this.imagesLoaded = true;
+			}
+		}
+		return latestImages;
+	}
+

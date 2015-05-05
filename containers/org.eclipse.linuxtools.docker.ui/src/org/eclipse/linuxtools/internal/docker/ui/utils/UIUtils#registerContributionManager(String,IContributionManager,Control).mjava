@@ -1,0 +1,35 @@
+	/**
+	 * Register the given ContributionManager with the given id. The
+	 * contribution manager gets unregistered on control disposal.
+	 * 
+	 * @param id
+	 *            the id
+	 * @param contributionManager
+	 *            the contribution manager
+	 * @param control
+	 *            the control
+	 * 
+	 * @see ContributionManager
+	 * @see IMenuService
+	 * @see DisposeListener
+	 */
+	public static void registerContributionManager(final String id,
+			final IContributionManager contributionManager,
+			final Control control) {
+		Assert.isNotNull(id);
+		Assert.isNotNull(contributionManager);
+		Assert.isTrue(control != null && !control.isDisposed());
+
+		final IMenuService menuService = (IMenuService) PlatformUI
+				.getWorkbench().getService(IMenuService.class);
+		menuService.populateContributionManager(
+				(ContributionManager) contributionManager, id);
+		contributionManager.update(true);
+		control.addDisposeListener(new DisposeListener() {
+			public void widgetDisposed(DisposeEvent e) {
+				menuService
+						.releaseContributions((ContributionManager) contributionManager);
+			}
+		});
+	}
+
