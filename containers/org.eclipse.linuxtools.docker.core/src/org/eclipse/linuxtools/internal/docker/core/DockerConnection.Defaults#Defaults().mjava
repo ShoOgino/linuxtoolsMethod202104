@@ -1,4 +1,24 @@
 		public Defaults() throws DockerException {
+			File scriptFile = Activator.getDefault().getBundle()
+					.getDataFile("script.sh"); //$NON-NLS-1$
+			if (!scriptFile.exists()) {
+				InputStream is = DockerConnection.class
+						.getResourceAsStream("/resources/script.sh"); //$NON-NLS-1$
+				FileOutputStream fo;
+				try {
+					byte[] buff = new byte[1024];
+					fo = new FileOutputStream(scriptFile);
+					int n;
+					while ((n = is.read(buff)) > 0) {
+						fo.write(buff, 0, n);
+					}
+					fo.close();
+					is.close();
+					scriptFile.setExecutable(true);
+				} catch (IOException e) {
+					Activator.logErrorMessage(e.getMessage());
+				}
+			}
 			// first, looking for a Unix socket at /var/run/docker.sock
 			if (defaultsWithUnixSocket() || defaultsWithSystemEnv()
 					|| defaultWithShellEnv()) {
