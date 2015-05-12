@@ -1,0 +1,124 @@
+    private String formatContent(StringTokenizer candidateWords, int indentationLength) {
+        StringBuilder formattedWords = new StringBuilder();
+        int currentLineLength = indentationLength;
+
+        while (candidateWords.hasMoreTokens()) {
+            String cword = candidateWords.nextToken();
+
+            if (isDelimeter(cword)) {
+                continue;
+            }
+
+            // if the word is date, start new line and include
+            // names, email, then an empty line.
+            else if (isDate(cword)) {
+
+                // see if we are in middle of line and
+                // if so, start new line, else continue.
+                if (!isOnNewLine(formattedWords)) {
+                    formattedWords.append(NEW_LINE_CHAR);
+                }
+
+                if (formattedWords.length() > 0) {
+                    formattedWords.append(NEW_LINE_CHAR);
+                }
+
+                // insert date
+                formattedWords.append(cword + WHITE_SPACE_CHAR);
+
+                // insert name/email
+                while (candidateWords.hasMoreTokens()) {
+                    cword = candidateWords.nextToken();
+                    if (cword.equals(NEW_LINE_CHAR)) {
+                        formattedWords.append(NEW_LINE_CHAR);
+                        break;
+                    }
+                    if (isEmail(cword)) {
+                        formattedWords.append(WHITE_SPACE_CHAR)
+                                      .append(WHITE_SPACE_CHAR)
+                                      .append(cword)
+                                      .append(NEW_LINE_CHAR)
+                                      .append(NEW_LINE_CHAR);
+                        currentLineLength = indentationLength;
+                        break;
+                    }
+                    if (!isDelimeter(cword)) {
+                        formattedWords.append(WHITE_SPACE_CHAR).append(cword);
+                    }
+                }
+            }
+
+            // means beginning of file name, so whole filename should be
+            // in one line.
+            else if (isStar(cword)) {
+                // see if we are in middle of line and
+                // if so, start new line, else continue.
+                if (!isOnNewLine(formattedWords)) {
+                    formattedWords.append(NEW_LINE_CHAR);
+                    currentLineLength = indentationLength;
+                }
+
+                formattedWords.append(TAB_SPACE_CHAR).append(cword);
+                currentLineLength += cword.length() + 1;
+
+                // this should be path name
+                if (candidateWords.countTokens() >= 2) {
+                    candidateWords.nextToken();
+                    cword = candidateWords.nextToken();
+
+                    formattedWords.append(WHITE_SPACE_CHAR).append(cword);
+                    currentLineLength += cword.length() + 1;
+                }
+            }
+
+            else if (cword.startsWith("(")) {
+
+                if (formattedWords.length() > 0) {
+                    formattedWords.append(NEW_LINE_CHAR);
+                }
+                formattedWords.append(TAB_SPACE_CHAR);
+
+                currentLineLength = 1;
+                // add until closing bracket
+
+                boolean skipMultiWhiteSpace = false;
+
+                while (!cword.endsWith("):") && candidateWords.hasMoreTokens()) {
+                    if (cword.equals(NEW_LINE_CHAR)) {
+                        break;
+                    }
+                    if (cword.equals(WHITE_SPACE_CHAR) && !skipMultiWhiteSpace) {
+                        formattedWords.append(cword);
+                        currentLineLength += cword.length();
+                        skipMultiWhiteSpace = true;
+                    }
+                    if (!isDelimeter(cword)) {
+                        formattedWords.append(cword);
+                        currentLineLength += cword.length();
+                        skipMultiWhiteSpace = false;
+                    }
+                    cword = candidateWords.nextToken();
+                }
+
+                formattedWords.append(cword);
+                currentLineLength += cword.length();
+            }
+
+            else if (currentLineLength + cword.length() > MAX_WIDTH) {
+                formattedWords.append(NEW_LINE_CHAR)
+                              .append(TAB_SPACE_CHAR)
+                              .append(cword);
+                currentLineLength = indentationLength + cword.length();
+            } else {
+                if (isOnNewLine(formattedWords)) {
+                    formattedWords.append(TAB_SPACE_CHAR);
+                } else {
+                    formattedWords.append(WHITE_SPACE_CHAR);
+                }
+                formattedWords.append(cword);
+                currentLineLength += cword.length() + 1;
+            }
+        }
+        return formattedWords.toString();
+    }
+
