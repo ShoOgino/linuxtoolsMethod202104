@@ -8,30 +8,22 @@
                     .getActiveEditor();
         } catch (Exception e) {
             // no editor is active now so do nothing
-
             return;
         }
 
-        if (currentEditor == null)
+        if (currentEditor == null) {
             return;
+        }
 
-        // System.out.println(currentEditor.getTitle());
+        IFile changelog = getChangelogFile(getDocumentLocation(currentEditor, false));
+        if (changelog == null) {
+            return;
+        }
+
         String diffResult = "";
-        IEditorInput input = currentEditor.getEditorInput();
-        ResourceMapping mapping = getResourceMapping(input);
         IProject project = null;
-        IResource[] resources = new IResource[1];
-
-        if (mapping != null) {
-            project = mapping.getProjects()[0];
-            resources[0] = (IResource) mapping.getModelObject();
-        } else if (input instanceof IFileEditorInput) {
-            IFileEditorInput f = (IFileEditorInput) input;
-            project = f.getFile().getProject();
-            resources[0] = f.getFile();
-        } else {
-            return; // can't get what we need
-        }
+        IResource[] resources = new IResource[] { changelog };
+        project = changelog.getProject();
 
         RepositoryProvider r = RepositoryProvider.getProvider(project);
         if (r == null) {
@@ -40,6 +32,11 @@
         }
         SyncInfoSet set = new SyncInfoSet();
         Subscriber s = r.getSubscriber();
+        try {
+            s.refresh(resources, IResource.DEPTH_ZERO, monitor);
+        } catch (TeamException e1) {
+            // Ignore, continue anyways
+        }
         s.collectOutOfSync(resources, IResource.DEPTH_ZERO, set, monitor);
         SyncInfo[] infos = set.getSyncInfos();
 
