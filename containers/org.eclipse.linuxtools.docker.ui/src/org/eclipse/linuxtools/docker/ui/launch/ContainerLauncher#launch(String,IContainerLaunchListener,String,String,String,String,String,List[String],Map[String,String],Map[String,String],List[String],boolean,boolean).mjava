@@ -5,9 +5,8 @@
 	 *            - id of caller to use to distinguish console owner
 	 * @param listener
 	 *            - optional listener of the run console
-	 * @param connectionName
-	 *            - the connection to try and use or default to first connection
-	 *            otherwise
+	 * @param connectionUri
+	 *            - the specified connection to use
 	 * @param image
 	 *            - the image to use
 	 * @param command
@@ -31,7 +30,7 @@
 	 *            - true if stdin support is required, false otherwise
 	 */
 	public void launch(String id, IContainerLaunchListener listener,
-			String connectionName,
+			final String connectionUri,
 			String image, String command, String commandDir, String workingDir,
 			List<String> additionalDirs, Map<String, String> origEnv,
 			Map<String, String> envMap, List<String> ports, boolean keep,
@@ -142,16 +141,33 @@
 			return;
 		}
 
-		// Try and use the specified connection name that was used before,
-		// otherwise, default to first in list
-		int defaultIndex = 0;
+		// Try and use the specified connection that was used before,
+		// otherwise, open an error
+		int defaultIndex = -1;
 		String[] connectionNames = new String[connections.length];
 		for (int i = 0; i < connections.length; ++i) {
 			connectionNames[i] = connections[i].getName();
-			if (connectionNames[i].equals(connectionName))
+			if (connections[i].getUri().equals(connectionUri))
 				defaultIndex = i;
 		}
 
+		if (defaultIndex == -1) {
+			Display.getDefault().syncExec(new Runnable() {
+
+				@Override
+				public void run() {
+					MessageDialog.openError(
+							Display.getCurrent().getActiveShell(),
+							DVMessages.getString(ERROR_LAUNCHING_CONTAINER),
+							DVMessages.getFormattedString(
+									ERROR_NO_CONNECTION_WITH_URI,
+									connectionUri));
+				}
+
+			});
+			return;
+
+		}
 		final IDockerConnection connection = connections[defaultIndex];
 		final String imageName = image;
 		final boolean keepContainer = keep;

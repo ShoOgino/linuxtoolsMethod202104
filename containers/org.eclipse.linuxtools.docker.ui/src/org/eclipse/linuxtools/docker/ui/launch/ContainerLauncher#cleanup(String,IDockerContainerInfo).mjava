@@ -1,0 +1,33 @@
+	/**
+	 * Clean up the container used for launching
+	 * 
+	 * @param connectionUri
+	 *            the URI of the connection used
+	 * @param info
+	 *            the container info
+	 */
+	public void cleanup(String connectionUri, IDockerContainerInfo info) {
+		final IDockerConnection[] connections = DockerConnectionManager
+				.getInstance().getConnections();
+		if (connections.length == 0) {
+			return;
+		}
+
+		// Try and find the specified connection
+		IDockerConnection connection = null;
+		for (int i = 0; i < connections.length; ++i) {
+			if (connections[i].getUri().equals(connectionUri))
+				connection = connections[i];
+		}
+
+		if (connection == null) {
+			return;
+		}
+
+		try {
+			connection.killContainer(info.id());
+		} catch (DockerException | InterruptedException e) {
+			// do nothing
+		}
+	}
+
