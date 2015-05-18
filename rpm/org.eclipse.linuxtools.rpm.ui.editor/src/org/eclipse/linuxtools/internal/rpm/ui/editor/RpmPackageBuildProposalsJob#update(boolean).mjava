@@ -2,7 +2,7 @@
      * Run the Job if it's needed according with the configuration set in the
      * preference page.
      */
-    public static void update() {
+    private static void update(boolean async) {
         boolean runJob = false;
         // Today's date
         Date today = new Date();
@@ -30,13 +30,15 @@
             if (runJob) {
                 if (job == null) {
                     job = new RpmPackageBuildProposalsJob(Messages.RpmPackageBuildProposalsJob_0);
-                    job.lockAndSchedule();
-                    STORE.setValue(PreferenceConstants.P_RPM_LIST_LAST_BUILD, today.getTime());
                 } else {
                     job.cancel();
-                    job.lockAndSchedule();
-                    STORE.setValue(PreferenceConstants.P_RPM_LIST_LAST_BUILD, today.getTime());
                 }
+                if (async) {
+                    job.schedule();
+                } else {
+                    job.run(new NullProgressMonitor());
+                }
+                STORE.setValue(PreferenceConstants.P_RPM_LIST_LAST_BUILD, today.getTime());
             }
         } else {
             if (job != null) {
