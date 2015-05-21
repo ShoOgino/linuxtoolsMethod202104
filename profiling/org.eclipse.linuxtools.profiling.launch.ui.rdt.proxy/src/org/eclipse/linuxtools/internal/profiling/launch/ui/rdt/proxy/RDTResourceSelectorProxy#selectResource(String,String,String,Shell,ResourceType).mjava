@@ -1,5 +1,5 @@
     private URI selectResource(String scheme, String initialPath, String prompt, Shell shell, ResourceType resourceType) {
-        IRemoteUIFileManager uiFileManager;
+        IRemoteUIFileService uiFileService;
         boolean schemeSwitch = false;
         URI uri;
         try {
@@ -12,25 +12,25 @@
             uri = getEmptyPathURI(scheme);
             schemeSwitch = true;
         }
+
+        IRemoteServicesManager sm = Activator.getService(IRemoteServicesManager.class);
+        IRemoteConnectionType ct = sm.getConnectionType(uri);
+        IRemoteConnection connection = ct.getConnection(uri);
+        IRemoteFileService fileService = connection.getService(IRemoteFileService.class);
+
         // If the user is switching schemes, start with an empty host and path
-        IRemoteServices services = RemoteServices.getRemoteServices(uri);
-
-        IRemoteUIServices uiServices = RemoteUIServices.getRemoteUIServices(services);
-
-        uiFileManager = uiServices.getUIFileManager();
-        uiFileManager.showConnections(true);
-        IRemoteConnection connection = null;
+        uiFileService = ct.getService(IRemoteUIFileService.class);
+        uiFileService.showConnections(true);
         if (!schemeSwitch) {
-            connection = services.getConnectionManager().getConnection(uri);
-            uiFileManager.setConnection(connection);
+            uiFileService.setConnection(connection);
         }
         String selectedPath = null;
         switch (resourceType) {
         case FILE:
-            selectedPath = uiFileManager.browseFile(shell, prompt, uri.getPath(), IRemoteUIConstants.NONE);
+            selectedPath = uiFileService.browseFile(shell, prompt, uri.getPath(), IRemoteUIConstants.NONE);
             break;
         case DIRECTORY:
-            selectedPath = uiFileManager.browseDirectory(shell, prompt, uri.getPath(), IRemoteUIConstants.NONE);
+            selectedPath = uiFileService.browseDirectory(shell, prompt, uri.getPath(), IRemoteUIConstants.NONE);
             break;
         default:
             Activator.log(IStatus.ERROR, Messages.RDTResourceSelectorProxy_unsupported_resourceType + resourceType);
@@ -38,9 +38,9 @@
         }
         URI selectedURI = null;
         if (selectedPath != null) {
-            connection = uiFileManager.getConnection();
-            IRemoteFileManager remoteFileManager = connection.getFileManager();
-            selectedURI = remoteFileManager.toURI(selectedPath);
+            connection = uiFileService.getConnection();
+            fileService = connection.getService(IRemoteFileService.class);
+            selectedURI = fileService.toURI(selectedPath);
         }
         return selectedURI;
     }

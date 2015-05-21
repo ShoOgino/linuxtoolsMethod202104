@@ -1,0 +1,36 @@
+	@Test
+	public void testRemoteCommandLauncher()  {
+		IRemoteCommandLauncher cl = null;
+		Process p = null;
+		IPath commandPath, changeToDirectory;
+		String[] args, env;
+		try {
+			cl =  proxyManager.getLauncher(syncProject);
+			assertTrue("Should have returned a remote launcher", cl instanceof RDTCommandLauncher);
+		} catch (CoreException e) {
+			fail("Should have returned a launcher: " + e.getCause());
+		}
+
+		commandPath = new Path("uptime");
+		args = new String[]{"-s"};
+		env = new String[]{"PATH=/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"};
+		changeToDirectory = new Path("/tmp");
+		try {
+			p = cl.execute(commandPath, args, env, changeToDirectory, new NullProgressMonitor());
+			p.waitFor();
+			assertNotNull(p);
+			assertEquals("Process exited with failure", 0, p.exitValue());
+		} catch (Exception e) {
+			fail("Unable to execute " + commandPath + " on remote machine: " + e.getMessage());
+		}
+		InputStream actualIS = p.getInputStream();
+		int v = -1;
+		try {
+			v = actualIS.read();
+		} catch (IOException e) {
+			fail("Failed to read output of command executed remotely: " + e.getMessage());
+		}
+		// Ensure something can be read
+		assertTrue(v != -1);
+	}
+

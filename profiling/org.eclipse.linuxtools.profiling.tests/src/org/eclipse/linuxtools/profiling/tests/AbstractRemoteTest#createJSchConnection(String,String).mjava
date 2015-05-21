@@ -1,0 +1,24 @@
+    /**
+     * Create a new connection. Save the connection working copy before return.
+     *
+     * @param connName Connection Name
+     * @param connTypeId The connection type identifier
+     * @return The created remote connection
+     * @throws RemoteConnectionException
+     */
+    protected static IRemoteConnection createJSchConnection(String connName, String connTypeId) throws RemoteConnectionException {
+        checkConnectionInfo();
+        IRemoteServicesManager manager = getServicesManager();
+        IRemoteConnectionType ct = manager.getConnectionType(connTypeId);
+        assertNotNull(ct);
+        IRemoteConnectionWorkingCopy wc = ct.newConnection(connName);
+        wc.setAttribute(JSchConnection.ADDRESS_ATTR, HOST);
+        wc.setAttribute(JSchConnection.USERNAME_ATTR, USERNAME);
+        wc.setSecureAttribute(JSchConnection.PASSWORD_ATTR, PASSWORD);
+        IRemoteConnection conn = wc.save();
+        assertNotNull(conn);
+        conn.open(new NullProgressMonitor());
+        assertTrue(conn.isOpen());
+        return conn;
+    }
+

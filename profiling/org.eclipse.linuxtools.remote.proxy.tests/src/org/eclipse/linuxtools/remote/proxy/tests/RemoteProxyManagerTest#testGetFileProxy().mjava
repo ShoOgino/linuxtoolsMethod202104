@@ -1,0 +1,39 @@
+	@Test
+	public void testGetFileProxy() {
+		IRemoteFileProxy fp;
+		try {
+			/*
+			 * Test the proxy for local URIs and project
+			 */
+			fp = proxyManager.getFileProxy(URI.create("/path/to/file"));
+			assertTrue("Should return a local file proxy", fp instanceof LocalFileProxy);
+			fp = proxyManager.getFileProxy(URI.create("file:/path/to/file"));
+			assertTrue("Should return a local file proxy", fp instanceof LocalFileProxy);
+			fp = proxyManager.getFileProxy(localProject.getLocationURI());
+			assertTrue("Should return a local file proxy", fp instanceof LocalFileProxy);
+			fp = proxyManager.getFileProxy(localProject.getProject());
+			assertTrue("Should return a local file proxy", fp instanceof LocalFileProxy);
+			/*
+			 * Test the proxy for remote URIs and project
+			 */
+			fp = proxyManager.getFileProxy(URI.create("ssh://" + CONNECTION_NAME + "/path/to/file"));
+			assertTrue("Should have returned a remote file proxy", fp instanceof RDTFileProxy);
+			fp = proxyManager.getFileProxy(syncProject.getProject());
+			assertTrue("Should have returned a remote file proxy", fp instanceof RDTFileProxy);
+		} catch (CoreException e) {
+			fail("Should have returned a file proxy: " + e.getCause());
+		}
+
+		/*
+		 * Test the proxy for unsupported URIs
+		 */
+		try {
+			// As of org.eclipse.remote 2.0, remotetools scheme is no longer
+			// support
+			fp = proxyManager.getFileProxy(URI.create("remotetools://MyConnection/path/to/file"));
+			fail("remotetools scheme should not be recognized");
+		} catch (CoreException e) {
+			assertTrue(true);
+		}
+	}
+

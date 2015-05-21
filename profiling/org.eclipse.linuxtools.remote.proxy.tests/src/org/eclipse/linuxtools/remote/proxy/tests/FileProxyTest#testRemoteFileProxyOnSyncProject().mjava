@@ -1,0 +1,51 @@
+	@Test
+	public void testRemoteFileProxyOnSyncProject() {
+		IRemoteFileProxy fileProxy = null;
+		try {
+			fileProxy =  proxyManager.getFileProxy(syncProject);
+			assertTrue("Should have returned a remote launcher", fileProxy instanceof RDTFileProxy);
+		} catch (CoreException e) {
+			fail("Should have returned a launcher: " + e.getCause());
+		}
+		String ds = fileProxy.getDirectorySeparator();
+		assertNotNull(ds);
+
+		SyncConfig config = getSyncConfig(syncProject);
+		String projectLocation = config.getLocation();
+		assertNotNull(projectLocation);
+		IRemoteConnection conn = null;
+		String connScheme = null;
+		try {
+			conn = config.getRemoteConnection();
+			connScheme = conn.getConnectionType().getScheme();
+		} catch (MissingConnectionException e) {
+			fail("Unabled to get remote connection: " + e.getMessage());
+		}
+
+		/*
+		 *  Test getResource()
+		 */
+		IFileStore fs = fileProxy.getResource(projectLocation);
+		assertNotNull(fs);
+		assertEquals("Remote connection and FileStore schemes diverge", connScheme, fs.toURI().getScheme());
+		//assertTrue(fs.fetchInfo().isDirectory());
+
+		/*
+		 * Test getWorkingDir()
+		 */
+		URI workingDir = fileProxy.getWorkingDir();
+		assertNotNull(workingDir);
+		assertEquals("Remote connection and URI schemes diverge", connScheme, workingDir.getScheme());
+
+		/*
+		 * Test toPath()
+		 */
+		URI uri = null;
+		try {
+			uri = new URI(connScheme, conn.getName(), projectLocation, null, null);
+		} catch (URISyntaxException e) {
+			fail("Failed to build URI for the test: " + e.getMessage());
+		}
+		assertEquals(projectLocation, fileProxy.toPath(uri));
+	}
+

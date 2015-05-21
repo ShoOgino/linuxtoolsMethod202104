@@ -1,0 +1,43 @@
+	@Test
+	public void testLocalFileProxy() {
+		IRemoteFileProxy fileProxy = null;
+		try {
+			fileProxy =  proxyManager.getFileProxy(localProject);
+			assertTrue("Should have returned a remote launcher", fileProxy instanceof LocalFileProxy);
+		} catch (CoreException e) {
+			fail("Should have returned a launcher: " + e.getCause());
+		}
+
+		/*
+		 * Test getDirectorySeparator()
+		 */
+		String ds = fileProxy.getDirectorySeparator();
+		assertNotNull(ds);
+		/*
+		 *  Test getResource()
+		 */
+		IFileStore actualFileStore = fileProxy.getResource(localProject.getLocation().toOSString());
+		assertNotNull(actualFileStore);
+
+		IFileStore expectedFileStore = null;
+		try {
+			expectedFileStore = EFS.getStore(localProject.getLocationURI());
+		} catch (CoreException e) {
+			fail("Unabled to get FileStore to local project: " + e.getMessage());
+		}
+		assertEquals("FileStore to local project folder diverge", expectedFileStore, actualFileStore);
+		assertTrue(actualFileStore.fetchInfo().isDirectory());
+
+		/*
+		 * Test getWorkingDir()
+		 */
+		URI workingDir = fileProxy.getWorkingDir();
+		assertNotNull(workingDir);
+		assertEquals(localProject.getLocationURI(), workingDir);
+
+		/*
+		 * Test toPath()
+		 */
+		assertEquals(localProject.getLocation().toOSString(), fileProxy.toPath(localProject.getLocationURI()));
+	}
+

@@ -1,0 +1,35 @@
+	@Test
+	public void testGetLauncher() {
+		IRemoteCommandLauncher cl;
+		try {
+			/*
+			 * Test launcher got for local URIs and project
+			 */
+			cl = proxyManager.getLauncher(localProject.getLocationURI());
+			assertTrue("Should have returned a local launcher", cl instanceof LocalLauncher);
+			cl = proxyManager.getLauncher(localProject);
+			assertTrue("Should have returned a local launcher", cl instanceof LocalLauncher);
+			/*
+			 * Test launcher got for remote project and URI
+			 */
+			cl = proxyManager.getLauncher(URI.create("ssh://" + CONNECTION_NAME + "/path/to/file"));
+			assertTrue("Should have returned a remote file proxy", cl instanceof RDTCommandLauncher);
+			cl = proxyManager.getLauncher(syncProject);
+			assertTrue("Should have returned a remote launcher", cl instanceof RDTCommandLauncher);
+		} catch (CoreException e) {
+			fail("Should have returned a launcher: " + e.getCause());
+		}
+
+		/*
+		 * Test the proxy for unsupported URIs
+		 */
+		try {
+			// As of org.eclipse.remote 2.0, remotetools scheme is no longer
+			// support
+			cl = proxyManager.getLauncher(URI.create("remotetools://MyConnection/path/to/file"));
+			fail("remotetools scheme should not be recognized");
+		} catch (CoreException e) {
+			assertTrue(true);
+		}
+	}
+
