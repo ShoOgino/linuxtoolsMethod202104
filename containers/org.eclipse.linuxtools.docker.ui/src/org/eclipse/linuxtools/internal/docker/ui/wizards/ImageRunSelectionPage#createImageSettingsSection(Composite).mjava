@@ -1,0 +1,122 @@
+	/**
+	 * Creates the {@link Composite} container that will display widgets to
+	 * select an {@link IDockerImage}, name it and specify the command to run.
+	 * 
+	 * @param container
+	 *            the parent {@link Composite}
+	 */
+	private void createImageSettingsSection(final Composite container) {
+		// Image selection name
+		final Label imageSelectionLabel = new Label(container, SWT.NONE);
+		imageSelectionLabel.setText("Image:"); //$NON-NLS-1$
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(false, false).applyTo(imageSelectionLabel);
+		final Combo imageSelectionCombo = new Combo(container, SWT.BORDER);
+		final ComboViewer imageSelectionComboViewer = new ComboViewer(
+				imageSelectionCombo);
+		imageSelectionCombo.setToolTipText("Select the Docker Image to run"); //$NON-NLS-1$
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(true, false).span(1, 1).applyTo(imageSelectionCombo);
+		new ControlDecoration(imageSelectionCombo, SWT.TOP | SWT.LEFT);
+		new ContentProposalAdapter(imageSelectionCombo,
+				new ComboContentAdapter() {
+					@Override
+					public void insertControlContents(Control control,
+							String text, int cursorPosition) {
+						final Combo combo = (Combo) control;
+						final Point selection = combo.getSelection();
+						combo.setText(text);
+						selection.x = text.length();
+						selection.y = selection.x;
+						combo.setSelection(selection);
+					}
+				}, getImageNameContentProposalProvider(imageSelectionCombo),
+				null, null);
+		// image search
+		final Button searchImageButton = new Button(container, SWT.NONE);
+		searchImageButton.setText("Search..."); //$NON-NLS-1$
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(false, false).span(1, 1).applyTo(searchImageButton);
+		searchImageButton.addSelectionListener(onSearchImage());
+		// link to pull image
+		final Label fillerLabel = new Label(container, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(false, false).span(1, 1).applyTo(fillerLabel);
+		final Link pullImageLink = new Link(container, SWT.NONE);
+		pullImageLink.setText("<a>Pull this image...</a>");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(true, false).span(COLUMNS - 1, 1).applyTo(pullImageLink);
+		pullImageLink.addSelectionListener(onPullImage());
+		dbc.bindValue(WidgetProperties.enabled().observe(pullImageLink),
+				BeanProperties
+						.value(ImageRunSelectionModel.class,
+								ImageRunSelectionModel.SELECTED_IMAGE_NEEDS_PULLING)
+						.observe(model));
+		// bind combo with model (for values and selection)
+		imageSelectionComboViewer
+				.setContentProvider(new ObservableListContentProvider());
+		dbc.bindList(WidgetProperties.items().observe(imageSelectionCombo),
+				BeanProperties
+						.list(ImageRunSelectionModel.class,
+								ImageRunSelectionModel.IMAGE_NAMES)
+						.observe(model));
+		dbc.bindValue(WidgetProperties.selection().observe(imageSelectionCombo),
+				BeanProperties
+						.value(ImageRunSelectionModel.class,
+								ImageRunSelectionModel.SELECTED_IMAGE_NAME)
+						.observe(model));
+		// Container name (optional)
+		final Label containerNameLabel = new Label(container, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(false, false).applyTo(imageSelectionLabel);
+		containerNameLabel.setText("Name:"); //$NON-NLS-1$
+		final Text containerNameText = new Text(container, SWT.BORDER);
+		containerNameText.setToolTipText(
+				"a UUID long identifier, a UUID short identifier or a String"); //$NON-NLS-1$
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(true, false).span(1, 1).applyTo(containerNameText);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(false, false).span(1, 1)
+				.applyTo(new Label(container, SWT.NONE));
+		dbc.bindValue(
+				WidgetProperties.text(SWT.Modify).observe(containerNameText),
+				BeanProperties
+						.value(ImageRunSelectionModel.class,
+								ImageRunSelectionModel.CONTAINER_NAME)
+						.observe(model));
+
+		// EntryPoint (optional)
+		final Label entrypointLabel = new Label(container, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(false, false).applyTo(imageSelectionLabel);
+		entrypointLabel.setText("Entrypoint:"); //$NON-NLS-1$
+		// TODO: include SWT.SEARCH | SWT.ICON_SEARCH to support value reset
+		final Text entrypointText = new Text(container, SWT.BORDER);
+
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(true, false).span(1, 1).applyTo(entrypointText);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(false, false).span(1, 1)
+				.applyTo(new Label(container, SWT.NONE));
+		dbc.bindValue(WidgetProperties.text(SWT.Modify).observe(entrypointText),
+				BeanProperties
+						.value(ImageRunSelectionModel.class,
+								ImageRunSelectionModel.ENTRYPOINT)
+						.observe(model));
+
+		// Command (optional)
+		final Label commandLabel = new Label(container, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(false, false).applyTo(imageSelectionLabel);
+		commandLabel.setText("Command:"); //$NON-NLS-1$
+		final Text commandText = new Text(container, SWT.BORDER);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(true, false).span(1, 1).applyTo(commandText);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(false, false).span(1, 1)
+				.applyTo(new Label(container, SWT.NONE));
+		dbc.bindValue(WidgetProperties.text(SWT.Modify).observe(commandText),
+				BeanProperties.value(ImageRunSelectionModel.class,
+						ImageRunSelectionModel.COMMAND).observe(model));
+	}
+

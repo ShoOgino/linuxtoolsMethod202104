@@ -1,0 +1,32 @@
+	@Override
+	public void createControl(final Composite parent) {
+		final Composite container = new Composite(parent, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).span(1, 1)
+				.grab(true, false).applyTo(container);
+		GridLayoutFactory.fillDefaults().numColumns(COLUMNS).margins(6, 6)
+				.applyTo(container);
+		createImageSettingsSection(container);
+		createSectionSeparator(container, true);
+		createPortSettingsSection(container);
+		// addSectionSeparator(container, false);
+		createLinkSettingsSection(container);
+		// addSectionSeparator(container, false);
+		createRunOptionsSection(container);
+		// Observe model changes to propagate to the UI via listeners.
+		final IObservableValue imageSelectionObservable = BeanProperties
+				.value(ImageRunSelectionModel.class,
+						ImageRunSelectionModel.SELECTED_IMAGE_NAME)
+				.observe(model);
+		imageSelectionObservable
+				.addValueChangeListener(onImageSelectionChange());
+		setDefaultValues();
+		// setup validation support
+		WizardPageSupport.create(this, dbc);
+		// set validation
+		final ImageSelectionValidator imageSelectionValidator = new ImageSelectionValidator(
+				imageSelectionObservable);
+		dbc.addValidationStatusProvider(imageSelectionValidator);
+		//
+		setControl(container);
+	}
+

@@ -1,0 +1,48 @@
+	/**
+	 * Binds the given {@link MountType} to the given {@link Button} when it is
+	 * selected, and set the enablement of the associated {@link Control} at the
+	 * same time (ie: the {@link Control} are only enabled when the given
+	 * {@link Button} is selected.
+	 * 
+	 * @param button
+	 *            the {@link Button} to bind
+	 * @param mountType
+	 *            the {@link MountType} to bind to the {@link Button}
+	 * @param controls
+	 *            the {@link Control}s to enable or disable when the Button is
+	 *            selected/unselected.
+	 * @return
+	 */
+	private Binding bindButton(final Button button, final MountType mountType,
+			final Control... controls) {
+		return dbc.bindValue(WidgetProperties.selection().observe(button),
+				BeanProperties.value(DataVolumeModel.class,
+						DataVolumeModel.MOUNT_TYPE).observe(model),
+				new UpdateValueStrategy() {
+					@Override
+					public Object convert(Object value) {
+						if (value.equals(Boolean.TRUE)) {
+							setEnabled(controls, true);
+							return mountType;
+						}
+						setEnabled(controls, false);
+						return null;
+					}
+
+					private void setEnabled(final Control[] controls,
+							final boolean enabled) {
+						for (Control control : controls) {
+							control.setEnabled(enabled);
+						}
+					}
+				}, new UpdateValueStrategy() {
+					@Override
+					public Object convert(final Object value) {
+						if (mountType.equals(value)) {
+							button.setEnabled(true);
+						}
+						return mountType.equals(value);
+					}
+				});
+	}
+

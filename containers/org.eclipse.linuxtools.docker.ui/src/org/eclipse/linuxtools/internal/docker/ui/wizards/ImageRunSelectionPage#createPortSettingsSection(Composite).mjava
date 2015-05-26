@@ -1,0 +1,71 @@
+	private void createPortSettingsSection(final Composite container) {
+		final Button publishAllPortsButton = new Button(container, SWT.CHECK);
+		publishAllPortsButton.setText(
+				"Publish all exposed ports to random ports on the host interfaces"); //$NON-NLS-1$
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.span(COLUMNS, 1).grab(true, false)
+				.applyTo(publishAllPortsButton);
+		dbc.bindValue(
+				WidgetProperties.selection().observe(publishAllPortsButton),
+				BeanProperties
+						.value(ImageRunSelectionModel.class,
+								ImageRunSelectionModel.PUBLISH_ALL_PORTS)
+						.observe(model));
+		// specify ports
+		final Label portSettingsLabel = new Label(container, SWT.NONE);
+		portSettingsLabel.setText(
+				"Only publish the selected container ports below to the host:");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(true, false).span(COLUMNS, 1).indent(INDENT, 0)
+				.applyTo(portSettingsLabel);
+		exposedPortsTableViewer = createPortSettingsTable(container);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(true, false).span(COLUMNS - 1, 1).indent(INDENT, 0)
+				.hint(200, 70).applyTo(exposedPortsTableViewer.getTable());
+		// buttons
+		final Composite buttonsContainers = new Composite(container, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(false, false).applyTo(buttonsContainers);
+		GridLayoutFactory.fillDefaults().numColumns(1).margins(0, 0)
+				.spacing(SWT.DEFAULT, 0).applyTo(buttonsContainers);
+
+		final Button addButton = new Button(buttonsContainers, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(true, false).applyTo(addButton);
+		addButton.setText("Add"); //$NON-NLS-1$
+		addButton.addSelectionListener(onAddPort());
+		final Button editButton = new Button(buttonsContainers, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(true, false).applyTo(editButton);
+		editButton.setText("Edit..."); //$NON-NLS-1$
+		editButton.setEnabled(false);
+		editButton.addSelectionListener(onEditPort(exposedPortsTableViewer));
+		final Button removeButton = new Button(buttonsContainers, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(true, false).applyTo(removeButton);
+		removeButton.setText("Remove"); //$NON-NLS-1$
+		removeButton
+				.addSelectionListener(onRemovePorts(exposedPortsTableViewer));
+		BeanProperties
+				.value(ImageRunSelectionModel.class,
+						ImageRunSelectionModel.PUBLISH_ALL_PORTS)
+				.observe(model)
+				.addValueChangeListener(onPublishAllPortsChange(
+						exposedPortsTableViewer.getTable(), addButton,
+						removeButton));
+		ViewerSupport.bind(exposedPortsTableViewer, model.getExposedPorts(),
+				BeanProperties.values(ExposedPortModel.class,
+						new String[] { ExposedPortModel.CONTAINER_PORT,
+								ExposedPortModel.PORT_TYPE,
+								ExposedPortModel.HOST_ADDRESS,
+								ExposedPortModel.HOST_PORT }));
+		dbc.bindSet(
+				ViewersObservables.observeCheckedElements(
+						exposedPortsTableViewer, ExposedPortModel.class),
+				BeanProperties.set(ImageRunSelectionModel.SELECTED_PORTS)
+						.observe(model));
+
+		togglePortMappingControls(exposedPortsTableViewer.getTable(), addButton,
+				removeButton);
+	}
+

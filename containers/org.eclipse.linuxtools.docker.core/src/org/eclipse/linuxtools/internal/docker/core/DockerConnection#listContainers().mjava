@@ -17,12 +17,6 @@
 			// core format in case we decide to change the underlying engine
 			// in the future.
 			for (Container c : list) {
-				final List<Container.PortMapping> ports = c.ports();
-				final List<IDockerPortMapping> portMappings = new ArrayList<>();
-				for (Container.PortMapping port : ports) {
-					final DockerPortMapping portMapping = new DockerPortMapping(port.getPrivatePort(), port.getPublicPort(), port.getType(), port.getIp());
-					portMappings.add(portMapping);
-				}
 				// For containers that have exited, make sure we aren't tracking
 				// them with a logging thread.
 				if (c.status().startsWith(Messages.Exited_specifier)) {
@@ -31,15 +25,13 @@
 						loggingThreads.remove(c.id());
 					}
 				}
-				dclist.add(new DockerContainer(this, c.id(), c.image(), c
-						.command(), c.created(), c.status(), c.sizeRw(), c
-						.sizeRootFs(), portMappings, c.names()));
+				dclist.add(new DockerContainer(this, c));
 			}
 			containers = dclist;
 		}
 		// perform notification outside of containerLock so we don't have a View
 		// causing a deadlock
-		notifyContainerListeners(this, dclist);
+		notifyContainerListeners(dclist);
 		return dclist;
 	}
 

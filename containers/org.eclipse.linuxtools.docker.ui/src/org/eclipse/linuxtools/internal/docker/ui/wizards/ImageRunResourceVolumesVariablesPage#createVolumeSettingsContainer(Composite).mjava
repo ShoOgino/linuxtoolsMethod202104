@@ -1,0 +1,52 @@
+	private void createVolumeSettingsContainer(final Composite container) {
+		final Label volumesLabel = new Label(container, SWT.NONE);
+		volumesLabel.setText("Data Volumes:"); //$NON-NLS-1$
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(true, false).span(COLUMNS, 1).applyTo(volumesLabel);
+		final CheckboxTableViewer dataVolumesTableViewer = createVolumesTable(
+				container);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(true, false).hint(200, 100)
+				.applyTo(dataVolumesTableViewer.getTable());
+		// buttons
+		final Composite buttonsContainers = new Composite(container, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(false, false).applyTo(buttonsContainers);
+		GridLayoutFactory.fillDefaults().numColumns(1).margins(0, 0)
+				.spacing(SWT.DEFAULT, 0).applyTo(buttonsContainers);
+
+		final Button addButton = new Button(buttonsContainers, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(true, false).applyTo(addButton);
+		addButton.setText("Add..."); //$NON-NLS-1$
+		addButton.addSelectionListener(onAddDataVolume(dataVolumesTableViewer));
+		final Button editButton = new Button(buttonsContainers, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(true, false).applyTo(editButton);
+		editButton.setText("Edit..."); //$NON-NLS-1$
+		editButton
+				.addSelectionListener(onEditDataVolume(dataVolumesTableViewer));
+		editButton.setEnabled(false);
+		final Button resetButton = new Button(buttonsContainers, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(true, false).applyTo(resetButton);
+		resetButton.setText("Remove"); //$NON-NLS-1$
+		resetButton.addSelectionListener(onRemoveDataVolumes());
+		resetButton.setEnabled(false);
+		// update table content when selected image changes
+		bind(dataVolumesTableViewer, model.getDataVolumes(),
+				BeanProperties.values(DataVolumeModel.class,
+						new String[] { DataVolumeModel.CONTAINER_PATH,
+								DataVolumeModel.MOUNT,
+								DataVolumeModel.READ_ONLY_VOLUME }));
+		dbc.bindSet(
+				ViewersObservables.observeCheckedElements(
+						dataVolumesTableViewer, DataVolumeModel.class),
+				BeanProperties
+						.set(ImageRunResourceVolumesVariablesModel.SELECTED_DATA_VOLUMES)
+						.observe(model));
+		ViewersObservables.observeMultiSelection(dataVolumesTableViewer)
+				.addChangeListener(
+						onDataVolumesSelection(editButton, resetButton));
+	}
+

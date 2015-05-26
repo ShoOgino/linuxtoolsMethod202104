@@ -1,0 +1,41 @@
+	private void pullSelectedImage() {
+		try {
+			getContainer().run(true, true, new IRunnableWithProgress() {
+
+				@Override
+				public void run(final IProgressMonitor monitor)
+						throws InterruptedException {
+					final IDockerConnection connection = model
+							.getSelectedConnection();
+					final String imageName = model.getSelectedImageName();
+					monitor.beginTask("Pulling image '" + imageName + "'", 1);
+					try {
+						connection.pullImage(imageName,
+								new ImagePullProgressHandler(connection,
+										imageName));
+					} catch (final DockerException e) {
+						Display.getDefault().syncExec(new Runnable() {
+							@Override
+							public void run() {
+								MessageDialog.openError(
+										Display.getCurrent().getActiveShell(),
+										DVMessages.getFormattedString(
+												ERROR_PULLING_IMAGE, imageName),
+										e.getMessage());
+							}
+						});
+					} finally {
+						monitor.done();
+						// refresh the widgets
+						model.refreshImageNames();
+						if (model.getImageNames().contains(imageName)) {
+							model.setSelectedImageName(imageName);
+						}
+					}
+				}
+			});
+		} catch (InvocationTargetException | InterruptedException e) {
+			Activator.log(e);
+		}
+	}
+

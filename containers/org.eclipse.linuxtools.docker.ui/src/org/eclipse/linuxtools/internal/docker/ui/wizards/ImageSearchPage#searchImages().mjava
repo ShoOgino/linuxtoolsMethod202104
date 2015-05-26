@@ -1,0 +1,55 @@
+	private void searchImages() {
+		final String term = this.model.getTerm();
+		if (term.isEmpty()) {
+			return;
+		}
+		try {
+			final BlockingQueue<List<IDockerImageSearchResult>> searchResultQueue = new ArrayBlockingQueue<>(
+					1);
+			ImageSearchPage.this.getContainer().run(true, true,
+					new IRunnableWithProgress() {
+						@Override
+						public void run(IProgressMonitor monitor)
+								throws InvocationTargetException,
+								InterruptedException {
+							monitor.beginTask("Searching...", 1);
+							try {
+								final List<IDockerImageSearchResult> searchResults = ImageSearchPage.this.model
+										.getSelectedConnection()
+										.searchImages(term);
+								monitor.beginTask("Searching...", 1);
+								searchResultQueue.offer(searchResults);
+							} catch (DockerException e) {
+								Activator.log(e);
+							}
+							monitor.done();
+						}
+					});
+			final List<IDockerImageSearchResult> searchResult = searchResultQueue
+					.poll(10, TimeUnit.SECONDS);
+			Display.getCurrent().asyncExec(new Runnable() {
+				@Override
+				public void run() {
+					ImageSearchPage.this.model.setSearchResult(searchResult);
+					// refresh the wizard buttons
+					getWizard().getContainer().updateButtons();
+				}
+			});
+			// display a warning in the title area if the search result is empty
+			if (searchResult.isEmpty()) {
+				this.setMessage("No image matched the specified term.",
+						WARNING);
+			} else if (searchResult.size() == 1) {
+				this.setMessage("1 image matched the specified term.",
+						INFORMATION);
+			} else {
+				this.setMessage(
+						searchResult.size()
+								+ " images matched the specified term.",
+						INFORMATION);
+			}
+		} catch (InvocationTargetException | InterruptedException e) {
+			Activator.log(e);
+		}
+	}
+

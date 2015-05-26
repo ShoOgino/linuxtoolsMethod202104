@@ -1,0 +1,29 @@
+	private void findImageInfo(final IDockerImage selectedImage) {
+		try {
+			final FindImageInfoRunnable findImageInfoRunnable = new FindImageInfoRunnable(
+					selectedImage);
+			getContainer().run(true, true, findImageInfoRunnable);
+			final IDockerImageInfo selectedImageInfo = findImageInfoRunnable
+					.getResult();
+			final Set<String> exposedPorts = selectedImageInfo.config()
+					.exposedPorts();
+			final WritableList availablePorts = new WritableList();
+			if (exposedPorts != null) {
+				for (String exposedPort : exposedPorts) {
+					final String privatePort = exposedPort.substring(0,
+							exposedPort.indexOf('/'));
+					final String type = exposedPort
+							.substring(exposedPort.indexOf('/'));
+					availablePorts.add(
+							new ExposedPortModel(privatePort, type, "", ""));
+				}
+			}
+			model.setExposedPorts(availablePorts);
+			model.setCommand(selectedImageInfo.config().cmd());
+			model.setEntrypoint(selectedImageInfo.config().entrypoint());
+
+		} catch (InvocationTargetException | InterruptedException e) {
+			Activator.log(e);
+		}
+	}
+

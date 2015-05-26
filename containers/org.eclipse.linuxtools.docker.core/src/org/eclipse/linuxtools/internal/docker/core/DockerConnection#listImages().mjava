@@ -1,4 +1,5 @@
-	private List<IDockerImage> listImages() throws DockerException {
+	@Override
+	public List<IDockerImage> listImages() throws DockerException {
 		final List<IDockerImage> dilist = new ArrayList<>();
 		synchronized (imageLock) {
 			List<Image> rawImages = null;
@@ -26,17 +27,24 @@
 						&& imageParentIds.contains(rawImage.id());
 				final boolean danglingImage = !taggedImage
 						&& !intermediateImage;
-				dilist.add(new DockerImage(this, rawImage
-						.repoTags(), rawImage.id(), rawImage.parentId(),
-						rawImage.created(), rawImage.size(), rawImage
-								.virtualSize(), intermediateImage,
-						danglingImage));
+				// FIXME: if an image with a unique ID belongs to multiple repos, we should
+				// probably have multiple instances of IDockerImage
+				final Map<String, List<String>> repoTags = DockerImage.extractTagsByRepo(rawImage.repoTags());
+				for(Entry<String, List<String>> entry : repoTags.entrySet()) {
+					final String repo = entry.getKey();
+					final List<String> tags = entry.getValue();
+					dilist.add(new DockerImage(this, rawImage
+							.repoTags(), repo, tags, rawImage.id(), rawImage.parentId(),
+							rawImage.created(), rawImage.size(), rawImage
+									.virtualSize(), intermediateImage,
+							danglingImage));
+				}
 			}
 			images = dilist;
 		}
 		// Perform notification outside of lock so that listener doesn't cause a
 		// deadlock to occur
-		notifyImageListeners(this, dilist);
+		notifyImageListeners(dilist);
 		return dilist;
 	}
 

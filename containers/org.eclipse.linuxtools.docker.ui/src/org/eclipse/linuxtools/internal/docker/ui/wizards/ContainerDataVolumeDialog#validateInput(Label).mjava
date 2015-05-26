@@ -1,0 +1,27 @@
+	private IStatus validateInput(final Label errorMessageLabel) {
+		final MountType mountType = model.getMountType();
+		final String hostPath = model.getHostPathMount();
+		if (mountType == MountType.HOST_FILE_SYSTEM
+				&& (hostPath == null || hostPath.isEmpty())) {
+			return ValidationStatus.ok();
+		} else if (mountType == MountType.HOST_FILE_SYSTEM
+				&& !new File(hostPath).exists()) {
+			return ValidationStatus
+					.warning("The specified path does not exist on the host."); //$NON-NLS-1$
+		} else if (mountType == MountType.CONTAINER) {
+			final IDockerContainer container = WizardUtils
+					.getContainer(connection, model.getContainerMount());
+			if (container == null) {
+				return ValidationStatus.error("");
+			}
+			final IDockerContainerInfo selectedContainerInfo = container.info();
+			if (!selectedContainerInfo.volumes()
+					.containsKey(model.getContainerPath())) {
+				return ValidationStatus
+						.warning("The selected container does not define a "
+								+ model.getContainerPath() + " volume."); //$NON-NLS-1$
+			}
+		}
+		return ValidationStatus.ok();
+	}
+

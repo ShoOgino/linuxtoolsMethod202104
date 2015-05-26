@@ -1,0 +1,27 @@
+	@Override
+	public Object execute(final ExecutionEvent event) {
+		final IWorkbenchPart activePart = HandlerUtil.getActivePart(event);
+		final IDockerImage selectedImage = getSelectedImage(activePart);
+		if (selectedImage == null) {
+			Activator.logErrorMessage(
+					"Unable to retrieve Docker Image from current selection.");
+		} else {
+			try {
+				final ImageRun wizard = new ImageRun(selectedImage);
+				final boolean runImage = CommandUtils.openWizard(wizard,
+						HandlerUtil.getActiveShell(event));
+				if (runImage) {
+					final IDockerContainerConfig containerConfig = wizard
+							.getDockerContainerConfig();
+					final IDockerHostConfig hostConfig = wizard
+							.getDockerHostConfig();
+					runImage(selectedImage.getConnection(), containerConfig,
+							hostConfig, wizard.getDockerContainerName());
+				}
+			} catch (DockerException e) {
+				Activator.log(e);
+			}
+		}
+		return null;
+	}
+
