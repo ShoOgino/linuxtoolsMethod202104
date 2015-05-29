@@ -9,9 +9,17 @@
 		createTableViewer(container);
 		getSite().registerContextMenu(new MenuManager(), null);
 		// track selection changes in the Docker Explorer view (only)
-		getSite().getWorkbenchWindow().getSelectionService().addSelectionListener("org.eclipse.linuxtools.docker.ui.dockerExplorerView", this);
+		getSite().getWorkbenchWindow().getSelectionService()
+				.addSelectionListener(DockerExplorerView.VIEW_ID, this);
 		DockerConnectionManager.getInstance()
 				.addConnectionManagerListener(this);
 		hookContextMenu();
+		// by default, only show running containers
+		showAllContainers(false);
+		final ICommandService service = getViewSite().getWorkbenchWindow()
+				.getService(ICommandService.class);
+		service.getCommand(SHOW_ALL_CONTAINERS_COMMAND_ID)
+				.getState(TOGGLE_STATE).setValue(false);
+		service.refreshElements(SHOW_ALL_CONTAINERS_COMMAND_ID, null);
 	}
 

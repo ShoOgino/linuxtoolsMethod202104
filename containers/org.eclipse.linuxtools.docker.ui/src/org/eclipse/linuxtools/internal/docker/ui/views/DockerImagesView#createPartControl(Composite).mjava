@@ -8,9 +8,18 @@
 		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).grab(true, true).applyTo(container);
 		createTableViewer(container);
 		// track selection changes in the Docker Explorer view (only)
-		getSite().getWorkbenchWindow().getSelectionService().addSelectionListener("org.eclipse.linuxtools.docker.ui.dockerExplorerView", this);
+		getSite().getWorkbenchWindow().getSelectionService()
+				.addSelectionListener(DockerExplorerView.VIEW_ID, this);
 		DockerConnectionManager.getInstance()
 				.addConnectionManagerListener(this);
 		hookContextMenu();
+		// by default, hide dangling and intermediate images
+		showAllImages(false);
+		final ICommandService service = getViewSite().getWorkbenchWindow()
+				.getService(ICommandService.class);
+		service.getCommand(SHOW_ALL_IMAGES_COMMAND_ID).getState(TOGGLE_STATE)
+				.setValue(false);
+		service.refreshElements(SHOW_ALL_IMAGES_COMMAND_ID, null);
+
 	}
 
