@@ -1,0 +1,40 @@
+		@Override
+		protected IStatus validate() {
+			final Boolean tcpConnectionBindingMode = (Boolean) this.tcpConnectionBindingModeModelObservable
+					.getValue();
+			final String tcpHost = (String) this.tcpHostModelObservable
+					.getValue();
+			if (tcpConnectionBindingMode) {
+				if (tcpHost == null || tcpHost.isEmpty()) {
+					return ValidationStatus.error(WizardMessages.getString(
+							"NewDockerConnectionPage.validation.missingTcpConnectionURI.msg")); //$NON-NLS-1$
+				}
+				try {
+					final URI uri = new URI(tcpHost);
+					final String scheme = uri.getScheme() != null
+							? uri.getScheme().toLowerCase() : null;
+					final String host = uri.getHost();
+					final int port = uri.getPort();
+					if (scheme != null
+							&& !(scheme.equals("tcp") || scheme.equals("http")
+									|| scheme.equals("https"))) {
+						return ValidationStatus.error(WizardMessages.getString(
+								"NewDockerConnectionPage.validation.invalidTcpConnectionScheme.msg")); //$NON-NLS-1$
+					} else if (host == null) {
+						return ValidationStatus.error(WizardMessages.getString(
+								"NewDockerConnectionPage.validation.invalidTcpConnectionHost.msg")); //$NON-NLS-1$
+
+					} else if (port == -1) {
+						return ValidationStatus.error(WizardMessages.getString(
+								"NewDockerConnectionPage.validation.invalidTcpConnectionPort.msg")); //$NON-NLS-1$
+
+					}
+				} catch (URISyntaxException e) {
+					// URI is not valid
+					return ValidationStatus.error(WizardMessages.getString(
+							"NewDockerConnectionPage.validation.invalidTcpConnectionURI.msg")); //$NON-NLS-1$
+				}
+			}
+			return ValidationStatus.ok();
+		}
+

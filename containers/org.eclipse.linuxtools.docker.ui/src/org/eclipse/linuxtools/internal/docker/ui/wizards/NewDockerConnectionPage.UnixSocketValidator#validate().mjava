@@ -1,0 +1,45 @@
+		@Override
+		protected IStatus validate() {
+			final Boolean unixSocketBindingMode = (Boolean) this.unixSocketBindingModeModelObservable
+					.getValue();
+			final String unixSocketPath = (String) this.unixSocketPathModelObservable
+					.getValue();
+			if (unixSocketBindingMode) {
+				if (unixSocketPath == null || unixSocketPath.isEmpty()) {
+					return ValidationStatus.error(WizardMessages.getString(
+							"NewDockerConnectionPage.validation.missingUnixSocket.msg")); //$NON-NLS-1$
+				}
+				try {
+					final URI unixSocketURI = new URI(unixSocketPath);
+					if (unixSocketURI.getScheme() != null
+							&& !unixSocketURI.getScheme().equals("unix")) {
+						return ValidationStatus.error(WizardMessages.getString(
+								"NewDockerConnectionPage.validation.invalidUnixSocketScheme.msg")); //$NON-NLS-1$
+					}
+					if (unixSocketURI.getPath() != null) {
+						final File unixSocket = new File(
+								unixSocketURI.getPath());
+						if (!unixSocket.exists()) {
+							return ValidationStatus
+									.error(WizardMessages.getString(
+											"NewDockerConnectionPage.validation.invalidUnixSocketPath.msg")); //$NON-NLS-1$
+						} else if (!unixSocket.canRead()
+								|| !unixSocket.canWrite()) {
+							return ValidationStatus
+									.error(WizardMessages.getString(
+											"NewDockerConnectionPage.validation.unreadableUnixSocket.msg")); //$NON-NLS-1$
+						}
+					} else {
+						return ValidationStatus.error(WizardMessages.getString(
+								"NewDockerConnectionPage.validation.invalidUnixSocketPath.msg")); //$NON-NLS-1$
+
+					}
+				} catch (URISyntaxException e) {
+					return ValidationStatus.error(WizardMessages.getString(
+							"NewDockerConnectionPage.validation.invalidUnixSocketPath.msg")); //$NON-NLS-1$
+
+				}
+			}
+			return ValidationStatus.ok();
+		}
+

@@ -1,20 +1,32 @@
-		public Defaults() throws DockerException {
-			// first, looking for a Unix socket at /var/run/docker.sock
-			if (defaultsWithUnixSocket() || defaultsWithSystemEnv()
-					|| defaultWithShellEnv()) {
-				// attempt to connect and retrieve the 'name' from the system
-				// info
-				final DockerConnection connection = new Builder()
-						.unixSocket(getUnixSocketPath()).tcpHost(getTcpHost())
-						.tcpCertPath(getTcpCertPath()).build();
-				connection.open(false);
-				final IDockerConnectionInfo info = connection.getInfo();
-				if (info != null) {
-					this.name = info.getName();
+		public Defaults() {
+			try {
+				// first, looking for a Unix socket at /var/run/docker.sock
+				if (defaultsWithUnixSocket() || defaultsWithSystemEnv()
+						|| defaultWithShellEnv()) {
+					this.settingsResolved = true;
+					// attempt to connect and retrieve the 'name' from the system
+					// info
+					try(final DockerConnection connection = new Builder()
+							.unixSocket(getUnixSocketPath()).tcpHost(getTcpHost())
+							.tcpCertPath(getTcpCertPath()).build()) {
+						connection.open(false);
+						final IDockerConnectionInfo info = connection.getInfo();
+						if (info != null) {
+							this.name = info.getName();
+						}
+					} catch (DockerException e) {
+						// force custom settings in that case
+						this.settingsResolved = false;
+					}
+				} else {
+					this.settingsResolved = false;
+					Activator.log(
+							new Status(IStatus.WARNING, Activator.PLUGIN_ID,
+									Messages.Missing_Default_Settings));
 				}
-				return;
-			}
-			Activator.log(new Status(IStatus.WARNING, Activator.PLUGIN_ID,
-					Messages.Missing_Default_Settings));
+			} catch (DockerException e) {
+				Activator.log(new Status(IStatus.ERROR, Activator.PLUGIN_ID,
+						Messages.Missing_Default_Settings, e));
+			}		
 		}
 

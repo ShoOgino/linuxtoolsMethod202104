@@ -1,17 +1,23 @@
 	/**
-	 * Opens a new {@link DockerConnection} using the settings of this {@link NewDockerConnectionPage}.
+	 * Opens a new {@link DockerConnection} using the settings of this
+	 * {@link NewDockerConnectionPage}.
+	 * 
 	 * @return
 	 * @throws DockerCertificateException
 	 */
 	protected DockerConnection getDockerConnection() {
-		if(bindingMode == UNIX_SOCKET) {
-			return new DockerConnection.Builder().name(connectionName).unixSocket(unixSocketPath).build();
+		if (model.getBindingMode() == UNIX_SOCKET) {
+			return new DockerConnection.Builder()
+					.name(model.getConnectionName())
+					.unixSocket(model.getUnixSocketPath()).build();
 		} else {
-			if(tcpTLSVerify) {
-				return new DockerConnection.Builder().name(connectionName).tcpHost(tcpHost).tcpCertPath(tcpCertPath).build();
-			} else {
-				return new DockerConnection.Builder().name(connectionName).tcpHost(tcpHost).build();
+			final Builder tcpConnectionBuilder = new DockerConnection.Builder()
+					.name(model.getConnectionName())
+					.tcpHost(model.getTcpHost());
+			if (model.isTcpTLSVerify()) {
+				tcpConnectionBuilder.tcpCertPath(model.getTcpCertPath());
 			}
+			return tcpConnectionBuilder.build();
 		}
 	}
 
