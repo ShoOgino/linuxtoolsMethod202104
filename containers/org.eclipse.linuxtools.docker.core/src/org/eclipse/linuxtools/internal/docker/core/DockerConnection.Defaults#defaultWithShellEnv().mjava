@@ -9,11 +9,16 @@
 		 */
 		private boolean defaultWithShellEnv() throws DockerException {
 			try {
-				// FIXME need to verify the OS and decide which script to run
-				File scriptFile = Activator.getDefault().getBundle()
-						.getDataFile("script.sh"); //$NON-NLS-1$
+				final String connectionSettingsDetectionScriptName = getConnectionSettingsDetectionScriptName();
+				if (connectionSettingsDetectionScriptName == null) {
+					Activator.log(new Status(IStatus.WARNING,
+							Activator.PLUGIN_ID,
+							Messages.Docker_No_Settings_Description_Script));
+					return false;
+				}
+				final File connectionSettingsDetectionScript = getConnectionSettingsDetectionScript(connectionSettingsDetectionScriptName);
 				final Process process = Runtime.getRuntime().exec(
-						new String[] { scriptFile.getAbsolutePath() });
+						new String[] {connectionSettingsDetectionScript.getAbsolutePath()});
 				process.waitFor();
 				if (process.exitValue() == 0) {
 					final InputStream processInputStream = process
@@ -22,20 +27,20 @@
 					Properties dockerSettings = new Properties();
 					dockerSettings.load(processInputStream);
 					settings.put(BINDING_MODE, TCP_CONNECTION);
-					if (dockerSettings.containsKey("DOCKER_HOST")) {
-						settings.put(TCP_HOST, dockerSettings
-								.get("DOCKER_HOST").toString());
+					if (dockerSettings.containsKey("DOCKER_HOST")) { //$NON-NLS-1$
+						settings.put(TCP_HOST,
+								dockerSettings.get("DOCKER_HOST").toString()); //$NON-NLS-1$
 					}
-					if (dockerSettings.containsKey("DOCKER_CERT_PATH")) {
+					if (dockerSettings.containsKey("DOCKER_CERT_PATH")) { //$NON-NLS-1$
 						settings.put(TCP_CERT_PATH,
-								dockerSettings.get("DOCKER_CERT_PATH")
+								dockerSettings.get("DOCKER_CERT_PATH") //$NON-NLS-1$
 										.toString());
 					}
-					if (dockerSettings.containsKey("DOCKER_TLS_VERIFY")) {
-						settings.put(
-								TCP_TLS_VERIFY,
-								Boolean.valueOf(dockerSettings
-										.get("DOCKER_TLS_VERIFY").toString()
+					if (dockerSettings.containsKey("DOCKER_TLS_VERIFY")) { //$NON-NLS-1$
+						settings.put(TCP_TLS_VERIFY,
+								Boolean.valueOf(
+										dockerSettings.get("DOCKER_TLS_VERIFY") //$NON-NLS-1$
+												.toString()
 										.equals("1")));
 					}
 					return true;
