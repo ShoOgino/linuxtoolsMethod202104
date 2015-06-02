@@ -16,9 +16,11 @@
 							Messages.Docker_No_Settings_Description_Script));
 					return false;
 				}
-				final File connectionSettingsDetectionScript = getConnectionSettingsDetectionScript(connectionSettingsDetectionScriptName);
-				final Process process = Runtime.getRuntime().exec(
-						new String[] {connectionSettingsDetectionScript.getAbsolutePath()});
+				final File connectionSettingsDetectionScript = getConnectionSettingsDetectionScript(
+						connectionSettingsDetectionScriptName);
+				final String[] cmdArray = getConnectionSettingsDetectionCommandArray(
+						connectionSettingsDetectionScript);
+				final Process process = Runtime.getRuntime().exec(cmdArray);
 				process.waitFor();
 				if (process.exitValue() == 0) {
 					final InputStream processInputStream = process
@@ -52,7 +54,8 @@
 					Activator.log(new Status(IStatus.ERROR,
 							Activator.PLUGIN_ID, errorMessage));
 				}
-			} catch (IOException | InterruptedException e) {
+			} catch (IOException | IllegalArgumentException
+					| InterruptedException e) {
 				throw new DockerException(Messages.Retrieve_Default_Settings_Failure, e);
 			}
 			return false;
