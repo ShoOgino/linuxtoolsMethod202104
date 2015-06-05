@@ -4,29 +4,46 @@
 		final int COLUMNS = 3;
 		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).span(1, 1)
 				.grab(true, true).applyTo(container);
-		GridLayoutFactory.fillDefaults().margins(6, 6).numColumns(COLUMNS)
+		GridLayoutFactory.fillDefaults().margins(10, 10).numColumns(COLUMNS)
 				.applyTo(container);
+
+		// Container path
+		final Label containerPathLabel = new Label(container, SWT.NONE);
+		containerPathLabel.setText("Container path:");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(false, false).applyTo(containerPathLabel);
+		final Text containerPathText = new Text(container, SWT.BORDER);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(true, false).applyTo(containerPathText);
+		final IObservableValue containerPathObservable = BeanProperties
+				.value(DataVolumeModel.class, DataVolumeModel.CONTAINER_PATH)
+				.observe(model);
+		dbc.bindValue(
+				WidgetProperties.text(SWT.Modify).observe(containerPathText),
+				containerPathObservable);
+		// mount type
 		final Label explanationLabel = new Label(container, SWT.NONE);
-		explanationLabel.setText("Specify the Data Volume to mount:"); //$NON-NLS-1$
+		explanationLabel.setText("Specify the type of mount:"); //$NON-NLS-1$
 		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
 				.span(COLUMNS, 1).grab(true, false).applyTo(explanationLabel);
-
+		final int INDENT = 20;
 		// No mount
 		final Button noMountButton = new Button(container, SWT.RADIO);
 		noMountButton.setText("No external mount");
 		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
-				.span(COLUMNS, 1).grab(true, false).applyTo(noMountButton);
+				.indent(INDENT, 0).span(COLUMNS, 1).grab(true, false)
+				.applyTo(noMountButton);
 		bindButton(noMountButton, MountType.NONE);
 		// File System mount
 		final Button fileSystemMountButton = new Button(container, SWT.RADIO);
 		fileSystemMountButton.setText("Mount a host directory or host file");
 		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
-				.span(COLUMNS, 1).grab(true, false)
+				.indent(INDENT, 0).span(COLUMNS, 1).grab(true, false)
 				.applyTo(fileSystemMountButton);
 		final Label hostPathLabel = new Label(container, SWT.NONE);
 		hostPathLabel.setText("Path:"); //$NON-NLS-1$
 		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
-				.indent(20, SWT.DEFAULT).grab(false, false)
+				.indent(2 * INDENT, SWT.DEFAULT).grab(false, false)
 				.applyTo(hostPathLabel);
 		final Text hostPathText = new Text(container, SWT.BORDER);
 		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
@@ -36,21 +53,21 @@
 				.observe(model);
 		dbc.bindValue(WidgetProperties.text(SWT.Modify).observe(hostPathText),
 				hostPathObservable);
-
-		final Button hostPathBrowseButton = new Button(container, SWT.NONE);
-		hostPathBrowseButton.setText("Browse...");
+		// browse for directory
+		final Button hostPathDirectoryButton = new Button(container, SWT.NONE);
+		hostPathDirectoryButton.setText("Directory...");
 		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
-				.grab(false, false).applyTo(hostPathBrowseButton);
-		hostPathBrowseButton.addSelectionListener(onHostPathBrowse());
-		// optional read-only access
+				.grab(false, false).applyTo(hostPathDirectoryButton);
+		hostPathDirectoryButton.addSelectionListener(onHostDirectoryPath());
 		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
 				.grab(false, false).applyTo(new Label(container, SWT.NONE));
+		// optional read-only access
 		final Button readOnlyButton = new Button(container, SWT.CHECK);
 		readOnlyButton.setText("Read-only access"); //$NON-NLS-1$
 		readOnlyButton.setToolTipText(
 				"Specify if the mounted host directory or path is read-only"); //$NON-NLS-1$
 		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
-				.span(COLUMNS - 1, 1).grab(true, false).applyTo(readOnlyButton);
+				.span(COLUMNS - 2, 1).grab(true, false).applyTo(readOnlyButton);
 		final ISWTObservableValue readOnlyButtonObservable = WidgetProperties
 				.selection().observe(readOnlyButton);
 		dbc.bindValue(readOnlyButtonObservable,
@@ -58,19 +75,27 @@
 						.value(DataVolumeModel.class,
 								DataVolumeModel.READ_ONLY_VOLUME)
 						.observe(model));
+		// browse for file
+		final Button hostPathFileButton = new Button(container, SWT.NONE);
+		hostPathFileButton.setText("File...");
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(false, false).applyTo(hostPathFileButton);
+		hostPathFileButton.addSelectionListener(onHostFilePath());
 		bindButton(fileSystemMountButton, MountType.HOST_FILE_SYSTEM,
-				hostPathText, hostPathBrowseButton, readOnlyButton);
+				hostPathText, hostPathDirectoryButton, hostPathFileButton,
+				readOnlyButton);
 
 		// Container mount
 		final Button containerMountButton = new Button(container, SWT.RADIO);
 		containerMountButton.setText("Mount a data volume container");
 		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
-				.span(COLUMNS, 1).grab(true, false)
+				.indent(INDENT, 0).span(COLUMNS, 1).grab(true, false)
 				.applyTo(containerMountButton);
 		final Label containerSelectionLabel = new Label(container, SWT.NONE);
 		containerSelectionLabel.setText("Container:"); //$NON-NLS-1$
 		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
-				.indent(20, SWT.DEFAULT).applyTo(containerSelectionLabel);
+				.indent(2 * INDENT, SWT.DEFAULT)
+				.applyTo(containerSelectionLabel);
 		final Combo containerSelectionCombo = new Combo(container, SWT.BORDER);
 		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
 				.grab(true, false).span(1, 1).applyTo(containerSelectionCombo);

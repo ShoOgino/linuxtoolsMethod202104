@@ -1,9 +1,14 @@
-	private IStatus validateInput(final Label errorMessageLabel) {
+	private IStatus validateInput() {
+		final String containerPath = model.getContainerPath();
 		final MountType mountType = model.getMountType();
 		final String hostPath = model.getHostPathMount();
-		if (mountType == MountType.HOST_FILE_SYSTEM
+		if (containerPath == null || containerPath.isEmpty()) {
+			return ValidationStatus.error(null);
+		} else if (mountType == null) {
+			return ValidationStatus.error(null);
+		} else if (mountType == MountType.HOST_FILE_SYSTEM
 				&& (hostPath == null || hostPath.isEmpty())) {
-			return ValidationStatus.ok();
+			return ValidationStatus.error(null);
 		} else if (mountType == MountType.HOST_FILE_SYSTEM
 				&& !new File(hostPath).exists()) {
 			return ValidationStatus
@@ -12,7 +17,8 @@
 			final IDockerContainer container = WizardUtils
 					.getContainer(connection, model.getContainerMount());
 			if (container == null) {
-				return ValidationStatus.error("");
+				// just make sure that the dialog cannot complete
+				return ValidationStatus.error(null);
 			}
 			final IDockerContainerInfo selectedContainerInfo = container.info();
 			if (!selectedContainerInfo.volumes()
