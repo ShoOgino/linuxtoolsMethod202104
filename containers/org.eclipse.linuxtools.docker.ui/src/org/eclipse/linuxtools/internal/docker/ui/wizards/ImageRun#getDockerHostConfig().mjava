@@ -38,6 +38,7 @@
 
 		// data volumes
 		final List<String> volumesFrom = new ArrayList<>();
+		final List<String> binds = new ArrayList<>();
 		for (Iterator<DataVolumeModel> iterator = resourcesModel
 				.getDataVolumes().iterator(); iterator.hasNext();) {
 			final DataVolumeModel dataVolume = iterator.next();
@@ -48,6 +49,15 @@
 			}
 
 			switch (dataVolume.getMountType()) {
+			case HOST_FILE_SYSTEM:
+				if (dataVolume.isReadOnly()) {
+					binds.add(dataVolume.getHostPathMount() + ':'
+							+ dataVolume.getContainerPath() + ':' + "ro");
+				} else {
+					binds.add(dataVolume.getHostPathMount() + ':'
+							+ dataVolume.getContainerPath());
+				}
+				break;
 			case CONTAINER:
 				volumesFrom.add(dataVolume.getContainerMount());
 				break;
@@ -56,6 +66,7 @@
 
 			}
 		}
+		hostConfigBuilder.binds(binds);
 		hostConfigBuilder.volumesFrom(volumesFrom);
 
 		return hostConfigBuilder.build();
