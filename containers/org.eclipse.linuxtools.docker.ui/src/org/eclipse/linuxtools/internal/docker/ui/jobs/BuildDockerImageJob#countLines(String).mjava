@@ -1,0 +1,33 @@
+	/**
+	 * Counts the number of lines in the given Docker build file that contain
+	 * statements to execute (ignoring comments and empty lines).
+	 * 
+	 * @param fileName
+	 *            the full name of the Docker file to read
+	 * @return the number of instructions.
+	 * @throws DockerException
+	 * @throws IOException
+	 */
+	private static int countLines(final String fileName)
+			throws DockerException {
+		try {
+			int count = 0;
+			try (final InputStream fis = new FileInputStream(fileName);
+					final InputStreamReader isr = new InputStreamReader(fis);
+					final BufferedReader br = new BufferedReader(isr);) {
+				String line;
+				while ((line = br.readLine()) != null) {
+					// ignore empty lines and comments
+					if (line.startsWith("#") || line.trim().isEmpty()) { //$NON-NLS-1$
+						continue;
+					}
+					count++;
+				}
+			}
+			return count;
+		} catch (IOException e) {
+			throw new DockerException(
+					JobMessages.getString(DOCKERFILE_LINE_COUNT_ERROR), e);
+		}
+	}
+

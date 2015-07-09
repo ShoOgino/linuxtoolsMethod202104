@@ -1,0 +1,45 @@
+	/**
+	 * Opens a dialog to browse the workspace
+	 * 
+	 * @return
+	 */
+	private SelectionListener onBrowseWorkspace() {
+		return new SelectionAdapter() {
+
+			@Override
+			public void widgetSelected(final SelectionEvent e) {
+				final ElementTreeSelectionDialog dialog = new ElementTreeSelectionDialog(
+						getShell(), new WorkbenchLabelProvider(),
+						new WorkbenchContentProvider());
+				dialog.setInput(ResourcesPlugin.getWorkspace().getRoot());
+				dialog.setTitle(LaunchMessages
+						.getString(BROWSE_WORKSPACE_DIALOG_TITLE));
+				dialog.setMessage(LaunchMessages
+						.getString(BROWSE_WORKSPACE_DIALOG_MESSAGE));
+				dialog.setComparator(
+						new ResourceComparator(ResourceComparator.NAME));
+				dialog.setAllowMultiple(false);
+				dialog.setValidator(new ISelectionStatusValidator() {
+					// only accept a single file as the valid selection
+					@Override
+					public IStatus validate(Object[] selection) {
+						if (selection.length == 1
+								&& selection[0] instanceof IContainer) {
+							return new Status(IStatus.OK, Activator.PLUGIN_ID,
+									null);
+						}
+						return new Status(IStatus.ERROR, Activator.PLUGIN_ID,
+								null);
+					}
+				});
+				if (dialog.open() == IDialogConstants.OK_ID) {
+					final IResource selection = (IResource) dialog
+							.getFirstResult();
+					sourcePathLocationText
+							.setText(selection.getFullPath().toOSString());
+					sourcePathWorkspaceRelativeLocation = true;
+				}
+			}
+		};
+	}
+

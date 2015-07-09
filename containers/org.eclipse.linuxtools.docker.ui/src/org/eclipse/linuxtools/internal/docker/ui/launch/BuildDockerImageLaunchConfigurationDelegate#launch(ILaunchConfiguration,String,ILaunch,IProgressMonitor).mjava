@@ -1,0 +1,30 @@
+	@Override
+	public void launch(ILaunchConfiguration configuration, String mode,
+			ILaunch launch, IProgressMonitor monitor) throws CoreException {
+		final String sourcePathLocation = configuration
+				.getAttribute(SOURCE_PATH_LOCATION, (String) null);
+		final boolean sourcePathWorkspaceRelativeLocation = configuration
+				.getAttribute(SOURCE_PATH_WORKSPACE_RELATIVE_LOCATION, false);
+		final IPath sourcePath = getPath(sourcePathLocation,
+				sourcePathWorkspaceRelativeLocation);
+		final String connectionName = configuration
+				.getAttribute(DOCKER_CONNECTION, (String) null);
+		final DockerConnection connection = (DockerConnection) getDockerConnection(
+				connectionName);
+		if (connection == null) {
+			Activator
+					.log(new Status(IStatus.ERROR, Activator.PLUGIN_ID,
+							LaunchMessages.getFormattedString(
+									MISSING_CONNECTION_ERROR_MSG,
+									connectionName)));
+		}
+		try {
+			final Job buildImageJob = new BuildDockerImageJob(connection,
+					sourcePath);
+			buildImageJob.schedule();
+		} catch (DockerException e) {
+			Activator.log(new Status(IStatus.ERROR, Activator.PLUGIN_ID,
+					e.getMessage(), e));
+		}
+	}
+

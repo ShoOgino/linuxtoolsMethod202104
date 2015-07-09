@@ -1,0 +1,18 @@
+	@Override
+	public void processMessage(final IDockerProgressMessage message)
+			throws DockerException {
+		if (message.error() != null) {
+			cancel();
+			throw new DockerImageBuildFailedException(message.error());
+		}
+		// For imageName build, all the data is in the stream.
+		final String status = message.stream();
+		if (status != null && status.startsWith("Successfully built")) { //$NON-NLS-1$
+			// refresh images
+			connection.getImages(true);
+		} else if (status != null && status.startsWith("Step")) { //$NON-NLS-1$
+			this.progressMonitor.worked(1);
+		}
+		logMessage(status);
+	}
+

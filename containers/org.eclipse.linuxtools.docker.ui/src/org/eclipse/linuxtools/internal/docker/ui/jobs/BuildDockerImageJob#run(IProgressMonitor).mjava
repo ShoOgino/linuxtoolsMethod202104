@@ -1,0 +1,35 @@
+	@Override
+	protected IStatus run(final IProgressMonitor progressMonitor) {
+		try {
+			if (numberOfBuildOperations == 0) {
+				Activator.log(new Status(IStatus.WARNING, Activator.PLUGIN_ID,
+						JobMessages.getString(SKIP_EMPTY_DOCKERFILE)));
+			} else {
+				this.console.clearConsole();
+				this.console.activate();
+				this.progressMonitor = progressMonitor;
+				this.progressMonitor.beginTask(
+						JobMessages.getString(BUILD_IMAGE_JOB_TITLE),
+						numberOfBuildOperations + 1);
+				connection.buildImage(path, this);
+				connection.getImages(true);
+			}
+		} catch (DockerException | InterruptedException e) {
+			Display.getDefault().syncExec(new Runnable() {
+				@Override
+				public void run() {
+					MessageDialog
+							.openError(Display.getCurrent().getActiveShell(),
+									JobMessages.getString(
+											BUILD_IMAGE_ERROR_MESSAGE),
+							e.getMessage());
+				}
+
+			});
+		}
+		// make sure the progress monitor is 'done' even if the build failed or
+		// timed out.
+		this.progressMonitor.done();
+		return Status.OK_STATUS;
+	}
+
