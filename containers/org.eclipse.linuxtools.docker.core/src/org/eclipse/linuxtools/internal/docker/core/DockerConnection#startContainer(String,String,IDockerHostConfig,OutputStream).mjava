@@ -1,79 +1,8 @@
 	@Override
+	@Deprecated
 	public void startContainer(String id, String loggingId,
 			IDockerHostConfig config, OutputStream stream)
 			throws DockerException, InterruptedException {
-		try {
-			HostConfig.Builder builder = HostConfig.builder()
-					.containerIDFile(config.containerIDFile())
-					.publishAllPorts(config.publishAllPorts())
-					.privileged(config.privileged())
-					.networkMode(config.networkMode());
-			if (config.binds() != null)
-				builder.binds(config.binds());
-			if (config.dns() != null)
-				builder.dns(config.dns());
-			if (config.dnsSearch() != null)
-				builder.dnsSearch(config.dnsSearch());
-			if (config.links() != null)
-				builder.links(config.links());
-			if (config.lxcConf() != null) {
-				List<IDockerConfParameter> lxcconf = config.lxcConf();
-				ArrayList<LxcConfParameter> lxcreal = new ArrayList<>();
-				for (IDockerConfParameter param : lxcconf) {
-					lxcreal.add(new LxcConfParameter(param.key(), param.value()));
-				}
-				builder.lxcConf(lxcreal);
-			}
-			if (config.portBindings() != null) {
-				Map<String, List<IDockerPortBinding>> bindings = config
-						.portBindings();
-				HashMap<String, List<PortBinding>> realBindings = new HashMap<>();
-
-				for (Entry<String, List<IDockerPortBinding>> entry : bindings
-						.entrySet()) {
-					String key = entry.getKey();
-					List<IDockerPortBinding> bindingList = entry.getValue();
-					ArrayList<PortBinding> newList = new ArrayList<>();
-					for (IDockerPortBinding binding : bindingList) {
-						newList.add(PortBinding.of(binding.hostIp(),
-								binding.hostPort()));
-					}
-					realBindings.put(key, newList);
-				}
-				builder.portBindings(realBindings);
-			}
-			if (config.volumesFrom() != null)
-				builder.volumesFrom(config.volumesFrom());
-
-			// start container with host config
-			client.startContainer(id, builder.build());
-			// Log the started container based on user preference
-			// Log the started container based on user preference
-			// Log the started container based on user preference
-			IEclipsePreferences preferences = InstanceScope.INSTANCE
-					.getNode("org.eclipse.linuxtools.docker.ui"); //$NON-NLS-1$
-
-			boolean autoLog = preferences.getBoolean("autoLogOnStart", true); //$NON-NLS-1$
-
-			if (autoLog && !getContainerInfo(id).config().tty()) {
-				synchronized (loggingThreads) {
-					LogThread t = loggingThreads.get(loggingId);
-					if (t == null || !t.isAlive()) {
-						t = new LogThread(id, getClientCopy(), true);
-						loggingThreads.put(loggingId, t);
-						t.setOutputStream(stream);
-						t.start();
-					}
-				}
-			}
-			// update container list
-			listContainers();
-		} catch (ContainerNotFoundException e) {
-			throw new DockerContainerNotFoundException(e);
-		} catch (com.spotify.docker.client.DockerRequestException e) {
-			throw new DockerException(e.message());
-		} catch (com.spotify.docker.client.DockerException e) {
-			throw new DockerException(e);
-		}
+		startContainer(id, loggingId, stream);
 	}
 
