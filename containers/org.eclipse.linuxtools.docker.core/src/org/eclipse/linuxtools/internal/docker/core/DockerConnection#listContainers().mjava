@@ -3,8 +3,15 @@
 		synchronized (containerLock) {
 			List<Container> list = null;
 			try {
-				list = client.listContainers(DockerClient.ListContainersParam
-						.allContainers());
+				synchronized (clientLock) {
+					// Check that client is not null as this connection may have
+					// been closed but there is an async request to update the
+					// containers list left in the queue
+					if (client == null)
+						return dclist;
+					list = client.listContainers(
+							DockerClient.ListContainersParam.allContainers());
+				}
 			} catch (com.spotify.docker.client.DockerException
 					| InterruptedException e) {
 				throw new DockerException(
