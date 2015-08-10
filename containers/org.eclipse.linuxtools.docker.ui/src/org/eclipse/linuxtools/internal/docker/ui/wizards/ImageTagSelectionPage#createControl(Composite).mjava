@@ -1,0 +1,44 @@
+	@Override
+	public void createControl(final Composite parent) {
+		final int COLUMNS = 1;
+		final Composite container = new Composite(parent, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).span(1, 1)
+				.grab(true, false).applyTo(container);
+		GridLayoutFactory.fillDefaults().numColumns(COLUMNS).margins(6, 6)
+				.spacing(10, 2).applyTo(container);
+
+		// tags/layers table
+		final Table table = new Table(container,
+				SWT.BORDER | SWT.FULL_SELECTION | SWT.V_SCROLL | SWT.H_SCROLL);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL)
+				.grab(true, true).span(COLUMNS, 1).hint(200, 200)
+				.applyTo(table);
+		final TableViewer tableViewer = new TableViewer(table);
+		table.setHeaderVisible(true);
+		table.setLinesVisible(true);
+		addTableViewerColum(tableViewer,
+				WizardMessages.getString("ImageTagSelectionPage.column.tag"), //$NON-NLS-1$
+				SWT.NONE, SWT.LEFT, 200,
+				new RepositoryTagColumnLabelProvider());
+		addTableViewerColum(tableViewer,
+				WizardMessages.getString("ImageTagSelectionPage.column.layer"), //$NON-NLS-1$
+				SWT.NONE, SWT.LEFT, 200,
+				new RepositoryLayerColumnLabelProvider());
+		addTableViewerColum(tableViewer,
+				WizardMessages
+						.getString("ImageTagSelectionPage.column.localcopy"), //$NON-NLS-1$
+				SWT.NONE, SWT.LEFT, 75, new ImagePulledColumnLabelProvider());
+		tableViewer.setContentProvider(new ObservableListContentProvider());
+		// observe the viewer content
+		final IObservableList observableSearchResultModel = BeanProperties
+				.list(ImageSearchModel.class,
+						ImageSearchModel.IMAGE_TAG_SEARCH_RESULT)
+				.observe(model);
+		tableViewer.setInput(observableSearchResultModel);
+		// observe the viewer selection
+		ctx.bindValue(ViewerProperties.singleSelection().observe(tableViewer),
+				BeanProperties.value(ImageSearchModel.SELECTED_IMAGE_TAG)
+						.observe(model));
+		setControl(container);
+	}
+
