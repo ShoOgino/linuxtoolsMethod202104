@@ -76,23 +76,16 @@
 		final IObservableValue observableTermModel = BeanProperties
 				.value(ImageSearchModel.class, ImageSearchModel.TERM)
 				.observe(model);
-		ctx.bindValue(
-				WidgetProperties.text(SWT.Modify).observe(searchImageText),
-				observableTermModel);
-		// enable/disable the search button
-		observableTermModel.addValueChangeListener(new IValueChangeListener() {
+		final UpdateValueStrategy strategy = new UpdateValueStrategy();
+		strategy.setBeforeSetValidator(new SearchTermValidator());
 
-			@Override
-			public void handleValueChange(final ValueChangeEvent event) {
-				final String term = (String) event.getObservableValue()
-						.getValue();
-				if (term.isEmpty()) {
-					searchImageButton.setEnabled(false);
-				} else {
-					searchImageButton.setEnabled(true);
-				}
-			}
-		});
+		final ISWTObservableValue imageSearchTextObservable = WidgetProperties
+				.text(SWT.Modify).observe(searchImageText);
+		ctx.bindValue(imageSearchTextObservable, observableTermModel, strategy,
+				null);
+		// enable/disable the search button
+		imageSearchTextObservable
+				.addValueChangeListener(onTermValueChanged(searchImageButton));
 		// observe the viewer content
 		searchResultTableViewer
 				.setContentProvider(new ObservableListContentProvider());
@@ -117,6 +110,8 @@
 		ctx.bindValue(WidgetProperties.text().observe(selectedImageDescription),
 				observableSelectedImageDescription);
 		searchImageText.setFocus();
+		// attach the Databinding context status to this wizard page.
+		WizardPageSupport.create(this, this.ctx);
 		setControl(container);
 	}
 
