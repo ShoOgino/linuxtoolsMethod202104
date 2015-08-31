@@ -24,7 +24,6 @@
 		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
 				.grab(false, false).applyTo(searchImageButton);
 		searchImageButton.addSelectionListener(onSearchImageButtonSelected());
-		searchImageButton.setEnabled(!searchImageText.getText().isEmpty());
 		// result table
 		final Label searchResultLabel = new Label(container, SWT.NONE);
 		searchResultLabel.setText(
@@ -76,16 +75,12 @@
 		final IObservableValue observableTermModel = BeanProperties
 				.value(ImageSearchModel.class, ImageSearchModel.TERM)
 				.observe(model);
-		final UpdateValueStrategy strategy = new UpdateValueStrategy();
-		strategy.setBeforeSetValidator(new SearchTermValidator());
-
 		final ISWTObservableValue imageSearchTextObservable = WidgetProperties
 				.text(SWT.Modify).observe(searchImageText);
-		ctx.bindValue(imageSearchTextObservable, observableTermModel, strategy,
+		ctx.bindValue(imageSearchTextObservable, observableTermModel,
+				new UpdateValueStrategy().setBeforeSetValidator(
+						new SearchTermValidator(searchImageButton)),
 				null);
-		// enable/disable the search button
-		imageSearchTextObservable
-				.addValueChangeListener(onTermValueChanged(searchImageButton));
 		// observe the viewer content
 		searchResultTableViewer
 				.setContentProvider(new ObservableListContentProvider());
