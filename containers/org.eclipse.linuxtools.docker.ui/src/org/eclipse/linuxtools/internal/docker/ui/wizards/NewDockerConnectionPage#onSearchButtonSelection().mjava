@@ -1,0 +1,61 @@
+	private SelectionListener onSearchButtonSelection() {
+		return new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				String[] dmNames = DockerMachine.getNames();
+				List<String> activeNames = new ArrayList<>();
+				for (String name : dmNames) {
+					if (DockerMachine.getHost(name) != null) {
+						activeNames.add(name);
+					}
+				}
+				if (activeNames.size() > 0) {
+					ListDialog connPrompt = new ListDialog(getShell());
+					connPrompt.setContentProvider(new ConnectionSelectionContentProvider());
+					connPrompt.setLabelProvider(new ConnectionSelectionLabelProvider());
+					connPrompt.setTitle(WizardMessages.getString(
+							"NewDockerConnectionPage.searchDialog.title")); //$NON-NLS-1$
+					connPrompt.setMessage(WizardMessages.getString(
+							"NewDockerConnectionPage.searchDialog.message")); //$NON-NLS-1$
+					connPrompt.setInput(activeNames.toArray(new String[0]));
+					if (connPrompt.open() == 0 && connPrompt.getResult().length > 0) {
+						String name = ((String) connPrompt.getResult()[0]);
+						String host = DockerMachine.getHost(name);
+						String certPath = DockerMachine.getCertPath(name);
+						model.setBindingMode(EnumDockerConnectionSettings.TCP_CONNECTION);
+						model.setConnectionName(name);
+						model.setUnixSocketPath(null);
+						model.setTcpHost(host);
+						if (certPath != null) {
+							model.setTcpTLSVerify(true);
+							model.setTcpCertPath(certPath);
+						} else {
+							model.setTcpTLSVerify(false);
+							model.setTcpCertPath(null);
+						}
+					}
+				} else {
+					if (dmNames.length > 0) {
+						StringBuffer connections = new StringBuffer();
+						for (String conn : dmNames) {
+							connections.append(", "); //$NON-NLS-1$
+							connections.append(conn);
+						}
+						MessageDialog.openInformation(getShell(),
+								WizardMessages.getString(
+										"NewDockerConnectionPage.searchDialog.discovery.title"), //$NON-NLS-1$
+								WizardMessages.getFormattedString(
+										"NewDockerConnectionPage.searchDialog.discovery.innactive", //$NON-NLS-1$
+										connections.substring(2)));
+					} else {
+						MessageDialog.openInformation(getShell(),
+								WizardMessages.getString(
+										"NewDockerConnectionPage.searchDialog.discovery.title"), //$NON-NLS-1$
+								WizardMessages.getString(
+										"NewDockerConnectionPage.searchDialog.discovery.empty")); //$NON-NLS-1$
+					}
+				}
+			}
+		};
+	}
+
