@@ -1,6 +1,7 @@
     /**
      * @param args args[0] - URL or file name of xml document to parse
      *        args[1] - file name to place resultant serialized LibHoverInfo
+     *        args[2] - optional parameter in form of '--doxygen' whether provided XML file in doxygen format
      */
     public static void main(String[] args) {
         URI acDoc;
@@ -14,14 +15,14 @@
             } else {
                 docStream = new FileInputStream(p.toFile());
             }
+            
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             factory.setValidating(false);
             DocumentBuilder builder = factory.newDocumentBuilder();
             Document doc = builder.parse(docStream);
-            if (doc != null) {
-                BuildFunctionInfos d = new BuildFunctionInfos(doc);
-                d.buildCPPInfo(args[1]);
-            }
+            LibhoverInfoGenerator libhoverInfoGenerator = (args.length == 3 && IS_DOXYGEN.equals(args[2]))?new CDoxygenLibhoverGen(doc):new CXmlLibhoverGen(doc);
+        	libhoverInfoGenerator.generate(args[1]);
+            
             System.out.println("Built " + args[1] + " from " + args[0]); //$NON-NLS-1$ //$NON-NLS-2$
         } catch (URISyntaxException|SAXException|ParserConfigurationException|IOException e) {
             e.printStackTrace();
