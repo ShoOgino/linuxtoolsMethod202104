@@ -1,0 +1,24 @@
+	/**
+	 * Checks if there is a Unix socket available at the given location
+	 * 
+	 * @return {@code IDockerConnectionSettings} if the Unix socket exists and
+	 *         is readable and writable, {@code null} otherwise.
+	 */
+	private IDockerConnectionSettings defaultsWithUnixSocket() {
+		final File unixSocketFile = new File("/var/run/docker.sock"); //$NON-NLS-1$
+		if (unixSocketFile.exists() && unixSocketFile.canRead()
+				&& unixSocketFile.canWrite()) {
+			final UnixSocketAddress address = new UnixSocketAddress(
+					unixSocketFile);
+			try (final UnixSocketChannel channel = UnixSocketChannel
+					.open(address)) {
+				// assume socket works
+				return new UnixSocketConnectionSettings(
+						unixSocketFile.getAbsolutePath());
+			} catch (IOException e) {
+				// do nothing, just assume socket did not work.
+			}
+		}
+		return null;
+	}
+

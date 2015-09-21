@@ -1,0 +1,62 @@
+	/**
+	 * Checks if there are {@code DOCKER_xxx} environment variables when running
+	 * a script in a shell.
+	 * 
+	 * @return {@code IDockerConnectionSettings} if the {@code DOCKER_xxx}
+	 *         environment variables exist, {@code null} otherwise.
+	 * @throws DockerException
+	 */
+	private IDockerConnectionSettings defaultsWithShellEnv() {
+		try {
+			final String connectionSettingsDetectionScriptName = getConnectionSettingsDetectionScriptName();
+			if (connectionSettingsDetectionScriptName == null) {
+				Activator.log(new Status(IStatus.WARNING, Activator.PLUGIN_ID,
+						Messages.Docker_No_Settings_Description_Script));
+				return null;
+			}
+			final File connectionSettingsDetectionScript = getConnectionSettingsDetectionScript(
+					connectionSettingsDetectionScriptName);
+			final String[] cmdArray = getConnectionSettingsDetectionCommandArray(
+					connectionSettingsDetectionScript);
+			final Process process = Runtime.getRuntime().exec(cmdArray);
+			process.waitFor();
+			final int exitValue = process.exitValue();
+			if (exitValue == 0) {
+				final InputStream processInputStream = process.getInputStream();
+				// read content from process input stream
+				final Properties dockerSettings = new Properties();
+				dockerSettings.load(processInputStream);
+				final Object dockerHostEnvVariable = dockerSettings.get(DOCKER_HOST);
+				final Object dockerTlsVerifyEnvVariable = dockerSettings
+						.get(DOCKER_TLS_VERIFY);
+				final Object dockerCertPathEnvVariable = dockerSettings
+						.get(DOCKER_CERT_PATH);
+				return new TCPConnectionSettings(
+						dockerHostEnvVariable != null
+								? dockerHostEnvVariable.toString() : null,
+						dockerTlsVerifyEnvVariable != null
+								? dockerTlsVerifyEnvVariable
+										.equals(DOCKER_TLS_VERIFY_TRUE)
+								: null,
+						dockerCertPathEnvVariable != null
+								? dockerCertPathEnvVariable.toString() : null);
+			} else {
+				// log what happened if the process did not end as expected
+				// an exit value of 1 should indicate no connection found
+				if (exitValue != 1) {
+					final InputStream processErrorStream = process
+							.getErrorStream();
+					final String errorMessage = streamToString(
+							processErrorStream);
+					Activator.log(new Status(IStatus.ERROR, Activator.PLUGIN_ID,
+							errorMessage));
+				}
+			}
+		} catch (IOException | IllegalArgumentException
+				| InterruptedException e) {
+			Activator.log(new Status(IStatus.ERROR, Activator.PLUGIN_ID,
+					Messages.Retrieve_Default_Settings_Failure, e));
+		}
+		return null;
+	}
+

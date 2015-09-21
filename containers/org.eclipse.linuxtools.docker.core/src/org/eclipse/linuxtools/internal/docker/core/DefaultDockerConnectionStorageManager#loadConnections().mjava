@@ -1,0 +1,63 @@
+	@Override
+	public List<IDockerConnection> loadConnections() {
+		final List<IDockerConnection> connections = new ArrayList<>();
+		final IPath stateLocation = Activator.getDefault().getStateLocation();
+		final File connectionFile = stateLocation.append(CONNECTIONS_FILE_NAME)
+				.toFile();
+		final DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		try {
+			DocumentBuilder db = dbf.newDocumentBuilder();
+			if (connectionFile.exists()) {
+				Document d = db.parse(connectionFile);
+				Element e = d.getDocumentElement();
+				// Get the stored configuration data
+				NodeList connectionNodes = e.getElementsByTagName("connection"); // $NON-NLS-1$
+				for (int x = 0; x < connectionNodes.getLength(); ++x) {
+					Node n = connectionNodes.item(x);
+					NamedNodeMap attrs = n.getAttributes();
+					Node nameNode = attrs.getNamedItem("name"); //$NON-NLS-1$
+					Node uriNode = attrs.getNamedItem("uri"); //$NON-NLS-1$
+					Node usernameNode = attrs.getNamedItem("username"); //$NON-NLS-1$
+					Node certNode = attrs.getNamedItem("cert"); //$NON-NLS-1$
+					if (uriNode != null) {
+						String uri = uriNode.getNodeValue();
+						String name = nameNode.getNodeValue();
+
+						if (usernameNode != null) {
+							String username = usernameNode.getNodeValue();
+							String key = DockerConnection.getPreferencesKey(uri,
+									username);
+							ISecurePreferences root = SecurePreferencesFactory
+									.getDefault();
+							ISecurePreferences node = root.node(key);
+							@SuppressWarnings("unused")
+							String password;
+							try {
+								password = node.get("password", null); //$NON-NLS-1$
+							} catch (StorageException e1) {
+								e1.printStackTrace();
+							}
+						}
+
+						DockerConnection.Builder builder = new DockerConnection.Builder()
+								.name(name);
+						if (uri.startsWith("unix:")) { //$NON-NLS-1$
+							builder = builder.unixSocket(uri);
+						} else {
+							builder = builder.tcpHost(uri);
+							if (certNode != null) {
+								builder = builder
+										.tcpCertPath(certNode.getNodeValue());
+							}
+						}
+						DockerConnection connection = builder.build();
+						connections.add(connection);
+					}
+				}
+			}
+		} catch (ParserConfigurationException | SAXException | IOException e) {
+			Activator.log(e);
+		}
+		return connections;
+	}
+
