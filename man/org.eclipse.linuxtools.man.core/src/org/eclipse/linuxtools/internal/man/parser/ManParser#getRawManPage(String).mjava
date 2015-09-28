@@ -7,27 +7,16 @@
      * @return Raw output of the man command.
      */
     public StringBuilder getRawManPage(String manPage) {
-        ProcessBuilder builder = new ProcessBuilder(getManExecutable(), manPage);
-        builder.redirectErrorStream(true);
-        Process process;
         StringBuilder sb = new StringBuilder();
-        try {
-            process = builder.start();
-            if (!(System.getProperty("os.name").toLowerCase() //$NON-NLS-1$
-                    .indexOf("windows") == 0)) { //$NON-NLS-1$
-                process.waitFor();
-            }
-
+        try (InputStream manContent = getManPage(manPage, false);
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(manContent))) {
             String line = null;
-            try (InputStream manContent = process.getInputStream();
-                    BufferedReader reader = new BufferedReader(
-                            new InputStreamReader(manContent))) {
-                while ((line = reader.readLine()) != null) {
-                    sb.append(line + "\n"); //$NON-NLS-1$
-                }
+            while ((line = reader.readLine()) != null) {
+                sb.append(line + "\n"); //$NON-NLS-1$
             }
-        } catch (IOException | InterruptedException e1) {
-            Status status = new Status(IStatus.ERROR, e1.getMessage(),
+        } catch (IOException e) {
+            Status status = new Status(IStatus.ERROR, e.getMessage(),
                     Activator.getDefault().getPluginId());
             Activator.getDefault().getLog().log(status);
         }

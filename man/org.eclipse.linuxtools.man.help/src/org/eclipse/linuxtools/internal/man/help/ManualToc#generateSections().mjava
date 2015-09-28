@@ -1,0 +1,48 @@
+    private void generateSections() {
+        // Filter to make sure we only get manual section directories
+        DirectoryStream.Filter<Path> filter = new DirectoryStream.Filter<Path>() {
+            private final Pattern p = Pattern.compile("^man\\d[xp]?"); //$NON-NLS-1$
+
+            @Override
+            public boolean accept(Path path) throws IOException {
+                Matcher m = p.matcher(path.getFileName().toString());
+                return Files.isDirectory(path) && m.matches();
+            }
+        };
+
+        // Search all man paths in the order that man would, adding sections and
+        // pages as we encounter them
+        List<Path> manPaths = ManParser.getManPaths();
+        for (Path manPath : manPaths) {
+            if (Files.notExists(manPath)) {
+                continue;
+            }
+            try (DirectoryStream<Path> manPathStream = Files
+                    .newDirectoryStream(manPath, filter)) {
+                for (Path sectionPath : manPathStream) {
+                    try (DirectoryStream<Path> sectionPathStream = Files
+                            .newDirectoryStream(sectionPath)) {
+                        for (Path pagePath : sectionPathStream) {
+                            String pageName = pagePath.getFileName().toString();
+                            if (pageName.endsWith(".gz")) { //$NON-NLS-1$
+                                pageName = pageName.substring(0,
+                                        pageName.length() - 3);
+                            }
+
+                            // Add page to section
+                            int dot = pageName.lastIndexOf('.');
+                            String sectionId = pageName.substring(dot + 1,
+                                    pageName.length());
+                            String pageId = pageName.substring(0, dot);
+                            addSectionPage(sectionId, pageId);
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                Status status = new Status(IStatus.ERROR, e.getMessage(),
+                        Activator.getDefault().getPluginId());
+                Activator.getDefault().getLog().log(status);
+            }
+        }
+    }
+
