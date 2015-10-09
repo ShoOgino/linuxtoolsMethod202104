@@ -1,0 +1,17 @@
+	@Override
+	public synchronized void listChanged(
+			final IVagrantConnection connection,
+			final List<IVagrantVM> dclist) {
+
+		ContainerRefreshThread rt = refreshThreadMap.get(connection);
+		if (rt == null) {
+			long refreshRateInSeconds = Platform.getPreferencesService()
+					.getLong("org.eclipse.linuxtools.vagrant.ui", //$NON-NLS-1$
+							"containerRefreshTime", DEFAULT_REFRESH_TIME, null); //$NON-NLS-1$
+			rt = new ContainerRefreshThread(connection,
+					TimeUnit.SECONDS.toMillis(refreshRateInSeconds));
+			rt.start();
+			refreshThreadMap.put(connection, rt);
+		}
+	}
+

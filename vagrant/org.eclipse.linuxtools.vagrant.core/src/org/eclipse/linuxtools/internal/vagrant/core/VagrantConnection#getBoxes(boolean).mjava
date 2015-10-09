@@ -1,0 +1,31 @@
+	@Override
+	public List<IVagrantBox> getBoxes(boolean force) {
+		if (force || !isBoxesLoaded()) {
+			String [] res = call(new String[] { "--machine-readable", "box", "list" });
+			List<IVagrantBox> images = new LinkedList<>();
+			String name = "";
+			String provider = "";
+			String version = "0";
+			for (int i = 0; i < res.length; i++) {
+				String[] items = res[i].split(",");
+				if (items[2].equals("box-name")) {
+					name = items[3];
+				} else if (items[2].equals("box-provider")) {
+					provider = items[3];
+				} else if (items[2].equals("box-version")) {
+					version = items[3];
+					images.add(new VagrantBox(name, provider, Version.parseVersion(version)));
+					name = "";
+					provider = "";
+					version = "0";
+				}
+			}
+			this.boxesLoaded = true;
+			synchronized (imageLock) {
+				this.boxes = images;
+			}
+			notifyBoxListeners(this.boxes);
+		}
+		return this.boxes;
+	}
+

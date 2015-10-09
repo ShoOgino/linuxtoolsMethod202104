@@ -1,0 +1,92 @@
+	private void createTableViewer(final Composite container) {
+		search = new Text(container, SWT.SEARCH | SWT.ICON_SEARCH);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).grab(true, false).applyTo(search);
+		search.addModifyListener(onSearch());
+		Composite tableArea = new Composite(container, SWT.NONE);
+		GridLayoutFactory.fillDefaults().numColumns(1).margins(0,  0).applyTo(tableArea);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).grab(true, true).applyTo(tableArea);
+
+		final TableColumnLayout tableLayout = new TableColumnLayout();
+		tableArea.setLayout(tableLayout);
+		this.viewer = new TableViewer(tableArea, SWT.FULL_SELECTION | SWT.MULTI | SWT.H_SCROLL | SWT.V_SCROLL);
+		this.viewer.setContentProvider(new VagrantVMContentProvider());
+		final Table table = viewer.getTable();
+		GridLayoutFactory.fillDefaults().numColumns(1).margins(0,  0).applyTo(table);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).grab(true, true).applyTo(table);
+		table.setLinesVisible(true);
+		table.setHeaderVisible(true);
+		// 'Name' column
+		final TableViewerColumn nameColumn = createColumn(DVMessages.getString("NAME")); //$NON-NLS-1$
+		setLayout(nameColumn, tableLayout, 150);
+		nameColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(final Object element) {
+				if (element instanceof IVagrantVM) {
+					return ((IVagrantVM)element).name();
+				}
+				return super.getText(element);
+			}
+
+			@Override
+			public Image getImage(Object element) {
+				if (element instanceof IVagrantVM) {
+					final IVagrantVM container = (IVagrantVM) element;
+					final String state = container.state();
+					if (state.equals("running")) {
+						return SWTImagesFactory.DESC_CONTAINER_STARTED
+								.createImage();
+					} else {
+						return SWTImagesFactory.DESC_CONTAINER_STOPPED
+								.createImage();
+					}
+				}
+				return super.getImage(element);
+			}
+		});
+		// 'Provider' column
+		final TableViewerColumn imageColumn = createColumn(DVMessages.getString("PROVIDER")); //$NON-NLS-1$
+		setLayout(imageColumn, tableLayout, 150);
+		imageColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(final Object element) {
+				if (element instanceof IVagrantVM) {
+					return ((IVagrantVM) element).provider();
+				}
+				return super.getText(element);
+			}
+		});
+		// 'State' column
+		final TableViewerColumn creationDateColumn = createColumn(DVMessages.getString("STATE")); //$NON-NLS-1$
+		setLayout(creationDateColumn, tableLayout, 150);
+		creationDateColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(final Object element) {
+				if (element instanceof IVagrantVM) {
+					return ((IVagrantVM) element).state();
+				}
+				return super.getText(element);
+			}
+		});
+		// 'State Description' column
+		final TableViewerColumn commandColumn = createColumn(DVMessages.getString("STATE_DESC")); //$NON-NLS-1$
+		setLayout(commandColumn, tableLayout, 150);
+		commandColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(final Object element) {
+				if (element instanceof IVagrantVM) {
+					return ((IVagrantVM) element).state_desc();
+				}
+				return super.getText(element);
+			}
+		});
+		// comparator
+		final VagrantVMComparator comparator = new VagrantVMComparator(this.viewer);
+		viewer.setComparator(comparator);
+		// apply search filter
+		this.viewer.addFilter(getContainersFilter());
+		setConnection(VagrantConnection.getInstance());
+		connection.addVMListener(this);
+		// get the current selection in the tableviewer
+		getSite().setSelectionProvider(viewer);
+	}
+

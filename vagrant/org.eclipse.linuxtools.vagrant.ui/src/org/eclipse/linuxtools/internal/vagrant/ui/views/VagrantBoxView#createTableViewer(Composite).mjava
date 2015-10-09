@@ -1,0 +1,71 @@
+	private void createTableViewer(final Composite container) {
+		search = new Text(container, SWT.SEARCH | SWT.ICON_SEARCH);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).grab(true, false).applyTo(search);
+		search.addModifyListener(onSearch());
+		Composite tableArea = new Composite(container, SWT.NONE);
+		GridLayoutFactory.fillDefaults().numColumns(1).margins(0,  0).applyTo(tableArea);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL)
+				.grab(true, true).applyTo(tableArea);
+
+		final TableColumnLayout tableLayout = new TableColumnLayout();
+		tableArea.setLayout(tableLayout);
+		this.viewer = new TableViewer(tableArea, SWT.FULL_SELECTION | SWT.MULTI
+				| SWT.H_SCROLL | SWT.V_SCROLL);
+		this.viewer.setContentProvider(new VagrantBoxContentProvider());
+		final Table table = viewer.getTable();
+		GridLayoutFactory.fillDefaults().numColumns(1).margins(0, 0)
+				.applyTo(table);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL)
+				.grab(true, true).applyTo(table);
+		table.setLinesVisible(true);
+		table.setHeaderVisible(true);
+		// 'NAME' column
+		final TableViewerColumn idColumn = createColumn(DVMessages
+				.getString("NAME")); //$NON-NLS-1$
+		setLayout(idColumn, tableLayout, 150);
+		idColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(final Object element) {
+				if (element instanceof IVagrantBox) {
+					return ((IVagrantBox) element).getName();
+				}
+				return super.getText(element);
+			}
+		});
+		// 'PROVIDER' column
+		final TableViewerColumn tagsColumn = createColumn(DVMessages
+				.getString("PROVIDER")); //$NON-NLS-1$
+		setLayout(tagsColumn, tableLayout, 150);
+		tagsColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(final Object element) {
+				if (element instanceof IVagrantBox) {
+					return ((IVagrantBox) element).getProvider();
+				}
+				return super.getText(element);
+			}
+		});
+		// 'VERSION' column
+		final TableViewerColumn creationDateColumn = createColumn(DVMessages
+				.getString("VERSION")); //$NON-NLS-1$
+		setLayout(creationDateColumn, tableLayout, 150);
+		creationDateColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(final Object element) {
+				if (element instanceof IVagrantBox) {
+					return ((IVagrantBox) element).getVersion().toString();
+				}
+				return super.getText(element);
+			}
+		});
+		// comparator
+		final VagrantBoxComparator comparator = new VagrantBoxComparator(this.viewer);
+		viewer.setComparator(comparator);
+		// apply search filter
+		this.viewer.addFilter(getImagesFilter());
+		setConnection(VagrantConnection.getInstance());
+		connection.addBoxListener(this);
+		// get the current selection in the tableviewer
+		getSite().setSelectionProvider(viewer);
+	}
+

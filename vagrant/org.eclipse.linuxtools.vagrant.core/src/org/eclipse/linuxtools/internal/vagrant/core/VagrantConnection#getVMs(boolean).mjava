@@ -1,0 +1,38 @@
+	@Override
+	public List<IVagrantVM> getVMs(boolean force) {
+		if (force || !isVMsLoaded()) {
+			String [] res = call(new String[] { "global-status" });
+			List<String> vmIDs = new LinkedList<>();
+			List<IVagrantVM> containers = new LinkedList<>();
+			for (int i = 0; i < res.length; i++) {
+				String[] items = res[i].split(" ");
+				if (items.length == 6 && i >= 2) {
+					vmIDs.add(items[0]);
+				}
+			}
+			List<String> args = new LinkedList<>(Arrays.asList(new String [] {"--machine-readable", "status"}));
+			args.addAll(vmIDs);
+			res = call(args.toArray(new String[0]));
+			String name, provider, state, state_desc;
+			name = provider = state = state_desc = "";
+			for (int i = 0; i < res.length; i++) {
+				String[] items = res[i].split(",");
+				if (items[2].equals("provider-name")) {
+					name = items[1];
+					provider = items[3];
+				} else if (items[2].equals("state")) {
+					state = items[3];
+				} else if (items[2].equals("state-human-long")) {
+					state_desc = items[3];
+					containers.add(new VagrantVM(vmIDs.get((i % 3)), name, provider, state, state_desc, null));
+				}
+			}
+			this.containersLoaded = true;
+			synchronized (containerLock) {
+				this.vms = containers;
+			}
+			notifyContainerListeners(this.vms);
+		}
+		return this.vms;
+	}
+

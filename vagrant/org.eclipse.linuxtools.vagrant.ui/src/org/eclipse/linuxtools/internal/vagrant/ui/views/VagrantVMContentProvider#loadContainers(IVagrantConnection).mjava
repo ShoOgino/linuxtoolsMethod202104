@@ -1,0 +1,21 @@
+	/**
+	 * Call the {@link IVagrantConnection#getContainers(boolean)} in a background job to avoid blocking the UI.
+	 * @param containersCategory the selected {@link VagrantVMCategory}
+	 */
+	private void loadContainers(final IVagrantConnection connection) {
+		final Job loadContainersJob = new Job(DVMessages.getString("VMLoadJob.msg")) { //$NON-NLS-1$
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				connection.getVMs(true);
+				Display.getDefault().asyncExec(new Runnable() {
+					@Override
+					public void run() {
+						viewer.refresh();
+					}
+				});
+				return Status.OK_STATUS;
+			}
+		};
+		loadContainersJob.schedule();
+	}
+

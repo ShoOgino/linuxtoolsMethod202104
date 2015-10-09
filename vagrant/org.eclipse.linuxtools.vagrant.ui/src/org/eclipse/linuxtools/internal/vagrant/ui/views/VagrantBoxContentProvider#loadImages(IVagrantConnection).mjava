@@ -1,0 +1,24 @@
+	/**
+	 * Call the {@link IVagrantConnection#getImages(boolean)} in a background
+	 * job to avoid blocking the UI.
+	 *
+	 * @param connection
+	 *            the selected {@link VagrantConnection}
+	 */
+	private void loadImages(final IVagrantConnection connection) {
+		final Job loadImagesJob = new Job(DVMessages.getString("BoxesLoadJob.msg")) { //$NON-NLS-1$
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				Display.getDefault().asyncExec(new Runnable() {
+					@Override
+					public void run() {
+						connection.getBoxes(true);
+						viewer.refresh();
+					}
+				});
+				return Status.OK_STATUS;
+			}
+		};
+		loadImagesJob.schedule();
+	}
+
