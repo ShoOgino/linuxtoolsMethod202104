@@ -1,0 +1,33 @@
+	/**
+	 * If a key stored in preferences comes from a non-running VM
+	 * or came from a Vagrant VM (tracked) but is not longer
+	 * associated with one, then it is safe to remove it.
+	 */
+	private void removeKeysFromInnactiveVMs() {
+		final String JSCH_ID = "org.eclipse.jsch.core";
+		// org.eclipse.jsch.internal.core.IConstants.KEY_PRIVATEKEY
+		final String KEY = "PRIVATEKEY";
+		String newKeys = "";
+		String keys = InstanceScope.INSTANCE.getNode(JSCH_ID).get(KEY, "");
+		if (keys.isEmpty()) {
+			keys = DefaultScope.INSTANCE.getNode(JSCH_ID).get(KEY, "");
+		}
+		for (String key : keys.split(",")) {
+			for (IVagrantVM vm : vms) {
+				if (key.equals(vm.identityFile())
+						&& !vm.state().equals(EnumVMStatus.RUNNING)) {
+					newKeys = keys.replaceAll("(,)?" + key + "(,)?", "");
+					removeFromTrackedKeys(key);
+					break;
+				}
+			}
+			if (isTrackedKey(key)) {
+				newKeys = keys.replaceAll("(,)?" + key + "(,)?", "");
+				removeFromTrackedKeys(key);
+			}
+		}
+		if (!newKeys.isEmpty() && !newKeys.equals(keys)) {
+			InstanceScope.INSTANCE.getNode(JSCH_ID).put(KEY, newKeys);
+		}
+	}
+
