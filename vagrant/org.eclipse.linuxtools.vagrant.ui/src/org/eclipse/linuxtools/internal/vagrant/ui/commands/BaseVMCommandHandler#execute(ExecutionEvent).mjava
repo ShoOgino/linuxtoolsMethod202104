@@ -1,0 +1,27 @@
+	@Override
+	public Object execute(ExecutionEvent event) {
+		final IWorkbenchPart activePart = HandlerUtil.getActivePart(event);
+		final List<IVagrantVM> selectedContainers = CommandUtils
+				.getSelectedContainers(activePart);
+		final Job job = new Job(getJobName(selectedContainers)) {
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				if (confirmed(selectedContainers)) {
+					monitor.beginTask(getJobName(selectedContainers),
+							selectedContainers.size());
+					for (final IVagrantVM container : selectedContainers) {
+						monitor.setTaskName(getTaskName(container));
+						executeInJob(container);
+						monitor.worked(1);
+					}
+				}
+				monitor.done();
+				return Status.OK_STATUS;
+			}
+		};
+		// job.setPriority(Job.LONG);
+		job.setUser(true);
+		job.schedule();
+		return null;
+	}
+

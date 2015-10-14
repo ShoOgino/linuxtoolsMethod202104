@@ -1,0 +1,26 @@
+	@Override
+	public Object execute(ExecutionEvent event) {
+		final IWorkbenchPart activePart = HandlerUtil.getActivePart(event);
+		final List<IVagrantBox> selectedImages = CommandUtils.getSelectedImages(activePart);
+		final Job job = new Job(getJobName(selectedImages)) {
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				if (confirmed(selectedImages)) {
+					monitor.beginTask(getJobName(selectedImages),
+							selectedImages.size());
+					for (final IVagrantBox image : selectedImages) {
+						monitor.setTaskName(getTaskName(image));
+						executeInJob(image);
+						monitor.worked(1);
+					}
+				}
+				monitor.done();
+				return Status.OK_STATUS;
+			}
+		};
+		job.setPriority(Job.LONG);
+		job.setUser(true);
+		job.schedule();
+		return null;
+	}
+
