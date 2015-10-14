@@ -1,0 +1,43 @@
+	private void performPullImage(final String boxName, final String boxLoc) {
+		final Job pullImageJob = new Job(DVMessages
+				.getFormattedString(PULL_IMAGE_JOB_TITLE, boxName)) {
+
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				monitor.beginTask(DVMessages.getString(PULL_IMAGE_JOB_TASK),
+						IProgressMonitor.UNKNOWN);
+				// pull the image and let the progress
+				// handler refresh the images when done
+				try {
+					IVagrantConnection connection = VagrantConnection.getInstance();
+					connection.addBox(boxName, boxLoc);
+					connection.getBoxes(true);
+				} catch (final VagrantException e) {
+					Display.getDefault().syncExec(new Runnable() {
+
+						@Override
+						public void run() {
+							MessageDialog.openError(
+									Display.getCurrent().getActiveShell(),
+									DVMessages.getFormattedString(
+											ERROR_PULLING_IMAGE, boxName),
+									e.getMessage());
+
+						}
+
+					});
+					// for now
+				} catch (InterruptedException e) {
+					// do nothing
+				} finally {
+					monitor.done();
+				}
+				return Status.OK_STATUS;
+			}
+
+		};
+
+		pullImageJob.schedule();
+
+	}
+
