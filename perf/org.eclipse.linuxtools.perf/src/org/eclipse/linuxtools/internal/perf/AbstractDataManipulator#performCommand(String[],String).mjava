@@ -1,17 +1,14 @@
     public void performCommand(String[] cmd, String file) {
-        URI pathWorkDirURI = null;
         Process proc = null;
-        RemoteConnection exeRC = null;
+        IRemoteFileProxy fileProxy;
         try {
             try {
-                pathWorkDirURI = new URI(pathWorkDir.toOSString());
-                exeRC = new RemoteConnection(pathWorkDirURI);
+                fileProxy = RemoteProxyManager.getInstance().getFileProxy(project);
             } catch (RemoteConnectionException e) {
                 MessageDialog.openError(Display.getCurrent().getActiveShell(), Messages.MsgProxyError, Messages.MsgProxyError);
-            } catch (URISyntaxException e) {
-                MessageDialog.openError(Display.getCurrent().getActiveShell(), Messages.MsgProxyError, Messages.MsgProxyError);
+                return;
             }
-            IFileStore workDirStore = exeRC.getRmtFileProxy().getResource(pathWorkDirURI.getPath());
+            IFileStore workDirStore = getWorkingDirStore();
             proc = RuntimeProcessFactory.getFactory().exec(cmd, null, workDirStore, project, new PTY());
             DebugPlugin.newProcess(launch, proc, ""); //$NON-NLS-1$
             proc.waitFor();
@@ -19,7 +16,7 @@
             StringBuffer data = new StringBuffer();
             try (BufferedReader buffData = new BufferedReader(
                     new InputStreamReader(
-                            exeRC.getRmtFileProxy().getResource(file).openInputStream(EFS.NONE, null)))) {
+                            fileProxy.getResource(file).openInputStream(EFS.NONE, null)))) {
                 readStream(buffData, data);
                 joinAll();
             }

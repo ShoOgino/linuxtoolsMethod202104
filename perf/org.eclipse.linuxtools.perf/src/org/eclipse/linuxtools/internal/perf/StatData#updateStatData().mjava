@@ -5,8 +5,6 @@
      * report data files.
      */
     public void updateStatData() {
-        URI curStatPathURI = null;
-        URI oldStatPathURI = null;
         // build file name format
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append(PerfPlugin.PERF_COMMAND);
@@ -20,16 +18,14 @@
         IPath curStatPath = workingDir.append(curStatName);
         IRemoteFileProxy proxy = null;
         try {
-            curStatPathURI = new URI(curStatPath.toPortableString());
-            proxy = RemoteProxyManager.getInstance().getFileProxy(curStatPathURI);
+            proxy = RemoteProxyManager.getInstance().getFileProxy(project);
 
-            IFileStore curFileStore = proxy.getResource(curStatPathURI.getPath());
+            IFileStore curFileStore = proxy.getResource(curStatPath.toOSString());
             if (curFileStore.fetchInfo().exists()) {
                 // get previous stat file
                 String oldStatName = String.format(statNameFormat, ".old"); //$NON-NLS-1$
                 IPath oldStatPath = workingDir.append(oldStatName);
-                oldStatPathURI = new URI(oldStatPath.toPortableString());
-                IFileStore oldFileStore = proxy.getResource(oldStatPathURI.getPath());
+                IFileStore oldFileStore = proxy.getResource(oldStatPath.toOSString());
                 if (oldFileStore.fetchInfo().exists()) {
                     oldFileStore.delete(EFS.NONE, null);
                 }
@@ -38,7 +34,7 @@
             }
             PerfSaveStatsHandler saveStats = new PerfSaveStatsHandler();
             saveStats.saveData(PerfPlugin.PERF_COMMAND);
-        } catch (URISyntaxException|CoreException e) {
+        } catch (CoreException e) {
             MessageDialog.openError(Display.getCurrent().getActiveShell(), Messages.MsgProxyError, Messages.MsgProxyError);
         }
     }
