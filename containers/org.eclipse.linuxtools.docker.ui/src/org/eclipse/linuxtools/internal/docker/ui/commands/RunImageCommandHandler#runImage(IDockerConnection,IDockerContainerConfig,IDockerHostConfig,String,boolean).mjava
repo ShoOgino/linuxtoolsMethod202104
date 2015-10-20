@@ -1,6 +1,7 @@
 	private void runImage(final IDockerConnection connection,
 			final IDockerContainerConfig containerConfig,
-			final IDockerHostConfig hostConfig, final String containerName) {
+			final IDockerHostConfig hostConfig, final String containerName,
+			final boolean removeWhenExits) {
 		if (containerConfig.tty()) {
 			// show the console view
 			try {
@@ -20,6 +21,7 @@
 			protected IStatus run(final IProgressMonitor monitor) {
 				monitor.beginTask(
 						DVMessages.getString("RunImageRunningTask.msg"), 2); //$NON-NLS-1$
+				String id = null;
 				try {
 					final SubProgressMonitor createContainerMonitor = new SubProgressMonitor(
 							monitor, 1);
@@ -30,6 +32,7 @@
 							1);
 					final String containerId = ((DockerConnection) connection)
 							.createContainer(containerConfig, hostConfig, containerName);
+					id = containerId;
 					final IDockerContainer container = ((DockerConnection) connection)
 							.getContainer(containerId);
 
@@ -68,6 +71,51 @@
 
 					});
 				} finally {
+					if (removeWhenExits) {
+						try {
+							if (id != null) {
+								// Wait for the container to finish
+								((DockerConnection) connection)
+										.waitForContainer(id);
+								// Drain the logging thread before we remove the
+								// container
+								((DockerConnection) connection)
+										.stopLoggingThread(id);
+								while (((DockerConnection) connection)
+										.loggingStatus(
+												id) == EnumDockerLoggingStatus.LOGGING_ACTIVE) {
+									Thread.sleep(1000);
+								}
+							}
+						} catch (DockerException | InterruptedException e) {
+							// ignore any errors in waiting for container or
+							// draining log
+						}
+						try {
+							// try and remove the container if it was created
+							if (id != null)
+								((DockerConnection) connection)
+										.removeContainer(id);
+						} catch (DockerException | InterruptedException e) {
+							final String containerId = id;
+							Display.getDefault().syncExec(new Runnable() {
+
+								@Override
+								public void run() {
+									MessageDialog.openError(
+											Display.getCurrent()
+													.getActiveShell(),
+											DVMessages.getFormattedString(
+													ERROR_REMOVING_CONTAINER,
+													containerId),
+											e.getMessage());
+
+								}
+
+							});
+						}
+					}
+
 					monitor.done();
 				}
 				return Status.OK_STATUS;
