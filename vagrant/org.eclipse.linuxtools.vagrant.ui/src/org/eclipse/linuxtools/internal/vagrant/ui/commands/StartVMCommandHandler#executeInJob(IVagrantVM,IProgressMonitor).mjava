@@ -1,0 +1,22 @@
+	@Override
+	void executeInJob(IVagrantVM vm, IProgressMonitor monitor) {
+		IVagrantConnection connection = VagrantConnection.getInstance();
+		String stateLoc = Activator.getDefault().getStateLocation().toOSString();
+		File vagrantDir = Paths.get(stateLoc, vm.name()).toFile();
+		Process p = connection.up(vagrantDir);
+		BufferedReader buff = new BufferedReader(new InputStreamReader(p.getInputStream()));
+		String line;
+		try {
+			while ((line = buff.readLine()) != null) {
+				if (monitor.isCanceled()) {
+					p.destroy();
+					break;
+				}
+				line = line.replaceAll("(=)+>", "");
+				monitor.subTask(line);
+			}
+		} catch (IOException e) {
+		}
+		connection.getVMs(true);
+	}
+
