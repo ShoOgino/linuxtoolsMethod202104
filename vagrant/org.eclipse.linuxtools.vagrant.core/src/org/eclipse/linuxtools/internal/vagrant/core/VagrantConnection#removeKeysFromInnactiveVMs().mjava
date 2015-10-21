@@ -12,16 +12,19 @@
 		if (keys.isEmpty()) {
 			keys = DefaultScope.INSTANCE.getNode(JSCH_ID).get(KEY, "");
 		}
+		boolean vmFound = false;
 		for (String key : keys.split(",")) {
 			for (IVagrantVM vm : vms) {
-				if (key.equals(vm.identityFile())
-						&& !vm.state().equals(EnumVMStatus.RUNNING)) {
-					newKeys = keys.replaceAll("(,)?" + key + "(,)?", "");
-					removeFromTrackedKeys(key);
-					break;
+				if (key.equals(vm.identityFile())) {
+					vmFound = true;
+					if (!EnumVMStatus.RUNNING.equals(EnumVMStatus.fromStatusMessage(vm.state()))) {
+						newKeys = keys.replaceAll("(,)?" + key + "(,)?", "");
+						removeFromTrackedKeys(key);
+						break;
+					}
 				}
 			}
-			if (isTrackedKey(key)) {
+			if (!vmFound && isTrackedKey(key)) {
 				newKeys = keys.replaceAll("(,)?" + key + "(,)?", "");
 				removeFromTrackedKeys(key);
 			}
