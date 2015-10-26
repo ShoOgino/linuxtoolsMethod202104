@@ -1,0 +1,21 @@
+    /*
+     * It happens that two or more proxy's implementation can handle same (real)
+     *  scheme id. Conflicts can be avoided by calling the manager using an URI
+     *  with a "fake" scheme ID, to differentiate implementations.
+     * So this manager can receive an URI which scheme ID is not recognized
+     *  by the JSch implementation. As a result, we must sanitize the URI to
+     *  use the real ID onward.
+     */
+    private URI sanitizeURI(URI uri) {
+        if(uri != null && ! uri.getScheme().equals(SCHEME_ID)) {
+            try {
+                return new URI(SCHEME_ID, uri.getRawUserInfo(), uri.getHost(), uri.getPort(), uri.getRawPath()
+                        , uri.getRawQuery(), uri.getRawFragment());
+            } catch (URISyntaxException e) {
+                Status status = new Status(IStatus.ERROR, e.getMessage(), Activator.PLUGIN_ID);
+                Activator.getDefault().getLog().log(status);
+            }
+        }
+        return uri;
+    }
+
