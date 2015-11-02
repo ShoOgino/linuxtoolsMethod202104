@@ -1,23 +1,19 @@
 	@Override
 	public Object execute(final ExecutionEvent event) {
 		final IWorkbenchPart activePart = HandlerUtil.getActivePart(event);
-		List<IDockerImage> selectedImages = CommandUtils
+		final List<IDockerImage> selectedImages = CommandUtils
 				.getSelectedImages(activePart);
-		if (activePart instanceof DockerImagesView) {
-			connection = ((DockerImagesView) activePart).getConnection();
-		}
-		if (selectedImages.size() != 1 || connection == null)
+		final IDockerConnection connection = CommandUtils
+				.getCurrentConnection(activePart);
+		if (selectedImages.size() != 1 || connection == null) {
 			return null;
-		image = selectedImages.get(0);
-		final ImageTag wizard = new ImageTag(image.id());
+		}
+		final IDockerImage image = selectedImages.get(0);
+		final ImageTag wizard = new ImageTag();
 		final boolean tagImage = CommandUtils.openWizard(wizard,
 				HandlerUtil.getActiveShell(event));
 		if (tagImage) {
-			if (activePart instanceof DockerImagesView) {
-				connection = ((DockerImagesView) activePart)
-						.getConnection();
-			}
-			performTagImage(wizard);
+			performTagImage(connection, image, wizard.getTag());
 		}
 		return null;
 	}
