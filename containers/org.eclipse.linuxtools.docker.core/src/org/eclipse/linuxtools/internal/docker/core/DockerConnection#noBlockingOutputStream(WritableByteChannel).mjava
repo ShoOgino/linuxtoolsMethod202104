@@ -1,0 +1,29 @@
+	public static OutputStream noBlockingOutputStream(final WritableByteChannel out) {
+		return new OutputStream() {
+
+			@Override
+			public synchronized void write(int i) throws IOException {
+				byte b[] = new byte[1];
+				b[0] = (byte) i;
+				write(b);
+			}
+
+			@Override
+			public synchronized void write(byte[] b, int off, int len)
+					throws IOException {
+				if (len == 0) {
+					return;
+				}
+				ByteBuffer buff = ByteBuffer.wrap(b, off, len);
+				while (buff.remaining() > 0) {
+					out.write(buff);
+				}
+			}
+
+			@Override
+			public void close() throws IOException {
+				out.close();
+			}
+		};
+	}
+
