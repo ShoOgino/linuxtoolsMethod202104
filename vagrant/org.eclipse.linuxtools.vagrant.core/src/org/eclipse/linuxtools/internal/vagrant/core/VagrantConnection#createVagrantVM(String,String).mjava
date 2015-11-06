@@ -1,0 +1,53 @@
+	private VagrantVM createVagrantVM(String vmid, String vmDir) {
+		List<String> args = new LinkedList<>(
+				Arrays.asList(new String[] { "ssh-config" }));
+		args.add(vmid);
+
+		List<String> sshConfig = null;
+
+		// Run and handle ssh-config for this vm
+		String[] res = call(args.toArray(new String[0]));
+		for (int i = 0; i < res.length; i++) {
+			String[] items = res[i].trim().split(" ");
+			if (items[0].equals("HostName")) {
+				List<String> tmp = new ArrayList<>();
+				tmp.add(items[1]);
+				sshConfig = tmp;
+			} else if (items[0].equals("User") || items[0].equals("Port")
+					|| items[0].equals("IdentityFile")) {
+				sshConfig.add(items[1]);
+			}
+		}
+
+		// Run and handle status for this vm
+		VagrantVM vm = null;
+		args = new LinkedList<>(
+				Arrays.asList(new String[] { "--machine-readable", "status" }));
+		args.add(vmid);
+		res = call(args.toArray(new String[0]));
+		String name, provider, state, state_desc;
+		name = provider = state = state_desc = "";
+		for (int i = 0; i < res.length; i++) {
+			String[] items = res[i].split(",");
+			if (items[2].equals("provider-name")) {
+				name = items[1];
+				provider = items[3];
+			} else if (items[2].equals("state")) {
+				state = items[3];
+			} else if (items[2].equals("state-human-long")) {
+				state_desc = items[3];
+				if (sshConfig == null || sshConfig.isEmpty()) {
+					// VM exists but ssh is not configured
+					vm = new VagrantVM(vmid, name, provider, state, state_desc,
+							new File(vmDir), null, null, 0, null);
+				} else {
+					vm = new VagrantVM(vmid, name, provider, state, state_desc,
+							new File(vmDir), sshConfig.get(0), sshConfig.get(1),
+							Integer.parseInt(sshConfig.get(2)),
+							sshConfig.get(3));
+				}
+			}
+		}
+		return vm;
+	}
+

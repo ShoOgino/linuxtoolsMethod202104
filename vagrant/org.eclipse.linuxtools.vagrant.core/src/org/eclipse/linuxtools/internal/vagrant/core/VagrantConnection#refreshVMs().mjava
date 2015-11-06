@@ -1,0 +1,63 @@
+	protected void refreshVMs() {
+		String[] res = call(new String[] { "global-status" });
+		List<String> vmIDs = new LinkedList<>();
+		List<String> vmDirs = new LinkedList<>();
+		final List<IVagrantVM> containers = new LinkedList<>();
+		for (int i = 0; i < res.length; i++) {
+			String[] items = res[i].split("\\s+");
+			if (items.length == 5 && i >= 2) {
+				vmIDs.add(items[0]);
+				vmDirs.add(items[items.length - 1]);
+			}
+		}
+
+		List<String> completed = new ArrayList<String>();
+		if (!vmIDs.isEmpty()) {
+			Iterator<String> vmIterator = vmIDs.iterator();
+			Iterator<String> vmDirIterator = vmDirs.iterator();
+			while (vmIterator.hasNext()) {
+				final String vmid = vmIterator.next();
+				final String vmDir = vmDirIterator.next();
+				new Thread("Checking ssh-config for vm " + vmid) {
+					@Override
+					public void run() {
+						try {
+							VagrantVM ret = createVagrantVM(vmid, vmDir);
+							if (ret != null) {
+								containers.add(ret);
+							}
+						} finally {
+							// Ensure this gets called no matter what
+							completed.add(vmid);
+						}
+					}
+				}.start();
+			}
+		}
+
+		// Should set a max timeout?
+
+		// Wait for completed to have same count as vmIDs
+		while (completed.size() < vmIDs.size()) {
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException ie) {
+				// Ignore
+			}
+		}
+
+		Collections.sort(containers, new Comparator<IVagrantVM>() {
+			@Override
+			public int compare(IVagrantVM o1, IVagrantVM o2) {
+				return o1.name().compareTo(o2.name());
+			}
+		});
+
+		this.containersLoaded = true;
+		synchronized (containerLock) {
+			this.vms = containers;
+		}
+		removeKeysFromInnactiveVMs();
+		notifyContainerListeners(this.vms);
+	}
+
