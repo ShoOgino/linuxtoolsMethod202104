@@ -1,0 +1,84 @@
+	public CreateVMAdvancedComposite(Composite parent,
+			CreateVMPageModel model) {
+		super(parent, ExpandableComposite.COMPACT | ExpandableComposite.TWISTIE
+				| ExpandableComposite.EXPANDED | SWT.BORDER);
+		this.model = model;
+
+		setText(WizardMessages
+				.getString("CreateVMAdvancedComposite.EnvironmentVariables"));
+
+		final Composite advancedComposite = new Composite(this, SWT.NONE);
+		setClient(advancedComposite);
+		addExpansionListener(new ExpansionAdapter() {
+			@Override
+			public void expansionStateChanged(ExpansionEvent e) {
+				Shell shell = parent.getShell();
+				Point minSize = shell.getMinimumSize();
+				shell.setMinimumSize(shell.getSize().x, minSize.y);
+				shell.pack();
+				parent.layout();
+				shell.setMinimumSize(minSize);
+			}
+		});
+
+		advancedComposite.setLayout(new GridLayout());
+
+		tv = new TableViewer(advancedComposite,
+				SWT.FULL_SELECTION | SWT.BORDER);
+		tv.setContentProvider(new EnvironmentContentProvider());
+		tv.setLabelProvider(new EnvironmentLabelProvider());
+
+		// Set up the table
+		Table table = tv.getTable();
+		GridData gd = new GridData(GridData.FILL_BOTH);
+		gd.heightHint = 150;
+		table.setLayoutData(gd);
+
+		TableColumn tc1 = new TableColumn(table, SWT.CENTER);
+		TableColumn tc2 = new TableColumn(table, SWT.CENTER);
+
+		tc1.setText(KEY);
+		tc2.setText(VALUE);
+
+		tc1.setWidth(250);
+		tc2.setWidth(150);
+
+		table.setHeaderVisible(true);
+		table.setLinesVisible(true);
+
+		// Create the cell editors
+		CellEditor[] editors = new CellEditor[2];
+		editors[0] = new TextCellEditor(table);
+		editors[1] = new TextCellEditor(table);
+
+		// Set the editors, cell modifier, and column properties
+		tv.setColumnProperties(KEY_VALUE);
+		tv.setCellModifier(new EnvironmentCellModifier());
+		tv.setCellEditors(editors);
+
+		tv.setInput(ResourcesPlugin.getWorkspace());
+
+		table.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseDoubleClick(MouseEvent e) {
+				String varToAdd = DEFAULT_KEY;
+				int i = 1;
+				if (model.getEnvironment().containsKey(varToAdd)) {
+					boolean done = false;
+					while (!done) {
+						String toTest = varToAdd + " (" + i++ + ")";
+						if (!model.getEnvironment().containsKey(toTest)) {
+							model.getEnvironment().put(toTest, DEFAULT_VALUE);
+							done = true;
+						}
+					}
+				} else {
+					model.getEnvironment().put(varToAdd, DEFAULT_VALUE);
+				}
+
+				tv.refresh();
+			}
+		});
+
+	}
+

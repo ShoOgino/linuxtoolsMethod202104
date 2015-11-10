@@ -1,0 +1,28 @@
+	private static String[] call(String[] args, File vagrantDir,
+			Map<String, String> env) {
+		String[] envp = (env == null ? null
+				: EnvironmentsManager.convertEnvironment(env));
+
+		List<String> result = new ArrayList<>();
+		try {
+			List<String> cmd = new ArrayList<>();
+			cmd.add(VG);
+			cmd.addAll(Arrays.asList(args));
+			Process p = Runtime.getRuntime().exec(cmd.toArray(new String[0]),
+					envp, vagrantDir);
+			BufferedReader buff = new BufferedReader(
+					new InputStreamReader(p.getInputStream()));
+			if (p.waitFor() == 0) {
+				String line;
+				while ((line = buff.readLine()) != null) {
+					result.add(line);
+				}
+			} else {
+				return new String[0];
+			}
+		} catch (IOException e) {
+		} catch (InterruptedException e) {
+		}
+		return result.toArray(new String[0]);
+	}
+

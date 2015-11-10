@@ -1,0 +1,34 @@
+	/*
+	 * Convert a string/string hashmap into an array of string environment
+	 * variables as required by java.lang.Runtime This will super-impose the
+	 * provided environment variables ON TOP OF the existing environment in
+	 * eclipse, as users may not know *all* environment variables that need to
+	 * be set, or to do so may be tedious.
+	 */
+	public static String[] convertEnvironment(Map<String, String> env) {
+		if (env == null || env.size() == 0)
+			return null;
+
+		// Create a new map based on pre-existing environment of Eclipse
+		Map<String, String> original = new HashMap<>(System.getenv());
+
+		// Add new environment on top of existing
+		Iterator<String> additonal = env.keySet().iterator();
+		String k;
+		while (additonal.hasNext()) {
+			k = additonal.next();
+			original.put(k, env.get(k));
+		}
+
+		// Convert the combined map into a form that can be used to launch
+		// process
+		ArrayList<String> ret = new ArrayList<>();
+		Iterator<String> it = original.keySet().iterator();
+		String working = null;
+		while (it.hasNext()) {
+			working = it.next();
+			ret.add(working + "=" + original.get(working));
+		}
+		return ret.toArray(new String[ret.size()]);
+	}
+

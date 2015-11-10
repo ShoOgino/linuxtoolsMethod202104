@@ -1,4 +1,8 @@
 	private VagrantVM createVagrantVM(String vmid, String vmDir) {
+
+		Map<String, String> env = EnvironmentsManager.getSingleton()
+				.getEnvironment(new File(vmDir));
+
 		List<String> args = new LinkedList<>(
 				Arrays.asList(new String[] { "ssh-config" }));
 		args.add(vmid);
@@ -6,7 +10,7 @@
 		List<String> sshConfig = null;
 
 		// Run and handle ssh-config for this vm
-		String[] res = call(args.toArray(new String[0]));
+		String[] res = call(args.toArray(new String[0]), new File(vmDir), env);
 		for (int i = 0; i < res.length; i++) {
 			String[] items = res[i].trim().split(" ");
 			if (items[0].equals("HostName")) {
@@ -24,7 +28,7 @@
 		args = new LinkedList<>(
 				Arrays.asList(new String[] { "--machine-readable", "status" }));
 		args.add(vmid);
-		res = call(args.toArray(new String[0]));
+		res = call(args.toArray(new String[0]), new File(vmDir), env);
 		String name, provider, state, state_desc;
 		name = provider = state = state_desc = "";
 		for (int i = 0; i < res.length; i++) {

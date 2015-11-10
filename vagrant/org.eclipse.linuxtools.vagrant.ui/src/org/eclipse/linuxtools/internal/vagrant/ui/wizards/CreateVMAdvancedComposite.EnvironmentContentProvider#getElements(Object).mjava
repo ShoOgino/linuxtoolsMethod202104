@@ -1,0 +1,35 @@
+		@Override
+		public Object[] getElements(Object inputElement) {
+			final Map<String, String> env = model.getEnvironment();
+			if (env != null) {
+				ArrayList<String> keys = new ArrayList<>(env.keySet());
+				Collections.sort(keys, new Comparator<String>() {
+					@Override
+					public int compare(String o1, String o2) {
+						// anything with default value should sit at the bottom
+						boolean o1IsDefaultValue = env.get(o1)
+								.equals(DEFAULT_VALUE);
+						boolean o2IsDefaultValue = env.get(o2)
+								.equals(DEFAULT_VALUE);
+						if (o1IsDefaultValue) {
+							if (o2IsDefaultValue)
+								return o1.compareTo(o2);
+							return 1;
+						}
+						if (o2IsDefaultValue)
+							return -1;
+						if (o1.startsWith(DEFAULT_KEY)) {
+							if (o2.startsWith(DEFAULT_KEY))
+								return env.get(o1).compareTo(env.get(o2));
+							return 1;
+						}
+						if (o2.startsWith(DEFAULT_KEY))
+							return -1;
+						return o1.compareTo(o2);
+					}
+				});
+				return keys.toArray(new String[keys.size()]);
+			}
+			return new String[0];
+		}
+

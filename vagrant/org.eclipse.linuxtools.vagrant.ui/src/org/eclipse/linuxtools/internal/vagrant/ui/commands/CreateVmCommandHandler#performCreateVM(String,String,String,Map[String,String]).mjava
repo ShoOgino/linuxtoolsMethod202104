@@ -1,0 +1,28 @@
+	private void performCreateVM(String vmName, String boxName, String vmFile,
+			Map<String, String> environment) {
+		final Job createVMJob = new Job(DVMessages.getFormattedString(CREATE_VM_MSG)) {
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				monitor.beginTask(DVMessages.getFormattedString(CRATE_VM_TITLE, vmName),
+						IProgressMonitor.UNKNOWN);
+				IVagrantConnection connection = VagrantService.getInstance();
+				File vagrantDir;
+				if (vmFile == null) {
+					// Init a new vagrant folder inside plugin metadata
+					vagrantDir = performInit(vmName, boxName, connection);
+				} else {
+					vagrantDir = Paths.get(vmFile).getParent().toFile();
+				}
+				EnvironmentsManager.getSingleton().setEnvironment(vagrantDir,
+						environment);
+				IVagrantBox box = findBox(connection, boxName);
+				String provider = (box == null ? null : box.getProvider());
+				connection.up(vagrantDir, provider);
+				connection.getVMs(true);
+				return Status.OK_STATUS;
+			}
+		};
+		createVMJob.setUser(true);
+		createVMJob.schedule();
+	}
+
