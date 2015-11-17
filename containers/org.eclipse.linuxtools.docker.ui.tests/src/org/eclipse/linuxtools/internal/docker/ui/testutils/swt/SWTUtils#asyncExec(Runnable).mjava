@@ -1,0 +1,37 @@
+	/**
+	 * Executes the given {@link Runnable} <strong>asynchronously</strong> in
+	 * the default {@link Display} and waits until all jobs are done before
+	 * completing.
+	 * 
+	 * @param runnable
+	 * @throws InterruptedException
+	 */
+	public static void asyncExec(final Runnable runnable) throws InterruptedException {
+		final Queue<ComparisonFailure> failure = new ArrayBlockingQueue<>(1);
+		final Queue<SWTException> swtException = new ArrayBlockingQueue<>(1);
+		Display.getDefault().asyncExec(new Runnable() {
+
+			@Override
+			public void run() {
+				try {
+					runnable.run();
+				} catch (ComparisonFailure e) {
+					failure.add(e);
+				} catch (SWTException e) {
+					swtException.add(e);
+				}
+			}
+		});
+		
+		Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+		while (!Job.getJobManager().isIdle()) {
+			Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+		}
+		if (!failure.isEmpty()) {
+			throw failure.poll();
+		}
+		if (!swtException.isEmpty()) {
+			throw swtException.poll();
+		}
+	}
+

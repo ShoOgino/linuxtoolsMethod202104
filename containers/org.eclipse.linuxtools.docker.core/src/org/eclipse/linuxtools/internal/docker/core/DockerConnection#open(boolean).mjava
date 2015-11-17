@@ -4,25 +4,10 @@
 		// synchronized block to avoid concurrent attempts to open a connection
 		// to the same Docker daemon
 		synchronized (this) {
-			try {
-				if (this.client == null) {
-					if (this.socketPath != null) {
-						this.client = DefaultDockerClient.builder()
-								.uri(socketPath).build();
-					} else if (this.tcpHost != null) {
-						if (this.tcpCertPath != null) {
-							this.client = DefaultDockerClient
-									.builder()
-									.uri(URI.create(tcpHost))
-									.dockerCertificates(
-											new DockerCertificates(new File(
-													tcpCertPath).toPath()))
-									.build();
-						} else {
-							this.client = DefaultDockerClient.builder()
-									.uri(URI.create(tcpHost)).build();
-						}
-					}
+			if (this.client == null) {
+				try {
+					setClient(dockerClientFactory.getClient(this.socketPath,
+							this.tcpHost, this.tcpCertPath));
 					if (registerContainerRefreshManager) {
 						// Add the container refresh manager to watch the
 						// containers
@@ -31,10 +16,11 @@
 								.getInstance();
 						addContainerListener(dcrm);
 					}
+				} catch (DockerCertificateException e) {
+					throw new DockerException(NLS
+							.bind(Messages.Open_Connection_Failure, this.name));
 				}
-			} catch (DockerCertificateException e) {
-				throw new DockerException(
-						NLS.bind(Messages.Open_Connection_Failure, this.name));
+
 			}
 		}
 	}

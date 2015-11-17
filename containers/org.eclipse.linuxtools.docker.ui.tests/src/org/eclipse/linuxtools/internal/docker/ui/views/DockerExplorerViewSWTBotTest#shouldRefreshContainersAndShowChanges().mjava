@@ -1,0 +1,30 @@
+	@Test
+	public void shouldRefreshContainersAndShowChanges() throws Exception {
+		// given
+		final DockerClient client = MockDockerClientFactory.noImages().noContainers();
+		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client).get();
+		configureConnectionManager(dockerConnection);
+		SWTUtils.asyncExec(() -> dockerExplorerView.getCommonViewer().expandAll());
+		Conditions.waitForJobs(DockerExplorerView.class, "Docker Explorer View jobs");
+		final SWTBotTreeItem[] allItems = dockerExplorerViewBot.bot().tree().getAllItems();
+		// one connection
+		Assertions.assertThat(allItems).hasSize(1);
+		// "containers" and "images" items
+		Assertions.assertThat(allItems[0].getItems()).hasSize(2);
+		final SWTBotTreeItem containersTreeItem = SWTUtils.getTreeItem(dockerExplorerViewBot, "Test", "Containers");
+		containersTreeItem.expand();
+		Assertions.assertThat(containersTreeItem.getItems().length).isEqualTo(0);
+		
+		// update the client 
+		final DockerClient updatedClient = MockDockerClientFactory.noImages().containers(MockDockerContainerFactory.name("foo_bar").build());
+		dockerConnection.setClient(updatedClient);
+		dockerExplorerViewTreeBot = dockerExplorerViewBot.bot().tree();
+		dockerExplorerViewTreeBot.select(containersTreeItem);
+		dockerExplorerViewTreeBot.contextMenu("Refresh").click();
+		SWTUtils.asyncExec(() -> containersTreeItem.expand());
+
+		// then check that there are images now
+		Assertions.assertThat(containersTreeItem.isExpanded()).isTrue();
+		Assertions.assertThat(containersTreeItem.getItems().length).isEqualTo(1);
+	}
+

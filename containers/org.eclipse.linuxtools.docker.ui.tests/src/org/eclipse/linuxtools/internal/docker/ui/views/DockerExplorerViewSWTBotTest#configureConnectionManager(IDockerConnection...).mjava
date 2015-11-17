@@ -1,6 +1,11 @@
-	private void configureConnectionManager(final IDockerConnection... connections) {
+	private void configureConnectionManager(final IDockerConnection... connections) throws InterruptedException {
 		DockerConnectionManager.getInstance()
-				.setConnectionStorageManager(MockDockerConnectionStorageManagerFactory.load(connections));
-		Display.getDefault().syncExec(() -> DockerConnectionManager.getInstance().reloadConnections());
+				.setConnectionStorageManager(MockDockerConnectionStorageManagerFactory.providing(connections));
+		SWTUtils.syncExec(() -> {
+			DockerConnectionManager.getInstance().reloadConnections();
+			dockerExplorerView.getCommonViewer().refresh();
+			dockerExplorerView.showConnectionsOrExplanations();
+		});
+		Thread.sleep(TimeUnit.SECONDS.toMillis(1));
 	}
 

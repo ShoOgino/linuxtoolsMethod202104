@@ -1,15 +1,19 @@
 		@Override
 		public void run() {
-			for (;;) {
+			while (monitor) {
 				try {
 					Thread.sleep(getSleepTime());
 					// After sleep period, update the containers list, but make
 					// sure the refreshManager isn't notified since that
 					// is what triggered this to begin with.
 					synchronized (instance) {
-						connection.removeContainerListener(instance);
-						((DockerConnection) connection).getContainers(true);
-						connection.addContainerListener(instance);
+						// monitoring may have been switched off while the
+						// thread was sleeping
+						if (monitor) {
+							// connection.removeContainerListener(instance);
+							((DockerConnection) connection).getContainers(true);
+							// connection.addContainerListener(instance);
+						}
 					}
 				} catch (InterruptedException e) {
 					if (kill)
@@ -17,5 +21,8 @@
 					// otherwise..continue
 				}
 			}
+			Activator.log(new Status(IStatus.INFO, Activator.PLUGIN_ID,
+					"Stopped monitor container changes for connection '"
+							+ connection.getName() + "'"));
 		}
 

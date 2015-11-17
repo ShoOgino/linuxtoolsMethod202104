@@ -1,0 +1,14 @@
+	@Test
+	public void shouldRegisterConnectionOnRefreshContainersManager() throws InterruptedException {
+		// given
+		final DockerClient client = MockDockerClientFactory.noImages().noContainers();
+		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client).get();
+		dockerConnectionManager
+				.setConnectionStorageManager(MockDockerConnectionStorageManagerFactory.providing(dockerConnection));
+		SWTUtils.asyncExec(() -> dockerConnectionManager.reloadConnections());
+		// when
+		dockerConnection.getContainers();
+		// then
+		Assertions.assertThat(dockerContainersRefreshManager.getConnections()).contains(dockerConnection);
+	}
+

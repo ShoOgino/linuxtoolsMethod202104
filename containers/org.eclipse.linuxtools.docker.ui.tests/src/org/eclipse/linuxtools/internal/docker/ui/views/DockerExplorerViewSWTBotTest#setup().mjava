@@ -1,8 +1,16 @@
-	@Override
 	@Before
-	public void setup() {
-		super.setup();
-		bot.views().stream()
+	public void setup() throws InterruptedException {
+		this.bot = new SWTWorkbenchBot();
+		SWTUtils.asyncExec(() -> {try {
+			PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage()
+					.showView("org.eclipse.linuxtools.docker.ui.dockerExplorerView");
+		} catch (Exception e) {
+			e.printStackTrace();
+			Assert.fail("Failed to open Docker Explorer view: " + e.getMessage());
+		}});
+		this.dockerExplorerViewBot = bot.viewById("org.eclipse.linuxtools.docker.ui.dockerExplorerView");
+		this.dockerExplorerView = (DockerExplorerView) (dockerExplorerViewBot.getViewReference().getView(true));
+		this.bot.views().stream()
 				.filter(v -> v.getReference().getId().equals("org.eclipse.linuxtools.docker.ui.dockerContainersView")
 						|| v.getReference().getId().equals("org.eclipse.linuxtools.docker.ui.dockerImagesView"))
 				.forEach(v -> v.close());
