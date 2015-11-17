@@ -1,0 +1,55 @@
+	/**
+	 * Executes the command given in parameter
+	 * 
+	 * @param args
+	 *            command arguments
+	 * @return the lines read in the {@link Process}' {@link InputStream}
+	 */
+	private static String[] execute(final String dockerMachineInstallDir,
+			final String[] args, final String... extraPaths) {
+		try {
+			final String[] command = new String[args.length + 1];
+			command[0] = dockerMachineInstallDir
+					+ (dockerMachineInstallDir.endsWith(File.separator) ? "" //$NON-NLS-1$
+							: File.separator)
+					+ "docker-machine";
+			System.arraycopy(args, 0, command, 1, args.length);
+			final ProcessBuilder processBuilder = new ProcessBuilder(command);
+			final Map<String, String> environment = processBuilder
+					.environment();
+			final StringBuilder path = new StringBuilder(
+					dockerMachineInstallDir);
+			for (String extraPath : extraPaths) {
+				path.append(File.pathSeparator).append(extraPath);
+			}
+			environment.put("PATH", path.toString());
+			final Process p = processBuilder.start();
+			p.waitFor();
+			if (p.exitValue() == 0) {
+				final List<String> result = new ArrayList<>();
+				try (BufferedReader buff = new BufferedReader(
+						new InputStreamReader(p.getInputStream()))) {
+					String line;
+					while ((line = buff.readLine()) != null) {
+						result.add(line);
+					}
+				}
+				return result.toArray(new String[0]);
+			} else {
+				final StringBuffer errorMessage = new StringBuffer();
+				try (BufferedReader buff = new BufferedReader(
+						new InputStreamReader(p.getErrorStream()))) {
+					String line;
+					while ((line = buff.readLine()) != null) {
+						errorMessage.append(line).append('\n');
+					}
+				}
+				Activator.log(new Status(IStatus.ERROR, Activator.PLUGIN_ID,
+						errorMessage.toString()));
+			}
+		} catch (IOException | InterruptedException e) {
+			Activator.log(e);
+		}
+		return new String[0];
+	}
+
