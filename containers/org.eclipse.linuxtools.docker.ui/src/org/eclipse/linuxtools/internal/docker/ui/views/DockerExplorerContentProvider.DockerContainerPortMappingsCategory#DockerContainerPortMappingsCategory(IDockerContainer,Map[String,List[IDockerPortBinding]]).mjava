@@ -7,6 +7,32 @@
 				final IDockerContainer container,
 				final Map<String, List<IDockerPortBinding>> bindings) {
 			this.container = container;
-			this.bindings = bindings;
+			this.portMappings = new ArrayList<>();
+			if (bindings != null) {
+				for (Entry<String, List<IDockerPortBinding>> entry : bindings
+						.entrySet()) {
+					// internal port is in the following form: "8080/tcp"
+					final String[] source = entry.getKey().split("/");
+					final int privatePort = Integer.parseInt(source[0]);
+					final String type = source[1];
+					for (IDockerPortBinding portBinding : entry.getValue()) {
+						portMappings.add(
+								new DockerPortMapping(container, privatePort,
+										Integer.parseInt(
+												portBinding.hostPort()),
+										type, portBinding.hostIp()));
+					}
+				}
+			}
+			Collections.sort(portMappings,
+					new Comparator<IDockerPortMapping>() {
+
+						@Override
+						public int compare(final IDockerPortMapping portMapping,
+								final IDockerPortMapping otherPortMapping) {
+							return portMapping.getPrivatePort()
+									- otherPortMapping.getPrivatePort();
+						}
+					});
 		}
 

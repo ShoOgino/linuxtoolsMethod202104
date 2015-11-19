@@ -1,0 +1,33 @@
+	/**
+	 * Prepare command for launching system explorer to show a path
+	 *
+	 * @param path
+	 *            the path to show
+	 * @return the command that shows the path
+	 * @see ShowInSystemExplorerHandler#getDefaultCommand()
+	 */
+	private String getShowInSystemExplorerCommand(final File path) {
+		String command = ShowInSystemExplorerHandler.getDefaultCommand();
+		if ("".equals(command)) {
+			Activator.logErrorMessage(CommandMessages.getString(
+					"command.showIn.systemExplorer.failure.command_unavailable"));
+			return null;
+		}
+		try {
+			command = Util.replaceAll(command, VARIABLE_RESOURCE,
+					quotePath(path.getCanonicalPath()));
+			command = Util.replaceAll(command, VARIABLE_RESOURCE_URI,
+					path.getCanonicalFile().toURI().toString());
+			File parent = path.getParentFile();
+			if (parent != null) {
+				command = Util.replaceAll(command, VARIABLE_FOLDER,
+						quotePath(parent.getCanonicalPath()));
+			}
+			return command;
+		} catch (IOException e) {
+			Activator.logErrorMessage(CommandMessages
+					.getString("command.showIn.systemExplorer.failure"), e);
+			return null;
+		}
+	}
+

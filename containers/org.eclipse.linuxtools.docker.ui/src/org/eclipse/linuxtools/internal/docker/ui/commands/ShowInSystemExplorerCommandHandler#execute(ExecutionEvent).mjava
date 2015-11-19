@@ -1,0 +1,46 @@
+	@Override
+	public Object execute(final ExecutionEvent event) {
+		final IWorkbenchPart activePart = HandlerUtil.getActivePart(event);
+		final List<DockerContainerVolume> volumes = CommandUtils
+				.getSelectedVolumes(activePart);
+		if (volumes == null || volumes.isEmpty()) {
+			return null;
+		}
+		final DockerContainerVolume selectedVolume = volumes.get(0);
+		final File hostFile = new File(selectedVolume.getHostPath());
+		final String launchCmd = getShowInSystemExplorerCommand(hostFile);
+
+		if (launchCmd == null) {
+			return null;
+		}
+		final Job job = new Job(
+				CommandMessages.getString("command.showIn.systemExplorer")) {
+			// $NON-NLS-1$
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+
+				try {
+					final Process p = getLaunchProcess(launchCmd, hostFile);
+					final int retCode = p.waitFor();
+					if (retCode != 0 && !Util.isWindows()) {
+						Activator.logErrorMessage(
+								CommandMessages.getFormattedString(
+										"command.showIn.systemExplorer.failure.command.execute", //$NON-NLS-1$
+										launchCmd, Integer.toString(retCode)));
+					}
+				} catch (IOException | InterruptedException e) {
+					Activator
+							.logErrorMessage(CommandMessages.getFormattedString(
+									"command.showIn.systemExplorer.failure", //$NON-NLS-1$
+									launchCmd), e);
+				} finally {
+					monitor.done();
+				}
+				return Status.OK_STATUS;
+			}
+		};
+		job.setUser(true);
+		job.schedule();
+		return null;
+	}
+

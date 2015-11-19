@@ -1,0 +1,21 @@
+	@Test
+	public void shouldRetrieveConnectionFromSelectedContainerVolumesCategory() throws InterruptedException {
+		// given
+		final DockerClient client = MockDockerClientFactory.noImages()
+				.container(MockDockerContainerFactory.name("foo_bar").build(),
+						MockDockerContainerInfoFactory.volume("/path/to/host:/path/to/container:Z,ro").build())
+				.build();
+		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client).get();
+		configureConnectionManager(dockerConnection);
+		SWTUtils.asyncExec(() -> dockerExplorerView.getCommonViewer().expandAll());
+		final SWTBotTreeItem containersTreeItem = SWTUtils.getTreeItem(dockerExplorerViewBot, "Test",
+				"Containers");
+		final SWTBotTreeItem containerTreeItem = SWTUtils.getTreeItem(containersTreeItem, "foo_bar");
+		SWTUtils.asyncExec(() -> containerTreeItem.expand());
+		SWTUtils.asyncExec(() -> SWTUtils.getTreeItem(containerTreeItem, "Volumes").expand());
+		// when selecting the port
+		SWTUtils.getTreeItem(containerTreeItem, "Volumes").select();
+		// then current connection should be found
+		Assertions.assertThat(CommandUtils.getCurrentConnection(dockerExplorerView)).isEqualTo(dockerConnection);
+	}
+

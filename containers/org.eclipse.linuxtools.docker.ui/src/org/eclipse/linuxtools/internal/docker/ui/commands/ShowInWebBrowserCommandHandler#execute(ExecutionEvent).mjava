@@ -1,0 +1,46 @@
+	@Override
+	public Object execute(final ExecutionEvent event) {
+		final IWorkbenchPart activePart = HandlerUtil.getActivePart(event);
+		final List<IDockerPortMapping> portMappings = getSelectedPortMappings(
+				activePart);
+		if (portMappings == null || portMappings.isEmpty()) {
+			return null;
+		}
+		final Job job = new Job(
+				CommandMessages.getString("command.showIn.webBrowser")) { //$NON-NLS-1$
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				try {
+					final IDockerConnection currentConnection = getCurrentConnection(
+							activePart);
+					final IDockerPortMapping selectedPort = portMappings
+							.get(0);
+					final URI connectionURI = new URI(
+							currentConnection.getUri());
+					if ("tcp".equalsIgnoreCase(connectionURI.getScheme()) //$NON-NLS-1$
+							|| "unix" //$NON-NLS-1$
+									.equalsIgnoreCase(connectionURI.getScheme())
+							|| "http" //$NON-NLS-1$
+									.equalsIgnoreCase(connectionURI.getScheme())
+							|| "https".equalsIgnoreCase( //$NON-NLS-1$
+									connectionURI.getScheme())) {
+						final String host = connectionURI.getHost();
+						final URL location = new URL("http", host, //$NON-NLS-1$
+								selectedPort.getPublicPort(), "/");
+						openLocationInWebBrowser(location);
+					}
+				} catch (URISyntaxException | MalformedURLException e) {
+					Activator.logErrorMessage(
+							CommandMessages.getString(
+									"command.showIn.webBrowser.failure"), //$NON-NLS-1$
+							e);
+				}
+				monitor.done();
+				return Status.OK_STATUS;
+			}
+		};
+		job.setUser(true);
+		job.schedule();
+		return null;
+	}
+
