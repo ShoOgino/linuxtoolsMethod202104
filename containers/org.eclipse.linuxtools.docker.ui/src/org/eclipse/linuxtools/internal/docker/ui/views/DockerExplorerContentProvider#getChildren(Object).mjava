@@ -20,6 +20,34 @@
 			}
 			loadImages(imagesCategory);
 			return new Object[] { new LoadingStub(imagesCategory) };
+		} else if (parentElement instanceof IDockerContainer) {
+			final IDockerContainer container = (IDockerContainer) parentElement;
+			if (container.isInfoLoaded()) {
+				final IDockerContainerInfo info = container.info();
+				final IDockerNetworkSettings networkSettings = info
+						.networkSettings();
+				final IDockerHostConfig hostConfig = info.hostConfig();
+				return new Object[] {
+						new DockerContainerPortMappingsCategory(container,
+								networkSettings.ports()),
+						new DockerContainerVolumesCategory(container,
+								hostConfig.binds()),
+						new DockerContainerLinksCategory(container,
+								hostConfig.links()) };
+			}
+			loadContainerInfo(container);
+			return new Object[] { new LoadingStub(container) };
+		} else if (parentElement instanceof DockerContainerLinksCategory) {
+			final DockerContainerLinksCategory linksCategory = (DockerContainerLinksCategory) parentElement;
+			return linksCategory.getLinks().toArray();
+		} else
+			if (parentElement instanceof DockerContainerPortMappingsCategory) {
+			final DockerContainerPortMappingsCategory portMappingsCategory = (DockerContainerPortMappingsCategory) parentElement;
+			return portMappingsCategory.getPortMappings().toArray();
+
+		} else if (parentElement instanceof DockerContainerVolumesCategory) {
+			final DockerContainerVolumesCategory volumesCategory = (DockerContainerVolumesCategory) parentElement;
+			return volumesCategory.getVolumes().toArray();
 		}
 		return EMPTY;
 	}
