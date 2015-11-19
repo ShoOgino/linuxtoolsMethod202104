@@ -1,0 +1,30 @@
+	@Override
+	public void initializeFrom(ILaunchConfiguration configuration) {
+		try {
+			boolean enableLimits = configuration.getAttribute(
+					IRunDockerImageLaunchConfigurationConstants.ENABLE_LIMITS,
+					false);
+			model.setEnableResourceLimitations(enableLimits);
+
+			int cpuShareWeight = configuration.getAttribute(
+					IRunDockerImageLaunchConfigurationConstants.CPU_PRIORITY,
+					1024);
+			model.setCpuShareWeight(cpuShareWeight);
+
+			int maxMemory = this.model.getTotalMemory();
+			int memoryLimit = Math.min(512, maxMemory);
+			memoryLimit = configuration.getAttribute(
+					IRunDockerImageLaunchConfigurationConstants.MEMORY_LIMIT,
+					memoryLimit);
+			model.setMemoryLimit(memoryLimit);
+			toggleResourceLimitationControls(getContainer());
+		} catch (CoreException e) {
+			Activator.logErrorMessage(
+					LaunchMessages.getString(
+							"RunDockerImageLaunchConfiguration.load.failure"), //$NON-NLS-1$
+					e);
+		}
+		model.addPropertyChangeListener(
+				new LaunchConfigurationChangeListener());
+	}
+

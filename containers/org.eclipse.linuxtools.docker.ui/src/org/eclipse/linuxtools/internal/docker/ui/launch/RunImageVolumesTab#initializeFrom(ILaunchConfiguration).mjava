@@ -1,0 +1,31 @@
+	@Override
+	public void initializeFrom(ILaunchConfiguration configuration) {
+		final WritableList volumes = new WritableList();
+		try {
+			final List<String> volumesList = configuration.getAttribute(
+					IRunDockerImageLaunchConfigurationConstants.DATA_VOLUME,
+					new ArrayList<String>());
+			final Set<DataVolumeModel> selectedVolumes = new HashSet<>();
+			for (String volume : volumesList) {
+				DataVolumeModel volumeModel = DataVolumeModel
+						.createDataVolumeModel(volume);
+				volumes.add(volumeModel);
+				if (volumeModel.getSelected()) {
+					selectedVolumes.add(volumeModel);
+				}
+			}
+			model.setDataVolumes(volumes);
+			model.setSelectedDataVolumes(selectedVolumes);
+
+		} catch (CoreException e) {
+			Activator.logErrorMessage(
+					LaunchMessages.getString(
+							"RunDockerImageLaunchConfiguration.load.failure"), //$NON-NLS-1$
+					e);
+		}
+		// update the underlying launch config working copy on model
+		// changes.
+		model.addPropertyChangeListener(
+				new LaunchConfigurationChangeListener());
+	}
+

@@ -1,0 +1,37 @@
+	@Override
+	public void initializeFrom(ILaunchConfiguration configuration) {
+		try {
+			// recycle the model
+			model.removeExposedPorts();
+			final boolean publishAllPorts = configuration.getAttribute(
+					IRunDockerImageLaunchConfigurationConstants.PUBLISH_ALL_PORTS,
+					true);
+			model.setPublishAllPorts(publishAllPorts);
+			final List<String> publishedPorts = configuration.getAttribute(
+					IRunDockerImageLaunchConfigurationConstants.PUBLISHED_PORTS,
+					new ArrayList<String>());
+			final Set<ExposedPortModel> selectedPorts = new HashSet<>();
+			for (String port : publishedPorts) {
+				final ImageRunSelectionModel.ExposedPortModel exposedPort = ImageRunSelectionModel.ExposedPortModel
+						.createPortModel(port);
+				model.addExposedPort(exposedPort);
+				if (exposedPort.getSelected()) {
+					selectedPorts.add(exposedPort);
+				}
+			}
+			// select ports
+			model.setSelectedPorts(selectedPorts);
+
+			// update the underlying launch config working copy on model
+			// changes.
+			model.addPropertyChangeListener(
+					new LaunchConfigurationChangeListener());
+		} catch (CoreException e) {
+			Activator.logErrorMessage(
+					LaunchMessages.getString(
+							"RunDockerImageLaunchConfiguration.load.failure"), //$NON-NLS-1$
+					e);
+		}
+
+	}
+

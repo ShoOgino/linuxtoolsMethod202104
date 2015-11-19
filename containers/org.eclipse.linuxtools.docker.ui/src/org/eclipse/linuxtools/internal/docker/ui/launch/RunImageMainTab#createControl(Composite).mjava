@@ -1,0 +1,35 @@
+	@Override
+	public void createControl(Composite parent) {
+		final Composite container = new Composite(parent, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).span(1, 1)
+				.grab(true, false).applyTo(container);
+		GridLayoutFactory.fillDefaults().numColumns(COLUMNS).margins(6, 6)
+				.applyTo(container);
+		if (model == null) {
+			setErrorMessage(LaunchMessages.getString("NoConnectionError.msg"));
+			return;
+		} else {
+			setErrorMessage(null);
+			setDefaultValues();
+			createImageSettingsSection(container);
+			createSectionSeparator(container, true);
+			createRunOptionsSection(container);
+			final IObservableValue connectionSelectionObservable = BeanProperties
+					.value(ImageRunSelectionModel.class,
+							ImageRunSelectionModel.SELECTED_CONNECTION_NAME)
+					.observe(model);
+			connectionSelectionObservable
+					.addValueChangeListener(onConnectionSelectionChange());
+			final IObservableValue imageSelectionObservable = BeanProperties
+					.value(ImageRunSelectionModel.class,
+							ImageRunSelectionModel.SELECTED_IMAGE_NAME)
+					.observe(model);
+			imageSelectionObservable
+					.addValueChangeListener(onImageSelectionChange());
+			final ImageSelectionValidator imageSelectionValidator = new ImageSelectionValidator(
+					imageSelectionObservable);
+			dbc.addValidationStatusProvider(imageSelectionValidator);
+		}
+		setControl(container);
+	}
+

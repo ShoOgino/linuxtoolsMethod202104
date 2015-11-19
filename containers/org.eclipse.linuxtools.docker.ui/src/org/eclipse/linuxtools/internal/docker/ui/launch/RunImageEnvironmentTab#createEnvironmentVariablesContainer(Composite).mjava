@@ -1,0 +1,59 @@
+	private void createEnvironmentVariablesContainer(
+			final Composite container) {
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(false, false).span(3, 1)
+				.applyTo(new Label(container, SWT.NONE));
+		final Label envVarLabel = new Label(container, SWT.NONE);
+		envVarLabel.setText(WizardMessages
+				.getString("ImageRunResourceVolVarPage.envVarLabel")); //$NON-NLS-1$
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(true, false).span(COLUMNS, 1).applyTo(envVarLabel);
+		final TableViewer environmentVariablesTableViewer = createEnvironmentVariablesTable(
+				container);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(true, false).hint(200, 100)
+				.applyTo(environmentVariablesTableViewer.getTable());
+		// buttons
+		final Composite buttonsContainers = new Composite(container, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(false, false).applyTo(buttonsContainers);
+		GridLayoutFactory.fillDefaults().numColumns(1).margins(0, 0)
+				.spacing(SWT.DEFAULT, 0).applyTo(buttonsContainers);
+
+		final Button addButton = new Button(buttonsContainers, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(true, false).applyTo(addButton);
+		addButton.setText(WizardMessages
+				.getString("ImageRunResourceVolVarPage.addButton")); //$NON-NLS-1$
+		addButton.setEnabled(true);
+		addButton.addSelectionListener(
+				onAddEnvironmentVariable(environmentVariablesTableViewer));
+		final Button editButton = new Button(buttonsContainers, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(true, false).applyTo(editButton);
+		editButton.setText(WizardMessages
+				.getString("ImageRunResourceVolVarPage.editButton")); //$NON-NLS-1$
+		editButton.setEnabled(true);
+		editButton.addSelectionListener(
+				onEditEnvironmentVariable(environmentVariablesTableViewer));
+		editButton.setEnabled(false);
+		final Button removeButton = new Button(buttonsContainers, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(true, false).applyTo(removeButton);
+		removeButton.setText(WizardMessages
+				.getString("ImageRunResourceVolVarPage.removeButton")); //$NON-NLS-1$
+		removeButton.addSelectionListener(
+				onRemoveEnvironmentVariables(environmentVariablesTableViewer));
+		removeButton.setEnabled(false);
+		// update table content when selected image changes
+		ViewerSupport.bind(environmentVariablesTableViewer,
+				model.getEnvironmentVariables(),
+				BeanProperties.values(EnvironmentVariableModel.class,
+						new String[] { EnvironmentVariableModel.NAME,
+								EnvironmentVariableModel.VALUE }));
+
+		// disable the edit and removeButton if the table is empty
+		environmentVariablesTableViewer.addSelectionChangedListener(
+				onSelectionChanged(editButton, removeButton));
+	}
+

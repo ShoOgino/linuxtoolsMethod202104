@@ -1,0 +1,83 @@
+	private void createVolumeSettingsContainer(final Composite container) {
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(false, false).span(3, 1)
+				.applyTo(new Label(container, SWT.NONE));
+		final Label volumesLabel = new Label(container, SWT.NONE);
+		volumesLabel.setText(WizardMessages
+				.getString("ImageRunResourceVolVarPage.dataVolumesLabel")); //$NON-NLS-1$
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+				.grab(true, false).span(COLUMNS, 1).applyTo(volumesLabel);
+		final CheckboxTableViewer dataVolumesTableViewer = createVolumesTable(
+				container);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(true, false).hint(200, 100)
+				.applyTo(dataVolumesTableViewer.getTable());
+		// update table content when selected image changes
+		bind(dataVolumesTableViewer, model.getDataVolumes(),
+				BeanProperties.values(DataVolumeModel.class,
+						new String[] { DataVolumeModel.CONTAINER_PATH,
+								DataVolumeModel.MOUNT,
+								DataVolumeModel.READ_ONLY_VOLUME }));
+		final IObservableSet selectedVolumesObservable = BeanProperties
+				.set(ImageRunResourceVolumesVariablesModel.SELECTED_DATA_VOLUMES)
+				.observe(model);
+		dbc.bindSet(
+				ViewersObservables.observeCheckedElements(
+						dataVolumesTableViewer, DataVolumeModel.class),
+				selectedVolumesObservable);
+		dataVolumesTableViewer.addCheckStateListener(onCheckStateChanged());
+
+		// initializes the checkboxes selection upon loading the model.
+				// remove ?
+				// selectedVolumesObservable.addChangeListener(new
+				// IChangeListener() {
+				//
+				// @Override
+				// public void handleChange(ChangeEvent event) {
+				// final IObservableSet observable = (IObservableSet) event
+				// .getObservable();
+				// for (Iterator<?> iterator = observable.iterator(); iterator
+				// .hasNext();) {
+				// final DataVolumeModel volume = (DataVolumeModel) iterator
+				// .next();
+				// dataVolumesTableViewer.setChecked(volume, true);
+				// }
+				// updateLaunchConfigurationDialog();
+				// }
+				// });
+
+		// buttons
+		final Composite buttonsContainers = new Composite(container, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(false, false).applyTo(buttonsContainers);
+		GridLayoutFactory.fillDefaults().numColumns(1).margins(0, 0)
+				.spacing(SWT.DEFAULT, 0).applyTo(buttonsContainers);
+
+		final Button addButton = new Button(buttonsContainers, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(true, false).applyTo(addButton);
+		addButton.setText(WizardMessages
+				.getString("ImageRunResourceVolVarPage.addButton")); //$NON-NLS-1$
+		addButton.addSelectionListener(onAddDataVolume(dataVolumesTableViewer));
+		final Button editButton = new Button(buttonsContainers, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(true, false).applyTo(editButton);
+		editButton.setText(WizardMessages
+				.getString("ImageRunResourceVolVarPage.editButton")); //$NON-NLS-1$
+		editButton
+				.addSelectionListener(onEditDataVolume(dataVolumesTableViewer));
+		editButton.setEnabled(false);
+		final Button removeButton = new Button(buttonsContainers, SWT.NONE);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.TOP)
+				.grab(true, false).applyTo(removeButton);
+		removeButton.setText(WizardMessages
+				.getString("ImageRunResourceVolVarPage.removeButton")); //$NON-NLS-1$
+		removeButton.addSelectionListener(
+				onRemoveDataVolumes(dataVolumesTableViewer));
+		removeButton.setEnabled(false);
+		// disable the edit and removeButton if the table is empty
+		dataVolumesTableViewer.addSelectionChangedListener(
+				onSelectionChanged(editButton, removeButton));
+
+	}
+

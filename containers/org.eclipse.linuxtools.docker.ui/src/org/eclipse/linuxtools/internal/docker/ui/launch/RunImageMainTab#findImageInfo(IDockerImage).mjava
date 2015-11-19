@@ -1,0 +1,32 @@
+	private void findImageInfo(final IDockerImage selectedImage) {
+		try {
+			final FindImageInfoRunnable findImageInfoRunnable = new FindImageInfoRunnable(
+					selectedImage);
+			ProgressMonitorDialog dialog = new ProgressMonitorDialog(
+					this.getShell());
+			dialog.run(true, true, findImageInfoRunnable);
+			final IDockerImageInfo selectedImageInfo = findImageInfoRunnable
+					.getResult();
+			final Set<String> exposedPortInfos = selectedImageInfo.config()
+					.exposedPorts();
+			final WritableList availablePorts = new WritableList();
+			if (exposedPortInfos != null) {
+				for (String exposedPortInfo : exposedPortInfos) {
+					final String privatePort = exposedPortInfo.substring(0,
+							exposedPortInfo.indexOf('/'));
+					final String type = exposedPortInfo
+							.substring(exposedPortInfo.indexOf('/')); // $NON-NLS-1$
+					final ExposedPortModel exposedPort = new ExposedPortModel(
+							privatePort, type, "", privatePort);
+					availablePorts.add(exposedPort); // $NON-NLS-1$
+				}
+			}
+			model.setExposedPorts(availablePorts);
+			model.setCommand(selectedImageInfo.config().cmd());
+			model.setEntrypoint(selectedImageInfo.config().entrypoint());
+
+		} catch (InvocationTargetException | InterruptedException e) {
+			Activator.log(e);
+		}
+	}
+
