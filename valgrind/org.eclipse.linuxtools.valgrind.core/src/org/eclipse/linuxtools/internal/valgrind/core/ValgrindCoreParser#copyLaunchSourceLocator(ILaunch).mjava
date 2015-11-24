@@ -1,0 +1,29 @@
+    public static ISourceLocator copyLaunchSourceLocator(ILaunch launch) {
+        if (launch == null)
+            return null;
+        ISourceLocator sourceLocator = launch.getSourceLocator();
+        ILaunchConfiguration launchConfiguration = launch.getLaunchConfiguration();
+        // sourceLocator from launch object will be disposed when launch is
+        // gone,
+        // since we want to use it later we need to create a copy of it
+        if (sourceLocator instanceof ISourceLookupDirector) {
+            try {
+                ISourceLookupDirector director = (ISourceLookupDirector) sourceLocator;
+
+                String id = director.getId();
+                String memento = director.getMemento();
+                IPersistableSourceLocator sourceLocatorCopy = DebugPlugin.getDefault().getLaunchManager()
+                        .newSourceLocator(id);
+                if (sourceLocatorCopy instanceof IPersistableSourceLocator2) {
+                    ((IPersistableSourceLocator2) sourceLocatorCopy).initializeFromMemento(memento,
+                            launchConfiguration);
+                } else
+                    sourceLocatorCopy.initializeFromMemento(memento);
+                return sourceLocatorCopy;
+            } catch (CoreException e) {
+                // ignore
+            }
+        }
+        return sourceLocator;
+    }
+
