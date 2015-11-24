@@ -1,0 +1,21 @@
+	/**
+	 * Configures the {@link DockerConnectionManager} with the given array of
+	 * {@link IDockerConnection} (can be mocked) and refreshes the associated
+	 * {@link DockerExplorerView}.
+	 * 
+	 * @param dockerExplorerView
+	 * @param connections
+	 * @throws InterruptedException
+	 */
+	public static void configureConnectionManager(final DockerExplorerView dockerExplorerView,
+			final IDockerConnection... connections) throws InterruptedException {
+		DockerConnectionManager.getInstance()
+				.setConnectionStorageManager(MockDockerConnectionStorageManagerFactory.providing(connections));
+		SWTUtils.syncExec(() -> {
+			DockerConnectionManager.getInstance().reloadConnections();
+			dockerExplorerView.getCommonViewer().refresh();
+			dockerExplorerView.showConnectionsOrExplanations();
+		});
+		Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+	}
+

@@ -1,9 +1,9 @@
 	@Test
 	public void shouldRefreshContainersAndShowChanges() throws InterruptedException {
 		// given
-		final DockerClient client = MockDockerClientFactory.noImages().noContainers();
+		final DockerClient client = MockDockerClientFactory.build();
 		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client).get();
-		configureConnectionManager(dockerConnection);
+		DockerConnectionManagerUtils.configureConnectionManager(dockerExplorerView, dockerConnection);
 		SWTUtils.asyncExec(() -> dockerExplorerView.getCommonViewer().expandAll());
 		Conditions.waitForJobs(DockerExplorerView.class, "Docker Explorer View jobs");
 		final SWTBotTreeItem[] allItems = dockerExplorerViewBot.bot().tree().getAllItems();
@@ -16,7 +16,7 @@
 		Assertions.assertThat(containersTreeItem.getItems().length).isEqualTo(0);
 		
 		// update the client 
-		final DockerClient updatedClient = MockDockerClientFactory.noImages().container(MockDockerContainerFactory.name("foo_bar").build()).build();
+		final DockerClient updatedClient = MockDockerClientFactory.container(MockDockerContainerFactory.name("foo_bar").build()).build();
 		dockerConnection.setClient(updatedClient);
 		dockerExplorerViewTreeBot = dockerExplorerViewBot.bot().tree();
 		dockerExplorerViewTreeBot.select(containersTreeItem);

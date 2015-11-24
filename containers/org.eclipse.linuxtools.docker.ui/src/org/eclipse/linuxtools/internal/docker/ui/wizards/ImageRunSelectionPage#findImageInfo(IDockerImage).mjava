@@ -5,24 +5,24 @@
 			getContainer().run(true, true, findImageInfoRunnable);
 			final IDockerImageInfo selectedImageInfo = findImageInfoRunnable
 					.getResult();
-			final Set<String> exposedPortInfos = selectedImageInfo.config()
-					.exposedPorts();
-			final WritableList availablePorts = new WritableList();
-			if (exposedPortInfos != null) {
-				for (String exposedPortInfo : exposedPortInfos) {
-					final String privatePort = exposedPortInfo.substring(0,
-							exposedPortInfo.indexOf('/'));
-					final String type = exposedPortInfo
-							.substring(exposedPortInfo.indexOf('/')); // $NON-NLS-1$
-					final ExposedPortModel exposedPort = new ExposedPortModel(
-							privatePort, type, "", privatePort);
-					availablePorts.add(exposedPort); // $NON-NLS-1$
+			if (selectedImageInfo.config() != null) {
+				model.setCommand(selectedImageInfo.config().cmd());
+				model.setEntrypoint(selectedImageInfo.config().entrypoint());
+				if (selectedImageInfo.config().exposedPorts() != null) {
+					final WritableList availablePorts = new WritableList();
+					for (String exposedPortInfo : selectedImageInfo.config()
+							.exposedPorts()) {
+						final String privatePort = exposedPortInfo.substring(0,
+								exposedPortInfo.indexOf('/'));
+						final String type = exposedPortInfo
+								.substring(exposedPortInfo.indexOf('/')); // $NON-NLS-1$
+						final ExposedPortModel exposedPort = new ExposedPortModel(
+								privatePort, type, "", privatePort);
+						availablePorts.add(exposedPort); // $NON-NLS-1$
+					}
+					model.setExposedPorts(availablePorts);
 				}
 			}
-			model.setExposedPorts(availablePorts);
-			model.setCommand(selectedImageInfo.config().cmd());
-			model.setEntrypoint(selectedImageInfo.config().entrypoint());
-
 		} catch (InvocationTargetException | InterruptedException e) {
 			Activator.log(e);
 		}

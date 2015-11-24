@@ -1,9 +1,9 @@
 	@Test
 	public void shouldRefreshImagesAndShowChanges() throws InterruptedException {
 		// given
-		final DockerClient client = MockDockerClientFactory.noImages().noContainers();
+		final DockerClient client = MockDockerClientFactory.build();
 		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client).get();
-		configureConnectionManager(dockerConnection);
+		DockerConnectionManagerUtils.configureConnectionManager(dockerExplorerView, dockerConnection);
 		SWTUtils.asyncExec(() -> dockerExplorerView.getCommonViewer().expandAll());
 		final SWTBotTreeItem[] allItems = dockerExplorerViewBot.bot().tree().getAllItems();
 		Assertions.assertThat(allItems).hasSize(1);
@@ -14,7 +14,8 @@
 		Assertions.assertThat(imagesTreeItem.getItems().length).isEqualTo(0);
 		
 		// update the client 
-		final DockerClient updatedClient = MockDockerClientFactory.images(MockDockerImageFactory.name("foo/bar").build()).noContainers();
+		final DockerClient updatedClient = MockDockerClientFactory.image(MockDockerImageFactory.name("foo/bar").build())
+				.build();
 		dockerConnection.setClient(updatedClient);
 		// when locating the 'Images' node and hit refresh
 		dockerExplorerViewTreeBot = dockerExplorerViewBot.bot().tree();

@@ -1,0 +1,15 @@
+	@Override
+	protected void after() {
+		final SWTWorkbenchBot bot = new SWTWorkbenchBot();
+		final SWTBotView dockerExplorerViewBot = bot.viewById("org.eclipse.linuxtools.docker.ui.dockerExplorerView");
+		final DockerExplorerView dockerExplorerView = (DockerExplorerView) (dockerExplorerViewBot.getViewReference()
+				.getView(true));
+		SWTUtils.syncExec(() -> {
+			Stream.of(DockerConnectionManager.getInstance().getConnections())
+					.forEach(c -> DockerConnectionManager.getInstance().removeConnection(c));
+			dockerExplorerView.getCommonViewer().refresh(true);
+			dockerExplorerView.showConnectionsOrExplanations();
+		});
+		DockerConnectionManager.getInstance().setConnectionSettingsFinder(new DefaultDockerConnectionSettingsFinder());
+	}
+

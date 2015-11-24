@@ -1,7 +1,7 @@
 	@Test
 	public void shouldRemainExpandedAfterRefresh() throws InterruptedException {
 		// given
-		final DockerClient client = MockDockerClientFactory.noImages()
+		final DockerClient client = MockDockerClientFactory
 				.container(MockDockerContainerFactory.name("foo_bar").build(),
 						MockDockerContainerInfoFactory.volume("/path/to/container")
 								.port("8080/tcp", "0.0.0.0", "8080")
@@ -9,7 +9,7 @@
 								.volume("/path/to/host:/path/to/container:Z,ro").build())
 				.build();
 		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client).get();
-		configureConnectionManager(dockerConnection);
+		DockerConnectionManagerUtils.configureConnectionManager(dockerExplorerView, dockerConnection);
 		SWTUtils.asyncExec(() -> dockerExplorerView.getCommonViewer().expandAll());
 		final SWTBotTreeItem containersTreeItem = SWTUtils.getTreeItem(dockerExplorerViewBot, "Test (null)",
 				"Containers");
@@ -25,11 +25,9 @@
 			SWTBotTreeItemAssertions.assertThat(SWTUtils.getTreeItem(containerTreeItem, "Volumes")).isExpanded();
 		});
 		// when refreshing the container
-		SWTUtils.asyncExec(() -> {
-			dockerExplorerViewTreeBot = dockerExplorerViewBot.bot().tree();
-			dockerExplorerViewTreeBot.select(containersTreeItem);
-			dockerExplorerViewTreeBot.contextMenu("Refresh").click();
-		});
+		dockerExplorerViewTreeBot = dockerExplorerViewBot.bot().tree();
+		dockerExplorerViewTreeBot.select(containersTreeItem);
+		dockerExplorerViewTreeBot.contextMenu("Refresh").click();
 		SWTUtils.asyncExec(() -> containersTreeItem.expand());
 		// then all items should remain expanded (after they were reloaded)
 		SWTUtils.syncAssert(() -> {
