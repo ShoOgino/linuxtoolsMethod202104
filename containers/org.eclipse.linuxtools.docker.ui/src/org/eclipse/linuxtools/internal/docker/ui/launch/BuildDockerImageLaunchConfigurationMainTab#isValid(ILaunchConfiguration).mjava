@@ -1,8 +1,24 @@
 	@Override
-	public boolean isValid(ILaunchConfiguration launchConfig) {
+	public boolean isValid(final ILaunchConfiguration launchConfig) {
 		try {
-			if (launchConfig.getAttribute(SOURCE_PATH_LOCATION, "").isEmpty()) {
+			final String sourcePathLocation = launchConfig
+					.getAttribute(SOURCE_PATH_LOCATION, ""); // $NON-NLS-1$
+			final boolean sourcePathWorkspaceRelativeLocation = launchConfig.getAttribute(SOURCE_PATH_WORKSPACE_RELATIVE_LOCATION, false);
+			final IPath sourcePath = BuildDockerImageUtils.getPath(
+					sourcePathLocation, sourcePathWorkspaceRelativeLocation);
+			if (sourcePathLocation.isEmpty() || sourcePath == null) {
+				setErrorMessage(
+						LaunchMessages.getString(BUILD_CONTEXT_PATH_MISSING));
 				return false;
+			} else {
+				setErrorMessage(null);
+			}
+			final String repoName = launchConfig.getAttribute(REPO_NAME, ""); // $NON-NLS-1$
+			if (repoName.isEmpty()) {
+				setWarningMessage(
+LaunchMessages.getString(REPO_NAME_MISSING));
+			} else {
+				setWarningMessage(null);
 			}
 		} catch (CoreException e) {
 			Activator.log(e);

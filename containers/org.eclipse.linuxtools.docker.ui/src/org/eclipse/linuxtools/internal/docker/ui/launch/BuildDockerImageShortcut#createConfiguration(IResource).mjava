@@ -1,0 +1,66 @@
+	/**
+	 * Create a launch configuration based on a Dockerfile resource, and
+	 * optionally save it to the underlying resource.
+	 *
+	 * @param resource
+	 *            a Dockerfile file to build
+	 * @return a launch configuration generated for the Dockerfile build.
+	 */
+	protected ILaunchConfiguration createConfiguration(
+			final IResource resource) {
+		try {
+			final IDockerConnection[] connections = DockerConnectionManager
+					.getInstance().getConnections();
+			if (connections.length == 0) {
+				Display.getDefault().syncExec(new Runnable() {
+
+					@Override
+					public void run() {
+						MessageDialog.openError(
+								Display.getCurrent().getActiveShell(),
+								LaunchMessages.getString(
+										LaunchShortcut_Error_Launching),
+								LaunchMessages.getString(
+										LaunchShortcut_No_Connections));
+					}
+
+				});
+				return null;
+			} else {
+				final ImageBuildDialog dialog = new ImageBuildDialog(
+						getActiveWorkbenchShell());
+				final int result = dialog.open();
+				if (result == IDialogConstants.OK_ID) {
+					final ILaunchConfigurationType configType = LaunchConfigurationUtils
+							.getLaunchConfigType(
+									IBuildDockerImageLaunchConfigurationConstants.CONFIG_TYPE_ID);
+					final ILaunchConfigurationWorkingCopy wc = configType
+							.newInstance(null,
+									DebugPlugin.getDefault().getLaunchManager()
+											.generateLaunchConfigurationName(
+													createLaunchConfigurationName(
+															dialog.getRepoName(),
+															resource))); // $NON-NLS-1$
+					wc.setAttribute(
+							IBuildDockerImageLaunchConfigurationConstants.SOURCE_PATH_LOCATION,
+							resource.getFullPath().removeLastSegments(1)
+									.toString());
+					wc.setAttribute(
+							IBuildDockerImageLaunchConfigurationConstants.SOURCE_PATH_WORKSPACE_RELATIVE_LOCATION,
+							true);
+
+					final IDockerConnection connection = dialog.getConnection();
+					final String repoName = dialog.getRepoName();
+					wc.setAttribute(IDockerImageBuildOptions.DOCKER_CONNECTION,
+							connection.getName());
+					wc.setAttribute(IDockerImageBuildOptions.REPO_NAME,
+							repoName);
+					return wc.doSave();
+				}
+			}
+		} catch (CoreException e) {
+			Activator.log(e);
+		}
+		return null;
+	}
+

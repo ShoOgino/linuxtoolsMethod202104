@@ -1,16 +1,29 @@
 	@Override
-	public void launch(ILaunchConfiguration configuration, String mode,
-			ILaunch launch, IProgressMonitor monitor) throws CoreException {
+	public void launch(final ILaunchConfiguration configuration,
+			final String mode, final ILaunch launch,
+			final IProgressMonitor monitor) throws CoreException {
 		final String sourcePathLocation = configuration
 				.getAttribute(SOURCE_PATH_LOCATION, (String) null);
 		final boolean sourcePathWorkspaceRelativeLocation = configuration
-				.getAttribute(SOURCE_PATH_WORKSPACE_RELATIVE_LOCATION, false);
-		final IPath sourcePath = getPath(sourcePathLocation,
+				.getAttribute(SOURCE_PATH_WORKSPACE_RELATIVE_LOCATION,
+						false);
+		final IPath sourcePath = BuildDockerImageUtils.getPath(
+				sourcePathLocation,
 				sourcePathWorkspaceRelativeLocation);
 		final String connectionName = configuration
 				.getAttribute(DOCKER_CONNECTION, (String) null);
+		final String repoName = configuration.getAttribute(REPO_NAME,
+				(String) null);
 		final DockerConnection connection = (DockerConnection) getDockerConnection(
 				connectionName);
+		final Map<String, Object> buildOptions = new HashMap<>();
+		buildOptions.put(QUIET_BUILD,
+				configuration.getAttribute(QUIET_BUILD, false));
+		buildOptions.put(NO_CACHE, configuration.getAttribute(NO_CACHE, false));
+		buildOptions.put(RM_INTERMEDIATE_CONTAINERS, configuration
+				.getAttribute(RM_INTERMEDIATE_CONTAINERS, true));
+		buildOptions.put(FORCE_RM_INTERMEDIATE_CONTAINERS, configuration
+				.getAttribute(FORCE_RM_INTERMEDIATE_CONTAINERS, false));
 		if (connection == null) {
 			Activator
 					.log(new Status(IStatus.ERROR, Activator.PLUGIN_ID,
@@ -19,9 +32,15 @@
 									connectionName)));
 		}
 		try {
-			final Job buildImageJob = new BuildDockerImageJob(connection,
-					sourcePath);
-			buildImageJob.schedule();
+			if (connection != null && sourcePath != null) {
+				final Job buildImageJob = new BuildDockerImageJob(connection,
+						sourcePath, repoName, buildOptions);
+				buildImageJob.schedule();
+			} else {
+				Activator.log(new Status(IStatus.WARNING, Activator.PLUGIN_ID,
+						LaunchMessages.getString(
+								"BuildDockerImageLaunchConfiguration.error.incomplete"))); //$NON-NLS-1$
+			}
 		} catch (DockerException e) {
 			Activator.log(new Status(IStatus.ERROR, Activator.PLUGIN_ID,
 					e.getMessage(), e));

@@ -3,7 +3,9 @@
 	 * 
 	 * @return
 	 */
-	private SelectionListener onBrowseWorkspace() {
+	private SelectionListener onBrowseWorkspace(final Text pathText,
+			final AtomicBoolean workspaceRelativePath,
+			final Class<?> expectedType) {
 		return new SelectionAdapter() {
 
 			@Override
@@ -14,8 +16,6 @@
 				dialog.setInput(ResourcesPlugin.getWorkspace().getRoot());
 				dialog.setTitle(LaunchMessages
 						.getString(BROWSE_WORKSPACE_DIALOG_TITLE));
-				dialog.setMessage(LaunchMessages
-						.getString(BROWSE_WORKSPACE_DIALOG_MESSAGE));
 				dialog.setComparator(
 						new ResourceComparator(ResourceComparator.NAME));
 				dialog.setAllowMultiple(false);
@@ -23,8 +23,8 @@
 					// only accept a single file as the valid selection
 					@Override
 					public IStatus validate(Object[] selection) {
-						if (selection.length == 1
-								&& selection[0] instanceof IContainer) {
+						if (selection.length == 1 && expectedType
+								.isAssignableFrom(selection[0].getClass())) {
 							return new Status(IStatus.OK, Activator.PLUGIN_ID,
 									null);
 						}
@@ -35,9 +35,8 @@
 				if (dialog.open() == IDialogConstants.OK_ID) {
 					final IResource selection = (IResource) dialog
 							.getFirstResult();
-					sourcePathLocationText
-							.setText(selection.getFullPath().toOSString());
-					sourcePathWorkspaceRelativeLocation = true;
+					pathText.setText(selection.getFullPath().toOSString());
+					workspaceRelativePath.set(true);
 				}
 			}
 		};
