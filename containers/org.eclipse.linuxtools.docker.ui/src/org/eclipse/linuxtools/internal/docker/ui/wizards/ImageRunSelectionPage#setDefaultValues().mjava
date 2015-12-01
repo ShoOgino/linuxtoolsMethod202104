@@ -1,8 +1,49 @@
+	/**
+	 * Sets the default values from the optional given {@link IDockerImage} and
+	 * {@link ILaunchConfiguration} elements
+	 */
 	private void setDefaultValues() {
 		final IDockerImage selectedImage = model.getSelectedImage();
 		if (selectedImage == null) {
 			return;
 		}
-		findImageInfo(selectedImage);
+		final IDockerImageInfo selectedImageInfo = getImageInfo(selectedImage);
+
+		// skip if a previous launch configuration was provided
+		if (this.lastLaunchConfiguration != null) {
+			try {
+				this.model.setContainerName(lastLaunchConfiguration
+						.getAttribute(CONTAINER_NAME, ""));
+				this.model.setCommand(
+						lastLaunchConfiguration.getAttribute(COMMAND, ""));
+				this.model.setEntrypoint(
+						lastLaunchConfiguration.getAttribute(ENTRYPOINT, ""));
+				this.model.setPublishAllPorts(lastLaunchConfiguration
+						.getAttribute(PUBLISH_ALL_PORTS, false));
+				final List<String> exposedPortInfos = lastLaunchConfiguration
+						.getAttribute(PUBLISHED_PORTS,
+								Collections.<String> emptyList());
+				// FIXME: handle the case where ports where added (and selected)
+				// by the user.
+				final List<ExposedPortModel> exposedPorts = ExposedPortModel
+						.fromStrings(selectedImageInfo.config().exposedPorts());
+				model.setExposedPorts(exposedPorts);
+				final List<ExposedPortModel> selectedExposedPorts = ExposedPortModel
+						.fromStrings(exposedPortInfos);
+				this.model
+						.setSelectedPorts(new HashSet<>(selectedExposedPorts));
+
+				// links
+				this.model.setLinks(lastLaunchConfiguration.getAttribute(LINKS,
+						Collections.<String> emptyList()));
+				// other options
+				this.model.setRemoveWhenExits(lastLaunchConfiguration
+						.getAttribute(AUTO_REMOVE, false));
+			} catch (CoreException e) {
+				Activator.log(e);
+			}
+		} else {
+			applyImageInfo(selectedImageInfo);
+		}
 	}
 

@@ -9,27 +9,12 @@
 	 * @see DockerConnection#open(boolean)
 	 */
 	private DockerClient getClientCopy() throws DockerException {
-		if (this.socketPath != null) {
-			return DefaultDockerClient.builder().uri(socketPath).build();
-		} else if (this.tcpHost != null) {
-			if (this.tcpCertPath != null) {
-				try {
-					return DefaultDockerClient
-							.builder()
-							.uri(URI.create(tcpHost))
-							.dockerCertificates(
-									new DockerCertificates(
-											new File(tcpCertPath).toPath()))
-							.build();
-				} catch (DockerCertificateException e) {
-					throw new DockerException(Messages.Retrieve_Docker_Certificates_Failure, e);
-				}
-			} else {
-				return DefaultDockerClient.builder().uri(URI.create(tcpHost))
-						.build();
-			}
+		try {
+			return dockerClientFactory.getClient(this.socketPath, this.tcpHost,
+					this.tcpCertPath);
+		} catch (DockerCertificateException e) {
+			throw new DockerException(
+					NLS.bind(Messages.Open_Connection_Failure, this.name));
 		}
-		throw new DockerException(Messages.Missing_Settings);
-
 	}
 

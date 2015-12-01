@@ -1,0 +1,47 @@
+	private void setDefaultValues() {
+		try {
+			// skip if a previous launch configuration was provided
+			final IDockerImage selectedImage = model.getSelectedImage();
+			if (selectedImage == null) {
+				return;
+			}
+			final IDockerImageInfo selectedImageInfo = findImageInfo(
+					selectedImage);
+			// using a map filled with entries (key==value) from default volumes
+			// that can be overridden by values from last launch config
+			final Map<String, DataVolumeModel> volumes = new HashMap<>();
+			final Set<DataVolumeModel> selectedVolumes = new HashSet<>();
+			if (selectedImageInfo != null
+					&& selectedImageInfo.config() != null) {
+				for (String volume : selectedImageInfo.config().volumes()) {
+					volumes.put(volume, new DataVolumeModel(volume));
+				}
+			}
+			if (lastLaunchConfiguration != null) {
+				// volumes:
+				final List<String> launchConfigVolumes = lastLaunchConfiguration
+						.getAttribute(DATA_VOLUMES,
+								Collections.<String> emptyList());
+				// FIXME: convert host_path back to WinOS32 if necessary
+				for (String containerVolume : launchConfigVolumes) {
+					final DataVolumeModel volume = DataVolumeModel
+							.parseString(containerVolume);
+					if (volume != null) {
+						volumes.put(volume.getContainerPath(), volume);
+						selectedVolumes.add(volume);
+					}
+				}
+				
+				// environment variables
+				model.setEnvironmentVariables(
+						lastLaunchConfiguration.getAttribute(ENV_VARIABLES,
+								Collections.<String> emptyList()));
+			}
+			model.setDataVolumes(volumes.values());
+			model.setSelectedDataVolumes(selectedVolumes);
+		} catch (CoreException | InvocationTargetException
+				| InterruptedException e) {
+			Activator.log(e);
+		}
+	}
+

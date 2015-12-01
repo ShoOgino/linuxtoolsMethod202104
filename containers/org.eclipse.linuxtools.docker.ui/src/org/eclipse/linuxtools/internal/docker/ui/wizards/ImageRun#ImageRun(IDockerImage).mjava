@@ -4,12 +4,22 @@
 	 * @param selectedImage
 	 *            the {@link IDockerImage} to use to fill the wizard pages
 	 * @throws DockerException
+	 * @throws CoreException
 	 */
-	public ImageRun(final IDockerImage selectedImage) throws DockerException {
+	public ImageRun(final IDockerImage selectedImage)
+			throws DockerException, CoreException {
 		setWindowTitle(WizardMessages.getString("ImageRun.title")); //$NON-NLS-1$
 		setNeedsProgressMonitor(true);
-		this.imageRunSelectionPage = new ImageRunSelectionPage(selectedImage);
+		// attempt to find the last "Image Run" launch configuration for this
+		// image
+		final ILaunchConfiguration lastLaunchConfiguration = LaunchConfigurationUtils
+				.getLaunchConfigurationByImageName(
+						LaunchConfigurationUtils.getLaunchConfigType(
+								IRunDockerImageLaunchConfigurationConstants.CONFIG_TYPE_ID),
+						selectedImage.repoTags().get(0));
+		this.imageRunSelectionPage = new ImageRunSelectionPage(selectedImage,
+				lastLaunchConfiguration);
 		this.imageRunResourceVolumesPage = new ImageRunResourceVolumesVariablesPage(
-				selectedImage.getConnection());
+				selectedImage, lastLaunchConfiguration);
 	}
 

@@ -4,20 +4,24 @@
 	 * @param selectedImage
 	 */
 	public void setSelectedImage(final IDockerImage selectedImage) {
-		if (this.selectedImage != selectedImage) {
+		if (this.selectedImage == null
+				|| !this.selectedImage.equals(selectedImage)) {
 			this.selectedImage = selectedImage;
-			final WritableList newDataVolumes = new WritableList();
 			if (selectedImage != null) {
 				this.imageInfo = selectedImage.getConnection()
 						.getImageInfo(selectedImage.id());
 				if (this.imageInfo.config() != null
 						&& this.imageInfo.config().volumes() != null) {
+					final List<DataVolumeModel> volumes = new ArrayList<>();
 					for (String volume : this.imageInfo.config().volumes()) {
-						newDataVolumes.add(new DataVolumeModel(volume));
+						volumes.add(new DataVolumeModel(volume));
 					}
+					setDataVolumes(volumes);
 				}
+			} else {
+				setDataVolumes(Collections.<DataVolumeModel> emptyList());
 			}
-			setDataVolumes(newDataVolumes);
 		}
+
 	}
 

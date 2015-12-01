@@ -1,0 +1,35 @@
+	/**
+	 * Looks-up the {@link ILaunchConfiguration} with the given type and
+	 * <strong>IDockerImage's name</strong>.
+	 * 
+	 * @param type
+	 *            the configuration type
+	 * @param imageName
+	 *            the associated {@link IDockerImage} name
+	 * @return the first matching {@link ILaunchConfiguration} or
+	 *         <code>null</code> if none was found.
+	 * @throws CoreException
+	 */
+	public static ILaunchConfiguration getLaunchConfigurationByImageName(
+			final ILaunchConfigurationType type, final String imageName)
+					throws CoreException {
+		final ILaunchManager manager = DebugPlugin.getDefault()
+				.getLaunchManager();
+		ILaunchConfiguration lastLaunchConfiguration = null;
+		String lastCreationDate = ""; //$NON-NLS-1$
+		for (ILaunchConfiguration launchConfiguration : manager
+				.getLaunchConfigurations(type)) {
+			final String launchConfigImageName = launchConfiguration
+					.getAttribute(IMAGE_NAME, ""); //$NON-NLS-1$
+			final String launchConfigCreationDate = launchConfiguration
+					.getAttribute(CREATION_DATE, ""); //$NON-NLS-1$
+			if (launchConfigImageName.equals(imageName)
+					&& launchConfigCreationDate
+							.compareTo(lastCreationDate) > 0) {
+				lastCreationDate = launchConfigCreationDate;
+				lastLaunchConfiguration = launchConfiguration;
+			}
+		}
+		return lastLaunchConfiguration;
+	}
+
