@@ -1,0 +1,42 @@
+    public static void openAnnotatedSourceFile(IProject project, IFile binary, SourceFile sourceFile, IPath realLocation,
+            int lineNumber) {
+        IWorkbenchPage page = CUIPlugin.getActivePage();
+        if (page != null) {
+            IFileStore fs = getFileStore(project, realLocation);
+            if (fs == null && !realLocation.isAbsolute() && binary != null) {
+                IPath p = binary.getProjectRelativePath().removeLastSegments(1);
+                fs = getFileStore(project, p.append(realLocation));
+            }
+            if (fs == null) {
+                try {
+                    page.openEditor(new STAnnotatedSourceNotFoundEditorInput(project, sourceFile, realLocation,
+                            lineNumber), STAnnotatedSourceNotFoundEditor.ID, true);
+                } catch (PartInitException e) {
+                    Status s = new Status(IStatus.ERROR, Activator.PLUGIN_ID, IStatus.ERROR,
+                            Messages.OpenSourceFileAction_open_error, e);
+                    Activator.getDefault().getLog().log(s);
+                }
+            } else {
+                try {
+                    IEditorPart editor = IDE.openEditorOnFileStore(page, fs);
+                    if (lineNumber > 0 && editor instanceof ITextEditor) {
+                        IDocumentProvider provider = ((ITextEditor) editor).getDocumentProvider();
+                        IDocument document = provider.getDocument(editor.getEditorInput());
+                        try {
+                            int start = document.getLineOffset(lineNumber - 1);
+                            ((ITextEditor) editor).selectAndReveal(start, 0);
+                        } catch (BadLocationException e) {
+                            // ignore
+                        }
+                        IWorkbenchPage p = editor.getSite().getPage();
+                        p.activate(editor);
+                    }
+                } catch (PartInitException e) {
+                    Status s = new Status(IStatus.ERROR, Activator.PLUGIN_ID, IStatus.ERROR,
+                            Messages.OpenSourceFileAction_open_error, e);
+                    Activator.getDefault().getLog().log(s);
+                }
+            }
+        }
+    }
+

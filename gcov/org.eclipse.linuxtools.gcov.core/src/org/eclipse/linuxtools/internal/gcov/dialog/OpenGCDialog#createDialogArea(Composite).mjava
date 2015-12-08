@@ -1,0 +1,86 @@
+    @Override
+    protected Control createDialogArea(Composite parent) {
+        this.getShell().setText(Messages.OpenGCDialog_open_results);
+        Composite composite = (Composite) super.createDialogArea(parent);
+
+        /* first line */
+        Group c = new Group(composite, SWT.NONE);
+        c.setText(Messages.OpenGCDialog_bin_group_header);
+        c.setToolTipText(Messages.OpenGCDialog_bin_group_tooltip);
+        GridLayout layout = new GridLayout(2, false);
+        c.setLayout(layout);
+        GridData data = new GridData(GridData.FILL_BOTH);
+        c.setLayoutData(data);
+
+        Label binLabel = new Label(c, SWT.NONE);
+        binLabel.setText(Messages.OpenGCDialog_bin_group_label);
+        data = new GridData();
+        data.horizontalSpan = 2;
+        binLabel.setLayoutData(data);
+
+        binText = new Text(c, SWT.BORDER);
+        binText.setText(this.defaultValue);
+        data = new GridData(GridData.FILL_HORIZONTAL);
+        data.widthHint = IDialogConstants.ENTRY_FIELD_WIDTH;
+        binText.setLayoutData(data);
+        binText.addModifyListener(new BinaryModifyListener());
+
+        Composite cbBin = new Composite(c, SWT.NONE);
+        data = new GridData(GridData.HORIZONTAL_ALIGN_END);
+        cbBin.setLayoutData(data);
+        cbBin.setLayout(new GridLayout(2, true));
+        Button binBrowseWorkspaceButton = new Button(cbBin, SWT.PUSH);
+        binBrowseWorkspaceButton.setText(Messages.OpenGCDialog_bin_browser_button_text);
+        binBrowseWorkspaceButton.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent sev) {
+                handleBrowseWorkspace(Messages.OpenGCDialog_bin_browser_handler_text, binText);
+            }
+        });
+        Button binBrowseFileSystemButton = new Button(cbBin, SWT.PUSH);
+        binBrowseFileSystemButton.setText(Messages.OpenGCDialog_bin_browser_fs_button_text);
+        binBrowseFileSystemButton.addSelectionListener(new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent sev) {
+                handleBrowse(Messages.OpenGCDialog_bin_browser_handler_text, binText);
+            }
+        });
+
+        Group covMode = new Group(composite, SWT.NONE);
+        covMode.setText(Messages.OpenGCDialog_coverage_mode_header);
+        covMode.setToolTipText(Messages.OpenGCDialog_coverage_mode_tooltip);
+        GridData covModeData = new GridData(GridData.FILL_BOTH);
+        covMode.setLayoutData(covModeData);
+        covMode.setLayout(new GridLayout());
+        Button openThisFileOnlyButton = new Button(covMode, SWT.RADIO);
+        openThisFileOnlyButton.setLayoutData(new GridData());
+        final Button openCoverageSummaryButton = new Button(covMode, SWT.RADIO);
+        openCoverageSummaryButton.setLayoutData(new GridData());
+        String cFile = gcFile.removeFileExtension().lastSegment() + ".c"; //$NON-NLS-1$
+
+        openThisFileOnlyButton.setText(NLS.bind(Messages.OpenGCDialog_open_file_button_text, cFile));
+        openCoverageSummaryButton.setText(Messages.OpenGCDialog_summ_button_text);
+
+        openCoverageSummaryButton.setSelection(true);
+
+        SelectionAdapter sa = new SelectionAdapter() {
+            @Override
+            public void widgetSelected(SelectionEvent sev) {
+                openCoverageSummary = openCoverageSummaryButton.getSelection();
+            }
+        };
+        openCoverageSummaryButton.addSelectionListener(sa);
+        openThisFileOnlyButton.addSelectionListener(sa);
+
+        /* 2sd line */
+        errorLabel = new Label(composite, SWT.NONE);
+        data = new GridData(GridData.FILL_HORIZONTAL);
+        data.horizontalSpan = 3;
+        errorLabel.setLayoutData(data);
+        errorLabel.setForeground(getShell().getDisplay().getSystemColor(SWT.COLOR_RED));
+
+        c.layout();
+
+        return composite;
+    }
+

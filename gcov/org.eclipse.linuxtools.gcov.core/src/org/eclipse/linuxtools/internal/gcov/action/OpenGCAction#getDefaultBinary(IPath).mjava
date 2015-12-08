@@ -1,0 +1,31 @@
+    private String getDefaultBinary(IPath file) {
+        IFile c = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(file);
+        if (c != null) {
+            IProject project = c.getProject();
+            if (project != null && project.exists()) {
+                IContainer folder = c.getParent();
+                IFile infoFile = folder.getFile(new Path("AnalysisInfo.txt")); //$NON-NLS-1$
+                try {
+                    String defaultBinaryFromUserPref = getDefaultBinaryFromUserPref(project, infoFile);
+                    if (defaultBinaryFromUserPref != null) {
+                        return defaultBinaryFromUserPref;
+                    }
+                } catch (IOException|CoreException ex) {
+                    // do nothing here.
+                }
+                ICProject cproject = CoreModel.getDefault().create(project);
+                if (cproject != null) {
+                    try {
+                        IBinary[] b = cproject.getBinaryContainer().getBinaries();
+                        if (b != null && b.length > 0 && b[0] != null) {
+                            IResource r = b[0].getResource();
+                            return r.getLocation().toOSString();
+                        }
+                    } catch (CModelException e) {
+                    }
+                }
+            }
+        }
+        return ""; //$NON-NLS-1$
+    }
+

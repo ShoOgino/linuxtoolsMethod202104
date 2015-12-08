@@ -1,0 +1,32 @@
+    @Override
+    public void open(IPath file) {
+        final GCFilePair pair = new GCFilePair(file);
+        Shell shell = PlatformUI.getWorkbench().getDisplay().getActiveShell();
+        if (!isFileValid(pair.gcda)) {
+            String msg = NLS.bind(Messages.OpenGCAction_file_dne_run, pair.gcda);
+            MessageDialog.openError(shell, Messages.OpenGCAction_gcov_error, msg);
+            return;
+        }
+        if (!isFileValid(pair.gcno)) {
+            String msg = NLS.bind(Messages.OpenGCAction_file_dne_compile, pair.gcno);
+            MessageDialog.openError(shell, Messages.OpenGCAction_gcov_error, msg);
+            return;
+        }
+
+        IDialogSettings ds = Activator.getDefault().getDialogSettings();
+        IDialogSettings defaultMapping = ds.getSection(OpenGCDialog.class.getName());
+        if (defaultMapping == null) {
+            defaultMapping = ds.addNewSection(OpenGCDialog.class.getName());
+        }
+        String defaultBinary = defaultMapping.get(file.toOSString());
+        if (defaultBinary == null || defaultBinary.isEmpty() || !exists(defaultBinary)) {
+            defaultBinary = getDefaultBinary(file);
+        }
+
+        OpenGCDialog d = new OpenGCDialog(shell, defaultBinary, file);
+        if (d.open() != Window.OK) {
+            return;
+        }
+        displayCoverage(file, d.getBinaryFile(), pair.gcda, d.isCompleteCoverageResultWanted());
+    }
+

@@ -1,0 +1,29 @@
+    private String getDefaultBinaryFromUserPref(IProject project, IFile infoFile) throws IOException, CoreException {
+        if (infoFile.exists()) {
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(infoFile.getContents(true)))) {
+                String line;
+                while ((line = br.readLine())!= null){
+                    String[] tab = line.split("="); //$NON-NLS-1$
+                    if (tab.length > 1){
+                        String name = tab[0].trim();
+                        if (name.equals("Program Name")){ //$NON-NLS-1$
+                            String value = tab[1].trim();
+                            IPath p = new Path(value);
+                            if (p.isAbsolute()) {
+                                if (p.toFile().isFile()) {
+                                    return p.toOSString();
+                                }
+                            } else if (project != null){
+                                IFile ifile = project.getFile(value);
+                                if (ifile.exists()) {
+                                    return ifile.getLocation().toOSString();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+

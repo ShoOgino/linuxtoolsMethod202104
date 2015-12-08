@@ -1,0 +1,33 @@
+    private void validateBinary() {
+        binValue = binText.getText();
+        IStringVariableManager mgr = VariablesPlugin.getDefault().getStringVariableManager();
+        try {
+            binValue = mgr.performStringSubstitution(binValue, false);
+        } catch (CoreException e) {
+            // do nothing: never occurs
+        }
+
+        File f = new File(binValue);
+        if (f.exists()) {
+            IBinaryObject binary = STSymbolManager.sharedInstance.getBinaryObject(new Path(binValue));
+            if (binary == null) {
+                MessageDialog.openError(PlatformUI.getWorkbench().getDisplay().getActiveShell(),
+                        Messages.OpenGCDialog_invalid_bin_error_title,
+                        NLS.bind(Messages.OpenGCDialog_invalid_bin_error_message, binText.getText()));
+                return;
+            }
+            binaryValid = true;
+            getButton(IDialogConstants.OK_ID).setEnabled(binaryValid);
+            errorLabel.setText(""); //$NON-NLS-1$
+        } else {
+            binaryValid = false;
+            getButton(IDialogConstants.OK_ID).setEnabled(false);
+            if (!binValue.isEmpty()) {
+                errorLabel.setText(NLS.bind(Messages.OpenGCDialog_bin_dne_error_label, binText.getText()));
+            } else {
+                errorLabel.setText(Messages.OpenGCDialog_no_bin_error_label);
+            }
+            return;
+        }
+    }
+
