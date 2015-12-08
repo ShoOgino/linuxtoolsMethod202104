@@ -1,0 +1,39 @@
+    /**
+     * Read the whole content of the GMON file The header should be read before calling this function.
+     *
+     * @param stream
+     * @throws IOException
+     */
+    private void readGmonContent(DataInput stream) throws IOException {
+        do {
+            // int tag = -1;
+            tag = -1;
+
+            try {
+                tag = stream.readByte();
+            } catch (EOFException e) {
+                break;
+            }
+            switch (tag) {
+            case VPF_GMON_RECORD_TYPE_HISTOGRAM:
+                histo.decodeHeader(stream);
+                histo.decodeHistRecord(stream);
+                break;
+            case VPF_GMON_RECORD_TYPE_CALLGRAPH:
+                callGraph.decodeCallGraphRecord(stream, false);
+                break;
+            default:
+                throw new IOException(Messages.GmonDecoder_BAD_TAG_ERROR);
+            }
+
+            if (shouldDump == true) {
+                dumpGmonResult(ps == null ? System.out : ps);
+            }
+
+        } while (true);
+
+        this.callGraph.populate(rootNode);
+        this.histo.assignSamplesSymbol();
+
+    }
+

@@ -1,0 +1,27 @@
+    private void handleBrowseWorkspace(String msg, Text text) {
+        ElementTreeSelectionDialog dialog = new ElementTreeSelectionDialog(getShell(), new WorkbenchLabelProvider(),
+                new WorkbenchContentProvider());
+        dialog.setTitle(msg);
+        dialog.setMessage(msg);
+        dialog.setInput(ResourcesPlugin.getWorkspace().getRoot());
+        dialog.setComparator(new ResourceComparator(ResourceComparator.NAME));
+        dialog.setAllowMultiple(false);
+        IContainer c = ResourcesPlugin.getWorkspace().getRoot().getContainerForLocation(this.gmonFile);
+        if (c != null) {
+            dialog.setInitialSelection(c.getProject());
+        }
+        dialog.setValidator(selection -> {
+		    if (selection.length != 1) {
+		        return new Status(IStatus.ERROR, Activator.PLUGIN_ID, 0, "", null); //$NON-NLS-1$
+		    }
+		    if (!(selection[0] instanceof IFile)) {
+		        return new Status(IStatus.ERROR, Activator.PLUGIN_ID, 0, "", null); //$NON-NLS-1$
+		    }
+		    return new Status(IStatus.OK, Activator.PLUGIN_ID, 0, "", null); //$NON-NLS-1$
+		});
+        if (dialog.open() == IDialogConstants.OK_ID) {
+            IResource resource = (IResource) dialog.getFirstResult();
+            text.setText("${resource_loc:" + resource.getFullPath() + "}"); //$NON-NLS-1$//$NON-NLS-2$
+        }
+    }
+
