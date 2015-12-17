@@ -1,0 +1,47 @@
+	private void performPackageVM(IVagrantVM vm, String name, Path dest) {
+		final Job packageVMJob = new Job(Messages.PackageVMCommandHandler_title) {
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				monitor.beginTask(NLS.bind(Messages.PackageVMCommandHandler_msg, vm.id()), IProgressMonitor.UNKNOWN);
+				IVagrantConnection connection = VagrantService.getInstance();
+				try {
+					connection.packageVM(vm, name);
+					// Wait for the box to be created
+					Path vmBox = Paths.get(vm.directory().getAbsolutePath(), name);
+					while (!vmBox.toFile().exists()) {
+						try {
+							Thread.sleep(1000);
+							if (monitor.isCanceled()) {
+								return Status.CANCEL_STATUS;
+							}
+						} catch (InterruptedException e) {
+						}
+					}
+					/*
+					 * Manually move the new box to the desired destination
+					 * since 'virtualbox' and 'libvirt' providers differ
+					 * slightly in their support for this option.
+					 */
+						Files.move(Paths.get(vm.directory().getAbsolutePath(), name),
+								dest.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+				} catch (VagrantException | InterruptedException | IOException e) {
+					try {
+						Files.delete(Paths.get(vm.directory().getAbsolutePath(), name));
+					} catch (IOException e1) {
+					}
+					Display.getDefault()
+							.syncExec(() -> MessageDialog.openError(
+									Display.getCurrent().getActiveShell(),
+							Messages.PackageVMCommandHandler_failed,
+							NLS.bind(Messages.PackageVMCommandHandler_failed_desc,
+									new String [] {vm.id(), dest.toString(), name})));
+				} finally {
+					connection.getVMs(true);
+				}
+				return Status.OK_STATUS;
+			}
+		};
+		packageVMJob.setUser(true);
+		packageVMJob.schedule();
+	}
+
