@@ -1,0 +1,25 @@
+	@Test
+	public void shouldTriggerSearchIfTermWasGiven() throws InterruptedException {
+		// given
+		final DockerClient client = MockDockerClientFactory.onSearch("foo", MockImageSearchResultFactory.name("foo").build())
+				.build();
+		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client).get();
+		DockerConnectionManagerUtils.configureConnectionManager(dockerConnection);
+		// expand the 'Images' node
+		SWTUtils.syncExec(() -> dockerExplorerView.getCommonViewer().expandAll());
+		final SWTBotTreeItem imagesTreeItem = SWTUtils.getTreeItem(dockerExplorerViewBot, "Test", "Images");
+		
+		// when opening the "Pull..." wizard
+		final SWTBotTree dockerExplorerViewTreeBot = dockerExplorerViewBot.bot().tree();
+		dockerExplorerViewTreeBot.select(imagesTreeItem);
+		dockerExplorerViewTreeBot.contextMenu("Pull...").click();
+
+		// when specify a term
+		bot.textWithLabel(WizardMessages.getString("ImagePull.name.label")).setText("foo");
+		
+		// when clicking on the "Search..." button
+		bot.button(WizardMessages.getString("ImagePull.search.label")).click();
+		// then the search should have been triggered and results should be available
+		assertThat(bot.table().rowCount()).isEqualTo(1);
+	}
+
