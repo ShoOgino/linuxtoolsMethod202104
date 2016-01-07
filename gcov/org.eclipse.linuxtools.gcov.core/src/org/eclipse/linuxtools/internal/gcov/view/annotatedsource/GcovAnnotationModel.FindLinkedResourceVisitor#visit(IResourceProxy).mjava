@@ -1,7 +1,14 @@
         @Override
         public boolean visit(IResourceProxy proxy) {
-            if (proxy.isLinked() && proxy.requestResource().getLocationURI().equals(element.getLocationURI())) {
+        	// To correctly find a file in a linked directory, we cannot just look at the isLinked() attribute
+        	// which is not set for the file but is set for one of its parent directories.  So, we keep track
+        	// of linked directories and use them to determine if we should bother getting the resource to compare with.
+        	if (proxy.isLinked()) {
+        		lastLinkPath = proxy.requestFullPath().toString();
+        	}
+            if (lastLinkPath != null && proxy.requestFullPath().toString().startsWith(lastLinkPath) && proxy.requestResource().getLocationURI().equals(element.getLocationURI())) {
                 found = true;
+                resource = proxy.requestResource();
                 keepSearching = false;
             }
             return keepSearching;
