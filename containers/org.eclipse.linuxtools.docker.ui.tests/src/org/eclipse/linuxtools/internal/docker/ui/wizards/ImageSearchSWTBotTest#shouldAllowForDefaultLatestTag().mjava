@@ -1,5 +1,5 @@
 	@Test
-	public void shouldTriggerSearchIfTermWasGiven() throws InterruptedException {
+	public void shouldAllowForDefaultLatestTag() throws InterruptedException {
 		// given
 		final DockerClient client = MockDockerClientFactory
 				.onSearch("foo", MockImageSearchResultFactory.name("foo").build()).build();
@@ -19,8 +19,16 @@
 
 		// when clicking on the "Search..." button
 		bot.button(WizardMessages.getString("ImagePull.search.label")).click();
+
 		// then the search should have been triggered and results should be
 		// available
 		assertThat(bot.table().rowCount()).isEqualTo(1);
+		assertThat(bot.button("Next >").isEnabled()).isTrue();
+		assertThat(bot.button("Finish").isEnabled()).isTrue();
+		bot.button("Finish").click();
+
+		// when back to Pull wizard, the Image name field should be filled
+		assertThat(bot.textWithLabel(WizardMessages.getString("ImagePull.name.label")).getText())
+				.isEqualTo("foo:latest");
 	}
 
