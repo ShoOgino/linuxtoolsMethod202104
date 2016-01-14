@@ -22,12 +22,19 @@
 									IProgressMonitor.UNKNOWN);
 							try {
 								final DockerConnection dockerConnection = getDockerConnection();
-								dockerConnection.open(false);
-								dockerConnection.ping();
-								dockerConnection.close();
-								resultQueue.add(true);
+								if (dockerConnection.getClient() != null) {
+									dockerConnection.open(false);
+									dockerConnection.ping();
+									dockerConnection.close();
+									resultQueue.add(true);
+								} else {
+									resultQueue.add(false);
+								}
 							} catch (DockerException e) {
-								Activator.log(e);
+								// only log if there's an underlying cause.
+								if (e.getCause() != null) {
+									Activator.log(e);
+								}
 								resultQueue.add(false);
 							}
 						}
