@@ -2,7 +2,6 @@
 	public void shouldRemoveListenersWhenClosingView() {
 		// given
 		final DockerClient client = MockDockerClientFactory
-				.image(MockDockerImageFactory.name("angry_bar").build())
 				.container(MockDockerContainerFactory.name("angry_bar").status("Stopped").build()).build();
 		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client).get();
 		DockerConnectionManagerUtils.configureConnectionManager(dockerConnection);
@@ -10,12 +9,10 @@
 		dockerConnection.removeContainerListener(DockerContainerRefreshManager
 								.getInstance());
 		// DockerExplorerView inner classes
-		assertThat(dockerConnection.getContainerListeners()).hasSize(1);
-		assertThat(dockerConnection.getImageListeners()).hasSize(1);
+		assertThat(dockerConnection.getContainerListeners()).hasSize(2);
 		// close the Docker Explorer View
-		dockerExplorerViewBot.close();
-		// there should be no listener left
-		assertThat(dockerConnection.getContainerListeners()).hasSize(0);
-		assertThat(dockerConnection.getImageListeners()).hasSize(0);
+		dockerContainersViewBot.close();
+		// there should be one listener left: DockerExplorerView
+		assertThat(dockerConnection.getContainerListeners()).hasSize(1);
 	}
 
