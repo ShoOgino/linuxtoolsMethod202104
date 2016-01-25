@@ -1,29 +1,26 @@
     @Test
     public void testGcovSummaryByLaunch() {
-        display.syncExec(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    CommonNavigator vc = (CommonNavigator) window.getActivePage().showView(ProjectExplorer.VIEW_ID);
-                    vc.selectReveal(new StructuredSelection(project.getFile(getBinName())));
-                    Menu menu = new MenuManager().createContextMenu(vc.getCommonViewer().getControl());
-                    new ProfileContextualLaunchAction(menu);
-                    for (MenuItem item : menu.getItems()) {
-                        if (item.getText().endsWith("Profile Code Coverage")) {
-                            ((ActionContributionItem) item.getData()).getAction().run();
-                            break;
-                        }
-                    }
-                } catch (PartInitException e) {
-                    Assert.fail("Cannot show Project Explorer.");
-                }
-                try {
-                    window.getActivePage().showView("org.eclipse.linuxtools.gcov.view");
-                } catch (PartInitException e) {
-                    Assert.fail("Cannot show GCov View.");
-                }
-            }
-        });
+        display.syncExec(() -> {
+		    try {
+		        CommonNavigator vc = (CommonNavigator) window.getActivePage().showView(ProjectExplorer.VIEW_ID);
+		        vc.selectReveal(new StructuredSelection(project.getFile(getBinName())));
+		        Menu menu = new MenuManager().createContextMenu(vc.getCommonViewer().getControl());
+		        new ProfileContextualLaunchAction(menu);
+		        for (MenuItem item : menu.getItems()) {
+		            if (item.getText().endsWith("Profile Code Coverage")) {
+		                ((ActionContributionItem) item.getData()).getAction().run();
+		                break;
+		            }
+		        }
+		    } catch (PartInitException e1) {
+		        Assert.fail("Cannot show Project Explorer.");
+		    }
+		    try {
+		        window.getActivePage().showView("org.eclipse.linuxtools.gcov.view");
+		    } catch (PartInitException e2) {
+		        Assert.fail("Cannot show GCov View.");
+		    }
+		});
 
         // Wait for the build job to finish (note: DebugUIPlugin doesn't put launch jobs in a family)
         Job[] jobs = Job.getJobManager().find(null);

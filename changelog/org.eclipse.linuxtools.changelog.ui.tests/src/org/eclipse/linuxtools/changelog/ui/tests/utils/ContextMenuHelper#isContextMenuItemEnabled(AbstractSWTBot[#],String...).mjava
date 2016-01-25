@@ -15,28 +15,22 @@
         final AtomicBoolean enabled = new AtomicBoolean(false);
         // show
         final MenuItem menuItem = UIThreadRunnable
-                .syncExec(new WidgetResult<MenuItem>() {
-                    @Override
-                    public MenuItem run() {
-                        MenuItem theItem = getMenuItem(bot, texts);
-                        if (theItem != null && theItem.isEnabled())
-                            enabled.set(true);
-                        return theItem;
-                    }
-                });
+				.syncExec((WidgetResult<MenuItem>) () -> {
+					MenuItem theItem = getMenuItem(bot, texts);
+					if (theItem != null && theItem.isEnabled())
+						enabled.set(true);
+					return theItem;
+				});
         if (menuItem == null) {
             throw new WidgetNotFoundException("Could not find menu: "
                     + Arrays.asList(texts));
         }
         // hide
-        UIThreadRunnable.syncExec(new VoidResult() {
-            @Override
-            public void run() {
-                if (menuItem.isDisposed())
-                    return; // menu already gone
-                hide(menuItem.getParent());
-            }
-        });
+		UIThreadRunnable.syncExec(() -> {
+			if (menuItem.isDisposed())
+				return; // menu already gone
+			hide(menuItem.getParent());
+		});
         return enabled.get();
     }
 

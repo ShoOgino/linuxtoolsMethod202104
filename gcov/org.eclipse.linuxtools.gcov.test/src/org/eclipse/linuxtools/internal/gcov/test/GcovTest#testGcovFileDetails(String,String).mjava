@@ -1,27 +1,24 @@
     private void testGcovFileDetails(final String filename, final String binPath) {
         openGcovResult(project.getFile(filename), binPath, false);
 
-        display.syncExec(new Runnable() {
-            @Override
-            public void run() {
-                final IWorkbenchPage page = window.getActivePage();
-                final IEditorPart editorPart = page.getActiveEditor();
-                final IFile openedFile = project.getFile(editorPart.getEditorInput().getName());
-                final IFile targetFile = project.getFile(
-                        new Path(filename).removeFileExtension().addFileExtension(
-                                isCppProject ? "cpp" : "c"));
-                if (!targetFile.equals(openedFile)) {
-                    System.err.println("WARNING: editor for " + targetFile
-                            + " is not in focus.");
-                    for (IEditorReference ref : page.getEditorReferences()) {
-                        if (targetFile.equals(project.getFile(ref.getName()))) {
-                            return;
-                        }
-                    }
-                    Assert.fail("Editor for file " + targetFile + " was not opened,"
-                            + " instead opened " + openedFile + ".");
-                }
-            }
-        });
+        display.syncExec(() -> {
+		    final IWorkbenchPage page = window.getActivePage();
+		    final IEditorPart editorPart = page.getActiveEditor();
+		    final IFile openedFile = project.getFile(editorPart.getEditorInput().getName());
+		    final IFile targetFile = project.getFile(
+		            new Path(filename).removeFileExtension().addFileExtension(
+		                    isCppProject ? "cpp" : "c"));
+		    if (!targetFile.equals(openedFile)) {
+		        System.err.println("WARNING: editor for " + targetFile
+		                + " is not in focus.");
+		        for (IEditorReference ref : page.getEditorReferences()) {
+		            if (targetFile.equals(project.getFile(ref.getName()))) {
+		                return;
+		            }
+		        }
+		        Assert.fail("Editor for file " + targetFile + " was not opened,"
+		                + " instead opened " + openedFile + ".");
+		    }
+		});
     }
 
