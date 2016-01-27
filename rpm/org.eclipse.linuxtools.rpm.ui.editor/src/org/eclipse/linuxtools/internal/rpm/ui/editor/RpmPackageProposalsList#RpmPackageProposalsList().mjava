@@ -1,4 +1,18 @@
 	public RpmPackageProposalsList() {
-		setPackagesList();
+		String rpmpkgsFile = store.getString(PreferenceConstants.P_RPM_LIST_FILEPATH);
+		if (Files.exists(Paths.get(rpmpkgsFile))) {
+			try {
+				Set<String> newList = RpmPackageBuildProposalsJob.getPackages();
+				list.clear();
+				list.addAll(newList);
+			} catch (IOException e) {
+				RpmPackageBuildProposalsJob.update(true);
+				SpecfileLog.logError(e);
+			} catch (InterruptedException e) {
+				// ignore
+			}
+		} else {
+			RpmPackageBuildProposalsJob.update(true);
+		}
 	}
 
