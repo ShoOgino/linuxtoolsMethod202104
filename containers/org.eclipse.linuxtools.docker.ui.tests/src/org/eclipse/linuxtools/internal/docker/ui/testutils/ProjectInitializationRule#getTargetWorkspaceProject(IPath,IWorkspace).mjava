@@ -1,0 +1,47 @@
+	/**
+	 * Creates or opens the project in the target/JUnit workspace.
+	 * 
+	 * @param projectSourcePath
+	 *            the absolute path to the project
+	 * @param targetWorkspace
+	 *            the target workspace in which the project should be created
+	 * @return the project
+	 * @throws CoreException
+	 * @throws InvocationTargetException
+	 * @throws InterruptedException
+	 */
+	public static IProject getTargetWorkspaceProject(final IPath projectSourcePath, final IWorkspace targetWorkspace)
+			throws CoreException, InvocationTargetException, InterruptedException {
+		final IPath dotProjectPath = projectSourcePath.addTrailingSeparator().append(".project");
+		final IProjectDescription description = targetWorkspace.loadProjectDescription(dotProjectPath);
+		final String projectName = description.getName();
+		final IProject project = targetWorkspace.getRoot().getProject(projectName);
+		if (project.exists()
+				&& !targetWorkspace.getRoot().getFile(project.getFile(".project").getFullPath()).exists()) {
+			project.delete(true, null);
+		} else if (project.exists() && !project.isOpen()) {
+			project.open(null);
+		} else if (!project.exists()) {
+			createProject(description, projectName, targetWorkspace, project);
+			final SyncFileSystemStructureProvider syncFileSystemStructureProvider = new SyncFileSystemStructureProvider.Builder(
+					projectSourcePath, project.getLocation()).ignoreRelativeSourcePaths(".svn", ".git", "target", "bin")
+							.build();
+			final List<File> filesToImport = syncFileSystemStructureProvider.getChildren(projectSourcePath.toFile());
+			if (filesToImport != null && filesToImport.size() > 0) {
+				ImportOperation operation = new ImportOperation(project.getFullPath(), projectSourcePath.toFile(),
+						syncFileSystemStructureProvider, new IOverwriteQuery() {
+							@Override
+							public String queryOverwrite(String pathString) {
+								return IOverwriteQuery.YES;
+							}
+						}, filesToImport);
+				operation.setContext(null);
+				// need to overwrite modified files
+				operation.setOverwriteResources(true);
+				operation.setCreateContainerStructure(false);
+				operation.run(null);
+			}
+		}
+		return project;
+	}
+

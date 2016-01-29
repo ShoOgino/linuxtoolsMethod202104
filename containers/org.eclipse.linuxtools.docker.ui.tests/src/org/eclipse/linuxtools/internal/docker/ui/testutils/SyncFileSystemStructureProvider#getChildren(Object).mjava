@@ -1,0 +1,34 @@
+	/*
+	 * (non-Javadoc) Method declared on IImportStructureProvider
+	 */
+	@Override
+	public List<File> getChildren(Object element) {
+		File folder = (File) element;
+		String[] children = folder.list();
+		int childrenLength = children == null ? 0 : children.length;
+		List<File> result = new ArrayList<>(childrenLength);
+
+		for (int i = 0; i < childrenLength; i++) {
+			File sourceFile = new File(folder, children[i]);
+			IPath relativeSourcePath = new Path(sourceFile.getAbsolutePath()).makeRelativeTo(source);
+			// always add the sub directories
+			if (ignoredRelativePaths.contains(relativeSourcePath.lastSegment())) {
+				continue;
+			}
+			if (sourceFile.isDirectory() && !ignoredRelativePaths.contains(relativeSourcePath.lastSegment())) {
+				result.addAll(getChildren(sourceFile));
+			}
+			// only add the other files if they are missing or were modified in
+			// the destination destination
+			else {
+				IPath relativeDestinationPath = destination.append(relativeSourcePath);
+				File destinationFile = new File(relativeDestinationPath.toOSString());
+				if (!destinationFile.exists() || destinationFile.lastModified() < sourceFile.lastModified()) {
+					result.add(sourceFile);
+				}
+			}
+		}
+
+		return result;
+	}
+

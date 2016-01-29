@@ -1,0 +1,39 @@
+	/**
+	 * Executes the given {@link Runnable} <strong>asynchronously</strong> in
+	 * the default {@link Display} and waits until all jobs are done before
+	 * completing.
+	 * 
+	 * @param runnable
+	 *            the {@link Runnable} to execute
+	 * @param waitForJobsToComplete
+	 *            boolean flag to indicate if the method should wait for all
+	 *            jobs to complete before finishing
+	 * @throws InterruptedException
+	 */
+	public static void asyncExec(final Runnable runnable, final boolean waitForJobsToComplete) {
+		final Queue<ComparisonFailure> failure = new ArrayBlockingQueue<>(1);
+		final Queue<SWTException> swtException = new ArrayBlockingQueue<>(1);
+		Display.getDefault().asyncExec(new Runnable() {
+			
+			@Override
+			public void run() {
+				try {
+					runnable.run();
+				} catch (ComparisonFailure e) {
+					failure.add(e);
+				} catch (SWTException e) {
+					swtException.add(e);
+				}
+			}
+		});
+		if(waitForJobsToComplete) {
+			waitForJobsToComplete();
+		}
+		if (!failure.isEmpty()) {
+			throw failure.poll();
+		}
+		if (!swtException.isEmpty()) {
+			throw swtException.poll();
+		}
+	}
+
