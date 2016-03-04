@@ -7,7 +7,12 @@
 		String stateLoc = Activator.getDefault().getStateLocation()
 				.toOSString();
 		File vagrantDir = Paths.get(stateLoc, vmName).toFile();
-		vagrantDir.mkdir();
+		// Project folder exists (but VM cannot exist here)
+		// Safe to remove the stale Vagrant project entry
+		if (!vagrantDir.mkdir()) {
+			CommandUtils.delete(vagrantDir);
+			vagrantDir.mkdir();
+		}
 		connection.init(vagrantDir);
 
 		Path vagrantFilePath = Paths.get(stateLoc, vmName, "Vagrantfile"); //$NON-NLS-1$
@@ -19,7 +24,7 @@
 			for (String line : defaultContent.split("\n")) { //$NON-NLS-1$
 				if (line.contains("config.vm.box")) { //$NON-NLS-1$
 					String defLine = line.replaceAll("config.vm.box = \".*\"", //$NON-NLS-1$
-							"config.vm.define :" + vmName); //$NON-NLS-1$
+							"config.vm.define :\"" + vmName + "\""); //$NON-NLS-1$ //$NON-NLS-2$
 					String boxLine = line.replaceAll("config.vm.box = \".*\"", //$NON-NLS-1$
 							"config.vm.box = \"" + boxName + "\""); //$NON-NLS-1$ //$NON-NLS-2$
 					bcontent.append(defLine + '\n');
