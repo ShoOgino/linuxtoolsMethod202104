@@ -1,0 +1,17 @@
+	public static void execute(String id, IStructuredSelection selection) {
+		ICommandService service = PlatformUI.getWorkbench().getService(ICommandService.class);
+		Command command = service != null ? service.getCommand(id) : null;
+		if (command != null && command.isDefined()) {
+			try {
+				ParameterizedCommand pCmd = ParameterizedCommand.generateCommand(command, null);
+				IHandlerService handlerSvc = PlatformUI.getWorkbench().getService(IHandlerService.class);
+				IEvaluationContext ctx = handlerSvc.getCurrentState();
+				ctx = new EvaluationContext(ctx, selection);
+				ctx.addVariable(ISources.ACTIVE_CURRENT_SELECTION_NAME, selection);
+				handlerSvc.executeCommandInContext(pCmd, null, ctx);
+			} catch (Exception e) {
+				Activator.log(e);
+			}
+		}
+	}
+
