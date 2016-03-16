@@ -1,4 +1,17 @@
-	private void performPushImage(final ImagePush wizard) {
+	private void performPushImage(final ImagePush wizard,
+			final IDockerConnection connection) {
+		if (connection == null) {
+			Display.getDefault().syncExec(new Runnable() {
+
+				@Override
+				public void run() {
+					MessageDialog.openError(
+							Display.getDefault().getActiveShell(), "Error",
+							DVMessages.getFormattedString(NO_CONNECTION));
+				}
+			});
+			return;
+		}
 		final Job pushImageJob = new Job(DVMessages.getFormattedString(
 				PUSH_IMAGE_JOB_TITLE, wizard.getImageTag())) {
 
@@ -7,7 +20,7 @@
 				final String tag = wizard.getImageTag();
 				monitor.beginTask(DVMessages.getString(PUSH_IMAGE_JOB_TASK),
 						IProgressMonitor.UNKNOWN);
-				// pull the image and let the progress
+				// push the image and let the progress
 				// handler refresh the images when done
 				try {
 					((DockerConnection) connection).pushImage(tag,
@@ -35,8 +48,6 @@
 			}
 
 		};
-
 		pushImageJob.schedule();
-
 	}
 
