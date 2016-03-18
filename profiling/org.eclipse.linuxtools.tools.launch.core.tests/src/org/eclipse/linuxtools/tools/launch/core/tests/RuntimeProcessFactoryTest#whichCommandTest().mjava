@@ -1,0 +1,38 @@
+	@Test
+	public void whichCommandTest() {
+		String actualCmd = null, expectedCmdPath, testCaseMsg = "";
+		IProject actualProject;
+		boolean expectedExist;
+
+		Object[][] testCases = {
+				{localProject.getProject(), "ls", true},
+				{localProject.getProject(), "notexistcmd", false},
+				{syncProject.getProject(), "ls", true},
+				{syncProject.getProject(), "notexistcmd", false}
+		};
+
+		for(Object[] params : testCases) {
+			try {
+				actualProject = (IProject) params[0];
+				assertNotNull(actualProject);
+				actualCmd = (String) params[1];
+				expectedExist = (boolean) params[2];
+				testCaseMsg = "(" + actualProject.getName() + "): ";
+
+				expectedCmdPath = RuntimeProcessFactory.getFactory().whichCommand(actualCmd, actualProject);
+				assertFalse(expectedCmdPath.isEmpty());
+				assertTrue(Path.isValidPosixPath(expectedCmdPath));
+				// If command does not exist it should return the command's name.
+				if(!expectedExist) {
+					assertTrue(testCaseMsg + "Command not exist",
+							actualCmd.contentEquals(expectedCmdPath));
+				} else {
+					assertFalse(testCaseMsg + "Should had return a path different from command name",
+							actualCmd.contentEquals(expectedCmdPath));
+				}
+			} catch (IOException e) {
+				fail(testCaseMsg + "Should had returned valid path to '" + actualCmd + "' command");
+			}
+		}
+	}
+
