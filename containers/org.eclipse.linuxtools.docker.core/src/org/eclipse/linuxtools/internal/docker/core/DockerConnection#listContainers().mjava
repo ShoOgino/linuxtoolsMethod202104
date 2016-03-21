@@ -51,12 +51,12 @@
 			}
 		} catch (com.spotify.docker.client.DockerException
 				| InterruptedException e) {
-			if (active) {
-				active = false;
-				throw new DockerException(
-						NLS.bind(Messages.List_Docker_Containers_Failure,
-								this.getName()),
-						e);
+			if (active && e.getCause() != null
+					&& e.getCause().getCause() != null
+					&& e.getCause().getCause() instanceof ProcessingException) {
+				setInactive();
+			} else {
+				throw new DockerException(e.getMessage());
 			}
 		} finally {
 			// assign the new list of containers in a locked block of code to

@@ -2,7 +2,7 @@
 	public List<IDockerImage> listImages() throws DockerException {
 		final List<IDockerImage> tempImages = new ArrayList<>();
 		synchronized (imageLock) {
-			List<Image> rawImages = null;
+			List<Image> rawImages = new ArrayList<>();
 			try {
 				synchronized (clientLock) {
 					// Check that client is not null as this connection may have
@@ -17,8 +17,13 @@
 				throw new DockerException(e.message());
 			} catch (com.spotify.docker.client.DockerException
 					| InterruptedException e) {
-				DockerException f = new DockerException(e);
-				throw f;
+				if (active && e.getCause() != null
+						&& e.getCause().getCause() != null
+						&& e.getCause().getCause() instanceof ProcessingException) {
+					setInactive();
+				} else {
+					throw new DockerException(e.getMessage());
+				}
 			}
 			// We have a list of images. Now, we translate them to our own
 			// core format in case we decide to change the underlying engine
