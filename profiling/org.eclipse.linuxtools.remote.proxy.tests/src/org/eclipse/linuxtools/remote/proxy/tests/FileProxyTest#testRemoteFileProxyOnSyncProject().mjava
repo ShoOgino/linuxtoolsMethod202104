@@ -53,5 +53,32 @@
 			fail("Failed to build URI for the test: " + e.getMessage());
 		}
 		assertEquals(projectLocation, fileProxy.toPath(uri));
+
+		/*
+		 * Test it opens connection
+		 */
+		assertNotNull(conn);
+		conn.close();
+		assertFalse(conn.isOpen());
+		try {
+			fileProxy =  proxyManager.getFileProxy(syncProject.getProject());
+			assertNotNull(fileProxy);
+		} catch (CoreException e) {
+			fail("Failed to obtain file proxy when connection is closed: " + e.getMessage());
+		}
+		fs = fileProxy.getResource("/tmp/somedir");
+		assertNotNull(fs);
+		assertFalse(fs.fetchInfo().exists());
+		try {
+			fs.mkdir(EFS.SHALLOW, new NullProgressMonitor());
+		} catch (CoreException e) {
+			fail("should be able to create a directory when connection is closed: " + e.getMessage());
+		}
+		assertTrue(fs.fetchInfo().exists());
+		try {
+			fs.delete(EFS.NONE, new NullProgressMonitor());
+		} catch (CoreException e) {
+			fail("Failed to delete file: " + e.getMessage());
+		}
 	}
 
