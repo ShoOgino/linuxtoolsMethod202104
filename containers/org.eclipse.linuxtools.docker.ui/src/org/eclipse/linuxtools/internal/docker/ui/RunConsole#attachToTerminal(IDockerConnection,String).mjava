@@ -1,19 +1,15 @@
 	public static void attachToTerminal (final IDockerConnection connection, final String containerId) {
-		Thread t = new Thread(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					DockerConnection conn = (DockerConnection) connection;
-					if (conn.getContainerInfo(containerId).config()
-							.openStdin()) {
-						while (!conn.getContainerInfo(containerId).state()
-								.running()) {
-							Thread.sleep(1000);
-						}
-						conn.attachCommand(containerId, null, null);
+		Thread t = new Thread(() -> {
+			try {
+				DockerConnection conn = (DockerConnection) connection;
+				if (conn.getContainerInfo(containerId).config().openStdin()) {
+					while (!conn.getContainerInfo(containerId).state()
+							.running()) {
+						Thread.sleep(1000);
 					}
-				} catch (Exception e) {
+					conn.attachCommand(containerId, null, null);
 				}
+			} catch (Exception e) {
 			}
 		});
 		t.start();

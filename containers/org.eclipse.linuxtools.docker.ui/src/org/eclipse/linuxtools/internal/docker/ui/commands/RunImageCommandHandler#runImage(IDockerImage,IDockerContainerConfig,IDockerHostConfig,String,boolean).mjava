@@ -58,28 +58,18 @@
 					}
 					startContainerMonitor.done();
 					// create a launch configuration from the container
-					LaunchConfigurationUtils.createLaunchConfiguration(
-image,
+					LaunchConfigurationUtils.createLaunchConfiguration(image,
 							containerConfig,
 							hostConfig, containerName,
 							removeWhenExits);
 				} catch (final DockerException | InterruptedException e) {
-					Display.getDefault().syncExec(new Runnable() {
-
-						@Override
-						public void run() {
-							MessageDialog.openError(
-									PlatformUI.getWorkbench()
-											.getActiveWorkbenchWindow()
-											.getShell(),
-									DVMessages.getFormattedString(
-											ERROR_CREATING_CONTAINER,
-											containerConfig.image()),
-									e.getMessage());
-
-						}
-
-					});
+					Display.getDefault().syncExec(() -> MessageDialog.openError(
+							PlatformUI.getWorkbench().getActiveWorkbenchWindow()
+									.getShell(),
+							DVMessages.getFormattedString(
+									ERROR_CREATING_CONTAINER,
+									containerConfig.image()),
+							e.getMessage()));
 				} finally {
 					if (removeWhenExits) {
 						try {
@@ -108,22 +98,15 @@ image,
 										.removeContainer(containerId);
 						} catch (DockerException | InterruptedException e) {
 							final String id = containerId;
-							Display.getDefault().syncExec(new Runnable() {
-
-								@Override
-								public void run() {
-									MessageDialog.openError(
+							Display.getDefault()
+									.syncExec(() -> MessageDialog.openError(
 											PlatformUI.getWorkbench()
 													.getActiveWorkbenchWindow()
 													.getShell(),
 											DVMessages.getFormattedString(
 													ERROR_REMOVING_CONTAINER,
 													id),
-											e.getMessage());
-
-								}
-
-							});
+											e.getMessage()));
 						}
 					}
 

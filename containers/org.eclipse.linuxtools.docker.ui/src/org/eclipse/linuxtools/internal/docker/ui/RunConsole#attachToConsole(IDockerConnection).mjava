@@ -7,21 +7,17 @@
 	public void attachToConsole(final IDockerConnection connection) {
 		final InputStream in = getInputStream();
 		final OutputStream out = newOutputStream();
-		Thread t = new Thread(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					DockerConnection conn = (DockerConnection) connection;
-					if (conn.getContainerInfo(containerId).config()
-							.openStdin()) {
-						while (!conn.getContainerInfo(containerId).state()
-								.running()) {
-							Thread.sleep(1000);
-						}
-						conn.attachCommand(containerId, in, out);
+		Thread t = new Thread(() -> {
+			try {
+				DockerConnection conn = (DockerConnection) connection;
+				if (conn.getContainerInfo(containerId).config().openStdin()) {
+					while (!conn.getContainerInfo(containerId).state()
+							.running()) {
+						Thread.sleep(1000);
 					}
-				} catch (Exception e) {
+					conn.attachCommand(containerId, in, out);
 				}
+			} catch (Exception e) {
 			}
 		});
 		t.start();

@@ -7,37 +7,29 @@
 			final BlockingQueue<List<IDockerImageSearchResult>> searchResultQueue = new ArrayBlockingQueue<>(
 					1);
 			ImageSearchPage.this.getContainer().run(true, true,
-					new IRunnableWithProgress() {
-						@Override
-						public void run(IProgressMonitor monitor) {
-							monitor.beginTask(WizardMessages.getString(
-									"ImageSearchPage.searchTask"), 1); //$NON-NLS-1$
-							try {
-								final List<IDockerImageSearchResult> searchResults = ImageSearchPage.this.model
-										.getSelectedConnection()
-										.searchImages(term);
-								searchResultQueue.offer(searchResults);
-							} catch (DockerException e) {
-								Activator.log(e);
-								searchResultQueue.offer(
-										new ArrayList<IDockerImageSearchResult>());
-							}
-							monitor.done();
+					monitor -> {
+						monitor.beginTask(WizardMessages
+								.getString("ImageSearchPage.searchTask"), 1); //$NON-NLS-1$
+						try {
+							final List<IDockerImageSearchResult> searchResults = ImageSearchPage.this.model
+									.getSelectedConnection().searchImages(term);
+							searchResultQueue.offer(searchResults);
+						} catch (DockerException e) {
+							Activator.log(e);
+							searchResultQueue.offer(
+									new ArrayList<IDockerImageSearchResult>());
 						}
+						monitor.done();
 					});
 			List<IDockerImageSearchResult> res = searchResultQueue
 					.poll(10, TimeUnit.SECONDS);
 			final List<IDockerImageSearchResult> searchResult = (res == null)
-					? new ArrayList<IDockerImageSearchResult>() : res;
+					? new ArrayList<>() : res;
 
-			Display.getCurrent().asyncExec(new Runnable() {
-				@Override
-				public void run() {
-					ImageSearchPage.this.model
-							.setImageSearchResult(searchResult);
-					// refresh the wizard buttons
-					getWizard().getContainer().updateButtons();
-				}
+			Display.getCurrent().asyncExec(() -> {
+				ImageSearchPage.this.model.setImageSearchResult(searchResult);
+				// refresh the wizard buttons
+				getWizard().getContainer().updateButtons();
 			});
 			// display a warning in the title area if the search result is empty
 			if (searchResult.isEmpty()) {

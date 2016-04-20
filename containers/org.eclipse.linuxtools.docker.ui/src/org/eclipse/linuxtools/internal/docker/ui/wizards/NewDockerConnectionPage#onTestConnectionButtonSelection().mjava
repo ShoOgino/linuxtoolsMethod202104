@@ -11,30 +11,25 @@
 			public void widgetSelected(SelectionEvent e) {
 				try {
 					getWizard().getContainer().run(true, false,
-							new IRunnableWithProgress() {
-						@Override
-						public void run(final IProgressMonitor monitor) {
-							monitor.beginTask(
-									WizardMessages.getString(
-											"NewDockerConnectionPage.pingTask"), //$NON-NLS-1$
-									IProgressMonitor.UNKNOWN);
-							try {
-								final DockerConnection dockerConnection = getDockerConnection();
-								dockerConnection.open(false);
-								dockerConnection.ping();
-								dockerConnection.close();
-								// ping succeeded
-								displaySuccessDialog();
-							} catch (DockerException e) {
-								// only log if there's an underlying cause.
-								if (e.getCause() != null) {
-									Activator.log(e);
+							monitor -> {
+								monitor.beginTask(WizardMessages.getString(
+										"NewDockerConnectionPage.pingTask"), //$NON-NLS-1$
+										IProgressMonitor.UNKNOWN);
+								try {
+									final DockerConnection dockerConnection = getDockerConnection();
+									dockerConnection.open(false);
+									dockerConnection.ping();
+									dockerConnection.close();
+									// ping succeeded
+									displaySuccessDialog();
+								} catch (DockerException e1) {
+									// only log if there's an underlying cause.
+									if (e1.getCause() != null) {
+										Activator.log(e1);
+									}
+									displayErrorDialog();
 								}
-								displayErrorDialog();
-							}
-						}
-
-					});
+							});
 				} catch (InvocationTargetException | InterruptedException o_O) {
 					Activator.log(o_O);
 				}
@@ -68,17 +63,12 @@
 			private void displayDialog(final String dialogTitle,
 					final String dialogMessage, final int icon,
 					final String[] buttonLabels) {
-				Display.getDefault().syncExec(new Runnable() {
-
-					@Override
-					public void run() {
-						new MessageDialog(
+				Display.getDefault()
+						.syncExec(() -> new MessageDialog(
 								PlatformUI.getWorkbench()
 										.getActiveWorkbenchWindow().getShell(),
 								dialogTitle, null, dialogMessage, icon,
-								buttonLabels, 0).open();
-					}
-				});
+								buttonLabels, 0).open());
 			}
 
 		};

@@ -18,26 +18,23 @@
 
 			// Data from the given input stream
 			// Written to container's STDIN
-			Thread t_in = new Thread(new Runnable() {
-				@Override
-				public void run() {
-					byte[] buff = new byte[1024];
-					int n;
-					try {
-						WritableByteChannel pty_out = HttpHijackWorkaround
-								.getOutputStream(pty_stream, getUri());
-						while ((n = in.read(buff)) != -1
-								&& getContainerInfo(id).state().running()) {
-							synchronized (prevCmd) {
-								pty_out.write(ByteBuffer.wrap(buff, 0, n));
-								for (int i = 0; i < prevCmd.length; i++) {
-									prevCmd[i] = buff[i];
-								}
+			Thread t_in = new Thread(() -> {
+				byte[] buff = new byte[1024];
+				int n;
+				try {
+					WritableByteChannel pty_out = HttpHijackWorkaround
+							.getOutputStream(pty_stream, getUri());
+					while ((n = in.read(buff)) != -1
+							&& getContainerInfo(id).state().running()) {
+						synchronized (prevCmd) {
+							pty_out.write(ByteBuffer.wrap(buff, 0, n));
+							for (int i = 0; i < prevCmd.length; i++) {
+								prevCmd[i] = buff[i];
 							}
-							buff = new byte[1024];
 						}
-					} catch (Exception e) {
+						buff = new byte[1024];
 					}
+				} catch (Exception e) {
 				}
 			});
 

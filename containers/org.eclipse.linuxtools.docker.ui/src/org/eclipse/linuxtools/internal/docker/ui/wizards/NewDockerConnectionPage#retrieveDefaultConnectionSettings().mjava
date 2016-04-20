@@ -17,50 +17,46 @@
 		// progressbar
 		try {
 			getWizard().getContainer().run(true, true,
-					new IRunnableWithProgress() {
-						@Override
-						public void run(final IProgressMonitor monitor) {
-							monitor.beginTask(WizardMessages.getString(
-									"NewDockerConnectionPage.retrieveTask"), //$NON-NLS-1$
-									1);
-							final List<IDockerConnectionSettings> defaults = DockerConnectionManager
-									.getInstance().findConnectionSettings();
-							if (!defaults.isEmpty()) {
-								final IDockerConnectionSettings defaultConnectionSettings = defaults
-										.get(0);
-								model.setCustomSettings(
-										!defaultConnectionSettings
-												.isSettingsResolved());
-								model.setConnectionName(
-										defaultConnectionSettings.getName());
-								switch (defaultConnectionSettings.getType()) {
-								case TCP_CONNECTION:
-									final TCPConnectionSettings tcpConnectionSettings = (TCPConnectionSettings) defaultConnectionSettings;
-									model.setTcpConnectionBindingMode(true);
-									model.setTcpCertPath(tcpConnectionSettings
-											.getPathToCertificates());
-									model.setTcpTLSVerify(tcpConnectionSettings
-											.isTlsVerify());
-									model.setTcpHost(
-											tcpConnectionSettings.getHost());
-									break;
-								case UNIX_SOCKET_CONNECTION:
-									model.setUnixSocketBindingMode(true);
-									final UnixSocketConnectionSettings unixSocketConnectionSettings = (UnixSocketConnectionSettings) defaultConnectionSettings;
-									model.setUnixSocketPath(
-											unixSocketConnectionSettings
-													.getPath());
-									break;
-								}
-							} else {
-								// fall-back to custom settings, suggesting a
-								// Unix Socket connection to the user.
-								model.setCustomSettings(true);
+					monitor -> {
+						monitor.beginTask(
+								WizardMessages.getString(
+										"NewDockerConnectionPage.retrieveTask"), //$NON-NLS-1$
+								1);
+						final List<IDockerConnectionSettings> defaults = DockerConnectionManager
+								.getInstance().findConnectionSettings();
+						if (!defaults.isEmpty()) {
+							final IDockerConnectionSettings defaultConnectionSettings = defaults
+									.get(0);
+							model.setCustomSettings(!defaultConnectionSettings
+									.isSettingsResolved());
+							model.setConnectionName(
+									defaultConnectionSettings.getName());
+							switch (defaultConnectionSettings.getType()) {
+							case TCP_CONNECTION:
+								final TCPConnectionSettings tcpConnectionSettings = (TCPConnectionSettings) defaultConnectionSettings;
+								model.setTcpConnectionBindingMode(true);
+								model.setTcpCertPath(tcpConnectionSettings
+										.getPathToCertificates());
+								model.setTcpTLSVerify(
+										tcpConnectionSettings.isTlsVerify());
+								model.setTcpHost(
+										tcpConnectionSettings.getHost());
+								break;
+							case UNIX_SOCKET_CONNECTION:
 								model.setUnixSocketBindingMode(true);
+								final UnixSocketConnectionSettings unixSocketConnectionSettings = (UnixSocketConnectionSettings) defaultConnectionSettings;
+								model.setUnixSocketPath(
+										unixSocketConnectionSettings.getPath());
+								break;
 							}
-
-							monitor.done();
+						} else {
+							// fall-back to custom settings, suggesting a
+							// Unix Socket connection to the user.
+							model.setCustomSettings(true);
+							model.setUnixSocketBindingMode(true);
 						}
+
+						monitor.done();
 					});
 		} catch (InvocationTargetException | InterruptedException e) {
 			Activator.log(e);

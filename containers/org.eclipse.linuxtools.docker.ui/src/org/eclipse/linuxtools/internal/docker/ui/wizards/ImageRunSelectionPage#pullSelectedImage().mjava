@@ -1,39 +1,30 @@
 	private void pullSelectedImage() {
 		try {
-			getContainer().run(true, true, new IRunnableWithProgress() {
-
-				@Override
-				public void run(final IProgressMonitor monitor)
-						throws InterruptedException {
-					final IDockerConnection connection = model
-							.getSelectedConnection();
-					final String imageName = model.getSelectedImageName();
-					monitor.beginTask(WizardMessages.getFormattedString(
-							"ImageRunSelectionPage.pullingTask", imageName), 1); //$NON-NLS-1$
-					try {
-						connection.pullImage(imageName,
-								new ImagePullProgressHandler(connection,
-										imageName));
-					} catch (final DockerException e) {
-						Display.getDefault().syncExec(new Runnable() {
-							@Override
-							public void run() {
-								MessageDialog.openError(
-										PlatformUI.getWorkbench()
-												.getActiveWorkbenchWindow()
-												.getShell(),
-										DVMessages.getFormattedString(
-												ERROR_PULLING_IMAGE, imageName),
-										e.getMessage());
-							}
-						});
-					} finally {
-						monitor.done();
-						// refresh the widgets
-						model.refreshImageNames();
-						if (model.getImageNames().contains(imageName)) {
-							model.setSelectedImageName(imageName);
-						}
+			getContainer().run(true, true, monitor -> {
+				final IDockerConnection connection = model
+						.getSelectedConnection();
+				final String imageName = model.getSelectedImageName();
+				monitor.beginTask(
+						WizardMessages.getFormattedString(
+								"ImageRunSelectionPage.pullingTask", imageName), //$NON-NLS-1$
+						1);
+				try {
+					connection.pullImage(imageName,
+							new ImagePullProgressHandler(connection,
+									imageName));
+				} catch (final DockerException e) {
+					Display.getDefault().syncExec(() -> MessageDialog.openError(
+							PlatformUI.getWorkbench().getActiveWorkbenchWindow()
+									.getShell(),
+							DVMessages.getFormattedString(ERROR_PULLING_IMAGE,
+									imageName),
+							e.getMessage()));
+				} finally {
+					monitor.done();
+					// refresh the widgets
+					model.refreshImageNames();
+					if (model.getImageNames().contains(imageName)) {
+						model.setSelectedImageName(imageName);
 					}
 				}
 			});
