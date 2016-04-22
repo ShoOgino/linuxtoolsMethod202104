@@ -1,0 +1,81 @@
+	/**
+	 * @see org.eclipse.swt.widgets.Listener#handleEvent(Event)
+	 */
+	@Override
+	public void handleEvent(Event event) {
+		if (event.type == SWT.Selection) {
+			if (event.widget == addButton) {
+				RegistryAccountDialog dialog = new RegistryAccountDialog(
+						getShell(),
+						"New Registry Account");
+				if (dialog.open() == Window.OK) {
+					IRegistryAccount info = dialog
+							.getSignonInformation();
+					passwords.add(info);
+					modifications.add(new PasswordModification(
+							PasswordModification.ADD, info));
+
+					pwdTableViewer.refresh();
+					pwdTable.select(passwords.size() - 1); // select the new
+															// entry
+				}
+
+			} else if (event.widget == changeButton) {
+				RegistryAccountDialog dialog = new RegistryAccountDialog(
+						getShell(),
+						"Edit Registry Account");
+				int index = pwdTable.getSelectionIndex();
+				IRegistryAccount info = passwords
+						.get(index);
+				dialog.setInputData(info.getServerAddress(), info.getUsername(),
+						info.getEmail());
+				if (dialog.open() == Window.OK) {
+					// Remove old and add new
+					info = dialog.getSignonInformation();
+					IRegistryAccount oldInfo = passwords
+							.remove(index);
+					passwords.add(index, info);
+
+					modifications.add(new PasswordModification(
+							PasswordModification.DELETE, oldInfo));
+					modifications.add(new PasswordModification(
+							PasswordModification.ADD, info));
+
+					pwdTableViewer.refresh();
+					pwdTable.select(index);
+				}
+
+			} else if (event.widget == removeButton) {
+				int[] indicies = pwdTable.getSelectionIndices();
+				for (int idx = indicies.length - 1; idx >= 0; idx--) {
+					RegistryAccountManager.getInstance()
+							.remove(passwords.get(indicies[idx]));
+					modifications.add(new PasswordModification(
+							PasswordModification.DELETE,
+							passwords
+									.remove(indicies[idx])));
+				}
+
+				pwdTableViewer.refresh();
+			}
+
+			// Update table buttons based on changes
+			switch (pwdTable.getSelectionCount()) {
+			case 0:
+				changeButton.setEnabled(false);
+				removeButton.setEnabled(false);
+				break;
+
+			case 1:
+				changeButton.setEnabled(true);
+				removeButton.setEnabled(true);
+				break;
+
+			default:
+				changeButton.setEnabled(false);
+				removeButton.setEnabled(true);
+				break;
+			}
+		}
+	}
+
