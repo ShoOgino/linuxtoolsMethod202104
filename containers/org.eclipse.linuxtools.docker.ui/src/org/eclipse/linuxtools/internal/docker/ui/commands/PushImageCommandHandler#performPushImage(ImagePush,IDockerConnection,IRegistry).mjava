@@ -1,5 +1,5 @@
 	private void performPushImage(final ImagePush wizard,
-			final IDockerConnection connection) {
+			final IDockerConnection connection, final IRegistry info) {
 		if (connection == null) {
 			Display.getDefault()
 					.syncExec(() -> MessageDialog.openError(
@@ -20,10 +20,27 @@
 						IProgressMonitor.UNKNOWN);
 				// push the image and let the progress
 				// handler refresh the images when done
+				String tmpRegistryTag = null;
+				boolean createdTag = false;
 				try {
-					((DockerConnection) connection).pushImage(tag,
-							new ImagePushProgressHandler(connection, tag));
-				} catch (final DockerException e) {
+					String repo = info.getServerAddress();
+					tmpRegistryTag = repo + '/' + tag;
+					if (!connection.hasImage(repo, tag)) {
+						connection.tagImage(tag, tmpRegistryTag);
+						createdTag = true;
+					}
+
+					if (info instanceof IRegistryAccount) {
+						IRegistryAccount acc = (IRegistryAccount) info;
+						connection.pushImage(tmpRegistryTag, acc,
+								new ImagePushProgressHandler(connection,
+										tmpRegistryTag));
+					} else {
+						connection.pushImage(tmpRegistryTag,
+								new ImagePushProgressHandler(connection,
+										tmpRegistryTag));
+					}
+				} catch (final DockerException | DockerCertificateException e) {
 					Display.getDefault().syncExec(() -> MessageDialog.openError(
 							PlatformUI.getWorkbench().getActiveWorkbenchWindow()
 									.getShell(),
@@ -34,6 +51,13 @@
 				} catch (InterruptedException e) {
 					// do nothing
 				} finally {
+					if (tmpRegistryTag != null && createdTag) {
+						try {
+							connection.removeTag(tmpRegistryTag);
+						} catch (Exception e) {
+							// do nothing
+						}
+					}
 					monitor.done();
 				}
 				return Status.OK_STATUS;

@@ -14,28 +14,12 @@
 	 */
 	public DockerClient getClient(final String socketPath, final String tcpHost,
 			final String tcpCertPath) throws DockerCertificateException {
-		final boolean validSocketPath = socketPath != null
-				&& !socketPath.isEmpty();
-		final boolean validTcpHost = tcpHost != null && !tcpHost.isEmpty();
-		final boolean validTcpCertPath = tcpCertPath != null
-				&& !tcpCertPath.isEmpty();
 		Builder builder = DefaultDockerClient.builder();
-		try {
-			builder.authConfig(AuthConfig.fromDockerConfig().build());
-		} catch (Exception e) {
-			// AuthConfig can't be found, continue
+		builder = buildConnection(builder, socketPath, tcpHost, tcpCertPath);
+		if (builder != null) {
+			return builder.build();
+		} else {
+			return null;
 		}
-		if (validSocketPath) {
-			return builder.uri(socketPath).build();
-		} else if (validTcpCertPath && validTcpHost) {
-			return builder.uri(URI.create(tcpHost))
-					.dockerCertificates(new DockerCertificates(
-							new File(tcpCertPath).toPath()))
-					.build();
-		} else if (validTcpHost) {
-			return builder.uri(URI.create(tcpHost))
-					.build();
-		}
-		return null;
 	}
 
