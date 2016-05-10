@@ -1,0 +1,28 @@
+	@Override
+	public IDockerNetworkCreation createNetwork(IDockerNetworkConfig cfg)
+			throws DockerException, InterruptedException {
+		try {
+			Ipam.Builder ipamBuilder = Ipam.builder()
+					.driver(cfg.ipam().driver());
+			List<IDockerIpamConfig> ipamCfgs = cfg.ipam().config();
+			for (IDockerIpamConfig ipamCfg : ipamCfgs) {
+				ipamBuilder = ipamBuilder.config(ipamCfg.subnet(),
+						ipamCfg.ipRange(), ipamCfg.gateway());
+			}
+			Ipam ipam = ipamBuilder.build();
+			NetworkConfig.Builder networkConfigBuilder = NetworkConfig.builder()
+					.name(cfg.name()).driver(cfg.driver()).ipam(ipam);
+			Map<String, String> cfgOptions = cfg.options();
+			for (Entry<String, String> entry : cfgOptions.entrySet()) {
+				networkConfigBuilder.option(entry.getKey(), entry.getValue());
+			}
+			NetworkConfig networkConfig = networkConfigBuilder.build();
+			com.spotify.docker.client.messages.NetworkCreation creation = client
+					.createNetwork(networkConfig);
+			return new DockerNetworkCreation(creation);
+
+		} catch (com.spotify.docker.client.DockerException e) {
+			throw new DockerException(e.getMessage(), e.getCause());
+		}
+	}
+
