@@ -1,0 +1,37 @@
+	private String getHTTPServerAddress() {
+		if (cachedHTTPServerAddress != null) {
+			return cachedHTTPServerAddress;
+			/*
+			 * This is wrong because serverAddress prefixed with http won't work
+			 * for push/pull API but let's support this.
+			 */
+		} else if (getServerAddress().startsWith("http")) { //$NON-NLS-1$
+			return getServerAddress();
+		}
+		// We haven't cached the result, so let's evaluate
+		String[] versions = new String[] { "v1", "v2" }; //$NON-NLS-1$ //$NON-NLS-2$
+		String[] schemes = new String[] { "http://", "https://" }; //$NON-NLS-1$ //$NON-NLS-2$
+		final ClientConfig DEFAULT_CONFIG = new ClientConfig(
+				ObjectMapperProvider.class, JacksonFeature.class);
+		final Client client = ClientBuilder.newClient(DEFAULT_CONFIG);
+
+		for (String scheme : schemes) {
+			for (String ver : versions) {
+				String url = scheme + getServerAddress();
+				WebTarget queryServer = client.target(url).path(ver);
+				try {
+					Response resp = queryServer.request(APPLICATION_JSON_TYPE)
+							.async().method(GET).get();
+					int code = resp.getStatus();
+					if (code >= 200 && code < 300) {
+						cachedHTTPServerAddress = url;
+						return url;
+					}
+				} catch (InterruptedException | ExecutionException e) {
+				}
+			}
+		}
+		// URL is probably wrong
+		return "http://" + getServerAddress(); //$NON-NLS-1$
+	}
+

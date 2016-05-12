@@ -1,0 +1,60 @@
+	@Override
+	public List<IDockerImageSearchResult> getImages(String term) throws DockerException {
+		final ClientConfig DEFAULT_CONFIG = new ClientConfig(
+				ObjectMapperProvider.class, JacksonFeature.class);
+		final Client client = ClientBuilder.newClient(DEFAULT_CONFIG);
+		List<IDockerImageSearchResult> result = new ArrayList<>();
+		WebTarget queryImagesResource;
+
+		if (isVersion2()) {
+			final GenericType<ImageSearchResultV2> IMAGE_SEARCH_RESULT_LIST = new GenericType<ImageSearchResultV2>() {
+			};
+			ImageSearchResultV2 cisr = null;
+			queryImagesResource = client.target(getHTTPServerAddress())
+					.path("v2").path("_catalog"); //$NON-NLS-1$ //$NON-NLS-2$
+			try {
+				cisr = queryImagesResource.request(APPLICATION_JSON_TYPE)
+						.async().method(GET, IMAGE_SEARCH_RESULT_LIST).get();
+			} catch (InterruptedException | ExecutionException e) {
+				throw new DockerException(e);
+			}
+			List<ImageSearchResult> tmp = cisr.getRepositories().stream()
+					.filter(e -> e.getName().contains(term))
+					.collect(Collectors.toList());
+
+			result.addAll(tmp.stream()
+					.map(r -> new DockerImageSearchResult(r.getDescription(),
+							r.isOfficial(), r.isAutomated(), r.getName(),
+							r.getStarCount()))
+					.collect(Collectors.toList()));
+		} else {
+			ImageSearchResultV1 pisr = null;
+			final GenericType<ImageSearchResultV1> IMAGE_SEARCH_RESULT_LIST = new GenericType<ImageSearchResultV1>() {
+			};
+			int page = 0;
+			try {
+				while (pisr == null || pisr.getPage() < pisr.getTotalPages()) {
+					page++;
+					queryImagesResource = client.target(getHTTPServerAddress())
+							.path("v1").path("search") //$NON-NLS-1$ //$NON-NLS-2$
+							.queryParam("q", term) //$NON-NLS-1$
+							.queryParam("page", page); //$NON-NLS-1$
+					pisr = queryImagesResource.request(APPLICATION_JSON_TYPE)
+							.async().method(GET, IMAGE_SEARCH_RESULT_LIST)
+							.get();
+					List<ImageSearchResult> tmp = pisr.getResult();
+					result.addAll(tmp.stream()
+							.map(r -> new DockerImageSearchResult(
+									r.getDescription(), r.isOfficial(),
+									r.isAutomated(), r.getName(),
+									r.getStarCount()))
+							.collect(Collectors.toList()));
+				}
+			} catch (InterruptedException | ExecutionException e) {
+				throw new DockerException(e);
+			}
+		}
+
+		return result;
+	}
+

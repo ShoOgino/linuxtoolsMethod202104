@@ -1,0 +1,25 @@
+	@Override
+	public boolean isVersion2() {
+		if (isV2 != null) {
+			return isV2;
+		}
+		// We haven't cached the result, so let's evaluate
+		final ClientConfig DEFAULT_CONFIG = new ClientConfig(
+				ObjectMapperProvider.class, JacksonFeature.class);
+		final Client client = ClientBuilder.newClient(DEFAULT_CONFIG);
+		final WebTarget pingApiv2Resource = client
+				.target(getHTTPServerAddress()).path("v2"); //$NON-NLS-1$
+		try {
+			final Response response = pingApiv2Resource
+					.request(APPLICATION_JSON_TYPE).async().get().get();
+			if (response.getStatus() == Status.OK.getStatusCode()) {
+				isV2 = true;
+				return true;
+			}
+		} catch (ExecutionException | InterruptedException e) {
+			// do nothing
+		}
+		isV2 = false;
+		return false;
+	}
+

@@ -10,9 +10,21 @@
 					monitor -> {
 						monitor.beginTask(WizardMessages
 								.getString("ImageSearchPage.searchTask"), 1); //$NON-NLS-1$
+						final List<IDockerImageSearchResult> searchResults;
 						try {
-							final List<IDockerImageSearchResult> searchResults = ImageSearchPage.this.model
-									.getSelectedConnection().searchImages(term);
+							/*
+							 * The searchImages API that goes through the Docker
+							 * Daemon is faster than querying for the JSON
+							 * results over HTTP so if we're dealing with
+							 * DockerHub, we use the API.
+							 */
+							List<String> dockerHubAliases = Arrays.asList(AbstractRegistry.DOCKERHUB_REGISTRY_ALIASES);
+							if (dockerHubAliases.stream().anyMatch(a -> registry.getServerAddress().contains(a))) {
+								searchResults = ImageSearchPage.this.model
+										.getSelectedConnection().searchImages(term);
+							} else {
+								searchResults = registry.getImages(term);
+							}
 							searchResultQueue.offer(searchResults);
 						} catch (DockerException e) {
 							Activator.log(e);

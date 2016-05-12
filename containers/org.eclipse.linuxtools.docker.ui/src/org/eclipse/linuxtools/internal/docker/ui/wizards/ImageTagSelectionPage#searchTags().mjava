@@ -4,36 +4,31 @@
 					1);
 			ImageTagSelectionPage.this.getContainer().run(true, true,
 					monitor -> {
+						monitor.beginTask(
+								WizardMessages.getString(
+										"ImageTagSelectionPage.searchTask"), //$NON-NLS-1$
+								2);
+						final String selectedImageName = ImageTagSelectionPage.this.model
+								.getSelectedImage().getName();
+						List<IRepositoryTag> repositoryTags;
 						try {
-							monitor.beginTask(
-									WizardMessages.getString(
-											"ImageTagSelectionPage.searchTask"), //$NON-NLS-1$
-									2);
-							final String selectedImageName = ImageTagSelectionPage.this.model
-									.getSelectedImage().getName();
-							final List<IRepositoryTag> repositoryTags = new DockerHubRegistry()
+							repositoryTags = registry
 									.getTags(selectedImageName);
 							monitor.worked(1);
 							final List<DockerImageTagSearchResult> searchResults = new ArrayList<>();
 							final IDockerConnection connection = model
 									.getSelectedConnection();
 							for (IRepositoryTag repositoryTag : repositoryTags) {
-								searchResults
-										.add(new DockerImageTagSearchResult(
-												selectedImageName,
-												repositoryTag,
-												connection.hasImage(
-														selectedImageName,
-														repositoryTag
-																.getName())));
+								searchResults.add(new DockerImageTagSearchResult(
+										selectedImageName, repositoryTag,
+										connection.hasImage(selectedImageName, repositoryTag.getName())));
 							}
 							monitor.worked(1);
 							searchResultQueue.offer(searchResults);
-						} catch (DockerException | InterruptedException
-								| ExecutionException e) {
-							Activator.log(e);
+						} catch (DockerException e) {
+						} finally {
+							monitor.done();
 						}
-						monitor.done();
 					});
 			List<DockerImageTagSearchResult> res = searchResultQueue.poll(10,
 					TimeUnit.SECONDS);
