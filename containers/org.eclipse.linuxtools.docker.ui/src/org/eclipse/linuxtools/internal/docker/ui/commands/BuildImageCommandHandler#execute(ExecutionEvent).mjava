@@ -1,15 +1,20 @@
 	@Override
 	public Object execute(final ExecutionEvent event) {
-		final IWorkbenchPart activePart = HandlerUtil.getActivePart(event);
 		final ImageBuild wizard = new ImageBuild();
 		final WizardDialog wizardDialog = new NonModalWizardDialog(HandlerUtil.getActiveShell(event), wizard);
 		wizardDialog.create();
+		connection = DockerConnectionWatcher.getInstance().getConnection();
+		if (connection == null || !connection.isActive()) {
+			// if no active connection, issue error message dialog and return
+			Display.getDefault().syncExec(() -> MessageDialog.openError(
+					PlatformUI.getWorkbench().getActiveWorkbenchWindow()
+							.getShell(),
+					WizardMessages.getString("ErrorNoActiveConnection.msg"), //$NON-NLS-1$
+					WizardMessages.getString("ErrorNoActiveConnection.desc"))); //$NON-NLS-1$
+			return null;
+		}
 		final boolean buildImage = wizardDialog.open() == Window.OK;
 		if (buildImage) {
-			if (activePart instanceof DockerImagesView) {
-				connection = ((DockerImagesView) activePart)
-						.getConnection();
-			}
 			performBuildImage(wizard);
 		}
 		return null;
