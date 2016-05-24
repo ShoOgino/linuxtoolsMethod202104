@@ -2,12 +2,12 @@
 	 * Create a launch configuration based on a Dockerfile resource, and
 	 * optionally save it to the underlying resource.
 	 *
-	 * @param resource
+	 * @param dockerfile
 	 *            a Dockerfile file to build
 	 * @return a launch configuration generated for the Dockerfile build.
 	 */
 	protected ILaunchConfiguration createConfiguration(
-			final IResource resource) {
+			final IResource dockerfile) {
 		try {
 			final IDockerConnection[] connections = DockerConnectionManager
 					.getInstance().getConnections();
@@ -26,31 +26,10 @@
 						getActiveWorkbenchShell());
 				final int result = dialog.open();
 				if (result == IDialogConstants.OK_ID) {
-					final ILaunchConfigurationType configType = LaunchConfigurationUtils
-							.getLaunchConfigType(
-									IBuildDockerImageLaunchConfigurationConstants.CONFIG_TYPE_ID);
-					final ILaunchConfigurationWorkingCopy wc = configType
-							.newInstance(null,
-									DebugPlugin.getDefault().getLaunchManager()
-											.generateLaunchConfigurationName(
-													createLaunchConfigurationName(
-															dialog.getRepoName(),
-															resource))); // $NON-NLS-1$
-					wc.setAttribute(
-							IBuildDockerImageLaunchConfigurationConstants.SOURCE_PATH_LOCATION,
-							resource.getFullPath().removeLastSegments(1)
-									.toString());
-					wc.setAttribute(
-							IBuildDockerImageLaunchConfigurationConstants.SOURCE_PATH_WORKSPACE_RELATIVE_LOCATION,
-							true);
-
-					final IDockerConnection connection = dialog.getConnection();
-					final String repoName = dialog.getRepoName();
-					wc.setAttribute(IDockerImageBuildOptions.DOCKER_CONNECTION,
-							connection.getName());
-					wc.setAttribute(IDockerImageBuildOptions.REPO_NAME,
-							repoName);
-					return wc.doSave();
+					return LaunchConfigurationUtils
+							.createBuildImageLaunchConfiguration(
+									dialog.getConnection(),
+									dialog.getRepoName(), dockerfile);
 				}
 			}
 		} catch (CoreException e) {

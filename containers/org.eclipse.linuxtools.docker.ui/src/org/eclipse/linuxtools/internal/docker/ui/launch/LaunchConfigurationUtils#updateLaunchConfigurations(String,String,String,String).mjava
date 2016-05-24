@@ -1,0 +1,48 @@
+	/**
+	 * Updates all {@link ILaunchConfiguration} of the given {@code type} where
+	 * there is an attribute with the given {@code attributeName} of the given
+	 * {@code oldValue}, and sets the {@code newValue} instead.
+	 * 
+	 * @param type
+	 *            the type of {@link ILaunchConfiguration} to find
+	 * @param attributeName
+	 *            the name of the attribute to look-up
+	 * @param oldValue
+	 *            the old value to match
+	 * @param newValue
+	 *            the new value to set
+	 */
+	public static void updateLaunchConfigurations(final String type,
+			final String attributeName, final String oldValue,
+			final String newValue) {
+		final ILaunchConfigurationType configType = LaunchConfigurationUtils
+				.getLaunchConfigType(type);
+		final ILaunchManager manager = DebugPlugin.getDefault()
+				.getLaunchManager();
+		try {
+			for (ILaunchConfiguration config : manager
+					.getLaunchConfigurations(configType)) {
+				try {
+					if (config.getAttribute(attributeName, "") //$NON-NLS-1$
+							.equals(oldValue)) {
+						final ILaunchConfigurationWorkingCopy workingCopy = config
+								.getWorkingCopy();
+						workingCopy.setAttribute(attributeName, newValue);
+						workingCopy.doSave();
+					}
+				} catch (CoreException e) {
+					Activator.logErrorMessage(LaunchMessages.getFormattedString(
+							"UpdateLaunchConfiguration.named.error", //$NON-NLS-1$
+							config.getName()), e);
+				}
+			}
+		} catch (CoreException e) {
+			Activator.logErrorMessage(
+					LaunchMessages.getString("UpdateLaunchConfiguration.error" //$NON-NLS-1$
+					), e);
+			Activator.logErrorMessage(
+					"Failed to retrieve launch configurations after connection name changed",
+					e);
+		}
+	}
+

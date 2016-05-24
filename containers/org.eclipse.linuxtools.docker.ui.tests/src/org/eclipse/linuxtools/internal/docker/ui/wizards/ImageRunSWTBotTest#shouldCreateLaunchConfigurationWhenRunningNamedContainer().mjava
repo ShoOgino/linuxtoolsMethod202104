@@ -3,14 +3,14 @@
 			throws InterruptedException, DockerException, CoreException {
 		// image to use
 		final String imageName = "foo/bar:latest";
-		final Image image = MockDockerImageFactory.id("1a2b3c4d5e6f7g").name(imageName).build();
-		final ImageInfo imageInfo = MockDockerImageInfoFactory.volume("/foo/bar")
+		final Image image = MockImageFactory.id("1a2b3c4d5e6f7g").name(imageName).build();
+		final ImageInfo imageInfo = MockImageInfoFactory.volume("/foo/bar")
 				.command(Arrays.asList("the", "command")).entrypoint(Arrays.asList("the", "entrypoint")).build();
 		// container to be created
 		final String containerName = "foo_bar";
-		final Container createdContainer = MockDockerContainerFactory.id("MockContainer").name(containerName)
+		final Container createdContainer = MockContainerFactory.id("MockContainer").name(containerName)
 				.imageId("1a2b3c4d5e6f7g").status("Started 1 second ago").build();
-		final ContainerInfo containerInfo = MockDockerContainerInfoFactory.build();
+		final ContainerInfo containerInfo = MockContainerInfoFactory.build();
 		final DockerClient client = MockDockerClientFactory.image(image, imageInfo)
 				//.container(createdContainer, containerInfo)
 				.build();
@@ -18,7 +18,7 @@
 		final ContainerCreation containerCreation = Mockito.mock(ContainerCreation.class);
 		Mockito.when(containerCreation.id()).thenReturn("MockContainer");
 		Mockito.when(client.createContainer(Matchers.any(), Matchers.any())).thenReturn(containerCreation);
-		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client).get();
+		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client).withDefaultTCPConnectionSettings();
 		// configure the Connection Manager
 		DockerConnectionManagerUtils.configureConnectionManager(dockerConnection);
 		
@@ -42,10 +42,8 @@
 		// check that the client was called
 		Mockito.verify(client).createContainer(Matchers.any(), Matchers.eq(containerName));
 		// check that a launch configuration was created
-		final ILaunchConfigurationType launchConfigType = LaunchConfigurationUtils
-				.getLaunchConfigType(IRunDockerImageLaunchConfigurationConstants.CONFIG_TYPE_ID);
-		final ILaunchConfiguration launchConfiguration = LaunchConfigurationUtils
-				.getLaunchConfigurationByName(launchConfigType, "foo_bar_latest");
+		final ILaunchConfiguration launchConfiguration = LaunchConfigurationUtils.getLaunchConfigurationByName(
+				IRunDockerImageLaunchConfigurationConstants.CONFIG_TYPE_ID, "foo_bar_latest");
 		assertThat(launchConfiguration).isNotNull();
 
 	}

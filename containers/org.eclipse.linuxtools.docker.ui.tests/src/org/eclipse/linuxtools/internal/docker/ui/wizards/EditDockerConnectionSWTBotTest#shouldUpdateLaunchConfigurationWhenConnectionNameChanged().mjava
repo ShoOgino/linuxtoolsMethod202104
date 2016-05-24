@@ -1,0 +1,37 @@
+	@Test
+	public void shouldUpdateLaunchConfigurationWhenConnectionNameChanged() throws CoreException {
+		// given
+		final IDockerConnection connection = configureTCPConnection("Test");
+		final String buildImageLaunchConfigurationName = configureBuildImageLaunchConfiguration(connection);
+		final ILaunchConfiguration buildDockerImageLaunchConfig = LaunchConfigurationUtils.getLaunchConfigurationByName(
+				IBuildDockerImageLaunchConfigurationConstants.CONFIG_TYPE_ID, buildImageLaunchConfigurationName);
+		assertThat(buildDockerImageLaunchConfig).isNotNull();
+		assertThat(buildDockerImageLaunchConfig.getAttribute(IDockerImageBuildOptions.DOCKER_CONNECTION, ""))
+				.isEqualTo("Test");
+		final String runImageLaunchConfigurationName = configureRunImageLaunchConfiguration(connection);
+		final ILaunchConfiguration runDockerImageLaunchConfig = LaunchConfigurationUtils.getLaunchConfigurationByName(
+				IRunDockerImageLaunchConfigurationConstants.CONFIG_TYPE_ID, runImageLaunchConfigurationName);
+		assertThat(runDockerImageLaunchConfig).isNotNull();
+		assertThat(runDockerImageLaunchConfig.getAttribute(IRunDockerImageLaunchConfigurationConstants.CONNECTION_NAME,
+				"")).isEqualTo("Test");
+
+		// when
+		openConnectionEditionWizard("Test");
+		bot.text(0).setText("foo");
+		getFinishButton().click();
+
+		// then
+		final ILaunchConfiguration updatedBuildDockerImageLaunchConfig = LaunchConfigurationUtils
+				.getLaunchConfigurationByName(IBuildDockerImageLaunchConfigurationConstants.CONFIG_TYPE_ID,
+						buildImageLaunchConfigurationName);
+		assertThat(updatedBuildDockerImageLaunchConfig).isNotNull();
+		assertThat(updatedBuildDockerImageLaunchConfig.getAttribute(IDockerImageBuildOptions.DOCKER_CONNECTION, ""))
+				.isEqualTo("foo");
+		final ILaunchConfiguration updatedRunDockerImageLaunchConfig = LaunchConfigurationUtils
+				.getLaunchConfigurationByName(IRunDockerImageLaunchConfigurationConstants.CONFIG_TYPE_ID,
+						runImageLaunchConfigurationName);
+		assertThat(updatedRunDockerImageLaunchConfig).isNotNull();
+		assertThat(updatedRunDockerImageLaunchConfig
+				.getAttribute(IRunDockerImageLaunchConfigurationConstants.CONNECTION_NAME, "")).isEqualTo("foo");
+	}
+

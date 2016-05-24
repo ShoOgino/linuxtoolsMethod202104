@@ -1,0 +1,73 @@
+	/**
+	 * Verifies that the given connection settings work by trying to connect to
+	 * the target Docker daemon
+	 * 
+	 * @return
+	 */
+	private SelectionListener onTestConnectionButtonSelection() {
+		return new SelectionAdapter() {
+
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				try {
+					getWizard().getContainer().run(true, false, monitor -> {
+						monitor.beginTask(WizardMessages.getString(
+										"DockerConnectionPage.pingTask"), //$NON-NLS-1$
+								IProgressMonitor.UNKNOWN);
+						try {
+							final DockerConnection dockerConnection = getDockerConnection();
+							dockerConnection.open(false);
+							dockerConnection.ping();
+							dockerConnection.close();
+							// ping succeeded
+							displaySuccessDialog();
+						} catch (DockerException e1) {
+							// only log if there's an underlying cause.
+							if (e1.getCause() != null) {
+								Activator.log(e1);
+							}
+							displayErrorDialog();
+						}
+					});
+				} catch (InvocationTargetException | InterruptedException o_O) {
+					Activator.log(o_O);
+				}
+
+			}
+
+			private void displaySuccessDialog() {
+				displayDialog(
+						WizardMessages
+								.getString("DockerConnectionPage.success"), //$NON-NLS-1$
+						WizardMessages
+								.getString("DockerConnectionPage.pingSuccess"), //$NON-NLS-1$
+						SWT.ICON_INFORMATION, new String[] { WizardMessages
+								.getString("DockerConnectionPage.ok") } //$NON-NLS-1$
+				);
+			}
+
+			private void displayErrorDialog() {
+				displayDialog(
+						WizardMessages
+								.getString("DockerConnectionPage.failure"), //$NON-NLS-1$
+						WizardMessages
+								.getString("DockerConnectionPage.pingFailure"), //$NON-NLS-1$
+						SWT.ICON_ERROR, new String[] { WizardMessages
+								.getString("DockerConnectionPage.ok") } //$NON-NLS-1$
+				);
+			}
+
+			private void displayDialog(final String dialogTitle,
+					final String dialogMessage, final int icon,
+					final String[] buttonLabels) {
+				Display.getDefault()
+						.syncExec(() -> new MessageDialog(
+								PlatformUI.getWorkbench()
+										.getActiveWorkbenchWindow().getShell(),
+								dialogTitle, null, dialogMessage, icon,
+								buttonLabels, 0).open());
+			}
+
+		};
+	}
+

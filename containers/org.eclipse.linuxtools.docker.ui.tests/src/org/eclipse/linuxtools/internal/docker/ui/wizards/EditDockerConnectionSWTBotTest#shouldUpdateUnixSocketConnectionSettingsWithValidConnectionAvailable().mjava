@@ -1,0 +1,25 @@
+	@Test
+	public void shouldUpdateUnixSocketConnectionSettingsWithValidConnectionAvailable() {
+		// given
+		configureTCPConnection();
+		openConnectionEditionWizard("Test");
+
+		// when: switch to TCP connection settings and save
+		bot.text(0).setText("foo");
+		bot.radio(1).click();
+		bot.text(2).setText("http://foo:1234");
+		bot.checkBox(0).select();
+		bot.text(3).setText(PATH_TO_CERTS);
+		getFinishButton().click();
+
+		// then
+		final IDockerConnection fooConnection = DockerConnectionManager.getInstance().findConnection("foo");
+		assertThat(fooConnection).isNotNull();
+		assertThat(fooConnection.getName()).isEqualTo("foo");
+		assertThat(fooConnection.getSettings()).isInstanceOf(TCPConnectionSettings.class);
+		final TCPConnectionSettings connectionSettings = (TCPConnectionSettings) fooConnection.getSettings();
+		assertThat(connectionSettings.getHost()).isEqualTo("https://foo:1234");
+		assertThat(connectionSettings.isTlsVerify()).isEqualTo(true);
+		assertThat(connectionSettings.getPathToCertificates()).isEqualTo(PATH_TO_CERTS);
+	}
+

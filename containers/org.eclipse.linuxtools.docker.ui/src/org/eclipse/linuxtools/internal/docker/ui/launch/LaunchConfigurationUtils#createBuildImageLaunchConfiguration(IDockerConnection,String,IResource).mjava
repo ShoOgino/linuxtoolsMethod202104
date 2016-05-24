@@ -1,0 +1,37 @@
+	/**
+	 * Creates a new {@link ILaunchConfiguration} to build an
+	 * {@link IDockerImage} from a Dockerfile {@link IResource}.
+	 * 
+	 * @param connection
+	 *            the connection to use to submit the build
+	 * @param repoName
+	 *            the repo/name of the {@link IDockerImage} to build
+	 * @param dockerfile
+	 *            the dockerfile to use to build the {@link IDockerImage}
+	 * @return the created {@link ILaunchConfiguration}
+	 * @throws CoreException
+	 */
+	public static ILaunchConfiguration createBuildImageLaunchConfiguration(
+			final IDockerConnection connection, final String repoName,
+			final IResource dockerfile) throws CoreException {
+		final ILaunchConfigurationType configType = LaunchConfigurationUtils
+				.getLaunchConfigType(
+						IBuildDockerImageLaunchConfigurationConstants.CONFIG_TYPE_ID);
+		final ILaunchConfigurationWorkingCopy wc = configType.newInstance(null,
+				DebugPlugin.getDefault().getLaunchManager()
+						.generateLaunchConfigurationName(
+								createLaunchConfigurationName(repoName,
+										dockerfile)));
+		wc.setAttribute(
+				IBuildDockerImageLaunchConfigurationConstants.SOURCE_PATH_LOCATION,
+				dockerfile.getFullPath().removeLastSegments(1).toString());
+		wc.setAttribute(
+				IBuildDockerImageLaunchConfigurationConstants.SOURCE_PATH_WORKSPACE_RELATIVE_LOCATION,
+				true);
+
+		wc.setAttribute(IDockerImageBuildOptions.DOCKER_CONNECTION,
+				connection.getName());
+		wc.setAttribute(IDockerImageBuildOptions.REPO_NAME, repoName);
+		return wc.doSave();
+	}
+

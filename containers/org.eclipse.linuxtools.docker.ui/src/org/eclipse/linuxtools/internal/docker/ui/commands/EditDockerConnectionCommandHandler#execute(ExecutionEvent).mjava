@@ -1,0 +1,26 @@
+	@Override
+	public Object execute(ExecutionEvent event) {
+		final IWorkbenchPart activePart = HandlerUtil.getActivePart(event);
+		final IDockerConnection currentConnection = CommandUtils
+				.getCurrentConnection(activePart);
+		final String oldConnectionName = currentConnection.getName();
+		final EditDockerConnection wizard = new EditDockerConnection(
+				currentConnection);
+		if (CommandUtils.openWizard(wizard,
+				HandlerUtil.getActiveShell(event))) {
+			// apply the changes to all launch configurations if needed
+			final String newConnectionName = currentConnection.getName();
+			if (!newConnectionName.equals(oldConnectionName)) {
+				LaunchConfigurationUtils.updateLaunchConfigurations(
+						IBuildDockerImageLaunchConfigurationConstants.CONFIG_TYPE_ID,
+						IDockerImageBuildOptions.DOCKER_CONNECTION,
+						oldConnectionName, newConnectionName);
+				LaunchConfigurationUtils.updateLaunchConfigurations(
+						IRunDockerImageLaunchConfigurationConstants.CONFIG_TYPE_ID,
+						IRunDockerImageLaunchConfigurationConstants.CONNECTION_NAME,
+						oldConnectionName, newConnectionName);
+			}
+		}
+		return null;
+	}
+

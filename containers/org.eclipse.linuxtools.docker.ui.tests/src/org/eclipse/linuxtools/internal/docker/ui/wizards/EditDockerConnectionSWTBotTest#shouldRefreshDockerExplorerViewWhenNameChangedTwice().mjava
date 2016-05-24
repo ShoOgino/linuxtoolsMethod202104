@@ -1,0 +1,37 @@
+	@Test
+	public void shouldRefreshDockerExplorerViewWhenNameChangedTwice() throws CoreException {
+		// given
+		final IDockerConnection connection = configureTCPConnection("Test");
+		final String buildImageLaunchConfigurationName = configureBuildImageLaunchConfiguration(connection);
+		final ILaunchConfiguration buildDockerImageLaunchConfig = LaunchConfigurationUtils.getLaunchConfigurationByName(
+				IBuildDockerImageLaunchConfigurationConstants.CONFIG_TYPE_ID, buildImageLaunchConfigurationName);
+		assertThat(buildDockerImageLaunchConfig).isNotNull();
+		assertThat(buildDockerImageLaunchConfig.getAttribute(IDockerImageBuildOptions.DOCKER_CONNECTION, ""))
+				.isEqualTo("Test");
+		final String runImageLaunchConfigurationName = configureRunImageLaunchConfiguration(connection);
+		final ILaunchConfiguration runDockerImageLaunchConfig = LaunchConfigurationUtils.getLaunchConfigurationByName(
+				IRunDockerImageLaunchConfigurationConstants.CONFIG_TYPE_ID, runImageLaunchConfigurationName);
+		assertThat(runDockerImageLaunchConfig).isNotNull();
+		assertThat(runDockerImageLaunchConfig.getAttribute(IRunDockerImageLaunchConfigurationConstants.CONNECTION_NAME,
+				"")).isEqualTo("Test");
+		final SWTBotTreeItem connectionTreeItem = SWTUtils.getTreeItem(dockerExplorer.bot(), "Test");
+		assertThat(connectionTreeItem).isNotNull();
+
+		// name change #1
+		openConnectionEditionWizard("Test");
+		bot.text(0).setText("foo");
+		getFinishButton().click();
+		SWTUtils.wait(2, TimeUnit.SECONDS);
+
+		// name change #2
+		openConnectionEditionWizard("foo");
+		bot.text(0).setText("bar");
+		getFinishButton().click();
+		SWTUtils.wait(2, TimeUnit.SECONDS);
+
+		// then
+		final SWTBotTreeItem updatedConnectionTreeItem = SWTUtils.getTreeItem(dockerExplorer.bot(), "bar");
+		assertThat(updatedConnectionTreeItem).isNotNull();
+
+	}
+

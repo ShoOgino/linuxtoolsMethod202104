@@ -1,0 +1,34 @@
+	@Test
+	public void shouldSaveConnectionWhenUnixSockerConnectionSettingsChanged() throws CoreException, IOException {
+		// given
+		final IDockerConnection connection = configureUnixSocketConnection("Test");
+		final IDockerConnectionStorageManager connectionStorageManager = MockDockerConnectionStorageManagerFactory.providing(connection);
+		DockerConnectionManagerUtils.configureConnectionManager(connectionStorageManager);
+		final String buildImageLaunchConfigurationName = configureBuildImageLaunchConfiguration(connection);
+		final ILaunchConfiguration buildDockerImageLaunchConfig = LaunchConfigurationUtils.getLaunchConfigurationByName(
+				IBuildDockerImageLaunchConfigurationConstants.CONFIG_TYPE_ID, buildImageLaunchConfigurationName);
+		assertThat(buildDockerImageLaunchConfig).isNotNull();
+		assertThat(buildDockerImageLaunchConfig.getAttribute(IDockerImageBuildOptions.DOCKER_CONNECTION, ""))
+				.isEqualTo("Test");
+		final String runImageLaunchConfigurationName = configureRunImageLaunchConfiguration(connection);
+		final ILaunchConfiguration runDockerImageLaunchConfig = LaunchConfigurationUtils.getLaunchConfigurationByName(
+				IRunDockerImageLaunchConfigurationConstants.CONFIG_TYPE_ID, runImageLaunchConfigurationName);
+		assertThat(runDockerImageLaunchConfig).isNotNull();
+		assertThat(runDockerImageLaunchConfig.getAttribute(IRunDockerImageLaunchConfigurationConstants.CONNECTION_NAME,
+				"")).isEqualTo("Test");
+		final SWTBotTreeItem connectionTreeItem = SWTUtils.getTreeItem(dockerExplorer.bot(), "Test");
+		assertThat(connectionTreeItem).isNotNull();
+		final File tmpDockerSocketFile = folder.newFile("docker.sock");
+		// when
+		openConnectionEditionWizard("Test");
+		bot.text(1).setText(tmpDockerSocketFile.getAbsolutePath());
+		getFinishButton().click();
+
+		// then
+		final IDockerConnection foundConnection = DockerConnectionManager.getInstance().findConnection("Test");
+		assertThat(foundConnection).isNotNull();
+		assertThat(foundConnection.getSettings()).isNotNull()
+				.isEqualTo(new UnixSocketConnectionSettings(tmpDockerSocketFile.getAbsolutePath()));
+		Mockito.verify(connectionStorageManager).saveConnections(Matchers.anyList());
+	}
+

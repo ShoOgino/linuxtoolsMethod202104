@@ -1,0 +1,22 @@
+	@Test
+	public void shouldUpdateTCPConnectionSettingsWithValidConnectionAvailable() {
+		// given
+		configureTCPConnection();
+		openConnectionEditionWizard("Test");
+
+		// when: switch to TCP connection settings and save
+		bot.text(0).setText("foo");
+		bot.radio(0).click();
+		bot.text(1).setText("/var/run/docker.sock");
+		getFinishButton().click();
+
+		// then
+		final IDockerConnection fooConnection = DockerConnectionManager.getInstance().findConnection("foo");
+		assertThat(fooConnection).isNotNull();
+		assertThat(fooConnection.getName()).isEqualTo("foo");
+		assertThat(fooConnection.getSettings()).isInstanceOf(UnixSocketConnectionSettings.class);
+		final UnixSocketConnectionSettings connectionSettings = (UnixSocketConnectionSettings) fooConnection
+				.getSettings();
+		assertThat(connectionSettings.getPath()).isEqualTo("unix:///var/run/docker.sock");
+	}
+

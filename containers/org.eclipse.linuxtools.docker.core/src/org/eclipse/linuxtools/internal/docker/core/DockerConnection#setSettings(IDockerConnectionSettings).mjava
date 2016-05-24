@@ -1,0 +1,24 @@
+	@Override
+	public boolean setSettings(
+			final IDockerConnectionSettings connectionSettings) {
+		if (!this.connectionSettings.equals(connectionSettings)) {
+			// make sure no other operation using the underneath client occurs
+			// while switching the connection settings.
+			synchronized (clientLock) {
+				this.connectionSettings = connectionSettings;
+				this.client.close();
+				this.client = null;
+				try {
+					// no need to register again
+					open(false);
+				} catch (DockerException e) {
+					Activator.log(e);
+				}
+			}
+			getContainers(true);
+			getImages(true);
+			return true;
+		}
+		return false;
+	}
+
