@@ -3,7 +3,23 @@
 		final ImageBuild wizard = new ImageBuild();
 		final WizardDialog wizardDialog = new NonModalWizardDialog(HandlerUtil.getActiveShell(event), wizard);
 		wizardDialog.create();
-		connection = DockerConnectionWatcher.getInstance().getConnection();
+		IWorkbenchWindow window = PlatformUI.getWorkbench()
+				.getActiveWorkbenchWindow();
+		IWorkbenchPage activePage = null;
+		IWorkbenchPart activePart = null;
+		if (window != null)
+			activePage = window.getActivePage();
+		if (activePage != null)
+			activePart = activePage.getActivePart();
+		connection = CommandUtils.getCurrentConnection(activePart);
+		// if no current connection, try the first connection in the list of
+		// connections
+		if (connection == null) {
+			IDockerConnection[] connections = DockerConnectionManager
+					.getInstance().getConnections();
+			if (connections.length > 0)
+				connection = connections[0];
+		}
 		if (connection == null || !connection.isActive()) {
 			// if no active connection, issue error message dialog and return
 			Display.getDefault().syncExec(() -> MessageDialog.openError(
