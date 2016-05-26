@@ -1,0 +1,32 @@
+	private void updateConnectionInfo(final IDockerConnection connection) {
+		// Set the tree empty while we wait for the real data
+		if (getTreeViewer() != null) {
+			getTreeViewer().setInput(null);
+			getTreeViewer().expandAll();
+		}
+
+		final Job loadConnectionInfoJob = new Job(DVMessages.getString(LoadingConnectionInfo)) {
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				monitor.beginTask(DVMessages.getString(LoadingConnectionInfo), 1);
+				if (!connection.isActive()) {
+					return Status.OK_STATUS;
+				}
+				try {
+					final IDockerConnectionInfo info = connection.getInfo();
+					Display.getDefault().asyncExec(() -> {
+						if (info != null && getTreeViewer() != null) {
+							getTreeViewer().setInput(info);
+							getTreeViewer().expandAll();
+						}
+					});
+				} catch (DockerException e) {
+					Activator.log(e);
+				}
+				monitor.done();
+				return Status.OK_STATUS;
+			}
+		};
+		loadConnectionInfoJob.schedule();
+	}
+
