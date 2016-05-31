@@ -1,10 +1,20 @@
 	@Override
 	public boolean isValid(ILaunchConfiguration launchConfig) {
 		try {
-			if (launchConfig.getAttribute(
+			String connectionName = launchConfig.getAttribute(
 					IRunDockerImageLaunchConfigurationConstants.CONNECTION_NAME,
-					"").isEmpty()) {
+					"");
+			if (connectionName.isEmpty()) {
 				return false;
+			} else {
+				// Verify Connection is active
+				IDockerConnection connection = DockerConnectionManager
+						.getInstance().findConnection(connectionName);
+				if (connection == null || !connection.isOpen()) {
+					setErrorMessage(WizardMessages
+							.getString("ErrorInactiveConnection.msg")); //$NON-NLS-1$
+					return false;
+				}
 			}
 			final IStatus imageSelectionValidationStatus = new ImageSelectionValidator()
 					.validate(model.getSelectedImageName());
