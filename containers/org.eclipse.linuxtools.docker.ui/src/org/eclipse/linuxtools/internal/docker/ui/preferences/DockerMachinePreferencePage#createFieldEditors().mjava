@@ -4,7 +4,27 @@
 		this.dockerMachineInstallDir = new CustomDirectoryFieldEditor(
 				PreferenceConstants.DOCKER_MACHINE_INSTALLATION_DIRECTORY,
 				Messages.getString("DockerMachinePath.label"), //$NON-NLS-1$
-				getFieldEditorParent());
+				getFieldEditorParent()) {
+			@Override
+			protected boolean checkState() {
+				if (isEmptyStringAllowed()
+						&& !this.getStringValue().isEmpty()) {
+					final boolean validPath = super.checkState();
+					if (!validPath) {
+						return false;
+					}
+					if (!DockerMachine
+							.checkPathToDockerMachine(this.getStringValue())) {
+						setWarningMessage(NLS.bind(
+								org.eclipse.linuxtools.docker.core.Messages.Docker_Machine_Command_Not_Found,
+								this.getStringValue()));
+						return true;
+					}
+				}
+				setMessage("");
+				return true;
+			}
+		};
 		addField(this.dockerMachineInstallDir);
 		this.dockerMachineInstallDir.setPreferenceStore(getPreferenceStore());
 		// allow empty value if docker-machine is not installed
