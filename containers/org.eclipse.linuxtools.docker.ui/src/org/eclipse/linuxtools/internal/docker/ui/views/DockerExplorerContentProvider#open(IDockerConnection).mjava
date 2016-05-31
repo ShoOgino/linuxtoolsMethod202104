@@ -1,0 +1,26 @@
+	/**
+	 * Call the {@link IDockerConnection#getContainers(boolean)} in a background
+	 * job to avoid blocking the UI.
+	 * 
+	 * @param connection
+	 *            the connection to ping
+	 */
+	private void open(final IDockerConnection connection) {
+		final Job pingJob = new LoadingJob(DVMessages.getString("PingJob.msg"), //$NON-NLS-1$
+				connection) {
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				try {
+					connection.open(true);
+					connection.ping();
+					return Status.OK_STATUS;
+				} catch (DockerException e) {
+					Activator.logErrorMessage(DVMessages.getFormattedString(
+							"PingJobError.msg", connection.getUri())); //$NON-NLS-1$
+					return Status.CANCEL_STATUS;
+				}
+			}
+		};
+		pingJob.schedule();
+	}
+

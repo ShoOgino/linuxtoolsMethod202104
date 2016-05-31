@@ -5,9 +5,32 @@
 			final CommonViewer viewer = ((CommonNavigator)activePart).getCommonViewer();
 			final ITreeSelection selection = (ITreeSelection) viewer.getSelection();
 			for (TreePath treePath : selection.getPaths()) {
-				DockerConnection conn = (DockerConnection) treePath.getLastSegment();
-				if (!conn.isActive()) {
-					conn.setActive();
+				final IDockerConnection conn = (IDockerConnection) treePath
+						.getLastSegment();
+				if (!conn.isOpen()) {
+					final Job openConnectionJob = new Job(
+							CommandMessages.getFormattedString(
+									"command.enableconnection", //$NON-NLS-1$
+									conn.getUri())) {
+
+						@Override
+						protected IStatus run(IProgressMonitor monitor) {
+							try {
+								conn.open(true);
+								Display.getDefault()
+										.asyncExec(() -> viewer.refresh(conn));
+							} catch (DockerException e) {
+								Activator
+								.logErrorMessage(
+										CommandMessages.getString(
+												"command.enableconnection.failure"), //$NON-NLS-1$
+										e);
+								return Status.CANCEL_STATUS;
+							}
+							return Status.OK_STATUS;
+						}
+					};
+					openConnectionJob.schedule();
 				}
 			}
 		}

@@ -1,31 +1,22 @@
-	@Test 
+	@Test
 	public void shouldShowContainerVolumes() {
 		// given
-		final DockerClient client = MockDockerClientFactory
-				.container(MockContainerFactory.name("foo_bar").build(),
-						MockContainerInfoFactory.volume("/path/to/container")
-								.volume("/path/to/host:/path/to/container")
-								.volume("/path/to/host:/path/to/container:Z,ro").build())
+		final DockerClient client = MockDockerClientFactory.container(MockContainerFactory.name("foo_bar").build(),
+				MockContainerInfoFactory.volume("/path/to/container").volume("/path/to/host:/path/to/container")
+						.volume("/path/to/host:/path/to/container:Z,ro").build())
 				.build();
-		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client).withDefaultTCPConnectionSettings();
+		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client)
+				.withDefaultTCPConnectionSettings();
 		DockerConnectionManagerUtils.configureConnectionManager(dockerConnection);
 		SWTUtils.asyncExec(() -> dockerExplorerView.getCommonViewer().expandAll());
-		// when a second call to expand the container is done (because the first
-		// expandAll stopped with a "Loading..." job that retrieved the
-		// containers)
-		final SWTBotTreeItem containerTreeItem = SWTUtils.getTreeItem(dockerExplorerViewBot, "Test",
-				"Containers", "foo_bar");
-		SWTUtils.asyncExec(() -> containerTreeItem.expand());
-		final SWTBotTreeItem containerVolumesItem = SWTUtils.getTreeItem(containerTreeItem, "Volumes");
-		SWTUtils.asyncExec(() -> containerVolumesItem.expand());
+		// when
+		final SWTBotTreeItem volumesTreeItem = SWTUtils.expand(dockerExplorerViewBot.bot().tree(), "Test", "Containers",
+				"foo_bar", "Volumes");
 		// then
-		SWTUtils.syncAssert(() -> {
-			SWTBotTreeItemAssertions.assertThat(containerVolumesItem).isExpanded().hasChildItems(3);
-			SWTBotTreeItemAssertions.assertThat(containerVolumesItem.getNode(0)).hasText("/path/to/container");
-			SWTBotTreeItemAssertions.assertThat(containerVolumesItem.getNode(1))
-					.hasText("/path/to/host -> /path/to/container");
-			SWTBotTreeItemAssertions.assertThat(containerVolumesItem.getNode(2))
-					.hasText("/path/to/host -> /path/to/container (Z,ro)");
-		});
+		SWTBotTreeItemAssertions.assertThat(volumesTreeItem).isExpanded().hasChildItems(3);
+		SWTBotTreeItemAssertions.assertThat(volumesTreeItem.getNode(0)).hasText("/path/to/container");
+		SWTBotTreeItemAssertions.assertThat(volumesTreeItem.getNode(1)).hasText("/path/to/host -> /path/to/container");
+		SWTBotTreeItemAssertions.assertThat(volumesTreeItem.getNode(2))
+				.hasText("/path/to/host -> /path/to/container (Z,ro)");
 	}
 

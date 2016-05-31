@@ -7,14 +7,10 @@
 				.build();
 		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client).withDefaultTCPConnectionSettings();
 		DockerConnectionManagerUtils.configureConnectionManager(dockerConnection);
-		SWTUtils.asyncExec(() -> dockerExplorerView.getCommonViewer().expandAll());
-		final SWTBotTreeItem containersTreeItem = SWTUtils.getTreeItem(dockerExplorerViewBot, "Test",
-				"Containers");
-		final SWTBotTreeItem containerTreeItem = SWTUtils.getTreeItem(containersTreeItem, "foo_bar");
-		SWTUtils.asyncExec(() -> containerTreeItem.expand());
-		SWTUtils.asyncExec(() -> SWTUtils.getTreeItem(containerTreeItem, "Volumes").expand());
+		final SWTBotTreeItem volume = SWTUtils.expand(dockerExplorerViewBot.bot().tree(), "Test", "Containers",
+				"foo_bar", "Volumes", "/path/to/host");
 		// when selecting the volume
-		SWTUtils.getTreeItem(containerTreeItem, "Volumes", "/path/to/host").select();
+		volume.select();
 		// then current connection should be found
 		Assertions.assertThat(CommandUtils.getCurrentConnection(dockerExplorerView)).isEqualTo(dockerConnection);
 	}

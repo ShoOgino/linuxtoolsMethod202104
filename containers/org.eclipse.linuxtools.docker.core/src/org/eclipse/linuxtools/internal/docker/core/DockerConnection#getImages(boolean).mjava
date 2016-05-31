@@ -4,10 +4,16 @@
 		synchronized (imageLock) {
 			latestImages = this.images;
 		}
-		if (!isActive()) {
+		if (this.state == EnumDockerConnectionState.CLOSED) {
 			return Collections.emptyList();
-		}
-		if (!isImagesLoaded() || force) {
+		} else if (this.state == EnumDockerConnectionState.UNKNOWN) {
+			try {
+				open(true);
+				getImages(force);
+			} catch (DockerException e) {
+				Activator.log(e);
+			}
+		} else if (!isImagesLoaded() || force) {
 			try {
 				latestImages = listImages();
 			} catch (DockerException e) {

@@ -1,0 +1,26 @@
+	private static SWTBotTreeItem expandTreeItem(final SWTBotTreeItem treeItem) {
+		final UIJob expandJob = new UIJob("expanding tree") {
+			
+			@Override
+			public IStatus runInUIThread(IProgressMonitor monitor) {
+				treeItem.expand();
+				return Status.OK_STATUS;
+			}
+		};
+		expandJob.addJobChangeListener(new JobChangeAdapter() {
+			@Override
+			public void done(IJobChangeEvent event) {
+				final int maxAttempts = 30;
+				int currentAttempt = 0;
+				while(currentAttempt < maxAttempts && treeItem.getItems().length == 1 && treeItem.getItems()[0].getText().isEmpty()) {
+					SWTUtils.wait(1, TimeUnit.SECONDS);
+					currentAttempt++;
+				}
+				
+			}
+		});
+		expandJob.schedule();
+		SWTUtils.wait(1, TimeUnit.SECONDS);
+		return treeItem;
+	}
+

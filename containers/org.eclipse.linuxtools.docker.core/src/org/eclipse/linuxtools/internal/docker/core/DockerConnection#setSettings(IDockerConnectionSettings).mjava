@@ -6,17 +6,29 @@
 			// while switching the connection settings.
 			synchronized (clientLock) {
 				this.connectionSettings = connectionSettings;
-				this.client.close();
-				this.client = null;
-				try {
-					// no need to register again
-					open(false);
-				} catch (DockerException e) {
-					Activator.log(e);
+				if (this.client != null) {
+					this.client.close();
 				}
+				this.state = EnumDockerConnectionState.UNKNOWN;
+				this.client = null;
+				new Job(NLS.bind(Messages.Open_Connection, this.getUri())) {
+
+					@Override
+					protected IStatus run(IProgressMonitor monitor) {
+						try {
+							open(true);
+							ping();
+						} catch (DockerException e) {
+							Activator.logErrorMessage(
+									Messages.Docker_Daemon_Ping_Failure, e);
+							return Status.CANCEL_STATUS;
+						}
+						return Status.OK_STATUS;
+					}
+				};
 			}
-			getContainers(true);
-			getImages(true);
+			// getContainers(true);
+			// getImages(true);
 			return true;
 		}
 		return false;

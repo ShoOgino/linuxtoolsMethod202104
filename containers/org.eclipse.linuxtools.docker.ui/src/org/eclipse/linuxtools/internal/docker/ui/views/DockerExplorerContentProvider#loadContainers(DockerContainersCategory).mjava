@@ -7,27 +7,15 @@
 	 */
 	private void loadContainers(
 			final DockerContainersCategory containersCategory) {
-		final Job loadContainersJob = new Job(
-				DVMessages.getString("ContainersLoadJob.msg")) { //$NON-NLS-1$
+		final Job loadContainersJob = new LoadingJob(
+				DVMessages.getString("ContainersLoadJob.msg"), //$NON-NLS-1$
+				containersCategory) {
 			@Override
 			protected IStatus run(final IProgressMonitor monitor) {
 				containersCategory.getConnection().getContainers(true);
 				return Status.OK_STATUS;
 			}
-
-			@Override
-			public boolean belongsTo(Object family) {
-				return family == DockerExplorerView.class;
-			}
 		};
-		loadContainersJob.addJobChangeListener(new JobChangeAdapter() {
-			@Override
-			public void done(final IJobChangeEvent event) {
-				event.getResult();
-				Display.getDefault()
-						.asyncExec(() -> refreshTarget(containersCategory));
-			}
-		});
 		loadContainersJob.schedule();
 	}
 

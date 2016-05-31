@@ -2,35 +2,23 @@
 	public void shouldRefreshDockerExplorerViewWhenUnixSockerConnectionSettingsChanged()
 			throws CoreException, IOException {
 		// given
+		dockerContainers.close();
+		dockerImages.close();
 		final IDockerConnection connection = configureUnixSocketConnection("Test");
-		final String buildImageLaunchConfigurationName = configureBuildImageLaunchConfiguration(connection);
-		final ILaunchConfiguration buildDockerImageLaunchConfig = LaunchConfigurationUtils.getLaunchConfigurationByName(
-				IBuildDockerImageLaunchConfigurationConstants.CONFIG_TYPE_ID, buildImageLaunchConfigurationName);
-		assertThat(buildDockerImageLaunchConfig).isNotNull();
-		assertThat(buildDockerImageLaunchConfig.getAttribute(IDockerImageBuildOptions.DOCKER_CONNECTION, ""))
-				.isEqualTo("Test");
-		final String runImageLaunchConfigurationName = configureRunImageLaunchConfiguration(connection);
-		final ILaunchConfiguration runDockerImageLaunchConfig = LaunchConfigurationUtils.getLaunchConfigurationByName(
-				IRunDockerImageLaunchConfigurationConstants.CONFIG_TYPE_ID, runImageLaunchConfigurationName);
-		assertThat(runDockerImageLaunchConfig).isNotNull();
-		assertThat(runDockerImageLaunchConfig.getAttribute(IRunDockerImageLaunchConfigurationConstants.CONNECTION_NAME,
-				"")).isEqualTo("Test");
 		final SWTBotTreeItem connectionTreeItem = SWTUtils.getTreeItem(dockerExplorer.bot(), "Test");
 		assertThat(connectionTreeItem).isNotNull();
 		final File tmpDockerSocketFile = folder.newFile("docker.sock");
-
 		// when
 		openConnectionEditionWizard("Test");
 		bot.text(1).setText(tmpDockerSocketFile.getAbsolutePath());
 		getFinishButton().click();
 		SWTUtils.wait(2, TimeUnit.SECONDS);
-
 		// then
 		final SWTBotTreeItem updatedConnectionTreeItem = SWTUtils.getTreeItem(dockerExplorer.bot(), "Test");
 		assertThat(updatedConnectionTreeItem).isNotNull();
 		assertThat(updatedConnectionTreeItem.getText()).contains(tmpDockerSocketFile.getAbsolutePath());
 		// list of containers and images should have been refreshed
-		Mockito.verify(connection, Mockito.times(2)).getContainers(true);
-		Mockito.verify(connection, Mockito.times(2)).getImages(true);
+		Mockito.verify(connection, Mockito.times(0)).getContainers(true);
+		Mockito.verify(connection, Mockito.times(0)).getImages(true);
 	}
 

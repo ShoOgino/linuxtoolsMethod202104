@@ -1,9 +1,18 @@
 	@Override
 	public Object[] getChildren(final Object parentElement) {
 		if (parentElement instanceof IDockerConnection) {
-			final IDockerConnection dockerConnection = (IDockerConnection) parentElement;
-			return new Object[] { new DockerImagesCategory(dockerConnection),
-					new DockerContainersCategory(dockerConnection) };
+			// check the connection availability before returning the
+			// 'containers' and 'images' child nodes.
+			final IDockerConnection connection = (IDockerConnection) parentElement;
+			if (connection.isOpen()) {
+				return new Object[] { new DockerImagesCategory(connection),
+						new DockerContainersCategory(connection) };
+			} else if (connection
+					.getState() == EnumDockerConnectionState.UNKNOWN) {
+				open(connection);
+				return new Object[] { new LoadingStub(connection) };
+			}
+			return new Object[0];
 		} else if (parentElement instanceof DockerContainersCategory) {
 			final DockerContainersCategory containersCategory = (DockerContainersCategory) parentElement;
 			final IDockerConnection connection = containersCategory.getConnection();

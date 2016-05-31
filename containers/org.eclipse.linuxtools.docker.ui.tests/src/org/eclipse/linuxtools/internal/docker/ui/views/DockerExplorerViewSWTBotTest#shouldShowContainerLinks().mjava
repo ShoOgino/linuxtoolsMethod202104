@@ -1,26 +1,19 @@
-	@Test 
+	@Test
 	public void shouldShowContainerLinks() {
 		// given
 		final DockerClient client = MockDockerClientFactory
 				.container(MockContainerFactory.name("foo_bar").build(), MockContainerInfoFactory
 						.link("/postgres-demo:/foo_bar/postgres1").link("/postgres-demo:/foo_bar/postgres2").build())
 				.build();
-		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client).withDefaultTCPConnectionSettings();
+		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client)
+				.withDefaultTCPConnectionSettings();
 		DockerConnectionManagerUtils.configureConnectionManager(dockerConnection);
-		SWTUtils.asyncExec(() -> dockerExplorerView.getCommonViewer().expandAll());
-		// when a second call to expand the container is done (because the first
-		// expandAll stopped with a "Loading..." job that retrieved the
-		// containers)
-		final SWTBotTreeItem containerTreeItem = SWTUtils.getTreeItem(dockerExplorerViewBot, "Test",
-				"Containers", "foo_bar");
-		SWTUtils.asyncExec(() -> containerTreeItem.expand());
-		final SWTBotTreeItem containerLinksTreeItem = SWTUtils.getTreeItem(containerTreeItem, "Links");
-		SWTUtils.asyncExec(() -> containerLinksTreeItem.expand());
+		// when
+		final SWTBotTreeItem containerLinks = SWTUtils.expand(dockerExplorerViewBot.bot().tree(), "Test", "Containers",
+				"foo_bar", "Links");
 		// then
-		SWTUtils.syncAssert(() -> {
-			SWTBotTreeItemAssertions.assertThat(containerLinksTreeItem).isExpanded().hasChildItems(2);
-			SWTBotTreeItemAssertions.assertThat(containerLinksTreeItem.getNode(0)).hasText("postgres-demo (postgres1)");
-			SWTBotTreeItemAssertions.assertThat(containerLinksTreeItem.getNode(1)).hasText("postgres-demo (postgres2)");
-		});
+		SWTBotTreeItemAssertions.assertThat(containerLinks).isExpanded().hasChildItems(2);
+		SWTBotTreeItemAssertions.assertThat(containerLinks.getNode(0)).hasText("postgres-demo (postgres1)");
+		SWTBotTreeItemAssertions.assertThat(containerLinks.getNode(1)).hasText("postgres-demo (postgres2)");
 	}
 

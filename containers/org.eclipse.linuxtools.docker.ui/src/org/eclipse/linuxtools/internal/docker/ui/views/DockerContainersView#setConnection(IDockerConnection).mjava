@@ -5,13 +5,33 @@
 	 *            the active connection
 	 */
 	public void setConnection(final IDockerConnection connection) {
+		if (connection != null && connection.equals(this.connection)) {
+			return;
+		}
+		// remove 'this' as listener on the previous connection (if applicable)
+		if (this.connection != null) {
+			this.connection.removeContainerListener(this);
+		}
 		this.connection = connection;
-		if (connection != null && this.viewer != null) {
-			this.viewer.setInput(connection);
-			refreshViewTitle();
+		if (this.viewer != null && this.connection != null) {
+			final Job refreshJob = new Job(
+					DVMessages.getString("ContainersRefresh.msg")) {
+
+				@Override
+				protected IStatus run(IProgressMonitor monitor) {
+					connection.getContainers(true);
+					connection.addContainerListener(DockerContainersView.this);
+					Display.getDefault().asyncExec(() -> {
+						viewer.setInput(connection);
+						refreshViewTitle();
+					});
+					return Status.OK_STATUS;
+				}
+			};
+			refreshJob.schedule();
 		} else if (this.viewer != null) {
 			viewer.setInput(new IDockerContainer[0]);
-			form.setText(DVMessages.getString(DaemonMissing));
+			form.setText(DVMessages.getString(NoConnectionSelected));
 		}
 	}
 

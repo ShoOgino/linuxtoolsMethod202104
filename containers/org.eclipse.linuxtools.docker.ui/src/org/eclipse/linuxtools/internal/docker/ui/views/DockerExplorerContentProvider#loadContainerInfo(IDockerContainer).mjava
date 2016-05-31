@@ -6,29 +6,14 @@
 	 *            the selected {@link DockerContainersCategory}
 	 */
 	private void loadContainerInfo(final IDockerContainer container) {
-		// only retain expanded tree paths if container was expanded
-		final TreePath[] expandedTreePaths = this.viewer.getExpandedState(
-				container) ? this.viewer.getExpandedTreePaths() : null;
-		final Job loadContainersJob = new Job(
-				DVMessages.getString("ContainerInfoLoadJob.msg")) { //$NON-NLS-1$
+		final Job loadContainersJob = new LoadingJob(
+				DVMessages.getString("ContainerInfoLoadJob.msg"), container) { //$NON-NLS-1$
 			@Override
 			protected IStatus run(final IProgressMonitor monitor) {
 				((DockerContainer) container).info(true);
 				return Status.OK_STATUS;
 			}
 		};
-		loadContainersJob.addJobChangeListener(new JobChangeAdapter() {
-			@Override
-			public void done(final IJobChangeEvent event) {
-				event.getResult();
-				Display.getDefault().asyncExec(() -> {
-					refreshTarget(container);
-					if (expandedTreePaths != null) {
-						viewer.setExpandedTreePaths(expandedTreePaths);
-					}
-				});
-			}
-		});
 		loadContainersJob.schedule();
 	}
 

@@ -1,19 +1,17 @@
-	@Test 
+	@Test
 	public void shouldRefreshImagesAndShowChanges() {
 		// given
 		final DockerClient client = MockDockerClientFactory.build();
-		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client).withDefaultTCPConnectionSettings();
+		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client)
+				.withDefaultTCPConnectionSettings();
 		DockerConnectionManagerUtils.configureConnectionManager(dockerConnection);
-		SWTUtils.asyncExec(() -> dockerExplorerView.getCommonViewer().expandAll());
-		final SWTBotTreeItem[] allItems = dockerExplorerViewBot.bot().tree().getAllItems();
-		Assertions.assertThat(allItems).hasSize(1);
-		Assertions.assertThat(allItems[0].getItems()).hasSize(2);
-		final SWTBotTreeItem imagesTreeItem = SWTUtils.getTreeItem(dockerExplorerViewBot, "Test", "Images");
-		imagesTreeItem.expand();
-		Conditions.waitForJobs(DockerExplorerView.class, "Docker Explorer View jobs");
+		// one connection
+		final SWTBotTreeItem connection = SWTUtils.expand(dockerExplorerViewBot.bot().tree(), "Test");
+		// "containers" and "images" items
+		Assertions.assertThat(connection.getItems()).hasSize(2);
+		final SWTBotTreeItem imagesTreeItem = SWTUtils.expand(connection, "Images");
 		Assertions.assertThat(imagesTreeItem.getItems().length).isEqualTo(0);
-		
-		// update the client 
+		// update the client
 		final DockerClient updatedClient = MockDockerClientFactory.image(MockImageFactory.name("foo/bar").build())
 				.build();
 		dockerConnection.setClient(updatedClient);

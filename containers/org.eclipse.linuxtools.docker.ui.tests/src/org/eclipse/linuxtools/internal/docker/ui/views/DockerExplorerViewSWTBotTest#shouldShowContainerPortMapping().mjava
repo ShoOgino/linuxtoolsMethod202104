@@ -1,29 +1,19 @@
-	@Test 
+	@Test
 	public void shouldShowContainerPortMapping() {
 		// given
 		final DockerClient client = MockDockerClientFactory
 				.container(MockContainerFactory.name("foo_bar").build(), MockContainerInfoFactory
 						.port("8080/tcp", "0.0.0.0", "8080").port("8787/tcp", "0.0.0.0", "8787").build())
 				.build();
-		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client).withDefaultTCPConnectionSettings();
+		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client)
+				.withDefaultTCPConnectionSettings();
 		DockerConnectionManagerUtils.configureConnectionManager(dockerConnection);
-		SWTUtils.asyncExec(() -> dockerExplorerView.getCommonViewer().expandAll());
-		// when a second call to expand the container is done (because the first
-		// expandAll stopped with a "Loading..." job that retrieved the
-		// containers)
-		final SWTBotTreeItem containerTreeItem = SWTUtils.getTreeItem(dockerExplorerViewBot, "Test",
-				"Containers", "foo_bar");
-		SWTUtils.asyncExec(() -> containerTreeItem.expand());
-		final SWTBotTreeItem containerPortsTreeItem = SWTUtils.getTreeItem(dockerExplorerViewBot, "Test",
-				"Containers", "foo_bar", "Ports");
-		SWTUtils.asyncExec(() -> containerPortsTreeItem.expand());
+		// when
+		final SWTBotTreeItem containerPorts = SWTUtils.expand(dockerExplorerViewBot.bot().tree(), "Test", "Containers",
+				"foo_bar", "Ports");
 		// then
-		SWTUtils.syncAssert(() -> {
-			SWTBotTreeItemAssertions.assertThat(containerPortsTreeItem).isExpanded().hasChildItems(2);
-			SWTBotTreeItemAssertions.assertThat(containerPortsTreeItem.getNode(0))
-					.hasText("0.0.0.0:8080 -> 8080 (tcp)");
-			SWTBotTreeItemAssertions.assertThat(containerPortsTreeItem.getNode(1))
-					.hasText("0.0.0.0:8787 -> 8787 (tcp)");
-		});
+		SWTBotTreeItemAssertions.assertThat(containerPorts).isExpanded().hasChildItems(2);
+		SWTBotTreeItemAssertions.assertThat(containerPorts.getNode(0)).hasText("0.0.0.0:8080 -> 8080 (tcp)");
+		SWTBotTreeItemAssertions.assertThat(containerPorts.getNode(1)).hasText("0.0.0.0:8787 -> 8787 (tcp)");
 	}
 

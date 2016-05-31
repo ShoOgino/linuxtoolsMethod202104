@@ -1,8 +1,26 @@
 	@Override
 	public void changeEvent(final IDockerConnection connection,
 			final int type) {
-		if (type == IDockerConnectionManagerListener.RENAME_EVENT) {
-			refreshViewTitle();
+		if (type == IDockerConnectionManagerListener.UPDATE_SETTINGS_EVENT) {
+			final Job refreshJob = new Job(
+					DVMessages.getString("ImagesRefresh.msg")) {
+
+				@Override
+				protected IStatus run(IProgressMonitor monitor) {
+					connection.getImages(true);
+					return Status.OK_STATUS;
+				}
+			};
+			refreshJob.addJobChangeListener(new JobChangeAdapter() {
+				@Override
+				public void done(IJobChangeEvent event) {
+					Display.getDefault().asyncExec(() -> refreshViewTitle());
+				}
+
+			});
+			refreshJob.schedule();
+		} else if (type == IDockerConnectionManagerListener.RENAME_EVENT) {
+			Display.getDefault().asyncExec(() -> refreshViewTitle());
 		}
 	}
 

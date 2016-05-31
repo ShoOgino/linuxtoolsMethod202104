@@ -1,11 +1,30 @@
-	private void setConnection(final IDockerConnection conn) {
-		this.connection = conn;
-		if (conn != null) {
-			viewer.setInput(conn);
-			refreshViewTitle();
-		} else {
-			viewer.setInput(new IDockerImage[0]);
-			form.setText(DVMessages.getString(DaemonMissing));
+	private void setConnection(final IDockerConnection connection) {
+		if (connection != null && connection.equals(this.connection)) {
+			return;
+		}
+		if (this.connection != null) {
+			this.connection.removeImageListener(this);
+		}
+		this.connection = connection;
+		if (this.viewer != null && this.connection != null) {
+			final Job refreshJob = new Job(
+					DVMessages.getString("ImagesRefresh.msg")) {
+
+				@Override
+				protected IStatus run(IProgressMonitor monitor) {
+					connection.getImages(true);
+					connection.addImageListener(DockerImagesView.this);
+					Display.getDefault().asyncExec(() -> {
+						viewer.setInput(connection);
+						refreshViewTitle();
+					});
+					return Status.OK_STATUS;
+				}
+			};
+			refreshJob.schedule();
+		} else if (this.viewer != null) {
+			viewer.setInput(new IDockerContainer[0]);
+			form.setText(DVMessages.getString(NoConnectionSelected));
 		}
 	}
 

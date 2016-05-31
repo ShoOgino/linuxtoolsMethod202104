@@ -1,9 +1,16 @@
 	@Override
 	public List<IDockerContainer> getContainers(final boolean force) {
-		if (!isActive()) {
+		if (this.state == EnumDockerConnectionState.CLOSED) {
 			return Collections.emptyList();
-		}
-		if (!isContainersLoaded() || force) {
+		} else if (this.state == EnumDockerConnectionState.UNKNOWN) {
+			try {
+				open(true);
+				getContainers(force);
+			} catch (DockerException e) {
+				Activator.log(e);
+			}
+
+		} else if (!isContainersLoaded() || force) {
 			try {
 				return listContainers();
 			} catch (DockerException e) {
