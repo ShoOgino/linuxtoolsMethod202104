@@ -1,0 +1,32 @@
+	@Override
+	public void initializeFrom(ILaunchConfiguration configuration) {
+		if (model == null)
+			return;
+		try {
+			model.removeLabelVariables();
+			final Map<String, String> labelVariables = configuration
+					.getAttribute(
+					IRunDockerImageLaunchConfigurationConstants.LABELS,
+					(Map<String, String>) null);
+			if (labelVariables != null) {
+				for (Map.Entry<String, String> entry : labelVariables
+						.entrySet()) {
+					model.addLabelVariable(
+							LabelVariableModel
+							.createLabelVariableModel(entry.getKey(),
+									entry.getValue()));
+				}
+			}
+		} catch (CoreException e) {
+			Activator.logErrorMessage(
+					LaunchMessages.getString(
+							"RunDockerImageLaunchConfiguration.load.failure"), //$NON-NLS-1$
+					e);
+		}
+		// update the underlying launch config working copy on model
+		// changes.
+		model.addPropertyChangeListener(
+				new LaunchConfigurationChangeListener());
+
+	}
+
