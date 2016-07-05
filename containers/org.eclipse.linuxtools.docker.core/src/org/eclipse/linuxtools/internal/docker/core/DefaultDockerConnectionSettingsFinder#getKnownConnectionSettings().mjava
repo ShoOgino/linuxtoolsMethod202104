@@ -1,0 +1,21 @@
+	@Override
+	public List<IDockerConnectionSettings> getKnownConnectionSettings() {
+		List<IDockerConnectionSettings> result = new ArrayList<>();
+		IConfigurationElement[] configs = getConfigurationElements();
+		for (IConfigurationElement config : configs) {
+			try {
+				Object obj = config.createExecutableExtension("provider"); //$NON-NLS-1$
+				if (obj instanceof IDockerConnectionSettingsProvider) {
+					List<IDockerConnectionSettings> settings = ((IDockerConnectionSettingsProvider) obj)
+							.getConnectionSettings();
+					if (settings != null) {
+						result.addAll(settings);
+					}
+				}
+			} catch (CoreException e) {
+				// continue, perhaps another configuration will succeed
+			}
+		}
+		return result;
+	}
+

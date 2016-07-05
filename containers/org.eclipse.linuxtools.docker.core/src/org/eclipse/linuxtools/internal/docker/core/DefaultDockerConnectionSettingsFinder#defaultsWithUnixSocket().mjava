@@ -5,19 +5,10 @@
 	 *         is readable and writable, {@code null} otherwise.
 	 */
 	public IDockerConnectionSettings defaultsWithUnixSocket() {
-		final File unixSocketFile = new File("/var/run/docker.sock"); //$NON-NLS-1$
-		if (unixSocketFile.exists() && unixSocketFile.canRead()
-				&& unixSocketFile.canWrite()) {
-			final UnixSocketAddress address = new UnixSocketAddress(
-					unixSocketFile);
-			try (final UnixSocketChannel channel = UnixSocketChannel
-					.open(address)) {
-				// assume socket works
-				return new UnixSocketConnectionSettings(
-						unixSocketFile.getAbsolutePath());
-			} catch (IOException e) {
-				// do nothing, just assume socket did not work.
-			}
+		List<IDockerConnectionSettings> res = new DefaultUnixConnectionSettingsProvider()
+				.getConnectionSettings();
+		if (res != null) {
+			return res.get(0);
 		}
 		return null;
 	}

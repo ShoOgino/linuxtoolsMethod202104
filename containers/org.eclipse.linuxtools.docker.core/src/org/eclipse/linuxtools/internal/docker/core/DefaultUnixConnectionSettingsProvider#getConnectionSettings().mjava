@@ -1,0 +1,21 @@
+	@Override
+	public List<IDockerConnectionSettings> getConnectionSettings() {
+		final File unixSocketFile = new File("/var/run/docker.sock"); //$NON-NLS-1$
+		if (unixSocketFile.exists() && unixSocketFile.canRead()
+				&& unixSocketFile.canWrite()) {
+			final UnixSocketAddress address = new UnixSocketAddress(
+					unixSocketFile);
+			try (final UnixSocketChannel channel = UnixSocketChannel
+					.open(address)) {
+				// assume socket works
+				final UnixSocketConnectionSettings socket = new UnixSocketConnectionSettings(
+						DefaultDockerConnectionSettingsFinder.Defaults.DEFAULT_UNIX_SOCKET_PATH);
+				socket.setName(socket.getPath());
+				return Arrays.asList(new IDockerConnectionSettings[] { socket });
+			} catch (IOException e) {
+				// do nothing, just assume socket did not work.
+			}
+		}
+		return null;
+	}
+

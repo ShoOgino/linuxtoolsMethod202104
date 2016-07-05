@@ -1,0 +1,23 @@
+	@Test
+	public void testExtensionPointProvidedConnections() {
+		DefaultDockerConnectionSettingsFinder finder = new DefaultDockerConnectionSettingsFinder();
+		List<IDockerConnectionSettings> settings = finder.getKnownConnectionSettings();
+		assertTrue(settings.size() > 0);
+		for (IDockerConnectionSettings s : settings) {
+			if (s instanceof TCPConnectionSettings) {
+				TCPConnectionSettings t = (TCPConnectionSettings) s;
+				assertTrue(t.getType() == BindingType.TCP_CONNECTION);
+				assertTrue(t.getHost().equals("https://1.2.3.4:5678"));
+				assertTrue(t.getPathToCertificates().equals("/foo/bar/baz/certs"));
+				assertTrue(t.getName().equals("https://1.2.3.4:5678"));
+			} else if (s instanceof UnixSocketConnectionSettings) {
+				UnixSocketConnectionSettings t = (UnixSocketConnectionSettings) s;
+				assertTrue(t.getType() == BindingType.UNIX_SOCKET_CONNECTION);
+				assertTrue(t.getPath().equals("unix:///foo/bar/baz/docker.sock"));
+				assertTrue(t.getName().equals("unix:///foo/bar/baz/docker.sock"));
+			} else {
+				fail("Docker Connection Settings does not match a known type");
+			}
+		}
+	}
+
