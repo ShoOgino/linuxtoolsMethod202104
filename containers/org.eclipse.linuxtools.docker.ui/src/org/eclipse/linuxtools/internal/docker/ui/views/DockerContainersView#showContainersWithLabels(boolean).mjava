@@ -1,0 +1,36 @@
+	/**
+	 * Activates {@link ContainersWithLabelsViewerFilter} if the given
+	 * {@code enabled} argument is <code>false</code>, deactivates the filter
+	 * otherwise.
+	 * 
+	 * @param enabled
+	 *            the argument to enable/disable the filter.
+	 */
+	public void showContainersWithLabels(boolean enabled) {
+		if (DockerContainersView.this.viewer == null) {
+			return;
+		}
+		if (enabled) {
+			this.viewer.addFilter(containersWithLabelsViewerFilter);
+		} else {
+			final List<ViewerFilter> filters = new ArrayList<>(
+					Arrays.asList(this.viewer.getFilters()));
+
+			// remove filters and make sure there is no duplicate in the list of
+			// filters
+			for (Iterator<ViewerFilter> iterator = filters.iterator(); iterator
+					.hasNext();) {
+				ViewerFilter viewerFilter = iterator.next();
+				if (viewerFilter.equals(containersWithLabelsViewerFilter)) {
+					iterator.remove();
+				}
+			}
+			this.viewer.setFilters(filters.toArray(new ViewerFilter[0]));
+		}
+		// Save enablement across sessions using a preference variable.
+		IEclipsePreferences preferences = InstanceScope.INSTANCE
+				.getNode(Activator.PLUGIN_ID);
+		preferences.putBoolean(FILTER_WITH_LABELS_PREFERENCE, enabled);
+		refreshViewTitle();
+	}
+
