@@ -4,5 +4,20 @@
 				notifyListeners(connection,
 						IDockerConnectionManagerListener.ADD_EVENT);
 		}
+		List<IDockerConnectionSettings> settings = connectionSettingsFinder
+				.getKnownConnectionSettings();
+		for (IDockerConnectionSettings setting : settings) {
+			IDockerConnection conn;
+			if (setting.getType().equals(BindingType.UNIX_SOCKET_CONNECTION)) {
+				UnixSocketConnectionSettings usetting = (UnixSocketConnectionSettings) setting;
+				conn = new DockerConnection.Builder().name(usetting.getName())
+						.unixSocketConnection(usetting);
+			} else {
+				TCPConnectionSettings tsetting = (TCPConnectionSettings) setting;
+				conn = new DockerConnection.Builder().name(tsetting.getName())
+						.tcpConnection(tsetting);
+			}
+			addConnection(conn);
+		}
 	}
 
