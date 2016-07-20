@@ -12,14 +12,25 @@
 			final IDockerConnection[] connections = DockerConnectionManager
 					.getInstance().getConnections();
 			if (connections.length == 0) {
-				Display.getDefault()
-						.syncExec(() -> MessageDialog.openError(
+				Display.getDefault().asyncExec(new Runnable() {
+					@Override
+					public void run() {
+						boolean confirm = MessageDialog.openQuestion(
 								PlatformUI.getWorkbench()
 										.getActiveWorkbenchWindow().getShell(),
-								LaunchMessages.getString(
-										LaunchShortcut_Error_Launching),
-								LaunchMessages.getString(
-										LaunchShortcut_No_Connections)));
+								CommandMessages.getString(
+										"BuildImageCommandHandler.no.connections.msg"), //$NON-NLS-1$
+								CommandMessages.getString(
+										"BuildImageCommandHandler.no.connections.desc")); //$NON-NLS-1$
+						if (confirm) {
+							NewDockerConnection newConnWizard = new NewDockerConnection();
+							CommandUtils.openWizard(newConnWizard,
+									PlatformUI.getWorkbench()
+											.getActiveWorkbenchWindow()
+											.getShell());
+						}
+					}
+				});
 				return null;
 			} else {
 				final ImageBuildDialog dialog = new ImageBuildDialog(
