@@ -1,7 +1,9 @@
 	private static SWTBotTreeItem getTreeItem(final SWTBotTreeItem[] treeItems, final String[] paths) {
 		final SWTBotTreeItem swtBotTreeItem = Stream.of(treeItems).filter(item -> item.getText().startsWith(paths[0]))
-				.findFirst().get();
+				.findFirst().orElseThrow(() -> new RuntimeException("Available items: "
+						+ Stream.of(treeItems).map(item -> item.getText()).collect(Collectors.joining(", "))));
 		if (paths.length > 1) {
+			syncExec(() -> swtBotTreeItem.expand());
 			final String[] remainingPath = new String[paths.length - 1];
 			System.arraycopy(paths, 1, remainingPath, 0, remainingPath.length);
 			return getTreeItem(swtBotTreeItem.getItems(), remainingPath);
