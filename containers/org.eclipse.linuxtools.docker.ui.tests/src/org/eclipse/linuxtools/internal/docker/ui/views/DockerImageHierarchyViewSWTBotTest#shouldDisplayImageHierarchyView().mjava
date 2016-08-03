@@ -1,0 +1,20 @@
+	@Test
+	public void shouldDisplayImageHierarchyView() {
+		// given
+		final Image rootImage = MockImageFactory.id("sha256:root").name("root").build();
+		final Image fooImage = MockImageFactory.id("sha256:foo").name("foo").parentId("sha256:root").build();
+		final Image barImage = MockImageFactory.id("sha256:bar").name("bar").parentId("sha256:foo").build();
+		final DockerClient client = MockDockerClientFactory
+				.image(rootImage).image(fooImage).image(barImage).build();
+		final DockerConnection connection = MockDockerConnectionFactory.from("Test", client).withDefaultTCPConnectionSettings();
+		DockerConnectionManagerUtils.configureConnectionManager(connection);
+		connection.getImages(true);
+		final IDockerImage image = connection.getImages().stream().filter(i -> i.id().equals("sha256:foo")).findFirst().get();
+		// when
+		SWTUtils.getTreeItem(dockerExplorerViewBot, "Test", "Images", "foo").select();
+		dockerExplorerViewBot.bot().tree().contextMenu("Open Image Hierarchy").click(); //$NON-NLS-1$
+		// then
+		final SWTBotView dockerImageHierarchyView = bot.viewById(DockerImageHierarchyView.VIEW_ID);
+
+	}
+
