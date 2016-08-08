@@ -1,0 +1,33 @@
+	/**
+	 * Configures the view copy action which should be run on CTRL+C. We have to
+	 * track widget focus to select the actual action because we have a few
+	 * widgets that should provide copy action (at least tests hierarchy viewer
+	 * and messages viewer).
+	 */
+	private void configureCopy() {
+		getTreeViewer().getTree().addFocusListener(new FocusListener() {
+			IAction viewCopyHandler;
+
+			@Override
+			public void focusLost(FocusEvent e) {
+				if (viewCopyHandler != null) {
+					switchTo(viewCopyHandler);
+				}
+			}
+
+			@Override
+			public void focusGained(FocusEvent e) {
+				switchTo(copyAction);
+			}
+
+			private void switchTo(IAction copyAction) {
+				IActionBars actionBars = pageSite.getActionBars();
+				viewCopyHandler = actionBars
+						.getGlobalActionHandler(ActionFactory.COPY.getId());
+				actionBars.setGlobalActionHandler(ActionFactory.COPY.getId(),
+						copyAction);
+				actionBars.updateActionBars();
+			}
+		});
+	}
+
