@@ -1,0 +1,87 @@
+	private void performPushImage(final ImagePush wizard,
+			final IDockerConnection connection) {
+		if (connection == null) {
+			Display.getDefault()
+					.syncExec(() -> MessageDialog.openError(
+							PlatformUI.getWorkbench().getActiveWorkbenchWindow()
+									.getShell(),
+							DVMessages.getFormattedString(ERROR_PUSHING_IMAGE,
+									wizard.getSelectedImageTag()),
+							DVMessages.getFormattedString(NO_CONNECTION)));
+			return;
+		}
+		final Job pushImageJob = new Job(DVMessages.getFormattedString(
+				PUSH_IMAGE_JOB_TITLE, wizard.getSelectedImageTag())) {
+
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				final IDockerImage image = wizard.getImage();
+				final String defaultImageNameTag = wizard.getDefaultImageName();
+				final String selectedImageNameTag = wizard
+						.getSelectedImageTag();
+				// TODO: remove cast once AbstractRegistry methods are
+				// part of the IRegistry interface
+				final AbstractRegistry registry = (AbstractRegistry) wizard
+						.getRegistry();
+				final boolean forceTagging = wizard.isForceTagging();
+				final boolean keepTaggedImage = wizard.isKeepTaggedImage();
+
+				monitor.beginTask(DVMessages.getString(PUSH_IMAGE_JOB_TASK),
+						IProgressMonitor.UNKNOWN);
+
+				// push the image and let the progress
+				// handler refresh the images when done
+				final String tmpRegistryTag = getNameToTag(
+						selectedImageNameTag, registry);
+				boolean tagCreated = false;
+				try {
+					// tag image (if necessary or if '--force' option was
+					// selected)
+					if (!image.repoTags().contains(tmpRegistryTag)
+							|| forceTagging) {
+						// TODO: remove cast to DockerConnection once the
+						// 'tagImage' is added in the public API
+						((DockerConnection) connection).tagImage(
+								defaultImageNameTag, tmpRegistryTag,
+								forceTagging);
+						tagCreated = true;
+					}
+					// push image
+					if (!registry.isAuthProvided()) {
+						connection.pushImage(tmpRegistryTag,
+								new DefaultImagePushProgressHandler(connection,
+										tmpRegistryTag));
+					} else {
+						final IRegistryAccount registryAccount = (IRegistryAccount) registry;
+						connection.pushImage(tmpRegistryTag, registryAccount,
+								new DefaultImagePushProgressHandler(connection,
+										tmpRegistryTag));
+					}
+				} catch (final DockerException e) {
+					Display.getDefault().syncExec(() -> MessageDialog.openError(
+							PlatformUI.getWorkbench().getActiveWorkbenchWindow()
+									.getShell(),
+							DVMessages.getFormattedString(ERROR_PUSHING_IMAGE,
+									defaultImageNameTag),
+							e.getMessage()));
+					// for now
+				} catch (InterruptedException e) {
+					// do nothing
+				} finally {
+					if (tagCreated && !keepTaggedImage) {
+						try {
+							connection.removeTag(tmpRegistryTag);
+							connection.getImages(true);
+						} catch (Exception e) {
+							// do nothing
+						}
+					}
+					monitor.done();
+				}
+				return Status.OK_STATUS;
+			}
+
+		};
+		pushImageJob.schedule();
+	}
+
