@@ -1,0 +1,35 @@
+		/**
+		 * Executes the {@link Process} and sends output lines from the standard
+		 * {@code outputStream} and the {@code errorStream} to the
+		 * {@code outputConsumer} provided in the constructor.
+		 * 
+		 * @return the {@link Process}
+		 * @throws DockerException
+		 *             if something wrong happened when the process was executed
+		 */
+		public Process start() throws DockerException {
+			try {
+				// we need to redirect the error stream into the standard output
+				// stream
+				processBuilder.redirectErrorStream(true);
+				final Process process = processBuilder.start();
+				try (final InputStream inputStream = process.getInputStream();
+						final BufferedReader buff = new BufferedReader(
+								new InputStreamReader(inputStream))) {
+					String line;
+					while ((line = buff.readLine()) != null) {
+						this.outputConsumer.accept(line + '\n'); // $NON-NLS-1$
+					}
+				}
+
+				return process;
+			} catch (IOException e) {
+				throw new DockerException(
+						ProcessMessages.getFormattedString("Process_Exception", //$NON-NLS-1$
+								this.processBuilder.command().stream()
+										.collect(Collectors.joining(" ")),
+								e.getMessage()),
+						e);
+			}
+		}
+

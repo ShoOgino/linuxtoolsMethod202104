@@ -1,0 +1,44 @@
+	@Override
+	protected IStatus run(final IProgressMonitor monitor) {
+		final String dockerComposeInstallDir = Activator.getDefault()
+				.getPreferenceStore().getString(
+						PreferenceConstants.DOCKER_COMPOSE_INSTALLATION_DIRECTORY);
+
+		final Thread commandThread = new Thread(() -> {
+			// open console view
+			ConsolePlugin.getDefault().getConsoleManager()
+					.showConsoleView(dockerComposeConsole);
+			try {
+				// run the 'docker-compose up' command
+				final Process dockerComposeSystemProcess = DockerCompose
+						.getInstance()
+						.up(this.connection, dockerComposeInstallDir,
+								this.workingDir);
+				final ILaunch launch = new Launch(launchConfiguration,
+						ILaunchManager.RUN_MODE, null);
+				final IProcess dockerComposeProcess = DebugPlugin.newProcess(
+						launch, dockerComposeSystemProcess,
+						"docker-compose up"); //$NON-NLS-1$
+				dockerComposeConsole
+						.setDockerComposeProcess(dockerComposeProcess); // $NON-NLS-1$
+				final int exitCode = dockerComposeSystemProcess.waitFor();
+				if (exitCode != 0) {
+					Activator.logErrorMessage(
+							"'docker-compose up' exited with code " + exitCode); //$NON-NLS-1$
+				}
+			} catch (DockerException | InterruptedException e) {
+				Display.getDefault()
+						.asyncExec(() -> MessageDialog.openError(
+								Display.getCurrent().getActiveShell(),
+								JobMessages.getString(
+										"DockerCompose.dialog.title"), //$NON-NLS-1$
+								e.getMessage()));
+				Activator.log(e);
+			}
+
+		});
+		commandThread.start();
+		return Status.OK_STATUS;
+
+	}
+

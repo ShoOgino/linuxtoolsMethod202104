@@ -1,0 +1,37 @@
+	/**
+	 * Creates an {@link ILaunchConfiguration} for to run the
+	 * {@code docker-compose up} command.
+	 * 
+	 * @param connection
+	 *            the Docker connection to use
+	 * @param dockerComposeScript
+	 *            the {@code docker-compose.yml} script
+	 * @return the created {@link ILaunchConfiguration}
+	 * @throws CoreException
+	 *             if something wrong happened when creating the
+	 *             {@link ILaunchConfiguration}
+	 */
+	public static ILaunchConfiguration createDockerComposeUpLaunchConfiguration(
+			final IDockerConnection connection,
+			final IResource dockerComposeScript) throws CoreException {
+		final ILaunchConfigurationType configType = LaunchConfigurationUtils
+				.getLaunchConfigType(
+						IDockerComposeLaunchConfigurationConstants.CONFIG_TYPE_ID);
+		final ILaunchConfigurationWorkingCopy wc = configType.newInstance(null,
+				DebugPlugin.getDefault().getLaunchManager()
+						.generateLaunchConfigurationName(
+								createDockerComposeLaunchConfigurationName(
+										dockerComposeScript)));
+		wc.setAttribute(IDockerComposeLaunchConfigurationConstants.WORKING_DIR,
+				dockerComposeScript.getFullPath().removeLastSegments(1)
+						.toString());
+		wc.setAttribute(
+				IDockerComposeLaunchConfigurationConstants.WORKING_DIR_WORKSPACE_RELATIVE_LOCATION,
+				true);
+
+		wc.setAttribute(
+				IDockerComposeLaunchConfigurationConstants.DOCKER_CONNECTION,
+				connection.getName());
+		return wc.doSave();
+	}
+

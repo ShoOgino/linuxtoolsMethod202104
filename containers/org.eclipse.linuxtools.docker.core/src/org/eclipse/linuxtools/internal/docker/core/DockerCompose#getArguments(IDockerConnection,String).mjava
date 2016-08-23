@@ -1,0 +1,33 @@
+	private static String[] getArguments(final IDockerConnection connection,
+			final String commandName) {
+		switch (connection.getSettings().getType()) {
+		case UNIX_SOCKET_CONNECTION:
+			return new String[] { commandName };
+		case TCP_CONNECTION:
+			final TCPConnectionSettings connectionSettings = (TCPConnectionSettings) connection
+					.getSettings();
+			// include the flags to connect to the host
+			final List<String> args = new ArrayList<>();
+			args.add("-H");
+			args.add(connectionSettings.getHost());
+			if (connectionSettings.isTlsVerify()
+					&& connectionSettings.getPathToCertificates() != null) {
+				args.add("--tlsverify"); //$NON-NLS-1$
+				args.add("--tlscacert"); //$NON-NLS-1$
+				args.add(getFilePath(connectionSettings.getPathToCertificates(),
+						"ca.pem")); //$NON-NLS-1$
+				args.add("--tlscert"); //$NON-NLS-1$
+				args.add(getFilePath(connectionSettings.getPathToCertificates(),
+						"cert.pem")); //$NON-NLS-1$
+				args.add("--tlskey"); //$NON-NLS-1$
+				args.add(getFilePath(connectionSettings.getPathToCertificates(),
+						"key.pem")); //$NON-NLS-1$
+
+			}
+			args.add(commandName);
+
+			return args.toArray(new String[0]);
+		}
+		return null;
+	}
+

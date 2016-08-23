@@ -4,18 +4,13 @@
 		// no connections
 		if (model == null)
 			return;
-		final IDockerConnection[] connections = DockerConnectionManager
-				.getInstance()
-				.getConnections();
 		try {
-			String defaultConnectionName = ""; //$NON-NLS-1$
-			// Default to first active connection name
-			if (connections != null && connections.length > 0) {
-				for (int i = 0; i < connections.length; ++i) {
-					if (connections[i].isOpen())
-						defaultConnectionName = connections[i].getName();
-				}
-			}
+			final String defaultConnectionName = DockerConnectionManager
+					.getInstance().getAllConnections().stream()
+					.filter(connection -> connection.isOpen())
+					.map(connection -> connection.getName()).findFirst()
+					.orElse(""); //$NON-NLS-1$
+
 			// Mark in error if there is no active connection
 			if (defaultConnectionName.equals("")) { //$NON-NLS-1$
 				setErrorMessage(WizardMessages

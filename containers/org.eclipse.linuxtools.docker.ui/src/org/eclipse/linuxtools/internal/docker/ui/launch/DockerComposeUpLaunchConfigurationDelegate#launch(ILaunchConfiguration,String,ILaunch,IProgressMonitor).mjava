@@ -1,0 +1,31 @@
+	@Override
+	public void launch(final ILaunchConfiguration configuration,
+			final String mode, final ILaunch launch,
+			final IProgressMonitor monitor) throws CoreException {
+		final String sourcePathLocation = configuration
+				.getAttribute(WORKING_DIR, (String) null);
+		final boolean sourcePathWorkspaceRelativeLocation = configuration
+				.getAttribute(WORKING_DIR_WORKSPACE_RELATIVE_LOCATION, false);
+		final IPath sourcePath = BuildDockerImageUtils.getPath(
+				sourcePathLocation, sourcePathWorkspaceRelativeLocation);
+		final String connectionName = configuration
+				.getAttribute(DOCKER_CONNECTION, (String) null);
+		final IDockerConnection connection = DockerConnectionManager
+				.getInstance().getConnectionByName(connectionName);
+		if (connection != null && sourcePath != null) {
+			final Job dockerComposeUpJob = new DockerComposeUpJob(connection,
+					sourcePath.toOSString(), configuration);
+			dockerComposeUpJob.schedule();
+		} else {
+			final ILaunchGroup launchGroup = DebugUITools
+					.getLaunchGroup(configuration, "run"); //$NON-NLS-1$
+			// prompt the user with the launch configuration editor
+			Display.getDefault()
+					.syncExec(() -> DebugUITools.openLaunchConfigurationDialog(
+							PlatformUI.getWorkbench().getActiveWorkbenchWindow()
+									.getShell(),
+							configuration, launchGroup.getIdentifier(), null));
+
+		}
+	}
+

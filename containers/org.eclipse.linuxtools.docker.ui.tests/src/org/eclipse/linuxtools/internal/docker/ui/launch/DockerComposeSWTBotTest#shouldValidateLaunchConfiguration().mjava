@@ -1,0 +1,26 @@
+	@Test
+	@RunWithProject("foo")
+	@Ignore // ignored for now because the "Run" menu from the toolbar remains
+			// visible (on macOS) and this
+	// has side-effects on the other tests that fail because the widgets are not
+	// found.
+	public void shouldValidateLaunchConfiguration() throws CoreException {
+		// given
+		final DockerClient client = MockDockerClientFactory.build();
+		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client)
+				.withDefaultTCPConnectionSettings();
+		DockerConnectionManagerUtils.configureConnectionManager(dockerConnection);
+		final IFile dockerComposeScript = projectInit.getProject().getFile("docker-compose.yml");
+		LaunchConfigurationUtils.createDockerComposeUpLaunchConfiguration(dockerConnection, dockerComposeScript);
+		// when
+		bot.toolbarDropDownButtonWithTooltip("Run").menuItem("Run Configurations...").click();
+		final SWTBotTreeItem dockerComposeTreeItem = SWTUtils.expand(bot.tree(), "Docker Compose");
+		SWTUtils.select(dockerComposeTreeItem, "Docker Compose [foo]");
+		// verify that the config is set and the form can be closed with the
+		// "OK" button
+		ComboAssertion.assertThat(bot.comboBox(0)).isEnabled().itemSelected("Test");
+		TextAssertion.assertThat(bot.text(2)).isEnabled().textEquals("/foo");
+		ButtonAssertion.assertThat(bot.button("Run")).isEnabled();
+
+	}
+

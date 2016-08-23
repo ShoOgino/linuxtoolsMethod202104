@@ -1,0 +1,35 @@
+	private IChangeListener onSettingsChanged(final Label errorMessageIcon,
+			final Label errorMessageLabel) {
+
+		return event -> {
+			final IStatus status = validateInput();
+			if (Display.getCurrent() == null) {
+				return;
+			}
+			Display.getCurrent().syncExec(() -> {
+				if (status.isOK()) {
+					errorMessageIcon.setVisible(false);
+					errorMessageLabel.setVisible(false);
+					setOkButtonEnabled(true);
+				} else if (status.matches(IStatus.WARNING)) {
+					errorMessageIcon.setVisible(true);
+					errorMessageIcon.setImage(
+							SWTImagesFactory.DESC_WARNING.createImage());
+					errorMessageLabel.setVisible(true);
+					errorMessageLabel.setText(status.getMessage());
+					setOkButtonEnabled(true);
+				} else if (status.matches(IStatus.ERROR)) {
+					if (status.getMessage() != null
+							&& !status.getMessage().isEmpty()) {
+						errorMessageIcon.setVisible(true);
+						errorMessageIcon.setImage(
+								SWTImagesFactory.DESC_ERROR.createImage());
+						errorMessageLabel.setVisible(true);
+						errorMessageLabel.setText(status.getMessage());
+					}
+					setOkButtonEnabled(false);
+				}
+			});
+		};
+	}
+

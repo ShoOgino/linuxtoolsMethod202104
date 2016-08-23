@@ -1,0 +1,21 @@
+	private void setupDockerComposeUpMockProcess(final ProcessLauncher mockProcessLauncher)
+			throws DockerException, InterruptedException {
+		final Process mockDockerComposeUpProcess = Mockito.mock(Process.class);
+		Mockito.when(mockDockerComposeUpProcess.getInputStream())
+				.thenReturn(new ByteArrayInputStream("up!\n".getBytes()));
+		Mockito.when(mockDockerComposeUpProcess.getErrorStream()).thenReturn(new ByteArrayInputStream("".getBytes()));
+		Mockito.when(mockDockerComposeUpProcess.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+		Mockito.when(mockProcessLauncher.processBuilder(Matchers.anyString(),
+				Matchers.eq(DockerCompose.getDockerComposeCommandName()), CustomMatchers.arrayContains("up"))
+				.workingDir(Matchers.anyString()).start()).thenReturn(mockDockerComposeUpProcess);
+		latch = new CountDownLatch(1);
+		Mockito.when(mockDockerComposeUpProcess.waitFor()).then(new Answer<Object>() {
+
+			@Override
+			public Object answer(InvocationOnMock invocation) throws Throwable {
+				latch.await(5, TimeUnit.SECONDS);
+				return 0;
+			}
+		});
+	}
+

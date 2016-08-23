@@ -1,0 +1,43 @@
+	/**
+	 * Returns a reference to the console that is for the given container id. If
+	 * such a console does not yet exist, it will be created.
+	 * 
+	 * @param connection
+	 *            the {@link IDockerConnection} that is used to run the
+	 *            {@code docker-compose} command.
+	 *
+	 * @param workingDir
+	 *            The working directory in which the {@code docker-compose}
+	 *            command is executed. <code>null</code>.
+	 * @return A console instance or <code>null</code> if the given workingDir
+	 *         was <code>null</code>.
+	 */
+	public static DockerComposeConsole findConsole(
+			final IDockerConnection connection, final String workingDir) {
+		if (workingDir == null) {
+			return null;
+		}
+		return Stream
+				.of(ConsolePlugin.getDefault().getConsoleManager()
+						.getConsoles())
+				.filter(c -> c.getType() != null && c.getType()
+						.equals(DockerComposeConsole.CONSOLE_TYPE))
+				.map(c -> (DockerComposeConsole) c)
+				.filter(c -> c.getAttribute(DOCKER_CONNECTION) != null
+						&& c.getAttribute(DOCKER_CONNECTION).equals(connection)
+						&& c.getAttribute(WORKING_DIR) != null
+						&& c.getAttribute(WORKING_DIR).equals(workingDir))
+				.findFirst()
+				// if no match found, create and register a new console
+				.orElseGet(() -> {
+					final DockerComposeConsole dockerComposeConsole = new DockerComposeConsole(
+							connection, workingDir);
+					dockerComposeConsole.setAttribute(DOCKER_CONNECTION,
+							connection);
+					dockerComposeConsole.setAttribute(WORKING_DIR, workingDir);
+					ConsolePlugin.getDefault().getConsoleManager().addConsoles(
+							new IConsole[] { dockerComposeConsole });
+					return dockerComposeConsole;
+				});
+	}
+

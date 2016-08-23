@@ -1,0 +1,41 @@
+	@Override
+	protected void createFieldEditors() {
+		// installation directory for docker-compose
+		this.dockerComposeInstallDir = new CustomDirectoryFieldEditor(
+				PreferenceConstants.DOCKER_COMPOSE_INSTALLATION_DIRECTORY,
+				PreferenceMessages.getString("DockerComposePath.label"), //$NON-NLS-1$
+				getFieldEditorParent()) {
+			@Override
+			protected boolean checkState() {
+				if (isEmptyStringAllowed()
+						&& !this.getStringValue().isEmpty()) {
+					final boolean validPath = super.checkState();
+					if (!validPath) {
+						return false;
+					}
+					if (!DockerCompose.getInstance()
+							.checkPathToDockerCompose(this.getStringValue())) {
+						setWarningMessage(NLS.bind(
+								org.eclipse.linuxtools.docker.core.Messages.Docker_Compose_Command_Not_Found,
+								this.getStringValue()));
+						return true;
+					}
+				}
+				setMessage("");
+				return true;
+			}
+		};
+		addField(this.dockerComposeInstallDir);
+		this.dockerComposeInstallDir.setPreferenceStore(getPreferenceStore());
+		// allow empty value if docker-machine is not installed
+		this.dockerComposeInstallDir.setEmptyStringAllowed(true);
+		this.dockerComposeInstallDir
+				.setValidateStrategy(StringFieldEditor.VALIDATE_ON_KEY_STROKE);
+		this.dockerComposeInstallDir.setPage(this);
+		this.dockerComposeInstallDir.setErrorMessage(
+				PreferenceMessages
+						.getString("DockerComposePath.invalid.label")); //$NON-NLS-1$
+		this.dockerComposeInstallDir.showErrorMessage();
+		this.dockerComposeInstallDir.load();
+	}
+

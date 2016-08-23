@@ -1,0 +1,38 @@
+	@Override
+	public boolean isValid(final ILaunchConfiguration launchConfig) {
+		try {
+			// verify the connection
+			final String dockerConnection = launchConfig
+					.getAttribute(DOCKER_CONNECTION, ""); // $NON-NLS-1$
+			// verify the source path
+			final String sourcePathLocation = launchConfig
+					.getAttribute(WORKING_DIR, ""); // $NON-NLS-1$
+			final boolean sourcePathWorkspaceRelativeLocation = launchConfig
+					.getAttribute(WORKING_DIR_WORKSPACE_RELATIVE_LOCATION,
+							false);
+			final IPath sourcePath = BuildDockerImageUtils.getPath(
+					sourcePathLocation, sourcePathWorkspaceRelativeLocation);
+			if (dockerConnection.isEmpty() || dockerConnection == null
+					|| DockerConnectionManager.getInstance()
+							.findConnection(dockerConnection) == null) {
+				setErrorMessage(LaunchMessages.getString(
+						"DockerComposeUpLaunchConfigurationMainTab.connection.missing")); //$NON-NLS-1$
+				return false;
+			} else if (sourcePathLocation.isEmpty() || sourcePath == null) {
+				setErrorMessage(LaunchMessages.getString(
+						"DockerComposeUpLaunchConfigurationMainTab.dockerComposePath.missing")); //$NON-NLS-1$
+				return false;
+			} else if (!sourcePath.append("docker-compose.yml").toFile()
+					.exists()) {
+				setErrorMessage(LaunchMessages.getString(
+						"DockerComposeUpLaunchConfigurationMainTab.dockerComposePath.missingDockerComposeFile")); //$NON-NLS-1$
+				return false;
+			} else {
+				setErrorMessage(null);
+			}
+		} catch (CoreException e) {
+			Activator.log(e);
+		}
+		return super.isValid(launchConfig);
+	}
+

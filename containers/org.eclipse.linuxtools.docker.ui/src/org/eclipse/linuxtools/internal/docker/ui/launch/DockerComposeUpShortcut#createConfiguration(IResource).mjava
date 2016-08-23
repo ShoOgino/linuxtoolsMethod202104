@@ -1,0 +1,52 @@
+	/**
+	 * Create a launch configuration based on a {@code docker-compose.yml}
+	 * resource, and optionally save it to the underlying resource.
+	 *
+	 * @param dockerComposeScript
+	 *            a {@code docker-compose.yml} file to use
+	 * 
+	 * @return a launch configuration generated for the
+	 *         {@code docker-compose.yml}.
+	 */
+	@Override
+	protected ILaunchConfiguration createConfiguration(
+			final IResource dockerComposeScript) {
+		try {
+			if (!DockerConnectionManager.getInstance().hasConnections()) {
+				Display.getDefault().asyncExec(new Runnable() {
+					@Override
+					public void run() {
+						final boolean confirm = MessageDialog.openQuestion(
+								PlatformUI.getWorkbench()
+										.getActiveWorkbenchWindow().getShell(),
+								LaunchMessages.getString(
+										"DockerComposeUpShortcut.no.connections.msg"), //$NON-NLS-1$
+								LaunchMessages.getString(
+										"DockerComposeUpShortcut.no.connections.desc")); //$NON-NLS-1$
+						if (confirm) {
+							final NewDockerConnection newConnWizard = new NewDockerConnection();
+							CommandUtils.openWizard(newConnWizard,
+									PlatformUI.getWorkbench()
+											.getActiveWorkbenchWindow()
+											.getShell());
+						}
+					}
+				});
+				return null;
+			} else {
+				final DockerComposeUpDialog dialog = new DockerComposeUpDialog(
+						getActiveWorkbenchShell());
+				final int result = dialog.open();
+				if (result == IDialogConstants.OK_ID) {
+					return LaunchConfigurationUtils
+							.createDockerComposeUpLaunchConfiguration(
+									dialog.getSelectedConnection(),
+									dockerComposeScript);
+				}
+			}
+		} catch (CoreException e) {
+			Activator.log(e);
+		}
+		return null;
+	}
+

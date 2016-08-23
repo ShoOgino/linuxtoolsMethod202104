@@ -1,0 +1,18 @@
+	@Test
+	@RunWithProject("foo")
+	public void shouldStartDockerComposeWithExistingLaunchConfiguration() throws CoreException {
+		// given
+		final DockerClient client = MockDockerClientFactory.build();
+		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client)
+				.withDefaultTCPConnectionSettings();
+		DockerConnectionManagerUtils.configureConnectionManager(dockerConnection);
+		final IFile dockerComposeScript = projectInit.getProject().getFile("docker-compose.yml");
+		LaunchConfigurationUtils.createDockerComposeUpLaunchConfiguration(dockerConnection, dockerComposeScript);
+		// when
+		SWTUtils.asyncExec(() -> getRunAsDockerComposeContextMenu("foo", "docker-compose.yml").click());
+		// then confirm the connection
+		final SWTBotToolbarButton consoleToolbarStopButton = SWTUtils.getConsoleToolbarButtonWithTooltipText(bot,
+				ConsoleMessages.getString("DockerComposeStopAction.tooltip"));
+		ToolbarButtonAssertion.assertThat(consoleToolbarStopButton).isEnabled();
+	}
+

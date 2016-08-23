@@ -1,0 +1,28 @@
+	@Test
+	@RunWithProject("foo")
+	public void shouldRestartDockerCompose() throws CoreException, InterruptedException, DockerException {
+		// given
+		final DockerClient client = MockDockerClientFactory.build();
+		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client)
+				.withDefaultTCPConnectionSettings();
+		DockerConnectionManagerUtils.configureConnectionManager(dockerConnection);
+		// when starting without launch config
+		SWTUtils.asyncExec(() -> getRunAsDockerComposeContextMenu("foo", "docker-compose.yml").click());
+		bot.button("OK").click();
+		// wait for the job to run
+		SWTUtils.waitForJobsToComplete();
+		// when stopping
+		final SWTBotToolbarButton consoleToolbarStopButton = SWTUtils.getConsoleToolbarButtonWithTooltipText(bot,
+				ConsoleMessages.getString("DockerComposeStopAction.tooltip"));
+		ToolbarButtonAssertion.assertThat(consoleToolbarStopButton).isEnabled();
+		consoleToolbarStopButton.click();
+		// redo the setup to get a new mock process
+		setupMockedProcessLauncher();
+		// when restarting
+		SWTUtils.asyncExec(() -> getRunAsDockerComposeContextMenu("foo", "docker-compose.yml").click());
+		// wait for the job to run
+		SWTUtils.waitForJobsToComplete();
+		// then
+		ToolbarButtonAssertion.assertThat(consoleToolbarStopButton).isEnabled();
+	}
+

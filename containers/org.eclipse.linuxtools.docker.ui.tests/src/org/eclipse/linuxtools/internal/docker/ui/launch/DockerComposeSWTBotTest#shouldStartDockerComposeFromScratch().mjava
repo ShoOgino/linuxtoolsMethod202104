@@ -1,0 +1,28 @@
+	@Test
+	@RunWithProject("foo")
+	public void shouldStartDockerComposeFromScratch() throws CoreException, InterruptedException {
+		// given
+		final DockerClient client = MockDockerClientFactory.build();
+		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client)
+				.withDefaultTCPConnectionSettings();
+		DockerConnectionManagerUtils.configureConnectionManager(dockerConnection);
+		// when
+		SWTUtils.asyncExec(() -> getRunAsDockerComposeContextMenu("foo", "docker-compose.yml").click());
+		// then confirm the connection
+		bot.button("OK").click();
+		// wait for the job to run
+		SWTUtils.waitForJobsToComplete();
+		// then expect the console to be displayed
+		assertThat(SWTUtils.isConsoleViewVisible(this.bot)).isTrue();
+		// expect the 'stop' button to be enabled
+		final SWTBotToolbarButton consoleToolbarStopButton = SWTUtils.getConsoleToolbarButtonWithTooltipText(bot,
+				ConsoleMessages.getString("DockerComposeStopAction.tooltip"));
+		ToolbarButtonAssertion.assertThat(consoleToolbarStopButton).isEnabled();
+		// verify that the launch configuration was saved
+		final ILaunchConfiguration launchConfiguration = LaunchConfigurationUtils.getLaunchConfigurationByName(
+				IDockerComposeLaunchConfigurationConstants.CONFIG_TYPE_ID, "Docker Compose [foo]");
+		assertThat(launchConfiguration).isNotNull();
+		// verify the latch
+		assertThat(latch.getCount()).isEqualTo(1);
+	}
+
