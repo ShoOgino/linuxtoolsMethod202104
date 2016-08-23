@@ -11,10 +11,14 @@
 			try {
 				DockerConnection conn = (DockerConnection) connection;
 				if (conn.getContainerInfo(containerId).config().openStdin()) {
-					while (!conn.getContainerInfo(containerId).state()
-							.running()) {
-						Thread.sleep(1000);
-					}
+					IDockerContainerState state = conn
+							.getContainerInfo(containerId).state();
+					do {
+						if (!state.running() && state.finishDate() == null) {
+							Thread.sleep(300);
+						}
+						state = conn.getContainerInfo(containerId).state();
+					} while (!state.running() && state.finishDate() == null);
 					conn.attachCommand(containerId, in, out);
 				}
 			} catch (Exception e) {
