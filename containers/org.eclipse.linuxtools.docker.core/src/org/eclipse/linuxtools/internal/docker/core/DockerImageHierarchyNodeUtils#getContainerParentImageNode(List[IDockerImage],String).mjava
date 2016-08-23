@@ -1,0 +1,26 @@
+	/**
+	 * Resolves the parent {@link IDockerImageHierarchyNode} for an
+	 * {@link IDockerContainer}.
+	 * 
+	 * @param images
+	 *            all existing {@link IDockerImage}
+	 * @param parentImageName
+	 *            the name of the parent {@link IDockerImage} to look-up
+	 * @return the {@link IDockerImageHierarchyNode} corresponding to the parent
+	 *         {@link IDockerImage} to look-up or <code>null</code> if none was
+	 *         found.
+	 */
+	private static IDockerImageHierarchyNode getContainerParentImageNode(
+			final List<IDockerImage> images, final String parentImageName) {
+		// recursively find all parents and build associated
+		// IDockerImageHierarchyNode instances
+		return images.stream()
+				.filter(image -> image.repoTags().contains(parentImageName))
+				// parent image found: get its own parent image hierarchy
+				.map(parentImage -> new DockerImageHierarchyNode(parentImage,
+						getImageParentImageNode(images, parentImage.parentId())))
+				.findFirst()
+				// no parent image found: stop here.
+				.orElse(null);
+	}
+

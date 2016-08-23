@@ -1,0 +1,17 @@
+	@Test
+	public void shouldRetrieveImageHierarchyFromContainerBasedOnIntermediateImage() {
+		// given
+		final IDockerContainer fooContainer1 = this.connection.getContainer("sha256:foo_container1");
+		// when
+		final IDockerImageHierarchyNode fooContainer1Hierarchy = this.connection.resolveImageHierarchy(fooContainer1);
+		// then
+		assertThat(fooContainer1Hierarchy).isNotNull();
+		assertThat(fooContainer1Hierarchy.getElement()).isEqualTo(fooContainer1);
+		assertThat(fooContainer1Hierarchy.getChildren()).isEmpty();
+		final IDockerImage fooImage1 = (IDockerImage) fooContainer1Hierarchy.getParent().getElement();
+		assertThat(fooImage1.id()).isEqualTo("sha256:foo_image1");
+		// parent image hierarchy only shows the selected container as its
+		// child.
+		assertThat(fooContainer1Hierarchy.getParent().getChildren()).containsExactly(fooContainer1Hierarchy);
+	}
+

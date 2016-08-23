@@ -1,0 +1,20 @@
+	@Test
+	public void shouldRetrieveImageHierarchyFromLeafImage() {
+		// given
+		final IDockerImage fooImage2 = this.connection.getImage("sha256:foo_image2");
+		// when
+		final IDockerImageHierarchyNode fooImage2Hierarchy = this.connection.resolveImageHierarchy(fooImage2);
+		// then
+		assertThat(fooImage2Hierarchy).isNotNull();
+		assertThat(fooImage2Hierarchy.getElement()).isEqualTo(fooImage2);
+		// 2 containers: foo_container21 and foo_container22
+		assertThat(fooImage2Hierarchy.getChildren()).hasSize(2);
+		assertThat((IDockerContainer) fooImage2Hierarchy.getChild("sha256:foo_container21").getElement()).isNotNull();
+		final IDockerImageHierarchyNode fooImage1Hierarchy = fooImage2Hierarchy.getParent();
+		final IDockerImage fooImage = (IDockerImage) fooImage1Hierarchy.getElement();
+		assertThat(fooImage.id()).isEqualTo("sha256:foo_image1");
+		// in this case, intermediate image shows a single child
+		assertThat(fooImage1Hierarchy.getChildren()).hasSize(1);
+		assertThat(fooImage1Hierarchy.getChildren()).containsExactly(fooImage2Hierarchy);
+	}
+

@@ -1,0 +1,24 @@
+	@Test
+	public void shouldRetrieveImageHierarchyFromIntermediateImage() {
+		// given
+		final IDockerImage fooImage1 = this.connection.getImage("sha256:foo_image1");
+		// when
+		final IDockerImageHierarchyNode fooImage1Hierarchy = this.connection.resolveImageHierarchy(fooImage1);
+		// then
+		assertThat(fooImage1Hierarchy).isNotNull();
+		assertThat(fooImage1Hierarchy.getElement()).isEqualTo(fooImage1);
+		assertThat(getChildrenElementIds(fooImage1Hierarchy)).contains("sha256:foo_container1", "sha256:foo_image2");
+		final IDockerImage rootElement = (IDockerImage) fooImage1Hierarchy.getParent().getElement();
+		assertThat(rootElement.id()).isEqualTo("sha256:root_image");
+		// the parent only shows this child element, not its whole descendants
+		assertThat(fooImage1Hierarchy.getParent().getChildren()).containsExactly(fooImage1Hierarchy);
+		final IDockerImageHierarchyNode fooImage2HierarchyNode = fooImage1Hierarchy.getChild("sha256:foo_image2");
+		assertThat(fooImage2HierarchyNode).isNotNull();
+		// 2 child containers: foo_container21 and foo_container22
+		assertThat(fooImage2HierarchyNode.getChildren()).hasSize(2);
+		final IDockerImageHierarchyNode fooContainer1HierarchyNode = fooImage1Hierarchy
+				.getChild("sha256:foo_container1");
+		assertThat(fooContainer1HierarchyNode).isNotNull();
+		assertThat(fooContainer1HierarchyNode.getChildren()).isEmpty();
+	}
+

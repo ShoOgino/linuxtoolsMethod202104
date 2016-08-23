@@ -4,21 +4,17 @@
 	 * @param activePart
 	 *            - active Workbench part
 	 */
-	public static IDockerConnection getCurrentConnection(final IWorkbenchPart activePart) {
+	public static IDockerConnection getCurrentConnection(
+			final IWorkbenchPart activePart) {
 		if (DockerConnectionWatcher.getInstance().getConnection() != null)
 			return DockerConnectionWatcher.getInstance().getConnection();
 		else if (activePart instanceof DockerContainersView) {
 			return ((DockerContainersView) activePart).getConnection();
 		} else if (activePart instanceof DockerImagesView) {
 			return ((DockerImagesView) activePart).getConnection();
-		} else {
-			// fall back to first active connection in list if one exists
-			if (DockerConnectionManager.getInstance().hasConnections()) {
-				return DockerConnectionManager.getInstance().getAllConnections()
-						.stream().filter(c -> c.isOpen()).findFirst()
-						.orElse(null);
-			}
 		}
-		return null;
+		// fall back to first active connection in list if one exists
+		return Stream.of(DockerConnectionManager.getInstance().getConnections())
+				.filter(c -> c.isOpen()).findFirst().orElse(null);
 	}
 

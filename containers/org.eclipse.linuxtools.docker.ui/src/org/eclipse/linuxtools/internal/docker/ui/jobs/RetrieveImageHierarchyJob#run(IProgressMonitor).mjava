@@ -2,13 +2,18 @@
 	protected IStatus run(IProgressMonitor monitor) {
 		try {
 			monitor.beginTask(
-					JobMessages.getString("RetrieveImageHierarchyJob.title"),
+					JobMessages.getString("RetrieveImageHierarchyJob.title"), //$NON-NLS-1$
 					1);
-			// TODO: remove the cast once the 'resolveImageHierarchy' method has
-			// been added in the IDockerConnection interface.
-			this.imageHierarchy = ((DockerConnection) dockerImage
-					.getConnection())
-					.resolveImageHierarchy(dockerImage);
+			if (selectedElement instanceof IDockerContainer) {
+				this.imageHierarchy = connection.resolveImageHierarchy(
+						(IDockerContainer) selectedElement);
+			} else if (selectedElement instanceof IDockerImage) {
+				this.imageHierarchy = connection
+						.resolveImageHierarchy((IDockerImage) selectedElement);
+			} else {
+				Activator.logErrorMessage(JobMessages
+						.getString("RetrieveImageHierarchyJob.error")); //$NON-NLS-1$
+			}
 		} finally {
 			monitor.done();
 		}

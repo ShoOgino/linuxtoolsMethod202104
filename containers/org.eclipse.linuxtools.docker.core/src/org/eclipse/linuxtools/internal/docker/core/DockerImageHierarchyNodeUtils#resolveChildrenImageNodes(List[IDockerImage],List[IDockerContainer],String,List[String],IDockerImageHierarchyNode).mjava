@@ -1,0 +1,24 @@
+	private static void resolveChildrenImageNodes(
+			final List<IDockerImage> images,
+			final List<IDockerContainer> containers, final String imageId,
+			final List<String> imageRepoTags,
+			final IDockerImageHierarchyNode parentNode) {
+		// recursively find all parents and build associated
+		// IDockerImageHierarchyNode instances
+		images.stream().filter(image -> image.parentId() != null
+				&& image.parentId().equals(imageId)).map(image -> {
+					final DockerImageHierarchyNode childNode = new DockerImageHierarchyNode(
+							image, parentNode);
+					resolveChildrenImageNodes(images, containers, image.id(),
+							image.repoTags(),
+							childNode);
+					return childNode;
+				}).collect(Collectors.toList());
+		containers.stream()
+				.filter(container -> container.image() != null
+						&& imageRepoTags.contains(container.image()))
+				.map(container -> new DockerImageHierarchyNode(container,
+						parentNode))
+				.collect(Collectors.toList());
+	}
+

@@ -1,0 +1,19 @@
+	@Before
+	public void setupViews() {
+		this.bot = new SWTWorkbenchBot();
+		SWTUtils.asyncExec(() -> {
+			try {
+				PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage()
+						.showView(DockerExplorerView.VIEW_ID);
+			} catch (Exception e) {
+				e.printStackTrace();
+				Assert.fail("Failed to open Docker Explorer view: " + e.getMessage());
+			}
+		});
+		this.dockerExplorerViewBot = bot.viewById(DockerExplorerView.VIEW_ID);
+		this.dockerExplorerView = (DockerExplorerView) (dockerExplorerViewBot.getViewReference().getView(true));
+		// make sure that the Docker Image Hierarchy view is closed
+		this.bot.views().stream().filter(v -> v.getReference().getId().equals(DockerImageHierarchyView.VIEW_ID))
+				.forEach(v -> v.close());
+	}
+

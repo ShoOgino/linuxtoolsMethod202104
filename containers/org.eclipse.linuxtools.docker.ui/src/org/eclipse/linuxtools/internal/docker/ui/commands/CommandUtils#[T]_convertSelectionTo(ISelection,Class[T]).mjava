@@ -10,16 +10,12 @@
 	private static <T> List<T> convertSelectionTo(final ISelection selection,
 			final Class<T> targetClass) {
 		if (selection instanceof IStructuredSelection) {
-			final List<T> selectedContainers = new ArrayList<>();
 			final IStructuredSelection structuredSelection = (IStructuredSelection) selection;
-			for (Iterator<?> iterator = structuredSelection.iterator(); iterator
-					.hasNext();) {
-				final Object selectedElement = iterator.next();
-				if (targetClass.isAssignableFrom(selectedElement.getClass())) {
-					selectedContainers.add((T) selectedElement);
-				}
-			}
-			return Collections.unmodifiableList(selectedContainers);
+			return (List<T>) structuredSelection.toList().stream()
+					.filter(selectedElement -> targetClass
+							.isAssignableFrom(selectedElement.getClass()))
+					.map(selectedElement -> (T) selectedElement)
+					.collect(Collectors.toList());
 		}
 		return Collections.emptyList();
 	}

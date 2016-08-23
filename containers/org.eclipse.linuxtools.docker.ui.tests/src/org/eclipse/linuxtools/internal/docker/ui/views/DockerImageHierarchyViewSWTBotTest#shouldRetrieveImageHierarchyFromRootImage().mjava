@@ -1,0 +1,18 @@
+	@Test
+	public void shouldRetrieveImageHierarchyFromRootImage() {
+		// given
+		final IDockerImage rootImage = this.connection.getImage("sha256:root_image");
+		// when
+		final IDockerImageHierarchyNode rootImageHierarchy = this.connection.resolveImageHierarchy(rootImage);
+		// then
+		assertThat(rootImageHierarchy).isNotNull();
+		assertThat(rootImageHierarchy.getElement()).isEqualTo(rootImage);
+		// 2 direct children: foo_image1 and bar_image1
+		assertThat(rootImageHierarchy.getChildren()).hasSize(2);
+		assertThat(rootImageHierarchy.getParent()).isNull();
+		final IDockerImageHierarchyNode fooImage1Hierarchy = rootImageHierarchy.getChild("sha256:foo_image1");
+		assertThat(fooImage1Hierarchy.getParent()).isEqualTo(rootImageHierarchy);
+		// 2 direct children: foo_image2 and foo_container1
+		assertThat(fooImage1Hierarchy.getChildren()).hasSize(2);
+	}
+
