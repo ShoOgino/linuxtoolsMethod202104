@@ -1,0 +1,20 @@
+	@Test
+	public void shouldAllowNewConnectionWithDifferentNameAndUnixSettings() throws IOException {
+		// given
+		final String dockerSocketTmpPath = File.createTempFile("docker", ".sock").getAbsolutePath();
+		configureUnixSocketConnection("Bar", dockerSocketTmpPath);
+		MockDockerConnectionSettingsFinder.validUnixSocketConnectionAvailable("Mock",
+				"unix://" + dockerSocketTmpPath);
+		final String otherDockerSocketTmpPath = File.createTempFile("docker", ".sock").getAbsolutePath();
+		// when open wizard
+		addConnectionButton.click();
+		bot.waitUntil(Conditions.shellIsActive(WizardMessages.getString("NewDockerConnection.title"))); //$NON-NLS-1$
+		// when changing connection name
+		bot.text(0).setText("foo");
+		bot.checkBox(0).select();
+		bot.text(1).setText(otherDockerSocketTmpPath);
+		// then the wizard should not allow for completion because a connection
+		// with the connection settings already exists.
+		ButtonAssertion.assertThat(bot.button("Finish")).isEnabled();
+	}
+

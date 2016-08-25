@@ -3,6 +3,10 @@
 			final Boolean tcpConnectionBindingMode = this.tcpConnectionBindingModeModelObservable
 					.getValue();
 			final String tcpHost = this.tcpHostModelObservable.getValue();
+			final IStatus connectionNameStatus = super.validate();
+			if (!connectionNameStatus.isOK()) {
+				return connectionNameStatus;
+			}
 			if (tcpConnectionBindingMode) {
 				if (tcpHost == null || tcpHost.isEmpty()) {
 					return ValidationStatus.error(WizardMessages.getString(
@@ -27,6 +31,18 @@
 						return ValidationStatus.error(WizardMessages.getString(
 								"DockerConnectionPage.validation.invalidTcpConnectionPort.msg")); //$NON-NLS-1$
 
+					}
+					// check for other, existing connections with the same
+					// settings
+					final boolean duplicateConnection = DockerConnectionManager
+							.getInstance().getAllConnections().stream()
+							.filter(c -> c.getSettings()
+									.getType() == BindingType.TCP_CONNECTION)
+							.map(c -> (TCPConnectionSettings) c.getSettings())
+							.anyMatch(s -> s.getHost().equals(tcpHost));
+					if (duplicateConnection) {
+						return ValidationStatus.error(WizardMessages.getString(
+								"DockerConnectionPage.validation.duplicateUnixSocketPath.msg")); //$NON-NLS-1$
 					}
 				} catch (URISyntaxException e) {
 					// URI is not valid

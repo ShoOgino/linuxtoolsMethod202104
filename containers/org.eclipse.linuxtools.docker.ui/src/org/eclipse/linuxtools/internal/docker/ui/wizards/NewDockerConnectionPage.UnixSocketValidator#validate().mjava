@@ -1,38 +1,51 @@
 		@Override
 		protected IStatus validate() {
+			final IStatus connectionNameStatus = super.validate();
 			final Boolean unixSocketBindingMode = this.unixSocketBindingModeModelObservable
 					.getValue();
 			final String unixSocketPath = this.unixSocketPathModelObservable
 					.getValue();
+			if (!connectionNameStatus.isOK()) {
+				return connectionNameStatus;
+			}
 			if (unixSocketBindingMode) {
 				if (unixSocketPath == null || unixSocketPath.isEmpty()) {
 					return ValidationStatus.error(WizardMessages.getString(
 							"DockerConnectionPage.validation.missingUnixSocket.msg")); //$NON-NLS-1$
 				}
 				try {
+					// validate the Unix socket format
 					final URI unixSocketURI = new URI(unixSocketPath);
 					if (unixSocketURI.getScheme() != null
 							&& !unixSocketURI.getScheme().equals("unix")) { //$NON-NLS-1$
 						return ValidationStatus.error(WizardMessages.getString(
 								"DockerConnectionPage.validation.invalidUnixSocketScheme.msg")); //$NON-NLS-1$
 					}
-					if (unixSocketURI.getPath() != null) {
-						final File unixSocket = new File(
-								unixSocketURI.getPath());
-						if (!unixSocket.exists()) {
-							return ValidationStatus
-									.error(WizardMessages.getString(
-											"DockerConnectionPage.validation.invalidUnixSocketPath.msg")); //$NON-NLS-1$
-						} else if (!unixSocket.canRead()
-								|| !unixSocket.canWrite()) {
-							return ValidationStatus
-									.error(WizardMessages.getString(
-											"DockerConnectionPage.validation.unreadableUnixSocket.msg")); //$NON-NLS-1$
-						}
-					} else {
+					if (unixSocketURI.getPath() == null) {
 						return ValidationStatus.error(WizardMessages.getString(
 								"DockerConnectionPage.validation.invalidUnixSocketPath.msg")); //$NON-NLS-1$
-
+					}
+					final File unixSocket = new File(unixSocketURI.getPath());
+					if (!unixSocket.exists()) {
+						return ValidationStatus.error(WizardMessages.getString(
+								"DockerConnectionPage.validation.invalidUnixSocketPath.msg")); //$NON-NLS-1$
+					} else if (!unixSocket.canRead()
+							|| !unixSocket.canWrite()) {
+						return ValidationStatus.error(WizardMessages.getString(
+								"DockerConnectionPage.validation.unreadableUnixSocket.msg")); //$NON-NLS-1$
+					}
+					// check for other, existing connections with the same
+					// settings
+					final boolean duplicateConnection = DockerConnectionManager
+							.getInstance().getAllConnections().stream()
+							.filter(c -> c.getSettings()
+									.getType() == BindingType.UNIX_SOCKET_CONNECTION)
+							.map(c -> (UnixSocketConnectionSettings) c
+									.getSettings())
+							.anyMatch(s -> s.getPath().equals(unixSocketPath));
+					if (duplicateConnection) {
+						return ValidationStatus.error(WizardMessages.getString(
+								"DockerConnectionPage.validation.duplicateUnixSocketPath.msg")); //$NON-NLS-1$
 					}
 				} catch (URISyntaxException e) {
 					return ValidationStatus.error(WizardMessages.getString(
