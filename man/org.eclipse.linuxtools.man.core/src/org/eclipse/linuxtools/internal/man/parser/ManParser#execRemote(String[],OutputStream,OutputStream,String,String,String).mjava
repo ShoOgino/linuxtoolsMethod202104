@@ -1,0 +1,27 @@
+	private static Channel execRemote(String[] args, OutputStream out,
+			OutputStream err, String user, String host, String password)
+			throws JSchException {
+		JSch jsch = new JSch();
+		Session session = jsch.getSession(user, host, DEFAULT_SSH_PORT);
+		session.setPassword(password);
+		Properties config = new Properties();
+		config.put("StrictHostKeyChecking", "no"); //$NON-NLS-1$//$NON-NLS-2$
+		session.setConfig(config);
+		session.connect();
+
+		StringBuilder command = new StringBuilder();
+		for (int i = 0; i < args.length; i++) {
+			command.append(args[i] + ' ');
+		}
+
+		ChannelExec channel = (ChannelExec) session.openChannel("exec"); //$NON-NLS-1$
+		channel.setPty(true);
+		channel.setCommand(command.toString());
+		channel.setInputStream(null, true);
+		channel.setOutputStream(out, true);
+		channel.setExtOutputStream(err, true);
+		channel.connect();
+
+		return channel;
+	}
+
