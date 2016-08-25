@@ -6,19 +6,21 @@
 		// recursively find all parents and build associated
 		// IDockerImageHierarchyNode instances
 		images.stream().filter(image -> image.parentId() != null
-				&& image.parentId().equals(imageId)).map(image -> {
-					final DockerImageHierarchyNode childNode = new DockerImageHierarchyNode(
+				&& image.parentId().equals(imageId))
+				// use the flatMap below to duplicate images that have multiple repos
+				//.flatMap(image -> DockerImage.duplicateImageByRepo(image))
+				.forEach(image -> {
+					final DockerImageHierarchyNode childNode = new DockerImageHierarchyImageNode(
 							image, parentNode);
 					resolveChildrenImageNodes(images, containers, image.id(),
 							image.repoTags(),
 							childNode);
-					return childNode;
-				}).collect(Collectors.toList());
+				});
 		containers.stream()
 				.filter(container -> container.image() != null
 						&& imageRepoTags.contains(container.image()))
-				.map(container -> new DockerImageHierarchyNode(container,
-						parentNode))
-				.collect(Collectors.toList());
+				.forEach(container -> new DockerImageHierarchyContainerNode(
+						container,
+						parentNode));
 	}
 

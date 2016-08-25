@@ -1,0 +1,28 @@
+	/**
+	 * @param image
+	 *            the {@link IDockerImage} to process
+	 * @return the {@link StyledString} to be displayed.
+	 */
+	public static StyledString getStyledText(final IDockerImage image) {
+		final Map<String, List<String>> imageTagsByRepo = DockerImage
+				.extractTagsByRepo(image.repoTags());
+		final List<String> imageRepos = new ArrayList<>(
+				imageTagsByRepo.keySet());
+		Collections.sort(imageRepos);
+		final StyledString result = new StyledString();
+		imageRepos.forEach(repo -> {
+			result.append(repo);
+			final List<String> tags = imageTagsByRepo.get(repo);
+			final String joinedTags = tags.stream()
+					.collect(Collectors.joining(", ")); //$NON-NLS-1$
+			result.append(':');
+			result.append(joinedTags, StyledString.COUNTER_STYLER); // $NON-NLS-1$
+			result.append(' ');
+		});
+		// TODO: remove the cast to 'DockerImage' once the 'shortId()'
+		// method is in the public API
+		result.append('(', StyledString.QUALIFIER_STYLER) // $NON-NLS-1$
+				.append(((DockerImage) image).shortId(), StyledString.QUALIFIER_STYLER).append(')', StyledString.QUALIFIER_STYLER); // $NON-NLS-1$
+		return result;
+	}
+

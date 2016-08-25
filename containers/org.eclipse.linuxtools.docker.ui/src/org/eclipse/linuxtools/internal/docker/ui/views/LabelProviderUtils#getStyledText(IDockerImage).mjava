@@ -4,34 +4,20 @@
 	 * @return the {@link StyledString} to be displayed.
 	 */
 	public static StyledString getStyledText(final IDockerImage dockerImage) {
-		final StringBuilder messageBuilder = new StringBuilder(
-				dockerImage.repo());
-		final int startTags = messageBuilder.length();
+		final StyledString result = new StyledString(dockerImage.repo());
 		if (!dockerImage.tags().isEmpty()) {
 			final List<String> tags = new ArrayList<>(dockerImage.tags());
 			Collections.sort(tags);
-			messageBuilder.append(": ");
-			for (Iterator<String> tagIterator = tags.iterator(); tagIterator
-					.hasNext();) {
-				messageBuilder.append(tagIterator.next());
-				if (tagIterator.hasNext()) {
-					messageBuilder.append(", ");
-				}
-			}
+			result.append(":");
+			result.append(tags.stream().collect(Collectors.joining(", ")), //$NON-NLS-1$
+					StyledString.COUNTER_STYLER);
 		}
-		final int startImageId = messageBuilder.length();
 		// TODO: remove the cast to 'DockerImage' once the 'shortId()'
 		// method is in the public API
-		messageBuilder.append(" (") //$NON-NLS-1$
-				.append(((DockerImage) dockerImage).shortId()).append(')'); // $NON-NLS-1$
-		final String message = messageBuilder.toString();
-		final StyledString styledString = new StyledString(message);
-		// styled tags
-		styledString.setStyle(startTags, startImageId - startTags,
-				StyledString.COUNTER_STYLER);
-		// styled image id
-		styledString.setStyle(startImageId, message.length() - startImageId,
-				StyledString.QUALIFIER_STYLER);
-		return styledString;
+		result.append(" (", StyledString.QUALIFIER_STYLER) //$NON-NLS-1$
+				.append(((DockerImage) dockerImage).shortId(),
+						StyledString.QUALIFIER_STYLER)
+				.append(')', StyledString.QUALIFIER_STYLER); // $NON-NLS-1$
+		return result;
 	}
 

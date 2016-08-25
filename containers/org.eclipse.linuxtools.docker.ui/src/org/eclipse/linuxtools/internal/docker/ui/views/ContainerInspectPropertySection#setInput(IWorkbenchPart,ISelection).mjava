@@ -1,22 +1,12 @@
 	@Override
 	public void setInput(final IWorkbenchPart part, final ISelection selection) {
 		super.setInput(part, selection);
-		Object input = null;
-		if (selection instanceof ITreeSelection)
-			input = ((ITreeSelection) selection).getFirstElement();
-		else if (selection instanceof IStructuredSelection)
-			input = ((IStructuredSelection) selection).getFirstElement();
-		Assert.isTrue(input instanceof IDockerContainer);
-		this.selectedContainer = (IDockerContainer) input;
-		final IDockerConnection parentConnection;
-		if (part instanceof DockerContainersView) {
-			parentConnection = ((DockerContainersView) part).getConnection();
-		} else {
-			parentConnection = (IDockerConnection) ((ITreeSelection) selection)
-					.getPathsFor(selectedContainer)[0].getFirstSegment();
-		}
-		this.containerInfo = getContainerInfo(parentConnection, selectedContainer);
-		if (getTreeViewer() != null && this.containerInfo != null) {
+		final Object input = getSelection(selection);
+		final IDockerConnection parentConnection = getConnection(part,
+				selection);
+		final IDockerContainerInfo containerInfo = getContainerInfo(
+				parentConnection, input);
+		if (getTreeViewer() != null && containerInfo != null) {
 			getTreeViewer().setInput(containerInfo);
 			getTreeViewer().expandAll();
 		}
