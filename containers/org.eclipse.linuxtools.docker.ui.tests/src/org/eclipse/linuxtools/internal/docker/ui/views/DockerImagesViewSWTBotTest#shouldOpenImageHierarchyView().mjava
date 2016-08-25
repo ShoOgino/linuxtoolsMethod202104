@@ -1,0 +1,19 @@
+	@Test
+	public void shouldOpenImageHierarchyView() {
+		// given
+		final DockerClient client = MockDockerClientFactory.image(MockImageFactory.name("angry_bar").build())
+				.image(MockImageFactory.name("gentle_foo").build()).build();
+		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client)
+				.withDefaultTCPConnectionSettings();
+		DockerConnectionManagerUtils.configureConnectionManager(dockerConnection);
+		// make sure the hierarchy view is closed.
+		SWTUtils.closeView(this.bot, DockerImageHierarchyView.VIEW_ID);
+		// open the context menu on one of the containers
+		selectImageInTable("angry_bar");
+		SWTUtils.getContextMenu(dockerImagesBotView.bot().table(), "Open Image Hierarchy").click();
+		// wait 1sec
+		SWTUtils.wait(1, TimeUnit.SECONDS);
+		DockerImageHierarchyViewAssertion.assertThat(SWTUtils.getView(bot, DockerImageHierarchyView.VIEW_ID))
+				.isNotNull();
+	}
+
