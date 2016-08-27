@@ -1,0 +1,27 @@
+	@Override
+	void executeInJob(final IDockerContainer container, final IDockerConnection connection) {
+		try {
+			final RunConsole console = getRunConsole(connection, container);
+			long waitTime = Platform.getPreferencesService().getLong(
+					"org.eclipse.linuxtools.docker.ui", //$NON-NLS-1$
+					PreferenceConstants.RESTART_WAIT_TIME, DEFAULT_WAIT_TIME,
+					null);
+			if (console != null) {
+				// if we are auto-logging, show the console
+				console.showConsole();
+				// Start the container
+				((DockerConnection) connection).restartContainer(container.id(),
+						(int) waitTime,
+						console.getOutputStream());
+			} else {
+				((DockerConnection) connection).restartContainer(container.id(),
+						(int) waitTime,
+						null);
+			}
+			connection.getContainers(true);
+		} catch (DockerException | InterruptedException e) {
+			final String errorMessage = DVMessages.getFormattedString(CONTAINER_RESTART_ERROR_MSG, container.id());
+			openError(errorMessage, e);
+		} 
+	}
+
