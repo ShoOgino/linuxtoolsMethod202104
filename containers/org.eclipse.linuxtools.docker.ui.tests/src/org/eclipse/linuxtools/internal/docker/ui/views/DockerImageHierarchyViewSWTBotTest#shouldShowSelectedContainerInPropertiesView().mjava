@@ -1,16 +1,17 @@
 	@Test
 	public void shouldShowSelectedContainerInPropertiesView() {
 		// given
+		final PropertySheet propertySheet = SWTUtils
+				.syncExec(() -> SWTUtils.getView(bot, "org.eclipse.ui.views.PropertySheet", true));
 		shouldDisplayImageHierarchyViewWhenSelectingImage();
 		// when
 		selectImageInTreeView(bot, "root", "foo_image1", "foo_container1");
 		// show container info in Properties view
 		SWTUtils.getContextMenu(bot.viewById(DockerImageHierarchyView.VIEW_ID).bot().tree(), "Show In", "Properties")
 				.click();
-		// the properties view should be visible and filled with image details
-		final SWTBotView propertiesBotView = this.bot.viewById("org.eclipse.ui.views.PropertySheet");
-		assertThat(propertiesBotView.isActive()).isEqualTo(true);
-		final PropertySheet propertiesView = (PropertySheet) propertiesBotView.getViewReference().getView(false);
-		assertThat(((TabbedPropertySheetPage) propertiesView.getCurrentPage()).getCurrentTab()).isNotNull();
+		assertThat(propertySheet.getCurrentPage()).isInstanceOf(TabbedPropertySheetPage.class);
+		final TabbedPropertySheetPage currentPage = (TabbedPropertySheetPage) propertySheet.getCurrentPage();
+		TabDescriptorAssertion.assertThat(currentPage.getSelectedTab()).isNotNull()
+				.hasId("org.eclipse.linuxtools.docker.ui.properties.container.info");
 	}
 
