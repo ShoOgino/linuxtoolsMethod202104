@@ -1,0 +1,40 @@
+	@Test
+	public void verifyBuildAndPullActionEnablement() {
+		// given
+		final DockerClient client = MockDockerClientFactory.image(MockImageFactory.name("angry_bar").build()).build();
+		final DockerConnection dockerConnection = MockDockerConnectionFactory.from("Test", client)
+				.withDefaultTCPConnectionSettings();
+		DockerConnectionManagerUtils.configureConnectionManager(dockerConnection);
+		final PropertySheet propertySheet = SWTUtils
+				.syncExec(() -> SWTUtils.getView(bot, "org.eclipse.ui.views.PropertySheet", true));
+		this.dockerImagesView.setFocus();
+		// select the container in the table
+		selectImageInTable("angry_bar");
+		List<SWTBotToolbarButton> buttons = this.dockerImagesBotView.getToolbarButtons();
+		for (SWTBotToolbarButton button : buttons) {
+			if (button.getText().equals("Build Image")) {
+				assertThat(button.isEnabled());
+			} else if (button.getText().equals("Pull...")) {
+				assertThat(button.isEnabled());
+			}
+		}
+		unselectImages();
+		buttons = this.dockerImagesBotView.getToolbarButtons();
+		for (SWTBotToolbarButton button : buttons) {
+			if (button.getText().equals("Build Image")) {
+				assertThat(button.isEnabled());
+			} else if (button.getText().equals("Pull...")) {
+				assertThat(button.isEnabled());
+			}
+		}
+		unselectConnections();
+		buttons = this.dockerImagesBotView.getToolbarButtons();
+		for (SWTBotToolbarButton button : buttons) {
+			if (button.getText().equals("Build Image")) {
+				assertThat(!button.isEnabled());
+			} else if (button.getText().equals("Pull...")) {
+				assertThat(!button.isEnabled());
+			}
+		}
+	}
+
