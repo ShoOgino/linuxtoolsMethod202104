@@ -28,24 +28,29 @@
 
         controlCombo = new CCombo(p, SWT.DROP_DOWN|SWT.READ_ONLY|SWT.BORDER);
         List<String> tools = new ArrayList<>(Arrays.asList(OprofileProject.OPERF_BINARY));
-        try {
-            Process proc = RuntimeProcessFactory.getFactory().exec(
-                    new String [] {"which", OprofileProject.OPCONTROL_BINARY }, //$NON-NLS-1$
-                    null);
-            if  (proc.waitFor() == 0) {
-                tools.add(OprofileProject.OPCONTROL_BINARY);
-            }
-        } catch (Exception e) {
-        }
-        try {
-            Process proc = RuntimeProcessFactory.getFactory().exec(
-                    new String [] {"which", OprofileProject.OCOUNT_BINARY }, //$NON-NLS-1$
-                    null);
-            if  (proc.waitFor() == 0) {
-                tools.add(OprofileProject.OCOUNT_BINARY);
-            }
-        } catch (Exception e) {
-        }
+
+        /*
+         * Check if tools are installed. Use whichComand() method from
+         * RuntimeProcessFactory as it considers the LinuxTools Path.
+         */
+        IProject project = getOprofileProject();
+		try {
+			String toolPath = RuntimeProcessFactory.getFactory().whichCommand(OprofileProject.OPCONTROL_BINARY, project);
+			// Command found
+			if (!toolPath.equals(OprofileProject.OPCONTROL_BINARY)) {
+				tools.add(OprofileProject.OPCONTROL_BINARY);
+			}
+		} catch (Exception e) {
+		}
+		try {
+			String toolPath = RuntimeProcessFactory.getFactory().whichCommand(OprofileProject.OCOUNT_BINARY, project);
+			// Command found
+			if (!toolPath.equals(OprofileProject.OCOUNT_BINARY)) {
+				tools.add(OprofileProject.OCOUNT_BINARY);
+			}
+		} catch (Exception e) {
+		}
+
         controlCombo.setItems(tools.toArray(new String [0]));
         controlCombo.select(0);
         controlCombo.addModifyListener(mev -> {
