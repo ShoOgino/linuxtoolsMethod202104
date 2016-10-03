@@ -24,26 +24,20 @@
 				.getAttribute(RM_INTERMEDIATE_CONTAINERS, true));
 		buildOptions.put(FORCE_RM_INTERMEDIATE_CONTAINERS, configuration
 				.getAttribute(FORCE_RM_INTERMEDIATE_CONTAINERS, false));
-		try {
-			if (connection != null && sourcePath != null) {
-				final Job buildImageJob = new BuildDockerImageJob(connection,
-						sourcePath, repoName, buildOptions);
-				buildImageJob.schedule();
-			} else {
-				final ILaunchGroup launchGroup = DebugUITools
-						.getLaunchGroup(configuration, "run"); //$NON-NLS-1$
-				// prompt the user with the launch configuration editor
-				Display.getDefault().syncExec(
-						() -> DebugUITools.openLaunchConfigurationDialog(
-								PlatformUI.getWorkbench()
-										.getActiveWorkbenchWindow().getShell(),
-								configuration, launchGroup.getIdentifier(),
-								null));
+		if (connection != null && sourcePath != null) {
+			final Job buildImageJob = new BuildDockerImageJob(connection,
+					sourcePath, repoName, buildOptions);
+			buildImageJob.schedule();
+		} else {
+			final ILaunchGroup launchGroup = DebugUITools
+					.getLaunchGroup(configuration, "run"); //$NON-NLS-1$
+			// prompt the user with the launch configuration editor
+			Display.getDefault()
+					.syncExec(() -> DebugUITools.openLaunchConfigurationDialog(
+							PlatformUI.getWorkbench().getActiveWorkbenchWindow()
+									.getShell(),
+							configuration, launchGroup.getIdentifier(), null));
 
-			}
-		} catch (DockerException e) {
-			Activator.log(new Status(IStatus.ERROR, Activator.PLUGIN_ID,
-					e.getMessage(), e));
 		}
 	}
 

@@ -1,35 +1,42 @@
 	@Override
 	protected IStatus run(final IProgressMonitor progressMonitor) {
 		try {
-			if (numberOfBuildOperations == 0) {
-				Activator.log(new Status(IStatus.WARNING, Activator.PLUGIN_ID,
-						JobMessages.getString(SKIP_EMPTY_DOCKERFILE)));
-				this.progressMonitor = progressMonitor;
-			} else {
-				this.console.clearConsole();
-				this.console.activate();
-				this.progressMonitor = progressMonitor;
-				this.progressMonitor.beginTask(
-						JobMessages.getString(BUILD_IMAGE_JOB_TITLE),
-						numberOfBuildOperations + 1);
-				if (repoName == null) {
-					// Give the Image a default name so it can be tagged later.
-					// Otherwise, the Image will be treated as an intermediate
-					// Image
-					// by the view filters and Tag Image action will be
-					// disabled.
-					// Use the current time in milliseconds to make it unique.
-					final String name = "dockerfile:" //$NON-NLS-1$
-							+ Long.toHexString(System.currentTimeMillis());
-					((DockerConnection) connection).buildImage(this.path, name,
-							this,
-							this.buildOptions);
+			this.progressMonitor = progressMonitor;
+			final IPath pathToDockerfile = path.addTrailingSeparator()
+					.append("Dockerfile"); //$NON-NLS-1$
+			if (verifyPathToDockerfile(pathToDockerfile)) {
+				final int numberOfBuildOperations = countLines(
+						pathToDockerfile.toOSString()); // $NON-NLS-1$
+				if (numberOfBuildOperations == 0) {
+					Activator.log(new Status(IStatus.WARNING,
+							Activator.PLUGIN_ID,
+							JobMessages.getString(SKIP_EMPTY_DOCKERFILE)));
 				} else {
-					((DockerConnection) connection).buildImage(this.path,
-							this.repoName, this,
-							this.buildOptions);
+					this.console.clearConsole();
+					this.console.activate();
+					this.progressMonitor.beginTask(
+							JobMessages.getString(BUILD_IMAGE_JOB_TITLE),
+							numberOfBuildOperations + 1);
+					if (repoName == null) {
+						// Give the Image a default name so it can be tagged
+						// later.
+						// Otherwise, the Image will be treated as an
+						// intermediate
+						// Image
+						// by the view filters and Tag Image action will be
+						// disabled.
+						// Use the current time in milliseconds to make it
+						// unique.
+						final String name = "dockerfile:" //$NON-NLS-1$
+								+ Long.toHexString(System.currentTimeMillis());
+						((DockerConnection) connection).buildImage(this.path,
+								name, this, this.buildOptions);
+					} else {
+						((DockerConnection) connection).buildImage(this.path,
+								this.repoName, this, this.buildOptions);
+					}
+					connection.getImages(true);
 				}
-				connection.getImages(true);
 			}
 		} catch (DockerException | InterruptedException e) {
 			Display.getDefault()
@@ -38,10 +45,12 @@
 									.getShell(),
 							JobMessages.getString(BUILD_IMAGE_ERROR_MESSAGE),
 							e.getMessage()));
+		} finally {
+			// make sure the progress monitor is 'done' even if the build failed
+			// or
+			// timed out.
+			this.progressMonitor.done();
 		}
-		// make sure the progress monitor is 'done' even if the build failed or
-		// timed out.
-		this.progressMonitor.done();
 		return Status.OK_STATUS;
 	}
 
