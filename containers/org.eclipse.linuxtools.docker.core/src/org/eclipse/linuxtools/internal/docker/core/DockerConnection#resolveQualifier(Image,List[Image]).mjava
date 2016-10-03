@@ -1,0 +1,28 @@
+	/**
+	 * Resolves the {@link DockerImageQualifier} for the given
+	 * {@code nativeImage} in the context of all {@code nativeImages}
+	 * 
+	 * @param nativeImage
+	 *            the image to analyze
+	 * @param nativeImages
+	 *            all known images
+	 * @return the corresponding {@link DockerImageQualifier}
+	 */
+	private static DockerImageQualifier resolveQualifier(
+			final Image nativeImage, final List<Image> nativeImages) {
+		final boolean hasTag = !(nativeImage.repoTags() == null
+				|| (nativeImage.repoTags().size() == 1
+						&& nativeImage.repoTags().contains("<none>:<none>"))); //$NON-NLS-1$
+		final boolean hasChildImage = nativeImages.stream()
+				.anyMatch(i -> nativeImage.id().equals(i.parentId()));
+		// imtermediate image
+		if (!hasTag && hasChildImage) {
+			return DockerImageQualifier.INTERMEDIATE;
+		}
+		// dangling image
+		if (!hasTag && !hasChildImage) {
+			return DockerImageQualifier.DANGLING;
+		}
+		return DockerImageQualifier.TOP_LEVEL;
+	}
+
