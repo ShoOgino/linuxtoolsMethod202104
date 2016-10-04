@@ -1,0 +1,79 @@
+	private void performCopyFromContainer(final IDockerConnection connection,
+			final IDockerContainer container, final String target,
+			final List<ContainerFileProxy> files) {
+		final Job copyFromContainerJob = new Job(
+				CommandMessages.getFormattedString(
+				COPY_FROM_CONTAINER_JOB_TITLE, container.name())) {
+
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				monitor.beginTask(
+						CommandMessages.getString(COPY_FROM_CONTAINER_JOB_TASK),
+						files.size());
+				try {
+					for (ContainerFileProxy proxy : files) {
+						if (monitor.isCanceled()) {
+							monitor.done();
+							return Status.CANCEL_STATUS;
+						}
+						try {
+							monitor.setTaskName(
+									CommandMessages.getFormattedString(
+											COPY_FROM_CONTAINER_JOB_SUBTASK,
+											proxy.getFullPath()));
+							monitor.worked(1);
+							TarInputStream k = new TarInputStream(
+									((DockerConnection) connection)
+											.copyContainer(container.id(),
+													proxy.getLink()));
+							TarEntry te = k.getNextEntry();
+							long size = te.getSize();
+							IPath path = new Path(target);
+							path = path.append(proxy.getName());
+							File f = new File(path.toOSString());
+							f.createNewFile();
+							FileOutputStream os = new FileOutputStream(f);
+							if (size > 4096)
+								size = 4096;
+							byte[] barray = new byte[(int) size];
+							while (k.read(barray) > 0) {
+								if (monitor.isCanceled()) {
+									monitor.done();
+									k.close();
+									os.close();
+									return Status.CANCEL_STATUS;
+								}
+								os.write(barray);
+							}
+							k.close();
+							os.close();
+						} catch (final DockerException e) {
+							Display.getDefault()
+									.syncExec(() -> MessageDialog.openError(
+											PlatformUI.getWorkbench()
+													.getActiveWorkbenchWindow()
+													.getShell(),
+											CommandMessages.getFormattedString(
+													ERROR_COPYING_FROM_CONTAINER,
+													proxy.getLink(),
+													container.name()),
+											e.getMessage()));
+							// for now
+						}
+					}
+				} catch (InterruptedException e) {
+					// do nothing
+				} catch (TarException | IOException e) {
+					Activator.log(e);
+				} finally {
+					monitor.done();
+				}
+				return Status.OK_STATUS;
+			}
+
+		};
+
+		copyFromContainerJob.schedule();
+
+	}
+

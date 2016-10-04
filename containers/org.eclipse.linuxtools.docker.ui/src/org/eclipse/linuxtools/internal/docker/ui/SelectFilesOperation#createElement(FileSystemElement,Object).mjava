@@ -1,0 +1,46 @@
+	/**
+	 * Creates and returns a <code>FileSystemElement</code> if the specified
+	 * file system object merits one. The criteria for this are: - if the file
+	 * system object is a container then it must have either a child container
+	 * or an associated file - if the file system object is a file then it must
+	 * have an extension suitable for selection
+	 */
+	@SuppressWarnings("rawtypes")
+	protected FileSystemElement createElement(FileSystemElement parent,
+			Object fileSystemObject) throws InterruptedException {
+		ModalContext.checkCanceled(monitor);
+		boolean isContainer = provider.isFolder(fileSystemObject);
+		String elementLabel = parent == null
+				? provider.getFullPath(fileSystemObject)
+				: provider.getLabel(fileSystemObject);
+
+		if (!isContainer && !hasDesiredExtension(elementLabel)) {
+			return null;
+		}
+
+		FileSystemElement result = new FileSystemElement(elementLabel, parent,
+				isContainer);
+		result.setFileSystemObject(fileSystemObject);
+
+		if (isContainer) {
+			boolean haveChildOrFile = false;
+			List children = provider.getChildren(fileSystemObject);
+			if (children == null) {
+				children = new ArrayList(1);
+			}
+			Iterator childrenEnum = children.iterator();
+			while (childrenEnum.hasNext()) {
+				if (createElement(result, childrenEnum.next()) != null) {
+					haveChildOrFile = true;
+				}
+			}
+
+			if (!haveChildOrFile && parent != null) {
+				parent.removeFolder(result);
+				result = null;
+			}
+		}
+
+		return result;
+	}
+

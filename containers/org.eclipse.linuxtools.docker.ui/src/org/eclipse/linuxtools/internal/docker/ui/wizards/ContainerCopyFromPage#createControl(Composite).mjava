@@ -1,0 +1,63 @@
+    @Override
+	public void createControl(Composite parent) {
+        // page group
+		Composite composite = new Composite(parent, SWT.NULL);
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).span(1, 1)
+				.grab(true, false).applyTo(composite);
+		GridLayoutFactory.fillDefaults().numColumns(COLUMNS).margins(6, 6)
+				.applyTo(composite);
+
+		Label targetLabel = new Label(composite, SWT.NULL);
+		targetLabel.setText(WizardMessages.getString(TARGET_LABEL));
+
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER).span(1, 1)
+				.grab(false, false).applyTo(targetLabel);
+
+		targetText = new Text(composite, SWT.BORDER | SWT.SINGLE);
+		targetText.addModifyListener(Listener);
+		targetText.setToolTipText(WizardMessages.getString(TARGET_TOOLTIP));
+
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).span(1, 1)
+				.grab(true, false).applyTo(targetText);
+
+		browseButton = new Button(composite, SWT.NONE);
+		browseButton.setText(WizardMessages.getString(BROWSE_LABEL));
+		browseButton.addSelectionListener(onBrowseSelect());
+
+		GridDataFactory.fillDefaults().align(SWT.END, SWT.FILL).span(1, 1)
+				.grab(false, false).applyTo(browseButton);
+
+		// Create a fake parent of the root to be the dialog input element.
+        // Use an empty label so that display of the element's full name
+        // doesn't include a confusing label
+        FileSystemElement input = new FileSystemElement("", null, true);//$NON-NLS-1$
+        input.addChild(root);
+        root.setParent(input);
+
+		Composite selectionComposite = new Composite(composite, SWT.NULL);
+		GridLayout selectionLayout = new GridLayout();
+		selectionComposite.setLayout(selectionLayout);
+
+		selectionGroup = new CheckboxTreeAndListGroup(selectionComposite, input,
+				getFolderProvider(), getDynamicFolderProvider(),
+				new WorkbenchLabelProvider(),
+                getFileProvider(), new WorkbenchLabelProvider(), SWT.NONE,
+                SIZING_SELECTION_WIDGET_WIDTH, // since this page has no other significantly-sized
+                SIZING_SELECTION_WIDGET_HEIGHT); // widgets we need to hardcode the combined widget's
+        // size, otherwise it will open too small
+
+		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).span(3, 1)
+				.grab(true, false).applyTo(selectionComposite);
+
+        WorkbenchViewerComparator comparator = new WorkbenchViewerComparator();
+        selectionGroup.setTreeComparator(comparator);
+        selectionGroup.setListComparator(comparator);
+		selectionGroup.addCheckStateListener(CheckListener);
+
+		setControl(composite);
+		validate();
+		setPageComplete(false);
+
+		selectionGroup.aboutToOpen();
+    }
+

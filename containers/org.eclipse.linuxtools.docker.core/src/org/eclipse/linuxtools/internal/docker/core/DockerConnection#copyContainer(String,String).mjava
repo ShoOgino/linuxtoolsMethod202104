@@ -3,7 +3,28 @@
 			throws DockerException, InterruptedException {
 		InputStream stream;
 		try {
-			stream = client.copyContainer(id, path);
+			if (this.connectionInfo != null) {
+				String apiversion = connectionInfo.getApiVersion();
+				if (apiversion != null) {
+					String[] tokens = apiversion.split("\\."); //$NON-NLS-1$
+					if (tokens.length > 1) {
+						try {
+							int major = Integer.valueOf(tokens[0]);
+							int minor = Integer.valueOf(tokens[1]);
+							if (major > 1 || minor >= 24) {
+								throw new DockerException(
+										DockerMessages.getFormattedString(
+												"DockerClientVersionTooLow.error", //$NON-NLS-1$
+												"copyContainer", "1.24")); //$NON-NLS-1$ //$NON-NLS-2$
+							}
+						} catch (NumberFormatException e) {
+							// ignore for now and let things occur
+						}
+					}
+				}
+			}
+			DockerClient copy = getClientCopy();
+			stream = copy.copyContainer(id, path);
 		} catch (com.spotify.docker.client.DockerException e) {
 			throw new DockerException(e.getMessage(), e.getCause());
 		}
