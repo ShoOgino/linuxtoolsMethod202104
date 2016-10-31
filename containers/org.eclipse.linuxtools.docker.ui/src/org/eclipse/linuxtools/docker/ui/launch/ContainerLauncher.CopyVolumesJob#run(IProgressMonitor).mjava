@@ -1,0 +1,42 @@
+		@Override
+		protected IStatus run(IProgressMonitor monitor) {
+			monitor.beginTask(
+					Messages.getFormattedString(COPY_VOLUMES_DESC, containerId),
+					volumes.size());
+			Iterator<String> iterator = volumes.iterator();
+			IStatus status = Status.OK_STATUS;
+			// for each remote volume, copy from host to Container volume
+			while (iterator.hasNext()) {
+				if (monitor.isCanceled()) {
+					monitor.done();
+					return Status.CANCEL_STATUS;
+				}
+				String directory = iterator.next();
+				if (!directory.endsWith("/")) { //$NON-NLS-1$
+					directory = directory + "/"; //$NON-NLS-1$
+				}
+				monitor.setTaskName(Messages
+						.getFormattedString(COPY_VOLUMES_TASK, directory));
+				try {
+					((DockerConnection) connection).copyToContainer(directory,
+							containerId, directory);
+					monitor.worked(1);
+				} catch (DockerException | InterruptedException
+						| IOException e) {
+					monitor.done();
+					final String dir = directory;
+					Display.getDefault().syncExec(() -> MessageDialog.openError(
+							PlatformUI.getWorkbench().getActiveWorkbenchWindow()
+									.getShell(),
+							Messages.getFormattedString(ERROR_COPYING_VOLUME,
+									new String[] { dir, containerId }),
+							e.getMessage()));
+					status = new Status(IStatus.ERROR, Activator.PLUGIN_ID,
+							e.getMessage());
+				} finally {
+					monitor.done();
+				}
+			}
+			return status;
+		}
+
