@@ -1,0 +1,29 @@
+	@Override
+	protected IStatus run(IProgressMonitor monitor) {
+		monitor.beginTask(jobName, IProgressMonitor.UNKNOWN);
+		boolean done = false;
+
+		while (!done) {
+			if (monitor.isCanceled()) {
+				return Status.CANCEL_STATUS;
+			}
+			// if work percentage has changed...add new amount
+			String status = getStatusMessage();
+			if (status != null && !status.isEmpty()) {
+				monitor.subTask(statusMessage);
+			}
+			// if we are 100% or more done, then we are done
+			if (percentageDone >= 100) {
+				done = true;
+			}
+			// otherwise, sleep and then loop again
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				done = true;
+			}
+		}
+		monitor.done();
+		return Status.OK_STATUS;
+	}
+
