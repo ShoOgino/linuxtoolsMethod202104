@@ -1,0 +1,38 @@
+		private String[] extractResult(final Process process) {
+			try {
+			process.waitFor();
+			if (process.exitValue() == 0) {
+				final List<String> result = new ArrayList<>();
+				try (final InputStream inputStream = process.getInputStream();
+						final BufferedReader buff = new BufferedReader(
+								new InputStreamReader(inputStream))) {
+					String line;
+					while ((line = buff.readLine()) != null) {
+						result.add(line);
+					}
+				}
+				return result.toArray(new String[0]);
+			} else {
+				final StringBuffer errorMessage = new StringBuffer();
+				try (final InputStream errorStream = process.getErrorStream();
+						final BufferedReader buff = new BufferedReader(
+								new InputStreamReader(errorStream))) {
+					String line;
+					while ((line = buff.readLine()) != null) {
+						errorMessage.append(line).append('\n'); // $NON-NLS-1$
+					}
+				}
+				Activator.log(new Status(IStatus.WARNING, Activator.PLUGIN_ID,
+						ProcessMessages.getFormattedString("Process_Error", //$NON-NLS-1$
+											this.getCommand(),
+								process.exitValue(), errorMessage.toString())));
+			}
+			} catch (IOException | InterruptedException e) {
+				Activator.log(new Status(IStatus.ERROR, Activator.PLUGIN_ID,
+						ProcessMessages.getFormattedString("Process_Exception", //$NON-NLS-1$
+								this.getCommand(), e.getMessage()),
+						e));
+			}
+			return new String[0];
+		}
+
