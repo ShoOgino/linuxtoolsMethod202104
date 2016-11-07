@@ -1,0 +1,32 @@
+    @Override
+	protected Control createDialogArea(Composite parent) {
+        // page group
+        Composite composite = (Composite) super.createDialogArea(parent);
+
+        createMessageArea(composite);
+
+        // Create a fake parent of the root to be the dialog input element.
+        // Use an empty label so that display of the element's full name
+        // doesn't include a confusing label
+        FileSystemElement input = new FileSystemElement("", null, true);//$NON-NLS-1$
+        input.addChild(root);
+        root.setParent(input);
+
+		selectionGroup = new ContainerTreeGroup(composite, input,
+				getFolderProvider(), getDynamicFolderProvider(),
+				new WorkbenchLabelProvider(),
+				SWT.NONE,
+                SIZING_SELECTION_WIDGET_WIDTH, // since this page has no other significantly-sized
+                SIZING_SELECTION_WIDGET_HEIGHT); // widgets we need to hardcode the combined widget's
+        // size, otherwise it will open too small
+
+		ISelectionChangedListener listener = event -> getOkButton()
+				.setEnabled(event.getSelection() != null
+						&& !event.getSelection().isEmpty());
+
+        WorkbenchViewerComparator comparator = new WorkbenchViewerComparator();
+        selectionGroup.setTreeComparator(comparator);
+		selectionGroup.addSelectionChangedListener(listener);
+        return composite;
+    }
+
