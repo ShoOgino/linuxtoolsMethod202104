@@ -6,21 +6,9 @@
 					ExecCreateParam.attachStderr(),
 					ExecCreateParam.attachStdin(),
 					ExecCreateParam.tty());
-			/*
-			 * Temporary workaround for lack of support for 'Tty'.
-			 * We do not use DETACH so modify it in this scope to
-			 * pass 'Tty' to the execStart call.
-			 * This can be removed once
-			 * https://github.com/spotify/docker-client/pull/351
-			 * is accepted.
-			 */
-			String realValue = ExecStartParameter.DETACH.getName();
-			Field fname = ExecStartParameter.class.getDeclaredField("name"); //$NON-NLS-1$
-			fname.setAccessible(true);
-			fname.set(ExecStartParameter.DETACH, "Tty"); //$NON-NLS-1$
+
 			final LogStream pty_stream = client.execStart(execId,
-					DockerClient.ExecStartParameter.DETACH);
-			fname.set(ExecStartParameter.DETACH, realValue);
+					DockerClient.ExecStartParameter.TTY);
 			final IDockerContainerInfo info = getContainerInfo(id);
 			openTerminal(pty_stream, info.name() + " [shell]"); //$NON-NLS-1$
 		} catch (Exception e) {
