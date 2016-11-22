@@ -1,0 +1,32 @@
+	@Override
+	public Object execute(final ExecutionEvent event) {
+		final IWorkbenchPart activePart = HandlerUtil.getActivePart(event);
+		final IDockerConnection connection = CommandUtils
+				.getCurrentConnection(activePart);
+		final List<IDockerContainer> selectedContainers = CommandUtils
+				.getSelectedContainers(activePart);
+		if (selectedContainers.size() != 1) {
+			return null;
+		}
+		final IDockerContainer container = selectedContainers.get(0);
+		if (connection == null) {
+			MessageDialog.openError(
+					PlatformUI.getWorkbench().getActiveWorkbenchWindow()
+							.getShell(),
+					CommandMessages.getString(MISSING_CONNECTION),
+					CommandMessages
+							.getString(
+									ERROR_COPYING_TO_CONTAINER_NO_CONNECTION));
+		} else {
+			final ContainerCopyTo wizard = new ContainerCopyTo(connection,
+					container);
+			final boolean copyToContainer = CommandUtils.openWizard(wizard,
+					HandlerUtil.getActiveShell(event));
+			if (copyToContainer) {
+				performCopyToContainer(connection, container,
+						wizard.getTarget(), wizard.getSources());
+			}
+		}
+		return null;
+	}
+

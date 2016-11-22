@@ -1,0 +1,87 @@
+	/**
+	 * Create the group for creating the root directory
+	 */
+	protected void createRootDirectoryGroup(Composite parent) {
+		Composite sourceContainerGroup = new Composite(parent, SWT.NONE);
+		GridLayout layout = new GridLayout();
+		layout.numColumns = 3;
+		sourceContainerGroup.setLayout(layout);
+		sourceContainerGroup.setFont(parent.getFont());
+		sourceContainerGroup.setLayoutData(new GridData(
+				GridData.HORIZONTAL_ALIGN_FILL | GridData.GRAB_HORIZONTAL));
+
+		Label groupLabel = new Label(sourceContainerGroup, SWT.NONE);
+		groupLabel.setText(getSourceLabel());
+		groupLabel.setFont(parent.getFont());
+
+		// source name entry field
+		sourceNameField = new Combo(sourceContainerGroup, SWT.BORDER);
+		GridData data = new GridData(
+				GridData.HORIZONTAL_ALIGN_FILL | GridData.GRAB_HORIZONTAL);
+		data.widthHint = SIZING_TEXT_FIELD_WIDTH;
+		sourceNameField.setLayoutData(data);
+		sourceNameField.setFont(parent.getFont());
+		BidiUtils.applyBidiProcessing(sourceNameField, "file");
+
+		sourceNameField.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				updateFromSourceField();
+			}
+		});
+
+		sourceNameField.addKeyListener(new KeyListener() {
+			/*
+			 * @see KeyListener.keyPressed
+			 */
+			@Override
+			public void keyPressed(KeyEvent e) {
+				if (e.character == SWT.CR) {
+					entryChanged = false;
+					updateFromSourceField();
+				}
+			}
+
+			/*
+			 * @see KeyListener.keyReleased
+			 */
+			@Override
+			public void keyReleased(KeyEvent e) {
+			}
+		});
+
+		sourceNameField.addModifyListener(e -> entryChanged = true);
+
+		sourceNameField.addFocusListener(new FocusListener() {
+			/*
+			 * @see FocusListener.focusGained(FocusEvent)
+			 */
+			@Override
+			public void focusGained(FocusEvent e) {
+				// Do nothing when getting focus
+			}
+
+			/*
+			 * @see FocusListener.focusLost(FocusEvent)
+			 */
+			@Override
+			public void focusLost(FocusEvent e) {
+				// Clear the flag to prevent constant update
+				if (entryChanged) {
+					entryChanged = false;
+					updateFromSourceField();
+				}
+
+			}
+		});
+
+		// source browse button
+		sourceBrowseButton = new Button(sourceContainerGroup, SWT.PUSH);
+		sourceBrowseButton.setText(CopyToContainerMessages.DataTransfer_browse);
+		sourceBrowseButton.addListener(SWT.Selection, this);
+		sourceBrowseButton
+				.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_FILL));
+		sourceBrowseButton.setFont(parent.getFont());
+		setButtonLayoutData(sourceBrowseButton);
+	}
+

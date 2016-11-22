@@ -1,0 +1,88 @@
+	/**
+	 * Update the tree to only select those elements that match the selected
+	 * types
+	 */
+	@SuppressWarnings("rawtypes")
+	@Override
+	protected void setupSelectionsBasedOnSelectedTypes() {
+		ProgressMonitorDialog dialog = new ProgressMonitorDialog(
+				getContainer().getShell());
+		final Map selectionMap = new Hashtable();
+
+		final IElementFilter filter = new IElementFilter() {
+
+			@Override
+			public void filterElements(Collection files,
+					IProgressMonitor monitor) throws InterruptedException {
+				if (files == null) {
+					throw new InterruptedException();
+				}
+				Iterator filesList = files.iterator();
+				while (filesList.hasNext()) {
+					if (monitor.isCanceled()) {
+						throw new InterruptedException();
+					}
+					checkFile(filesList.next());
+				}
+			}
+
+			@Override
+			public void filterElements(Object[] files, IProgressMonitor monitor)
+					throws InterruptedException {
+				if (files == null) {
+					throw new InterruptedException();
+				}
+				for (int i = 0; i < files.length; i++) {
+					if (monitor.isCanceled()) {
+						throw new InterruptedException();
+					}
+					checkFile(files[i]);
+				}
+			}
+
+			@SuppressWarnings("unchecked")
+			private void checkFile(Object fileElement) {
+				MinimizedFileSystemElement file = (MinimizedFileSystemElement) fileElement;
+				if (isExportableExtension(file.getFileNameExtension())) {
+					List elements = new ArrayList();
+					FileSystemElement parent = file.getParent();
+					if (selectionMap.containsKey(parent)) {
+						elements = (List) selectionMap.get(parent);
+					}
+					elements.add(file);
+					selectionMap.put(parent, elements);
+				}
+			}
+
+		};
+
+		IRunnableWithProgress runnable = monitor -> {
+			monitor.beginTask(CopyToContainerMessages.ImportPage_filterSelections,
+					IProgressMonitor.UNKNOWN);
+			getSelectedResources(filter, monitor);
+		};
+
+		try {
+			dialog.run(true, true, runnable);
+		} catch (InvocationTargetException exception) {
+			// Couldn't start. Do nothing.
+			return;
+		} catch (InterruptedException exception) {
+			// Got interrupted. Do nothing.
+			return;
+		}
+		// make sure that all paint operations caused by closing the progress
+		// dialog get flushed, otherwise extra pixels will remain on the screen
+		// until
+		// updateSelections is completed
+		getShell().update();
+		// The updateSelections method accesses SWT widgets so cannot be
+		// executed
+		// as part of the above progress dialog operation since the operation
+		// forks
+		// a new process.
+		if (selectionMap != null) {
+			updateSelections(selectionMap);
+		}
+	}
+

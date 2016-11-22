@@ -1,0 +1,131 @@
+	private void performCopyToContainer(final IDockerConnection connection,
+			final IDockerContainer container, final String target,
+			final List<Object> files) {
+		final Job copyToContainerJob = new Job(
+				CommandMessages.getFormattedString(
+						COPY_TO_CONTAINER_JOB_TITLE, container.name())) {
+
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				monitor.beginTask(
+						CommandMessages.getString(COPY_TO_CONTAINER_JOB_TASK),
+						files.size() + 1);
+				java.nio.file.Path tmpDir = null;
+				try {
+					for (Object proxy : files) {
+						File file = (File) proxy;
+						if (monitor.isCanceled()) {
+							monitor.done();
+							return Status.CANCEL_STATUS;
+						}
+						try {
+							monitor.setTaskName(
+									CommandMessages.getFormattedString(
+											COPY_TO_CONTAINER_JOB_SUBTASK,
+											proxy.toString()));
+							monitor.worked(1);
+							// we can only copy from a directory so copy the
+							// files to a temporary directory
+							if (tmpDir == null) {
+								tmpDir = Files.createTempDirectory(
+										Activator.PLUGIN_ID);
+							}
+							if (file.isDirectory()) {
+								java.nio.file.Path sourcePath = FileSystems
+										.getDefault()
+										.getPath(file.getAbsolutePath());
+								final java.nio.file.Path target = tmpDir
+										.resolve(sourcePath.getFileName());
+								Files.createDirectory(target);
+								Files.walkFileTree(sourcePath,
+										new SimpleFileVisitor<Path>() {
+											@Override
+											public FileVisitResult preVisitDirectory(
+													final Path dir,
+													final BasicFileAttributes attrs)
+													throws IOException {
+												java.nio.file.Path targetPath = target
+														.resolve(sourcePath
+																.relativize(
+																		dir));
+												Files.createDirectories(
+														targetPath);
+												return FileVisitResult.CONTINUE;
+											}
+
+											@Override
+											public FileVisitResult visitFile(
+													final Path file,
+													final BasicFileAttributes attrs)
+													throws IOException {
+												monitor.setTaskName(
+														CommandMessages
+																.getFormattedString(
+																		COPY_TO_CONTAINER_JOB_SUBTASK,
+																		file.toString()));
+
+												Files.copy(file, target.resolve(
+														sourcePath.relativize(
+																file)));
+												return FileVisitResult.CONTINUE;
+											}
+										});
+
+
+							} else {
+								monitor.worked(1);
+								java.nio.file.Path sourcePath = FileSystems
+										.getDefault()
+										.getPath(file.getAbsolutePath());
+								java.nio.file.Path targetPath = tmpDir
+										.resolve(sourcePath.getFileName());
+								Files.copy(sourcePath,
+										targetPath,
+										StandardCopyOption.REPLACE_EXISTING);
+							}
+						} catch (final IOException e) {
+							Display.getDefault()
+									.syncExec(() -> MessageDialog.openError(
+											PlatformUI.getWorkbench()
+													.getActiveWorkbenchWindow()
+													.getShell(),
+											CommandMessages.getFormattedString(
+													ERROR_COPYING_TO_CONTAINER,
+													proxy.toString(),
+													container.name()),
+											e.getMessage()));
+						}
+					}
+					// copy any individual files picked to Container
+					// via the temporary directory
+					try {
+						((DockerConnection) connection).copyToContainer(
+								tmpDir.toString(), container.id(), target);
+						deleteTmpDir(tmpDir);
+					} catch (final DockerException | IOException e) {
+						final String tmpDirName = tmpDir.toString();
+						Display.getDefault()
+								.syncExec(() -> MessageDialog.openError(
+										PlatformUI.getWorkbench()
+												.getActiveWorkbenchWindow()
+												.getShell(),
+										CommandMessages.getFormattedString(
+												ERROR_COPYING_TO_CONTAINER,
+												tmpDirName, container.name()),
+										e.getMessage()));
+
+					}
+				} catch (InterruptedException e) {
+					// do nothing
+				} finally {
+					monitor.done();
+				}
+				return Status.OK_STATUS;
+			}
+
+		};
+
+		copyToContainerJob.schedule();
+
+	}
+
