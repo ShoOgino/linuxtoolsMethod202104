@@ -22,31 +22,38 @@
 											COPY_FROM_CONTAINER_JOB_SUBTASK,
 											proxy.getFullPath()));
 							monitor.worked(1);
-							TarInputStream k = new TarInputStream(
+							TarArchiveInputStream k = new TarArchiveInputStream(
 									((DockerConnection) connection)
 											.copyContainer(container.id(),
 													proxy.getLink()));
-							TarEntry te = k.getNextEntry();
-							long size = te.getSize();
-							IPath path = new Path(target);
-							path = path.append(proxy.getName());
-							File f = new File(path.toOSString());
-							f.createNewFile();
-							FileOutputStream os = new FileOutputStream(f);
-							if (size > 4096)
-								size = 4096;
-							byte[] barray = new byte[(int) size];
-							while (k.read(barray) > 0) {
-								if (monitor.isCanceled()) {
-									monitor.done();
-									k.close();
-									os.close();
-									return Status.CANCEL_STATUS;
+							TarArchiveEntry te = null;
+							while ((te = k.getNextTarEntry()) != null) {
+								long size = te.getSize();
+								IPath path = new Path(target);
+								path = path.append(te.getName());
+								File f = new File(path.toOSString());
+								if (te.isDirectory()) {
+									f.mkdir();
+									continue;
+								} else {
+									f.createNewFile();
 								}
-								os.write(barray);
+								FileOutputStream os = new FileOutputStream(f);
+								if (size > 4096)
+									size = 4096;
+								byte[] barray = new byte[(int) size];
+								while (k.read(barray) > -1) {
+									if (monitor.isCanceled()) {
+										monitor.done();
+										k.close();
+										os.close();
+										return Status.CANCEL_STATUS;
+									}
+									os.write(barray);
+								}
+								os.close();
 							}
 							k.close();
-							os.close();
 						} catch (final DockerException e) {
 							Display.getDefault()
 									.syncExec(() -> MessageDialog.openError(
@@ -63,7 +70,7 @@
 					}
 				} catch (InterruptedException e) {
 					// do nothing
-				} catch (TarException | IOException e) {
+				} catch (IOException e) {
 					Activator.log(e);
 				} finally {
 					monitor.done();

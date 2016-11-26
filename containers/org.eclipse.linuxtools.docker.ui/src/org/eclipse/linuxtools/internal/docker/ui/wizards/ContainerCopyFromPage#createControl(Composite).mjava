@@ -34,30 +34,54 @@
         input.addChild(root);
         root.setParent(input);
 
-		Composite selectionComposite = new Composite(composite, SWT.NULL);
-		GridLayout selectionLayout = new GridLayout();
-		selectionComposite.setLayout(selectionLayout);
+		Composite selectionComposite = null;
 
-		selectionGroup = new CheckboxTreeAndListGroup(selectionComposite, input,
-				getFolderProvider(), getDynamicFolderProvider(),
-				new WorkbenchLabelProvider(),
-                getFileProvider(), new WorkbenchLabelProvider(), SWT.NONE,
-                SIZING_SELECTION_WIDGET_WIDTH, // since this page has no other significantly-sized
-                SIZING_SELECTION_WIDGET_HEIGHT); // widgets we need to hardcode the combined widget's
-        // size, otherwise it will open too small
+		if (isRunning) {
+			selectionComposite = new Composite(composite, SWT.NULL);
+			GridLayout selectionLayout = new GridLayout();
+			selectionComposite.setLayout(selectionLayout);
 
-		GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).span(3, 1)
-				.grab(true, false).applyTo(selectionComposite);
+			selectionGroup = new CheckboxTreeAndListGroup(selectionComposite,
+					input, getFolderProvider(), getDynamicFolderProvider(),
+					new WorkbenchLabelProvider(), getFileProvider(),
+					new WorkbenchLabelProvider(), SWT.NONE,
+					SIZING_SELECTION_WIDGET_WIDTH, // since this page has no
+													// other significantly-sized
+					SIZING_SELECTION_WIDGET_HEIGHT); // widgets we need to
+														// hardcode the combined
+														// widget's
+			// size, otherwise it will open too small
+			GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).span(3, 1)
+					.grab(true, false).applyTo(selectionComposite);
+		} else {
+			Label sourceLabel = new Label(composite, SWT.NONE);
+			sourceLabel.setText(WizardMessages.getString(SOURCE_LABEL));
 
-        WorkbenchViewerComparator comparator = new WorkbenchViewerComparator();
-        selectionGroup.setTreeComparator(comparator);
-        selectionGroup.setListComparator(comparator);
-		selectionGroup.addCheckStateListener(CheckListener);
+			GridDataFactory.fillDefaults().align(SWT.FILL, SWT.CENTER)
+					.span(1, 1).grab(false, false).applyTo(sourceLabel);
+
+			sourceText = new Text(composite, SWT.BORDER | SWT.SINGLE);
+			sourceText.addModifyListener(Listener);
+			sourceText.setToolTipText(WizardMessages.getString(SOURCE_TOOLTIP));
+
+			GridDataFactory.fillDefaults().align(SWT.FILL, SWT.FILL).span(1, 1)
+					.grab(true, false).applyTo(sourceText);
+
+		}
+
+		if (isRunning) {
+			WorkbenchViewerComparator comparator = new WorkbenchViewerComparator();
+			selectionGroup.setTreeComparator(comparator);
+			selectionGroup.setListComparator(comparator);
+			selectionGroup.addCheckStateListener(CheckListener);
+		}
 
 		setControl(composite);
 		validate();
 		setPageComplete(false);
 
-		selectionGroup.aboutToOpen();
+		if (isRunning) {
+			selectionGroup.aboutToOpen();
+		}
     }
 
