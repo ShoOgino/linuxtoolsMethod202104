@@ -1,0 +1,30 @@
+	/**
+	 * Retrieves the list of tags for a given repository, assuming that the
+	 * target registry is a registry v2 instance.
+	 * 
+	 * @param client
+	 *            the client to use
+	 * @param repository
+	 *            the repository to look-up
+	 * @return the list of tags for the given repository
+	 * @throws CancellationException
+	 *             - if the computation was cancelled
+	 * @throws ExecutionException
+	 *             - if the computation threw an exception
+	 * @throws InterruptedException
+	 *             - if the current thread was interrupted while waiting
+	 */
+	private List<IRepositoryTag> retrieveTagsFromRegistryV1(final Client client,
+			final String repository)
+			throws InterruptedException, ExecutionException {
+		final GenericType<Map<String, String>> REPOSITORY_TAGS_RESULT_LIST = new GenericType<Map<String, String>>() {
+		};
+		final WebTarget queryTagsResource = client
+				.target(getHTTPServerAddress()).path("v1") //$NON-NLS-1$
+				.path("repositories").path(repository).path("tags"); //$NON-NLS-1$ //$NON-NLS-2$
+		return queryTagsResource.request(APPLICATION_JSON_TYPE).async()
+				.method(GET, REPOSITORY_TAGS_RESULT_LIST).get().entrySet()
+				.stream().map(e -> new RepositoryTag(e.getKey(), e.getValue()))
+				.collect(Collectors.toList());
+	}
+

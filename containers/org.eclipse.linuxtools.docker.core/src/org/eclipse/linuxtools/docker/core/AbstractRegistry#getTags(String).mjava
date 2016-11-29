@@ -1,59 +1,18 @@
 	@Override
-	public List<IRepositoryTag> getTags(String repository) throws DockerException {
-		final ClientConfig DEFAULT_CONFIG = new ClientConfig(
-				ObjectMapperProvider.class, JacksonFeature.class);
+	public List<IRepositoryTag> getTags(String repository)
+			throws DockerException {
 		final Client client = ClientBuilder.newClient(DEFAULT_CONFIG);
-		WebTarget queryTagsResource;
-		List<IRepositoryTag> result = new ArrayList<>();
-
-		if (isVersion2()) {
-			RepositoryTagV2 crts;
-			queryTagsResource = client.target(getHTTPServerAddress()).path("v2") //$NON-NLS-1$
-					.path(repository).path("tags").path("list"); //$NON-NLS-1$ //$NON-NLS-2$
-			GenericType<RepositoryTagV2> REPOSITORY_TAGS_RESULT_LIST = new GenericType<RepositoryTagV2>() {
-			};
-			try {
-				crts = queryTagsResource.request(APPLICATION_JSON_TYPE).async()
-						.method(GET, REPOSITORY_TAGS_RESULT_LIST).get();
-				result.addAll(crts.getTags());
-			} catch (InterruptedException | ExecutionException e) {
-				throw new DockerException(e);
+		try {
+			if (isVersion2()) {
+				return retrieveTagsFromRegistryV2(client, repository);
+			} else if (isDockerHubRegistry()) {
+				return retrieveTagsFromDockerHub(client, repository);
+			} else {
+				return retrieveTagsFromRegistryV1(client, repository);
 			}
-
-			// Docker Hub Registry format is actually different from an actual
-			// registry
-		} else if (isDockerHubRegistry()) {
-			queryTagsResource = client.target(getHTTPServerAddress()).path("v1") //$NON-NLS-1$
-					.path("repositories").path(repository).path("tags"); //$NON-NLS-1$ //$NON-NLS-2$
-			GenericType<List<RepositoryTag>> REPOSITORY_TAGS_RESULT_LIST = new GenericType<List<RepositoryTag>>() {
-			};
-			try {
-				result.addAll(queryTagsResource.request(APPLICATION_JSON_TYPE)
-						.async().method(GET, REPOSITORY_TAGS_RESULT_LIST)
-						.get());
-			} catch (InterruptedException | ExecutionException e) {
-				e.printStackTrace();
-				// Do nothing
-			}
-		} else {
-			queryTagsResource = client.target(getHTTPServerAddress()).path("v1") //$NON-NLS-1$
-					.path("repositories").path(repository).path("tags"); //$NON-NLS-1$ //$NON-NLS-2$
-			GenericType<Map<String, String>> REPOSITORY_TAGS_RESULT_LIST = new GenericType<Map<String, String>>() {
-			};
-			Map<String, String> ret = new HashMap<>();
-			try {
-				ret = queryTagsResource.request(APPLICATION_JSON_TYPE).async()
-						.method(GET, REPOSITORY_TAGS_RESULT_LIST).get();
-				for (Entry<String, String> e : ret.entrySet()) {
-					RepositoryTag tag = new RepositoryTag();
-					tag.setName(e.getKey());
-					tag.setLayer(e.getValue());
-					result.add(tag);
-				}
-			} catch (InterruptedException | ExecutionException e) {
-				throw new DockerException(e);
-			}
+		} catch (InterruptedException | ExecutionException e) {
+			throw new DockerException(e);
 		}
-		return result;
+
 	}
 

@@ -10,19 +10,27 @@
 								2);
 						final String selectedImageName = ImageTagSelectionPage.this.model
 								.getSelectedImage().getName();
-						List<IRepositoryTag> repositoryTags;
 						try {
-							repositoryTags = registry
+							final List<IRepositoryTag> repositoryTags = registry
 									.getTags(selectedImageName);
+							// we have to convert to list of RepositoryTag which
+							// can be sorted
+							final List<RepositoryTag> tags = repositoryTags
+									.stream()
+									.map(c -> (RepositoryTag) c)
+									.collect(Collectors.toList());
+							Collections.sort(tags);
 							monitor.worked(1);
-							final List<DockerImageTagSearchResult> searchResults = new ArrayList<>();
 							final IDockerConnection connection = model
 									.getSelectedConnection();
-							for (IRepositoryTag repositoryTag : repositoryTags) {
-								searchResults.add(new DockerImageTagSearchResult(
-										selectedImageName, repositoryTag,
-										connection.hasImage(selectedImageName, repositoryTag.getName())));
-							}
+							final List<DockerImageTagSearchResult> searchResults = repositoryTags
+									.stream()
+									.map(t -> new DockerImageTagSearchResult(
+											selectedImageName, t,
+											connection.hasImage(
+													selectedImageName,
+													t.getName())))
+									.collect(Collectors.toList());
 							monitor.worked(1);
 							searchResultQueue.offer(searchResults);
 						} catch (DockerException e) {
