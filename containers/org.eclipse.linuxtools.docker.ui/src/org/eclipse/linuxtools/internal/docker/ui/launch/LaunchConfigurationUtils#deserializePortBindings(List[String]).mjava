@@ -1,0 +1,33 @@
+	/**
+	 * Deserializes the given Port Bindings to use them in an
+	 * {@link ILaunchConfiguration}
+	 * 
+	 * @param bindings
+	 *            a {@link List} of serialized bindings
+	 * @return a {@link Map} of {@link List} of {@link IDockerPortBinding}
+	 *         indexed by their associated container port
+	 * @see LaunchConfigurationUtils#serializePortBindings(Map)
+	 */
+	public static Map<String, List<IDockerPortBinding>> deserializePortBindings(
+			final List<String> bindings) {
+		if (bindings == null) {
+			return Collections.emptyMap();
+		}
+		return bindings.stream().map(b -> b.split(":"))
+				.collect(Collectors.toMap(
+						// the key in the result map
+						split -> split[0],
+						// the list with a new element as the value in the
+						// result map,
+						split -> Arrays.asList(
+								new DockerPortBinding(split[1], split[2])),
+						// the merge function, to be used if 2 elements exist
+						// for the same key
+						(e1, e2) -> {
+							final List<IDockerPortBinding> merges = new ArrayList<>();
+							merges.addAll(e1);
+							merges.addAll(e2);
+							return merges;
+						}));
+	}
+
