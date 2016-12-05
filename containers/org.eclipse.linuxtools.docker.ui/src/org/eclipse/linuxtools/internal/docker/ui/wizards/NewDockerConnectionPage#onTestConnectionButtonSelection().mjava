@@ -8,7 +8,7 @@
 		return new SelectionAdapter() {
 
 			@Override
-			public void widgetSelected(SelectionEvent e) {
+			public void widgetSelected(final SelectionEvent event) {
 				try {
 					getWizard().getContainer().run(true, false, monitor -> {
 						monitor.beginTask(WizardMessages.getString(
@@ -21,12 +21,16 @@
 							dockerConnection.close();
 							// ping succeeded
 							displaySuccessDialog();
-						} catch (DockerException e1) {
-							// only log if there's an underlying cause.
-							if (e1.getCause() != null) {
-								Activator.log(e1);
+						} catch (DockerException e) {
+							// only log if there's an underlying cause, but not
+							// as an error
+							// because there's no need to report such problems
+							// in Eclipse.org AERI
+							if (e.getCause() != null) {
+								displayErrorDialog(e.getCause());
+							} else {
+								displayErrorDialog(e);
 							}
-							displayErrorDialog();
 						}
 					});
 				} catch (InvocationTargetException | InterruptedException o_O) {
@@ -46,12 +50,14 @@
 				);
 			}
 
-			private void displayErrorDialog() {
+			private void displayErrorDialog(final Throwable cause) {
 				displayDialog(
 						WizardMessages
 								.getString("DockerConnectionPage.failure"), //$NON-NLS-1$
 						WizardMessages
-								.getString("DockerConnectionPage.pingFailure"), //$NON-NLS-1$
+								.getFormattedString(
+										"DockerConnectionPage.pingFailure", //$NON-NLS-1$
+										cause.getMessage()),
 						SWT.ICON_ERROR, new String[] { WizardMessages
 								.getString("DockerConnectionPage.ok") } //$NON-NLS-1$
 				);
