@@ -22,10 +22,17 @@
 											COPY_FROM_CONTAINER_JOB_SUBTASK,
 											proxy.getFullPath()));
 							monitor.worked(1);
+							InputStream in = ((DockerConnection) connection)
+									.copyContainer(container.id(),
+											proxy.getLink());
+							/*
+							 * The input stream from copyContainer might be
+							 * incomplete or non-blocking so we should wrap it
+							 * in a stream that is guaranteed to block until
+							 * data is available.
+							 */
 							TarArchiveInputStream k = new TarArchiveInputStream(
-									((DockerConnection) connection)
-											.copyContainer(container.id(),
-													proxy.getLink()));
+									new BlockingInputStream(in));
 							TarArchiveEntry te = null;
 							while ((te = k.getNextTarEntry()) != null) {
 								long size = te.getSize();
@@ -39,17 +46,19 @@
 									f.createNewFile();
 								}
 								FileOutputStream os = new FileOutputStream(f);
-								if (size > 4096)
-									size = 4096;
-								byte[] barray = new byte[(int) size];
-								while (k.read(barray) > -1) {
+								int bufferSize = ((int) size > 4096 ? 4096
+										: (int) size);
+								byte[] barray = new byte[bufferSize];
+								int result = -1;
+								while ((result = k.read(barray, 0,
+										bufferSize)) > -1) {
 									if (monitor.isCanceled()) {
 										monitor.done();
 										k.close();
 										os.close();
 										return Status.CANCEL_STATUS;
 									}
-									os.write(barray);
+									os.write(barray, 0, result);
 								}
 								os.close();
 							}
