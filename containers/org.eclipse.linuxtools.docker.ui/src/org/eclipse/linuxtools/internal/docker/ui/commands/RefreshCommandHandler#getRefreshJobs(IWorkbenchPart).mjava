@@ -1,0 +1,38 @@
+	private List<Job> getRefreshJobs(final IWorkbenchPart activePart) {
+		final IDockerConnection connection = getCurrentConnection(activePart);
+		final ArrayList<Job> jobs = new ArrayList<>();
+		if (activePart instanceof DockerImagesView) {
+			jobs.add(getRefreshImagesJob(connection));
+		} else if (activePart instanceof DockerContainersView) {
+			jobs.add(getRefreshContainersJob(connection));
+		} else if (activePart instanceof DockerExplorerView) {
+			DockerExplorerView dockerExplorerView = (DockerExplorerView) activePart;
+			final ITreeSelection selection = dockerExplorerView
+					.getCommonViewer().getStructuredSelection();
+			if (selection
+					.getFirstElement() instanceof DockerContainersCategory) {
+				jobs.add(getRefreshContainersJob(connection));
+			} else if (selection
+					.getFirstElement() instanceof DockerImagesCategory) {
+				jobs.add(getRefreshImagesJob(connection));
+			} else {
+				final IDockerConnection connections[] = DockerConnectionManager
+						.getInstance().getConnections();
+				for (IDockerConnection selectedConnection : connections) {
+					if (!selectedConnection.isOpen()) {
+						try {
+							selectedConnection.open(true);
+						} catch (DockerException e) {
+							// do nothing
+						}
+					}
+					if (selectedConnection.isOpen()) {
+						jobs.add(getRefreshContainersJob(selectedConnection));
+						jobs.add(getRefreshImagesJob(selectedConnection));
+					}
+				}
+			}
+		}
+		return jobs;
+	}
+
