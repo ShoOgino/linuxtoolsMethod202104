@@ -3,6 +3,8 @@
 				.getModel();
 		final ImageRunResourceVolumesVariablesModel resourcesModel = this.imageRunResourceVolumesPage
 				.getModel();
+		final ImageRunNetworkModel networkModel = this.imageRunNetworkPage
+				.getModel();
 
 		final DockerHostConfig.Builder hostConfigBuilder = new DockerHostConfig.Builder();
 		if (selectionModel.isPublishAllPorts()) {
@@ -68,6 +70,11 @@
 		hostConfigBuilder.binds(binds);
 		hostConfigBuilder.volumesFrom(volumesFrom);
 		hostConfigBuilder.privileged(selectionModel.isPrivileged());
+		String networkMode = networkModel.getNetworkModeString();
+		// if network mode is not default, set it in host config
+		if (networkMode != null
+				&& !networkMode.equals(ImageRunNetworkModel.DEFAULT_MODE))
+			hostConfigBuilder.networkMode(networkMode);
 		// memory constraints (in bytes)
 		if (resourcesModel.isEnableResourceLimitations()) {
 			hostConfigBuilder.memory(resourcesModel.getMemoryLimit() * MB);
