@@ -1,0 +1,28 @@
+	@Test
+	public void testVariables() {
+		getConnection();
+		DockerImagesTab imagesTab = openDockerImagesTab();
+		buildImage(IMAGE_NAME, "resources/test-variables", imagesTab);
+		if (mockitoIsUsed()) {
+			MockUtils.pullImage(DEFAULT_CONNECTION_NAME, IMAGE_NAME, IMAGE_TAG_LATEST);
+		}
+		assertConsoleSuccess();
+
+		imagesTab.activate();
+		imagesTab.refresh();
+		new WaitWhile(new JobIsRunning());
+
+		imagesTab.runImage(IMAGE_NAME);
+		ImageRunSelectionPage firstPage = new ImageRunSelectionPage();
+		firstPage.setContainerName(CONTAINER_NAME);
+		firstPage.next();
+		ImageRunResourceVolumesVariablesPage secondPage = new ImageRunResourceVolumesVariablesPage();
+		secondPage.addEnviromentVariable("FOO", "barbarbar");
+		if (mockitoIsUsed()) {
+			MockDockerClientFactory.addContainer(this.client, this.createdContainer, this.containerInfo);
+		}
+		secondPage.finish();
+		new WaitWhile(new JobIsRunning());
+		assertConsoleContains("FOO is barbarbar");
+	}
+

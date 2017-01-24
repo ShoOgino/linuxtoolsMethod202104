@@ -1,0 +1,40 @@
+	@Test
+	public void testImageTab() {
+		pullImage(IMAGE_HELLO_WORLD);
+		DockerImagesTab imageTab = new DockerImagesTab();
+		imageTab.activate();
+		imageTab.refresh();
+		new WaitWhile(new JobIsRunning(), TimePeriod.NORMAL);
+
+		String idFromTable = "";
+		String repoTagsFromTable = "";
+		String createdFromTable = "";
+		String sizeFromTable = "";
+
+		for (TableItem item : imageTab.getTableItems()) {
+			if (item.getText(1).contains(IMAGE_HELLO_WORLD)) {
+				idFromTable = item.getText();
+				repoTagsFromTable = item.getText(1);
+				createdFromTable = item.getText(2);
+				sizeFromTable = item.getText(3).replaceAll(".", "").replaceAll(" MB", "");
+				item.click();
+			}
+		}
+		idFromTable = idFromTable.replace("sha256:", "");
+
+		getConnection().getImage(getCompleteImageName(IMAGE_HELLO_WORLD)).select();
+
+		PropertiesView propertiesView = new PropertiesView();
+		propertiesView.open();
+		propertiesView.selectTab("Info");
+		String idProp = propertiesView.getProperty("Id").getPropertyValue();
+		String repoTagsProp = propertiesView.getProperty("RepoTags").getPropertyValue();
+		String createdProp = propertiesView.getProperty("Created").getPropertyValue();
+		String sizeProp = propertiesView.getProperty("VirtualSize").getPropertyValue();
+
+		assertTrue("Id in table and in Properties do not match!", idProp.contains(idFromTable));
+		assertTrue("RepoTags in table and in Properties do not match!", repoTagsProp.equals(repoTagsFromTable));
+		assertTrue("Created in table and in Properties do not match!", createdProp.equals(createdFromTable));
+		assertTrue("Size in table and in Properties do not match!", sizeProp.startsWith(sizeFromTable));
+	}
+

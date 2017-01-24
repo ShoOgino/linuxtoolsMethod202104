@@ -1,0 +1,27 @@
+	public void pullImage(String imageName, String imageTag, String dockerRegister) {
+		if (getImage(imageName, imageTag) == null) {
+			refreshImages();
+
+			treeViewerHandler.getTreeItem(item, "Images").select();
+			new ContextMenu("Pull...").select();
+
+			new WaitUntil(new ShellWithTextIsAvailable("Pull Image"), TimePeriod.NORMAL);
+			Shell pullShell = new DefaultShell("Pull Image");
+
+			// select register
+			if (dockerRegister != null) {
+				Combo combo = new DefaultCombo();
+				combo.setSelection(dockerRegister);
+			}
+
+			new LabeledText(IMAGE_NAME_LABEL_DIALOG).setFocus();
+			new LabeledText(IMAGE_NAME_LABEL_DIALOG).setText(imageTag == null ? imageName : imageName + ":" + imageTag);
+
+			new WaitUntil(new WidgetIsEnabled(new FinishButton()));
+			new FinishButton().click();
+
+			new WaitWhile(new ShellIsAvailable(pullShell));
+			new WaitWhile(new JobIsRunning(), TimePeriod.VERY_LONG);
+		}
+	}
+

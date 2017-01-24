@@ -1,0 +1,30 @@
+	@Before
+	public void before() throws DockerException, InterruptedException {
+		if (!mockitoIsUsed()) {
+			org.junit.Assume.assumeTrue(!StringUtils.isBlank(this.dockerComposePath));
+			assertTrue(
+					"Please provide -D" + SYSPROP_DOCKER_COMPOSE_PATH
+					+ "=<path to docker-compose binary> in your launch parameters.",
+					!StringUtils.isBlank(this.dockerComposePath));	
+		}
+		deleteAllConnections();
+		if (mockitoIsUsed()) {
+			MockUtils.createDockerMockConnection(DEFAULT_CONNECTION_NAME);
+			// configure the 'docker-compose up' mocks with a CountDownLatch to
+			// simulate a long-running process
+			final ProcessLauncher mockProcessLauncher = Mockito.mock(ProcessLauncher.class, Mockito.RETURNS_DEEP_STUBS);
+			DockerCompose.getInstance().setProcessLauncher(mockProcessLauncher);
+			setupDockerComposeUpMockProcess(mockProcessLauncher);
+			// configure the 'docker-compose stop' mocks which release the
+			// CountDownLatch to halt the long-running process
+			setupDockerComposeStopMockProcess(mockProcessLauncher);
+			// Create temp file for DockerCompose
+			@SuppressWarnings("unused")
+			File dockerComposeTmpFile = null;
+			String tempDir = System.getProperty("java.io.tmpdir");
+			dockerComposeTmpFile = new File(tempDir, "docker-compose");
+			this.dockerComposePath = tempDir;
+		}
+
+	}
+

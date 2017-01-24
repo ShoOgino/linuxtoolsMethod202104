@@ -1,0 +1,23 @@
+	@Test
+	public void pushImage() {
+		DockerImagesTab imagesTab = openDockerImagesTab();
+		buildImage(IMAGE_NAME, DOCKERFILE_FOLDER, imagesTab);
+		assertConsoleSuccess();
+
+		setUpRegister(REGISTRY_URL, dockerHubEmail, dockerHubUsername, dockerHubPassword);
+		setSecureStorage("password");
+		String seconds = String.valueOf(new java.util.Date().getTime());
+		this.imageNewTag = IMAGE_TAG + ":" + seconds;
+		addTagToImage(IMAGE_NAME, imageNewTag);
+
+		//new WaitUntil(new JobIsRunning(), TimePeriod.VERY_LONG);
+		if (!mockitoIsUsed()) {
+			getConnection().getImage(IMAGE_TAG, seconds).pushImage(REGISTRY_ACCOUNT, false, false);
+		}
+		new WaitWhile(new JobIsRunning(), TimePeriod.VERY_LONG);
+		deleteImage(IMAGE_TAG, seconds);
+		pullImage(IMAGE_TAG, seconds, REGISTRY_URL);
+		new WaitWhile(new JobIsRunning(), TimePeriod.VERY_LONG);
+		assertTrue("Image has not been pushed/pulled!", imageIsDeployed(IMAGE_TAG));
+	}
+

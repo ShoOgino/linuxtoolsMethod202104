@@ -1,0 +1,16 @@
+	public void runUhttpServer(String imageName, String containerName) {
+		DockerImagesTab imagesTab = openDockerImagesTab();
+		imagesTab.runImage(imageName);
+		ImageRunSelectionPage firstPage = openImageRunSelectionPage(containerName, false);
+		firstPage.setContainerName(containerName);
+		firstPage.setPublishAllExposedPorts(false);
+		firstPage.finish();
+		if (mockitoIsUsed()) {
+			mockServerContainer();
+			new WaitUntil(new ContainerIsDeployedCondition(containerName, getConnection()));
+		} else {
+			new WaitWhile(new JobIsRunning());
+			new WaitWhile(new ConsoleHasNoChange());
+		}
+	}
+

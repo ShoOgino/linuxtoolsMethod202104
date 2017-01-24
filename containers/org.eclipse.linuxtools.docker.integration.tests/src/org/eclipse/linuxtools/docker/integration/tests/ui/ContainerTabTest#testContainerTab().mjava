@@ -1,0 +1,54 @@
+	@Test
+	public void testContainerTab() {
+		runContainer(DEFAULT_CONNECTION_NAME, IMAGE_NAME, IMAGE_TAG_LATEST, CONTAINER_NAME);
+		DockerContainersTab containerTab = new DockerContainersTab();
+		containerTab.activate();
+		containerTab.refresh();
+
+		new WaitWhile(new JobIsRunning(), TimePeriod.NORMAL);
+
+		// get values from Container Tab
+		String nameFromTable = "";
+		String imageFromTable = "";
+		String createdFromTable = "";
+		String commandFromTable = "";
+		String portsFromTable = "";
+		String statusFromTable = "";
+
+		containerTab.refresh();
+		TableItem item = getContainerItem(CONTAINER_NAME, containerTab);
+		assertNotNull("Container tab item " + CONTAINER_NAME + " was not found.", item);
+		nameFromTable = item.getText();
+		imageFromTable = item.getText(1);
+		createdFromTable = item.getText(2);
+		commandFromTable = item.getText(3);
+		portsFromTable = item.getText(4);
+		statusFromTable = item.getText(5);
+
+		// get values from Properties view
+		PropertiesView propertiesView = new PropertiesView();
+		propertiesView.open();
+		getConnection().getContainer(CONTAINER_NAME).select();
+		propertiesView.selectTab("Info");
+		String nameProp = propertiesView.getProperty("Names").getPropertyValue();
+		String imageProp = propertiesView.getProperty("Image").getPropertyValue();
+		String createdProp = propertiesView.getProperty("Created").getPropertyValue();
+		String commandProp = propertiesView.getProperty("Command").getPropertyValue();
+		String portsProp = propertiesView.getProperty("Ports").getPropertyValue();
+		String statusProp = propertiesView.getProperty("Status").getPropertyValue();
+
+		// compare values
+		assertTrue("Name in table and in Properties do not match!(" + nameProp + "-" + nameFromTable + ")",
+				nameFromTable.contains(nameProp));
+		assertTrue("Image in table and in Properties do not match!(" + imageProp + "-" + imageFromTable + ")",
+				imageProp.equals(imageFromTable));
+		assertTrue("Created in table and in Properties do not match!(" + createdProp + "-" + createdFromTable + ")",
+				createdProp.equals(createdFromTable));
+		assertTrue("Command in table and in Properties do not match!(" + commandProp + "-" + commandFromTable + ")",
+				commandProp.startsWith(commandFromTable));
+		assertTrue("Ports in table and in Properties do not match!(" + portsProp + "-" + portsFromTable + ")",
+				portsProp.startsWith(portsFromTable));
+		assertTrue("Status in table and in Properties do not match!(" + statusProp + "-" + statusFromTable + ")",
+				statusProp.startsWith(statusFromTable));
+	}
+

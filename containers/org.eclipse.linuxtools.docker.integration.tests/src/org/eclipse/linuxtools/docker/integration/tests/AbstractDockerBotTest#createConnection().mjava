@@ -1,0 +1,41 @@
+	/**
+	 * Creates a connection with the settings in this test. Stores it in
+	 * instance variable {@link #connection}.
+	 * 
+	 * @returns the connection that was creates
+	 * 
+	 * @see #SYSPROP_DOCKER_MACHINE_NAME
+	 * @see #SYSPROP_DOCKER_SERVER_URI
+	 * @see #SYSPROP_UNIX_SOCKET
+	 */
+	protected DockerConnection createConnection() {
+		DockerExplorerView dockerView = new DockerExplorerView();
+		dockerView.open();
+		String dockerMachineName = System.getProperty(SYSPROP_DOCKER_MACHINE_NAME);
+		String dockerServerURI = System.getProperty(SYSPROP_DOCKER_SERVER_URI);
+		String unixSocket = System.getProperty(SYSPROP_UNIX_SOCKET);
+		String mockito = System.getProperty(SYSPROP_MOCKITO);
+		if (!StringUtils.isBlank(dockerMachineName)) {
+			dockerView.createDockerConnectionSearch(dockerMachineName);
+			this.connection = getConnectionByName(dockerMachineName);
+		} else if (!StringUtils.isEmpty(dockerServerURI)) {
+			dockerView.createDockerConnection(AuthenticationMethod.TCP_CONNECTION, dockerServerURI, null,
+					dockerServerURI);
+			this.connection = getConnectionByHost(dockerServerURI);
+		} else if (!StringUtils.isEmpty(unixSocket)) {
+			dockerView.createDockerConnection(AuthenticationMethod.UNIX_SOCKET, unixSocket, null, unixSocket);
+			this.connection = getConnectionByHost(unixSocket);
+		} else if ("true".equals(mockito)) {
+			MockUtils.createDockerMockConnection(DEFAULT_CONNECTION_NAME);
+			this.connection = getConnectionByName(DEFAULT_CONNECTION_NAME);
+		} else {
+			fail("Cannot create a docker connection. " + "Neither " + SYSPROP_DOCKER_MACHINE_NAME + " nor "
+					+ SYSPROP_DOCKER_SERVER_URI + " nor " + SYSPROP_UNIX_SOCKET + " were defined nor, "
+					+ SYSPROP_MOCKITO + " was enabled.");
+		}
+
+		// can't be null, fails before
+		connection.enableConnection();
+		return connection;
+	}
+

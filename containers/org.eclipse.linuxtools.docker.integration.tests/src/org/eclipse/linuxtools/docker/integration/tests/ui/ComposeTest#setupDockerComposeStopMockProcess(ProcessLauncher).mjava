@@ -1,0 +1,17 @@
+	private void setupDockerComposeStopMockProcess(final ProcessLauncher mockProcessLauncher)
+			throws DockerException, InterruptedException {
+		final Process mockDockerComposeStopProcess = Mockito.mock(Process.class);
+		Mockito.when(mockDockerComposeStopProcess.getInputStream())
+				.thenReturn(new ByteArrayInputStream("stop\n".getBytes()));
+		Mockito.when(mockDockerComposeStopProcess.getErrorStream()).thenReturn(new ByteArrayInputStream("".getBytes()));
+		Mockito.when(mockDockerComposeStopProcess.getOutputStream()).thenReturn(new ByteArrayOutputStream());
+
+		Mockito.when(mockProcessLauncher.processBuilder(Matchers.anyString(),
+				Matchers.eq(DockerCompose.getDockerComposeCommandName()), CustomMatchers.arrayContains("stop"))
+				.workingDir(Matchers.anyString()).start()).thenReturn(mockDockerComposeStopProcess);
+		Mockito.when(mockDockerComposeStopProcess.waitFor()).then(invocation -> {
+			latch.countDown();
+			return 0;
+		});
+	}
+

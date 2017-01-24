@@ -1,0 +1,26 @@
+	@Test
+	public void testSearchDialog() {
+		getConnection().openImageSearchDialog(IMAGE_NAME, null, REGISTRY_URL);
+		ImageSearchPage pageOne = new ImageSearchPage();
+		pageOne.searchImage();
+		assertFalse("Search result is empty!", pageOne.getSearchResults().isEmpty());
+		assertTrue("Search result do not contains image:" + EXPECTED_IMAGE_NAME + "!",
+				pageOne.searchResultsContains(EXPECTED_IMAGE_NAME));
+		pageOne.next();
+
+		new WaitWhile(new ProgressInformationShellIsActive(), TimePeriod.NORMAL);
+		AbstractWait.sleep(TimePeriod.getCustom(5));
+		ImageTagSelectionPage pageTwo = new ImageTagSelectionPage();
+		assertFalse("Search tags are empty!", pageTwo.getTags().isEmpty());
+		new WaitWhile(new JobIsRunning(), TimePeriod.LONG);
+		if (!pageTwo.tagsContains(IMAGE_TAG)) {
+			pageTwo.cancel();
+			new CancelButton().click();
+			fail("Search results do not contain tag: " + IMAGE_TAG + "!");
+		}
+		pageTwo.selectTag(IMAGE_TAG);
+		pageTwo.finish();
+		new PushButton("Finish").click();
+		new WaitWhile(new JobIsRunning(), TimePeriod.VERY_LONG);
+	}
+

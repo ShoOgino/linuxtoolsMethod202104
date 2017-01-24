@@ -1,0 +1,33 @@
+	@Test
+	public void testCompose() {
+		// Set up Docker Compose location
+		PreferenceDialog dialog = new WorkbenchPreferenceDialog();
+		DockerComposePreferencePage composePreference = new DockerComposePreferencePage();
+		dialog.open();
+		dialog.select(composePreference);
+		composePreference.setPathToDockerCompose(this.dockerComposePath);
+		composePreference.apply();
+		new OkButton().click();
+
+		// Build Image
+		DockerImagesTab imagesTab = openDockerImagesTab();
+		buildImage(IMAGE_NAME, PATH_TEST_COMPOSE, imagesTab);
+		assertConsoleSuccess();
+
+		// Import resource folder
+		importProject(PATH_TEST_COMPOSE);
+
+		// Run Docker Compose
+		runDockerCompose(PROJECT_TEST_COMPOSE, FILE_DOCKER_COMPOSE);
+
+		// Check if application is running
+		BrowserView browserView = new BrowserView();
+		browserView.open();
+		//Skip browser contents check, if mockito is used
+		if (!mockitoIsUsed()) {
+			browserView.openPageURL(URL);
+			BrowserContentsCheck.checkBrowserForErrorPage(browserView, URL);
+		}
+
+	}
+

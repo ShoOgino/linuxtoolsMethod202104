@@ -1,0 +1,19 @@
+	@Test
+	public void testLaunchConfiguration() {
+		String imageName = getCompleteImageName(IMAGE_HELLO_WORLD);
+
+		RunDockerImageLaunchConfiguration runImageConf = new RunDockerImageLaunchConfiguration();
+		try {
+			runDockerImageLaunchConfiguration(imageName + NAME_TAG_SEPARATOR + IMAGE_TAG_LATEST, CONTAINER_NAME,
+					CONFIGURATION_NAME, runImageConf);
+			if (mockitoIsUsed()) {
+				MockUtils.runContainer(DEFAULT_CONNECTION_NAME, imageName, IMAGE_TAG_LATEST, CONTAINER_NAME);
+				getConnection().refresh();
+				new WaitUntil(new ContainerIsDeployedCondition(CONTAINER_NAME, getConnection()));
+			}
+		} catch (WaitTimeoutExpiredException ex) {
+				throw ex;
+		}
+		assertTrue("Container is not deployed!", containerIsDeployed(CONTAINER_NAME));
+	}
+

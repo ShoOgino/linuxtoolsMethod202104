@@ -1,0 +1,24 @@
+	/**
+	 * Returns {@code true} if the running docker daemon matches at least the
+	 * given major and minor version. Returns {@code false} otherwise.
+	 * 
+	 * @param majorVersion
+	 * @param minorVersion
+	 * @return
+	 */
+	protected boolean isDockerDaemon(int majorVersion, int minorVersion) {
+		PropertiesView infoTab = openPropertiesTab("Info");
+		getConnection().select();
+		String daemonVersion = infoTab.getProperty("Version").getPropertyValue();
+		assertTrue("Could not retrieve docker daemon version.", !StringUtils.isBlank(daemonVersion));
+		String[] versionComponents = daemonVersion.split("\\.");
+		assertTrue("Could not evaluate docker daemon version " + daemonVersion,
+				versionComponents == null || versionComponents.length >= 2);
+		int actualMajorVersion = Integer.parseInt(versionComponents[0]);
+		if (actualMajorVersion > majorVersion) {
+			return true;
+		}
+		int actualMinorVersion = Integer.parseInt(versionComponents[1]);
+		return actualMinorVersion >= minorVersion;
+	}
+

@@ -1,0 +1,28 @@
+	@Test
+	public void testVolumeMount() throws IOException {
+		DockerImagesTab imagesTab = openDockerImagesTab();
+		imagesTab.runImage(IMAGE_UHTTPD + ":" + IMAGE_TAG_LATEST);
+
+		ImageRunSelectionPage firstPage = new ImageRunSelectionPage();
+		firstPage.setContainerName(CONTAINER_NAME);
+		firstPage.setPublishAllExposedPorts(true);
+		firstPage.next();
+
+		ImageRunResourceVolumesVariablesPage secondPage = new ImageRunResourceVolumesVariablesPage();
+		String volumePath = (new File(VOLUME_PATH)).getCanonicalPath();
+		secondPage.addDataVolumeToHost(CONTAINER_PATH, volumePath);
+		secondPage.finish();
+		new WaitWhile(new JobIsRunning());
+
+		if (!mockitoIsUsed()) {
+			new WaitWhile(new ConsoleHasNoChange());
+		} else {
+			runServer();
+			new WaitUntil(new ContainerIsDeployedCondition(CONTAINER_NAME, getConnection()));
+		}
+
+		String indexPage = getIndexPageContent();
+		String indexPageResource = getResourceAsString(INDEX_PAGE_PATH);
+		assertEquals(INDEX_PAGE_PATH + " wasnt mounted/displayed properly.", indexPage, indexPageResource);
+	}
+
