@@ -1,0 +1,21 @@
+	@Override
+	public int waitFor() throws InterruptedException {
+		try {
+			IDockerContainerExit exit = connection
+					.waitForContainer(containerId);
+			connection.stopLoggingThread(containerId);
+			if (!keepContainer) {
+				connection.removeContainer(containerId);
+			}
+			if (!((DockerConnection) connection).isLocal()) {
+				CopyVolumesFromImageJob job = new CopyVolumesFromImageJob(
+						connection, imageName, remoteVolumes);
+				job.schedule();
+				job.join();
+			}
+			return exit.statusCode();
+		} catch (DockerException e) {
+			return -1;
+		}
+	}
+

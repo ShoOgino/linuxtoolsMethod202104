@@ -1,0 +1,244 @@
+	/**
+	 * Create a Process to run an arbitrary command in a Container with uid of
+	 * caller so any files created are accessible to user.
+	 * 
+	 * @param connectionName
+	 *            - uri of connection to use
+	 * @param imageName
+	 *            - name of image to use
+	 * @param project
+	 *            - Eclipse project
+	 * @param errMsgHolder
+	 *            - holder for any error messages
+	 * @param command
+	 *            - command to run
+	 * @param commandDir
+	 *            - directory path to command
+	 * @param workingDir
+	 *            - where to run command
+	 * @param additionalDirs
+	 *            - additional directories to mount
+	 * @param origEnv
+	 *            - original environment if we are appending to existing
+	 * @param envMap
+	 *            - new environment
+	 * @param supportStdin
+	 *            - support using stdin
+	 * @param privilegedMode
+	 *            - run in privileged mode
+	 * @param labels
+	 *            - labels to apply to Container
+	 * @param keepContainer
+	 *            - boolean whether to keep Container when done
+	 * @return Process that can be used to check for completion and for routing
+	 *         stdout/stderr
+	 * 
+	 * @since 3.0
+	 */
+	public Process runCommand(String connectionName, String imageName, IProject project, 
+			IErrorMessageHolder errMsgHolder, String command,
+			String commandDir,
+			String workingDir,
+			List<String> additionalDirs, Map<String, String> origEnv,
+			Properties envMap, boolean supportStdin,
+			boolean privilegedMode, HashMap<String, String> labels,
+			boolean keepContainer) {
+
+		Integer uid = null;
+		Integer gid = null;
+		// For Unix, make sure that the user id is passed with the run
+		// so any output files are accessible by this end-user
+		String os = System.getProperty("os.name"); //$NON-NLS-1$
+		if (os.indexOf("nux") > 0) { //$NON-NLS-1$
+			// first try and see if we have already run a command on this
+			// project
+			ID ugid = fidMap.get(project);
+			if (ugid == null) {
+				try {
+					uid = (Integer) Files.getAttribute(
+							project.getLocation().toFile().toPath(),
+							"unix:uid"); //$NON-NLS-1$
+					gid = (Integer) Files.getAttribute(
+							project.getLocation().toFile().toPath(),
+							"unix:gid"); //$NON-NLS-1$
+					ugid = new ID(uid, gid);
+					// store the uid for possible later usage
+					fidMap.put(project, ugid);
+				} catch (IOException e) {
+					// do nothing...leave as null
+				} // $NON-NLS-1$
+			} else {
+				uid = ugid.getuid();
+				gid = ugid.getgid();
+			}
+		}
+
+		final List<String> env = new ArrayList<>();
+		env.addAll(toList(origEnv));
+		env.addAll(toList(envMap));
+
+		final List<String> cmdList = getCmdList(command);
+
+		final Map<String, List<IDockerPortBinding>> portBindingsMap = new HashMap<>();
+
+
+		IDockerConnection[] connections = DockerConnectionManager
+				.getInstance().getConnections();
+		if (connections == null || connections.length == 0) {
+			errMsgHolder.setErrorMessage(
+					Messages.getString("ContainerLaunch.noConnections.error")); //$NON-NLS-1$
+			return null;
+		}
+
+		IDockerConnection connection = null;
+		for (IDockerConnection c : connections) {
+			if (c.getUri().equals(connectionName)) {
+				connection = c;
+				break;
+			}
+		}
+
+		if (connection == null) {
+			errMsgHolder.setErrorMessage(Messages.getFormattedString(
+					"ContainerLaunch.connectionNotFound.error", //$NON-NLS-1$
+					connectionName));
+			return null;
+		}
+
+		List<IDockerImage> images = connection.getImages();
+		if (images.isEmpty()) {
+			errMsgHolder.setErrorMessage(
+					Messages.getString("ContainerLaunch.noImages.error")); //$NON-NLS-1$
+			return null;
+		}
+
+		IDockerImageInfo info = connection.getImageInfo(imageName);
+		if (info == null) {
+			errMsgHolder.setErrorMessage(Messages.getFormattedString(
+					"ContainerLaunch.imageNotFound.error", imageName)); //$NON-NLS-1$
+			return null;
+		}
+
+		DockerContainerConfig.Builder builder = new DockerContainerConfig.Builder()
+				.openStdin(supportStdin).cmd(cmdList).image(imageName)
+				.workingDir(workingDir);
+
+		// switch to user id for Linux so output is accessible
+		if (uid != null) {
+			builder = builder.user(uid.toString());
+		}
+		
+		// TODO: add group id here when supported by DockerHostConfig.Builder
+
+		// add any labels if specified
+		if (labels != null)
+			builder = builder.labels(labels);
+
+		DockerHostConfig.Builder hostBuilder = new DockerHostConfig.Builder()
+				.privileged(privilegedMode);
+
+		// Note we only pass volumes to the config if we have a
+		// remote daemon. Local mounted volumes are passed
+		// via the HostConfig binds setting
+		final Set<String> remoteVolumes = new TreeSet<>();
+		if (!((DockerConnection) connection).isLocal()) {
+			// if using remote daemon, we have to
+			// handle volume mounting differently.
+			// Instead we mount empty volumes and copy
+			// the host data over before starting.
+			if (additionalDirs != null) {
+				for (String dir : additionalDirs) {
+					IPath p = new Path(dir).removeTrailingSeparator();
+					remoteVolumes.add(p.toPortableString());
+				}
+			}
+			if (workingDir != null) {
+				IPath p = new Path(workingDir).removeTrailingSeparator();
+				remoteVolumes.add(p.toPortableString());
+			}
+			if (commandDir != null) {
+				IPath p = new Path(commandDir).removeTrailingSeparator();
+				remoteVolumes.add(p.toPortableString());
+			}
+			builder = builder.volumes(remoteVolumes);
+		} else {
+			// Running daemon on local host.
+			// Add mounts for any directories we need to run the executable.
+			// When we add mount points, we need entries of the form:
+			// hostname:mountname:Z.
+			// In our case, we want all directories mounted as-is so the
+			// executable will run as the user expects.
+			final Set<String> volumes = new TreeSet<>();
+			if (additionalDirs != null) {
+				for (String dir : additionalDirs) {
+					IPath p = new Path(dir).removeTrailingSeparator();
+					volumes.add(p.toPortableString() + ":" //$NON-NLS-1$
+							+ p.toPortableString() + ":Z"); //$NON-NLS-1$
+				}
+			}
+			if (workingDir != null) {
+				IPath p = new Path(workingDir).removeTrailingSeparator();
+				volumes.add(p.toPortableString() + ":" + p.toPortableString() //$NON-NLS-1$
+						+ ":Z"); //$NON-NLS-1$
+			}
+			if (commandDir != null) {
+				IPath p = new Path(commandDir).removeTrailingSeparator();
+				volumes.add(p.toPortableString() + ":" + p.toPortableString() //$NON-NLS-1$
+						+ ":Z"); //$NON-NLS-1$
+			}
+			List<String> volumeList = new ArrayList<>(volumes);
+			hostBuilder = hostBuilder.binds(volumeList);
+		}
+
+		final DockerContainerConfig config = builder.build();
+
+		// add any port bindings if specified
+		if (portBindingsMap.size() > 0)
+			hostBuilder = hostBuilder.portBindings(portBindingsMap);
+
+		final IDockerHostConfig hostConfig = hostBuilder.build();
+
+		// create the container
+		String containerId = null;
+		try {
+			containerId = ((DockerConnection) connection)
+					.createContainer(config, hostConfig, null);
+		} catch (DockerException | InterruptedException e) {
+			errMsgHolder.setErrorMessage(e.getMessage());
+			return null;
+		}
+		
+		final String id = containerId;
+		final IDockerConnection conn = connection;
+		Thread t = new Thread(() -> {
+			if (!((DockerConnection) conn).isLocal()) {
+				// if daemon is remote, we need to copy
+				// data over from the host.
+				if (!remoteVolumes.isEmpty()) {
+					CopyVolumesJob job = new CopyVolumesJob(remoteVolumes,
+							conn, id);
+					job.schedule();
+					try {
+						job.join();
+					} catch (InterruptedException e) {
+						// ignore
+					}
+					if (job.getResult() != Status.OK_STATUS)
+						return;
+				}
+			}
+			try {
+				((DockerConnection) conn).startContainer(id,
+						null);
+			} catch (DockerException | InterruptedException e) {
+				// ignore
+			}
+		});
+
+		t.start();
+
+		return new ContainerCommandProcess(connection, imageName, containerId,
+				remoteVolumes,
+				keepContainer);
+	}
+

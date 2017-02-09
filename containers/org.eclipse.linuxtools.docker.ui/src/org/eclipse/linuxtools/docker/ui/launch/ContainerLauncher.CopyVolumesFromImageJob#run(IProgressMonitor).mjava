@@ -1,0 +1,147 @@
+		@Override
+		protected IStatus run(final IProgressMonitor monitor) {
+			monitor.beginTask(
+					Messages.getFormattedString(COPY_VOLUMES_FROM_DESC, image),
+					volumes.size());
+			String containerId = null;
+			try {
+				IDockerImage dockerImage = ((DockerConnection) connection)
+						.getImageByTag(image);
+				// if there is a .image_id file, check the image id to ensure
+				// the user hasn't loaded a new version which may have
+				// different header files installed.
+				IPath imageFilePath = target.append(".image_id"); //$NON-NLS-1$
+				File imageFile = imageFilePath.toFile();
+				boolean needImageIdFile = !imageFile.exists();
+				if (!needImageIdFile) {
+					try (FileReader reader = new FileReader(imageFile);
+							BufferedReader bufferReader = new BufferedReader(
+									reader);) {
+						String imageId = bufferReader.readLine();
+						if (!dockerImage.id().equals(imageId)) {
+							// if image id has changed...all bets are off
+							// and we must reload all directories
+							dirList.clear();
+							needImageIdFile = true;
+						}
+					} catch (IOException e) {
+						// ignore
+					}
+				}
+				if (needImageIdFile) {
+					try (FileWriter writer = new FileWriter(imageFile);
+							BufferedWriter bufferedWriter = new BufferedWriter(
+									writer);) {
+						bufferedWriter.write(dockerImage.id());
+						bufferedWriter.newLine();
+					} catch (IOException e) {
+						// ignore
+					}
+				}
+				DockerContainerConfig.Builder builder = new DockerContainerConfig.Builder()
+						.cmd("/bin/sh").image(image); //$NON-NLS-1$
+				IDockerContainerConfig config = builder.build();
+				DockerHostConfig.Builder hostBuilder = new DockerHostConfig.Builder();
+				IDockerHostConfig hostConfig = hostBuilder.build();
+				containerId = ((DockerConnection) connection)
+						.createContainer(config, hostConfig, null);
+				for (String volume : volumes) {
+					if (monitor.isCanceled()) {
+						monitor.done();
+						return Status.CANCEL_STATUS;
+					}
+					// don't bother copying files from project
+					if (volume.contains("${ProjName}")) { //$NON-NLS-1$
+						monitor.worked(1);
+						continue;
+					}
+					// if we have already copied the directory either directly
+					// or as part of a parent directory copy, then skip to next
+					// volume.
+					for (String path : dirList) {
+						if (volume.equals(path)
+								|| (volume.startsWith(path) && volume.charAt(
+										path.length()) == File.separatorChar)) {
+							monitor.worked(1);
+							continue;
+						}
+					}
+					try {
+						monitor.setTaskName(Messages.getFormattedString(
+								COPY_VOLUMES_FROM_TASK, volume));
+						monitor.worked(1);
+
+
+						InputStream in = ((DockerConnection) connection)
+								.copyContainer(containerId, volume);
+
+						synchronized (lockObject) {
+							dirList.add(volume);
+						}
+
+						/*
+						 * The input stream from copyContainer might be
+						 * incomplete or non-blocking so we should wrap it in a
+						 * stream that is guaranteed to block until data is
+						 * available.
+						 */
+						TarArchiveInputStream k = new TarArchiveInputStream(
+								new BlockingInputStream(in));
+						TarArchiveEntry te = null;
+						target.toFile().mkdirs();
+						IPath currDir = target.append(volume)
+								.removeLastSegments(1);
+						currDir.toFile().mkdirs();
+						while ((te = k.getNextTarEntry()) != null) {
+							long size = te.getSize();
+							IPath path = currDir;
+							path = path.append(te.getName());
+							File f = new File(path.toOSString());
+							if (te.isDirectory()) {
+								f.mkdir();
+								continue;
+							} else {
+								f.createNewFile();
+							}
+							FileOutputStream os = new FileOutputStream(f);
+							int bufferSize = ((int) size > 4096 ? 4096
+									: (int) size);
+							byte[] barray = new byte[bufferSize];
+							int result = -1;
+							while ((result = k.read(barray, 0,
+									bufferSize)) > -1) {
+								if (monitor.isCanceled()) {
+									monitor.done();
+									k.close();
+									os.close();
+									return Status.CANCEL_STATUS;
+								}
+								os.write(barray, 0, result);
+							}
+							os.close();
+						}
+						k.close();
+					} catch (final DockerException e) {
+						// ignore
+					}
+				}
+			} catch (InterruptedException e) {
+				// do nothing
+			} catch (IOException e) {
+				Activator.log(e);
+			} catch (DockerException e1) {
+				Activator.log(e1);
+			} finally {
+				if (containerId != null) {
+					try {
+						((DockerConnection) connection)
+								.removeContainer(containerId);
+					} catch (DockerException | InterruptedException e) {
+						// ignore
+					}
+				}
+				monitor.done();
+			}
+			return Status.OK_STATUS;
+		}
+

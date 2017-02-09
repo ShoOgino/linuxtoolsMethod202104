@@ -1,0 +1,18 @@
+	@Override
+	public int exitValue() {
+		IDockerContainerInfo info = connection
+				.getContainerInfo(containerId);
+		if (info != null) {
+			IDockerContainerState state = info.state();
+			if (state != null) {
+				if (state.paused() || state.restarting() || state.running()) {
+					throw new IllegalThreadStateException(
+							LaunchMessages.getFormattedString(
+									"ContainerNotFinished.msg", containerId)); //$NON-NLS-1$
+				}
+				return state.exitCode();
+			}
+		}
+		return -1;
+	}
+

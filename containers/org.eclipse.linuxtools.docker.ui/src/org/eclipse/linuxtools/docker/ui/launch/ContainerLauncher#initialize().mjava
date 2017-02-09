@@ -1,0 +1,30 @@
+	@SuppressWarnings("unchecked")
+	private void initialize() {
+		synchronized (lockObject) {
+			if (copiedVolumesMap == null) {
+				IPath pluginPath = Platform.getStateLocation(
+						Platform.getBundle(Activator.PLUGIN_ID));
+				IPath path = pluginPath.append(DIRFILE_NAME);
+
+				File dirFile = path.toFile();
+				if (dirFile.exists()) {
+					try (FileInputStream f = new FileInputStream(dirFile)) {
+						try (ObjectInputStream ois = new ObjectInputStream(f)) {
+							copiedVolumesMap = (Map<String, Map<String, Set<String>>>) ois
+									.readObject();
+						} catch (ClassNotFoundException
+								| FileNotFoundException e) {
+							// should never happen so print stack trace
+							e.printStackTrace();
+						}
+					} catch (IOException e) {
+						// will handle this below
+					}
+				}
+			}
+			if (copiedVolumesMap == null) {
+				copiedVolumesMap = new HashMap<>();
+			}
+		}
+	}
+
