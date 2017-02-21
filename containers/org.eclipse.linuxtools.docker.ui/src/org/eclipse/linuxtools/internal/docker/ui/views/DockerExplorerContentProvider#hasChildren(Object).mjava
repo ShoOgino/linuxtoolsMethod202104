@@ -1,10 +1,23 @@
 	@Override
 	public boolean hasChildren(final Object element) {
-		return ((element instanceof IDockerConnection
-				&& (((IDockerConnection) element)
-						.getState() == EnumDockerConnectionState.ESTABLISHED
-						|| ((IDockerConnection) element)
-								.getState() == EnumDockerConnectionState.UNKNOWN))
+		// We want to automate enabling a connection.
+		// If the connection is closed (meaning we tried to open
+		// and failed), then kick off a retry job.
+		// Don't start a retry job if one is already running.
+		if (element instanceof IDockerConnection) {
+			IDockerConnection connection = (IDockerConnection) element;
+			if (connection
+					.getState() != EnumDockerConnectionState.ESTABLISHED) {
+				Job openRetryJob = null;
+				synchronized (openRetryJobs) {
+					openRetryJob = openRetryJobs.get(connection);
+				}
+				if (openRetryJob == null) {
+					openRetry(connection);
+				}
+			}
+		}
+		return (element instanceof IDockerConnection
 				|| element instanceof DockerContainersCategory
 				|| element instanceof DockerImagesCategory
 				|| element instanceof IDockerContainer

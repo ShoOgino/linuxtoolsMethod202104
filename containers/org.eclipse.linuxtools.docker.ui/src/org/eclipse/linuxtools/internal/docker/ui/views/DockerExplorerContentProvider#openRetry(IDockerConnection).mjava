@@ -1,0 +1,52 @@
+	/**
+	 * Call the {@link IDockerConnection#open(boolean)} in a background job to
+	 * continually retry opening the connection and avoid blocking the UI.
+	 * 
+	 * @param connection
+	 *            the connection to open/ping
+	 */
+	private void openRetry(final IDockerConnection connection) {
+		final Job openRetryJob = new LoadingJob(
+				DVMessages.getString("PingJob.msg"), //$NON-NLS-1$
+				connection) {
+			@Override
+			protected IStatus run(final IProgressMonitor monitor) {
+				long totalSleep = 0;
+				long sleepTime = 3000; // 3 second default
+				for (;;) {
+					try {
+						connection.open(true);
+						connection.ping();
+						synchronized (openRetryJobs) {
+							openRetryJobs.remove(connection);
+						}
+						return Status.OK_STATUS;
+					} catch (DockerException e) {
+						// ignore
+					}
+					try {
+						Thread.sleep(sleepTime);
+						totalSleep += sleepTime;
+						// if we have tried for over 5 minutes, switch to the
+						// container refresh rate which defaults to 15 seconds.
+						// This should slow down the interference of connections
+						// we never use.
+						if (totalSleep > 300000) {
+							totalSleep = 0; // prevent a future overflow
+							sleepTime = Platform.getPreferencesService()
+									.getLong("org.eclipse.linuxtools.docker.ui", //$NON-NLS-1$
+											"containerRefreshTime", 15000, //$NON-NLS-1$
+											null);
+						}
+					} catch (InterruptedException e) {
+						return Status.CANCEL_STATUS;
+					}
+				}
+			}
+		};
+		synchronized (openRetryJobs) {
+			openRetryJobs.put(connection, openRetryJob);
+		}
+		openRetryJob.schedule();
+	}
+
