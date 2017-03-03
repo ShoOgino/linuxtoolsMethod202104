@@ -13,7 +13,12 @@
 				return new Object[] { new LoadingStub(connection) };
 			} else if (connection
 					.getState() == EnumDockerConnectionState.CLOSED) {
-				openRetry(connection);
+				synchronized (openRetryJobs) {
+					Job job = openRetryJobs.get(connection);
+					if (job == null) {
+						openRetry(connection);
+					}
+				}
 				return new Object[] { new LoadingStub(connection) };
 			}
 			return new Object[0];

@@ -7,14 +7,26 @@
 	 */
 	private void openRetry(final IDockerConnection connection) {
 		final Job openRetryJob = new LoadingJob(
-				DVMessages.getString("PingJob.msg"), //$NON-NLS-1$
+				DVMessages.getFormattedString("PingJob2.msg", //$NON-NLS-1$
+						connection.getName(), connection.getUri()),
 				connection) {
 			@Override
 			protected IStatus run(final IProgressMonitor monitor) {
+				setMonitor(monitor);
 				long totalSleep = 0;
 				long sleepTime = 3000; // 3 second default
 				for (;;) {
 					try {
+						// check if Connection is removed or cancelled
+						if (monitor.isCanceled() || DockerConnectionManager
+								.getInstance()
+								.getConnectionByUri(
+										connection.getUri()) == null) {
+							synchronized (openRetryJobs) {
+								openRetryJobs.remove(connection);
+							}
+							return Status.CANCEL_STATUS;
+						}
 						connection.open(true);
 						connection.ping();
 						synchronized (openRetryJobs) {
@@ -39,6 +51,9 @@
 											null);
 						}
 					} catch (InterruptedException e) {
+						synchronized (openRetryJobs) {
+							openRetryJobs.remove(connection);
+						}
 						return Status.CANCEL_STATUS;
 					}
 				}
@@ -47,6 +62,7 @@
 		synchronized (openRetryJobs) {
 			openRetryJobs.put(connection, openRetryJob);
 		}
+		openRetryJob.setSystem(true);
 		openRetryJob.schedule();
 	}
 
