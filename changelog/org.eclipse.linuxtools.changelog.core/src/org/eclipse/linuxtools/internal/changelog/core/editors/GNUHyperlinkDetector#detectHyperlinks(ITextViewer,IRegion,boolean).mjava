@@ -1,99 +1,85 @@
-    /**
-     * Detector using RuleBasedScanner.
-     */
-    @Override
-    public IHyperlink[] detectHyperlinks(ITextViewer textViewer,
-            IRegion region, boolean canShowMultipleHyperlinks) {
-        if (documentLocation == null) {
-            ITextEditor ed = this.getAdapter(ITextEditor.class);
-            documentLocation = getDocumentLocation(ed);
-        }
+	/**
+	 * Detector using RuleBasedScanner.
+	 */
+	@Override
+	public IHyperlink[] detectHyperlinks(ITextViewer textViewer, IRegion region, boolean canShowMultipleHyperlinks) {
+		if (documentLocation == null) {
+			ITextFileBufferManager bufferManager = FileBuffers.getTextFileBufferManager();
+			ITextFileBuffer buffer = bufferManager.getTextFileBuffer(textViewer.getDocument());
+			documentLocation = buffer.getLocation().removeLastSegments(1);
+		}
 
-        IDocument thisDoc = textViewer.getDocument();
+		IDocument thisDoc = textViewer.getDocument();
 
-        GNUHyperlinkScanner scanner = new GNUHyperlinkScanner();
+		GNUHyperlinkScanner scanner = new GNUHyperlinkScanner();
 
-        ITypedRegion partitionInfo = null;
+		ITypedRegion partitionInfo = null;
 
-        try {
-            partitionInfo = thisDoc.getPartition(region.getOffset());
-        } catch (org.eclipse.jface.text.BadLocationException e1) {
-            e1.printStackTrace();
-            return null;
-        }
+		try {
+			partitionInfo = thisDoc.getPartition(region.getOffset());
+		} catch (org.eclipse.jface.text.BadLocationException e1) {
+			e1.printStackTrace();
+			return null;
+		}
 
-        scanner.setRange(thisDoc, partitionInfo.getOffset(), partitionInfo.getLength());
+		scanner.setRange(thisDoc, partitionInfo.getOffset(), partitionInfo.getLength());
 
-        Token tmpToken = (Token) scanner.nextToken();
+		Token tmpToken = (Token) scanner.nextToken();
 
-        String  tokenStr = (String) tmpToken.getData();
+		String tokenStr = (String) tmpToken.getData();
 
-        if (tokenStr == null) {
-            return null;
-        }
+		if (tokenStr == null) {
+			return null;
+		}
 
-        // try to find non-default token containing region..if none, return null.
-        while (region.getOffset() < scanner.getTokenOffset() ||
-                region.getOffset() > scanner.getOffset() ||
-                tokenStr.equals("_other")) {
-            tmpToken = (Token) scanner.nextToken();
-            tokenStr = (String) tmpToken.getData();
-            if (tokenStr == null)
-                return null;
-        }
+		// try to find non-default token containing region..if none, return
+		// null.
+		while (region.getOffset() < scanner.getTokenOffset() || region.getOffset() > scanner.getOffset()
+				|| tokenStr.equals("_other")) {
+			tmpToken = (Token) scanner.nextToken();
+			tokenStr = (String) tmpToken.getData();
+			if (tokenStr == null)
+				return null;
+		}
 
-        Region tokenRegion = new Region(scanner.getTokenOffset(), scanner
-                .getTokenLength());
+		Region tokenRegion = new Region(scanner.getTokenOffset(), scanner.getTokenLength());
 
-        String line = "";
-        try {
-            line = thisDoc
-                    .get(tokenRegion.getOffset(), tokenRegion.getLength());
-        } catch (org.eclipse.jface.text.BadLocationException e1) {
-            e1.printStackTrace();
-            return null;
-        }
+		String line = "";
+		try {
+			line = thisDoc.get(tokenRegion.getOffset(), tokenRegion.getLength());
+		} catch (org.eclipse.jface.text.BadLocationException e1) {
+			e1.printStackTrace();
+			return null;
+		}
 
-        // process file link
-        if (tokenStr.equals(GNUHyperlinkScanner.FILE_NAME)) {
+		// process file link
+		if (tokenStr.equals(GNUHyperlinkScanner.FILE_NAME)) {
 
-            Region pathRegion = null;
+			Region pathRegion = null;
 
-            int lineOffset = 0;
+			int lineOffset = 0;
 
-            // cut "* " if necessary
-            if (line.startsWith("* ")) {
-                lineOffset = 2;
-                line = line.substring(2);
-            }
-//            int trailingWhiteSpace;
-//            if (((trailingWhiteSpace = line.indexOf(":")) > 0)
-//                    || ((trailingWhiteSpace = line.indexOf(" ")) > 0)) {
-//
-//                line = line.substring(0, trailingWhiteSpace);
-//                pathRegion = new Region(tokenRegion.getOffset() + lineOffset,
-//                        trailingWhiteSpace);
-//            } else {
-                pathRegion = new Region(tokenRegion.getOffset() + lineOffset, line
-                        .length());
-//            }
+			// cut "* " if necessary
+			if (line.startsWith("* ")) {
+				lineOffset = 2;
+				line = line.substring(2);
+			}
+			pathRegion = new Region(tokenRegion.getOffset() + lineOffset, line.length());
 
+			if (documentLocation == null)
+				return null;
 
-            if (documentLocation == null)
-                return null;
+			// Replace any escape characters added to name
+			line = line.replaceAll("\\\\(.)", "$1");
 
-            // Replace any escape characters added to name
-            line = line.replaceAll("\\\\(.)", "$1");
+			IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+			IFile fileLoc = (IFile) root.findMember(documentLocation.append(line));
+			if (fileLoc.exists()) {
+				return new IHyperlink[] { new FileHyperlink(pathRegion, fileLoc) };
+			}
 
-            IFile fileLoc = ResourcesPlugin.getWorkspace().getRoot()
-                    .getFileForLocation(documentLocation.append(line));
-            if (fileLoc.exists()) {
-                return new IHyperlink[] { new FileHyperlink(pathRegion, fileLoc) };
-            }
+		}
 
-
-        }
-
-        return null;
-    }
+		return null;
+	}
 
