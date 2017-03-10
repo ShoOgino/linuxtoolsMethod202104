@@ -1,0 +1,31 @@
+	public SpecfileChangelogScanner() {
+		super();
+		ColorRegistry colors = PlatformUI.getWorkbench().getThemeManager().getCurrentTheme().getColorRegistry();
+		IToken sectionToken = new Token(
+				new TextAttribute(colors.get(ISpecfileColorConstants.SECTIONS), null, SWT.ITALIC));
+
+		IToken authorEmail = new Token(
+				new TextAttribute(colors.get(ISpecfileColorConstants.AUTHOR_MAIL), null, SWT.NONE));
+
+		IToken versionRelease = new Token(
+				new TextAttribute(colors.get(ISpecfileColorConstants.VER_REL), null, SWT.NONE));
+
+		List<IRule> rules = new ArrayList<>();
+
+		// %prep, %build, ...
+		WordRule wordRule = new WordRule(new KeywordWordDetector(), Token.UNDEFINED);
+		wordRule.addWord(RpmSections.CHANGELOG_SECTION, sectionToken);
+		rules.add(wordRule);
+
+		AuthorEmailRule emailRule = new AuthorEmailRule(authorEmail);
+		rules.add(emailRule);
+
+		VersionReleaseRule verRelRule = new VersionReleaseRule(versionRelease, authorEmail, this);
+		rules.add(verRelRule);
+
+		IRule[] result = new IRule[rules.size()];
+		rules.toArray(result);
+		setRules(result);
+		setDefaultReturnToken(new Token(new TextAttribute(colors.get(ISpecfileColorConstants.DEFAULT))));
+	}
+
