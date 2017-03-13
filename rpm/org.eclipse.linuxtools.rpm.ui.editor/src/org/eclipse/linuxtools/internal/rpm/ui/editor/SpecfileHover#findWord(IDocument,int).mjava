@@ -1,63 +1,65 @@
-    public static IRegion findWord(IDocument document, int offset) {
-        int start = -1;
-        int end = -1;
-        boolean beginsWithBrace = false;
+	public static IRegion findWord(IDocument document, int offset) {
+		int start = -1;
+		int end = -1;
+		boolean beginsWithBrace = false;
 
-        try {
-            int pos = offset;
-            char c;
+		try {
+			int pos = offset;
+			char c;
 
-            while (pos >= 0) {
-                c = document.getChar(pos);
-                if (c == '%') {
-                    if (document.getChar(pos + 1) == '{') {
-                        beginsWithBrace = true;
-                    }
-                    break;
-                }
-                else if (c == '\n' || c == '}'){
-                    // if we hit the beginning of the line, it's not a macro
-                    return new Region(offset, 0);
-                }
-                --pos;
-            }
+			while (pos >= 0) {
+				c = document.getChar(pos);
+				if (c == '%') {
+					if (document.getChar(pos + 1) == '{') {
+						beginsWithBrace = true;
+					}
+					break;
+				} else if (c == '\n' || c == '}') {
+					// if we hit the beginning of the line, it's not a macro
+					return new Region(offset, 0);
+				}
+				--pos;
+			}
 
-            if (!beginsWithBrace) {
-                --pos;
-            }
+			if (!beginsWithBrace) {
+				--pos;
+			}
 
-            start = pos;
+			start = pos;
 
-            pos = offset;
-            int length = document.getLength();
+			pos = offset;
+			int length = document.getLength();
 
-            while (pos < length) {
-                c = document.getChar(pos);
-                if (beginsWithBrace && (c == '}')) {
-                    break;
-                } else if (c == '\n' || c == '%' || c == '('){ // '(' is needed for the %deffatt( case
-                    break;
-//                    Do not return empty region here. We have a work.
-//                    return new Region(offset, 0);
-                } else if (!beginsWithBrace && c == ' ') {
-                    break;
-                }
-                ++pos;
-            }
+			while (pos < length) {
+				c = document.getChar(pos);
+				if (beginsWithBrace && (c == '}')) {
+					break;
+				} else if (c == '\n' || c == '%' || c == '(') { // '(' is needed
+																// for the
+																// %deffatt(
+																// case
+					break;
+					// Do not return empty region here. We have a work.
+					// return new Region(offset, 0);
+				} else if (!beginsWithBrace && c == ' ') {
+					break;
+				}
+				++pos;
+			}
 
-            end = pos;
+			end = pos;
 
-        } catch (BadLocationException x) {
-        }
+		} catch (BadLocationException x) {
+		}
 
-        if (start >= -1 && end > -1) {
-            if (start == offset) {
-                return new Region(start, end - start);
-            } else {
-                return new Region(start + 1, end - start - 1);
-            }
-        }
+		if (start >= -1 && end > -1) {
+			if (start == offset) {
+				return new Region(start, end - start);
+			} else {
+				return new Region(start + 1, end - start - 1);
+			}
+		}
 
-        return null;
-    }
+		return null;
+	}
 

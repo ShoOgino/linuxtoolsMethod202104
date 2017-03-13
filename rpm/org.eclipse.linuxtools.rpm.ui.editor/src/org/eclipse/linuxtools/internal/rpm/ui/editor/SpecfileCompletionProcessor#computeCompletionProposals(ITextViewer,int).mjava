@@ -1,7 +1,8 @@
 	@Override
 	public ICompletionProposal[] computeCompletionProposals(ITextViewer viewer, int offset) {
 		List<ICompletionProposal> result = new ArrayList<>();
-		Specfile specfile = editor.getSpecfile();
+
+		Specfile specfile = new SpecfileParser().parse(viewer.getDocument());
 		if (specfile == null) {
 			return null;
 		}
@@ -18,8 +19,7 @@
 		List<ICompletionProposal> sourcesProposals = computeSourcesProposals(region, specfile, prefix);
 		result.addAll(sourcesProposals);
 		// Get the current content type
-		String currentContentType = editor.getAdapter(IDocument.class).getDocumentPartitioner()
-				.getContentType(region.getOffset());
+		String currentContentType = viewer.getDocument().getDocumentPartitioner().getContentType(region.getOffset());
 		if (currentContentType.equals(SpecfilePartitionScanner.SPEC_PREP)) {
 			List<ICompletionProposal> patchesProposals = computePatchesProposals(region, specfile, prefix);
 			result.addAll(patchesProposals);

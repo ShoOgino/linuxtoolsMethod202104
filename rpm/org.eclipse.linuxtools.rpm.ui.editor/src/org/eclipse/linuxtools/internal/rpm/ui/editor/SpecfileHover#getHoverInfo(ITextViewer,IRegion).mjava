@@ -1,54 +1,57 @@
-    @Override
-    public String getHoverInfo(ITextViewer textViewer, IRegion hoverRegion) {
-        if (hoverRegion == null || hoverRegion.getLength() == 0) {
-            return null;
-        }
+	@Override
+	public String getHoverInfo(ITextViewer textViewer, IRegion hoverRegion) {
+		if (hoverRegion == null || hoverRegion.getLength() == 0) {
+			return null;
+		}
 
-        Specfile spec = editor.getSpecfile();
-        if (spec == null) {
-            return null;
-        }
+		Specfile spec = new SpecfileParser().parse(textViewer.getDocument());
+		if (spec == null) {
+			return null;
+		}
 
-        String currentSelection;
-        try {
-            currentSelection = textViewer.getDocument().get(hoverRegion.getOffset() + 1, hoverRegion.getLength() - 1);
-        } catch (BadLocationException e) {
-            return null;
-        }
+		String currentSelection;
+		try {
+			currentSelection = textViewer.getDocument().get(hoverRegion.getOffset() + 1, hoverRegion.getLength() - 1);
+		} catch (BadLocationException e) {
+			return null;
+		}
 
-        // First we try to get a define based on the given name
-        SpecfileDefine define = spec.getDefine(currentSelection);
+		// First we try to get a define based on the given name
+		SpecfileDefine define = spec.getDefine(currentSelection);
 
-        String value = currentSelection + ": "; //$NON-NLS-1$
+		String value = currentSelection + ": "; //$NON-NLS-1$
 
-        if (define != null) {
-            return value + define.getStringValue();
-        }
+		if (define != null) {
+			return value + define.getStringValue();
+		}
 
-        String macroLower = currentSelection.toLowerCase();
+		String macroLower = currentSelection.toLowerCase();
 
-        // If there's no such define we try to see if it corresponds to
-        // a Source or Patch declaration
-        String retrivedValue = getSourceOrPatchValue(spec, macroLower);
-        if (retrivedValue != null) {
-            return value + retrivedValue;
-        } else {
-            // If it does not correspond to a Patch or Source macro, try to find it
-            // in the macro proposals list.
-            retrivedValue = getMacroValueFromMacroList(currentSelection);
-            if (retrivedValue != null) {
-                return value + retrivedValue;
-            } else {
-                // If it does not correspond to a macro in the list, try to find it
-                // in the RPM list.
-                retrivedValue = Activator.getDefault().getRpmPackageList().getValue(currentSelection.replaceFirst(":",EMPTY_STRING)); //$NON-NLS-1$
-                if (retrivedValue != null) {
-                    return retrivedValue;
-                }
-            }
-        }
-       // We return null in other cases, so we don't show hover information
-       // for unrecognized macros and RPM packages.
-       return null;
-    }
+		// If there's no such define we try to see if it corresponds to
+		// a Source or Patch declaration
+		String retrivedValue = getSourceOrPatchValue(spec, macroLower);
+		if (retrivedValue != null) {
+			return value + retrivedValue;
+		} else {
+			// If it does not correspond to a Patch or Source macro, try to find
+			// it
+			// in the macro proposals list.
+			retrivedValue = getMacroValueFromMacroList(currentSelection);
+			if (retrivedValue != null) {
+				return value + retrivedValue;
+			} else {
+				// If it does not correspond to a macro in the list, try to find
+				// it
+				// in the RPM list.
+				retrivedValue = Activator.getDefault().getRpmPackageList()
+						.getValue(currentSelection.replaceFirst(":", "")); //$NON-NLS-1$ //$NON-NLS-2$
+				if (retrivedValue != null) {
+					return retrivedValue;
+				}
+			}
+		}
+		// We return null in other cases, so we don't show hover information
+		// for unrecognized macros and RPM packages.
+		return null;
+	}
 
