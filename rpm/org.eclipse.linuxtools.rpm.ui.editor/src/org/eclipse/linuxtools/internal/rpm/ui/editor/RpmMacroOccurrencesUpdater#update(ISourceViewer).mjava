@@ -1,43 +1,45 @@
-    /**
-     * Updates the drawn annotations.
-     *
-     * @param viewer The viewer to get the document and annotation model from
-     */
-    public void update(ISourceViewer viewer) {
-        try {
-            IDocument document = viewer.getDocument();
-            IAnnotationModel model = viewer.getAnnotationModel();
-            if (document == null || model == null) {
-                return;
-            }
-            removeOldAnnotations(model);
-            String currentSelectedWord = getWordAtSelection(fEditor.getSelectionProvider()
-                    .getSelection(), document);
-            if (isMacro(currentSelectedWord)) {
-                Specfile spec = fEditor.getSpecfile();
-                SpecfileDefine define = spec.getDefine(currentSelectedWord);
-                String word = currentSelectedWord + ": "; //$NON-NLS-1$
-                if (define != null) {
-                    word += define.getStringValue();
-                } else {
-                      // If there's no such define we try to see if it corresponds to
-                    // a Source or Patch declaration
-                    String retrivedValue = SpecfileHover.getSourceOrPatchValue(spec, currentSelectedWord.toLowerCase());
-                    if (retrivedValue != null) {
-                        word += retrivedValue;
-                    } else {
-                        // If it does not correspond to a Patch or Source macro, try to find it
-                        // in the macro proposals list.
-                        retrivedValue = SpecfileHover.getMacroValueFromMacroList(currentSelectedWord);
-                        if (retrivedValue != null) {
-                            word += retrivedValue;
-                        }
-                    }
-                }
-                createNewAnnotations(currentSelectedWord, word, document, model);
-            }
-        } catch (BadLocationException e) {
-            SpecfileLog.logError(e);
-        }
-    }
+	/**
+	 * Updates the drawn annotations.
+	 *
+	 * @param viewer
+	 *            The viewer to get the document and annotation model from
+	 */
+	public void update(ISourceViewer viewer) {
+		try {
+			IDocument document = viewer.getDocument();
+			IAnnotationModel model = viewer.getAnnotationModel();
+			if (document == null || model == null) {
+				return;
+			}
+			removeOldAnnotations(model);
+			String currentSelectedWord = getWordAtSelection(fEditor.getSelectionProvider().getSelection(), document);
+			if (isMacro(currentSelectedWord)) {
+				Specfile spec = fEditor.getSpecfile();
+				SpecfileDefine define = spec.getDefine(currentSelectedWord);
+				String word = currentSelectedWord + ": "; //$NON-NLS-1$
+				if (define != null) {
+					word += define.getStringValue();
+				} else {
+					// If there's no such define we try to see if it corresponds
+					// to
+					// a Source or Patch declaration
+					String retrivedValue = RPMUtils.getSourceOrPatchValue(spec, currentSelectedWord.toLowerCase());
+					if (retrivedValue != null) {
+						word += retrivedValue;
+					} else {
+						// If it does not correspond to a Patch or Source macro,
+						// try to find it
+						// in the macro proposals list.
+						retrivedValue = RPMUtils.getMacroValueFromMacroList(currentSelectedWord);
+						if (retrivedValue != null) {
+							word += retrivedValue;
+						}
+					}
+				}
+				createNewAnnotations(currentSelectedWord, word, document, model);
+			}
+		} catch (BadLocationException e) {
+			SpecfileLog.logError(e);
+		}
+	}
 
