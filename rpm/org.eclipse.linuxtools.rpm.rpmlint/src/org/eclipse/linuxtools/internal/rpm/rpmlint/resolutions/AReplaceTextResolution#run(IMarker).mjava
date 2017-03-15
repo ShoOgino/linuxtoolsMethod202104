@@ -1,22 +1,22 @@
-    @Override
-    public void run(IMarker marker) {
+	@Override
+	public void run(IMarker marker) {
 
-        SpecfileEditor editor = getEditor(marker);
-        if (editor == null) {
-            return;
-        }
-        IDocument doc = (IDocument) editor.getAdapter(IDocument.class);
+		IEditorPart editor = getEditor(marker);
+		if (editor == null) {
+			return;
+		}
+		IDocument doc = editor.getAdapter(IDocument.class);
 
-        try {
-            int lineNumber = marker.getAttribute(IMarker.LINE_NUMBER, 0);
-            int index = doc.getLineOffset(lineNumber);
-            String line = editor.getSpecfile().getLine(lineNumber);
-            int rowIndex = line.indexOf(getOriginalString());
-            if (rowIndex > -1){
-                doc.replace(index+rowIndex, getOriginalString().length(), getReplaceString());
-            }
-        } catch (BadLocationException e) {
-            RpmlintLog.logError(e);
-        }
-    }
+		try {
+			int lineNumber = marker.getAttribute(IMarker.LINE_NUMBER, 0);
+			int index = doc.getLineOffset(lineNumber);
+			String line = new SpecfileParser().parse(doc).getLine(lineNumber);
+			int rowIndex = line.indexOf(getOriginalString());
+			if (rowIndex > -1) {
+				doc.replace(index + rowIndex, getOriginalString().length(), getReplaceString());
+			}
+		} catch (BadLocationException e) {
+			RpmlintLog.logError(e);
+		}
+	}
 
