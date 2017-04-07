@@ -1,8 +1,8 @@
     @Override
     public void run() {
         boolean defaultSessionExists = false;
-        String defaultSessionName = null;
         UiModelRoot modelRoot = UiModelRoot.getDefault();
+        String defaultSessionName = null;
         IUiModelElement[] modelEvents = null;
 
         if (modelRoot.hasChildren()) {
@@ -35,41 +35,22 @@
                         new SaveSessionValidator());
 
                 int result = dialog.open();
-                if (result == Window.OK) {
-                    try {
-                        OprofileCorePlugin.getDefault().getOpcontrolProvider()
-                                .saveSession(dialog.getValue());
-                        // remove the default session
-                        for (int i = 0; i < modelEvents.length; i++) {
-                            OprofileCorePlugin
-                                    .getDefault()
-                                    .getOpcontrolProvider()
-                                    .deleteSession(defaultSessionName,
-                                            modelEvents[i].getLabelText());
-                        }
-                        // clear out collected data by this session
-                        // if opcontol is used
-                        if (Oprofile.OprofileProject.OPCONTROL_BINARY
-                                .equals(Oprofile.OprofileProject
-                                        .getProfilingBinary())) {
-                            OprofileCorePlugin.getDefault()
-                                    .getOpcontrolProvider().reset();
-                        } else if (Oprofile.OprofileProject.OPERF_BINARY.equals(Oprofile.OprofileProject.getProfilingBinary())){
-                            // remove oprofile_data so current event no longer
-                            // be there
-                            OprofileViewDeleteSessionAction
-                                    .deleteOperfDataFolder(Oprofile.OprofileProject
-                                            .getProject()
-                                            .getFolder(
-                                                    Oprofile.OprofileProject.OPERF_DATA));
-                        }
-                        OprofileUiPlugin.getDefault().getOprofileView()
-                                .refreshView();
-                    } catch (OpcontrolException oe) {
-                        OprofileCorePlugin.showErrorDialog(
-                                "opcontrolProvider", oe); //$NON-NLS-1$
+				if (result == Window.OK) {
+					SessionManager.saveSession(dialog.getValue());
+
+					// remove the default session
+                    for (int i = 0; i < modelEvents.length; i++) {
+                        SessionManager.deleteSession(defaultSessionName, modelEvents[i].getLabelText());
                     }
-                }
+
+					if (Oprofile.OprofileProject.OPERF_BINARY.equals(Oprofile.OprofileProject.getProfilingBinary())) {
+						// remove oprofile_data so current event no longer
+						// be there
+						OprofileViewDeleteSessionAction.deleteOperfDataFolder(
+								Oprofile.OprofileProject.getProject().getFolder(Oprofile.OprofileProject.OPERF_DATA));
+					}
+					OprofileUiPlugin.getDefault().getOprofileView().refreshView();
+				}
             } else {
                 MessageDialog
                         .openError(
