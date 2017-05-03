@@ -1,0 +1,26 @@
+	private String exec(String [] cmd) {
+		LogStream stream = null;
+		try {
+			ExecCreation exeCr = client.execCreate(id, cmd,
+					ExecCreateParam.attachStdout(), ExecCreateParam.attachStderr(), ExecCreateParam.detach(),
+					ExecCreateParam.attachStdin()); // needed to avoid connection reset on unix socket
+			stream = client.execStart(exeCr.id());
+			StringBuffer res = new StringBuffer();
+			while (stream.hasNext()) {
+				ByteBuffer b = stream.next().content();
+				byte[] buffer = new byte[b.remaining()];
+				b.get(buffer);
+				res.append(new String(buffer));
+			}
+			return res.toString();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				stream.close();
+			} catch (IOException e) {
+			}
+		}
+		return null;
+	}
+
