@@ -1,0 +1,45 @@
+	@Override
+	public void linkActivated() {
+		IWorkbenchPage page = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage();
+
+		IEditorPart editorPart = null;
+		try {
+			editorPart = IDE.openEditorOnFileStore(page, file);
+			if (line > 0) {
+				ITextEditor textEditor = null;
+				if (editorPart instanceof ITextEditor) {
+					textEditor = (ITextEditor) editorPart;
+				} else {
+					textEditor = editorPart.getAdapter(ITextEditor.class);
+				}
+				if (textEditor != null) {
+					IEditorInput input = editorPart.getEditorInput();
+					IDocumentProvider provider = textEditor.getDocumentProvider();
+					try {
+						provider.connect(input);
+					} catch (CoreException e) {
+						// unable to link
+						return;
+					}
+					IDocument document = provider.getDocument(input);
+					int offset = -1;
+					int length = -1;
+					try {
+						IRegion region = document.getLineInformation(line - 1);
+						offset = region.getOffset();
+						length = region.getLength();
+					} catch (BadLocationException e) {
+						// unable to link
+					}
+					provider.disconnect(input);
+					if (offset >= 0 && length >= 0) {
+						textEditor.selectAndReveal(offset, length);
+					}
+				}
+			}
+		} catch (PartInitException e) {
+			// Put your exception handler here if you wish to
+		}
+
+	}
+
