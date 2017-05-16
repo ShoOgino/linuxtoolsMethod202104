@@ -1,0 +1,27 @@
+	/**
+	 * Gets project with specific project type defined by subclass of Abstract Project.
+	 * 
+	 * @param projectName name of project to get
+	 * @param projectType type of project to get
+	 * @return project of specific type with defined name
+	 */
+	public <T extends AbstractProject> T getProject(final String projectName, Class<T> projectType) {		
+		for (TreeItem item : getTree().getItems()){
+			try {
+				T project =  projectType.getDeclaredConstructor(TreeItem.class).newInstance(item);
+				if (project.getName().equals(projectName)) {
+					return project;
+				}
+			} catch (EclipseLayerException ex) {
+				// Because there are attempts to create from all tree items projects of specific type but
+				// not all of them can fit it.
+			} catch (ReflectiveOperationException e) {
+				// This should not happen.
+			}
+		}
+		
+		// There is no such project
+		throw new EclipseLayerException("Required project does not exist. Make sure you are using correct project type"
+				+ " and desired project exists.");
+	}
+
