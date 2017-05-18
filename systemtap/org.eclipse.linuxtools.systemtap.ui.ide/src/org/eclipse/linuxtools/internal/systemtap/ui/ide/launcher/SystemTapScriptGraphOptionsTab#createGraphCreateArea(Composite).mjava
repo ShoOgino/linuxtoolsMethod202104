@@ -39,98 +39,81 @@
 
         // Action to notify the buttons when to enable/disable themselves based
         // on list selection
-        graphsTable.addSelectionListener(new SelectionAdapter() {
-            @Override
-            public void widgetSelected(SelectionEvent e) {
-                selectedTableItem = (TableItem) e.item;
-                setSelectionControlsEnabled(true);
-            }
-        });
+		graphsTable.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
+			selectedTableItem = (TableItem) e.item;
+			setSelectionControlsEnabled(true);
+		}));
 
         // Brings up a new dialog box when user clicks the add button. Allows
         // selecting a new graph to display.
-        addGraphButton.addSelectionListener(new SelectionAdapter() {
-            @Override
-            public void widgetSelected(SelectionEvent e) {
-                SelectGraphAndSeriesWizard wizard = new SelectGraphAndSeriesWizard(getCurrentDataset(), null);
-                IWorkbench workbench = PlatformUI.getWorkbench();
-                wizard.init(workbench, null);
-                WizardDialog dialog = new WizardDialog(workbench
-                        .getActiveWorkbenchWindow().getShell(), wizard);
-                dialog.create();
-                dialog.open();
+		addGraphButton.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
+			SelectGraphAndSeriesWizard wizard = new SelectGraphAndSeriesWizard(getCurrentDataset(), null);
+			IWorkbench workbench = PlatformUI.getWorkbench();
+			wizard.init(workbench, null);
+			WizardDialog dialog = new WizardDialog(workbench.getActiveWorkbenchWindow().getShell(), wizard);
+			dialog.create();
+			dialog.open();
 
-                GraphData gd = wizard.getGraphData();
+			GraphData gd = wizard.getGraphData();
 
-                if (gd != null) {
-                    TableItem item = new TableItem(graphsTable, SWT.NONE);
-                    graphsData.add(gd);
-                    setUpGraphTableItem(item, gd, false);
-                    updateLaunchConfigurationDialog();
-                }
-            }
-        });
+			if (gd != null) {
+				TableItem item = new TableItem(graphsTable, SWT.NONE);
+				graphsData.add(gd);
+				setUpGraphTableItem(item, gd, false);
+				updateLaunchConfigurationDialog();
+			}
+		}));
 
         // Adds a new entry to the list of graphs that is a copy of the one selected.
-        duplicateGraphButton.addSelectionListener(new SelectionAdapter() {
-            @Override
-            public void widgetSelected(SelectionEvent e) {
-                GraphData gd = ((GraphData) selectedTableItem.getData()).getCopy();
+		duplicateGraphButton.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
+			GraphData gd = ((GraphData) selectedTableItem.getData()).getCopy();
 
-                TableItem item = new TableItem(graphsTable, SWT.NONE);
-                graphsData.add(gd);
-                if (badGraphs.contains(selectedTableItem.getData())) {
-                    badGraphs.add(gd);
-                    setUpGraphTableItem(item, gd, true);
-                } else {
-                    setUpGraphTableItem(item, gd, false);
-                }
-                updateLaunchConfigurationDialog();
-            }
-        });
+			TableItem item = new TableItem(graphsTable, SWT.NONE);
+			graphsData.add(gd);
+			if (badGraphs.contains(selectedTableItem.getData())) {
+				badGraphs.add(gd);
+				setUpGraphTableItem(item, gd, true);
+			} else {
+				setUpGraphTableItem(item, gd, false);
+			}
+			updateLaunchConfigurationDialog();
+		}));
 
         // When button is clicked, brings up same wizard as the one for adding
         // a graph. Data in the wizard is filled out to match the properties
         // of the selected graph.
-        editGraphButton.addSelectionListener(new SelectionAdapter() {
-            @Override
-            public void widgetSelected(SelectionEvent e) {
-                SelectGraphAndSeriesWizard wizard = new SelectGraphAndSeriesWizard(getCurrentDataset(),
-                        (GraphData) selectedTableItem.getData());
-                IWorkbench workbench = PlatformUI.getWorkbench();
-                wizard.init(workbench, null);
-                WizardDialog dialog = new WizardDialog(workbench
-                        .getActiveWorkbenchWindow().getShell(), wizard);
-                dialog.create();
-                dialog.open();
+		editGraphButton.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
+			SelectGraphAndSeriesWizard wizard = new SelectGraphAndSeriesWizard(getCurrentDataset(),
+					(GraphData) selectedTableItem.getData());
+			IWorkbench workbench = PlatformUI.getWorkbench();
+			wizard.init(workbench, null);
+			WizardDialog dialog = new WizardDialog(workbench.getActiveWorkbenchWindow().getShell(), wizard);
+			dialog.create();
+			dialog.open();
 
-                GraphData gd = wizard.getGraphData();
-                if (gd == null) {
-                    return;
-                }
-                GraphData old_gd = (GraphData) selectedTableItem.getData();
-                if (!gd.isCopyOf(old_gd)) {
-                    badGraphs.remove(old_gd);
-                    setUpGraphTableItem(selectedTableItem, gd, false);
-                    graphsData.set(graphsTable.indexOf(selectedTableItem), gd);
-                    checkErrors(selectedRegex);
-                    updateLaunchConfigurationDialog();
-                }
-            }
-        });
+			GraphData gd = wizard.getGraphData();
+			if (gd == null) {
+				return;
+			}
+			GraphData old_gd = (GraphData) selectedTableItem.getData();
+			if (!gd.isCopyOf(old_gd)) {
+				badGraphs.remove(old_gd);
+				setUpGraphTableItem(selectedTableItem, gd, false);
+				graphsData.set(graphsTable.indexOf(selectedTableItem), gd);
+				checkErrors(selectedRegex);
+				updateLaunchConfigurationDialog();
+			}
+		}));
 
         // Removes the selected graph/filter from the table
-        removeGraphButton.addSelectionListener(new SelectionAdapter() {
-            @Override
-            public void widgetSelected(SelectionEvent e) {
-                GraphData gd = (GraphData) selectedTableItem.getData();
-                graphsData.remove(gd);
-                badGraphs.remove(gd);
-                selectedTableItem.dispose();
-                setSelectionControlsEnabled(false);
-                checkErrors(selectedRegex);
-                updateLaunchConfigurationDialog();
-            }
-        });
+		removeGraphButton.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
+			GraphData gd = (GraphData) selectedTableItem.getData();
+			graphsData.remove(gd);
+			badGraphs.remove(gd);
+			selectedTableItem.dispose();
+			setSelectionControlsEnabled(false);
+			checkErrors(selectedRegex);
+			updateLaunchConfigurationDialog();
+		}));
     }
 

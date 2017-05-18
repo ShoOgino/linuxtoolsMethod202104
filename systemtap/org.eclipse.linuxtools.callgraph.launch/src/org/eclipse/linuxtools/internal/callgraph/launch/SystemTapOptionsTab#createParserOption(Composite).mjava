@@ -13,25 +13,20 @@
 
         Button parserButton = createPushButton(browseTop,
                 "Find parsers", null);  //$NON-NLS-1$
-        parserButton.addSelectionListener(new SelectionAdapter() {
-            @Override
-            public void widgetSelected(SelectionEvent e) {
-                ElementListSelectionDialog dialog = new ElementListSelectionDialog(getShell(),
-                        new ListLabelProvider());
-                dialog.setTitle("Select parser");  //$NON-NLS-1$
-                dialog.setMessage("Select parser to use.");  //$NON-NLS-1$
-                IExtensionRegistry reg = Platform.getExtensionRegistry();
-                IConfigurationElement[] extensions = reg
-                        .getConfigurationElementsFor(PluginConstants.PARSER_RESOURCE,
-                                PluginConstants.PARSER_NAME);
+		parserButton.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
+			ElementListSelectionDialog dialog = new ElementListSelectionDialog(getShell(), new ListLabelProvider());
+			dialog.setTitle("Select parser"); //$NON-NLS-1$
+			dialog.setMessage("Select parser to use."); //$NON-NLS-1$
+			IExtensionRegistry reg = Platform.getExtensionRegistry();
+			IConfigurationElement[] extensions = reg.getConfigurationElementsFor(PluginConstants.PARSER_RESOURCE,
+					PluginConstants.PARSER_NAME);
 
-                dialog.setElements(extensions);
-                if (dialog.open() == IDialogConstants.OK_ID) {
-                    String arg = getUsefulLabel(dialog.getFirstResult());
-                    parser.setText(arg);
-                }
-            }
-        });
+			dialog.setElements(extensions);
+			if (dialog.open() == IDialogConstants.OK_ID) {
+				String arg = getUsefulLabel(dialog.getFirstResult());
+				parser.setText(arg);
+			}
+		}));
 
 
         viewer = new Text(browseTop, SWT.BORDER);
@@ -40,38 +35,33 @@
 
         Button viewerButton = createPushButton(browseTop,
                 "Find viewers", null);  //$NON-NLS-1$
-        viewerButton.addSelectionListener(new SelectionAdapter() {
-            @Override
-            public void widgetSelected(SelectionEvent e) {
-                ElementListSelectionDialog dialog = new ElementListSelectionDialog(getShell(),
-                        new ListLabelProvider());
-                dialog.setTitle("Select viewer");  //$NON-NLS-1$
-                dialog.setMessage("Select viewer to use.");  //$NON-NLS-1$
-                IExtensionRegistry reg = Platform.getExtensionRegistry();
-                IConfigurationElement[] extensions = reg
-                        .getConfigurationElementsFor(PluginConstants.VIEW_RESOURCE,
-                                PluginConstants.VIEW_NAME);
-                ArrayList<IConfigurationElement> ext = new ArrayList<>();
-                for (IConfigurationElement el : extensions) {
-                    if (!el.getNamespaceIdentifier().contains("org.eclipse.linuxtools")) //$NON-NLS-1$
-                        continue;
-                    //TODO: Rough hack to get all the objects. We restrict to id's containing org.eclipse.linuxtools, then see if the class extends SystemTapView
-                    try {
-                        if (el.createExecutableExtension(PluginConstants.ATTR_CLASS)
-                                instanceof SystemTapView) {
-                            ext.add(el);
-                        }
-                    } catch (CoreException e1) {
-                    }
-                }
+		viewerButton.addSelectionListener(SelectionListener.widgetSelectedAdapter(e -> {
+			ElementListSelectionDialog dialog = new ElementListSelectionDialog(getShell(), new ListLabelProvider());
+			dialog.setTitle("Select viewer"); //$NON-NLS-1$
+			dialog.setMessage("Select viewer to use."); //$NON-NLS-1$
+			IExtensionRegistry reg = Platform.getExtensionRegistry();
+			IConfigurationElement[] extensions = reg.getConfigurationElementsFor(PluginConstants.VIEW_RESOURCE,
+					PluginConstants.VIEW_NAME);
+			ArrayList<IConfigurationElement> ext = new ArrayList<>();
+			for (IConfigurationElement el : extensions) {
+				if (!el.getNamespaceIdentifier().contains("org.eclipse.linuxtools")) //$NON-NLS-1$
+					continue;
+				// TODO: Rough hack to get all the objects. We restrict to id's containing
+				// org.eclipse.linuxtools, then see if the class extends SystemTapView
+				try {
+					if (el.createExecutableExtension(PluginConstants.ATTR_CLASS) instanceof SystemTapView) {
+						ext.add(el);
+					}
+				} catch (CoreException e1) {
+				}
+			}
 
-                dialog.setElements(ext.toArray());
-                if (dialog.open() == IDialogConstants.OK_ID) {
-                    String arg = getUsefulLabel(dialog.getFirstResult());
-                    viewer.setText(arg);
-                }
-            }
-        });
+			dialog.setElements(ext.toArray());
+			if (dialog.open() == IDialogConstants.OK_ID) {
+				String arg = getUsefulLabel(dialog.getFirstResult());
+				viewer.setText(arg);
+			}
+		}));
 
     }
 

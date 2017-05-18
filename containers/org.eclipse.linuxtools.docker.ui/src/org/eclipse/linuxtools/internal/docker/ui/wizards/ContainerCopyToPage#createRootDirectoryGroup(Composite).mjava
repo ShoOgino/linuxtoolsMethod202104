@@ -23,57 +23,26 @@
 		sourceNameField.setFont(parent.getFont());
 		BidiUtils.applyBidiProcessing(sourceNameField, "file");
 
-		sourceNameField.addSelectionListener(new SelectionAdapter() {
-			@Override
-			public void widgetSelected(SelectionEvent e) {
+		sourceNameField.addSelectionListener(SelectionListener
+				.widgetSelectedAdapter(e -> updateFromSourceField()));
+
+		sourceNameField.addKeyListener(KeyListener.keyPressedAdapter(e -> {
+			if (e.character == SWT.CR) {
+				entryChanged = false;
 				updateFromSourceField();
 			}
-		});
-
-		sourceNameField.addKeyListener(new KeyListener() {
-			/*
-			 * @see KeyListener.keyPressed
-			 */
-			@Override
-			public void keyPressed(KeyEvent e) {
-				if (e.character == SWT.CR) {
-					entryChanged = false;
-					updateFromSourceField();
-				}
-			}
-
-			/*
-			 * @see KeyListener.keyReleased
-			 */
-			@Override
-			public void keyReleased(KeyEvent e) {
-			}
-		});
+		}));
 
 		sourceNameField.addModifyListener(e -> entryChanged = true);
 
-		sourceNameField.addFocusListener(new FocusListener() {
-			/*
-			 * @see FocusListener.focusGained(FocusEvent)
-			 */
-			@Override
-			public void focusGained(FocusEvent e) {
-				// Do nothing when getting focus
+		sourceNameField.addFocusListener(FocusListener.focusLostAdapter(e -> {
+			// Clear the flag to prevent constant update
+			if (entryChanged) {
+				entryChanged = false;
+				updateFromSourceField();
 			}
 
-			/*
-			 * @see FocusListener.focusLost(FocusEvent)
-			 */
-			@Override
-			public void focusLost(FocusEvent e) {
-				// Clear the flag to prevent constant update
-				if (entryChanged) {
-					entryChanged = false;
-					updateFromSourceField();
-				}
-
-			}
-		});
+		}));
 
 		// source browse button
 		sourceBrowseButton = new Button(sourceContainerGroup, SWT.PUSH);

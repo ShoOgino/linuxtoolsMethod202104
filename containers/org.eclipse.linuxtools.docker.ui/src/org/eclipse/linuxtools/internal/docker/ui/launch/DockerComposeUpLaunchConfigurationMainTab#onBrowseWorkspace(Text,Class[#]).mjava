@@ -5,34 +5,28 @@
 	 */
 	private SelectionListener onBrowseWorkspace(final Text pathText,
 			final Class<?> expectedType) {
-		return new SelectionAdapter() {
-
-			@Override
-			public void widgetSelected(final SelectionEvent e) {
-				final ElementTreeSelectionDialog dialog = new ElementTreeSelectionDialog(
-						getShell(), new WorkbenchLabelProvider(),
-						new WorkbenchContentProvider());
-				dialog.setInput(ResourcesPlugin.getWorkspace().getRoot());
-				dialog.setTitle(LaunchMessages.getString(
-						"DockerComposeUpLaunchConfigurationMainTab.dockerComposePath.browseworkspace.dialog.title")); //$NON-NLS-1$
-				dialog.setComparator(
-						new ResourceComparator(ResourceComparator.NAME));
-				dialog.setAllowMultiple(false);
-				dialog.setValidator(selection -> {
-					if (selection.length == 1 && expectedType
-							.isAssignableFrom(selection[0].getClass())) {
-						return new Status(IStatus.OK, Activator.PLUGIN_ID,
-								null);
-					}
-					return new Status(IStatus.ERROR, Activator.PLUGIN_ID, null);
-				});
-				if (dialog.open() == IDialogConstants.OK_ID) {
-					final IResource selection = (IResource) dialog
-							.getFirstResult();
-					pathText.setText(selection.getFullPath().toOSString());
-					dockerComposeFilePathWorkspaceRelative = true;
+		return SelectionListener.widgetSelectedAdapter(e -> {
+			final ElementTreeSelectionDialog dialog = new ElementTreeSelectionDialog(
+					getShell(), new WorkbenchLabelProvider(),
+					new WorkbenchContentProvider());
+			dialog.setInput(ResourcesPlugin.getWorkspace().getRoot());
+			dialog.setTitle(LaunchMessages.getString(
+					"DockerComposeUpLaunchConfigurationMainTab.dockerComposePath.browseworkspace.dialog.title")); //$NON-NLS-1$
+			dialog.setComparator(
+					new ResourceComparator(ResourceComparator.NAME));
+			dialog.setAllowMultiple(false);
+			dialog.setValidator(selection -> {
+				if (selection.length == 1 && expectedType
+						.isAssignableFrom(selection[0].getClass())) {
+					return new Status(IStatus.OK, Activator.PLUGIN_ID, null);
 				}
+				return new Status(IStatus.ERROR, Activator.PLUGIN_ID, null);
+			});
+			if (dialog.open() == IDialogConstants.OK_ID) {
+				final IResource selection = (IResource) dialog.getFirstResult();
+				pathText.setText(selection.getFullPath().toOSString());
+				dockerComposeFilePathWorkspaceRelative = true;
 			}
-		};
+		});
 	}
 
