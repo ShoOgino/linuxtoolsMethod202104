@@ -1,60 +1,55 @@
-    public boolean downloadFile(Shell shell, RPMProject rpj, Specfile specfile) {
-        // retrieve source(s) from specfile
+	public boolean downloadFile(Shell shell, RPMProject rpj, Specfile specfile) {
+		// retrieve source(s) from specfile
 		final List<SpecfileSource> sourceURLList = specfile != null ? specfile.getSources() : null;
-        for (final SpecfileSource sourceurls : sourceURLList) {
-            try {
-                String resolvedURL = UiUtils.resolveDefines(specfile, sourceurls.getFileName());
-                URL url = null;
-                try {
-                    url = new URL(resolvedURL);
-                } catch (MalformedURLException e) {
-                    SpecfileLog.logError(
-                            NLS.bind(Messages.PrepareSources_downloadSourcesMalformedURL, resolvedURL), e);
-                    RPMUtils.showErrorDialog(shell,
-                            Messages.PrepareSources_error,
-                            NLS.bind(Messages.PrepareSources_downloadSourcesMalformedURL, resolvedURL));
-                    return false;
-                }
+		for (final SpecfileSource sourceurls : sourceURLList) {
+			try {
+				String resolvedURL = UiUtils.resolveDefines(specfile, sourceurls.getFileName());
+				URL url = null;
+				try {
+					url = new URL(resolvedURL);
+				} catch (MalformedURLException e) {
+					SpecfileLog.logError(NLS.bind(Messages.PrepareSources_downloadSourcesMalformedURL, resolvedURL), e);
+					RPMUtils.showErrorDialog(shell, Messages.PrepareSources_error,
+							NLS.bind(Messages.PrepareSources_downloadSourcesMalformedURL, resolvedURL));
+					return false;
+				}
 
-                URLConnection connection = url.openConnection();
+				URLConnection connection = url.openConnection();
 
-                if (!(connection instanceof HttpURLConnection) ||
-                        ((HttpURLConnection) connection).getResponseCode() != HttpURLConnection.HTTP_NOT_FOUND) {
-                    connection.connect();
-                    // grab the name of the file from the URL
-                    int offset = url.toString().lastIndexOf("/"); //$NON-NLS-1$
-                    String filename = url.toString().substring(offset + 1);
+				if (!(connection instanceof HttpURLConnection)
+						|| ((HttpURLConnection) connection).getResponseCode() != HttpURLConnection.HTTP_NOT_FOUND) {
+					connection.connect();
+					// grab the name of the file from the URL
+					int offset = url.toString().lastIndexOf("/"); //$NON-NLS-1$
+					String filename = url.toString().substring(offset + 1);
 
-                    // create the path to the "to be downloaded" file
-                    IFile file = rpj.getConfiguration().getSourcesFolder()
-                            .getFile(new Path(filename));
+					// create the path to the "to be downloaded" file
+					IFile file = rpj.getConfiguration().getSourcesFolder().getFile(new Path(filename));
 
-                    Job downloadJob = new DownloadJob(file, connection);
-                    downloadJob.setUser(true);
-                    downloadJob.schedule();
-                    try {
-                        downloadJob.join();
-                    } catch (InterruptedException e1) {
-                        return false;
-                    }
-                    if (!downloadJob.getResult().isOK()) {
-                        return false;
-                    }
-                }
-            } catch (OperationCanceledException e) {
-                SpecfileLog.logError(Messages.PrepareSources_downloadCancelled,
-                        e);
-                RPMUtils.showErrorDialog(shell, Messages.PrepareSources_error,
-                        Messages.PrepareSources_downloadCancelled);
-                return false;
-            } catch (IOException e) {
-                SpecfileLog.logError(
-                        Messages.PrepareSources_downloadConnectionFail, e);
-                RPMUtils.showErrorDialog(shell, Messages.PrepareSources_error,
-                        Messages.PrepareSources_downloadConnectionFail);
-                return false;
-            }
-        }
-        return true;
-    }
+					Job downloadJob = new DownloadJob(file, connection);
+					downloadJob.setUser(true);
+					downloadJob.schedule();
+					try {
+						downloadJob.join();
+					} catch (InterruptedException e1) {
+						return false;
+					}
+					if (!downloadJob.getResult().isOK()) {
+						return false;
+					}
+				}
+			} catch (OperationCanceledException e) {
+				SpecfileLog.logError(Messages.PrepareSources_downloadCancelled, e);
+				RPMUtils.showErrorDialog(shell, Messages.PrepareSources_error,
+						Messages.PrepareSources_downloadCancelled);
+				return false;
+			} catch (IOException e) {
+				SpecfileLog.logError(Messages.PrepareSources_downloadConnectionFail, e);
+				RPMUtils.showErrorDialog(shell, Messages.PrepareSources_error,
+						Messages.PrepareSources_downloadConnectionFail);
+				return false;
+			}
+		}
+		return true;
+	}
 
