@@ -1,0 +1,23 @@
+	@Test
+	public void testUnconfined() {
+		DockerImagesTab imagesTab = openDockerImagesTab();
+		imagesTab.runImage(IMAGE_NAME + ":" + IMAGE_TAG);
+		ImageRunSelectionPage firstPage = new ImageRunSelectionPage();
+		firstPage.setContainerName(CONTAINER_NAME);
+		firstPage.setAllocatePseudoTTY();
+		firstPage.setKeepSTDINOpen();
+		firstPage.setUnconfined();
+		firstPage.finish();
+		if (mockitoIsUsed()) {
+			runUnconfinedContainer();
+			// MockDockerClientFactory.addContainer(this.client,
+			// this.createdContainer, this.containerInfo);
+			getConnection().refresh();
+			new WaitUntil(new ContainerIsDeployedCondition(CONTAINER_NAME, getConnection()));
+		}
+		new WaitWhile(new JobIsRunning());
+		PropertiesView propertiesView = openPropertiesTabForContainer("Inspect", CONTAINER_NAME);
+		String securityProp = propertiesView.getProperty("HostConfig", "SecurityOpt", "").getPropertyValue();
+		assertTrue("Container is not running in seccomp:unconfined mode!", securityProp.equals("seccomp:unconfined"));
+	}
+
