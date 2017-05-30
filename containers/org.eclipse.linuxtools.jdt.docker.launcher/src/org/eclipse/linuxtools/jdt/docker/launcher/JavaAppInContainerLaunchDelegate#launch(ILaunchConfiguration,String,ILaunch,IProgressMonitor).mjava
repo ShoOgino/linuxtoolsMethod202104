@@ -24,10 +24,15 @@
 			DockerConnection conn = (DockerConnection) DockerConnectionManager.getInstance().getConnectionByUri(connectionURI);
 			IDockerImage img = conn.getImage(imageID);
 
+			// randomized port between 1025 and 65535
+			int port = ILaunchManager.DEBUG_MODE.equals(mode)
+					? (int)((65535 - 1025) * Math.random()) + 1025
+					: -1;
+
 			monitor.subTask(Messages.JavaAppInContainerLaunchDelegate_Verifying_launch_attributes____1);
 
 			String mainTypeName = verifyMainTypeName(configuration);
-			IVMInstall vm = new ContainerVMInstall(configuration, img);
+			IVMInstall vm = new ContainerVMInstall(configuration, img, port);
 			ContainerVMRunner runner = new ContainerVMRunner(vm);
 
 			File workingDir = verifyWorkingDirectory(configuration);
@@ -49,6 +54,9 @@
 
 			// Classpath
 			String[] classpath = getClasspath(configuration);
+			for (int i = 0; i < classpath.length; i++) {
+				classpath[i] = UnixFile.convertDOSPathToUnixPath(classpath[i]);
+			}
 
 			// Create VM config
 			VMRunnerConfiguration runConfig = new VMRunnerConfiguration(mainTypeName, classpath);
@@ -68,9 +76,9 @@
 					finalVMArgs.add("-Djava.compiler=NONE"); //$NON-NLS-1$
 				}
 				if (version < 1.5) {
-					finalVMArgs.add("-Xrunjdwp:transport=dt_socket,server=y,address=" + 8000); //$NON-NLS-1$
+					finalVMArgs.add("-Xrunjdwp:transport=dt_socket,server=y,address=" + port); //$NON-NLS-1$
 				} else {
-					finalVMArgs.add("-agentlib:jdwp=transport=dt_socket,server=y,address=" + 8000); //$NON-NLS-1$
+					finalVMArgs.add("-agentlib:jdwp=transport=dt_socket,server=y,address=" + port); //$NON-NLS-1$
 				}
 			}
 
@@ -119,9 +127,20 @@
 				}
 
 				String ip = runner.getIPAddress();
+				// The container has an IP and is listening
+				// Can we reach it ? Or is it on a different network.
+				if (!isListening(ip, port)) {
+					// Try to find some network interface that's listening
+					ip = getIPAddressListening(port);
+				}
+
+				if (ip == null) {
+					return;
+				}
+
 				Map<String, String> map = new HashMap<> ();
 				map.put("hostname", ip); //$NON-NLS-1$
-				map.put("port", String.valueOf(8000)); //$NON-NLS-1$
+				map.put("port", String.valueOf(port)); //$NON-NLS-1$
 				wc.setAttribute(IJavaLaunchConfigurationConstants.ATTR_CONNECT_MAP, map);
 				String projectName = configuration.getAttribute(IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME, (String) null);
 				wc.setAttribute(IJavaLaunchConfigurationConstants.ATTR_PROJECT_NAME, projectName);
