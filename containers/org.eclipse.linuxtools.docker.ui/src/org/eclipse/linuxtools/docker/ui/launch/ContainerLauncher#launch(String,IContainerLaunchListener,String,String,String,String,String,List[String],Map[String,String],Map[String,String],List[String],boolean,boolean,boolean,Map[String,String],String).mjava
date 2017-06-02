@@ -149,22 +149,28 @@
 		}
 
 
-		final Set<String> remoteVolumes = new TreeSet<>();
+		final Map<String, String> remoteVolumes = new HashMap<>();
 		if (!((DockerConnection) connection).isLocal()) {
+			final Set<String> volumes = new HashSet<>();
 			// if using remote daemon, we have to
 			// handle volume mounting differently.
 			// Instead we mount empty volumes and copy
 			// the host data over before starting.
 			if (additionalDirs != null) {
 				for (String dir : additionalDirs) {
-					remoteVolumes.add(dir); // $NON-NLS-1$
+					remoteVolumes.put(dir, dir);
+					volumes.add(dir);
 				}
 			}
-			if (workingDir != null)
-				remoteVolumes.add(workingDir); // $NON-NLS-1$
-			if (commandDir != null)
-				remoteVolumes.add(commandDir); // $NON-NLS-1$
-			builder = builder.volumes(remoteVolumes);
+			if (workingDir != null) {
+				remoteVolumes.put(workingDir, workingDir); // $NON-NLS-1$
+				volumes.add(workingDir);
+			}
+			if (commandDir != null) {
+				remoteVolumes.put(commandDir, commandDir); // $NON-NLS-1$
+				volumes.add(commandDir);
+			}
+			builder = builder.volumes(volumes);
 		} else {
 			// Running daemon on local host.
 			// Add mounts for any directories we need to run the executable.
