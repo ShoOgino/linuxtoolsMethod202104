@@ -1,0 +1,31 @@
+	// Save the current selected connection for when Eclipse restarts
+	private void saveConnection(IDockerConnection connection) {
+		final IPath stateLocation = Activator.getDefault().getStateLocation();
+		final File connectionFile = stateLocation.append(CONNECTION_FILE_NAME)
+				.toFile();
+		if (!connection.isOpen()) {
+			return;
+		}
+		try {
+			if (!connectionFile.exists()) {
+				connectionFile.createNewFile();
+			}
+			try (final PrintWriter p = new PrintWriter(
+					new BufferedWriter(new FileWriter(connectionFile)))) {
+				p.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>"); //$NON-NLS-1$
+				String name = connection.getName();
+				if (name.equals(Messages.getString("Unnamed"))) { //$NON-NLS-1$
+					name = ""; //$NON-NLS-1$
+				}
+				p.print("<connection name=\"" + name + //$NON-NLS-1$
+						"\" uri=\"" + connection.getUri()); //$NON-NLS-1$
+				if (connection.getUsername() != null) {
+					p.print("\" username=\"" + connection.getUsername()); //$NON-NLS-1$
+				}
+				p.println("\"/>"); //$NON-NLS-1$
+			}
+		} catch (Exception e) {
+			Activator.log(e);
+		}
+	}
+

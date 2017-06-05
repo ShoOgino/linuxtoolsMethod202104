@@ -1,0 +1,53 @@
+	// Load the previously selected connection at start-up
+	private IDockerConnection loadConnection() {
+		IDockerConnection connection = null;
+		final IPath stateLocation = Activator.getDefault().getStateLocation();
+		final File connectionFile = stateLocation.append(CONNECTION_FILE_NAME)
+				.toFile();
+		final DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+		try {
+			DocumentBuilder db = dbf.newDocumentBuilder();
+			if (connectionFile.exists()) {
+				Document d = db.parse(connectionFile);
+				Element e = d.getDocumentElement();
+				// Get the stored configuration data
+				NodeList connectionNodes = e.getElementsByTagName("connection"); // $NON-NLS-1$
+				if (connectionNodes == null
+						|| connectionNodes.getLength() == 0) {
+					return null;
+				}
+				Node n = connectionNodes.item(0);
+				NamedNodeMap attrs = n.getAttributes();
+				Node nameNode = attrs.getNamedItem("name"); //$NON-NLS-1$
+				Node uriNode = attrs.getNamedItem("uri"); //$NON-NLS-1$
+				Node usernameNode = attrs.getNamedItem("username"); //$NON-NLS-1$
+				if (uriNode != null) {
+					String uri = uriNode.getNodeValue();
+					String name = nameNode.getNodeValue();
+					String username = null;
+
+					if (usernameNode != null) {
+						username = usernameNode.getNodeValue();
+					}
+					IDockerConnection[] connections = DockerConnectionManager
+							.getInstance().getConnections();
+					for (IDockerConnection c : connections) {
+						if (c.getUri().equals(uri)) {
+							if (c.getName().equals(name)) {
+								if (c.getUsername() == null
+										|| c.getUsername().equals(username)) {
+									connection = c;
+									break;
+								}
+							}
+						}
+					}
+				}
+
+			}
+		} catch (ParserConfigurationException | SAXException | IOException e) {
+			Activator.log(e);
+		}
+		return connection;
+	}
+
