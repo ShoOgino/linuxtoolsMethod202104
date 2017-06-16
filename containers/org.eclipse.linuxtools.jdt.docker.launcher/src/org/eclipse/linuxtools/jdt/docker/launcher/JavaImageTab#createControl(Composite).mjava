@@ -1,0 +1,110 @@
+	@Override
+	public void createControl(Composite parent) {
+		Composite composite = new Composite(parent, SWT.NONE);
+		GridLayout layout = new GridLayout(2, false);
+		composite.setLayout(layout);
+		composite.setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, true));
+
+		Label connLbl = new Label(composite, SWT.NONE);
+		connLbl.setText(Messages.ImageSelectionDialog_connection_label);
+		connCmb = new ComboViewer(composite, SWT.READ_ONLY);
+		connCmb.getCombo().setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, false));
+		connCmb.setContentProvider(new IStructuredContentProvider() {
+			@Override
+			public Object[] getElements(Object inputElement) {
+				return DockerConnectionManager.getInstance().getAllConnections().stream().filter(c -> c.isOpen()).toArray(size -> new IDockerConnection[size]);
+			}
+		});
+		connCmb.setInput("place_holder"); //$NON-NLS-1$
+
+		Label imageLbl = new Label(composite, SWT.NONE);
+		imageLbl.setText(Messages.ImageSelectionDialog_image_label);
+		imageCmb = new ComboViewer(composite, SWT.READ_ONLY);
+		imageCmb.getCombo().setLayoutData(new GridData(GridData.FILL, GridData.FILL, true, false));
+		imageCmb.setContentProvider(new IStructuredContentProvider() {
+			@Override
+			public Object[] getElements(Object inputElement) {
+				IDockerConnection conn = (IDockerConnection) inputElement;
+				return conn.getImages().stream()
+						.filter(i -> ! i.repoTags().get(0).equals("<none>:<none>")) //$NON-NLS-1$
+						.toArray(size -> new IDockerImage[size]);
+			}
+		});
+		imageCmb.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(Object element) {
+				IDockerImage img = (IDockerImage) element;
+				return img.repoTags().get(0);
+			}
+		});
+		imageCmb.setInput(null);
+
+		connCmb.addSelectionChangedListener(new ISelectionChangedListener() {
+			@Override
+			public void selectionChanged(SelectionChangedEvent event) {
+				IStructuredSelection sel = event.getStructuredSelection();
+				IDockerConnection conn = (IDockerConnection) sel.getFirstElement();
+				selectedConnection = conn;
+				imageCmb.setInput(conn);
+				updateLaunchConfigurationDialog();
+			}
+		});
+
+		imageCmb.addSelectionChangedListener(new ISelectionChangedListener() {
+			@Override
+			public void selectionChanged(SelectionChangedEvent event) {
+				IStructuredSelection sel = event.getStructuredSelection();
+				IDockerImage img = (IDockerImage) sel.getFirstElement();
+				selectedImage = img;
+				updateLaunchConfigurationDialog();
+			}
+		});
+
+		Group dirGroup = new Group(composite, SWT.NONE);
+		dirGroup.setText(Messages.JavaImageTab_additional_dirs);
+		dirGroup.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 2, 1));
+		dirGroup.setLayout(new GridLayout(2, false));
+
+		directoryList = new List(dirGroup, SWT.SINGLE | SWT.V_SCROLL);
+		directoryList.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 1, 2));
+		directoryList.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				removeButton.setEnabled(true);
+			}
+		});
+
+		addButton = createPushButton(dirGroup, Messages.JavaImageTab_button_add, null);
+		addButton.setLayoutData(new GridData(SWT.FILL, SWT.TOP, false, false));
+		addButton.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				DirectoryDialog dialog = new DirectoryDialog(getShell());
+				String directory = dialog.open();
+				if (directory != null && !listContains(directoryList, directory)) {
+					directoryList.add(directory);
+					updateLaunchConfigurationDialog();
+				}
+			}
+		});
+
+		removeButton = createPushButton(dirGroup, Messages.JavaImageTab_button_remove, null);
+		removeButton.setLayoutData(new GridData(SWT.FILL, SWT.TOP, false, true));
+		removeButton.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				int i = directoryList.getSelectionIndex();
+				if (i >= 0) {
+					directoryList.remove(i);
+					updateLaunchConfigurationDialog();
+				}
+				if (directoryList.getItemCount() == 0) {
+					removeButton.setEnabled(false);
+				}
+			}
+		});
+		removeButton.setEnabled(false);
+
+		setControl(composite);
+	}
+

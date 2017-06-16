@@ -1,0 +1,28 @@
+	@Override
+	public void initializeFrom(ILaunchConfiguration configuration) {
+		try {
+			DockerConnection conn;
+			String connUri = configuration.getAttribute(JavaLaunchConfigurationConstants.CONNECTION_URI, (String) null);
+			if (connUri != null) {
+				connCmb.getCombo().setText(connUri);
+				conn = (DockerConnection) DockerConnectionManager.getInstance().getConnectionByUri(connUri);
+				String imageId = configuration.getAttribute(JavaLaunchConfigurationConstants.IMAGE_ID, (String) null);
+				if (imageId != null && conn != null) {
+					selectedConnection = conn;
+					imageCmb.setInput(conn); // generate known images for given connection
+					IDockerImage img = conn.getImage(imageId);
+					if (img != null) {
+						String repoTag = img.repoTags().get(0);
+						imageCmb.getCombo().setText(repoTag);
+						selectedImage = img;
+					}
+				}
+			}
+
+			java.util.List<String> dirs = configuration.getAttribute(JavaLaunchConfigurationConstants.DIRS, Arrays.asList(new String [0]));
+			directoryList.setItems(dirs.toArray(new String [0]));
+		} catch (CoreException e) {
+		}
+
+	}
+
