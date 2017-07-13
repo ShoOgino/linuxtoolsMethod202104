@@ -1,0 +1,27 @@
+	@Test
+	public void testBasicSecurity() {
+		DockerImagesTab imagesTab = openDockerImagesTab();
+		imagesTab.runImage(IMAGE_NAME + ":" + IMAGE_TAG);
+		ImageRunSelectionPage firstPage = new ImageRunSelectionPage();
+		firstPage.setContainerName(CONTAINER_NAME);
+		firstPage.setAllocatePseudoTTY();
+		firstPage.setKeepSTDINOpen();
+		firstPage.setBasicSecurity();
+		firstPage.finish();
+		if (mockitoIsUsed()) {
+			runContainer();
+			// MockDockerClientFactory.addContainer(this.client,
+			// this.createdContainer, this.containerInfo);
+			getConnection().refresh();
+			new WaitUntil(new ContainerIsDeployedCondition(CONTAINER_NAME, getConnection()));
+		}
+		new WaitWhile(new JobIsRunning());
+		PropertiesView propertiesView = openPropertiesTabForContainer("Inspect", CONTAINER_NAME);
+		String readonlyProp = propertiesView.getProperty("HostConfig", "ReadonlyRootfs").getPropertyValue();
+		assertTrue("Container is not running read-only!", readonlyProp.equals("true"));
+		String tmpfsProp = propertiesView.getProperty("HostConfig", "Tmpfs", "/run").getPropertyValue();
+		assertTrue("Container /run is not tmpfs rw,exec!", tmpfsProp.equals("rw,exec"));
+		tmpfsProp = propertiesView.getProperty("HostConfig", "Tmpfs", "/tmp").getPropertyValue();
+		assertTrue("Container /tmp is not tmpfs rw,exec!", tmpfsProp.equals("rw,exec"));
+	}
+
