@@ -1,0 +1,19 @@
+	@Test
+	public void testDiagnostics() throws Exception {
+		final IFile file = project.getFile(fileName);
+		file.create(new ByteArrayInputStream("".getBytes()), true, null);
+		ITextEditor editor = (ITextEditor) IDE
+				.openEditor(PlatformUI.getWorkbench().getActiveWorkbenchWindow().getActivePage(), file, "org.eclipse.ui.genericeditor.GenericEditor");
+		editor.getDocumentProvider().getDocument(editor.getEditorInput()).set("MAINTAINER alex");
+		assertTrue("Diagnostic not published", new DisplayHelper() {
+			@Override
+			protected boolean condition() {
+				try {
+					return file.findMarkers("org.eclipse.lsp4e.diagnostic", true, IResource.DEPTH_ZERO).length != 0;
+				} catch (CoreException e) {
+					return false;
+				}
+			}
+		}.waitForCondition(PlatformUI.getWorkbench().getDisplay(), 5000));
+	}
+

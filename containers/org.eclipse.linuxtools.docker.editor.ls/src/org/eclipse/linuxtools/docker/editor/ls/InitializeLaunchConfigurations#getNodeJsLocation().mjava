@@ -1,0 +1,32 @@
+	public static String getNodeJsLocation() {
+		String res = null;
+		String[] command = new String [] { "/bin/bash", "-c", "which node" };
+
+		if (Platform.getOS().equals(Platform.OS_WIN32)) {
+			command = new String [] { "cmd", "/c", "where node" };
+		}
+
+		BufferedReader reader = null;
+		try {
+			Process p = Runtime.getRuntime().exec(command);
+			reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+			res = reader.readLine();
+		} catch (IOException e) {
+			// try other defaults
+		}
+
+		// Try default install path as last resort
+		if (res == null && Platform.getOS().equals(Platform.OS_MACOSX)) {
+			res = "/usr/local/bin/node";
+		}
+
+		if (res != null && Files.exists(Paths.get(res))) {
+			return res;
+		} else if (!alreadyWarned){
+			warnNodeJSMissing();
+			alreadyWarned = true;
+		}
+
+		return null;
+	}
+
