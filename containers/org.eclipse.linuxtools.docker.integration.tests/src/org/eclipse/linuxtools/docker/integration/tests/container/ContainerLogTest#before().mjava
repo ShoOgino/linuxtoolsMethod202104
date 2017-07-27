@@ -1,0 +1,21 @@
+	@Before
+	public void before() {
+		deleteAllConnections();
+		getConnection();
+		pullImage(IMAGE_NAME);
+		new WaitWhile(new JobIsRunning());
+		getConnection().refresh();
+		getConnection().getImage(IMAGE_NAME).run();
+		ImageRunSelectionPage firstPage = new ImageRunSelectionPage();
+		firstPage.setContainerName(CONTAINER_NAME);
+		firstPage.setAllocatePseudoTTY();
+		firstPage.setKeepSTDINOpen();
+		firstPage.finish();
+		if (mockitoIsUsed()) {
+			runContainer();
+			getConnection().refresh();
+			new WaitUntil(new ContainerIsDeployedCondition(CONTAINER_NAME, getConnection()));
+		}
+		new WaitWhile(new JobIsRunning(), TimePeriod.NORMAL);
+	}
+

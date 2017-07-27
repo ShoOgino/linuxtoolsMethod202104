@@ -1,0 +1,31 @@
+	@Test
+	public void testEditDockerFile() {
+		getConnection();
+		DockerImagesTab imageTab = openDockerImagesTab();
+		
+		try {
+			String dockerFilePath = new File(EDIT_DOCKERFILE_FOLDER).getCanonicalPath();
+			getConnection();
+			imageTab.activate();
+			new DefaultToolItem("Build Image").click();
+			new WaitUntil(new ShellWithTextIsAvailable(""));
+			new LabeledText("Image Name:").setText(IMAGE_NAME);
+			new LabeledText("Directory:").setText(dockerFilePath);
+			new PushButton("Edit Dockerfile").click();
+			DefaultStyledText defaultStyledText = new DefaultStyledText();
+			String editorText = defaultStyledText.getText();
+			assertTrue("Editor is empty!", StringUtils.isNotEmpty(editorText));
+			defaultStyledText.setText(BUILD_IMAGE);
+			CTabFolder tabFolder = new DefaultCTabFolder();
+			CTabItem tabItem = tabFolder.getSelection();
+			KeyboardFactory.getKeyboard().invokeKeyCombination(SWT.CTRL,'S');
+			tabItem.close();
+			new WaitUntil(new ShellWithTextIsAvailable(""));
+			new DefaultShell("").setFocus();
+			new FinishButton().click();
+			new WaitWhile(new JobIsRunning(), TimePeriod.VERY_LONG);
+		} catch (IOException ex) {
+			fail("Resource file not found!");
+		}
+	}
+
