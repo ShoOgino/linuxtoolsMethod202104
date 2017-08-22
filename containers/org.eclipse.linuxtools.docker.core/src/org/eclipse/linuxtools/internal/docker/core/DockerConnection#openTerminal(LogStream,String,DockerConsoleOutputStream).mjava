@@ -1,7 +1,12 @@
-	private void openTerminal(LogStream pty_stream, String name) throws DockerException {
+	private void openTerminal(LogStream pty_stream, String name,
+			DockerConsoleOutputStream out) throws DockerException {
 		try {
-			OutputStream tout = noBlockingOutputStream(HttpHijackWorkaround.getOutputStream(pty_stream, getUri()));
+			OutputStream tout = noBlockingOutputStream(
+					HttpHijackWorkaround.getOutputStream(pty_stream, getUri()));
 			InputStream tin = HttpHijackWorkaround.getInputStream(pty_stream);
+			
+			TerminalOutputMonitorListener monitor = new TerminalOutputMonitorListener(out);
+			
 			// org.eclipse.tm.terminal.connector.ssh.controls.SshWizardConfigurationPanel
 			Map<String, Object> properties = new HashMap<>();
 			properties.put(ITerminalsConnectorConstants.PROP_DELEGATE_ID,
@@ -14,6 +19,10 @@
 			properties.put(ITerminalsConnectorConstants.PROP_FORCE_NEW, true);
 			properties.put(ITerminalsConnectorConstants.PROP_STREAMS_STDIN, tout);
 			properties.put(ITerminalsConnectorConstants.PROP_STREAMS_STDOUT, tin);
+			properties.put(ITerminalsConnectorConstants.PROP_STDERR_LISTENERS, new ITerminalServiceOutputStreamMonitorListener[] {monitor});
+			properties.put(ITerminalsConnectorConstants.PROP_STDOUT_LISTENERS,
+					new ITerminalServiceOutputStreamMonitorListener[] {
+							monitor });
 			properties.put(ITerminalsConnectorConstants.PROP_DATA, pty_stream);
 			/*
 			 * The JVM will call finalize() on 'pty_stream' (LogStream)
@@ -23,6 +32,10 @@
 			 * used so we must preserve a reference to it.
 			 */
 			properties.put("PREVENT_JVM_GC_FINALIZE", pty_stream); //$NON-NLS-1$
+			// save properties to remove terminal later
+			if (out != null) {
+				out.setTerminalProperties(properties);
+			}
 			ITerminalService service = TerminalServiceFactory.getService();
 			service.openConsole(properties, null);
 		} catch (Exception e) {

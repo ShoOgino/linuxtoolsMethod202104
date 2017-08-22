@@ -11,14 +11,32 @@
 		this.keepContainer = keepContainer;
 		// Lambda Runnable
 		Runnable logContainer = () -> {
+			PipedOutputStream pipedOut = null;
+			PipedOutputStream pipedErr = null;
 			try (PipedOutputStream pipedStdout = new PipedOutputStream(stdout);
 					PipedOutputStream pipedStderr = new PipedOutputStream(
 							stderr)) {
+				pipedOut = pipedStdout;
+				pipedErr = pipedStderr;
 				connection.attachLog(containerId, pipedStdout, pipedStderr);
 				pipedStdout.flush();
 				pipedStderr.flush();
 			} catch (DockerException | InterruptedException | IOException e) {
-				// do nothing but close output streams
+				// do nothing but flush/close output streams
+				if (pipedOut != null) {
+					try {
+						pipedOut.flush();
+					} catch (IOException e1) {
+						// ignore
+					}
+				}
+				if (pipedErr != null) {
+					try {
+						pipedErr.flush();
+					} catch (IOException e1) {
+						// ignore
+					}
+				}
 			}
 		};
 
