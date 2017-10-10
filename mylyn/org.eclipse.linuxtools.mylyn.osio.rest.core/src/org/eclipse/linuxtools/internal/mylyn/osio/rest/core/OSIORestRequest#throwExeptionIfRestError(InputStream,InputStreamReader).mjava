@@ -1,0 +1,19 @@
+	protected void throwExeptionIfRestError(InputStream is, InputStreamReader in)
+			throws IOException, OSIORestException {
+		try {
+			is.mark(18);
+			byte[] b = new byte[17];
+			is.read(b);
+			String str = new String(b);
+			if (str.startsWith("{\"code\":") || str.startsWith("{\"message\":") || str.startsWith("{\"error\":") //$NON-NLS-1$//$NON-NLS-2$//$NON-NLS-3$
+					|| str.startsWith("{\"documentation\":")) { //$NON-NLS-1$
+				is.reset();
+				ErrorResponse resp = parseErrorResponseFromJson(in);
+				throw new OSIORestResourceNotFoundException(
+						NLS.bind("Error {1}: {0}", new Object[] { resp.getMessage(), resp.getCode() })); //$NON-NLS-1$
+			}
+		} finally {
+			is.reset();
+		}
+	}
+

@@ -1,0 +1,19 @@
+	@Override
+	public RepositoryResponse postTaskData(TaskRepository repository, TaskData taskData,
+			Set<TaskAttribute> oldAttributes, IProgressMonitor monitor) throws CoreException {
+		monitor = Policy.monitorFor(monitor);
+		try {
+			monitor.beginTask("Submitting_task", IProgressMonitor.UNKNOWN);
+			OSIORestClient client = connector.getClient(repository);
+			try {
+				IOperationMonitor progress = OperationUtil.convert(monitor, "post taskdata", 3);
+				return client.postTaskData(taskData, oldAttributes, repository, progress);
+			} catch (OSIORestException e) {
+				throw new CoreException(new Status(IStatus.ERROR, OSIORestCore.ID_PLUGIN, 2,
+						"Error post taskdata.\n\n" + e.getMessage(), e));
+			}
+		} finally {
+			monitor.done();
+		}
+	}
+

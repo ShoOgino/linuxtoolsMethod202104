@@ -1,0 +1,31 @@
+	private void setAttributeOptionsForSpace(TaskAttribute taskAttribute, Space actualSpace) {
+		taskAttribute.clearOptions();
+		if (taskAttribute.getId().equals(SCHEMA.WORKITEM_TYPE.getKey())) {
+			internalSetAttributeOptions(taskAttribute, actualSpace.getWorkItemTypes());
+		} else if (taskAttribute.getId().equals(SCHEMA.AREA.getKey())) {
+			internalSetAttributeOptions(taskAttribute, actualSpace.getAreas());
+		} else if (taskAttribute.getId().equals(SCHEMA.ITERATION.getKey())) {
+			internalSetAttributeOptions(taskAttribute, actualSpace.getIterations());
+		} else if (taskAttribute.getId().equals(SCHEMA.ASSIGNEES.getKey())) {
+			internalSetAttributeOptions(taskAttribute, actualSpace.getUsers());
+		} else if (taskAttribute.getId().equals(SCHEMA.STATUS.getKey())) {
+			Map<String, String> stateMap = new LinkedHashMap<>();
+			Map<String, WorkItemTypeData> workItemTypes = actualSpace.getWorkItemTypes();
+			for (Entry<String, WorkItemTypeData> entry : workItemTypes.entrySet()) {
+				WorkItemTypeData data = entry.getValue();
+				WorkItemTypeAttributes attributes = data.getWorkItemTypeAttributes();
+				Map<String, WorkItemTypeField> fields = attributes.getFields();
+				if (fields != null) {
+					WorkItemTypeField state = fields.get("system.state"); //$NON-NLS-1
+					if (state != null) {
+						WorkItemTypeFieldType stateType = state.getType();
+						for (String value : stateType.getValues()) {
+							stateMap.put(value,  value);
+						}
+					}
+				}
+			}
+			internalSetAttributeOptions(taskAttribute, stateMap);
+		}
+	}
+

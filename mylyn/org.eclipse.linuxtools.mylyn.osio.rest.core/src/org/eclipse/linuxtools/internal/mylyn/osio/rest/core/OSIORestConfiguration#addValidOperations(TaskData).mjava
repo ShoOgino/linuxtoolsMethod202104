@@ -1,0 +1,30 @@
+	public void addValidOperations(TaskData workItem) {
+		TaskAttribute attributeStatus = workItem.getRoot().getMappedAttribute(TaskAttribute.STATUS);
+		String attributeStatusValue = attributeStatus.getValue();
+		TaskAttribute operationAttribute = workItem.getRoot().getAttribute(TaskAttribute.OPERATION);
+		if (operationAttribute == null) {
+			operationAttribute = workItem.getRoot().createAttribute(TaskAttribute.OPERATION);
+		}
+		TaskAttribute attribute = workItem.getRoot()
+				.createAttribute(TaskAttribute.PREFIX_OPERATION + attributeStatusValue);
+		TaskOperation.applyTo(attribute, attributeStatusValue, 
+				OSIORestMessages.getFormattedString("KeepStateOperation", attributeStatusValue)); //$NON-NLS-1$
+		// set as default
+		TaskOperation.applyTo(operationAttribute, attributeStatusValue, 
+				OSIORestMessages.getFormattedString("KeepStateOperation", attributeStatusValue)); //$NON-NLS-1$
+		for (String statusValue : statusValues) {
+			if (attributeStatusValue == null ||
+					(attributeStatusValue != null && attributeStatusValue.equals(statusValue))) {
+				if (attributeStatusValue == null) {
+					attributeStatusValue = ""; //$NON-NLS-1$
+				}
+				for (String transition : statusTransitions.get(statusValue)) {
+					attribute = workItem.getRoot()
+							.createAttribute(TaskAttribute.PREFIX_OPERATION + transition);
+					TaskOperation.applyTo(attribute, transition, 
+							OSIORestMessages.getFormattedString("StateChangeOperation", transition)); //$NON-NLS-1$
+				}
+			}
+		}
+	}
+

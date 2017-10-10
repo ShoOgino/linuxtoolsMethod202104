@@ -1,0 +1,48 @@
+		@Override
+		public ArrayList<TaskAttribute> deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
+				throws JsonParseException {
+			ArrayList<TaskAttribute> response = new ArrayList<TaskAttribute>();
+			int i = 0;
+			for (JsonElement entry : json.getAsJsonObject().get("data") //$NON-NLS-1$
+					.getAsJsonArray()) {
+				JsonObject entryObject = (JsonObject) entry.getAsJsonObject();
+				JsonObject relationships = (JsonObject) entryObject.get("relationships").getAsJsonObject();  //$NON-NLS-1$
+				JsonObject source = (JsonObject) relationships.get("source").getAsJsonObject(); //$NON-NLS-1$
+				JsonObject sourceData = source.get("data").getAsJsonObject();
+				String sourceId = sourceData.get("id").getAsString(); //$NON-NLS-1$
+				JsonObject target = (JsonObject) relationships.get("target").getAsJsonObject(); //$NON-NLS-1$
+				JsonObject targetData = target.get("data").getAsJsonObject();
+				String targetId = targetData.get("id").getAsString(); //$NON-NLS-1$
+				JsonObject linkType = (JsonObject) relationships.get("link_type"); //$NON-NLS-1$
+				JsonObject linkTypeData = linkType.get("data").getAsJsonObject();
+				String linkTypeId = linkTypeData.get("id").getAsString();
+				String link = ""; //$NON-NLS-1$
+				String otherId = ""; //$NON-NLS-1$
+				if (sourceId.equals(wid)) {
+					link = space.getWorkItemLinkTypes().get(linkTypeId).getAttributes().getForwardName();
+					otherId = targetId;
+				} else {
+					link = space.getWorkItemLinkTypes().get(linkTypeId).getAttributes().getReverseName();
+					otherId = sourceId;
+				}
+				TaskAttribute attribute = taskData.getRoot()
+						.createAttribute(OSIORestTaskSchema.PREFIX_LINK + i);
+				TaskAttributeMetaData metadata = attribute.getMetaData();
+				metadata.putValue("type", link);
+				metadata.putValue("otherId", otherId);
+				OSIORestWorkItem workitem = null;
+				try {
+					workitem = new OSIORestGetWorkItem(client, otherId).run(new NullOperationMonitor());
+				} catch (OSIORestException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				} //$NON-NLS-1$
+				if (workitem != null) {
+					metadata.putValue("otherTitle", workitem.getTitle()); //$NON-NLS-1$
+					metadata.putValue("otherNumber", workitem.getNumber()); //$NON-NLS-1$
+				}
+				response.add(attribute);
+			}
+			return response;
+		}
+

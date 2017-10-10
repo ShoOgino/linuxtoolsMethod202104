@@ -1,0 +1,43 @@
+	private void inferCompletionDate(ITask task, TaskData taskData, TaskMapper scheme, boolean isComplete) {
+		if (isComplete) {
+			Date completionDate = null;
+			List<TaskAttribute> taskComments = taskData.getAttributeMapper().getAttributesByType(taskData,
+					TaskAttribute.TYPE_COMMENT);
+			if (taskComments != null && taskComments.size() > 0) {
+				TaskAttribute lastComment = taskComments.get(taskComments.size() - 1);
+				if (lastComment != null) {
+					TaskAttribute attributeCommentDate = lastComment.getMappedAttribute(TaskAttribute.COMMENT_DATE);
+					if (attributeCommentDate != null) {
+						completionDate = new Date(Long.parseLong(attributeCommentDate.getValue()));
+					}
+				}
+			}
+			if (completionDate == null) {
+				// Use last modified date
+				TaskAttribute attributeLastModified = taskData.getRoot()
+						.getMappedAttribute(TaskAttribute.DATE_MODIFICATION);
+				if (attributeLastModified != null && attributeLastModified.getValue().length() > 0) {
+					completionDate = taskData.getAttributeMapper().getDateValue(attributeLastModified);
+				}
+			}
+			task.setCompletionDate(completionDate);
+		} else {
+			task.setCompletionDate(null);
+		}
+		// OSIO Specific Attributes
+
+		// Space
+		TaskAttribute attrDelta = taskData.getRoot()
+				.getAttribute(OSIORestTaskSchema.getDefault().SPACE.getKey());
+		if (attrDelta != null && !attrDelta.getValue().equals("")) { //$NON-NLS-1$
+			task.setAttribute(OSIORestTaskSchema.getDefault().SPACE.getKey(), attrDelta.getValue());
+		}
+
+		// Date Modification
+		attrDelta = taskData.getRoot()
+				.getAttribute(OSIORestTaskSchema.getDefault().DATE_MODIFICATION.getKey());
+		if (attrDelta != null && !attrDelta.getValue().equals("")) { //$NON-NLS-1$
+			task.setAttribute(OSIORestTaskSchema.getDefault().DATE_MODIFICATION.getKey(), attrDelta.getValue());
+		}
+	}
+

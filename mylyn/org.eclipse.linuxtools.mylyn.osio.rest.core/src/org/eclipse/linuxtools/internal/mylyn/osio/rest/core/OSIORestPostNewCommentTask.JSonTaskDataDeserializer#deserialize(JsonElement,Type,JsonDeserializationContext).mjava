@@ -1,0 +1,57 @@
+		@Override
+		public TaskAttribute deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context)
+				throws JsonParseException {
+			int i = 0;
+			JsonElement commentEntry = (JsonObject) json.getAsJsonObject().get("data"); //$NON-NLS-1$
+			JsonObject comment = (JsonObject) commentEntry.getAsJsonObject();
+			JsonObject attributes = (JsonObject) comment.get("attributes").getAsJsonObject(); //$NON-NLS-1$
+			JsonObject relationships = (JsonObject) comment.get("relationships").getAsJsonObject(); //$NON-NLS-1$
+			JsonObject creator = (JsonObject) relationships.get("creator").getAsJsonObject(); //$NON-NLS-1$
+			JsonObject creatorData = (JsonObject) creator.get("data").getAsJsonObject(); //$NON-NLS-1$
+			JsonObject commentLinks = (JsonObject) comment.get("links").getAsJsonObject(); //$NON-NLS-1$
+			TaskAttribute attribute = taskData.getRoot()
+					.createAttribute(TaskAttribute.PREFIX_COMMENT + i);
+			TaskAttribute numComments = taskData.getRoot().getAttribute(OSIORestTaskSchema.getDefault().COMMENT_COUNT.getKey());
+			numComments.setValue(Integer.toString(i));
+			TaskCommentMapper taskComment = TaskCommentMapper.createFrom(attribute);
+			taskComment.setCommentId(comment.get("id").getAsString()); //$NON-NLS-1$
+			taskComment.setNumber(i);
+			taskComment.setUrl(commentLinks.get("self").getAsString()); //$NON-NLS-1$
+			String id = creatorData.get("id").getAsString(); //$NON-NLS-1$
+			OSIORestUser user = null;
+			String email = "??????"; //$NON-NLS-1$
+			String fullName = "???"; //$NON-NLS-1$
+			try {
+				user = new OSIORestGetUser(client, id).run(new NullOperationMonitor());
+				email = user.getEmail();
+				fullName = user.getFullName();
+			} catch (OSIORestException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			} //$NON-NLS-1$
+			IRepositoryPerson author = taskData.getAttributeMapper()
+					.getTaskRepository()
+					.createPerson(email); //$NON-NLS-1$
+			author.setName(fullName);
+			taskComment.setAuthor(author);
+			taskComment.setIsPrivate(null);
+			try {
+				SimpleDateFormat iso8601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", //$NON-NLS-1$
+						Locale.US);
+				iso8601Format.setTimeZone(TimeZone.getTimeZone("UTC")); //$NON-NLS-1$
+				Date tempDate = iso8601Format.parse(attributes.get("created-at").getAsString()); //$NON-NLS-1$
+				taskComment.setCreationDate(tempDate);
+			} catch (ParseException e) {
+				com.google.common.base.Throwables.propagate(new CoreException(new Status(IStatus.ERROR,
+						OSIORestCore.ID_PLUGIN,
+						"Can not parse Date (" + attributes.get("created-at").getAsString() + ")"))); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+			}
+
+			if (attributes.get("body.rendered").getAsString() != null) { //$NON-NLS-1$
+				String commentText = attributes.get("body.rendered").getAsString().trim(); //$NON-NLS-1$
+				taskComment.setText(commentText);
+			}
+			taskComment.applyTo(attribute);
+			return attribute;
+		}
+

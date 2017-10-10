@@ -1,0 +1,99 @@
+		@Override
+		public void write(JsonWriter out, OldAttributes oldValues) throws IOException {
+			out.beginObject(); // BEGIN
+			out.name("data"); //$NON-NLS-1$
+			out.beginObject();
+			out.name("attributes"); //$NON-NLS-1$
+			out.beginObject();
+			TaskAttribute attribute = taskData.getRoot().getAttribute(taskSchema.DESCRIPTION.getKey());
+			String attValue = attribute.getValue() == null ? "" : attribute.getValue(); //$NON-NLS-1$
+			out.name("system.description").value(attValue); //$NON-NLS-1$
+			if (taskData.getRoot().getAttribute(TaskAttribute.OPERATION) != null) {
+				attribute = taskData.getRoot().getAttribute(TaskAttribute.OPERATION);
+			} else {
+				attribute = taskData.getRoot().getAttribute(taskSchema.STATUS.getKey());
+			}
+			attValue = attribute.getValue();
+			out.name("system.state").value(attValue); //$NON-NLS-1$
+			attribute = taskData.getRoot().getAttribute(taskSchema.SUMMARY.getKey());
+			attValue = attribute.getValue();
+			out.name("system.title").value(attValue); //$NON-NLS-1$
+			attribute = taskData.getRoot().getAttribute(taskSchema.VERSION.getKey());
+			attValue = attribute.getValue();
+			out.name("version").value(attValue);
+			out.endObject(); // attributes
+			attribute = taskData.getRoot().getAttribute(taskSchema.UUID.getKey());
+			attValue = attribute.getValue();
+			out.name("id").value(attValue); //$NON-NLS-1$
+			// relationships
+			out.name("relationships"); //$NON-NLS-1$
+			out.beginObject();
+			// space
+			out.name("space"); //$NON-NLS-1$
+			out.beginObject();
+			out.name("data"); //$NON-NLS-1$
+			out.beginObject();
+			attribute = taskData.getRoot().getAttribute(taskSchema.SPACE.getKey());
+			String spaceName = attribute.getValue();
+			Space space = spaces.get(spaceName);
+			out.name("id").value(space.getId()); //$NON-NLS-1$
+			out.name("type").value("spaces"); //$NON-NLS-1$ //$NON-NLS-2$
+			out.endObject(); // space data
+			out.endObject(); // spaces
+			// area
+			out.name("area"); //$NON-NLS-1$
+			out.beginObject();
+			out.name("data"); //$NON-NLS-1$
+			out.beginObject();
+			attribute = taskData.getRoot().getAttribute(taskSchema.AREA.getKey());
+			String areaName = attribute.getValue();
+			Area area = space.getAreas().get(areaName);
+			out.name("id").value(area.getId()); //$NON-NLS-1$
+			out.name("type").value("areas"); //$NON-NLS-1$ //$NON-NLS-2$
+			out.endObject(); // area data
+			out.endObject(); // areas
+			// iteration
+			out.name("iteration"); //$NON-NLS-1$
+			out.beginObject();
+			out.name("data"); //$NON-NLS-1$
+			out.beginObject();
+			attribute = taskData.getRoot().getAttribute(taskSchema.ITERATION.getKey());
+			String iterationName = attribute.getValue();
+			Iteration iteration = space.getIterations().get(iterationName);
+			out.name("id").value(iteration.getId()); //$NON-NLS-1$
+			out.name("type").value("iterations"); //$NON-NLS-1$ //$NON-NLS-2$
+			out.endObject(); // iteration data
+			out.endObject(); // iterations
+			// assignees
+			out.name("assignees"); //$NON-NLS-1$
+			out.beginObject();
+			attribute = taskData.getRoot().getAttribute(taskSchema.ASSIGNEES.getKey());
+			List<String> assignees = attribute.getValues();
+			if (assignees != null && assignees.size() > 0 && !assignees.get(0).isEmpty()) {
+				Map<String, User> users = space.getUsers();
+				out.name("data"); //$NON-NLS-1$
+				out.beginArray();
+				for (String assignee : assignees) {
+					out.beginObject();
+					String userid = users.get(assignee).getId();
+					out.name("id").value(userid); //$NON-NLS-1$
+					out.name("type").value("users"); //$NON-NLS-1$ //$NON-NLS-2$
+					out.endObject();
+				}
+				out.endArray();
+			}
+			out.endObject(); // assignees
+			out.endObject(); // relationships
+			
+			out.name("type").value("workitems"); //$NON-NLS-1$ //$NON-NLS-2$
+			
+			out.endObject(); // data
+			
+			out.name("included"); //$NON-NLS-1$
+			out.beginArray();
+			out.value(true);
+			out.endArray();
+			
+			out.endObject(); // END
+		}
+

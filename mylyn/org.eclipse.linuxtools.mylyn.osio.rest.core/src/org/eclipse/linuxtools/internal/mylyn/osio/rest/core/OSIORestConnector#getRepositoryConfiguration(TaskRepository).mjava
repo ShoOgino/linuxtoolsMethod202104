@@ -1,0 +1,15 @@
+	public OSIORestConfiguration getRepositoryConfiguration(TaskRepository repository) throws CoreException {
+		if (clientCache.getIfPresent(new RepositoryKey(repository)) == null) {
+			getClient(repository);
+		}
+		try {
+			Optional<OSIORestConfiguration> configurationOptional = configurationCache
+					.get(new RepositoryKey(repository));
+			return configurationOptional.isPresent() ? configurationOptional.get() : null;
+		} catch (UncheckedExecutionException e) {
+			throw new CoreException(new Status(IStatus.ERROR, OSIORestCore.ID_PLUGIN, e.getMessage(), e));
+		} catch (ExecutionException e) {
+			throw new CoreException(new Status(IStatus.ERROR, OSIORestCore.ID_PLUGIN, e.getMessage(), e));
+		}
+	}
+

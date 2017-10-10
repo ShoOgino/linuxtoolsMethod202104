@@ -1,0 +1,28 @@
+	public void updateInitialTaskData(TaskData data) throws CoreException {
+		setSpaceOptions(data, getSpaces());
+		updateSpaceOptions(data);
+		for (String key : data.getRoot().getAttributes().keySet()) {
+			if (key.equals(OSIORestTaskSchema.getDefault().NEW_COMMENT.getKey())
+					|| key.equals(TaskAttribute.OPERATION)
+					|| key.equals(OSIORestTaskSchema.getDefault().DATE_MODIFICATION.getKey())) {
+				continue;
+			}
+			TaskAttribute attribute = data.getRoot().getAttribute(key);
+			if (key.equals(OSIORestTaskSchema.getDefault().STATUS.getKey())) {
+				if (attribute.getOptions().isEmpty()) {
+					for (String status : statusValues) {
+						attribute.putOption(status,  status);
+					}
+				}
+			}
+			if (!key.equals(SCHEMA.SPACE.getKey())) {
+				String configName = mapTaskAttributeKey2ConfigurationFields(key);
+				if (configName.equals("baseType")) {
+					if (attribute.getOptions().size() == 1 && attribute.getValue().isEmpty()) {
+						attribute.setValue((String) attribute.getOptions().values().toArray()[0]);
+					}
+				}
+			}
+		}
+	}
+

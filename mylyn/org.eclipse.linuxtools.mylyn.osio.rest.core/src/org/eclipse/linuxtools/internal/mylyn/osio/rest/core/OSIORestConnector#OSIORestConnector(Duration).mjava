@@ -1,0 +1,41 @@
+	public OSIORestConnector(Duration refreshAfterWriteDuration) {
+		super();
+		configurationCache = createCacheBuilder(CONFIGURATION_CACHE_EXPIRE_DURATION, refreshAfterWriteDuration)
+				.build(new CacheLoader<RepositoryKey, Optional<OSIORestConfiguration>>() {
+
+					@Override
+					public Optional<OSIORestConfiguration> load(RepositoryKey key) throws Exception {
+						OSIORestClient client = clientCache.get(key);
+						TaskRepository repository = key.getRepository();
+						repository.addChangeListener(repositoryChangeListener4ConfigurationCache);
+						return Optional.fromNullable(client.getConfiguration(key.getRepository(), context.get()));
+					}
+
+					@Override
+					public ListenableFuture<Optional<OSIORestConfiguration>> reload(final RepositoryKey key,
+							Optional<OSIORestConfiguration> oldValue) throws Exception {
+						// asynchronous!
+						ListenableFutureJob<Optional<OSIORestConfiguration>> job = new ListenableFutureJob<Optional<OSIORestConfiguration>>(
+								"") {
+
+							@Override
+							protected IStatus run(IProgressMonitor monitor) {
+								OSIORestClient client;
+								try {
+									client = clientCache.get(key);
+									set(Optional
+											.fromNullable(client.getConfiguration(key.getRepository(), context.get())));
+								} catch (ExecutionException e) {
+									e.printStackTrace();
+									return new Status(IStatus.ERROR, OSIORestCore.ID_PLUGIN,
+											"OSIORestConnector reload Configuration", e);
+								}
+								return Status.OK_STATUS;
+							}
+						};
+						job.schedule();
+						return job;
+					}
+				});
+	}
+
