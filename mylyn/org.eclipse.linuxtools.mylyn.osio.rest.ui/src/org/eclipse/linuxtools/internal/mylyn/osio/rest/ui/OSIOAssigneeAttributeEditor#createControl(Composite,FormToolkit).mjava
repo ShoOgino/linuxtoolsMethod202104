@@ -9,6 +9,36 @@
 
 		populateFromAttribute();
 
+		attrRemoveAssignee = getModel().getTaskData()
+				.getRoot()
+				.getMappedAttribute(OSIORestTaskSchema.getDefault().REMOVE_ASSIGNEE.getKey());
+
+		selectValuesToRemove();
+
+		list.addSelectionListener(new SelectionAdapter() {
+
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				try {
+					suppressRefresh = true;
+					for (String cc : list.getItems()) {
+						int index = list.indexOf(cc);
+						if (list.isSelected(index)) {
+							java.util.List<String> remove = attrRemoveAssignee.getValues();
+							if (!remove.contains(cc)) {
+								attrRemoveAssignee.addValue(cc);
+							}
+						} else {
+							attrRemoveAssignee.removeValue(cc);
+						}
+					}
+					getModel().attributeChanged(attrRemoveAssignee);
+				} finally {
+					suppressRefresh = false;
+				}
+			}
+		});
+
 		list.showSelection();
 
 		setControl(list);
