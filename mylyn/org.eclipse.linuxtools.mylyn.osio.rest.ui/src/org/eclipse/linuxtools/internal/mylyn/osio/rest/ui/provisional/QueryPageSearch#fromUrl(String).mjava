@@ -1,0 +1,24 @@
+	public void fromUrl(String url) {
+		int idx = url.indexOf('?');
+		StringTokenizer t = new StringTokenizer(idx != -1 ? url.substring(idx + 1) : url, "&"); //$NON-NLS-1$
+		while (t.hasMoreTokens()) {
+			String token = t.nextToken();
+			int i = token.indexOf("="); //$NON-NLS-1$
+			if (i != -1) {
+				try {
+					String key = URLDecoder.decode(token.substring(0, i), "UTF-8");
+					String value = URLDecoder.decode(token.substring(i + 1), "UTF-8");
+					QueryPageFilter filter = filterByFieldName.get(key);
+					if (filter == null) {
+						addFilter(key, value);
+					} else {
+						filter.addValue(value);
+					}
+				} catch (UnsupportedEncodingException e) {
+					StatusHandler.log(new Status(IStatus.WARNING, OSIORestUIPlugin.PLUGIN_ID,
+							"Unexpected exception while decoding URL", e)); //$NON-NLS-1$
+				}
+			}
+		}
+	}
+

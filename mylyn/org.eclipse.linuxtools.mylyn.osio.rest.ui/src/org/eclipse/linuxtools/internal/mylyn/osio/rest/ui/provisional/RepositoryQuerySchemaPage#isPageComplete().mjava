@@ -1,0 +1,40 @@
+	@Override
+	public boolean isPageComplete() {
+		setMessage(pageDetails.getPageDescription());
+		boolean result = super.isPageComplete();
+		if (!result) {
+			return result;
+		}
+		setErrorMessage(null);
+		setMessage("");
+		boolean oneFieldHasValue = false;
+		for (Field field : schema.getFields()) {
+			oneFieldHasValue |= (targetTaskData.getRoot().getAttribute(field.getKey()).hasValue()
+					&& !targetTaskData.getRoot().getAttribute(field.getKey()).getValue().equals(""));
+			if (field.isQueryRequired()) {
+				String text = targetTaskData.getRoot().getAttribute(field.getKey()).getValue();
+				if (text == null || text.length() == 0) {
+					setMessage("Enter a value for " + field.getLabel());
+					return false;
+				}
+			}
+			if (field.getType().equals("url")) {
+				String text = targetTaskData.getRoot().getAttribute(field.getKey()).getValue();
+				if (text != null && text.length() > 0) {
+					Matcher m = URL_PATTERN.matcher(text);
+					if (m.find()) {
+						setErrorMessage(null);
+						return true;
+					} else {
+						setErrorMessage("Please specify a valid URL in " + field.getLabel());
+						return false;
+					}
+				}
+			}
+		}
+		if (!oneFieldHasValue) {
+			setErrorMessage("Please fill at least on field!");
+		}
+		return true;
+	}
+

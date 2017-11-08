@@ -1,8 +1,8 @@
 	public RepositoryResponse postTaskData(TaskData taskData, Set<TaskAttribute> oldAttributes,
 			TaskRepository repository, IOperationMonitor monitor) throws OSIORestException {
+		TaskAttribute spaceAttribute = taskData.getRoot().getAttribute(OSIORestTaskSchema.getDefault().SPACE.getKey());
+		String spaceName = spaceAttribute.getValue();
 		if (taskData.isNew()) {
-			TaskAttribute spaceAttribute = taskData.getRoot().getAttribute(OSIORestTaskSchema.getDefault().SPACE.getKey());
-			String spaceName = spaceAttribute.getValue();
 			Map<String, Space> spaces = getCachedSpaces(new NullOperationMonitor());
 			Space space = spaces.get(spaceName);
 			String id = null;
@@ -28,7 +28,13 @@
 					newComment.setValue("");
 				}
 			}
-			new OSIORestPatchUpdateTask(client, taskData, oldAttributes, config.getSpaces()).run(monitor);
+			Map<String, Space> spaces = config.getSpaces();
+			Space space = spaces.get(spaceName);
+			if (space == null) {
+				Map<String, Space> externalSpaces = config.getExternalSpaces();
+				space = externalSpaces.get(spaceName);
+			}
+			new OSIORestPatchUpdateTask(client, taskData, oldAttributes, space).run(monitor);
 			return new RepositoryResponse(ResponseKind.TASK_UPDATED, taskData.getTaskId());
 		}
 	}
