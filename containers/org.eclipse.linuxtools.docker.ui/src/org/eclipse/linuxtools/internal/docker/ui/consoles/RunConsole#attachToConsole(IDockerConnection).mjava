@@ -13,14 +13,22 @@
 					IDockerContainerState state = conn
 							.getContainerInfo(containerId).state();
 					do {
-						if (!state.running() && state.finishDate() == null) {
+						if (!state.running() && (state.finishDate() == null
+								|| state.finishDate()
+										.before(state.startDate()))) {
 							Thread.sleep(300);
 						}
 						state = conn.getContainerInfo(containerId).state();
-					} while (!state.running() && state.finishDate() == null);
-					conn.attachCommand(containerId, in, null);
+					} while (!state.running() && (state.finishDate() == null
+							|| state.finishDate().before(state.startDate())));
+					Thread.sleep(300);
+					state = conn.getContainerInfo(containerId).state();
+					if (state.running()) {
+						conn.attachCommand(containerId, in, null);
+					}
 				}
 			} catch (Exception e) {
+				Activator.log(e);
 			}
 		});
 		t.start();
