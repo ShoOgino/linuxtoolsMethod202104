@@ -1,0 +1,46 @@
+	@Override
+	public void createControl(Composite parent, FormToolkit toolkit) {
+		list = new List(parent, SWT.FLAT | SWT.MULTI | SWT.V_SCROLL);
+		toolkit.adapt(list, true, true);
+		list.setData(FormToolkit.KEY_DRAW_BORDER, FormToolkit.TEXT_BORDER);
+		list.setFont(JFaceResources.getDefaultFont());
+		GridDataFactory.fillDefaults().grab(true, true).align(SWT.FILL, SWT.FILL).applyTo(list);
+		list.setToolTipText(getDescription());
+
+		populateFromAttribute();
+
+		attrRemoveLabel = getModel().getTaskData()
+				.getRoot()
+				.getMappedAttribute(OSIORestTaskSchema.getDefault().REMOVE_LABEL.getKey());
+
+		selectValuesToRemove();
+
+		list.addSelectionListener(new SelectionAdapter() {
+
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				try {
+					suppressRefresh = true;
+					for (String cc : list.getItems()) {
+						int index = list.indexOf(cc);
+						if (list.isSelected(index)) {
+							java.util.List<String> remove = attrRemoveLabel.getValues();
+							if (!remove.contains(cc)) {
+								attrRemoveLabel.addValue(cc);
+							}
+						} else {
+							attrRemoveLabel.removeValue(cc);
+						}
+					}
+					getModel().attributeChanged(attrRemoveLabel);
+				} finally {
+					suppressRefresh = false;
+				}
+			}
+		});
+
+		list.showSelection();
+
+		setControl(list);
+	}
+
