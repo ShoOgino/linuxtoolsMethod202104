@@ -1,0 +1,62 @@
+	@Override
+	public void createControl(Composite parent, FormToolkit toolkit) {
+		
+		Composite comp = new Composite(parent, SWT.NONE);
+		comp.setLayout(new GridLayout(2, true));
+		
+		attrAddLink = getModel().getTaskData()
+				.getRoot()
+				.getMappedAttribute(OSIORestTaskSchema.getDefault().ADD_LINK.getKey());
+
+		
+		typeCombo = new Combo(comp, SWT.READ_ONLY | SWT.DROP_DOWN);
+		toolkit.adapt(typeCombo, true, true);
+		typeCombo.setData(FormToolkit.KEY_DRAW_BORDER, FormToolkit.TEXT_BORDER);
+		typeCombo.setFont(JFaceResources.getDefaultFont());
+		GridDataFactory.fillDefaults().grab(true, true).align(SWT.FILL, SWT.FILL).applyTo(typeCombo);
+		typeCombo.setToolTipText(getDescription());
+		typeCombo.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				int index= typeCombo.getSelectionIndex();
+				String linkType = typeCombo.getItem(index);
+				TaskAttribute attr = getTaskAttribute();
+				attr.setValue(linkType + " " + workitemCombo.getText()); //$NON-NLS-1$
+				TaskAttributeMetaData metadata = attr.getMetaData();
+				String linkid = linkTypes.containsKey(linkType) ? linkTypes.get(linkType) : ""; //$NON-NLS-1$
+				metadata.putValue("linkid", linkid);
+				if (index % 2 == 1) {
+					metadata.putValue("direction", "forward"); //$NON-NLS-1$ //$NON-NLS-2$
+				} else {
+					metadata.putValue("direction", "reverse"); //$NON-NLS-1$ //$NON-NLS-2$
+				}
+				getModel().attributeChanged(attrAddLink);
+			}
+		});
+		
+		workitemCombo = new Combo(comp, SWT.READ_ONLY | SWT.DROP_DOWN);
+		toolkit.adapt(workitemCombo, true, true);
+		workitemCombo.setData(FormToolkit.KEY_DRAW_BORDER, FormToolkit.TEXT_BORDER);
+		workitemCombo.setFont(JFaceResources.getDefaultFont());
+		GridDataFactory.fillDefaults().grab(true, true).align(SWT.FILL, SWT.FILL).applyTo(workitemCombo);
+		workitemCombo.setToolTipText(getDescription());
+		workitemCombo.addSelectionListener(new SelectionAdapter() {
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				int index= workitemCombo.getSelectionIndex();
+				String workitem = workitemCombo.getItem(index);
+				TaskAttribute attr = getTaskAttribute();
+				attr.setValue(typeCombo.getText() + " " + workitem); //$NON-NLS-1$
+				TaskAttributeMetaData metadata = attr.getMetaData();
+				metadata.putValue("targetWidName", workitem);
+				metadata.putValue("targetWid", workitems.get(workitem).getId()); //$NON-NLS-1$
+				getModel().attributeChanged(attrAddLink);
+			}
+		});
+		
+
+		populateFromAttribute();
+
+		setControl(comp);
+	}
+

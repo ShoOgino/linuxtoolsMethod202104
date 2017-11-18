@@ -1,0 +1,42 @@
+	private void populateFromAttribute() {
+		OSIORestClient client;
+		String spaceId = getTaskAttribute().getOption("space"); //$NON-NLS-1$
+		try {
+			client = ((OSIORestConnector)connector).getClient(repository);
+			linkTypes = client.getSpaceLinkTypes(spaceId, repository);
+			workitems = client.getSpaceWorkItems(spaceId);
+		} catch (CoreException e) {
+			// do nothing
+		}
+		typeCombo.setItems(linkTypes.keySet().toArray(new String[0]));
+		typeCombo.add("", 0);
+		String link = getTaskAttribute().getValue();
+		int index = 0;
+		if (link != null && !link.isEmpty()) {
+			int i = 1;
+			for (String linkType : linkTypes.keySet()) {
+				if (link.startsWith(linkType)) {
+					index = i;
+				}
+				++i;
+			}
+		}
+		if (index >= 0) {
+			typeCombo.select(index);
+		}
+		workitemCombo.setItems(workitems.keySet().toArray(new String[0]));
+		index = -1;
+		if (link != null && !link.isEmpty()) {
+			int i = 0;
+			for (String workitem : workitems.keySet()) {
+				if (link.endsWith(workitem)) {
+					index = i;
+				}
+				++i;
+			}
+		}
+		if (index >= 0) {
+			workitemCombo.select(index);
+		}
+	}
+
