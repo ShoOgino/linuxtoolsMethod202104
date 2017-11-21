@@ -1,10 +1,16 @@
 	public RepositoryResponse postTaskData(TaskData taskData, Set<TaskAttribute> oldAttributes,
 			TaskRepository repository, IOperationMonitor monitor) throws OSIORestException {
-		TaskAttribute spaceAttribute = taskData.getRoot().getAttribute(OSIORestTaskSchema.getDefault().SPACE.getKey());
-		String spaceName = spaceAttribute.getValue();
+		TaskAttribute spaceIdAttribute = taskData.getRoot().getAttribute(OSIORestTaskSchema.getDefault().SPACE_ID.getKey());
+		String spaceId = spaceIdAttribute.getValue();
+		Space space = null;
 		if (taskData.isNew()) {
 			Map<String, Space> spaces = getCachedSpaces(new NullOperationMonitor());
-			Space space = spaces.get(spaceName);
+			for (Space s : spaces.values()) {
+				if (s.getId().equals(spaceId)) {
+					space = s;
+					break;
+				}
+			}
 			String id = null;
 			try {
 				id = new OSIORestPostNewTask(client, taskData, space, connector, repository).run(monitor);
@@ -29,10 +35,20 @@
 				}
 			}
 			Map<String, Space> spaces = config.getSpaces();
-			Space space = spaces.get(spaceName);
+			for (Space s : spaces.values()) {
+				if (s.getId().equals(spaceId)) {
+					space = s;
+					break;
+				}
+			}
 			if (space == null) {
 				Map<String, Space> externalSpaces = config.getExternalSpaces();
-				space = externalSpaces.get(spaceName);
+				for (Space s : externalSpaces.values()) {
+					if (s.getId().equals(spaceId)) {
+						space = s;
+						break;
+					}
+				}
 			}
 			
 			TaskAttribute removeLinks = taskData.getRoot().getAttribute(OSIORestTaskSchema.getDefault().REMOVE_LINKS.getKey());
