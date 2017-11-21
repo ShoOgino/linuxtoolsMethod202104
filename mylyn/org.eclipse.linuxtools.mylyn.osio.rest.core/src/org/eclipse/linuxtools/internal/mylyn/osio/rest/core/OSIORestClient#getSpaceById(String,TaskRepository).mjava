@@ -1,0 +1,48 @@
+	public Space getSpaceById(String spaceId, TaskRepository taskRepository) throws CoreException {
+		OSIORestConfiguration config = null;
+		config = connector.getRepositoryConfiguration(taskRepository);
+		Map<String, Space> spaces = config.getSpaces();
+		Space space = null;
+		for (Space s : spaces.values()) {
+			if (s.getId().equals(spaceId)) {
+				space = s;
+				break;
+			}
+		}
+		if (space == null) {
+
+			Map<String, Space> externalSpaces = config.getExternalSpaces();
+			for (Space s : spaces.values()) {
+				if (s.getId().equals(spaceId)) {
+					space = s;
+					break;
+				}
+			}
+			if (space == null) {
+				SpaceSingleResponse spaceResponse = null;
+				try {
+					spaceResponse = new OSIORestGetRequest<SpaceSingleResponse>(client, "/spaces/" + spaceId, new TypeToken<SpaceSingleResponse>() {}).run(new NullOperationMonitor());
+					space = spaceResponse.getData();
+					Map<String, WorkItemTypeData> workItemTypes = getSpaceWorkItemTypes(new NullOperationMonitor(), space);
+					space.setWorkItemTypes(workItemTypes);
+					Map<String, WorkItemLinkTypeData> workItemLinkTypes = getSpaceWorkItemLinkTypes(new NullOperationMonitor(), space);
+					space.setWorkItemLinkTypes(workItemLinkTypes);
+					Map<String, Area> areas = getSpaceAreas(new NullOperationMonitor(), space);
+					space.setAreas(areas);
+					Map<String, Iteration> iterations = getSpaceIterations(new NullOperationMonitor(), space);
+					space.setIterations(iterations);
+					Map<String, Label> labels = getSpaceLabels(new NullOperationMonitor(), space);
+					space.setLabels(labels);
+					Map<String, User> users = getUsers(new NullOperationMonitor(), space);
+					space.setUsers(users);
+				} catch (OSIORestException e) {
+					com.google.common.base.Throwables.propagate(
+							new CoreException(new Status(IStatus.ERROR, OSIORestCore.ID_PLUGIN,
+									"Can not find Space (" + spaceId + ")"))); //$NON-NLS-1$ //$NON-NLS-2$
+				}
+				externalSpaces.put(space.getName(), space);
+			}
+		}
+		return space;
+	}
+

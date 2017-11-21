@@ -45,12 +45,11 @@
 				String workitemquery = "/workitems/" + wid; //$NON-NLS-1$
 				TaskData taskData = new OSIORestGetSingleTaskData(client, connector, workitemquery, taskRepository)
 						.run(monitor);
-				Map<String, Space> spaces = getCachedSpaces(monitor);
-				Space space = spaces.get(spaceName);
-				if (space == null) {
-					Map<String, Space> externalSpaces = config.getExternalSpaces();
-					space = externalSpaces.get(spaceName);
-				}
+				Map<String, Space> spaces = config.getSpaces();
+				Space space = null;
+				String spaceId = taskData.getRoot().getAttribute(OSIORestTaskSchema.getDefault().SPACE_ID.getKey()).getValue();
+				space = getSpaceById(spaceId, taskRepository);
+				
 				new OSIORestGetTaskComments(getClient(), space,taskData).run(monitor);
 				new OSIORestGetTaskCreator(getClient(), taskData).run(monitor);
 				new OSIORestGetTaskLabels(getClient(), space, taskData).run(monitor);
