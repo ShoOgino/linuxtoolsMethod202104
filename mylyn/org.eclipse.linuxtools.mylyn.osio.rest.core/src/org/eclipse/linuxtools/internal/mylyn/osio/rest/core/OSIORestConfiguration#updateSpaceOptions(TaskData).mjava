@@ -4,10 +4,7 @@
 		}
 		TaskAttribute attributeSpaceId = taskData.getRoot().getMappedAttribute(SCHEMA.SPACE_ID.getKey());
 		TaskAttribute attributeSpace = taskData.getRoot().getMappedAttribute(SCHEMA.SPACE.getKey());
-		if (attributeSpaceId == null) {
-			return false;
-		}
-		if (!attributeSpaceId.getValue().isEmpty()) {
+		if (attributeSpaceId != null && !attributeSpaceId.getValue().isEmpty()) {
 			Space actualSpace = getSpaceById(attributeSpaceId.getValue());
 			if (actualSpace == null) {
 				return false;
@@ -43,7 +40,9 @@
 			SortedSet<String> users = new TreeSet<>();
 			Set<String> states = new LinkedHashSet<>();
 			for (Space space : getSpaces().values()) {
-				attributeSpace.putOption(space.getName(), space.getName());
+				if (attributeSpace != null) {
+					attributeSpace.putOption(space.getName(), space.getName());
+				}
 				if (space.getWorkItemTypes() != null) {
 					// assume first workItemType is representative of all with regards to states
 					if (!space.getWorkItemTypes().isEmpty()) {
@@ -87,6 +86,10 @@
 			TaskAttribute attributeState = taskData.getRoot().getMappedAttribute(SCHEMA.STATUS.getKey());
 			if (attributeState != null) {
 				setAllAttributeOptions(attributeState, states);
+			}
+			TaskAttribute attributeAssignees = taskData.getRoot().getMappedAttribute(SCHEMA.ASSIGNEES.getKey());
+			if (attributeAssignees != null && attributeAssignees.getOptions().size() == 0) {
+				attributeAssignees.putOption(userName,  userName);
 			}
 
 		}
