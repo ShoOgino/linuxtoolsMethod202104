@@ -7,7 +7,7 @@
 			space = spaces.get(spaceAttribute.getValue());
 			String id = null;
 			try {
-				id = new OSIORestPostNewTask(client, taskData, space, connector, repository).run(monitor);
+				id = restRequestProvider.postNewTask(monitor, client, taskData, space, connector, repository);
 			} catch (CoreException e1) {
 				throw new OSIORestException(e1);
 			}
@@ -15,9 +15,7 @@
 		} else {
 			TaskAttribute spaceIdAttribute = taskData.getRoot().getAttribute(OSIORestTaskSchema.getDefault().SPACE_ID.getKey());
 			String spaceId = spaceIdAttribute.getValue();
-			OSIORestConfiguration config;
 			try {
-				config = connector.getRepositoryConfiguration(repository);
 				space = getSpaceById(spaceId, repository);
 			} catch (CoreException e1) {
 				throw new OSIORestException(e1);
@@ -27,7 +25,7 @@
 			if (newComment != null) {
 				String value = newComment.getValue();
 				if (value != null && !value.isEmpty()) {
-					new OSIORestPostNewCommentTask(client, taskData, oldAttributes).run(monitor);
+					restRequestProvider.postNewCommentTask(monitor, client, taskData, oldAttributes);
 					newComment.setValue("");
 				}
 			}
@@ -41,7 +39,7 @@
 				for (String link : links) {
 					try {
 						String id = metadata.getValue(link);
-						new OSIORestDeleteLink(client, wid, id).run(monitor);
+						restRequestProvider.deleteLink(monitor, client, wid, id);
 					} catch (Exception e) {
 						StatusHandler.log(new Status(IStatus.ERROR, OSIORestCore.ID_PLUGIN,
 								NLS.bind("Unexpected error during deletion of work item link: <{0}>", //$NON-NLS-1$
@@ -62,10 +60,9 @@
 				isForward = direction.equals("forward"); //$NON-NLS-1$
 			}
 			if (linkid != null && targetid != null) {
-				new OSIORestPostNewLink(client, linkid, sourceid, targetid, isForward).run(monitor);
+				restRequestProvider.postNewLink(monitor, client, linkid, sourceid, targetid, isForward);
 			}
-			
-			new OSIORestPatchUpdateTask(client, taskData, oldAttributes, space).run(monitor);
+			restRequestProvider.patchUpdateTask(monitor, client, taskData, oldAttributes, space);
 			return new RepositoryResponse(ResponseKind.TASK_UPDATED, taskData.getTaskId());
 		}
 	}
