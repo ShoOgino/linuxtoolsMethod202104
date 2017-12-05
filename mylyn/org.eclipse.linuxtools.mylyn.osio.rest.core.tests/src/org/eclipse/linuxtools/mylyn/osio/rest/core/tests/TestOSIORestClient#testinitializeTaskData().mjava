@@ -1,0 +1,30 @@
+	@Test
+	public void testinitializeTaskData() throws Exception {
+		final TaskMapping taskMappingInit = new TaskMapping() {
+			@Override
+			public String getSummary() {
+				return "The Summary";
+			}
+
+			@Override
+			public String getDescription() {
+				return "The Description";
+			}
+		};
+		initSpaces();
+		OSIORestClient client = connector.getClient(repository, requestProvider);
+		AbstractTaskDataHandler taskDataHandler = connector.getTaskDataHandler();
+		TaskAttributeMapper mapper = taskDataHandler.getAttributeMapper(repository);
+		TaskData taskData = new TaskData(mapper, repository.getConnectorKind(), repository.getRepositoryUrl(), "");
+		assertTrue(taskDataHandler.initializeTaskData(repository, taskData, null, null));
+		TaskAttribute attribute = taskData.getRoot().getAttribute(OSIORestTaskSchema.getDefault().SUMMARY.getKey());
+		assertTrue(attribute != null);
+		assertEquals(attribute.getValue(), "");
+		taskData = new TaskData(mapper, repository.getConnectorKind(), repository.getRepositoryUrl(), "");
+		assertTrue(taskDataHandler.initializeTaskData(repository, taskData, taskMappingInit, null));
+		attribute = taskData.getRoot().getAttribute(OSIORestTaskSchema.getDefault().SUMMARY.getKey());
+		assertEquals(attribute.getValue(), "The Summary");
+		attribute = taskData.getRoot().getAttribute(OSIORestTaskSchema.getDefault().DESCRIPTION.getKey());
+		assertEquals(attribute.getValue(), "The Description");
+	}
+

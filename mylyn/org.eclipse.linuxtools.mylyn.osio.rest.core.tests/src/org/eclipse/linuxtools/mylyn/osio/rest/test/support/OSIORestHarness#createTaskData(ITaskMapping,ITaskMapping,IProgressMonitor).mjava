@@ -1,0 +1,16 @@
+	public TaskData createTaskData(ITaskMapping initializationData, ITaskMapping selectionData,
+			IProgressMonitor monitor) throws CoreException {
+		AbstractTaskDataHandler taskDataHandler = connector().getTaskDataHandler();
+		TaskAttributeMapper mapper = taskDataHandler.getAttributeMapper(repository());
+		TaskData taskData = new TaskData(mapper, repository().getConnectorKind(), repository().getRepositoryUrl(), ""); //$NON-NLS-1$
+		boolean result = taskDataHandler.initializeTaskData(repository(), taskData, initializationData, monitor);
+		if (!result) {
+			throw new CoreException(new Status(IStatus.ERROR, OSIORestCore.ID_PLUGIN,
+					"Initialization of task failed. The provided data is insufficient.")); //$NON-NLS-1$
+		}
+		if (selectionData != null) {
+			connector().getTaskMapping(taskData).merge(selectionData);
+		}
+		return taskData;
+	}
+

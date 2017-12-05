@@ -1,0 +1,351 @@
+	@Test
+	public void testGetTaskData() throws Exception {
+		initSpaces();
+		requestProvider.addGetRequest("/namedspaces/user", spaces);
+		OSIORestClient client = connector.getClient(repository, requestProvider);
+		AbstractTaskDataHandler taskDataHandler = connector.getTaskDataHandler();
+		TaskAttributeMapper mapper = taskDataHandler.getAttributeMapper(repository);
+		TaskData taskData = new TaskData(mapper, repository.getConnectorKind(), repository.getRepositoryUrl(), "");
+		TaskData task1 = new TaskData(mapper, repository.getConnectorKind(), repository.getRepositoryUrl(), "");
+		TaskData task2 = new TaskData(mapper, repository.getConnectorKind(), repository.getRepositoryUrl(), "");	
+		initWorkItems(task1, task2);
+		client.getConfiguration(repository, new NullOperationMonitor());
+		requestProvider.addGetRequest("/workitems/WORKITEM-0001", task1);
+		requestProvider.addRelocation("/namedspaces/user/mywork/workitems/1", "/spaces/SPACE-0001/workitem/WORKITEM-0001");
+		requestProvider.addGetRequest("/workitems/WORKITEM-0002", task2);
+		requestProvider.addRelocation("/namedspaces/user3/mywork/workitems/1", "/spaces/SPACE-0003/workitem/WORKITEM-0002");
+		TestTaskDataCollector collector = new TestTaskDataCollector();
+		Set<String> taskIds = new TreeSet<>();
+		taskIds.add("user/mywork#1");
+		taskIds.add("user3/mywork#1");
+		client.getTaskData(taskIds, repository, collector, new NullOperationMonitor());
+		List<TaskData> results = collector.getTaskData();
+		assertTrue(results != null);
+		assertEquals(2, results.size());
+		TaskData data = results.get(0);
+		assertEquals(data, task1);
+		TaskAttribute comment0 = data.getRoot().getAttribute(TaskAttribute.PREFIX_COMMENT + "0");
+		assertTrue(comment0 != null);
+		TaskCommentMapper commentMapper = TaskCommentMapper.createFrom(comment0);
+		assertEquals(commentMapper.getText(), "This is comment 1");
+		TaskAttribute comment1 = data.getRoot().getAttribute(TaskAttribute.PREFIX_COMMENT + "1");
+		assertTrue(comment1 != null);
+		commentMapper = TaskCommentMapper.createFrom(comment1);
+		assertEquals(commentMapper.getText(), "This is comment 2");
+		data = results.get(1);
+		assertEquals(data, task2);
+		comment0 = data.getRoot().getAttribute(TaskAttribute.PREFIX_COMMENT + "0");
+		assertTrue(comment0 != null);
+		commentMapper = TaskCommentMapper.createFrom(comment0);
+		assertEquals(commentMapper.getText(), "This is first comment");
+	}
+//
+//	@Test
+//	public void testGetTaskData() throws Exception {
+//		final TaskMapping taskMappingInit = new TaskMapping() {
+//			@Override
+//			public String getSummary() {
+//				return "The Summary";
+//			}
+//
+//			@Override
+//			public String getDescription() {
+//				return "The Description";
+//			}
+//
+//			@Override
+//			public String getProduct() {
+//				return "ManualTest";
+//			}
+//
+//			@Override
+//			public String getComponent() {
+//				return "ManualC1";
+//			}
+//
+//			@Override
+//			public String getVersion() {
+//				return "R1";
+//			}
+//		};
+//		TaskData taskData = harness.createTaskData(taskMappingInit, null, null);
+//
+//		taskData.getRoot().getAttribute("cf_dropdown").setValue("one");
+//		taskData.getRoot()
+//				.getAttribute(OSIORestCreateTaskSchema.getDefault().TARGET_MILESTONE.getKey())
+//				.setValue("M2");
+//		String taskId = harness.submitNewTask(taskData);
+//		TaskData taskDataGet = harness.getTaskFromServer(taskId);
+//
+//		// description is only for old tasks readonly and has the two sub attributes
+//		// COMMENT_NUMBER and COMMENT_ISPRIVATE
+//		TaskAttribute getDesc = taskDataGet.getRoot()
+//				.getAttribute(OSIORestTaskSchema.getDefault().DESCRIPTION.getKey());
+//		getDesc.getMetaData().setReadOnly(false);
+//		getDesc.removeAttribute(TaskAttribute.COMMENT_ISPRIVATE);
+//		getDesc.removeAttribute(TaskAttribute.COMMENT_NUMBER);
+//
+//		// resolution is only for new tasks readonly
+//		taskData.getRoot()
+//				.getAttribute(OSIORestTaskSchema.getDefault().RESOLUTION.getKey())
+//				.getMetaData()
+//				.setReadOnly(false);
+//
+//		// attributes we know that they can not be equal
+//		taskData.getRoot().removeAttribute(OSIORestTaskSchema.getDefault().STATUS.getKey());
+//		taskDataGet.getRoot().removeAttribute(OSIORestTaskSchema.getDefault().STATUS.getKey());
+//		taskData.getRoot().removeAttribute(OSIORestTaskSchema.getDefault().ASSIGNED_TO.getKey());
+//		taskDataGet.getRoot().removeAttribute(OSIORestTaskSchema.getDefault().ASSIGNED_TO.getKey());
+//		taskData.getRoot().removeAttribute(TaskAttribute.OPERATION);
+//		taskDataGet.getRoot().removeAttribute(TaskAttribute.OPERATION);
+//		taskDataGet.getRoot().removeAttribute(OSIORestTaskSchema.getDefault().DATE_MODIFICATION.getKey());
+//		taskData.getRoot().removeAttribute(OSIORestTaskSchema.getDefault().DATE_MODIFICATION.getKey());
+//		// CC attribute has diverences in the meta data between create and update
+//		taskData.getRoot().removeAttribute(TaskAttribute.USER_CC);
+//		taskDataGet.getRoot().removeAttribute(TaskAttribute.USER_CC);
+//
+//		// attributes only in old tasks
+//		taskData.getRoot().removeAttribute("description_is_private");
+//
+//		// attributes only in new tasks
+//		taskDataGet.getRoot().removeAttribute("bug_id");
+//		taskDataGet.getRoot().removeAttribute(TaskAttribute.COMMENT_NEW);
+//		taskDataGet.getRoot().removeAttribute("addCC");
+//		taskDataGet.getRoot().removeAttribute("removeCC");
+//		taskDataGet.getRoot().removeAttribute(OSIORestTaskSchema.getDefault().RESET_QA_CONTACT.getKey());
+//		taskDataGet.getRoot().removeAttribute(OSIORestTaskSchema.getDefault().RESET_ASSIGNED_TO.getKey());
+//		taskDataGet.getRoot().removeAttribute(OSIORestTaskSchema.getDefault().ADD_SELF_CC.getKey());
+//		ArrayList<TaskAttribute> flags = new ArrayList<>();
+//		for (TaskAttribute attribute : taskDataGet.getRoot().getAttributes().values()) {
+//			if (attribute.getId().startsWith(IOSIORestConstants.KIND_FLAG_TYPE)) {
+//				flags.add(attribute);
+//			}
+//		}
+//		for (TaskAttribute taskAttribute : flags) {
+//			taskDataGet.getRoot().removeAttribute(taskAttribute.getId());
+//		}
+//
+//		// attributes for operations
+//		taskDataGet.getRoot().removeAttribute("task.common.operation-CONFIRMED");
+//		taskDataGet.getRoot().removeAttribute("task.common.operation-IN_PROGRESS");
+//		taskDataGet.getRoot().removeAttribute("task.common.operation-RESOLVED");
+//		taskDataGet.getRoot().removeAttribute("resolutionInput");
+//		taskDataGet.getRoot().removeAttribute("task.common.operation-duplicate");
+//		taskDataGet.getRoot().removeAttribute(OSIORestTaskSchema.getDefault().DUPE_OF.getKey());
+//
+//		assertEquals(taskData.getRoot().toString(), taskDataGet.getRoot().toString());
+//		assertEquals(
+//				IOUtils.toString(
+//						CommonTestUtil.getResource(this, actualFixture.getTestDataFolder() + "/taskDataFlags.txt")),
+//				flags.toString());	}
+//
+//	@Test
+//	public void testUpdateTaskData() throws Exception {
+//		String taskId = harness.getNewTaksId4TestProduct();
+//		TaskData taskDataGet = harness.getTaskFromServer(taskId);
+//
+//		Set<TaskAttribute> changed = new HashSet<TaskAttribute>();
+//
+//		TaskAttribute attribute = taskDataGet.getRoot()
+//				.getMappedAttribute(OSIORestCreateTaskSchema.getDefault().PRODUCT.getKey());
+//		attribute.setValue("Product with Spaces");
+//		changed.add(attribute);
+//		attribute = taskDataGet.getRoot()
+//				.getMappedAttribute(OSIORestCreateTaskSchema.getDefault().COMPONENT.getKey());
+//		attribute.setValue("Component 1");
+//		changed.add(attribute);
+//		attribute = taskDataGet.getRoot()
+//				.getMappedAttribute(OSIORestCreateTaskSchema.getDefault().VERSION.getKey());
+//		attribute.setValue("b");
+//		changed.add(attribute);
+//		attribute = taskDataGet.getRoot()
+//				.getMappedAttribute(OSIORestCreateTaskSchema.getDefault().TARGET_MILESTONE.getKey());
+//		attribute.setValue("M3.0");
+//		changed.add(attribute);
+//
+//		attribute = taskDataGet.getRoot().getAttribute("cf_dropdown");
+//		attribute.setValue("two");
+//		changed.add(attribute);
+//		attribute = taskDataGet.getRoot().getAttribute("cf_multiselect");
+//		attribute.setValues(Arrays.asList("Red", "Yellow"));
+//		changed.add(attribute);
+//
+//		//Act
+//		RepositoryResponse reposonse = connector.getClient(actualFixture.repository()).postTaskData(taskDataGet,
+//				changed, null);
+//		assertNotNull(reposonse);
+//		assertNotNull(reposonse.getReposonseKind());
+//		assertThat(reposonse.getReposonseKind(), is(ResponseKind.TASK_UPDATED));
+//		//Assert
+//		TaskData taskDataUpdate = harness.getTaskFromServer(taskId);
+//
+//		attribute = taskDataUpdate.getRoot()
+//				.getMappedAttribute(OSIORestCreateTaskSchema.getDefault().PRODUCT.getKey());
+//		assertThat(attribute.getValue(), is("Product with Spaces"));
+//		attribute = taskDataUpdate.getRoot()
+//				.getMappedAttribute(OSIORestCreateTaskSchema.getDefault().COMPONENT.getKey());
+//		assertThat(attribute.getValue(), is("Component 1"));
+//		attribute = taskDataUpdate.getRoot()
+//				.getMappedAttribute(OSIORestCreateTaskSchema.getDefault().VERSION.getKey());
+//		assertThat(attribute.getValue(), is("b"));
+//		attribute = taskDataUpdate.getRoot()
+//				.getAttribute(OSIORestCreateTaskSchema.getDefault().TARGET_MILESTONE.getKey());
+//		assertThat(attribute.getValue(), is("M3.0"));
+//		attribute = taskDataUpdate.getRoot().getAttribute("cf_dropdown");
+//		assertThat(attribute.getValue(), is("two"));
+//		attribute = taskDataUpdate.getRoot().getAttribute("cf_multiselect");
+//		assertThat(attribute.getValues(), is(Arrays.asList("Red", "Yellow")));
+//	}
+//
+//	@Test
+//	public void testAddComment() throws Exception {
+//		String taskId = harness.getNewTaksId4TestProduct();
+//		TaskData taskDataGet = harness.getTaskFromServer(taskId);
+//
+//		Set<TaskAttribute> changed = new HashSet<TaskAttribute>();
+//
+//		TaskAttribute attribute = taskDataGet.getRoot()
+//				.getAttribute(OSIORestTaskSchema.getDefault().NEW_COMMENT.getKey());
+//		attribute.setValue("The Comment");
+//		changed.add(attribute);
+//
+//		//Act
+//		RepositoryResponse reposonse = connector.getClient(actualFixture.repository()).postTaskData(taskDataGet,
+//				changed, null);
+//		assertNotNull(reposonse);
+//		assertNotNull(reposonse.getReposonseKind());
+//		assertThat(reposonse.getReposonseKind(), is(ResponseKind.TASK_UPDATED));
+//		//Assert
+//		TaskData taskDataUpdate = harness.getTaskFromServer(taskId);
+//
+//		attribute = taskDataUpdate.getRoot().getMappedAttribute(TaskAttribute.PREFIX_COMMENT + "1");
+//		assertNotNull(attribute);
+//		TaskAttribute commentAttribute = attribute.getMappedAttribute(TaskAttribute.COMMENT_TEXT);
+//		assertNotNull(commentAttribute);
+//		assertThat(commentAttribute.getValue(), is("The Comment"));
+//		commentAttribute = attribute.getMappedAttribute(TaskAttribute.COMMENT_NUMBER);
+//		assertNotNull(commentAttribute);
+//		assertThat(commentAttribute.getValue(), is("1"));
+//		commentAttribute = attribute.getMappedAttribute(TaskAttribute.COMMENT_ISPRIVATE);
+//		assertNotNull(commentAttribute);
+//		assertThat(commentAttribute.getValue(), is("false"));
+//	}
+//
+//	private TaskData getTaskData(final String taskId) throws CoreException, OSIORestException {
+//		OSIORestClient client = connector.getClient(actualFixture.repository());
+//		final Map<String, TaskData> results = new HashMap<String, TaskData>();
+//		client.getTaskData(new HashSet<String>() {
+//			private static final long serialVersionUID = 1L;
+//
+//			{
+//				add(taskId);
+//			}
+//		}, actualFixture.repository(), new TaskDataCollector() {
+//
+//			@Override
+//			public void accept(TaskData taskData) {
+//				results.put(taskData.getTaskId(), taskData);
+//			}
+//		}, null);
+//		return results.get(taskId);
+//	}
+//
+//	@Test
+//	public void testCreateCCAttribute() throws Exception {
+//		final TaskMapping taskMappingInit = new TaskMapping() {
+//			@Override
+//			public String getSummary() {
+//				return "Test CC Attribute";
+//			}
+//
+//			@Override
+//			public String getDescription() {
+//				return "The Description";
+//			}
+//
+//			@Override
+//			public String getProduct() {
+//				return "ManualTest";
+//			}
+//
+//			@Override
+//			public String getComponent() {
+//				return "ManualC1";
+//			}
+//
+//			@Override
+//			public String getVersion() {
+//				return "R1";
+//			}
+//		};
+//		AbstractTaskDataHandler taskDataHandler = connector.getTaskDataHandler();
+//		TaskAttributeMapper mapper = taskDataHandler.getAttributeMapper(actualFixture.repository());
+//		TaskData taskData = new TaskData(mapper, actualFixture.repository().getConnectorKind(),
+//				actualFixture.repository().getRepositoryUrl(), "");
+//		taskDataHandler.initializeTaskData(actualFixture.repository(), taskData, taskMappingInit, null);
+//		taskData.getRoot().getAttribute("cf_dropdown").setValue("one");
+//		taskData.getRoot()
+//				.getAttribute(OSIORestCreateTaskSchema.getDefault().TARGET_MILESTONE.getKey())
+//				.setValue("M2");
+//		taskData.getRoot().getAttribute(OSIORestCreateTaskSchema.getDefault().CC.getKey()).setValue(
+//				"admin@mylyn.eclipse.org, tests@mylyn.eclipse.org");
+//		RepositoryResponse reposonse = connector.getClient(actualFixture.repository()).postTaskData(taskData, null,
+//				null);
+//		assertNotNull(reposonse);
+//		assertNotNull(reposonse.getReposonseKind());
+//		assertThat(reposonse.getReposonseKind(), is(ResponseKind.TASK_CREATED));
+//		TaskData taskDataUpdate = harness.getTaskFromServer(reposonse.getTaskId());
+//		TaskAttribute ccAttrib = taskDataUpdate.getRoot()
+//				.getAttribute(OSIORestCreateTaskSchema.getDefault().CC.getKey());
+//		assertEquals(2, ccAttrib.getValues().size());
+//		assertEquals("admin@mylyn.eclipse.org", ccAttrib.getValues().get(0));
+//		assertEquals("tests@mylyn.eclipse.org", ccAttrib.getValues().get(1));
+//	}
+//
+//	@Test
+//	public void testCCAttribute() throws Exception {
+//		String taskId = harness.getNewTaksId4TestProduct();
+//		TaskData taskDataGet = harness.getTaskFromServer(taskId);
+//
+//		Set<TaskAttribute> changed = new HashSet<TaskAttribute>();
+//
+//		TaskAttribute attribute = taskDataGet.getRoot()
+//				.getAttribute(OSIORestTaskSchema.getDefault().ADD_CC.getKey());
+//		attribute.setValue("tests@mylyn.eclipse.org");
+//		changed.add(attribute);
+//
+//		//Act
+//		RepositoryResponse reposonse = connector.getClient(actualFixture.repository()).postTaskData(taskDataGet,
+//				changed, null);
+//		assertNotNull(reposonse);
+//		assertNotNull(reposonse.getReposonseKind());
+//		assertThat(reposonse.getReposonseKind(), is(ResponseKind.TASK_UPDATED));
+//		//Assert
+//		TaskData taskDataUpdate = harness.getTaskFromServer(taskId);
+//		TaskAttribute ccAttrib = taskDataUpdate.getRoot()
+//				.getAttribute(OSIORestCreateTaskSchema.getDefault().CC.getKey());
+//		assertEquals(1, ccAttrib.getValues().size());
+//		assertEquals("tests@mylyn.eclipse.org", ccAttrib.getValues().get(0));
+//
+//		TaskAttribute ccAddAttrib = taskDataUpdate.getRoot()
+//				.getAttribute(OSIORestTaskSchema.getDefault().ADD_CC.getKey());
+//		ccAddAttrib.setValue("admin@mylyn.eclipse.org");
+//		changed.add(ccAddAttrib);
+//
+//		TaskAttribute ccRemoveAttrib = taskDataUpdate.getRoot()
+//				.getAttribute(OSIORestTaskSchema.getDefault().REMOVE_CC.getKey());
+//		ccRemoveAttrib.setValue("tests@mylyn.eclipse.org");
+//		changed.add(ccRemoveAttrib);
+//
+//		//Act
+//		reposonse = connector.getClient(actualFixture.repository()).postTaskData(taskDataUpdate, changed, null);
+//		assertNotNull(reposonse);
+//		assertNotNull(reposonse.getReposonseKind());
+//		assertThat(reposonse.getReposonseKind(), is(ResponseKind.TASK_UPDATED));
+//		//Assert
+//		taskDataUpdate = harness.getTaskFromServer(taskId);
+//		ccAttrib = taskDataUpdate.getRoot().getAttribute(OSIORestCreateTaskSchema.getDefault().CC.getKey());
+//		assertEquals(1, ccAttrib.getValues().size());
+//		assertEquals("admin@mylyn.eclipse.org", ccAttrib.getValues().get(0));
+//	}
+

@@ -1,0 +1,50 @@
+	private String getTaskIdWithSummary(String summary) throws OSIORestException, CoreException {
+		String taskID = null;
+		String queryUrlString = repository().getRepositoryUrl() + "/bug?" + "short_desc=" + summary;
+		RepositoryQuery query = new RepositoryQuery(repository().getConnectorKind(), "handle-testQueryViaConnector");
+		query.setUrl(queryUrlString);
+		final Map<Integer, TaskData> changedTaskData = new HashMap<Integer, TaskData>();
+		TaskDataCollector collector = new TaskDataCollector() {
+			@Override
+			public void accept(TaskData taskData) {
+				changedTaskData.put(Integer.valueOf(taskData.getTaskId()), taskData);
+			}
+		};
+		connector().performQuery(repository(), query, collector, null, new NullProgressMonitor());
+		if (changedTaskData.size() > 0) {
+			Set<Integer> ks = changedTaskData.keySet();
+			SortedSet<Integer> sks = new TreeSet<Integer>(ks);
+			taskID = sks.last().toString();
+		} else {
+			final TaskMapping taskMappingInit = new TaskMapping() {
+				@Override
+				public String getSummary() {
+					return summary;
+				}
+
+				@Override
+				public String getDescription() {
+					return "The Description";
+				}
+
+				@Override
+				public String getProduct() {
+					return "ManualTest";
+				}
+
+				@Override
+				public String getComponent() {
+					return "ManualC1";
+				}
+
+				@Override
+				public String getVersion() {
+					return "R1";
+				}
+			};
+			taskID = getNewTaksIdFromInitMapping(taskMappingInit, taskInitializationData);
+		}
+		return taskID;
+
+	}
+
