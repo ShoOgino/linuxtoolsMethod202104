@@ -1,5 +1,5 @@
 	@Test
-	public void testGetTaskAssignee() throws Exception {
+	public void testGetTaskLabels() throws Exception {
 		TestData testData = new TestData();
 		TestUtils.initSpaces(requestProvider, testData);
 		OSIORestClient client = connector.getClient(repository, requestProvider);
@@ -14,18 +14,20 @@
 		location.setProperty(IOSIORestConstants.REPOSITORY_AUTH_ID, "user");
 		location.setProperty(IOSIORestConstants.REPOSITORY_AUTH_TOKEN, "xxxxxxTokenxxxxxx");
 
-		OSIORestGetTaskAssignee data = new OSIORestGetTaskAssignee(client.getClient(), "USER-0001", taskData);
+		OSIORestGetTaskLabels data = new OSIORestGetTaskLabels(client.getClient(), testData.spaceMap.get("mywork"), taskData);
 		
 		String bundleLocation = Activator.getContext().getBundle().getLocation();
 		int index = bundleLocation.indexOf('/');
-		String fileName = bundleLocation.substring(index) + "/testjson/assignee.data";
+		String fileName = bundleLocation.substring(index) + "/testjson/labels.data";
 		FileReader in = new FileReader(fileName);
 		TaskAttribute original = taskData.getRoot().getAttribute(OSIORestTaskSchema.getDefault().ASSIGNEES.getKey());
 		assertTrue(original == null || original.getValues().isEmpty());
 		TaskAttribute attribute = data.testParseFromJson(in);
-		assertEquals(1, attribute.getValues().size());
-		assertEquals(1,  original.getValues().size());
+		assertEquals(2, attribute.getValues().size());
+		assertEquals(0,  original.getValues().size());
 		
-		assertEquals("user", original.getValue());
+		List<String> values = attribute.getValues();
+		assertEquals("Label1", values.get(0));
+		assertEquals("Label2", values.get(1));
 	}
 

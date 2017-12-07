@@ -1,31 +1,30 @@
 	@Test
-	public void testGetTaskAssignee() throws Exception {
-		TestData testData = new TestData();
-		TestUtils.initSpaces(requestProvider, testData);
+	public void testGetAuthUser() throws Exception {
+		TestData spaceData = new TestData();
+		TestUtils.initSpaces(requestProvider, spaceData);
 		OSIORestClient client = connector.getClient(repository, requestProvider);
 		AbstractTaskDataHandler taskDataHandler = connector.getTaskDataHandler();
 		TaskAttributeMapper mapper = taskDataHandler.getAttributeMapper(repository);
 		TaskData taskData = new TaskData(mapper, repository.getConnectorKind(), repository.getRepositoryUrl(), "");
 		OSIORestTaskSchema.getDefault().initialize(taskData);
 		OSIORestConfiguration config = client.getConfiguration(repository, new NullOperationMonitor());
-		config.setSpaces(testData.spaceMap);
+		config.setSpaces(spaceData.spaceMap);
 		connector.setConfiguration(config);
 		RepositoryLocation location = client.getClient().getLocation();
 		location.setProperty(IOSIORestConstants.REPOSITORY_AUTH_ID, "user");
 		location.setProperty(IOSIORestConstants.REPOSITORY_AUTH_TOKEN, "xxxxxxTokenxxxxxx");
 
-		OSIORestGetTaskAssignee data = new OSIORestGetTaskAssignee(client.getClient(), "USER-0001", taskData);
+		taskData.getRoot().getAttribute(OSIORestTaskSchema.getDefault().CREATOR_ID.getKey()).setValue("USER-0001");
+		OSIORestGetTaskCreator data = new OSIORestGetTaskCreator(client.getClient(), taskData);
 		
 		String bundleLocation = Activator.getContext().getBundle().getLocation();
 		int index = bundleLocation.indexOf('/');
-		String fileName = bundleLocation.substring(index) + "/testjson/assignee.data";
+		String fileName = bundleLocation.substring(index) + "/testjson/user.data";
 		FileReader in = new FileReader(fileName);
-		TaskAttribute original = taskData.getRoot().getAttribute(OSIORestTaskSchema.getDefault().ASSIGNEES.getKey());
-		assertTrue(original == null || original.getValues().isEmpty());
-		TaskAttribute attribute = data.testParseFromJson(in);
-		assertEquals(1, attribute.getValues().size());
-		assertEquals(1,  original.getValues().size());
+		TaskAttribute attr = data.testParseFromJson(in);
 		
-		assertEquals("user", original.getValue());
+		assertEquals(OSIORestTaskSchema.getDefault().CREATOR.getKey(), attr.getId());
+		assertEquals("User 1", attr.getValue());
+		
 	}
 
