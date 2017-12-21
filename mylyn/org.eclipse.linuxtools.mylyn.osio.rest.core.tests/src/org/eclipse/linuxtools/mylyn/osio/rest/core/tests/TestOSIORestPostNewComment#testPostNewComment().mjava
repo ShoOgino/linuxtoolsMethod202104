@@ -1,0 +1,34 @@
+	@Test
+	public void testPostNewComment() throws Exception {
+		TestData testData = new TestData();
+		TestUtils.initSpaces(requestProvider, testData);
+		OSIORestClient client = connector.getClient(repository, requestProvider);
+		OSIORestConfiguration config = client.getConfiguration(repository, new NullOperationMonitor());
+		config.setSpaces(testData.spaceMap);
+		connector.setConfiguration(config);
+		RepositoryLocation location = client.getClient().getLocation();
+		location.setProperty(IOSIORestConstants.REPOSITORY_AUTH_ID, "user");
+		location.setProperty(IOSIORestConstants.REPOSITORY_AUTH_TOKEN, "xxxxxxTokenxxxxxx");
+		
+		AbstractTaskDataHandler taskDataHandler = connector.getTaskDataHandler();
+		TaskAttributeMapper mapper = taskDataHandler.getAttributeMapper(repository);
+		TaskData taskData = new TaskData(mapper, repository.getConnectorKind(), repository.getRepositoryUrl(), "");
+		OSIORestTaskSchema.getDefault().initialize(taskData);
+
+		Set<TaskAttribute> attributes = new LinkedHashSet<>();
+		TaskAttribute newComment = taskData.getRoot().getAttribute(OSIORestTaskSchema.getDefault().NEW_COMMENT.getKey());
+		newComment.setValue("This is a test comment");
+		attributes.add(newComment);
+		
+		OSIORestPostNewCommentTask data = new OSIORestPostNewCommentTask(client.getClient(), taskData, attributes);
+		
+		OSIORestPostNewCommentTask.TaskAttributeTypeAdapter adapter = data.new TaskAttributeTypeAdapter(location);
+		OSIORestPostNewCommentTask.OldAttributes oldAttributes = data.new OldAttributes(attributes);
+		StringWriter s = new StringWriter();
+		JsonWriter writer = new JsonWriter(s);
+		
+		adapter.write(writer, oldAttributes);
+		
+		assertEquals("{\"data\":{\"attributes\":{\"body\":\"This is a test comment\",\"markup\":\"Markdown\"},\"type\":\"comments\"},\"included\":[]}",s.getBuffer().toString());
+	}
+

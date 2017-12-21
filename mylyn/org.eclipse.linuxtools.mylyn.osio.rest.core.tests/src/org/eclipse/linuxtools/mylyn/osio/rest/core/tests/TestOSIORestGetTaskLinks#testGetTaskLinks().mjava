@@ -1,5 +1,5 @@
 	@Test
-	public void testGetTaskLabels() throws Exception {
+	public void testGetTaskLinks() throws Exception {
 		TestData testData = new TestData();
 		TestUtils.initSpaces(requestProvider, testData);
 		OSIORestClient client = connector.getClient(repository, requestProvider);
@@ -13,20 +13,27 @@
 		RepositoryLocation location = client.getClient().getLocation();
 		location.setProperty(IOSIORestConstants.REPOSITORY_AUTH_ID, "user");
 		location.setProperty(IOSIORestConstants.REPOSITORY_AUTH_TOKEN, "xxxxxxTokenxxxxxx");
-
-		OSIORestGetTaskLabels data = new OSIORestGetTaskLabels(client.getClient(), testData.spaceMap.get("mywork"), taskData);
+		WorkItem workitem = initWorkItem("1", "WORKITEM-0001", "SPACE-0001", "Task 1");
+		WorkItem workitem2 = initWorkItem("2", "WORKITEM-0002", "SPACE-0001", "Task 2");
+		WorkItem workitem3 = initWorkItem("3", "WORKITEM-0003", "SPACE-0001", "Task 3");
+		requestProvider.addGetRequest("/workitems/WORKITEM-0001", workitem);
+		requestProvider.addGetRequest("/workitems/WORKITEM-0002", workitem2);
+		requestProvider.addGetRequest("/workitems/WORKITEM-0003", workitem3);
+		taskData.getRoot().getAttribute(OSIORestTaskSchema.getDefault().UUID.getKey()).setValue("WORKITEM-0001");
+		
+		OSIORestGetTaskLinks data = new OSIORestGetTaskLinks(client.getClient(), client, testData.spaceMap.get("mywork"), taskData, config);
 		
 		String bundleLocation = Activator.getContext().getBundle().getLocation();
 		int index = bundleLocation.indexOf('/');
-		String fileName = bundleLocation.substring(index) + "/testjson/labels.data";
+		String fileName = bundleLocation.substring(index) + "/testjson/links.data";
 		FileReader in = new FileReader(fileName);
-		TaskAttribute original = taskData.getRoot().getAttribute(OSIORestTaskSchema.getDefault().LABELS.getKey());
+		TaskAttribute original = taskData.getRoot().getAttribute(OSIORestTaskSchema.getDefault().LINKS.getKey());
 		assertTrue(original == null || original.getValues().isEmpty());
 		TaskAttribute attribute = data.testParseFromJson(in);
 		assertEquals(2, attribute.getValues().size());
 		
 		List<String> values = attribute.getValues();
-		assertEquals("Label1", values.get(0));
-		assertEquals("Label2", values.get(1));
+		assertEquals("blocks Task 2 [user/mywork#2]", values.get(0));
+		assertEquals("is blocked by Task 3 [user/mywork#3]", values.get(1));
 	}
 

@@ -1,0 +1,28 @@
+	@Test
+	public void testPostNewLabel() throws Exception {
+		TestData testData = new TestData();
+		TestUtils.initSpaces(requestProvider, testData);
+		OSIORestClient client = connector.getClient(repository, requestProvider);
+		OSIORestConfiguration config = client.getConfiguration(repository, new NullOperationMonitor());
+		config.setSpaces(testData.spaceMap);
+		connector.setConfiguration(config);
+		RepositoryLocation location = client.getClient().getLocation();
+		location.setProperty(IOSIORestConstants.REPOSITORY_AUTH_ID, "user");
+		location.setProperty(IOSIORestConstants.REPOSITORY_AUTH_TOKEN, "xxxxxxTokenxxxxxx");
+		
+		AbstractTaskDataHandler taskDataHandler = connector.getTaskDataHandler();
+		TaskAttributeMapper mapper = taskDataHandler.getAttributeMapper(repository);
+		TaskData taskData = new TaskData(mapper, repository.getConnectorKind(), repository.getRepositoryUrl(), "");
+		OSIORestTaskSchema.getDefault().initialize(taskData);
+
+		OSIORestPostNewLabelTask data = new OSIORestPostNewLabelTask(client.getClient(), testData.spaceMap.get("mywork"), "NewLabel");
+		
+		OSIORestPostNewLabelTask.TaskAttributeTypeAdapter adapter = data.new TaskAttributeTypeAdapter();
+		StringWriter s = new StringWriter();
+		JsonWriter writer = new JsonWriter(s);
+		
+		adapter.write(writer, "NewLabel");
+		
+		assertEquals("{\"data\":{\"attributes\":{\"name\":\"NewLabel\",\"background-color\":\"#f9d67a\",\"border-color\":\"#f39d3c\"},\"type\":\"labels\"},\"included\":[]}",s.getBuffer().toString());
+	}
+
