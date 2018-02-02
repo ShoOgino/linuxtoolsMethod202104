@@ -12,13 +12,14 @@
 				containerId = ((DockerConnection) connection)
 						.createContainer(config, hostConfig, null);
 				for (String volume : remoteVolumes.keySet()) {
-					try {
+					try (Closeable token = ((DockerConnection) connection)
+							.getOperationToken()) {
 						monitor.setTaskName(Messages.getFormattedString(
 								COPY_VOLUMES_FROM_TASK, volume));
 						monitor.worked(1);
 
 						InputStream in = ((DockerConnection) connection)
-								.copyContainer(containerId,
+								.copyContainer(token, containerId,
 										remoteVolumes.get(volume));
 
 						/*
@@ -27,8 +28,7 @@
 						 * stream that is guaranteed to block until data is
 						 * available.
 						 */
-						TarArchiveInputStream k = new TarArchiveInputStream(
-								new BlockingInputStream(in));
+						TarArchiveInputStream k = new TarArchiveInputStream(in);
 						TarArchiveEntry te = null;
 						IPath currDir = new Path(volume).removeLastSegments(1);
 						currDir.toFile().mkdirs();
