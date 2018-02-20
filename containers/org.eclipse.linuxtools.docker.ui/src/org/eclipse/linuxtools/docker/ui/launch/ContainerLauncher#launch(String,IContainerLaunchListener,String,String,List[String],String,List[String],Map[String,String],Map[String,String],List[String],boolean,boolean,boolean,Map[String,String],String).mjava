@@ -1,0 +1,414 @@
+	/**
+	 * Perform a launch of a command in a container and output stdout/stderr to
+	 * console.
+	 * 
+	 * @param id
+	 *            - id of caller to use to distinguish console owner
+	 * @param listener
+	 *            - optional listener of the run console
+	 * @param connectionUri
+	 *            - the specified connection to use
+	 * @param image
+	 *            - the image to use
+	 * @param cmdList
+	 *            - command to run as list of String
+	 * @param workingDir
+	 *            - working directory or null
+	 * @param additionalDirs
+	 *            - additional directories to mount or null
+	 * @param origEnv
+	 *            - original environment if we are appending to our existing
+	 *            environment
+	 * @param envMap
+	 *            - map of environment variable settings
+	 * @param ports
+	 *            - ports to expose
+	 * @param keep
+	 *            - keep container after running
+	 * @param stdinSupport
+	 *            - true if stdin support is required, false otherwise
+	 * @param privilegedMode
+	 *            - true if privileged mode is required, false otherwise
+	 * @param labels
+	 *            - Map of labels for the container
+	 * @param seccomp
+	 *            - seccomp profile
+	 * @since 4.0
+	 */
+	public void launch(String id, IContainerLaunchListener listener,
+			final String connectionUri, String image, List<String> cmdList,
+			String workingDir, List<String> additionalDirs,
+			Map<String, String> origEnv, Map<String, String> envMap,
+			List<String> ports, boolean keep, boolean stdinSupport,
+			boolean privilegedMode, Map<String, String> labels,
+			String seccomp) {
+
+		final String LAUNCH_TITLE = "ContainerLaunch.title"; //$NON-NLS-1$
+		final String LAUNCH_EXITED_TITLE = "ContainerLaunchExited.title"; //$NON-NLS-1$
+
+		final List<String> env = new ArrayList<>();
+		env.addAll(toList(origEnv));
+		env.addAll(toList(envMap));
+
+		final Set<String> exposedPorts = new HashSet<>();
+		final Map<String, List<IDockerPortBinding>> portBindingsMap = new HashMap<>();
+
+		if (ports != null) {
+			for (String port : ports) {
+				port = port.trim();
+				if (port.length() > 0) {
+					String[] segments = port.split(":"); //$NON-NLS-1$
+					if (segments.length == 1) { // containerPort
+						exposedPorts.add(segments[0]);
+						portBindingsMap
+								.put(segments[0],
+										Arrays.asList((IDockerPortBinding) new DockerPortBinding(
+												"", ""))); //$NON-NLS-1$ //$NON-NLS-2$
+					} else if (segments.length == 2) { // hostPort:containerPort
+						exposedPorts.add(segments[1]);
+						portBindingsMap
+								.put(segments[1],
+										Arrays.asList((IDockerPortBinding) new DockerPortBinding(
+												"", segments[0]))); //$NON-NLS-1$ //$NON-NLS-2$
+					} else if (segments.length == 3) { // either
+						// ip:hostPort:containerPort
+						// or ip::containerPort
+						exposedPorts.add(segments[1]);
+						if (segments[1].isEmpty()) {
+							portBindingsMap
+									.put(segments[2],
+											Arrays.asList((IDockerPortBinding) new DockerPortBinding(
+													"", segments[0]))); //$NON-NLS-1$ //$NON-NLS-2$
+						} else {
+							portBindingsMap
+									.put(segments[2],
+											Arrays.asList((IDockerPortBinding) new DockerPortBinding(
+													segments[0], segments[1]))); //$NON-NLS-1$ //$NON-NLS-2$
+						}
+					}
+				}
+			}
+
+		}
+
+		// Note we only pass volumes to the config if we have a
+		// remote daemon. Local mounted volumes are passed
+		// via the HostConfig binds setting
+
+		DockerContainerConfig.Builder builder = new DockerContainerConfig.Builder()
+				.openStdin(stdinSupport)
+				.cmd(cmdList)
+				.image(image)
+				.workingDir(workingDir);
+
+		// Ugly hack...we want CDT gdbserver to run in the terminal so we look
+		// for its
+		// ContainerListener class and set tty=true in that case...this avoids a
+		// minor release and we can later add a new launch method with the tty
+		// option
+		if (listener != null && listener.getClass().getName().equals(
+				"org.eclipse.cdt.internal.docker.launcher.ContainerLaunchConfigurationDelegate$StartGdbServerJob")) {
+			builder = builder.tty(true);
+		}
+
+		// add any exposed ports as needed
+		if (exposedPorts.size() > 0)
+			builder = builder.exposedPorts(exposedPorts);
+
+		// add any labels if specified
+		if (labels != null)
+			builder = builder.labels(labels);
+
+		if (!DockerConnectionManager.getInstance().hasConnections()) {
+			Display.getDefault()
+					.syncExec(() -> MessageDialog.openError(
+							PlatformUI.getWorkbench().getActiveWorkbenchWindow()
+									.getShell(),
+							DVMessages.getString(ERROR_LAUNCHING_CONTAINER),
+							DVMessages.getString(ERROR_NO_CONNECTIONS)));
+			return;
+		}
+
+		// Try and use the specified connection that was used before,
+		// otherwise, open an error
+		final IDockerConnection connection = DockerConnectionManager
+				.getInstance().getConnectionByUri(connectionUri);
+		if (connection == null) {
+			Display.getDefault()
+					.syncExec(() -> MessageDialog.openError(
+							PlatformUI.getWorkbench().getActiveWorkbenchWindow()
+									.getShell(),
+							DVMessages.getString(ERROR_LAUNCHING_CONTAINER),
+							DVMessages.getFormattedString(
+									ERROR_NO_CONNECTION_WITH_URI,
+									connectionUri)));
+			return;
+		}
+
+		// if connection is not open, force it to be by fetching images
+		if (!connection.isOpen()) {
+			connection.getImages();
+		}
+
+		DockerHostConfig.Builder hostBuilder = new DockerHostConfig.Builder()
+				.privileged(privilegedMode);
+
+		// specify seccomp profile if caller has provided one - needed to use
+		// ptrace with gdbserver
+		if (seccomp != null) {
+			hostBuilder.securityOpt(seccomp);
+		}
+
+
+		final Map<String, String> remoteVolumes = new HashMap<>();
+		if (!((DockerConnection) connection).isLocal()) {
+			final Set<String> volumes = new HashSet<>();
+			// if using remote daemon, we have to
+			// handle volume mounting differently.
+			// Instead we mount empty volumes and copy
+			// the host data over before starting.
+			if (additionalDirs != null) {
+				for (String dir : additionalDirs) {
+					remoteVolumes.put(dir, dir);
+					volumes.add(dir);
+				}
+			}
+			if (workingDir != null) {
+				remoteVolumes.put(workingDir, workingDir); // $NON-NLS-1$
+				volumes.add(workingDir);
+			}
+			builder = builder.volumes(volumes);
+		} else {
+			// Running daemon on local host.
+			// Add mounts for any directories we need to run the executable.
+			// When we add mount points, we need entries of the form:
+			// hostname:mountname:Z.
+			// In our case, we want all directories mounted as-is so the
+			// executable will run as the user expects.
+			final List<String> volumes = new ArrayList<>();
+			if (additionalDirs != null) {
+				for (String dir : additionalDirs) {
+					volumes.add(dir + ":" + dir + ":Z"); //$NON-NLS-1$ //$NON-NLS-2$
+				}
+			}
+			if (workingDir != null) {
+				volumes.add(workingDir + ":" + workingDir + ":Z"); //$NON-NLS-1$ //$NON-NLS-2$
+			}
+			hostBuilder = hostBuilder.binds(volumes);
+		}
+
+		final DockerContainerConfig config = builder.build();
+
+		// add any port bindings if specified
+		if (portBindingsMap.size() > 0)
+			hostBuilder = hostBuilder.portBindings(portBindingsMap);
+
+		final IDockerHostConfig hostConfig = hostBuilder.build();
+
+		final String imageName = image;
+		final boolean keepContainer = keep;
+		final String consoleId = id;
+		final IContainerLaunchListener containerListener = listener;
+
+		Thread t = new Thread(() -> {
+			// create the container
+			String containerId = null;
+			try {
+				containerId = ((DockerConnection) connection)
+						.createContainer(config, hostConfig, null);
+				if (!((DockerConnection) connection).isLocal()) {
+					// if daemon is remote, we need to copy
+					// data over from the host.
+					if (!remoteVolumes.isEmpty()) {
+						CopyVolumesJob job = new CopyVolumesJob(remoteVolumes,
+								connection, containerId);
+						job.schedule();
+						job.join();
+						if (job.getResult() != Status.OK_STATUS)
+							return;
+					}
+				}
+				if (config.tty()) {
+					// We need tty support to handle issue with Docker daemon
+					// not always outputting in time (e.g. we might get an
+					// output line after the process has exited which can be
+					// too late to show or it might get displayed in a wrong
+					// order in relation to other output. We also want the
+					// output to ultimately show up in the Console View.
+					OutputStream stream = null;
+					RunConsole oldConsole = getConsole();
+					final RunConsole rc = RunConsole.findConsole(containerId,
+							consoleId);
+					setConsole(rc);
+					rc.clearConsole();
+					if (oldConsole != null)
+						RunConsole.removeConsole(oldConsole);
+					Display.getDefault().syncExec(() -> rc.setTitle(Messages
+							.getFormattedString(LAUNCH_TITLE, new String[] {
+									cmdList.get(0), imageName })));
+					if (rc != null) {
+						stream = rc.getOutputStream();
+					}
+
+					// We want terminal support, but we want to output to the
+					// RunConsole.
+					// To do this, we create a DockerConsoleOutputStream which
+					// we
+					// hook into the TM Terminal via stdout and stderr output
+					// listeners.
+					// These listeners will output to the
+					// DockerConsoleOutputStream which
+					// will in turn output to the RunConsole. See
+					// DockerConnection.openTerminal().
+					DockerConsoleOutputStream out = new DockerConsoleOutputStream(
+							stream);
+					RunConsole.attachToTerminal(connection, containerId, out);
+					if (containerListener != null) {
+						out.addConsoleListener(new RunConsoleListenerBridge(
+								containerListener));
+					}
+					((DockerConnection) connection).startContainer(containerId,
+							null, null);
+					IDockerContainerInfo info = ((DockerConnection) connection)
+							.getContainerInfo(containerId);
+					if (containerListener != null) {
+						containerListener.containerInfo(info);
+					}
+					// Wait for the container to finish
+					final IDockerContainerExit status = ((DockerConnection) connection)
+							.waitForContainer(containerId);
+					Display.getDefault().syncExec(() -> {
+						rc.setTitle(
+								Messages.getFormattedString(LAUNCH_EXITED_TITLE,
+										new String[] {
+												status.statusCode().toString(),
+												cmdList.get(0), imageName }));
+						rc.showConsole();
+						// We used a TM Terminal to receive the output of the
+						// session and
+						// then sent the output to the RunConsole. Remove the
+						// terminal
+						// tab that got created now that we are finished and all
+						// data is shown
+						// in Console View.
+						IWorkbenchPage page = PlatformUI.getWorkbench()
+								.getActiveWorkbenchWindow().getActivePage();
+						IViewPart terminalView = page.findView(
+								"org.eclipse.tm.terminal.view.ui.TerminalsView");
+						CTabFolder ctabfolder = terminalView
+								.getAdapter(CTabFolder.class);
+						if (ctabfolder != null) {
+							CTabItem[] items = ctabfolder.getItems();
+							for (CTabItem item : items) {
+								if (item.getText().endsWith(info.name())) {
+									item.dispose();
+									break;
+								}
+							}
+						 }
+					});
+					// Let any container listener know that the container is
+					// finished
+					if (containerListener != null)
+						containerListener.done();
+
+					if (!keepContainer) {
+						((DockerConnection) connection)
+								.removeContainer(containerId);
+					}
+				} else {
+					OutputStream stream = null;
+					RunConsole oldConsole = getConsole();
+					final RunConsole rc = RunConsole.findConsole(containerId,
+							consoleId);
+					setConsole(rc);
+					rc.clearConsole();
+					if (oldConsole != null)
+						RunConsole.removeConsole(oldConsole);
+					Display.getDefault().syncExec(() -> rc.setTitle(Messages
+							.getFormattedString(LAUNCH_TITLE, new String[] {
+									cmdList.get(0), imageName })));
+					// if (!rc.isAttached()) {
+					rc.attachToConsole(connection, containerId);
+					// }
+					if (rc != null) {
+						stream = rc.getOutputStream();
+						if (containerListener != null) {
+							((ConsoleOutputStream) stream)
+									.addConsoleListener(containerListener);
+						}
+					}
+					// Create a unique logging thread id which has container id
+					// and console id
+					String loggingId = containerId + "." + consoleId;
+					((DockerConnection) connection).startContainer(containerId,
+							loggingId, stream);
+					if (rc != null)
+						rc.showConsole();
+					if (containerListener != null) {
+						IDockerContainerInfo info = ((DockerConnection) connection)
+								.getContainerInfo(containerId);
+						containerListener.containerInfo(info);
+					}
+
+					// Wait for the container to finish
+					final IDockerContainerExit status = ((DockerConnection) connection)
+							.waitForContainer(containerId);
+					Display.getDefault().syncExec(() -> {
+						rc.setTitle(
+								Messages.getFormattedString(LAUNCH_EXITED_TITLE,
+										new String[] {
+												status.statusCode().toString(),
+												cmdList.get(0), imageName }));
+						rc.showConsole();
+					});
+
+					// Let any container listener know that the container is
+					// finished
+					if (containerListener != null)
+						containerListener.done();
+
+					if (!keepContainer) {
+						// Drain the logging thread before we remove the
+						// container (we need to use the logging id)
+						Thread.sleep(1000);
+						((DockerConnection) connection)
+								.stopLoggingThread(loggingId);
+						// Look for any Display Log console that the user may
+						// have opened which would be
+						// separate and make sure it is removed as well
+						RunConsole rc2 = RunConsole
+								.findConsole(((DockerConnection) connection)
+										.getContainer(containerId));
+						if (rc2 != null)
+							RunConsole.removeConsole(rc2);
+						((DockerConnection) connection)
+								.removeContainer(containerId);
+					}
+				}
+
+			} catch (final DockerException e2) {
+				// error in creation, try and remove Container if possible
+				if (!keepContainer && containerId != null) {
+					try {
+						((DockerConnection) connection)
+								.removeContainer(containerId);
+					} catch (DockerException | InterruptedException e1) {
+						// ignore exception
+					}
+				}
+				Display.getDefault().syncExec(() -> MessageDialog.openError(
+						PlatformUI.getWorkbench().getActiveWorkbenchWindow()
+								.getShell(),
+						DVMessages.getFormattedString(ERROR_CREATING_CONTAINER,
+								imageName),
+						e2.getMessage()));
+			} catch (InterruptedException e3) {
+				// for now
+				// do nothing
+			}
+			((DockerConnection) connection).getContainers(true);
+		});
+		t.start();
+	}
+
