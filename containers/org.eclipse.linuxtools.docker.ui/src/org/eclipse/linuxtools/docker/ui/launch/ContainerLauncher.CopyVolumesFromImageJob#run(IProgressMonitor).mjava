@@ -56,6 +56,17 @@
 				boolean somethingToCopy = false;
 				synchronized (lockObject) {
 					for (String volume : volumes) {
+						boolean excluded = false;
+						for (String dir : excludedDirs) {
+							if (volume.startsWith(dir) && volume.charAt(
+									dir.length()) == File.separatorChar) {
+								excluded = true;
+								break;
+							}
+						}
+						if (excluded) {
+							continue;
+						}
 						boolean alreadyCopied = false;
 						for (String path : dirList) {
 							if (volume.equals(path) || (volume.startsWith(path)
@@ -101,6 +112,16 @@
 						monitor.worked(1);
 						continue;
 					}
+					// don't copy directories that are excluded
+					for (String dir : excludedDirs) {
+						if (volume.equals(dir)
+								|| (volume.startsWith(dir) && volume.charAt(
+										dir.length()) == File.separatorChar)) {
+							monitor.worked(1);
+							continue;
+						}
+
+					}
 					// if we have already copied the directory either directly
 					// or as part of a parent directory copy, then skip to next
 					// volume.
@@ -111,6 +132,9 @@
 									&& volume.charAt(path
 											.length()) == File.separatorChar)) {
 								alreadyCopied = path;
+								if (!dirList.contains(volume)) {
+									dirList.add(volume);
+								}
 								break;
 							}
 						}
@@ -234,8 +258,7 @@
 						// do something so synchronization will occur
 						synchronized (lockObject) {
 							if (!dirList.contains(copiedVolume)) {
-								return Status.CANCEL_STATUS; // should never
-																// happen
+								dirList.add(copiedVolume);
 							}
 						}
 					}

@@ -1,6 +1,5 @@
 	/**
 	 * Fetch directories from Container and place them in a specified location.
-	 * This method will wait for copy job to complete before returning.
 	 * 
 	 * @param connectionUri
 	 *            - uri of connection to use
@@ -8,14 +7,16 @@
 	 *            - name of image to use
 	 * @param containerDirs
 	 *            - list of directories to copy
+	 * @param excludedDirs
+	 *            - list of directories not to copy
 	 * @param hostDir
 	 *            - host directory to copy directories to
 	 * @return 0 if successful, -1 if failure occurred
 	 * 
 	 * @since 4.0
 	 */
-	public int fetchContainerDirsSync(String connectionUri, String imageName,
-			List<String> containerDirs, IPath hostDir) {
+	public int fetchContainerDirs(String connectionUri, String imageName,
+			List<String> containerDirs, List<String> excludedDirs, IPath hostDir) {
 		// Try and use the specified connection that was used before,
 		// otherwise, open an error
 		final IDockerConnection connection = DockerConnectionManager
@@ -33,13 +34,8 @@
 		}
 
 		CopyVolumesFromImageJob job = new CopyVolumesFromImageJob(connection,
-				imageName, containerDirs, new ArrayList<String>(), hostDir);
+				imageName, containerDirs, excludedDirs, hostDir);
 		job.schedule();
-		try {
-			job.join();
-		} catch (InterruptedException e) {
-			return -1;
-		}
 		return 0;
 	}
 

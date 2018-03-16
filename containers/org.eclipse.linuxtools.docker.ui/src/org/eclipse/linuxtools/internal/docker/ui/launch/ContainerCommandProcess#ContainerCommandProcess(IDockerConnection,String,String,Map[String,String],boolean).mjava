@@ -15,14 +15,20 @@
 			PipedOutputStream pipedErr = null;
 			try (PipedOutputStream pipedStdout = new PipedOutputStream(stdout);
 					PipedOutputStream pipedStderr = new PipedOutputStream(
-							stderr)) {
+							stderr);
+					Closeable token = ((DockerConnection) connection)
+							.getOperationToken()) {
 				pipedOut = pipedStdout;
 				pipedErr = pipedStderr;
-				connection.attachLog(containerId, pipedStdout, pipedStderr);
+				connection.startContainer(containerId, null);
+				threadStarted = true;
+				((DockerConnection) connection).attachLog(token, containerId,
+						pipedStdout, pipedStderr);
 				pipedStdout.flush();
 				pipedStderr.flush();
 			} catch (DockerException | InterruptedException | IOException e) {
 				// do nothing but flush/close output streams
+				e.printStackTrace();
 				if (pipedOut != null) {
 					try {
 						pipedOut.flush();
@@ -37,12 +43,22 @@
 						// ignore
 					}
 				}
+			} finally {
+				threadDone = true;
 			}
-			done = true;
 		};
 
 		// start the thread
 		this.thread = new Thread(logContainer);
 		this.thread.start();
+		// ensure we have piped streams set up before allowing exit of
+		// constructor
+		while (!threadStarted && !threadDone) {
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				// do nothing
+			}
+		}
 	}
 

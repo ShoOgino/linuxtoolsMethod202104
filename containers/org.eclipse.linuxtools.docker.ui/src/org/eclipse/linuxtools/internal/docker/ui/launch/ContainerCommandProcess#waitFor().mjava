@@ -1,25 +1,39 @@
 	@Override
-	public int waitFor() throws InterruptedException {
+	public synchronized int waitFor() throws InterruptedException {
+		if (done) {
+			return 0;
+		}
 		try {
-			if (!done) {
-				while (!thread.isAlive() && !done) {
+			if (!threadDone) {
+				while (!threadStarted) {
 					Thread.sleep(200);
 				}
 			}
 			IDockerContainerExit exit = connection
 					.waitForContainer(containerId);
-			thread.interrupt();
-			int count = 0;
-			while (thread.isAlive() && count++ < 5) {
+			done = true;
+			// give logging thread at most 5 seconds to finish
+			int i = 0;
+			while (!threadDone && i++ < 10) {
+				Thread.sleep(500);
+			}
+			if (!threadDone) {
+				// we are stuck
 				try {
-					Thread.sleep(500);
-					thread.interrupt();
-				} catch (InterruptedException e) {
-					// ignore
+					Activator.logWarningMessage(
+							LaunchMessages.getFormattedString(
+									"ContainerLoggingNotResponding.msg", //$NON-NLS-1$
+									containerId.substring(0, 8)));
+					this.stdout.close();
+					this.stderr.close();
+				} catch (IOException e) {
+					// do nothing
 				}
 			}
-			connection.stopLoggingThread(containerId);
-			if (!keepContainer) {
+			if (!containerRemoved) {
+				connection.stopLoggingThread(containerId);
+			}
+			if (!containerRemoved && !keepContainer) {
 				exitValue = exitValue();
 				containerRemoved = true;
 				connection.removeContainer(containerId);
