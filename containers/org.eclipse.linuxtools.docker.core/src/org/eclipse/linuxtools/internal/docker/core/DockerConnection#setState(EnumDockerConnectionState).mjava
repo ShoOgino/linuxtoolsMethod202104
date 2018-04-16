@@ -1,4 +1,5 @@
 	public void setState(final EnumDockerConnectionState state) {
+		EnumDockerConnectionState oldState = this.state;
 		this.state = state;
 		switch (state) {
 		case UNKNOWN:
@@ -12,12 +13,20 @@
 			}
 			notifyContainerListeners(this.containers);
 			notifyImageListeners(this.images);
+			if (oldState == EnumDockerConnectionState.ESTABLISHED) {
+				DockerConnectionManager.getInstance().notifyListeners(this,
+						IDockerConnectionManagerListener.DISABLE_EVENT);
+			}
 			break;
 		case ESTABLISHED:
 			this.getContainers(true);
 			this.getImages(true);
 			notifyContainerListeners(this.containers);
 			notifyImageListeners(this.images);
+			if (oldState != EnumDockerConnectionState.ESTABLISHED) {
+				DockerConnectionManager.getInstance().notifyListeners(this,
+						IDockerConnectionManagerListener.ENABLE_EVENT);
+			}
 			break;
 		}
 	}
