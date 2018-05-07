@@ -9,6 +9,7 @@
 	 */
 	public static void runImage(final IDockerImage image,
 			final IDockerContainerConfig containerConfig,
+			final ILaunch launch,
 			final IDockerHostConfig hostConfig, final String containerName,
 			final boolean removeWhenExits) {
 		final IDockerConnection connection = image.getConnection();
@@ -58,14 +59,21 @@
 					startContainerMonitor.beginTask(DVMessages
 							.getString("RunImageStartingContainerTask.msg"), 1); //$NON-NLS-1$
 					console = getRunConsole(connection,	container);
+					OutputStream outputStream = null;
 					if (console != null) {
 						// if we are auto-logging, show the console
 						console.showConsole();
-						((DockerConnection) connection).startContainer(
-								containerId, console.getOutputStream());
-					} else {
-						((DockerConnection) connection)
-								.startContainer(containerId, null);
+						outputStream = console.getOutputStream();
+					}
+					// Start the Container and create a process we can wrap with
+					// a RuntimeProcess and set into the ILaunch
+					ContainerCommandProcess commandProcess = new ContainerCommandProcess(
+							connection, container.image(), containerId,
+							outputStream, null,
+							true);
+					if (launch != null) {
+						new RuntimeProcess(launch, commandProcess,
+								container.name(), null);
 					}
 					startContainerMonitor.done();
 					// create a launch configuration from the container
