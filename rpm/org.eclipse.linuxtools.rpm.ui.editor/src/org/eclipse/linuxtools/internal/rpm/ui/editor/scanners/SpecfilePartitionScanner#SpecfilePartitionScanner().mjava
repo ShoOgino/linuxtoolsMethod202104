@@ -1,44 +1,42 @@
-    public SpecfilePartitionScanner() {
-        super();
+	public SpecfilePartitionScanner() {
+		super();
 
-        IToken specPrep = new Token(SPEC_PREP);
-        IToken specScript = new Token(SPEC_SCRIPT);
-        IToken specFiles = new Token(SPEC_FILES);
-        IToken specChangelog = new Token(SPEC_CHANGELOG);
-        IToken specPackages = new Token(SPEC_PACKAGES);
-        IToken specGroup = new Token(SPEC_GROUP);
+		IToken specPrep = new Token(SPEC_PREP);
+		IToken specScript = new Token(SPEC_SCRIPT);
+		IToken specFiles = new Token(SPEC_FILES);
+		IToken specChangelog = new Token(SPEC_CHANGELOG);
+		IToken specPackages = new Token(SPEC_PACKAGES);
+		IToken specGroup = new Token(SPEC_GROUP);
 
-        List<IRule> rules = new ArrayList<>();
+		List<IRule> rules = new ArrayList<>();
 
-        // RPM packages
-        for (String packageTag : SpecfilePackagesScanner.PACKAGES_TAGS) {
-            rules.add(new SingleLineRule(packageTag, "", specPackages, (char)0 , true));         //$NON-NLS-1$
-        }
+		// RPM packages
+		for (String packageTag : SpecfilePackagesScanner.PACKAGES_TAGS) {
+			rules.add(new SingleLineRule(packageTag, "", specPackages, (char) 0, true)); //$NON-NLS-1$
+		}
 
-        // %prep
-        rules.add(new SectionRule(PREP_SECTION, new String[] { BUILD_SECTION }, specPrep));
+		// %prep
+		rules.add(new SectionRule(PREP_SECTION, new String[] { BUILD_SECTION }, specPrep));
 
-        // %changelog
-        rules.add(new MultiLineRule(RpmSections.CHANGELOG_SECTION, "", specChangelog, (char)0 , true)); //$NON-NLS-1$
+		// %changelog
+		rules.add(new MultiLineRule(RpmSections.CHANGELOG_SECTION, "", specChangelog, (char) 0, true)); //$NON-NLS-1$
 
-        // "%build", "%install", "%pre", "%preun", "%post", "%postun"
-        for (String sectionHeader : SECTION_HEADERS) {
-            rules.add(new SectionRule(sectionHeader, SECTION_ENDING_HEADERS, specScript));
-        }
+		// "%build", "%install", "%pre", "%preun", "%post", "%postun"
+		for (String sectionHeader : SECTION_HEADERS) {
+			rules.add(new SectionRule(sectionHeader, SECTION_ENDING_HEADERS, specScript));
+		}
 
-        // comments
-        rules.add(new CommentRule(specScript));
+		// comments
+		rules.add(new CommentRule(specScript));
 
-        // group tag
-        rules.add(new EndOfLineRule("Group:", specGroup)); //$NON-NLS-1$
+		// group tag
+		rules.add(new EndOfLineRule("Group:", specGroup)); //$NON-NLS-1$
 
+		// %files
+		rules.add(new SectionRule(FILES_SECTION, new String[] { FILES_SECTION, CHANGELOG_SECTION }, specFiles));
 
-        // %files
-        rules.add(new SectionRule(FILES_SECTION, new String[] { FILES_SECTION,
-                CHANGELOG_SECTION }, specFiles));
-
-        IPredicateRule[] result= new IPredicateRule[rules.size()];
-        rules.toArray(result);
-        setPredicateRules(result);
-    }
+		IPredicateRule[] result = new IPredicateRule[rules.size()];
+		rules.toArray(result);
+		setPredicateRules(result);
+	}
 

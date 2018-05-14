@@ -1,89 +1,84 @@
-    @Override
-    public IHyperlink[] detectHyperlinks(ITextViewer textViewer,
-            IRegion region, boolean canShowMultipleHyperlinks) {
+	@Override
+	public IHyperlink[] detectHyperlinks(ITextViewer textViewer, IRegion region, boolean canShowMultipleHyperlinks) {
 
-        if (region == null || textViewer == null) {
-            return null;
-        }
+		if (region == null || textViewer == null) {
+			return null;
+		}
 
-        IDocument document = textViewer.getDocument();
-        if (document == null) {
-            return null;
-        }
+		IDocument document = textViewer.getDocument();
+		if (document == null) {
+			return null;
+		}
 
-        // Keeps the errorHandler on the initial opening of the .spec file
-        // otherwise, a new SpecfileParser does not initialize errorHandler
-        // until a SpecfileEditor#editorSaved is called
-        if (specfile == null) {
+		// Keeps the errorHandler on the initial opening of the .spec file
+		// otherwise, a new SpecfileParser does not initialize errorHandler
+		// until a SpecfileEditor#editorSaved is called
+		if (specfile == null) {
 			SpecfileEditor a = this.getAdapter(SpecfileEditor.class);
-            if (a != null && a.getSpecfile() != null) {
-                specfile = a.getSpecfile();
-            } else {
-                SpecfileParser parser = new SpecfileParser();
-                specfile = parser.parse(document);
-            }
-        }
+			if (a != null && a.getSpecfile() != null) {
+				specfile = a.getSpecfile();
+			} else {
+				SpecfileParser parser = new SpecfileParser();
+				specfile = parser.parse(document);
+			}
+		}
 
-        int offset = region.getOffset();
+		int offset = region.getOffset();
 
-        IRegion lineInfo;
-        String line;
-        try {
-            lineInfo = document.getLineInformationOfOffset(offset);
-            line = document.get(lineInfo.getOffset(), lineInfo.getLength());
-        } catch (BadLocationException ex) {
-            return null;
-        }
+		IRegion lineInfo;
+		String line;
+		try {
+			lineInfo = document.getLineInformationOfOffset(offset);
+			line = document.get(lineInfo.getOffset(), lineInfo.getLength());
+		} catch (BadLocationException ex) {
+			return null;
+		}
 
-        int offsetInLine = offset - lineInfo.getOffset();
+		int offsetInLine = offset - lineInfo.getOffset();
 
-        StringTokenizer tokens = new StringTokenizer(line);
-        String word = ""; //$NON-NLS-1$
-        int tempLineOffset = 0;
-        int wordOffsetInLine = 0;
-        while (tokens.hasMoreTokens()) {
-            String tempWord = tokens.nextToken();
-            Pattern defineRegexp = Pattern.compile("%\\{(.*?)\\}"); //$NON-NLS-1$
-            Matcher fit = defineRegexp.matcher(tempWord);
-            while (fit.find()){
-                if ((fit.start()+tempLineOffset <= offsetInLine) && (offsetInLine <= fit.end()+tempLineOffset)){
-                    tempWord = fit.group();
-                    wordOffsetInLine = fit.start();
-                    tempLineOffset += fit.start();
-                    break;
-                }
-            }
-            tempLineOffset += tempWord.length();
-            word = tempWord;
-            if (tempLineOffset > offsetInLine) {
-                break;
-            }
-        }
-        if (word.startsWith(SOURCE_IDENTIFIER)) {
-            int sourceNumber = Integer.valueOf(
-                    word.substring(SOURCE_IDENTIFIER.length(),
-                            word.length() - 1)).intValue();
-            SpecfileSource source = specfile.getSource(sourceNumber);
-            if (source != null) {
-                return prepareHyperlink(lineInfo, line, word, source);
-            }
-        } else if (word.startsWith(PATCH_IDENTIFIER)) {
+		StringTokenizer tokens = new StringTokenizer(line);
+		String word = ""; //$NON-NLS-1$
+		int tempLineOffset = 0;
+		int wordOffsetInLine = 0;
+		while (tokens.hasMoreTokens()) {
+			String tempWord = tokens.nextToken();
+			Pattern defineRegexp = Pattern.compile("%\\{(.*?)\\}"); //$NON-NLS-1$
+			Matcher fit = defineRegexp.matcher(tempWord);
+			while (fit.find()) {
+				if ((fit.start() + tempLineOffset <= offsetInLine) && (offsetInLine <= fit.end() + tempLineOffset)) {
+					tempWord = fit.group();
+					wordOffsetInLine = fit.start();
+					tempLineOffset += fit.start();
+					break;
+				}
+			}
+			tempLineOffset += tempWord.length();
+			word = tempWord;
+			if (tempLineOffset > offsetInLine) {
+				break;
+			}
+		}
+		if (word.startsWith(SOURCE_IDENTIFIER)) {
+			int sourceNumber = Integer.valueOf(word.substring(SOURCE_IDENTIFIER.length(), word.length() - 1))
+					.intValue();
+			SpecfileSource source = specfile.getSource(sourceNumber);
+			if (source != null) {
+				return prepareHyperlink(lineInfo, line, word, source);
+			}
+		} else if (word.startsWith(PATCH_IDENTIFIER)) {
 
-            int sourceNumber = Integer.valueOf(
-                    word.substring(PATCH_IDENTIFIER.length(), word.length()))
-                    .intValue();
-            SpecfileSource source = specfile.getPatch(sourceNumber);
-            if (source != null) {
-                return prepareHyperlink(lineInfo, line, word, source);
-            }
-        } else {
-            String defineName = getDefineName(word);
-            SpecfileDefine define = specfile.getDefine(defineName);
-            if (define != null) {
-                return prepareHyperlink(lineInfo, line, defineName, define,
-                        wordOffsetInLine);
-            }
-        }
-        return null;
-    }
+			int sourceNumber = Integer.valueOf(word.substring(PATCH_IDENTIFIER.length(), word.length())).intValue();
+			SpecfileSource source = specfile.getPatch(sourceNumber);
+			if (source != null) {
+				return prepareHyperlink(lineInfo, line, word, source);
+			}
+		} else {
+			String defineName = getDefineName(word);
+			SpecfileDefine define = specfile.getDefine(defineName);
+			if (define != null) {
+				return prepareHyperlink(lineInfo, line, defineName, define, wordOffsetInLine);
+			}
+		}
+		return null;
+	}
 

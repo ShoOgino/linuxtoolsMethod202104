@@ -1,98 +1,94 @@
-    /**
-     * Parse a given rpmlint <code>InputStream</code>
-     *
-     * @param rpmlint
-     *            <code>InputStream</code> to parse.
-     * @return a <code>RpmlintItem</code> ArrayList.
-     */
-    private static List<RpmlintItem> parseRpmlintOutput(BufferedInputStream in) {
-        RpmlintItem item = new RpmlintItem();
-        ArrayList<RpmlintItem> rpmlintItems = new ArrayList<>();
-        LineNumberReader reader = new LineNumberReader(
-                new InputStreamReader(in));
-        String line;
-        boolean isFirtItemLine = true;
-        String[] lineItems;
-        String description = EMPTY_STRING;
-        try {
-            while ((line = reader.readLine()) != null) {
-                if (isFirtItemLine) {
-                    isFirtItemLine = false;
-                    lineItems = line.split(COLON, 4);
-                    item.setFileName(lineItems[0]);
-                    int lineNbr;
+	/**
+	 * Parse a given rpmlint <code>InputStream</code>
+	 *
+	 * @param rpmlint <code>InputStream</code> to parse.
+	 * @return a <code>RpmlintItem</code> ArrayList.
+	 */
+	private static List<RpmlintItem> parseRpmlintOutput(BufferedInputStream in) {
+		RpmlintItem item = new RpmlintItem();
+		ArrayList<RpmlintItem> rpmlintItems = new ArrayList<>();
+		LineNumberReader reader = new LineNumberReader(new InputStreamReader(in));
+		String line;
+		boolean isFirtItemLine = true;
+		String[] lineItems;
+		String description = EMPTY_STRING;
+		try {
+			while ((line = reader.readLine()) != null) {
+				if (isFirtItemLine) {
+					isFirtItemLine = false;
+					lineItems = line.split(COLON, 4);
+					item.setFileName(lineItems[0]);
+					int lineNbr;
 
-                    // FIXME: last rpmlint version (0.83) contain a summary
-                    // line at the bottom of it output, so if we
-                    // detected this line we can safely return rpmlintItems,
-                    // maybe we can find a better way to detect this line.
-                    try {
-                        Integer.parseInt(line.split(SPACE)[0]);
-                        return rpmlintItems;
-                    } catch (NumberFormatException e) {
-                        // this line is not the summary
-                    }
+					// FIXME: last rpmlint version (0.83) contain a summary
+					// line at the bottom of it output, so if we
+					// detected this line we can safely return rpmlintItems,
+					// maybe we can find a better way to detect this line.
+					try {
+						Integer.parseInt(line.split(SPACE)[0]);
+						return rpmlintItems;
+					} catch (NumberFormatException e) {
+						// this line is not the summary
+					}
 
-                    // TODO: ask rpmlint upstream to display always the same
-                    // output.
-                    // at the moment the line number is not always displayed.
-                    // If the same output is always used, all the workarounds
-                    // for the line number can be
-                    // removed.
-                    try {
-                        lineNbr = Integer.parseInt(lineItems[1]);
-                        item.setSeverity(lineItems[2]);
-                        lineItems = lineItems[3].trim().split(SPACE, 2);
-                    } catch (NumberFormatException e) {
-                        // No line number showed for this rpmlint warning.
-                        lineItems = line.split(COLON, 3);
-                        lineNbr = -1;
-                        item.setSeverity(lineItems[1]);
-                        lineItems = lineItems[2].trim().split(SPACE, 2);
-                    }
-                    item.setLineNbr(lineNbr);
-                    item.setId(lineItems[0]);
-                    if (lineItems.length > 1) {
-                        // Maybe this error occur when rpmlint execute 'rpm -q
-                        // --qf=
-                        // --specfile file.spec' command
-                        RpmlintItem tmpItem = parseRpmOutput(item, lineItems[1]);
-                        if (tmpItem == null) {
-                            item.setRefferedContent(lineItems[1]);
-                        } else {
-                            item = tmpItem;
-                        }
-                    } else {
-                        item.setRefferedContent(EMPTY_STRING);
-                    }
-                } else {
-                    description += line + '\n';
-                }
+					// TODO: ask rpmlint upstream to display always the same
+					// output.
+					// at the moment the line number is not always displayed.
+					// If the same output is always used, all the workarounds
+					// for the line number can be
+					// removed.
+					try {
+						lineNbr = Integer.parseInt(lineItems[1]);
+						item.setSeverity(lineItems[2]);
+						lineItems = lineItems[3].trim().split(SPACE, 2);
+					} catch (NumberFormatException e) {
+						// No line number showed for this rpmlint warning.
+						lineItems = line.split(COLON, 3);
+						lineNbr = -1;
+						item.setSeverity(lineItems[1]);
+						lineItems = lineItems[2].trim().split(SPACE, 2);
+					}
+					item.setLineNbr(lineNbr);
+					item.setId(lineItems[0]);
+					if (lineItems.length > 1) {
+						// Maybe this error occur when rpmlint execute 'rpm -q
+						// --qf=
+						// --specfile file.spec' command
+						RpmlintItem tmpItem = parseRpmOutput(item, lineItems[1]);
+						if (tmpItem == null) {
+							item.setRefferedContent(lineItems[1]);
+						} else {
+							item = tmpItem;
+						}
+					} else {
+						item.setRefferedContent(EMPTY_STRING);
+					}
+				} else {
+					description += line + '\n';
+				}
 
-                if (line.equals(EMPTY_STRING)) {
-                    if (item.getMessage() == null) {
-                        item.setMessage(description.substring(0,
-                                description.length() - 2));
-                    }
-                    int useOfTabsAndSpaces = getMixedUseOfTabsAndSpaces(item
-                            .getRefferedContent());
-                    if (useOfTabsAndSpaces != -1) {
-                        item.setLineNbr(useOfTabsAndSpaces);
-                    }
-                    rpmlintItems.add(item);
-                    item = new RpmlintItem();
+				if (line.equals(EMPTY_STRING)) {
+					if (item.getMessage() == null) {
+						item.setMessage(description.substring(0, description.length() - 2));
+					}
+					int useOfTabsAndSpaces = getMixedUseOfTabsAndSpaces(item.getRefferedContent());
+					if (useOfTabsAndSpaces != -1) {
+						item.setLineNbr(useOfTabsAndSpaces);
+					}
+					rpmlintItems.add(item);
+					item = new RpmlintItem();
 
-                    // Reinitialize parser for the next item
-                    isFirtItemLine = true;
-                    description = EMPTY_STRING;
-                }
+					// Reinitialize parser for the next item
+					isFirtItemLine = true;
+					description = EMPTY_STRING;
+				}
 
-            }
-            // Close the input stream
-            in.close();
-        } catch (IOException e) {
-            RpmlintLog.logError(e);
-        }
-        return rpmlintItems;
-    }
+			}
+			// Close the input stream
+			in.close();
+		} catch (IOException e) {
+			RpmlintLog.logError(e);
+		}
+		return rpmlintItems;
+	}
 

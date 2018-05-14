@@ -1,49 +1,42 @@
-    /**
-     * Tries to open the given file name looking for it in the current directory
-     * and in ../SOURCES.
-     *
-     * @see org.eclipse.jface.text.hyperlink.IHyperlink#open()
-     */
-    @Override
-    public void open() {
-        IContainer container = original.getParent();
-        IResource saveFolder = container.getParent().findMember(
-                IRPMConstants.SOURCES_FOLDER);
-        if (saveFolder == null) {
-            saveFolder = container.findMember(original.getFullPath()
-                    .removeLastSegments(1));
-        }
-        if (saveFolder == null) {
-            saveFolder = container.findMember("/"); //$NON-NLS-1$
-        }
-        try {
-            URL url = new URL(fileName);
-            URLConnection connection = url.openConnection();
-            String savedFileName = fileName
-                    .substring(fileName.lastIndexOf('/') + 1);
-            IFile savedFile = original.getProject().getFile(
-                    saveFolder.getProjectRelativePath().append(savedFileName));
-            if (savedFile.exists()) {
-                MessageBox mb = new MessageBox(Display.getCurrent()
-                        .getActiveShell(), SWT.ICON_QUESTION | SWT.OK
-                        | SWT.CANCEL);
-                mb.setText(Messages.SourcesFileDownloadHyperlink_0);
-                mb.setMessage(NLS.bind(Messages.SourcesFileDownloadHyperlink_1,
-                        savedFileName));
-                int rc = mb.open();
-                if (rc == SWT.OK) {
-                    new DownloadJob(savedFile, connection).schedule();
-                }
+	/**
+	 * Tries to open the given file name looking for it in the current directory and
+	 * in ../SOURCES.
+	 *
+	 * @see org.eclipse.jface.text.hyperlink.IHyperlink#open()
+	 */
+	@Override
+	public void open() {
+		IContainer container = original.getParent();
+		IResource saveFolder = container.getParent().findMember(IRPMConstants.SOURCES_FOLDER);
+		if (saveFolder == null) {
+			saveFolder = container.findMember(original.getFullPath().removeLastSegments(1));
+		}
+		if (saveFolder == null) {
+			saveFolder = container.findMember("/"); //$NON-NLS-1$
+		}
+		try {
+			URL url = new URL(fileName);
+			URLConnection connection = url.openConnection();
+			String savedFileName = fileName.substring(fileName.lastIndexOf('/') + 1);
+			IFile savedFile = original.getProject().getFile(saveFolder.getProjectRelativePath().append(savedFileName));
+			if (savedFile.exists()) {
+				MessageBox mb = new MessageBox(Display.getCurrent().getActiveShell(),
+						SWT.ICON_QUESTION | SWT.OK | SWT.CANCEL);
+				mb.setText(Messages.SourcesFileDownloadHyperlink_0);
+				mb.setMessage(NLS.bind(Messages.SourcesFileDownloadHyperlink_1, savedFileName));
+				int rc = mb.open();
+				if (rc == SWT.OK) {
+					new DownloadJob(savedFile, connection).schedule();
+				}
 
-            } else {
-                new DownloadJob(savedFile, connection).schedule();
-            }
-        } catch (IOException e) {
-            MessageBox mb = new MessageBox(Display.getCurrent()
-                    .getActiveShell(), SWT.ICON_WARNING | SWT.OK);
-            mb.setMessage(Messages.SourcesFileDownloadHyperlink_2);
-            mb.setText(Messages.SourcesFileDownloadHyperlink_3);
-            mb.open();
-        }
-    }
+			} else {
+				new DownloadJob(savedFile, connection).schedule();
+			}
+		} catch (IOException e) {
+			MessageBox mb = new MessageBox(Display.getCurrent().getActiveShell(), SWT.ICON_WARNING | SWT.OK);
+			mb.setMessage(Messages.SourcesFileDownloadHyperlink_2);
+			mb.setText(Messages.SourcesFileDownloadHyperlink_3);
+			mb.open();
+		}
+	}
 
