@@ -1,0 +1,90 @@
+    //FIXME EK-LINUXTOOLS: Search workspace for one binary
+    /**
+     * Searches workspace and tries to find one-and-only binary which could have
+     * created GCOV files.
+     * 	1. Look in the project where .gcda or .gcna file are registered
+     * 	2. Search workspace and list all binaries
+     * 	3. If there is only one binary found then return it
+     *
+     * @param file
+     * @return Binary path or null
+     * @since 6.0
+     */
+    public IResource findOneAndOnlyBinary(IPath file)
+    {
+        IWorkspaceRoot root = ResourcesPlugin.getWorkspace().getRoot();
+        IResource project;
+        IResource binary = null;
+
+        project = STSymbolManager.sharedInstance.getProjectFromFile(file);
+        if (project != null && project.exists())
+        {
+            ICProject cproject = (ICProject)CoreModel.getDefault().create(project);
+            if (cproject != null)
+            {
+                try
+                {
+                    IBinary[] bs = cproject.getBinaryContainer().getBinaries();
+                    if (bs.length == 1)
+                    {
+                        binary = bs[0].getResource();
+                    }
+                }
+                catch (CModelException e)
+                {
+                    String message = 
+                       "Error getting binaries for [" + cproject.toString() + "]"; //$NON-NLS-1$ //$NON-NLS-2$
+                    CCorePlugin.log(message, e);
+                }
+            }
+        }
+
+        if (binary == null)
+        {
+            /*
+             * Apparently we did not find one binary in the project
+             * where GCOV files are located.
+             * Search workspace in hopes that there will be only one binary there
+             */
+            ArrayList<IResource> binaries = new ArrayList<>();
+            IProject projects[] = root.getProjects();
+            for (IProject prj : projects)
+            {
+                ICProject cproject = CoreModel.getDefault().create(prj);
+                if (cproject != null)
+                {
+                    try
+                    {
+                        IBinary[] bs = cproject.getBinaryContainer().getBinaries();
+                        if (bs.length == 1)
+                        {
+                            /*
+                             * Validate binary. Not tested
+                             */
+                            IBinaryObject binObj =
+                                    STSymbolManager.sharedInstance.getBinaryObject(bs[0].getPath());
+                            if (binObj != null)
+                            {
+                                binaries.add(bs[0].getResource());
+                            }
+                        }
+                    }
+                    catch (CModelException e)
+                    {
+                        String message = 
+                           "Error getting binaries for [" + cproject.toString() + "]"; //$NON-NLS-1$ //$NON-NLS-2$
+                        CCorePlugin.log(message, e);
+                    }
+                }
+
+            }
+
+            if (binaries.size() == 1)
+            {
+                binary = binaries.get(0);
+            }
+        }
+
+        return (binary);
+    }
+
