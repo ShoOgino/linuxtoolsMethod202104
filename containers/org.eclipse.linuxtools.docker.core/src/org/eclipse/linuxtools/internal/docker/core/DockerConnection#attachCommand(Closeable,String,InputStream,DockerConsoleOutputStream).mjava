@@ -1,0 +1,49 @@
+	public void attachCommand(final Closeable token, final String id,
+			final InputStream in, final DockerConsoleOutputStream out)
+			throws DockerException {
+
+		final byte[] prevCmd = new byte[1024];
+		try {
+			final LogStream pty_stream = ((DockerClient) token).attachContainer(
+					id,
+					AttachParameter.STDIN, AttachParameter.STDOUT,
+					AttachParameter.STDERR, AttachParameter.STREAM,
+					AttachParameter.LOGS);
+			final IDockerContainerInfo info = getContainerInfo(id);
+			final boolean isTtyEnabled = info.config().tty();
+			final boolean isOpenStdin = info.config().openStdin();
+
+			if (isTtyEnabled) {
+				openTerminal(pty_stream, info.name(), out);
+			}
+
+			// Data from the given input stream
+			// Written to container's STDIN
+			Thread t_in = new Thread(() -> {
+				byte[] buff = new byte[1024];
+				int n;
+				try {
+					WritableByteChannel pty_out = HttpHijackWorkaround
+							.getOutputStream(pty_stream, getUri());
+					while ((n = in.read(buff)) != -1
+							&& getContainerInfo(id).state().running()) {
+						synchronized (prevCmd) {
+							pty_out.write(ByteBuffer.wrap(buff, 0, n));
+							for (int i = 0; i < prevCmd.length; i++) {
+								prevCmd[i] = buff[i];
+							}
+						}
+						buff = new byte[1024];
+					}
+				} catch (Exception e) {
+				}
+			});
+
+			if (!isTtyEnabled && isOpenStdin) {
+				t_in.start();
+			}
+		} catch (Exception e) {
+			throw new DockerException(e.getMessage(), e.getCause());
+		}
+	}
+
