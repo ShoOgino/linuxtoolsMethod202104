@@ -2,8 +2,9 @@
 	protected IStatus run(final IProgressMonitor progressMonitor) {
 		try {
 			this.progressMonitor = progressMonitor;
-			final IPath pathToDockerfile = path.addTrailingSeparator()
-					.append("Dockerfile"); //$NON-NLS-1$
+
+			final IPath pathToDockerfile = path.append(dockerfileName);
+
 			if (verifyPathToDockerfile(pathToDockerfile)) {
 				final int numberOfBuildOperations = countLines(
 						pathToDockerfile.toOSString()); // $NON-NLS-1$
@@ -29,11 +30,11 @@
 						// unique.
 						final String name = "dockerfile:" //$NON-NLS-1$
 								+ Long.toHexString(System.currentTimeMillis());
-						((DockerConnection) connection).buildImage(this.path,
-								name, this, this.buildOptions);
+						((DockerConnection) connection).buildImage(pathToDockerfile.removeLastSegments(1),
+								name, this.dockerfileName, this, this.buildOptions);
 					} else {
-						((DockerConnection) connection).buildImage(this.path,
-								this.repoName, this, this.buildOptions);
+						((DockerConnection) connection).buildImage(pathToDockerfile.removeLastSegments(1),
+								this.repoName, this.dockerfileName, this, this.buildOptions);
 					}
 					connection.getImages(true);
 				}
