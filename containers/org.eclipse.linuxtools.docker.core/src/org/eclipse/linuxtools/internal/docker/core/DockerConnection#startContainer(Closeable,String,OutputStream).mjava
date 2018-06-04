@@ -1,0 +1,43 @@
+	public void startContainer(final Closeable token, final String id,
+			final OutputStream stream)
+			throws DockerException, InterruptedException {
+		final IDockerContainerInfo containerInfo = getContainerInfo(id);
+		if (containerInfo == null) {
+			throw new DockerException(DockerMessages
+					.getFormattedString("DockerContainerNotFound.error", id)); //$NON-NLS-1$
+		}
+		try {
+			// start container
+			((DockerClient) token).startContainer(id);
+			// Log the started container if a stream is provided
+			if (stream != null && containerInfo != null
+					&& containerInfo.config() != null
+					&& !containerInfo.config().tty()) {
+				// display logs for container
+				synchronized (loggingThreads) {
+					LogThread t = loggingThreads.get(id);
+					if (t == null || !t.isAlive()) {
+						t = new LogThread(id, getClientCopy(), true);
+						loggingThreads.put(id, t);
+						t.setOutputStream(stream);
+						t.start();
+					}
+				}
+			}
+			// list of containers needs to be refreshed once the container started, to reflect it new state.
+			listContainers(); 
+		} catch (ContainerNotFoundException e) {
+			// if we get here, it means that the command failed...the actual
+			// message is buried in the throwable cause and isn't actually
+			// clearly stated so report there was a problem starting the command
+			throw new DockerException(DockerMessages.getFormattedString(
+					"DockerStartContainer.error", getCmdString(containerInfo))); //$NON-NLS-1$
+		} catch (com.spotify.docker.client.exceptions.DockerRequestException e) {
+			if (e.status() != 304) {
+				throw new DockerException(e.getMessage());
+			}
+		} catch (com.spotify.docker.client.exceptions.DockerException e) {
+			throw new DockerException(e.getMessage(), e.getCause());
+		}
+	}
+
