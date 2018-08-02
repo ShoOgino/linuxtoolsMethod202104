@@ -10,9 +10,16 @@
         List<String> l = new LinkedList<>();
         Process p = getStringsProcess(strings.getName(), strings.getArgs(), binaryPath);
         if (p == null) {
-            Status status = new Status(IStatus.ERROR, Activator.PLUGIN_ID, IStatus.ERROR,
-                    Messages.CovManager_Retrieval_Error, new IOException());
-            Activator.getDefault().getLog().log(status);
+			if (Platform.getOS().equals(Platform.OS_WIN32)) {
+				Display.getDefault().syncExec(() -> {
+					MessageDialog.openError(new Shell(), Messages.CovManager_Retrieval_Error_title,
+							Messages.CovManager_No_Strings_Windows_Error);
+				});
+			} else {
+				Status status = new Status(IStatus.ERROR, Activator.PLUGIN_ID, IStatus.ERROR,
+						Messages.CovManager_Retrieval_Error, new IOException());
+				Activator.getDefault().getLog().log(status);
+			}
             return l;
         }
         ThreadConsumer t = new ThreadConsumer(p, l);
