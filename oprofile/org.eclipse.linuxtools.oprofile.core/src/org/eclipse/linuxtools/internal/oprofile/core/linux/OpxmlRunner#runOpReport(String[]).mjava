@@ -52,8 +52,13 @@
 					errorOutput.append(s + System.getProperty("line.separator")); //$NON-NLS-1$
 				}
 				if (!errorOutput.toString().trim().equals("")) { //$NON-NLS-1$
-					OprofileCorePlugin.log(IStatus.ERROR, NLS.bind(OprofileProperties.getString("process.log.stderr"), //$NON-NLS-1$
-							"opreport", errorOutput.toString().trim())); //$NON-NLS-1$
+					// needs to be run in the ui thread otherwise swt throws invalid thread access
+					final String dialogTitle = NLS.bind(OprofileProperties.getString("process.log.stderr.dialog.title"), //$NON-NLS-1$
+							"opreport"); //$NON-NLS-1$
+					final String errorMessage = NLS.bind(OprofileProperties.getString("process.log.stderr"), //$NON-NLS-1$
+							"opreport", errorOutput.toString().trim()); //$NON-NLS-1$
+					Display.getDefault().asyncExec(() -> ErrorDialog.openError(null, dialogTitle, errorMessage,
+							new Status(IStatus.ERROR, OprofileCorePlugin.getId(), IStatus.OK, errorMessage, null)));
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
