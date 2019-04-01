@@ -10,20 +10,23 @@
 		assertTrue("Search result do not contains image:" + EXPECTED_IMAGE_NAME + "!",
 				pageOne.searchResultsContains(EXPECTED_IMAGE_NAME));
 		pageOne.next();
-
-//		new WaitUntil(new ShellIsAvailable("Progress Information"), TimePeriod.DEFAULT);
 		AbstractWait.sleep(TimePeriod.getCustom(5));
 		ImageTagSelectionPage pageTwo = new ImageTagSelectionPage(pageOne);
-		assertFalse("Search tags are empty!", pageTwo.getTags().isEmpty());
-		new WaitWhile(new JobIsRunning(), TimePeriod.LONG);
-		if (!pageTwo.tagsContains(IMAGE_TAG)) {
+		if (!mockitoIsUsed()) {
+			List<TableItem> tags = pageTwo.getTags();
+			assertFalse("Search tags are empty!", tags.isEmpty());
+			new WaitWhile(new JobIsRunning(), TimePeriod.LONG);
+			if (!pageTwo.tagsContains(IMAGE_TAG)) {
+				pageTwo.cancel();
+				new CancelButton().click();
+				fail("Search results do not contain tag: " + IMAGE_TAG + "! Page contains tags: " + tags.toString());
+			}
+			pageTwo.selectTag(IMAGE_TAG);
 			pageTwo.cancel();
-			new CancelButton().click();
-			fail("Search results do not contain tag: " + IMAGE_TAG + "!");
+		} else {
+			pageTwo.cancel();
 		}
-		pageTwo.selectTag(IMAGE_TAG);
-		pageTwo.finish();
-		new PushButton("Finish").click();
-		new WaitWhile(new JobIsRunning(), TimePeriod.VERY_LONG);
+		new PushButton("Cancel").click();
+		new WaitWhile(new JobIsRunning());
 	}
 
