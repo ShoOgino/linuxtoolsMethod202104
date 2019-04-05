@@ -9,15 +9,17 @@
 	 *            {@link IDockerConnectionManagerListener} should be notified
 	 *            about the {@link IDockerConnection} addition.
 	 */
-	public void addConnection(final IDockerConnection dockerConnection,
+	public void addConnection(
+			final IDockerConnection dockerConnection,
 			final boolean notifyListeners) {
-		if (!connections.contains(dockerConnection)) {
-			connections.add(dockerConnection);
-			saveConnections();
-			if (notifyListeners) {
-				notifyListeners(dockerConnection,
-						IDockerConnectionManagerListener.ADD_EVENT);
+		if (reloadThread != null) {
+			try {
+				reloadThread.join();
+			} catch (InterruptedException e) {
+				// do nothing
 			}
+			reloadThread = null;
 		}
+		addConnectionUnchecked(dockerConnection, notifyListeners);
 	}
 
