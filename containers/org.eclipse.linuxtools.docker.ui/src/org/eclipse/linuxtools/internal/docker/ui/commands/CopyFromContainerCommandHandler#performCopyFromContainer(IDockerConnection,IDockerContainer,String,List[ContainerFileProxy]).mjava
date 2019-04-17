@@ -6,6 +6,7 @@
 			@Override
 			protected IStatus run(final IProgressMonitor monitor) {
 				monitor.beginTask(CommandMessages.getString(COPY_FROM_CONTAINER_JOB_TASK), files.size());
+				boolean isWin = Platform.getOS().equals(Platform.OS_WIN32);
 				try (Closeable token = ((DockerConnection) connection).getOperationToken()) {
 					for (ContainerFileProxy proxy : files) {
 						if (monitor.isCanceled()) {
@@ -30,11 +31,18 @@
 									IPath path = new Path(target);
 									path = path.append(te.getName());
 									File f = new File(path.toOSString());
+									int mode = te.getMode();
 									if (te.isDirectory()) {
 										f.mkdir();
+										if (!isWin && !te.isSymbolicLink()) {
+											Files.setPosixFilePermissions(Paths.get(path.toOSString()), toPerms(mode));
+										}
 										continue;
 									} else {
 										f.createNewFile();
+										if (!isWin && !te.isSymbolicLink()) {
+											Files.setPosixFilePermissions(Paths.get(path.toOSString()), toPerms(mode));
+										}
 									}
 									try (FileOutputStream os = new FileOutputStream(f)) {
 										int bufferSize = ((int) size > 4096 ? 4096 : (int) size);

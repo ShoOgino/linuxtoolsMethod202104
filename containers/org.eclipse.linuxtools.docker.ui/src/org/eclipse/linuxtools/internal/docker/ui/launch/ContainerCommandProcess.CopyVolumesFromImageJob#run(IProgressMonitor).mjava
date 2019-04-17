@@ -1,14 +1,8 @@
 		@Override
 		protected IStatus run(final IProgressMonitor monitor) {
 			monitor.beginTask(Messages.getFormattedString(COPY_VOLUMES_FROM_DESC, imageName), remoteVolumes.size());
-			String containerId = null;
+			boolean isWin = Platform.getOS().equals(Platform.OS_WIN32);
 			try {
-				DockerContainerConfig.Builder builder = new DockerContainerConfig.Builder().cmd("/bin/sh") //$NON-NLS-1$
-						.image(imageName);
-				IDockerContainerConfig config = builder.build();
-				DockerHostConfig.Builder hostBuilder = new DockerHostConfig.Builder();
-				IDockerHostConfig hostConfig = hostBuilder.build();
-				containerId = ((DockerConnection) connection).createContainer(config, hostConfig, null);
 				for (String volume : remoteVolumes.keySet()) {
 					try (Closeable token = ((DockerConnection) connection).getOperationToken()) {
 						monitor.setTaskName(Messages.getFormattedString(COPY_VOLUMES_FROM_TASK, volume));
@@ -31,11 +25,22 @@
 								IPath path = currDir;
 								path = path.append(te.getName());
 								File f = new File(path.toOSString());
+								int mode = te.getMode();
 								if (te.isDirectory()) {
 									f.mkdir();
+									if (!isWin && !te.isSymbolicLink()) {
+										Files.setPosixFilePermissions(Paths.get(path.toOSString()), toPerms(mode));
+									}
 									continue;
 								} else {
+									// don't copy back .project file as this causes sync issues
+									if (".project".equals(te.getName())) { //$NON-NLS-1$
+										continue;
+									}
 									f.createNewFile();
+									if (!isWin && !te.isSymbolicLink()) {
+										Files.setPosixFilePermissions(Paths.get(path.toOSString()), toPerms(mode));
+									}
 								}
 								try (FileOutputStream os = new FileOutputStream(f)) {
 									int bufferSize = ((int) size > 4096 ? 4096 : (int) size);
@@ -61,16 +66,7 @@
 				// do nothing
 			} catch (IOException e) {
 				Activator.log(e);
-			} catch (DockerException e1) {
-				Activator.log(e1);
 			} finally {
-				if (containerId != null) {
-					try {
-						((DockerConnection) connection).removeContainer(containerId);
-					} catch (DockerException | InterruptedException e) {
-						// ignore
-					}
-				}
 				monitor.done();
 			}
 			return Status.OK_STATUS;

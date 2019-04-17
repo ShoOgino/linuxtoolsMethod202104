@@ -31,17 +31,18 @@
 			if (!containerRemoved) {
 				connection.stopLoggingThread(containerId);
 			}
+			if (!((DockerConnection) connection).isLocal()
+					&& remoteVolumes != null && !remoteVolumes.isEmpty()) {
+				CopyVolumesFromImageJob job = new CopyVolumesFromImageJob(
+						connection, containerId, remoteVolumes);
+				job.schedule();
+				job.join();
+				remoteVolumes.clear();
+			}
 			if (!containerRemoved && !keepContainer) {
 				exitValue = exitValue();
 				containerRemoved = true;
 				connection.removeContainer(containerId);
-			}
-			if (!((DockerConnection) connection).isLocal()
-					&& remoteVolumes != null && !remoteVolumes.isEmpty()) {
-				CopyVolumesFromImageJob job = new CopyVolumesFromImageJob(
-						connection, imageName, remoteVolumes);
-				job.schedule();
-				job.join();
 			}
 			return exit.statusCode();
 		} catch (DockerException e) {
