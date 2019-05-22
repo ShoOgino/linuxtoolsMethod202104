@@ -11,28 +11,21 @@
 			hostConfigBuilder.publishAllPorts(true);
 		} else {
 			final Map<String, List<IDockerPortBinding>> portBindings = new HashMap<>();
-			for (Iterator<ExposedPortModel> iterator = selectionModel
-					.getExposedPorts().iterator(); iterator.hasNext();) {
-				final ExposedPortModel exposedPort = iterator.next();
+			for (ExposedPortModel exposedPort : selectionModel.getExposedPorts()) {
 				// only selected Ports in the CheckboxTableViewer are exposed.
 				if (!selectionModel.getSelectedPorts().contains(exposedPort)) {
 					continue;
 				}
-				final DockerPortBinding portBinding = new DockerPortBinding(
-						exposedPort.getHostAddress(),
+				final DockerPortBinding portBinding = new DockerPortBinding(exposedPort.getHostAddress(),
 						exposedPort.getHostPort());
-				portBindings.put(
-						exposedPort.getContainerPort()
-								+ exposedPort.getPortType(),
-						Arrays.<IDockerPortBinding> asList(portBinding));
+				portBindings.put(exposedPort.getContainerPort() + exposedPort.getPortType(),
+						Arrays.<IDockerPortBinding>asList(portBinding));
 			}
 			hostConfigBuilder.portBindings(portBindings);
 		}
 		// container links
 		final List<String> links = new ArrayList<>();
-		for (Iterator<ContainerLinkModel> iterator = selectionModel.getLinks()
-				.iterator(); iterator.hasNext();) {
-			final ContainerLinkModel link = iterator.next();
+		for (ContainerLinkModel link : selectionModel.getLinks()) {
 			links.add(link.getContainerName() + ':' + link.getContainerAlias());
 		}
 		hostConfigBuilder.links(links);
@@ -40,9 +33,7 @@
 		// data volumes
 		final List<String> volumesFrom = new ArrayList<>();
 		final List<String> binds = new ArrayList<>();
-		for (Iterator<DataVolumeModel> iterator = resourcesModel
-				.getDataVolumes().iterator(); iterator.hasNext();) {
-			final DataVolumeModel dataVolume = iterator.next();
+		for (DataVolumeModel dataVolume : resourcesModel.getDataVolumes()) {
 			// only data volumes selected in the CheckBoxTableViewer are
 			// included.
 			if (!resourcesModel.getSelectedDataVolumes().contains(dataVolume)) {
@@ -51,9 +42,8 @@
 
 			switch (dataVolume.getMountType()) {
 			case HOST_FILE_SYSTEM:
-				String bind = LaunchConfigurationUtils
-						.convertToUnixPath(dataVolume.getHostPathMount())
-						+ ':' + dataVolume.getContainerPath() + ":Z"; //$NON-NLS-1$ //$NON-NLS-2$
+				String bind = LaunchConfigurationUtils.convertToUnixPath(dataVolume.getHostPathMount()) + ':'
+						+ dataVolume.getContainerPath() + ":Z"; //$NON-NLS-1$ //$NON-NLS-2$
 				if (dataVolume.isReadOnly()) {
 					bind += ",ro"; //$NON-NLS-1$
 				}
