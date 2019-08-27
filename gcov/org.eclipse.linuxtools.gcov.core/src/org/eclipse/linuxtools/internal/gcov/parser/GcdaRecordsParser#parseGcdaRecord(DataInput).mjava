@@ -100,8 +100,7 @@
                         throw new CoreException(status);
                     }
 
-                    for (int i = 0; i < fnctnBlcks.size(); i++) {
-                        Block b = fnctnBlcks.get(i);
+                    for (Block b : fnctnBlcks) {
                         int nonFakeExit = 0;
 
                         ArrayList<Arc> arcsExit = b.getExitArcs();
@@ -147,12 +146,19 @@
                 }
 
                 case GCOV_TAG_OBJECT_SYMMARY: {
-                    objSmryChksm = (stream.readInt() & MasksGenerator.UNSIGNED_INT_MASK);
-                    objSmryArcCnts = (stream.readInt() & MasksGenerator.UNSIGNED_INT_MASK);
-                    objSmryNbrPgmRuns = (stream.readInt() & MasksGenerator.UNSIGNED_INT_MASK);
-                    objSmrytotalCnts = stream.readLong();
-                    objSmryRunMax = stream.readLong();
-                    objSmrySumMax = stream.readLong();
+					if (version >= GCC_VER_900) {
+						objSmryNbrPgmRuns = (stream.readInt() & MasksGenerator.UNSIGNED_INT_MASK);
+						objSmrySumMax = (stream.readInt() & MasksGenerator.UNSIGNED_INT_MASK);
+						pgmSmryNbrPgmRuns = objSmryNbrPgmRuns > pgmSmryNbrPgmRuns ? objSmryNbrPgmRuns
+								: pgmSmryNbrPgmRuns;
+					} else {
+						objSmryChksm = (stream.readInt() & MasksGenerator.UNSIGNED_INT_MASK);
+						objSmryArcCnts = (stream.readInt() & MasksGenerator.UNSIGNED_INT_MASK);
+						objSmryNbrPgmRuns = (stream.readInt() & MasksGenerator.UNSIGNED_INT_MASK);
+						objSmrytotalCnts = stream.readLong();
+						objSmryRunMax = stream.readLong();
+						objSmrySumMax = stream.readLong();
+					}
                     break;
                 }
 
