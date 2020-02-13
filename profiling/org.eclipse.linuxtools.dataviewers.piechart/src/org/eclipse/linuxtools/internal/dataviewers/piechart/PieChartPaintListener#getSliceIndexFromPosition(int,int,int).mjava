@@ -1,0 +1,36 @@
+    /**
+     * Given a set of 2D pixel coordinates (typically those of a mouse cursor), return the
+     * index of the given pie's slice that those coordinates reside in.
+     * @param chartnum The id of the chart.
+     * @param x The x-coordinate to test.
+     * @param y The y-coordinate to test.
+     * @return The slice that contains the point with coordinates (x,y).
+     * @since 2.0
+     */
+    public int getSliceIndexFromPosition(int chartnum, int x, int y) {
+        Range range = chart.getAxisSet().getXAxis(0).getRange();
+        chartnum -= (int) range.lower;
+        if (chartnum >= pieCenters.length || chartnum < 0) {
+            return -1;
+        }
+        // Only continue if the point is inside the pie circle
+        double rad = Math.sqrt(Math.pow(pieCenters[chartnum].x - x, 2) + Math.pow(pieCenters[chartnum].y - y, 2));
+        if (2 * rad > pieWidth) {
+            return -1;
+        }
+        // Angle is relative to 12:00 position, increases clockwise
+        double angle = Math.acos((pieCenters[chartnum].y - y) / rad) / Math.PI * 180.0;
+        if (x - pieCenters[chartnum].x < 0) {
+            angle = 360 - angle;
+        }
+        if (pieSliceAngles[chartnum].length == 0 || angle < pieSliceAngles[chartnum][0]) {
+            return 0;
+        }
+        for (int s = 0; s < pieSliceAngles[chartnum].length - 1; s++) {
+            if (pieSliceAngles[chartnum][s] <= angle && angle < pieSliceAngles[chartnum][s+1]) {
+                return s + 1;
+            }
+        }
+        return pieSliceAngles[chartnum].length;
+    }
+
