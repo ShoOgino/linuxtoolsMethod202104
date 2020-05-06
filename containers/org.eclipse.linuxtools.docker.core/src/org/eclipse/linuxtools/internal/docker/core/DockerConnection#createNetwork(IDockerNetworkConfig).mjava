@@ -4,21 +4,23 @@
 		try {
 			Ipam.Builder ipamBuilder = Ipam.builder()
 					.driver(cfg.ipam().driver());
-			List<IDockerIpamConfig> ipamCfgs = cfg.ipam().config();
-			for (IDockerIpamConfig ipamCfg : ipamCfgs) {
-				ipamBuilder = ipamBuilder.config(ipamCfg.subnet(),
-						ipamCfg.ipRange(), ipamCfg.gateway());
+			List<IDockerIpamConfig> idockerIpamCfgs = cfg.ipam().config();
+			List<IpamConfig> ipamCfgs = new ArrayList<>();
+			for (IDockerIpamConfig ipamCfg : idockerIpamCfgs) {
+				ipamCfgs.add(IpamConfig.create(ipamCfg.subnet(),
+						ipamCfg.ipRange(), ipamCfg.gateway()));
 			}
+			ipamBuilder = ipamBuilder.config(ipamCfgs);
 			Ipam ipam = ipamBuilder.build();
 			NetworkConfig.Builder networkConfigBuilder = NetworkConfig.builder()
 					.name(cfg.name()).driver(cfg.driver()).ipam(ipam);
 			networkConfigBuilder.options(cfg.options());
 			NetworkConfig networkConfig = networkConfigBuilder.build();
-			com.spotify.docker.client.messages.NetworkCreation creation = client
+			org.mandas.docker.client.messages.NetworkCreation creation = client
 					.createNetwork(networkConfig);
 			return new DockerNetworkCreation(creation);
 
-		} catch (com.spotify.docker.client.exceptions.DockerException e) {
+		} catch (org.mandas.docker.client.exceptions.DockerException e) {
 			throw new DockerException(e.getMessage(), e.getCause());
 		}
 	}
