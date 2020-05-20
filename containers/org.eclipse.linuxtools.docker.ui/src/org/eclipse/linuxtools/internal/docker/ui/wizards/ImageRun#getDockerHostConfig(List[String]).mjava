@@ -1,4 +1,4 @@
-	public IDockerHostConfig getDockerHostConfig() {
+	public IDockerHostConfig getDockerHostConfig(List<String> unusedPorts) {
 		final ImageRunSelectionModel selectionModel = this.imageRunSelectionPage
 				.getModel();
 		final ImageRunResourceVolumesVariablesModel resourcesModel = this.imageRunResourceVolumesPage
@@ -7,6 +7,7 @@
 				.getModel();
 
 		final DockerHostConfig.Builder hostConfigBuilder = new DockerHostConfig.Builder();
+
 		if (selectionModel.isPublishAllPorts()) {
 			hostConfigBuilder.publishAllPorts(true);
 		} else {
@@ -14,6 +15,17 @@
 			for (ExposedPortModel exposedPort : selectionModel.getExposedPorts()) {
 				// only selected Ports in the CheckboxTableViewer are exposed.
 				if (!selectionModel.getSelectedPorts().contains(exposedPort)) {
+					StringBuilder b = new StringBuilder();
+					b.append(exposedPort.getContainerPort());
+					b.append("/");
+					b.append(exposedPort.getPortType());
+					b.append(":"); //$NON-NLS-1$
+					if (exposedPort.getHostAddress() != null) {
+						b.append(exposedPort.getHostAddress());
+					}
+					b.append(":"); //$NON-NLS-1$
+					b.append(exposedPort.getHostPort());
+					unusedPorts.add(b.toString());
 					continue;
 				}
 				final DockerPortBinding portBinding = new DockerPortBinding(exposedPort.getHostAddress(),

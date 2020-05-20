@@ -23,17 +23,26 @@
 				final List<String> exposedPortInfos = lastLaunchConfiguration
 						.getAttribute(PUBLISHED_PORTS,
 								Collections.<String> emptyList());
+				final List<String> unusedPortInfos = lastLaunchConfiguration.getAttribute(UNUSED_PORTS,
+						Collections.<String>emptyList());
 				// FIXME: handle the case where ports where added (and selected)
 				// by the user.
 				if (selectedImageInfo != null) {
-					final List<ExposedPortModel> exposedPorts = ExposedPortModel
-							.fromStrings(
-									selectedImageInfo.config().exposedPorts());
-					model.setExposedPorts(exposedPorts);
-					final List<ExposedPortModel> selectedExposedPorts = ExposedPortModel
-							.fromStrings(exposedPortInfos);
-					this.model.setSelectedPorts(
-							new HashSet<>(selectedExposedPorts));
+					if (exposedPortInfos.isEmpty()) {
+						final List<ExposedPortModel> exposedPorts = ExposedPortModel
+								.fromStrings(selectedImageInfo.config().exposedPorts());
+						model.setExposedPorts(exposedPorts);
+						this.model.setSelectedPorts(new HashSet<>(exposedPorts));
+					} else {
+						final List<ExposedPortModel> exposedPorts = ExposedPortModel.fromStrings(exposedPortInfos);
+						model.setExposedPorts(exposedPorts);
+						this.model.setSelectedPorts(new HashSet<>(exposedPorts));
+					}
+					for (String port : unusedPortInfos) {
+						ExposedPortModel portModel = ExposedPortModel.fromString(port);
+						portModel.setSelected(false);
+						model.addExposedPort(portModel);
+					}
 				}
 
 				// links
