@@ -20,15 +20,21 @@
 				// just make sure that the dialog cannot complete
 				return ValidationStatus.error(null);
 			}
-			final IDockerContainerInfo selectedContainerInfo = container.info();
+			final IDockerContainerInfo2 selectedContainerInfo = (IDockerContainerInfo2) container.info();
 			if (selectedContainerInfo != null && selectedContainerInfo.mounts() != null
 					&& model.getContainerPath() != null) {
-				for (ContainerMount mount : selectedContainerInfo.mounts()) {
+				boolean shouldWarn = true;
+				for (IDockerContainerMount mount : selectedContainerInfo.mounts()) {
 					if (model.getContainerPath().equals(mount.source())) {
-						return ValidationStatus
-								.warning(WizardMessages.getFormattedString("ContainerDataVolumeDialog.volumeWarning", //$NON-NLS-1$
-										model.getContainerPath()));
+						shouldWarn = false;
+						break;
 					}
+				}
+				if (shouldWarn) {
+					return ValidationStatus
+							.warning(WizardMessages.getFormattedString("ContainerDataVolumeDialog.volumeWarning", //$NON-NLS-1$
+									model.getContainerPath()));
+
 				}
 			}
 		}
