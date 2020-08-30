@@ -2,29 +2,28 @@
 			List<ContainerFileProxy> childList) {
 		if (line.trim().startsWith("total")) //$NON-NLS-1$
 			return; // ignore the total line
-		String[] token = line.split("\\s+"); //$NON-NLS-1$
+		String[] token = tokenize(line);
 		boolean isDirectory = token[0].startsWith("d"); //$NON-NLS-1$
 		boolean isLink = token[0].startsWith("l"); //$NON-NLS-1$
 		if (token.length > 8) {
-			// last token depends on whether we have a link or not
-			String link = null;
+			// Non-Link ends with "filename"
+			// Link ends with "filename" -> "Target"
+			String name = token[token.length - (isLink ? 3 : 1)];
+			// remove quotes and any indicator char
+			name = name.substring(1,
+					name.length() - (name.endsWith("\"") ? 1 : 2));
+
 			if (isLink) {
 				String linkname = token[token.length - 1];
 				if (linkname.endsWith("/")) { //$NON-NLS-1$
-					linkname = linkname.substring(0, linkname.length() - 1);
 					isDirectory = true;
 				}
-				IPath linkPath = new Path(path);
-				linkPath = linkPath.append(linkname);
-				link = linkPath.toString();
-				String name = token[token.length - 3];
+				linkname = linkname.substring(1,
+						linkname.length() - (linkname.endsWith("\"") ? 1 : 2));
+
 				childList.add(new ContainerFileProxy(path, name, isDirectory,
-						isLink, link));
+						isLink, linkname));
 			} else {
-				String name = token[token.length - 1];
-				// remove quotes and any indicator char
-				name = name.substring(1,
-						name.length() - (name.endsWith("\"") ? 1 : 2));
 				childList.add(new ContainerFileProxy(path, name, isDirectory));
 			}
 		}
