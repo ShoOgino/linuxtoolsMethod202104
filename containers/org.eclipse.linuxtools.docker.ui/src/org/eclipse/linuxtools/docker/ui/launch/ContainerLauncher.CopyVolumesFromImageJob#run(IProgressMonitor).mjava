@@ -155,6 +155,8 @@
 
 							InputStream in = ((DockerConnection) connection).copyContainer(token, containerId, volume);
 
+							Map<String, String> links = new HashMap<>();
+
 							synchronized (lockObject) {
 								if (!dirList.contains(volume)) {
 									dirList.add(volume);
@@ -199,14 +201,22 @@
 										int bufferSize = ((int) size > 4096 ? 4096 : (int) size);
 										byte[] barray = new byte[bufferSize];
 										int result = -1;
-										while ((result = k.read(barray, 0, bufferSize)) > -1) {
-											if (monitor.isCanceled()) {
-												monitor.done();
-												k.close();
-												os.close();
-												return Status.CANCEL_STATUS;
+										if (size == 0 && te.isSymbolicLink()) {
+											IPath linkPath = new Path(te.getLinkName());
+											if (!linkPath.isAbsolute()) {
+												linkPath = new Path(volume).append(te.getLinkName());
 											}
-											os.write(barray, 0, result);
+											links.put(te.getName(), linkPath.toPortableString());
+										} else {
+											while ((result = k.read(barray, 0, bufferSize)) > -1) {
+												if (monitor.isCanceled()) {
+													monitor.done();
+													k.close();
+													os.close();
+													return Status.CANCEL_STATUS;
+												}
+												os.write(barray, 0, result);
+											}
 										}
 									}
 								}
@@ -214,6 +224,41 @@
 							// remove from copying list so subsequent jobs might
 							// know that the volume
 							// is fully copied
+							for (String name : links.keySet()) {
+								String link = links.get(name);
+								InputStream in2 = ((DockerConnection) connection).copyContainer(token, containerId,
+										link);
+								/*
+								 * The input stream from copyContainer might be incomplete or non-blocking so we
+								 * should wrap it in a stream that is guaranteed to block until data is
+								 * available.
+								 */
+								try (TarArchiveInputStream k = new TarArchiveInputStream(
+										new BlockingInputStream(in2))) {
+									TarArchiveEntry te = k.getNextTarEntry();
+									if (te != null) {
+										long size = te.getSize();
+										IPath currDir = target.append(volume).removeLastSegments(1);
+										IPath path = currDir.append(name);
+										File f = new File(path.toOSString());
+										f.createNewFile();
+										try (FileOutputStream os = new FileOutputStream(f)) {
+											int bufferSize = ((int) size > 4096 ? 4096 : (int) size);
+											byte[] barray = new byte[bufferSize];
+											int result = -1;
+											while ((result = k.read(barray, 0, bufferSize)) > -1) {
+												if (monitor.isCanceled()) {
+													monitor.done();
+													k.close();
+													os.close();
+													return Status.CANCEL_STATUS;
+												}
+												os.write(barray, 0, result);
+											}
+										}
+									}
+								}
+							}
 							synchronized (lockObject) {
 								copyingList.remove(currentVolume);
 							}
