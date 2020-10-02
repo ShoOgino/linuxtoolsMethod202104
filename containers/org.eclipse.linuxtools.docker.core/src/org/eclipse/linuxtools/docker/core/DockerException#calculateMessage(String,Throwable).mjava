@@ -1,0 +1,35 @@
+	static private String calculateMessage(final String message, final Throwable cause) {
+		Throwable dre = cause;
+		// Search for DockerRequestException
+		while (dre != null && !(dre instanceof DockerRequestException)) {
+			dre = dre.getCause();
+		}
+
+		// Handle DockerRequestException
+		if (dre != null) {
+			// Bug 499917 - temporarily massage any message we get back from
+			// docker client if it is in JSON format. This code can be removed
+			// once docker client has fixed itself to work with error messages
+			// from docker 1.12.0 and beyond.
+			DockerRequestException re = (DockerRequestException) dre;
+			String s = re.getResponseBody();
+			if (s.startsWith(JSON_MESSAGE_PREFIX)) {
+				s = s.substring(JSON_MESSAGE_PREFIX.length());
+				s = s.replaceAll(JSON_MESSAGE_SUFFIX, ""); //$NON-NLS-1$
+				if (message != null) {
+					return message + "; " + s;
+				} else {
+					return s;
+				}
+			}
+		}
+
+		// As it's not possible to select the super-constructor Throwable's
+		// behavior must be simulated
+		if ((message == null) && (cause != null)) {
+			return cause.toString();
+		} else {
+			return message;
+		}
+	}
+
